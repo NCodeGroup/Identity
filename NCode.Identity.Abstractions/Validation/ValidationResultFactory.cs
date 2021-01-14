@@ -8,10 +8,10 @@ namespace NCode.Identity.Validation
         ValidationResult Error(IErrorDetails errorDetails);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        ValidationResult<TValue> Success<TValue>(TValue value);
+        ValidationResult<TValue> Error<TValue>(IErrorDetails errorDetails);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        ValidationResult<TValue> Error<TValue>(IErrorDetails errorDetails);
+        ValidationResult<TValue> Success<TValue>(TValue value);
     }
 
     public class ValidationResultFactory : IValidationResultFactory
@@ -20,9 +20,9 @@ namespace NCode.Identity.Validation
         public ValidationResult Error(IErrorDetails errorDetails) => new(errorDetails);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult<TValue> Success<TValue>(TValue value) => new(value);
+        public ValidationResult<TValue> Error<TValue>(IErrorDetails errorDetails) => new(errorDetails);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult<TValue> Error<TValue>(IErrorDetails errorDetails) => new(errorDetails);
+        public ValidationResult<TValue> Success<TValue>(TValue value) => new(value);
     }
 }

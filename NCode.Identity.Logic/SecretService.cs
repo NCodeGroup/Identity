@@ -1,10 +1,9 @@
-using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using NCode.Identity.Contracts;
-using NCode.Identity.Repository.DataContracts;
+using Microsoft.IdentityModel.Tokens;
+using NCode.Identity.DataContracts;
 
 /*
 
@@ -50,17 +49,10 @@ public static class SecurityAlgorithms
 namespace NCode.Identity.Logic
 {
     /// <summary />
-    public interface ISecretService
-    {
-        /// <summary />
-        SecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets);
-    }
-
-    /// <summary />
     public class SecretService : ISecretService
     {
         /// <inheritdoc />
-        public SecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets)
+        public ISecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets)
         {
             var list = new List<SecurityKey>();
             var collection = new SecurityKeyCollection(list);

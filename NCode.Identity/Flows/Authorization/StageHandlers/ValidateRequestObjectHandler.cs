@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using NCode.Identity.Contracts;
 using NCode.Identity.Logic;
 using System;
 using System.Collections.Generic;
@@ -10,7 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using NCode.Identity.Repository.DataContracts;
+using NCode.Identity.DataContracts;
 using NCode.Identity.Validation;
 
 namespace NCode.Identity.Flows.Authorization.StageHandlers

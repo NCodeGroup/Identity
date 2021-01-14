@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
-using NCode.Identity.Repository.DataContracts;
+using NCode.Identity.DataContracts;
 
 namespace NCode.Identity.Flows.Authorization
 {

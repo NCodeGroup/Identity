@@ -1,28 +1,28 @@
 using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Http;
-using NCode.Identity.Contracts;
 
 namespace NCode.Identity.Validation
 {
     public static class ValidationResultFactoryExtensions
     {
+        private const int Status400BadRequest = 400;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ValidationResult Error(this IValidationResultFactory factory, string errorCode, string errorDescription, int? statusCode)
+        public static ValidationResult Error(this IValidationResultFactory factory, string errorCode, string errorDescription, int statusCode)
             => factory.Error(new ErrorDetails { StatusCode = statusCode, ErrorCode = errorCode, ErrorDescription = errorDescription });
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ValidationResult BadRequest(this IValidationResultFactory factory, string errorCode, string errorDescription)
-            => factory.Error(errorCode, errorDescription, StatusCodes.Status400BadRequest);
+        public static ValidationResult<TValue> Error<TValue>(this IValidationResultFactory factory, string errorCode, string errorDescription, int statusCode)
+            => factory.Error<TValue>(new ErrorDetails { StatusCode = statusCode, ErrorCode = errorCode, ErrorDescription = errorDescription });
 
         //
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ValidationResult<TValue> Error<TValue>(this IValidationResultFactory factory, string errorCode, string errorDescription, int? statusCode)
-            => factory.Error<TValue>(new ErrorDetails { StatusCode = statusCode, ErrorCode = errorCode, ErrorDescription = errorDescription });
+        public static ValidationResult BadRequest(this IValidationResultFactory factory, string errorCode, string errorDescription)
+            => factory.Error(errorCode, errorDescription, Status400BadRequest);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ValidationResult<TValue> BadRequest<TValue>(this IValidationResultFactory factory, string errorCode, string errorDescription)
-            => factory.Error<TValue>(errorCode, errorDescription, StatusCodes.Status400BadRequest);
+            => factory.Error<TValue>(errorCode, errorDescription, Status400BadRequest);
 
         //
 
@@ -55,5 +55,6 @@ namespace NCode.Identity.Validation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ValidationResult<TValue> UnauthorizedClient<TValue>(this IValidationResultFactory factory)
             => factory.BadRequest<TValue>(IdentityConstants.ErrorCodes.UnauthorizedClient, "The client is not allowed to request an access token using this authentication type.");
+
     }
 }

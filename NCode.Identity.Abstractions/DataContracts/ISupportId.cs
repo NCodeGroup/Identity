@@ -1,6 +1,6 @@
 using System;
 
-namespace NCode.Identity.Repository.DataContracts
+namespace NCode.Identity.DataContracts
 {
     public interface ISupportId : ISupportId<long>
     {

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Contracts;
 using NCode.Identity.Results;
 using static NCode.Identity.Results.HttpResultFactory;
 
@@ -15,40 +14,6 @@ using static NCode.Identity.Results.HttpResultFactory;
 
 namespace NCode.Identity.Flows.Authorization
 {
-    public enum ResponseMode
-    {
-        Unknown = 0,
-        Query,
-        Fragment,
-        FormPost
-    }
-
-    public enum DisplayType
-    {
-        Unknown = 0,
-        Page,
-        Popup,
-        Touch,
-        Wap
-    }
-
-    [Flags]
-    public enum PromptTypes
-    {
-        Unknown = 0,
-        None = 1,
-        Login = 2,
-        Consent = 4,
-        SelectAccount = 8
-    }
-
-    public enum CodeChallengeMethod
-    {
-        Unknown = 0,
-        Plain,
-        S256
-    }
-
     public class AuthorizationHandler : IEndpointHandler
     {
         private readonly IEnumerable<IAuthorizationStageHandler> _stageHandlers;

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Primitives;
-using NCode.Identity.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +8,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Repository;
+using NCode.Identity.DataContracts;
+using NCode.Identity.Logic;
 using NCode.Identity.Validation;
 
 namespace NCode.Identity.Flows.Authorization.StageHandlers
@@ -26,14 +26,14 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
     {
         private readonly ILogger<ValidateRequestValuesHandler> _logger;
         private readonly AuthorizationOptions _options;
-        private readonly IClientRepository _clientRepository;
+        private readonly IClientService _clientService;
 
         /// <summary />
-        public ValidateRequestValuesHandler(ILogger<ValidateRequestValuesHandler> logger, IOptions<AuthorizationOptions> options, IClientRepository clientRepository)
+        public ValidateRequestValuesHandler(ILogger<ValidateRequestValuesHandler> logger, IOptions<AuthorizationOptions> options, IClientService clientService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-            _clientRepository = clientRepository ?? throw new ArgumentNullException(nameof(clientRepository));
+            _clientService = clientService ?? throw new ArgumentNullException(nameof(clientService));
         }
 
         /// <inheritdoc />
@@ -113,7 +113,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             if (parseResult.HasError)
                 return parseResult;
 
-            var client = await _clientRepository.GetClientAsync(context.Request.ClientId, cancellationToken);
+            var client = await _clientService.GetClientAsync(context.Request.ClientId, cancellationToken);
             if (client == null)
                 return ValidationResult.Factory.InvalidRequest<string>(
                     "Client not found.");

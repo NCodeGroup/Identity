@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
-using NCode.Identity.Repository.DataContracts;
+using NCode.Identity.DataContracts;
 
-namespace NCode.Identity.Repository
+namespace NCode.Identity.Logic
 {
-    public interface IClientRepository
+    public interface IClientService
     {
         ValueTask<Client> GetClientAsync(string clientId, CancellationToken cancellationToken);
     }

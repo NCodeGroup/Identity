@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using NCode.Identity.Contracts;
 
 namespace NCode.Identity.Flows.Authorization
 {

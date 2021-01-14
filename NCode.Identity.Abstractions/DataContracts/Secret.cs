@@ -1,4 +1,4 @@
-namespace NCode.Identity.Repository.DataContracts
+namespace NCode.Identity.DataContracts
 {
     public class Secret : ISupportId
     {

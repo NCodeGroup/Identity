@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
-using NCode.Identity.Contracts;
+using NCode.Identity.DataContracts;
 
 namespace NCode.Identity.Flows.Authorization
 {

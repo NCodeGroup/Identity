@@ -1,4 +1,4 @@
-namespace NCode.Identity.Contracts
+namespace NCode.Identity
 {
     public static class IdentityConstants
     {

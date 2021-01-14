@@ -37,7 +37,7 @@ namespace NCode.Identity.Logic
         }
 
         /// <inheritdoc />
-        public bool TryDecode(string jwt, string issuer, string audience, SecurityKeyCollection securityKeys, string useErrorCode, out ValidationResult<string> result)
+        public bool TryDecode(string jwt, string issuer, string audience, ISecurityKeyCollection securityKeys, string useErrorCode, out ValidationResult<string> result)
         {
             var jwtSecurityTokenHandler = new JwtSecurityTokenHandler
             {

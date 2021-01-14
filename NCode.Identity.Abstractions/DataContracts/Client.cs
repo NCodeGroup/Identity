@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace NCode.Identity.Repository.DataContracts
+namespace NCode.Identity.DataContracts
 {
     public class Client : ISupportId, ISupportConcurrencyToken
     {

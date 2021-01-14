@@ -17,16 +17,17 @@
 
 #endregion
 
-using System;
-
-namespace NCode.Identity.Contracts
+namespace NCode.Identity.DataContracts
 {
-    [Flags]
-    public enum ResponseTypes
+    public enum GrantType
     {
         Unknown = 0,
-        Code = 1,
-        Token = 2,
-        IdToken = 4
+        AuthorizationCode,
+        Implicit,
+        Hybrid,
+        ResourceOwnerPassword,
+        ClientCredentials,
+        RefreshToken,
+        DeviceFlow
     }
 }

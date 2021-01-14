@@ -1,12 +1,12 @@
-using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Microsoft.IdentityModel.Tokens;
 
 namespace NCode.Identity.Logic
 {
     /// <summary />
-    public class SecurityKeyCollection : IReadOnlyCollection<SecurityKey>, IDisposable
+    public class SecurityKeyCollection : ISecurityKeyCollection
     {
         private bool _disposed;
         private readonly IReadOnlyCollection<SecurityKey> _collection;

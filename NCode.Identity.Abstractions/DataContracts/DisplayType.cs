@@ -17,17 +17,14 @@
 
 #endregion
 
-namespace NCode.Identity.Contracts
+namespace NCode.Identity.DataContracts
 {
-    public enum GrantType
+    public enum DisplayType
     {
         Unknown = 0,
-        AuthorizationCode,
-        Implicit,
-        Hybrid,
-        ResourceOwnerPassword,
-        ClientCredentials,
-        RefreshToken,
-        DeviceFlow
+        Page,
+        Popup,
+        Touch,
+        Wap
     }
 }

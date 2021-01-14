@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Primitives;
-using NCode.Identity.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.DataContracts;
 using NCode.Identity.Validation;
 
 namespace NCode.Identity.Flows.Authorization.StageHandlers

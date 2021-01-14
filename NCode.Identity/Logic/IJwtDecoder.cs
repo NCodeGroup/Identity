@@ -17,16 +17,6 @@
 
 #endregion
 
-using NCode.Identity.Validation;
-
-namespace NCode.Identity.Logic
-{
-    public interface IJwtDecoder
-    {
-        bool TryDecode(string jwt, string issuer, string audience, SecurityKeyCollection securityKeys, string useErrorCode, out ValidationResult<string> result);
-    }
-}
-
 /*
     JSON Web Signature (JWS)
     https://tools.ietf.org/html/rfc7515

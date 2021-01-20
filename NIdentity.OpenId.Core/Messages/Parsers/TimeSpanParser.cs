@@ -25,8 +25,6 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class TimeSpanParser : OpenIdParameterParser<TimeSpan?>
     {
-        public static TimeSpanParser Default = new();
-
         public override OpenIdStringValues Serialize(TimeSpan? value)
         {
             if (value == null)
@@ -40,16 +38,15 @@ namespace NIdentity.OpenId.Messages.Parsers
 
         public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<TimeSpan?> result)
         {
-            if (stringValues.Count == 0)
+            switch (stringValues.Count)
             {
-                result = ValidationResult.Factory.Success<TimeSpan?>(null);
-                return false;
-            }
+                case 0:
+                    result = ValidationResult.Factory.Success<TimeSpan?>(null);
+                    return false;
 
-            if (stringValues.Count > 1)
-            {
-                result = ValidationResult.Factory.TooManyParameterValues<TimeSpan?>(parameterName);
-                return false;
+                case > 1:
+                    result = ValidationResult.Factory.TooManyParameterValues<TimeSpan?>(parameterName);
+                    return false;
             }
 
             if (!int.TryParse(stringValues[0].AsSpan(), out var seconds))

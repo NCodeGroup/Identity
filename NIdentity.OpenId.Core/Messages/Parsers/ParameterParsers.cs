@@ -17,21 +17,18 @@
 
 #endregion
 
-using System;
-using NIdentity.OpenId.Messages.Parsers;
-
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal static class KnownParameters
+    internal static class ParameterParsers
     {
-        public static readonly KnownParameter<string?> Nonce = new(OpenIdConstants.Parameters.Nonce, SingleOrDefaultStringParser.Default);
-        public static readonly KnownParameter<TimeSpan?> MaxAge = new(OpenIdConstants.Parameters.MaxAge, TimeSpanParser.Default);
+        public static ResponseTypeParser ResponseType = new();
+        public static ResponseModeParser ResponseMode = new();
+        public static DisplayTypeParser DisplayType = new();
+        public static PromptTypeParser PromptType = new();
 
-        public static bool TryGetKnownParameter(string parameterName, out KnownParameter? knownParameter)
-        {
-            // TODO
-            knownParameter = null;
-            return false;
-        }
+        public static StringSetParser StringSet = new();
+        public static SingleStringParser SingleString = new();
+        public static SingleOrDefaultStringParser SingleOrDefaultString = new();
+        public static TimeSpanParser TimeSpan = new();
     }
 }

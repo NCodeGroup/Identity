@@ -19,10 +19,12 @@
 
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages.Parameters
 {
     internal class OpenIdParameter
     {
+        private static readonly OpenIdParameterLoader DefaultLoader = new();
+
         public string ParameterName { get; }
 
         public KnownParameter? KnownParameter { get; }
@@ -39,10 +41,7 @@ namespace NIdentity.OpenId.Messages
 
         public OpenIdParameter(string parameterName)
         {
-            KnownParameters.TryGetKnownParameter(parameterName, out var knownParameter);
-
             ParameterName = parameterName;
-            KnownParameter = knownParameter;
         }
 
         public virtual void SetParsedValue(object? parsedValue)
@@ -58,7 +57,7 @@ namespace NIdentity.OpenId.Messages
 
         public virtual bool TryLoad(OpenIdStringValues stringValues, out ValidationResult result)
         {
-            var loader = KnownParameter?.Loader ?? OpenIdParameterLoader.Default;
+            var loader = KnownParameter?.Loader ?? DefaultLoader;
             return loader.TryLoad(ParameterName, stringValues, this, out result);
         }
     }

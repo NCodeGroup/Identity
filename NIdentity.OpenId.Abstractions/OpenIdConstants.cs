@@ -55,5 +55,36 @@ namespace NIdentity.OpenId
             public const string RequestUriNotSupported = "request_uri_not_supported";
             public const string RegistrationNotSupported = "registration_not_supported";
         }
+
+        public static class ResponseTypes
+        {
+            public const string Code = "code";
+            public const string IdToken = "id_token";
+            public const string Token = "token";
+        }
+
+        public static class ResponseModes
+        {
+            public const string Query = "query";
+            public const string Fragment = "fragment";
+            public const string FormPost = "form_post";
+        }
+
+        public static class DisplayTypes
+        {
+            public const string Page = "page";
+            public const string Popup = "popup";
+            public const string Touch = "touch";
+            public const string Wap = "wap";
+        }
+
+        public static class PromptTypes
+        {
+            public const string None = "none";
+            public const string Login = "login";
+            public const string Consent = "consent";
+            public const string SelectAccount = "select_account";
+        }
+
     }
 }

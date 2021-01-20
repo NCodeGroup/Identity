@@ -27,21 +27,24 @@ namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdRequest : OpenIdMessage, IOpenIdRequest
     {
-        /// <inheritdoc />
-        public GrantType GrantType =>
-            ResponseType == ResponseTypes.Code
-                ? GrantType.AuthorizationCode
-                : ResponseType.HasFlag(ResponseTypes.Code)
-                    ? GrantType.Hybrid
-                    : ResponseType == ResponseTypes.Unknown
-                        ? GrantType.Unknown
-                        : GrantType.Implicit;
+        internal static GrantType DetermineGrantType(ResponseTypes responseType) =>
+            responseType switch
+            {
+                ResponseTypes.Unknown => GrantType.Unknown,
+                ResponseTypes.Code => GrantType.AuthorizationCode,
+                _ => responseType.HasFlag(ResponseTypes.Code) ? GrantType.Hybrid : GrantType.Implicit
+            };
 
-        /// <inheritdoc />
-        public ResponseMode DefaultResponseMode =>
-            GrantType == GrantType.AuthorizationCode ?
+        internal static ResponseMode DetermineDefaultResponseNode(GrantType grantType) =>
+            grantType == GrantType.AuthorizationCode ?
                 ResponseMode.Query :
                 ResponseMode.Fragment;
+
+        /// <inheritdoc />
+        public GrantType GrantType => DetermineGrantType(ResponseType);
+
+        /// <inheritdoc />
+        public ResponseMode DefaultResponseMode => DetermineDefaultResponseNode(GrantType);
 
         /// <inheritdoc />
         public IEnumerable<StringSegment> Scope

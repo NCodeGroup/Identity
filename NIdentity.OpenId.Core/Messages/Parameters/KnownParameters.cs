@@ -43,6 +43,12 @@ namespace NIdentity.OpenId.Messages.Parameters
                 [Display.Name] = Display,
                 [Prompt.Name] = Prompt,
                 [MaxAge.Name] = MaxAge,
+                [UiLocales.Name] = UiLocales,
+                [IdTokenHint.Name] = IdTokenHint,
+                [LoginHint.Name] = LoginHint,
+                [AcrValues.Name] = AcrValues,
+                [CodeChallenge.Name] = CodeChallenge,
+                [CodeChallengeMethod.Name] = CodeChallengeMethod,
             };
         }
 
@@ -56,6 +62,13 @@ namespace NIdentity.OpenId.Messages.Parameters
         public static readonly KnownParameter<DisplayType?> Display = new(OpenIdConstants.Parameters.Display, ParameterParsers.DisplayType);
         public static readonly KnownParameter<PromptTypes?> Prompt = new(OpenIdConstants.Parameters.Prompt, ParameterParsers.PromptType);
         public static readonly KnownParameter<TimeSpan?> MaxAge = new(OpenIdConstants.Parameters.MaxAge, ParameterParsers.TimeSpan);
+        public static readonly KnownParameter<IEnumerable<StringSegment>> UiLocales = new(OpenIdConstants.Parameters.UiLocales, ParameterParsers.StringSet);
+        public static readonly KnownParameter<StringSegment> IdTokenHint = new(OpenIdConstants.Parameters.IdTokenHint, ParameterParsers.SingleOrDefaultString);
+        public static readonly KnownParameter<StringSegment> LoginHint = new(OpenIdConstants.Parameters.LoginHint, ParameterParsers.SingleOrDefaultString);
+        public static readonly KnownParameter<IEnumerable<StringSegment>> AcrValues = new(OpenIdConstants.Parameters.AcrValues, ParameterParsers.StringSet);
+        public static readonly KnownParameter<IEnumerable<StringSegment>> ClaimsLocales = new(OpenIdConstants.Parameters.ClaimsLocales, ParameterParsers.StringSet);
+        public static readonly KnownParameter<StringSegment> CodeChallenge = new(OpenIdConstants.Parameters.CodeChallenge, ParameterParsers.SingleOrDefaultString);
+        public static readonly KnownParameter<CodeChallengeMethod?> CodeChallengeMethod = new(OpenIdConstants.Parameters.CodeChallengeMethod, ParameterParsers.CodeChallengeMethod);
 
         public static void Register(KnownParameter knownParameter)
         {

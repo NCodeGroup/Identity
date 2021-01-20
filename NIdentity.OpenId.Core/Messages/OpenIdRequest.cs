@@ -116,13 +116,56 @@ namespace NIdentity.OpenId.Messages
             set => SetKnownParameter(KnownParameters.MaxAge, value);
         }
 
-        // UiLocales
-        // IdTokenHint
-        // LoginHint
-        // AcrValues
-        // ClaimsLocales
-        // Claims
-        // CodeChallenge
-        // CodeChallengeMethod
+        /// <inheritdoc />
+        public IEnumerable<StringSegment> UiLocales
+        {
+            get => GetKnownParameter(KnownParameters.UiLocales) ?? Enumerable.Empty<StringSegment>();
+            set => SetKnownParameter(KnownParameters.UiLocales, value);
+        }
+
+        /// <inheritdoc />
+        public StringSegment IdTokenHint
+        {
+            get => GetKnownParameter(KnownParameters.IdTokenHint);
+            set => SetKnownParameter(KnownParameters.IdTokenHint, value);
+        }
+
+        /// <inheritdoc />
+        public StringSegment LoginHint
+        {
+            get => GetKnownParameter(KnownParameters.LoginHint);
+            set => SetKnownParameter(KnownParameters.LoginHint, value);
+        }
+
+        /// <inheritdoc />
+        public IEnumerable<StringSegment> AcrValues
+        {
+            get => GetKnownParameter(KnownParameters.AcrValues) ?? Enumerable.Empty<StringSegment>();
+            set => SetKnownParameter(KnownParameters.AcrValues, value);
+        }
+
+        /// <inheritdoc />
+        public IEnumerable<StringSegment> ClaimsLocales
+        {
+            get => GetKnownParameter(KnownParameters.ClaimsLocales) ?? Enumerable.Empty<StringSegment>();
+            set => SetKnownParameter(KnownParameters.ClaimsLocales, value);
+        }
+
+        // TODO: Claims
+
+        /// <inheritdoc />
+        public StringSegment CodeChallenge
+        {
+            get => GetKnownParameter(KnownParameters.CodeChallenge);
+            set => SetKnownParameter(KnownParameters.CodeChallenge, value);
+        }
+
+        /// <inheritdoc />
+        public CodeChallengeMethod CodeChallengeMethod
+        {
+            get => GetKnownParameter(KnownParameters.CodeChallengeMethod) ?? CodeChallengeMethod.Plain;
+            set => SetKnownParameter(KnownParameters.CodeChallengeMethod, value);
+        }
+
     }
 }

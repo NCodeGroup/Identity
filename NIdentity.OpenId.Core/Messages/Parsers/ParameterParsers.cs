@@ -25,6 +25,7 @@ namespace NIdentity.OpenId.Messages.Parsers
         public static ResponseModeParser ResponseMode = new();
         public static DisplayTypeParser DisplayType = new();
         public static PromptTypeParser PromptType = new();
+        public static CodeChallengeMethodParser CodeChallengeMethod = new();
 
         public static StringSetParser StringSet = new();
         public static SingleStringParser SingleString = new();

@@ -152,6 +152,7 @@ namespace NIdentity.OpenId.Messages
         }
 
         // TODO: Claims
+        public RequestClaims Claims { get; set; }
 
         /// <inheritdoc />
         public StringSegment CodeChallenge

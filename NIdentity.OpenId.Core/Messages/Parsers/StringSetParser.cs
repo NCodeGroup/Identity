@@ -28,7 +28,8 @@ namespace NIdentity.OpenId.Messages.Parsers
     {
         public override OpenIdStringValues Serialize(IEnumerable<StringSegment> value)
         {
-            return new OpenIdStringValues(value);
+            const bool tokenize = false;
+            return new OpenIdStringValues(value, tokenize);
         }
 
         public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<IEnumerable<StringSegment>> result)

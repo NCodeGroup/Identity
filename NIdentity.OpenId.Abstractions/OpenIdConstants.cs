@@ -19,7 +19,6 @@ namespace NIdentity.OpenId
             public const string LoginHint = "login_hint";
             public const string AcrValues = "acr_values";
             public const string ClaimsLocales = "claims_locales";
-            public const string Claims = "claims";
             public const string Request = "request";
             public const string RequestUri = "request_uri";
 
@@ -30,6 +29,14 @@ namespace NIdentity.OpenId
 
             // TODO
             //public const string AccessToken = "access_token";
+
+            // claims request
+            public const string Claims = "claims";
+            public const string ClaimsUserinfo = "userinfo";
+            public const string ClaimsIdToken = "id_token";
+            public const string ClaimsEssential = "essential";
+            public const string ClaimsValue = "value";
+            public const string ClaimsValues = "values";
         }
 
         public static class ErrorCodes

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace NCode.Identity.Validation
+namespace NIdentity.OpenId.Validation
 {
     /// <summary>
     /// Represents the response payload when an error occurs.

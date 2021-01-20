@@ -18,12 +18,15 @@
 #endregion
 
 using System;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
     internal abstract class OpenIdParameterParser<T> : OpenIdParameterLoader
     {
+        public virtual StringComparison StringComparison => StringComparison.Ordinal;
+
         public abstract OpenIdStringValues Serialize(T value);
 
         public abstract bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<T> result);
@@ -40,14 +43,6 @@ namespace NIdentity.OpenId.Messages.Parsers
             parameter.Update(stringValues, parseResult.Value);
             result = ValidationResult.SuccessResult;
             return true;
-        }
-
-        public virtual T Parse(string parameterName, OpenIdStringValues stringValues)
-        {
-            if (!TryParse(parameterName, stringValues, out var result))
-                throw new FormatException();
-
-            return result.Value;
         }
     }
 }

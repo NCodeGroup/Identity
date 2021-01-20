@@ -19,20 +19,15 @@
 
 using System;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId
 {
-    internal class OpenIdRequestMessage : OpenIdMessage
+    [Flags]
+    public enum PromptTypes
     {
-        public string? Nonce
-        {
-            get => GetKnownParameter(KnownParameters.Nonce);
-            set => SetKnownParameter(KnownParameters.Nonce, value);
-        }
-
-        public TimeSpan? MaxAge
-        {
-            get => GetKnownParameter(KnownParameters.MaxAge);
-            set => SetKnownParameter(KnownParameters.MaxAge, value);
-        }
+        Unknown = 0,
+        None = 1,
+        Login = 2,
+        Consent = 4,
+        SelectAccount = 8
     }
 }

@@ -25,7 +25,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Primitives;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId
 {
     /// <summary>
     /// Represents zero/null, one, or many strings in an efficient way.
@@ -66,40 +66,70 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="OpenIdStringValues"/> structure using the specified string.
+        /// </summary>
+        /// <param name="value">A string value or <c>null</c>.</param>
+        /// <param name="tokenize">TODO</param>
+        public OpenIdStringValues(StringSegment value, bool tokenize = true)
+        {
+            _lazyStringSegments = StringSegment.IsNullOrEmpty(value)
+                ? new Lazy<StringSegment[]>(Array.Empty<StringSegment>, LazyThreadSafetyMode.PublicationOnly)
+                : new Lazy<StringSegment[]>(() => TokenizeStringSegments(value, tokenize), LazyThreadSafetyMode.PublicationOnly);
+
+            _lazyFullString = new Lazy<string?>(() => value.Value, LazyThreadSafetyMode.PublicationOnly);
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="OpenIdStringValues"/> structure using the specified collection of strings.
         /// </summary>
         /// <param name="stringValues">A string collection.</param>
-        public OpenIdStringValues(IEnumerable<string> stringValues)
+        /// <param name="tokenize">TODO</param>
+        public OpenIdStringValues(IEnumerable<string> stringValues, bool tokenize = true)
         {
-            var lazyStringSegments = new Lazy<StringSegment[]>(() => TokenizeStringSegments(stringValues), LazyThreadSafetyMode.PublicationOnly);
+            var lazyStringSegments = new Lazy<StringSegment[]>(() => TokenizeStringSegments(stringValues, tokenize), LazyThreadSafetyMode.PublicationOnly);
             var lazyFullString = new Lazy<string?>(() => GetFullString(lazyStringSegments), LazyThreadSafetyMode.PublicationOnly);
 
             _lazyStringSegments = lazyStringSegments;
             _lazyFullString = lazyFullString;
         }
 
-        public OpenIdStringValues(IEnumerable<StringSegment> stringSegments)
+        public OpenIdStringValues(IEnumerable<StringSegment> stringSegments, bool tokenize = true)
         {
-            var lazyStringSegments = new Lazy<StringSegment[]>(() => TokenizeStringSegments(stringSegments), LazyThreadSafetyMode.PublicationOnly);
+            var lazyStringSegments = new Lazy<StringSegment[]>(() => TokenizeStringSegments(stringSegments, tokenize), LazyThreadSafetyMode.PublicationOnly);
             var lazyFullString = new Lazy<string?>(() => GetFullString(lazyStringSegments), LazyThreadSafetyMode.PublicationOnly);
 
             _lazyStringSegments = lazyStringSegments;
             _lazyFullString = lazyFullString;
         }
 
-        private static StringSegment[] TokenizeStringSegments(string value, bool tokenize) => tokenize
-            ? new StringTokenizer(value, new[] { Separator }).ToArray()
-            : new[] { new StringSegment(value) };
+        private static StringSegment[] TokenizeStringSegments(string value, bool tokenize) => tokenize ?
+            new StringTokenizer(value, new[] { Separator }).ToArray() :
+            new[] { new StringSegment(value) };
 
-        private static StringSegment[] TokenizeStringSegments(IEnumerable<string> stringValues) => stringValues
-            .Where(stringValue => !string.IsNullOrEmpty(stringValue))
-            .SelectMany(stringValue => new StringTokenizer(stringValue, new[] { Separator }))
-            .ToArray();
+        private static StringSegment[] TokenizeStringSegments(StringSegment value, bool tokenize) => tokenize ?
+            new StringTokenizer(value, new[] { Separator }).ToArray() :
+            new[] { value };
 
-        private static StringSegment[] TokenizeStringSegments(IEnumerable<StringSegment> stringSegments) => stringSegments
-            .Where(stringSegment => !StringSegment.IsNullOrEmpty(stringSegment))
-            .SelectMany(stringSegment => new StringTokenizer(stringSegment, new[] { Separator }))
-            .ToArray();
+        private static StringSegment[] TokenizeStringSegments(IEnumerable<string> stringValues, bool tokenize)
+        {
+            stringValues = stringValues.Where(stringValue => !string.IsNullOrEmpty(stringValue));
+
+            var stringSegments = tokenize ?
+                stringValues.SelectMany(stringValue => new StringTokenizer(stringValue, new[] { Separator })) :
+                stringValues.Select(stringValue => new StringSegment(stringValue));
+
+            return stringSegments.ToArray();
+        }
+
+        private static StringSegment[] TokenizeStringSegments(IEnumerable<StringSegment> stringSegments, bool tokenize)
+        {
+            stringSegments = stringSegments.Where(stringSegment => !StringSegment.IsNullOrEmpty(stringSegment));
+
+            if (tokenize)
+                stringSegments = stringSegments.SelectMany(stringSegment => new StringTokenizer(stringSegment, new[] { Separator }));
+
+            return stringSegments.ToArray();
+        }
 
         private static string GetFullString(Lazy<StringSegment[]> lazyStringSegments)
         {

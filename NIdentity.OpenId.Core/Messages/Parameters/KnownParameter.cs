@@ -20,7 +20,7 @@
 using System;
 using NIdentity.OpenId.Messages.Parsers;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages.Parameters
 {
     internal abstract class KnownParameter
     {
@@ -38,7 +38,7 @@ namespace NIdentity.OpenId.Messages
         public OpenIdParameterLoader Loader { get; }
     }
 
-    internal sealed class KnownParameter<T> : KnownParameter
+    internal class KnownParameter<T> : KnownParameter
     {
         public KnownParameter(string name, OpenIdParameterParser<T> parser)
             : base(name, parser)

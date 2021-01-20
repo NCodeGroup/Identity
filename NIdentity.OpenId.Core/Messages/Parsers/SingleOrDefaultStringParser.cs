@@ -17,36 +17,35 @@
 
 #endregion
 
+using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class SingleOrDefaultStringParser : OpenIdParameterParser<string?>
+    internal class SingleOrDefaultStringParser : OpenIdParameterParser<StringSegment>
     {
-        public static SingleOrDefaultStringParser Default = new();
-
-        public override OpenIdStringValues Serialize(string? value)
+        public override OpenIdStringValues Serialize(StringSegment value)
         {
             const bool tokenize = false;
             return new OpenIdStringValues(value, tokenize);
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<string?> result)
+        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<StringSegment> result)
         {
-            if (stringValues.Count == 0)
+            switch (stringValues.Count)
             {
-                result = ValidationResult.Factory.Success<string?>(null);
-                return false;
-            }
+                case 0:
+                    result = ValidationResult.Factory.Success<StringSegment>(null);
+                    return true;
 
-            if (stringValues.Count > 1)
-            {
-                result = ValidationResult.Factory.TooManyParameterValues<string?>(parameterName);
-                return false;
-            }
+                case > 1:
+                    result = ValidationResult.Factory.TooManyParameterValues<StringSegment>(parameterName);
+                    return false;
 
-            result = ValidationResult.Factory.Success<string?>(stringValues[0].Value);
-            return true;
+                default:
+                    result = ValidationResult.Factory.Success(stringValues[0]);
+                    return true;
+            }
         }
     }
 }

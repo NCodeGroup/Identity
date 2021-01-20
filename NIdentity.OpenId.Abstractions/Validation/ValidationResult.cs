@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace NIdentity.OpenId.Validation
@@ -14,7 +15,7 @@ namespace NIdentity.OpenId.Validation
             get => ErrorDetails != null;
         }
 
-        public IErrorDetails ErrorDetails
+        public IErrorDetails? ErrorDetails
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
@@ -29,13 +30,14 @@ namespace NIdentity.OpenId.Validation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValidationResult<TValue> As<TValue>()
         {
-            return new(ErrorDetails);
+            Debug.Assert(ErrorDetails != null);
+            return new ValidationResult<TValue>(ErrorDetails);
         }
     }
 
     public readonly struct ValidationResult<TValue>
     {
-        private readonly ValidationResult Inner;
+        private readonly ValidationResult _inner;
 
         public bool HasError
         {
@@ -43,13 +45,13 @@ namespace NIdentity.OpenId.Validation
             get => ErrorDetails != null;
         }
 
-        public IErrorDetails ErrorDetails
+        public IErrorDetails? ErrorDetails
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Inner.ErrorDetails;
+            get => _inner.ErrorDetails;
         }
 
-        public TValue Value
+        public TValue? Value
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
@@ -58,18 +60,18 @@ namespace NIdentity.OpenId.Validation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValidationResult(TValue value)
         {
-            Inner = default;
+            _inner = default;
             Value = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValidationResult(IErrorDetails errorDetails)
         {
-            Inner = new ValidationResult(errorDetails);
+            _inner = new ValidationResult(errorDetails);
             Value = default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator ValidationResult(ValidationResult<TValue> result) => result.Inner;
+        public static implicit operator ValidationResult(ValidationResult<TValue> result) => result._inner;
     }
 }

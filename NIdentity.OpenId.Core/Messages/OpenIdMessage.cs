@@ -21,12 +21,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages
 {
-    internal abstract class OpenIdMessage : IReadOnlyDictionary<string, OpenIdStringValues>
+    internal abstract class OpenIdMessage : IOpenIdMessage
     {
         private readonly IDictionary<string, OpenIdParameter> _parameters = new Dictionary<string, OpenIdParameter>(StringComparer.Ordinal);
 
@@ -65,24 +65,33 @@ namespace NIdentity.OpenId.Messages
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        protected virtual T GetKnownParameter<T>(KnownParameter<T> knownParameter)
+        protected T? GetKnownParameter<T>(KnownParameter<T> knownParameter)
         {
             var parameterName = knownParameter.Name;
-            if (_parameters.TryGetValue(parameterName, out var parameter) && parameter.ParsedValue is T parsedValue)
-            {
+            if (!_parameters.TryGetValue(parameterName, out var parameter))
+                return default;
+
+            if (parameter.ParsedValue is T parsedValue)
                 return parsedValue;
-            }
 
-            parsedValue = knownParameter.Parser.Parse(parameterName, parameter.StringValues);
-            parameter.SetParsedValue(parsedValue);
+            if (!knownParameter.Parser.TryParse(parameterName, parameter.StringValues, out var result))
+                return default;
 
-            return parsedValue;
+            parameter.SetParsedValue(result.Value);
+            return result.Value;
         }
 
-        protected virtual void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
+        protected void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
         {
             var parameterName = knownParameter.Name;
             if (parsedValue is null)
+            {
+                _parameters.Remove(parameterName);
+                return;
+            }
+
+            var stringValues = knownParameter.Parser.Serialize(parsedValue);
+            if (OpenIdStringValues.IsNullOrEmpty(stringValues))
             {
                 _parameters.Remove(parameterName);
                 return;
@@ -94,35 +103,20 @@ namespace NIdentity.OpenId.Messages
                 _parameters[parameterName] = parameter;
             }
 
-            var stringValues = knownParameter.Parser.Serialize(parsedValue);
             parameter.Update(stringValues, parsedValue);
         }
 
-        public virtual bool TryLoad(IEnumerable<KeyValuePair<string, string>> parameters, out ValidationResult result)
-        {
-            var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new OpenIdStringValues(kvp.Value)));
-            return TryLoad(newParameters, out result);
-        }
-
-        public virtual bool TryLoad(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult result)
-        {
-            var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new OpenIdStringValues(kvp.Value)));
-            return TryLoad(newParameters, out result);
-        }
-
-        public virtual bool TryLoad(IEnumerable<KeyValuePair<string, IEnumerable<string>>> parameters, out ValidationResult result)
-        {
-            var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new OpenIdStringValues(kvp.Value)));
-            return TryLoad(newParameters, out result);
-        }
-
-        public virtual bool TryLoad(IEnumerable<KeyValuePair<string, OpenIdStringValues>> parameters, out ValidationResult result)
+        /// <inheritdoc />
+        public bool TryLoad(IEnumerable<KeyValuePair<string, OpenIdStringValues>> parameters, out ValidationResult result)
         {
             foreach (var (parameterName, stringValues) in parameters)
             {
                 if (!_parameters.TryGetValue(parameterName, out var parameter))
                 {
-                    parameter = new OpenIdParameter(parameterName);
+                    parameter = KnownParameters.TryGet(parameterName, out var knownParameter)
+                        ? new OpenIdParameter(knownParameter)
+                        : new OpenIdParameter(parameterName);
+
                     _parameters[parameterName] = parameter;
                 }
 

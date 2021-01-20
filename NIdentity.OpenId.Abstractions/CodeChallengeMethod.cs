@@ -17,19 +17,12 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId
 {
-    internal static class ParameterParsers
+    public enum CodeChallengeMethod
     {
-        public static ResponseTypeParser ResponseType = new();
-        public static ResponseModeParser ResponseMode = new();
-        public static DisplayTypeParser DisplayType = new();
-        public static PromptTypeParser PromptType = new();
-        public static CodeChallengeMethodParser CodeChallengeMethod = new();
-
-        public static StringSetParser StringSet = new();
-        public static SingleStringParser SingleString = new();
-        public static SingleOrDefaultStringParser SingleOrDefaultString = new();
-        public static TimeSpanParser TimeSpan = new();
+        Unknown = 0,
+        Plain,
+        S256
     }
 }

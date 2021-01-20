@@ -29,5 +29,21 @@ namespace NIdentity.OpenId.Messages
         PromptTypes? Prompt { get; set; }
 
         TimeSpan? MaxAge { get; set; }
+
+        IEnumerable<StringSegment> UiLocales { get; set; }
+
+        StringSegment IdTokenHint { get; set; }
+
+        StringSegment LoginHint { get; set; }
+
+        IEnumerable<StringSegment> AcrValues { get; set; }
+
+        IEnumerable<StringSegment> ClaimsLocales { get; set; }
+
+        // Claims
+
+        StringSegment CodeChallenge { get; set; }
+
+        CodeChallengeMethod CodeChallengeMethod { get; set; }
     }
 }

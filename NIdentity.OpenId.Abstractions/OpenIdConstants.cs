@@ -86,5 +86,11 @@ namespace NIdentity.OpenId
             public const string SelectAccount = "select_account";
         }
 
+        public static class CodeChallengeMethods
+        {
+            public const string Plain = "plain";
+            public const string S256 = "S256";
+        }
+
     }
 }

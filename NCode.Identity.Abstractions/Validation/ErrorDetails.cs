@@ -11,14 +11,19 @@ namespace NCode.Identity.Validation
         public int? StatusCode { get; set; }
 
         /// <summary>
-        /// Gets the <c>ErrorCode</c> property.
+        /// Gets the <c>error</c> parameter.
         /// </summary>
         string ErrorCode { get; set; }
 
         /// <summary>
-        /// Gets or sets the <c>ErrorDescription</c> property.
+        /// Gets or sets the <c>error_description</c> parameter.
         /// </summary>
         string ErrorDescription { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>error_uri</c> parameter.
+        /// </summary>
+        string ErrorUri { get; set; }
 
         /// <summary>
         /// Gets or sets a dictionary that is used to handle JSON serialization (or
@@ -45,6 +50,11 @@ namespace NCode.Identity.Validation
         [JsonPropertyName("error_description")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string ErrorDescription { get; set; }
+
+        /// <inheritdoc />
+        [JsonPropertyName("error_uri")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string ErrorUri { get; set; }
 
         /// <inheritdoc />
         [JsonExtensionData]

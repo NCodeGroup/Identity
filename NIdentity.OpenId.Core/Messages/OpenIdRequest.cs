@@ -150,8 +150,11 @@ namespace NIdentity.OpenId.Messages
             set => SetKnownParameter(KnownParameters.ClaimsLocales, value);
         }
 
-        // TODO: Claims
-        public RequestClaims Claims { get; set; }
+        public RequestClaims? Claims
+        {
+            get => GetKnownParameter(KnownParameters.Claims);
+            set => SetKnownParameter(KnownParameters.Claims, value);
+        }
 
         /// <inheritdoc />
         public string? CodeChallenge

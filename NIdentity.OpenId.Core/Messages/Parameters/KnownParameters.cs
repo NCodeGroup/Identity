@@ -69,6 +69,7 @@ namespace NIdentity.OpenId.Messages.Parameters
         public static readonly KnownParameter<IEnumerable<string>> ClaimsLocales = new(OpenIdConstants.Parameters.ClaimsLocales, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
         public static readonly KnownParameter<string?> CodeChallenge = new(OpenIdConstants.Parameters.CodeChallenge, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<CodeChallengeMethod?> CodeChallengeMethod = new(OpenIdConstants.Parameters.CodeChallengeMethod, optional: true, allowMultipleValues: false, ParameterParsers.CodeChallengeMethod);
+        public static readonly KnownParameter<RequestClaims?> Claims = new(OpenIdConstants.Parameters.Claims, optional: true, allowMultipleValues: false, ParameterParsers.RequestClaims);
 
         public static KnownParameter Register(KnownParameter knownParameter)
         {

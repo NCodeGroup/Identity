@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Extensions.Primitives;
 
 namespace NIdentity.OpenId.Messages
 {
@@ -40,7 +39,7 @@ namespace NIdentity.OpenId.Messages
 
         IEnumerable<string> ClaimsLocales { get; set; }
 
-        // Claims
+        RequestClaims? Claims { get; set; }
 
         string? CodeChallenge { get; set; }
 

@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Validation;
 
@@ -46,9 +47,9 @@ namespace NIdentity.OpenId.Messages.Parameters
             ParsedValue = parsedValue;
         }
 
-        public virtual bool TryLoad(StringValues stringValues, out ValidationResult result)
+        public virtual bool TryLoad(ILogger logger, StringValues stringValues, out ValidationResult result)
         {
-            return Descriptor.Loader.TryLoad(this, stringValues, out result);
+            return Descriptor.Loader.TryLoad(logger, this, stringValues, out result);
         }
     }
 }

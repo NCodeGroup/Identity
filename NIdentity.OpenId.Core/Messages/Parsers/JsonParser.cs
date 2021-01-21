@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -24,7 +25,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return JsonSerializer.Serialize(value, options);
         }
 
-        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T?> result)
+        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -57,7 +58,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             {
                 const string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest;
                 result = ValidationResult.Factory.FailedToDeserializeJson<T?>(errorCode);
-                // TODO: logger.LogError(exception, result.ErrorDetails.ErrorDescription);
+                logger.LogError(exception, result.ErrorDetails!.ErrorDescription);
                 return false;
             }
         }

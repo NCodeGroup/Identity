@@ -26,6 +26,7 @@ namespace NIdentity.OpenId.Messages.Parsers
         public static DisplayTypeParser DisplayType = new();
         public static PromptTypeParser PromptType = new();
         public static CodeChallengeMethodParser CodeChallengeMethod = new();
+        public static JsonParser<RequestClaims> RequestClaims = new();
 
         public static StringParser String = new();
         public static StringSetParser StringSet = new();

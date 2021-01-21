@@ -17,35 +17,47 @@
 
 #endregion
 
+using System.Diagnostics;
+using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class PromptTypeParser : OpenIdParameterParser<PromptTypes?>
+    internal class PromptTypeParser : ParameterParser<PromptTypes?>
     {
-        public override OpenIdStringValues Serialize(PromptTypes? value)
+        public override StringValues Serialize(PromptTypes? value)
         {
-            const bool tokenize = false;
             return value switch
             {
-                PromptTypes.None => new OpenIdStringValues(OpenIdConstants.PromptTypes.None, tokenize),
-                PromptTypes.Login => new OpenIdStringValues(OpenIdConstants.PromptTypes.Login, tokenize),
-                PromptTypes.Consent => new OpenIdStringValues(OpenIdConstants.PromptTypes.Consent, tokenize),
-                PromptTypes.SelectAccount => new OpenIdStringValues(OpenIdConstants.PromptTypes.SelectAccount, tokenize),
-                _ => OpenIdStringValues.Empty
+                PromptTypes.None => OpenIdConstants.PromptTypes.None,
+                PromptTypes.Login => OpenIdConstants.PromptTypes.Login,
+                PromptTypes.Consent => OpenIdConstants.PromptTypes.Consent,
+                PromptTypes.SelectAccount => OpenIdConstants.PromptTypes.SelectAccount,
+                _ => null
             };
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<PromptTypes?> result)
+        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<PromptTypes?> result)
         {
-            if (stringValues.Count == 0)
+            Debug.Assert(descriptor.Optional);
+            Debug.Assert(!descriptor.AllowMultipleValues);
+
+            switch (stringValues.Count)
             {
-                result = ValidationResult.Factory.Success<PromptTypes?>(null);
-                return true;
+                case 0:
+                    result = ValidationResult.Factory.Success<PromptTypes?>(null);
+                    return true;
+
+                case > 1:
+                    result = ValidationResult.Factory.TooManyParameterValues<PromptTypes?>(descriptor.ParameterName);
+                    return false;
             }
 
+            stringValues = stringValues[0].Split(Separator);
+
             var promptType = PromptTypes.Unknown;
-            foreach (var stringSegment in stringValues)
+            foreach (var stringValue in stringValues)
             {
                 // 'none' must be by itself
                 if (promptType.HasFlag(PromptTypes.None))
@@ -54,26 +66,26 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return false;
                 }
 
-                if (stringSegment.Equals(OpenIdConstants.PromptTypes.None, StringComparison))
+                if (string.Equals(stringValue, OpenIdConstants.PromptTypes.None, StringComparison))
                 {
                     promptType |= PromptTypes.None;
                 }
-                else if (stringSegment.Equals(OpenIdConstants.PromptTypes.Login, StringComparison))
+                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.Login, StringComparison))
                 {
                     promptType |= PromptTypes.Login;
                 }
-                else if (stringSegment.Equals(OpenIdConstants.PromptTypes.Consent, StringComparison))
+                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.Consent, StringComparison))
                 {
                     promptType |= PromptTypes.Consent;
                 }
-                else if (stringSegment.Equals(OpenIdConstants.PromptTypes.SelectAccount, StringComparison))
+                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.SelectAccount, StringComparison))
                 {
                     promptType |= PromptTypes.SelectAccount;
                 }
                 else
                 {
                     // TODO: ignore unsupported values
-                    result = ValidationResult.Factory.InvalidParameterValue<PromptTypes?>(parameterName);
+                    result = ValidationResult.Factory.InvalidParameterValue<PromptTypes?>(descriptor.ParameterName);
                     return false;
                 }
             }

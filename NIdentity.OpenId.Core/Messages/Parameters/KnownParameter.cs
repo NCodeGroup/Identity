@@ -24,28 +24,34 @@ namespace NIdentity.OpenId.Messages.Parameters
 {
     internal abstract class KnownParameter
     {
-        protected KnownParameter(string name, OpenIdParameterLoader loader)
+        protected KnownParameter(string name, bool optional, bool allowMultipleValues, ParameterLoader loader)
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentNullException(nameof(name));
 
             Name = name;
+            Optional = optional;
+            AllowMultipleValues = allowMultipleValues;
             Loader = loader;
         }
 
         public string Name { get; }
 
-        public OpenIdParameterLoader Loader { get; }
+        public bool Optional { get; }
+
+        public bool AllowMultipleValues { get; }
+
+        public ParameterLoader Loader { get; }
     }
 
     internal class KnownParameter<T> : KnownParameter
     {
-        public KnownParameter(string name, OpenIdParameterParser<T> parser)
-            : base(name, parser)
+        public KnownParameter(string name, bool optional, bool allowMultipleValues, ParameterParser<T> parser)
+            : base(name, optional, allowMultipleValues, parser)
         {
             Parser = parser;
         }
 
-        public OpenIdParameterParser<T> Parser { get; }
+        public ParameterParser<T> Parser { get; }
     }
 }

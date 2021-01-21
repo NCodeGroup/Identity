@@ -10,19 +10,19 @@ namespace NIdentity.OpenId.Messages
 
         ResponseMode DefaultResponseMode { get; }
 
-        IEnumerable<StringSegment> Scope { get; set; }
+        IEnumerable<string> Scope { get; set; }
 
         ResponseTypes ResponseType { get; set; }
 
-        StringSegment ClientId { get; set; }
+        string? ClientId { get; set; }
 
-        StringSegment RedirectUri { get; set; }
+        string? RedirectUri { get; set; }
 
-        StringSegment State { get; set; }
+        string? State { get; set; }
 
         ResponseMode ResponseMode { get; set; }
 
-        StringSegment Nonce { get; set; }
+        string? Nonce { get; set; }
 
         DisplayType? Display { get; set; }
 
@@ -30,19 +30,19 @@ namespace NIdentity.OpenId.Messages
 
         TimeSpan? MaxAge { get; set; }
 
-        IEnumerable<StringSegment> UiLocales { get; set; }
+        IEnumerable<string> UiLocales { get; set; }
 
-        StringSegment IdTokenHint { get; set; }
+        string? IdTokenHint { get; set; }
 
-        StringSegment LoginHint { get; set; }
+        string? LoginHint { get; set; }
 
-        IEnumerable<StringSegment> AcrValues { get; set; }
+        IEnumerable<string> AcrValues { get; set; }
 
-        IEnumerable<StringSegment> ClaimsLocales { get; set; }
+        IEnumerable<string> ClaimsLocales { get; set; }
 
         // Claims
 
-        StringSegment CodeChallenge { get; set; }
+        string? CodeChallenge { get; set; }
 
         CodeChallengeMethod CodeChallengeMethod { get; set; }
     }

@@ -1,16 +1,18 @@
 using System;
+using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class RequestClaimsParser : OpenIdParameterParser<RequestClaims?>
+    internal class RequestClaimsParser : ParameterParser<RequestClaims?>
     {
-        public override OpenIdStringValues Serialize(RequestClaims? value)
+        public override StringValues Serialize(RequestClaims? value)
         {
             throw new NotImplementedException();
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<RequestClaims?> result)
+        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<RequestClaims?> result)
         {
             //switch (stringValues.Count)
             //{

@@ -17,31 +17,22 @@
 
 #endregion
 
+using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
-    internal class OpenIdParameter
+    internal class ParameterStore
     {
-        private static readonly OpenIdParameterLoader DefaultLoader = new();
+        public ParameterDescriptor Descriptor { get; }
 
-        public string ParameterName { get; }
-
-        public KnownParameter? KnownParameter { get; }
-
-        public OpenIdStringValues StringValues { get; private set; }
+        public StringValues StringValues { get; private set; }
 
         public object? ParsedValue { get; private set; }
 
-        public OpenIdParameter(KnownParameter knownParameter)
+        public ParameterStore(ParameterDescriptor descriptor)
         {
-            ParameterName = knownParameter.Name;
-            KnownParameter = knownParameter;
-        }
-
-        public OpenIdParameter(string parameterName)
-        {
-            ParameterName = parameterName;
+            Descriptor = descriptor;
         }
 
         public virtual void SetParsedValue(object? parsedValue)
@@ -49,16 +40,15 @@ namespace NIdentity.OpenId.Messages.Parameters
             ParsedValue = parsedValue;
         }
 
-        public virtual void Update(OpenIdStringValues stringValues, object? parsedValue)
+        public virtual void Update(StringValues stringValues, object? parsedValue)
         {
             StringValues = stringValues;
             ParsedValue = parsedValue;
         }
 
-        public virtual bool TryLoad(OpenIdStringValues stringValues, out ValidationResult result)
+        public virtual bool TryLoad(StringValues stringValues, out ValidationResult result)
         {
-            var loader = KnownParameter?.Loader ?? DefaultLoader;
-            return loader.TryLoad(ParameterName, stringValues, this, out result);
+            return Descriptor.Loader.TryLoad(this, stringValues, out result);
         }
     }
 }

@@ -18,32 +18,40 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class SingleStringParser : OpenIdParameterParser<StringSegment>
+    internal class StringParser : ParameterParser<string?>
     {
-        public override OpenIdStringValues Serialize(StringSegment value)
+        public override StringValues Serialize(string? value)
         {
-            const bool tokenize = false;
-            return new OpenIdStringValues(value, tokenize);
+            return value;
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<StringSegment> result)
+        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<string?> result)
         {
             switch (stringValues.Count)
             {
+                case 0 when descriptor.Optional:
+                    result = ValidationResult.Factory.Success<string?>(null);
+                    return true;
+
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<StringSegment>(parameterName);
+                    result = ValidationResult.Factory.MissingParameter<string?>(descriptor.ParameterName);
                     return false;
 
+                case > 1 when descriptor.AllowMultipleValues:
+                    result = ValidationResult.Factory.Success<string?>(string.Join(Separator, stringValues));
+                    return true;
+
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<StringSegment>(parameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues<string?>(descriptor.ParameterName);
                     return false;
 
                 default:
-                    result = ValidationResult.Factory.Success(stringValues[0]);
+                    result = ValidationResult.Factory.Success<string?>(stringValues[0]);
                     return true;
             }
         }

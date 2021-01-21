@@ -17,26 +17,31 @@
 
 #endregion
 
+using System.Diagnostics;
+using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class ResponseModeParser : OpenIdParameterParser<ResponseMode?>
+    internal class ResponseModeParser : ParameterParser<ResponseMode?>
     {
-        public override OpenIdStringValues Serialize(ResponseMode? value)
+        public override StringValues Serialize(ResponseMode? value)
         {
-            const bool tokenize = false;
             return value switch
             {
-                ResponseMode.Query => new OpenIdStringValues(OpenIdConstants.ResponseModes.Query, tokenize),
-                ResponseMode.Fragment => new OpenIdStringValues(OpenIdConstants.ResponseModes.Fragment, tokenize),
-                ResponseMode.FormPost => new OpenIdStringValues(OpenIdConstants.ResponseModes.FormPost, tokenize),
-                _ => OpenIdStringValues.Empty
+                ResponseMode.Query => OpenIdConstants.ResponseModes.Query,
+                ResponseMode.Fragment => OpenIdConstants.ResponseModes.Fragment,
+                ResponseMode.FormPost => OpenIdConstants.ResponseModes.FormPost,
+                _ => null
             };
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<ResponseMode?> result)
+        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseMode?> result)
         {
+            Debug.Assert(descriptor.Optional);
+            Debug.Assert(!descriptor.AllowMultipleValues);
+
             switch (stringValues.Count)
             {
                 case 0:
@@ -44,31 +49,31 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<ResponseMode?>(parameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues<ResponseMode?>(descriptor.ParameterName);
                     return false;
             }
 
-            var stringSegment = stringValues[0];
+            var stringValue = stringValues[0];
 
-            if (stringSegment.Equals(OpenIdConstants.ResponseModes.Query, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.ResponseModes.Query, StringComparison))
             {
                 result = ValidationResult.Factory.Success<ResponseMode?>(ResponseMode.Query);
                 return true;
             }
 
-            if (stringSegment.Equals(OpenIdConstants.ResponseModes.Fragment, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.ResponseModes.Fragment, StringComparison))
             {
                 result = ValidationResult.Factory.Success<ResponseMode?>(ResponseMode.Fragment);
                 return true;
             }
 
-            if (stringSegment.Equals(OpenIdConstants.ResponseModes.FormPost, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.ResponseModes.FormPost, StringComparison))
             {
                 result = ValidationResult.Factory.Success<ResponseMode?>(ResponseMode.FormPost);
                 return true;
             }
 
-            result = ValidationResult.Factory.InvalidParameterValue<ResponseMode?>(parameterName);
+            result = ValidationResult.Factory.InvalidParameterValue<ResponseMode?>(descriptor.ParameterName);
             return false;
         }
     }

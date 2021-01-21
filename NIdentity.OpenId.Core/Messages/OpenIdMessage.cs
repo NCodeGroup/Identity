@@ -21,6 +21,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
@@ -28,7 +29,7 @@ namespace NIdentity.OpenId.Messages
 {
     internal abstract class OpenIdMessage : IOpenIdMessage
     {
-        private readonly IDictionary<string, OpenIdParameter> _parameters = new Dictionary<string, OpenIdParameter>(StringComparer.Ordinal);
+        private readonly IDictionary<string, ParameterStore> _parameters = new Dictionary<string, ParameterStore>(StringComparer.Ordinal);
 
         /// <inheritdoc />
         public int Count => _parameters.Count;
@@ -37,16 +38,16 @@ namespace NIdentity.OpenId.Messages
         public IEnumerable<string> Keys => _parameters.Keys;
 
         /// <inheritdoc />
-        public IEnumerable<OpenIdStringValues> Values => _parameters.Values.Select(_ => _.StringValues);
+        public IEnumerable<StringValues> Values => _parameters.Values.Select(_ => _.StringValues);
 
         /// <inheritdoc />
-        public OpenIdStringValues this[string key] => _parameters[key].StringValues;
+        public StringValues this[string key] => _parameters[key].StringValues;
 
         /// <inheritdoc />
         public bool ContainsKey(string key) => _parameters.ContainsKey(key);
 
         /// <inheritdoc />
-        public bool TryGetValue(string key, out OpenIdStringValues value)
+        public bool TryGetValue(string key, out StringValues value)
         {
             if (!_parameters.TryGetValue(key, out var parameter))
             {
@@ -59,7 +60,7 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public IEnumerator<KeyValuePair<string, OpenIdStringValues>> GetEnumerator() => _parameters
+        public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => _parameters
             .Select(kvp => KeyValuePair.Create(kvp.Key, kvp.Value.StringValues))
             .GetEnumerator();
 
@@ -74,7 +75,7 @@ namespace NIdentity.OpenId.Messages
             if (parameter.ParsedValue is T parsedValue)
                 return parsedValue;
 
-            if (!knownParameter.Parser.TryParse(parameterName, parameter.StringValues, out var result))
+            if (!knownParameter.Parser.TryParse(parameter.Descriptor, parameter.StringValues, out var result))
                 return default;
 
             parameter.SetParsedValue(result.Value);
@@ -91,7 +92,7 @@ namespace NIdentity.OpenId.Messages
             }
 
             var stringValues = knownParameter.Parser.Serialize(parsedValue);
-            if (OpenIdStringValues.IsNullOrEmpty(stringValues))
+            if (StringValues.IsNullOrEmpty(stringValues))
             {
                 _parameters.Remove(parameterName);
                 return;
@@ -99,7 +100,7 @@ namespace NIdentity.OpenId.Messages
 
             if (!_parameters.TryGetValue(parameterName, out var parameter))
             {
-                parameter = new OpenIdParameter(knownParameter);
+                parameter = new ParameterStore(ParameterDescriptor.Get(knownParameter));
                 _parameters[parameterName] = parameter;
             }
 
@@ -107,16 +108,23 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public bool TryLoad(IEnumerable<KeyValuePair<string, OpenIdStringValues>> parameters, out ValidationResult result)
+        public bool TryLoad(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult result)
         {
+            parameters = parameters
+                .GroupBy(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.AsEnumerable(),
+                    StringComparer.Ordinal)
+                .Select(
+                    grouping => KeyValuePair.Create(
+                        grouping.Key,
+                        new StringValues(grouping.SelectMany(stringValues => stringValues).ToArray())));
+
             foreach (var (parameterName, stringValues) in parameters)
             {
                 if (!_parameters.TryGetValue(parameterName, out var parameter))
                 {
-                    parameter = KnownParameters.TryGet(parameterName, out var knownParameter)
-                        ? new OpenIdParameter(knownParameter)
-                        : new OpenIdParameter(parameterName);
-
+                    parameter = new ParameterStore(ParameterDescriptor.Get(parameterName));
                     _parameters[parameterName] = parameter;
                 }
 

@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -30,7 +31,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return value;
         }
 
-        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<string?> result)
+        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<string?> result)
         {
             switch (stringValues.Count)
             {

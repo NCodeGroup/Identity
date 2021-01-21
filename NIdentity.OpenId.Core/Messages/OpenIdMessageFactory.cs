@@ -18,6 +18,7 @@
 #endregion
 
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Validation;
 
@@ -25,26 +26,31 @@ namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdMessageFactory : IOpenIdMessageFactory
     {
+        private readonly ILogger<OpenIdMessageFactory> _logger;
+
+        public OpenIdMessageFactory(ILogger<OpenIdMessageFactory> logger)
+        {
+            _logger = logger;
+        }
+
         /// <inheritdoc />
         public IOpenIdRequest CreateRequest()
-            => new OpenIdRequest();
+            => new OpenIdRequest(_logger);
 
         /// <inheritdoc />
         public bool TryLoadRequest(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<IOpenIdRequest> result)
-            => TryLoad<IOpenIdRequest, OpenIdRequest>(parameters, out result);
+            => TryLoad(CreateRequest(), parameters, out result);
 
-        private static bool TryLoad<TService, TImplementation>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TService> result)
-            where TService : IOpenIdRequest
-            where TImplementation : TService, new()
+        private static bool TryLoad<TMessage>(TMessage message, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
+            where TMessage : IOpenIdRequest
         {
-            var message = new TImplementation();
             if (!message.TryLoad(parameters, out var loadResult))
             {
-                result = loadResult.As<TService>();
+                result = loadResult.As<TMessage>();
                 return false;
             }
 
-            result = ValidationResult.Factory.Success<TService>(message);
+            result = ValidationResult.Factory.Success(message);
             return true;
         }
     }

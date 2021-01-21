@@ -19,6 +19,7 @@
 
 using System;
 using System.Globalization;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -36,7 +37,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return wholeSeconds.ToString(CultureInfo.InvariantCulture);
         }
 
-        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<TimeSpan?> result)
+        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<TimeSpan?> result)
         {
             switch (stringValues.Count)
             {

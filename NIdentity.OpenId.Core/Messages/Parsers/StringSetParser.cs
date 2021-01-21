@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -33,7 +34,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, value);
         }
 
-        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IEnumerable<string>> result)
+        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IEnumerable<string>> result)
         {
             switch (stringValues.Count)
             {

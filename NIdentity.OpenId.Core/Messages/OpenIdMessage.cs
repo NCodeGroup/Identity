@@ -21,6 +21,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -29,7 +30,13 @@ namespace NIdentity.OpenId.Messages
 {
     internal abstract class OpenIdMessage : IOpenIdMessage
     {
+        private readonly ILogger _logger;
         private readonly IDictionary<string, ParameterStore> _parameters = new Dictionary<string, ParameterStore>(StringComparer.Ordinal);
+
+        protected OpenIdMessage(ILogger logger)
+        {
+            _logger = logger;
+        }
 
         /// <inheritdoc />
         public int Count => _parameters.Count;
@@ -75,7 +82,7 @@ namespace NIdentity.OpenId.Messages
             if (parameter.ParsedValue is T parsedValue)
                 return parsedValue;
 
-            if (!knownParameter.Parser.TryParse(parameter.Descriptor, parameter.StringValues, out var result))
+            if (!knownParameter.Parser.TryParse(_logger, parameter.Descriptor, parameter.StringValues, out var result))
                 return default;
 
             parameter.SetParsedValue(result.Value);
@@ -128,7 +135,7 @@ namespace NIdentity.OpenId.Messages
                     _parameters[parameterName] = parameter;
                 }
 
-                if (!parameter.TryLoad(stringValues, out result))
+                if (!parameter.TryLoad(_logger, stringValues, out result))
                     return false;
             }
 

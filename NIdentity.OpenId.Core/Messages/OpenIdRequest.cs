@@ -20,12 +20,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdRequest : OpenIdMessage, IOpenIdRequest
     {
+        public OpenIdRequest(ILogger logger)
+            : base(logger)
+        {
+            // nothing
+        }
+
         internal static GrantType DetermineGrantType(ResponseTypes responseType) =>
             responseType switch
             {
@@ -169,6 +176,5 @@ namespace NIdentity.OpenId.Messages
             get => GetKnownParameter(KnownParameters.CodeChallengeMethod) ?? CodeChallengeMethod.Plain;
             set => SetKnownParameter(KnownParameters.CodeChallengeMethod, value);
         }
-
     }
 }

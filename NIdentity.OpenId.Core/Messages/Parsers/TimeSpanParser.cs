@@ -19,43 +19,53 @@
 
 using System;
 using System.Globalization;
+using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class TimeSpanParser : OpenIdParameterParser<TimeSpan?>
+    internal class TimeSpanParser : ParameterParser<TimeSpan?>
     {
-        public override OpenIdStringValues Serialize(TimeSpan? value)
+        public override StringValues Serialize(TimeSpan? value)
         {
             if (value == null)
-                return OpenIdStringValues.Empty;
+                return StringValues.Empty;
 
-            const bool tokenize = false;
             var wholeSeconds = (int)value.Value.TotalSeconds;
-            var wholeSecondsAsString = wholeSeconds.ToString(CultureInfo.InvariantCulture);
-            return new OpenIdStringValues(wholeSecondsAsString, tokenize);
+            return wholeSeconds.ToString(CultureInfo.InvariantCulture);
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<TimeSpan?> result)
+        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<TimeSpan?> result)
         {
             switch (stringValues.Count)
             {
-                case 0:
+                case 0 when descriptor.Optional:
                     result = ValidationResult.Factory.Success<TimeSpan?>(null);
                     return false;
 
-                case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<TimeSpan?>(parameterName);
+                case 0:
+                    result = ValidationResult.Factory.MissingParameter<TimeSpan?>(descriptor.ParameterName);
+                    return false;
+
+                case > 1 when !descriptor.AllowMultipleValues:
+                    result = ValidationResult.Factory.TooManyParameterValues<TimeSpan?>(descriptor.ParameterName);
                     return false;
             }
 
-            if (!int.TryParse(stringValues[0].AsSpan(), out var seconds))
+            var value = TimeSpan.Zero;
+            foreach (var stringValue in stringValues)
             {
-                result = ValidationResult.Factory.InvalidParameterValue<TimeSpan?>(parameterName);
-                return false;
+                if (!int.TryParse(stringValue, out var seconds))
+                {
+                    result = ValidationResult.Factory.InvalidParameterValue<TimeSpan?>(descriptor.ParameterName);
+                    return false;
+                }
+
+                value += TimeSpan.FromSeconds(seconds);
             }
 
-            result = ValidationResult.Factory.Success<TimeSpan?>(TimeSpan.FromSeconds(seconds));
+            result = ValidationResult.Factory.Success<TimeSpan?>(value);
             return true;
         }
     }

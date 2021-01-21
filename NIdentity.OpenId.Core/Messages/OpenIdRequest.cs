@@ -20,7 +20,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages
@@ -47,9 +46,9 @@ namespace NIdentity.OpenId.Messages
         public ResponseMode DefaultResponseMode => DetermineDefaultResponseNode(GrantType);
 
         /// <inheritdoc />
-        public IEnumerable<StringSegment> Scope
+        public IEnumerable<string> Scope
         {
-            get => GetKnownParameter(KnownParameters.Scope) ?? Enumerable.Empty<StringSegment>();
+            get => GetKnownParameter(KnownParameters.Scope) ?? Enumerable.Empty<string>();
             set => SetKnownParameter(KnownParameters.Scope, value);
         }
 
@@ -61,21 +60,21 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public StringSegment ClientId
+        public string? ClientId
         {
             get => GetKnownParameter(KnownParameters.ClientId);
             set => SetKnownParameter(KnownParameters.ClientId, value);
         }
 
         /// <inheritdoc />
-        public StringSegment RedirectUri
+        public string? RedirectUri
         {
             get => GetKnownParameter(KnownParameters.RedirectUri);
             set => SetKnownParameter(KnownParameters.RedirectUri, value);
         }
 
         /// <inheritdoc />
-        public StringSegment State
+        public string? State
         {
             get => GetKnownParameter(KnownParameters.State);
             set => SetKnownParameter(KnownParameters.State, value);
@@ -89,7 +88,7 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public StringSegment Nonce
+        public string? Nonce
         {
             get => GetKnownParameter(KnownParameters.Nonce);
             set => SetKnownParameter(KnownParameters.Nonce, value);
@@ -117,37 +116,37 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public IEnumerable<StringSegment> UiLocales
+        public IEnumerable<string> UiLocales
         {
-            get => GetKnownParameter(KnownParameters.UiLocales) ?? Enumerable.Empty<StringSegment>();
+            get => GetKnownParameter(KnownParameters.UiLocales) ?? Enumerable.Empty<string>();
             set => SetKnownParameter(KnownParameters.UiLocales, value);
         }
 
         /// <inheritdoc />
-        public StringSegment IdTokenHint
+        public string? IdTokenHint
         {
             get => GetKnownParameter(KnownParameters.IdTokenHint);
             set => SetKnownParameter(KnownParameters.IdTokenHint, value);
         }
 
         /// <inheritdoc />
-        public StringSegment LoginHint
+        public string? LoginHint
         {
             get => GetKnownParameter(KnownParameters.LoginHint);
             set => SetKnownParameter(KnownParameters.LoginHint, value);
         }
 
         /// <inheritdoc />
-        public IEnumerable<StringSegment> AcrValues
+        public IEnumerable<string> AcrValues
         {
-            get => GetKnownParameter(KnownParameters.AcrValues) ?? Enumerable.Empty<StringSegment>();
+            get => GetKnownParameter(KnownParameters.AcrValues) ?? Enumerable.Empty<string>();
             set => SetKnownParameter(KnownParameters.AcrValues, value);
         }
 
         /// <inheritdoc />
-        public IEnumerable<StringSegment> ClaimsLocales
+        public IEnumerable<string> ClaimsLocales
         {
-            get => GetKnownParameter(KnownParameters.ClaimsLocales) ?? Enumerable.Empty<StringSegment>();
+            get => GetKnownParameter(KnownParameters.ClaimsLocales) ?? Enumerable.Empty<string>();
             set => SetKnownParameter(KnownParameters.ClaimsLocales, value);
         }
 
@@ -155,7 +154,7 @@ namespace NIdentity.OpenId.Messages
         public RequestClaims Claims { get; set; }
 
         /// <inheritdoc />
-        public StringSegment CodeChallenge
+        public string? CodeChallenge
         {
             get => GetKnownParameter(KnownParameters.CodeChallenge);
             set => SetKnownParameter(KnownParameters.CodeChallenge, value);

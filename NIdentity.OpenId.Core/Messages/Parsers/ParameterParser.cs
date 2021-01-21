@@ -18,22 +18,25 @@
 #endregion
 
 using System;
+using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal abstract class OpenIdParameterParser<T> : OpenIdParameterLoader
+    internal abstract class ParameterParser<T> : ParameterLoader
     {
+        public virtual string Separator => " ";
+
         public virtual StringComparison StringComparison => StringComparison.Ordinal;
 
-        public abstract OpenIdStringValues Serialize(T value);
+        public abstract StringValues Serialize(T value);
 
-        public abstract bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<T> result);
+        public abstract bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T> result);
 
-        public override bool TryLoad(string parameterName, OpenIdStringValues stringValues, OpenIdParameter parameter, out ValidationResult result)
+        public override bool TryLoad(ParameterStore parameter, StringValues stringValues, out ValidationResult result)
         {
-            if (!TryParse(parameterName, stringValues, out var parseResult))
+            if (!TryParse(parameter.Descriptor, stringValues, out var parseResult))
             {
                 parameter.Update(stringValues, null);
                 result = parseResult;

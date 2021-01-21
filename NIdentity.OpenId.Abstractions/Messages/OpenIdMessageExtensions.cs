@@ -28,19 +28,13 @@ namespace NIdentity.OpenId.Messages
     {
         public static bool TryLoad(this IOpenIdMessage message, IEnumerable<KeyValuePair<string, string>> parameters, out ValidationResult result)
         {
-            var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new OpenIdStringValues(kvp.Value)));
-            return message.TryLoad(newParameters, out result);
-        }
-
-        public static bool TryLoad(this IOpenIdMessage message, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult result)
-        {
-            var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new OpenIdStringValues(kvp.Value.AsEnumerable())));
+            var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new StringValues(kvp.Value)));
             return message.TryLoad(newParameters, out result);
         }
 
         public static bool TryLoad(this IOpenIdMessage message, IEnumerable<KeyValuePair<string, IEnumerable<string>>> parameters, out ValidationResult result)
         {
-            var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new OpenIdStringValues(kvp.Value)));
+            var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new StringValues(kvp.Value.ToArray())));
             return message.TryLoad(newParameters, out result);
         }
     }

@@ -18,13 +18,16 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Diagnostics;
+using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class ResponseTypeParser : OpenIdParameterParser<ResponseTypes>
+    internal class ResponseTypeParser : ParameterParser<ResponseTypes>
     {
-        public override OpenIdStringValues Serialize(ResponseTypes value)
+        public override StringValues Serialize(ResponseTypes value)
         {
             const int capacity = 3;
             var list = new List<string>(capacity);
@@ -38,36 +41,45 @@ namespace NIdentity.OpenId.Messages.Parsers
             if (value.HasFlag(ResponseTypes.Token))
                 list.Add(OpenIdConstants.ResponseTypes.Token);
 
-            const bool tokenize = false;
-            return new OpenIdStringValues(list, tokenize);
+            return string.Join(Separator, list);
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<ResponseTypes> result)
+        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseTypes> result)
         {
-            if (stringValues.Count == 0)
+            Debug.Assert(!descriptor.Optional);
+            Debug.Assert(!descriptor.AllowMultipleValues);
+
+            switch (stringValues.Count)
             {
-                result = ValidationResult.Factory.MissingParameter<ResponseTypes>(parameterName);
-                return false;
+                case 0:
+                    result = ValidationResult.Factory.MissingParameter<ResponseTypes>(descriptor.ParameterName);
+                    return false;
+
+                case > 1:
+                    result = ValidationResult.Factory.TooManyParameterValues<ResponseTypes>(descriptor.ParameterName);
+                    return false;
             }
+
+            stringValues = stringValues[0].Split(Separator);
 
             var responseType = ResponseTypes.Unknown;
             foreach (var stringValue in stringValues)
             {
-                if (stringValue.Equals(OpenIdConstants.ResponseTypes.Code, StringComparison))
+                if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Code, StringComparison))
                 {
                     responseType |= ResponseTypes.Code;
                 }
-                else if (stringValue.Equals(OpenIdConstants.ResponseTypes.IdToken, StringComparison))
+                else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.IdToken, StringComparison))
                 {
                     responseType |= ResponseTypes.IdToken;
                 }
-                else if (stringValue.Equals(OpenIdConstants.ResponseTypes.Token, StringComparison))
+                else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Token, StringComparison))
                 {
                     responseType |= ResponseTypes.Token;
                 }
                 else
                 {
-                    result = ValidationResult.Factory.InvalidParameterValue<ResponseTypes>(parameterName);
+                    result = ValidationResult.Factory.InvalidParameterValue<ResponseTypes>(descriptor.ParameterName);
                     return false;
                 }
             }

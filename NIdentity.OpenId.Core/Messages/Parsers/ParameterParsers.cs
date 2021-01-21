@@ -27,9 +27,8 @@ namespace NIdentity.OpenId.Messages.Parsers
         public static PromptTypeParser PromptType = new();
         public static CodeChallengeMethodParser CodeChallengeMethod = new();
 
+        public static StringParser String = new();
         public static StringSetParser StringSet = new();
-        public static SingleStringParser SingleString = new();
-        public static SingleOrDefaultStringParser SingleOrDefaultString = new();
         public static TimeSpanParser TimeSpan = new();
     }
 }

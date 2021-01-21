@@ -18,6 +18,7 @@
 #endregion
 
 using System.Collections.Generic;
+using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages
@@ -29,10 +30,10 @@ namespace NIdentity.OpenId.Messages
             => new OpenIdRequest();
 
         /// <inheritdoc />
-        public bool TryLoadRequest(IEnumerable<KeyValuePair<string, OpenIdStringValues>> parameters, out ValidationResult<IOpenIdRequest> result)
+        public bool TryLoadRequest(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<IOpenIdRequest> result)
             => TryLoad<IOpenIdRequest, OpenIdRequest>(parameters, out result);
 
-        private static bool TryLoad<TService, TImplementation>(IEnumerable<KeyValuePair<string, OpenIdStringValues>> parameters, out ValidationResult<TService> result)
+        private static bool TryLoad<TService, TImplementation>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TService> result)
             where TService : IOpenIdRequest
             where TImplementation : TService, new()
         {

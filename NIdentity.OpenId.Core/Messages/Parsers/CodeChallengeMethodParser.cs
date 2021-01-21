@@ -17,25 +17,30 @@
 
 #endregion
 
+using System.Diagnostics;
+using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class CodeChallengeMethodParser : OpenIdParameterParser<CodeChallengeMethod?>
+    internal class CodeChallengeMethodParser : ParameterParser<CodeChallengeMethod?>
     {
-        public override OpenIdStringValues Serialize(CodeChallengeMethod? value)
+        public override StringValues Serialize(CodeChallengeMethod? value)
         {
-            const bool tokenize = false;
             return value switch
             {
-                CodeChallengeMethod.Plain => new OpenIdStringValues(OpenIdConstants.CodeChallengeMethods.Plain, tokenize),
-                CodeChallengeMethod.S256 => new OpenIdStringValues(OpenIdConstants.CodeChallengeMethods.S256, tokenize),
-                _ => OpenIdStringValues.Empty
+                CodeChallengeMethod.Plain => OpenIdConstants.CodeChallengeMethods.Plain,
+                CodeChallengeMethod.S256 => OpenIdConstants.CodeChallengeMethods.S256,
+                _ => null
             };
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<CodeChallengeMethod?> result)
+        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<CodeChallengeMethod?> result)
         {
+            Debug.Assert(descriptor.Optional);
+            Debug.Assert(!descriptor.AllowMultipleValues);
+
             switch (stringValues.Count)
             {
                 case 0:
@@ -43,25 +48,25 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<CodeChallengeMethod?>(parameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues<CodeChallengeMethod?>(descriptor.ParameterName);
                     return false;
             }
 
-            var stringSegment = stringValues[0];
+            var stringValue = stringValues[0];
 
-            if (stringSegment.Equals(OpenIdConstants.CodeChallengeMethods.Plain, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.Plain, StringComparison))
             {
                 result = ValidationResult.Factory.Success<CodeChallengeMethod?>(CodeChallengeMethod.Plain);
                 return true;
             }
 
-            if (stringSegment.Equals(OpenIdConstants.CodeChallengeMethods.S256, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.S256, StringComparison))
             {
                 result = ValidationResult.Factory.Success<CodeChallengeMethod?>(CodeChallengeMethod.S256);
                 return true;
             }
 
-            result = ValidationResult.Factory.InvalidParameterValue<CodeChallengeMethod?>(parameterName);
+            result = ValidationResult.Factory.InvalidParameterValue<CodeChallengeMethod?>(descriptor.ParameterName);
             return false;
         }
     }

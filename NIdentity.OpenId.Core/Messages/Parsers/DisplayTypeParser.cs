@@ -17,27 +17,32 @@
 
 #endregion
 
+using System.Diagnostics;
+using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class DisplayTypeParser : OpenIdParameterParser<DisplayType?>
+    internal class DisplayTypeParser : ParameterParser<DisplayType?>
     {
-        public override OpenIdStringValues Serialize(DisplayType? value)
+        public override StringValues Serialize(DisplayType? value)
         {
-            const bool tokenize = false;
             return value switch
             {
-                DisplayType.Page => new OpenIdStringValues(OpenIdConstants.DisplayTypes.Page, tokenize),
-                DisplayType.Popup => new OpenIdStringValues(OpenIdConstants.DisplayTypes.Popup, tokenize),
-                DisplayType.Touch => new OpenIdStringValues(OpenIdConstants.DisplayTypes.Touch, tokenize),
-                DisplayType.Wap => new OpenIdStringValues(OpenIdConstants.DisplayTypes.Wap, tokenize),
-                _ => OpenIdStringValues.Empty
+                DisplayType.Page => OpenIdConstants.DisplayTypes.Page,
+                DisplayType.Popup => OpenIdConstants.DisplayTypes.Popup,
+                DisplayType.Touch => OpenIdConstants.DisplayTypes.Touch,
+                DisplayType.Wap => OpenIdConstants.DisplayTypes.Wap,
+                _ => null
             };
         }
 
-        public override bool TryParse(string parameterName, OpenIdStringValues stringValues, out ValidationResult<DisplayType?> result)
+        public override bool TryParse(ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<DisplayType?> result)
         {
+            Debug.Assert(descriptor.Optional);
+            Debug.Assert(!descriptor.AllowMultipleValues);
+
             switch (stringValues.Count)
             {
                 case 0:
@@ -45,37 +50,37 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<DisplayType?>(parameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues<DisplayType?>(descriptor.ParameterName);
                     return false;
             }
 
-            var stringSegment = stringValues[0];
+            var stringValue = stringValues[0];
 
-            if (stringSegment.Equals(OpenIdConstants.DisplayTypes.Page, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Page, StringComparison))
             {
                 result = ValidationResult.Factory.Success<DisplayType?>(DisplayType.Page);
                 return true;
             }
 
-            if (stringSegment.Equals(OpenIdConstants.DisplayTypes.Popup, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Popup, StringComparison))
             {
                 result = ValidationResult.Factory.Success<DisplayType?>(DisplayType.Popup);
                 return true;
             }
 
-            if (stringSegment.Equals(OpenIdConstants.DisplayTypes.Touch, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Touch, StringComparison))
             {
                 result = ValidationResult.Factory.Success<DisplayType?>(DisplayType.Touch);
                 return true;
             }
 
-            if (stringSegment.Equals(OpenIdConstants.DisplayTypes.Wap, StringComparison))
+            if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Wap, StringComparison))
             {
                 result = ValidationResult.Factory.Success<DisplayType?>(DisplayType.Wap);
                 return true;
             }
 
-            result = ValidationResult.Factory.InvalidParameterValue<DisplayType?>(parameterName);
+            result = ValidationResult.Factory.InvalidParameterValue<DisplayType?>(descriptor.ParameterName);
             return false;
         }
     }

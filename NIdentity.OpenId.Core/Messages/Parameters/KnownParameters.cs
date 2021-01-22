@@ -67,6 +67,9 @@ namespace NIdentity.OpenId.Messages.Parameters
         public static readonly KnownParameter<string?> LoginHint = new(OpenIdConstants.Parameters.LoginHint, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<IEnumerable<string>> AcrValues = new(OpenIdConstants.Parameters.AcrValues, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
         public static readonly KnownParameter<IEnumerable<string>> ClaimsLocales = new(OpenIdConstants.Parameters.ClaimsLocales, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
+        public static readonly KnownParameter<string?> Request = new(OpenIdConstants.Parameters.Request, optional: true, allowMultipleValues: false, ParameterParsers.String);
+        public static readonly KnownParameter<string?> RequestUri = new(OpenIdConstants.Parameters.RequestUri, optional: true, allowMultipleValues: false, ParameterParsers.String);
+        public static readonly KnownParameter<string?> CodeVerifier = new(OpenIdConstants.Parameters.CodeVerifier, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<string?> CodeChallenge = new(OpenIdConstants.Parameters.CodeChallenge, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<CodeChallengeMethod?> CodeChallengeMethod = new(OpenIdConstants.Parameters.CodeChallengeMethod, optional: true, allowMultipleValues: false, ParameterParsers.CodeChallengeMethod);
         public static readonly KnownParameter<RequestClaims?> Claims = new(OpenIdConstants.Parameters.Claims, optional: true, allowMultipleValues: false, ParameterParsers.RequestClaims);

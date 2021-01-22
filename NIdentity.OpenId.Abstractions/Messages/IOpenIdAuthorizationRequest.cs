@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NIdentity.OpenId.Messages
 {
-    public interface IOpenIdRequest : IOpenIdMessage
+    public interface IOpenIdAuthorizationRequest : IOpenIdMessage
     {
         GrantType GrantType { get; }
 
@@ -39,7 +39,13 @@ namespace NIdentity.OpenId.Messages
 
         IEnumerable<string> ClaimsLocales { get; set; }
 
+        string? Request { get; set; }
+
+        string? RequestUri { get; set; }
+
         RequestClaims? Claims { get; set; }
+
+        string? CodeVerifier { get; set; }
 
         string? CodeChallenge { get; set; }
 

@@ -25,9 +25,9 @@ using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages
 {
-    internal class OpenIdRequest : OpenIdMessage, IOpenIdRequest
+    internal class OpenIdAuthorizationRequest : OpenIdMessage, IOpenIdAuthorizationRequest
     {
-        public OpenIdRequest(ILogger logger)
+        public OpenIdAuthorizationRequest(ILogger logger)
             : base(logger)
         {
             // nothing
@@ -157,10 +157,31 @@ namespace NIdentity.OpenId.Messages
             set => SetKnownParameter(KnownParameters.ClaimsLocales, value);
         }
 
+        /// <inheritdoc />
+        public string? Request
+        {
+            get => GetKnownParameter(KnownParameters.Request);
+            set => SetKnownParameter(KnownParameters.Request, value);
+        }
+
+        /// <inheritdoc />
+        public string? RequestUri
+        {
+            get => GetKnownParameter(KnownParameters.RequestUri);
+            set => SetKnownParameter(KnownParameters.RequestUri, value);
+        }
+
         public RequestClaims? Claims
         {
             get => GetKnownParameter(KnownParameters.Claims);
             set => SetKnownParameter(KnownParameters.Claims, value);
+        }
+
+        /// <inheritdoc />
+        public string? CodeVerifier
+        {
+            get => GetKnownParameter(KnownParameters.CodeVerifier);
+            set => SetKnownParameter(KnownParameters.CodeVerifier, value);
         }
 
         /// <inheritdoc />

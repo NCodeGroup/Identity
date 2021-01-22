@@ -21,14 +21,9 @@ namespace NIdentity.OpenId
             public const string ClaimsLocales = "claims_locales";
             public const string Request = "request";
             public const string RequestUri = "request_uri";
-
-            // TODO
             public const string CodeVerifier = "code_verifier";
             public const string CodeChallenge = "code_challenge";
             public const string CodeChallengeMethod = "code_challenge_method";
-
-            // TODO
-            //public const string AccessToken = "access_token";
 
             // claims request
             public const string Claims = "claims";
@@ -37,6 +32,28 @@ namespace NIdentity.OpenId
             public const string ClaimsEssential = "essential";
             public const string ClaimsValue = "value";
             public const string ClaimsValues = "values";
+
+            // TODO
+            public const string AccessToken = "access_token";
+            public const string Assertion = "assertion";
+            public const string Audience = "audience";
+            public const string ClientAssertion = "client_assertion";
+            public const string ClientAssertionType = "client_assertion_type";
+            public const string ClientSecret = "client_secret";
+            public const string Code = "code";
+            public const string DeviceCode = "device_code";
+            public const string GrantType = "grant_type";
+            public const string IdentityProvider = "identity_provider";
+            public const string Password = "password";
+            public const string PostLogoutRedirectUri = "post_logout_redirect_uri";
+            public const string RefreshToken = "refresh_token";
+            public const string RequestId = "request_id";
+            public const string Resource = "resource";
+            public const string Token = "token";
+            public const string TokenTypeHint = "token_type_hint";
+            public const string Registration = "registration";
+            public const string UserCode = "user_code";
+            public const string Username = "username";
         }
 
         public static class ErrorCodes

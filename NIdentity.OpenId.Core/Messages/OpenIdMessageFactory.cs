@@ -34,15 +34,15 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public IOpenIdRequest CreateRequest()
-            => new OpenIdRequest(_logger);
+        public IOpenIdAuthorizationRequest CreateAuthorizationRequest()
+            => new OpenIdAuthorizationRequest(_logger);
 
         /// <inheritdoc />
-        public bool TryLoadRequest(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<IOpenIdRequest> result)
-            => TryLoad(CreateRequest(), parameters, out result);
+        public bool TryLoadAuthorizationRequest(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<IOpenIdAuthorizationRequest> result)
+            => TryLoad(CreateAuthorizationRequest(), parameters, out result);
 
         private static bool TryLoad<TMessage>(TMessage message, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
-            where TMessage : IOpenIdRequest
+            where TMessage : IOpenIdMessage
         {
             if (!message.TryLoad(parameters, out var loadResult))
             {

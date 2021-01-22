@@ -6,12 +6,12 @@ namespace NIdentity.OpenId.Messages
     public class RequestClaims
     {
         [JsonPropertyName(OpenIdConstants.Parameters.Userinfo)]
-        public Dictionary<string, RequestClaim> Userinfo { get; set; }
+        public Dictionary<string, RequestClaim?>? Userinfo { get; set; }
 
         [JsonPropertyName(OpenIdConstants.Parameters.IdToken)]
-        public Dictionary<string, RequestClaim> IdToken { get; set; }
+        public Dictionary<string, RequestClaim?>? IdToken { get; set; }
 
         [JsonExtensionData]
-        public Dictionary<string, object> ExtensionData { get; set; }
+        public Dictionary<string, object> ExtensionData { get; set; } = new();
     }
 }

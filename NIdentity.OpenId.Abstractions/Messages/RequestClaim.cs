@@ -11,13 +11,13 @@ namespace NIdentity.OpenId.Messages
 
         [JsonPropertyName(OpenIdConstants.Parameters.Value)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string Value { get; set; }
+        public string? Value { get; set; }
 
         [JsonPropertyName(OpenIdConstants.Parameters.Values)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string[] Values { get; set; }
+        public string[]? Values { get; set; }
 
         [JsonExtensionData]
-        public Dictionary<string, object> ExtensionData { get; set; }
+        public Dictionary<string, object> ExtensionData { get; set; } = new();
     }
 }

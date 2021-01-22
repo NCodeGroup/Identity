@@ -17,8 +17,10 @@
 
 #endregion
 
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Validation;
 
@@ -26,24 +28,38 @@ namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdMessageFactory : IOpenIdMessageFactory
     {
-        private readonly ILogger<OpenIdMessageFactory> _logger;
-
-        public OpenIdMessageFactory(ILogger<OpenIdMessageFactory> logger)
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ConcurrentDictionary<Type, Type> _registry = new()
         {
-            _logger = logger;
+            [typeof(IOpenIdAuthorizationRequest)] = typeof(OpenIdAuthorizationRequest)
+        };
+
+        public OpenIdMessageFactory(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
         }
 
-        /// <inheritdoc />
-        public IOpenIdAuthorizationRequest CreateAuthorizationRequest()
-            => new OpenIdAuthorizationRequest(_logger);
+        public void Register<TMessage, TImplementation>()
+            where TMessage : IOpenIdMessage
+            where TImplementation : TMessage
+        {
+            _registry.TryAdd(typeof(TMessage), typeof(TImplementation));
+        }
 
-        /// <inheritdoc />
-        public bool TryLoadAuthorizationRequest(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<IOpenIdAuthorizationRequest> result)
-            => TryLoad(CreateAuthorizationRequest(), parameters, out result);
-
-        private static bool TryLoad<TMessage>(TMessage message, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
+        public TMessage Create<TMessage>()
             where TMessage : IOpenIdMessage
         {
+            if (!_registry.TryGetValue(typeof(TMessage), out var implementationType))
+                throw new InvalidOperationException();
+
+            return (TMessage)ActivatorUtilities.CreateInstance(_serviceProvider, implementationType);
+        }
+
+        public bool TryLoad<TMessage>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
+            where TMessage : IOpenIdMessage
+        {
+            var message = Create<TMessage>();
+
             if (!message.TryLoad(parameters, out var loadResult))
             {
                 result = loadResult.As<TMessage>();

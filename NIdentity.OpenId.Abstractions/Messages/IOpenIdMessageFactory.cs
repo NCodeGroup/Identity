@@ -25,8 +25,14 @@ namespace NIdentity.OpenId.Messages
 {
     public interface IOpenIdMessageFactory
     {
-        IOpenIdAuthorizationRequest CreateAuthorizationRequest();
+        void Register<TMessage, TImplementation>()
+            where TMessage : IOpenIdMessage
+            where TImplementation : TMessage;
 
-        bool TryLoadAuthorizationRequest(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<IOpenIdAuthorizationRequest> result);
+        TMessage Create<TMessage>()
+            where TMessage : IOpenIdMessage;
+
+        bool TryLoad<TMessage>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
+            where TMessage : IOpenIdMessage;
     }
 }

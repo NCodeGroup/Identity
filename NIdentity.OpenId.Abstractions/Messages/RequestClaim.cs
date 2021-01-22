@@ -5,15 +5,15 @@ namespace NIdentity.OpenId.Messages
 {
     public class RequestClaim
     {
-        [JsonPropertyName(OpenIdConstants.Parameters.ClaimsEssential)]
+        [JsonPropertyName(OpenIdConstants.Parameters.Essential)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? Essential { get; set; }
 
-        [JsonPropertyName(OpenIdConstants.Parameters.ClaimsValue)]
+        [JsonPropertyName(OpenIdConstants.Parameters.Value)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Value { get; set; }
 
-        [JsonPropertyName(OpenIdConstants.Parameters.ClaimsValues)]
+        [JsonPropertyName(OpenIdConstants.Parameters.Values)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string[] Values { get; set; }
 

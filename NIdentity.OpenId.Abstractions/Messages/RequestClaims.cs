@@ -5,10 +5,10 @@ namespace NIdentity.OpenId.Messages
 {
     public class RequestClaims
     {
-        [JsonPropertyName(OpenIdConstants.Parameters.ClaimsUserinfo)]
-        public Dictionary<string, RequestClaim> UserInfo { get; set; }
+        [JsonPropertyName(OpenIdConstants.Parameters.Userinfo)]
+        public Dictionary<string, RequestClaim> Userinfo { get; set; }
 
-        [JsonPropertyName(OpenIdConstants.Parameters.ClaimsIdToken)]
+        [JsonPropertyName(OpenIdConstants.Parameters.IdToken)]
         public Dictionary<string, RequestClaim> IdToken { get; set; }
 
         [JsonExtensionData]

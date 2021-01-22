@@ -27,7 +27,8 @@ namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdAuthorizationRequest : OpenIdMessage, IOpenIdAuthorizationRequest
     {
-        public OpenIdAuthorizationRequest(ILogger logger)
+        // ReSharper disable once SuggestBaseTypeForParameter
+        public OpenIdAuthorizationRequest(ILogger<OpenIdAuthorizationRequest> logger)
             : base(logger)
         {
             // nothing

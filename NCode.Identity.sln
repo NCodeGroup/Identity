@@ -16,7 +16,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCode.Identity.Logic", "NCo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Abstractions", "NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj", "{BC401E46-D702-42E4-AFBD-09D05FCCB0C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIdentity.OpenId.Core", "NIdentity.OpenId.Core\NIdentity.OpenId.Core.csproj", "{FF1AA0D2-80A8-4581-9CCE-57EB39AA095D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Core", "NIdentity.OpenId.Core\NIdentity.OpenId.Core.csproj", "{FF1AA0D2-80A8-4581-9CCE-57EB39AA095D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIdentity.OpenId.Playground", "NIdentity.OpenId.Playground\NIdentity.OpenId.Playground.csproj", "{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +46,10 @@ Global
 		{FF1AA0D2-80A8-4581-9CCE-57EB39AA095D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF1AA0D2-80A8-4581-9CCE-57EB39AA095D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF1AA0D2-80A8-4581-9CCE-57EB39AA095D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

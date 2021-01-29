@@ -22,25 +22,25 @@ using NIdentity.OpenId.Messages;
 
 namespace NIdentity.OpenId.Playground.Contexts
 {
-    internal interface IAuthorizationContext : IMessageContext<IOpenIdAuthorizationRequest, IOpenIdMessage>
+    internal interface IAuthorizationContext : IConsumeContext<IOpenIdAuthorizationRequest, IOpenIdAuthorizationResponse>
     {
         object? Client { get; set; }
     }
 
-    internal class AuthorizationContext : MessageContext<IOpenIdAuthorizationRequest, IOpenIdMessage>, IAuthorizationContext
+    internal class AuthorizationContext : ConsumeContext<IOpenIdAuthorizationRequest, IOpenIdAuthorizationResponse>, IAuthorizationContext
     {
         public Uri? Issuer { get; set; }
 
         public object? Client { get; set; }
 
-        public AuthorizationContext(IHttpPipeContext context, IOpenIdAuthorizationRequest request, IOpenIdMessage response)
-            : base(context, request, response)
+        public AuthorizationContext(IReceiveContext receiveContext, IOpenIdAuthorizationRequest request, IOpenIdAuthorizationResponse response)
+            : base(receiveContext, request, response)
         {
             // nothing
         }
 
-        public AuthorizationContext(IHttpPipeContext context, IOpenIdAuthorizationRequest request, IOpenIdMessage response, params object[] payloads)
-            : base(context, request, response, payloads)
+        public AuthorizationContext(IReceiveContext receiveContext, IOpenIdAuthorizationRequest request, IOpenIdAuthorizationResponse response, params object[] payloads)
+            : base(receiveContext, request, response, payloads)
         {
             // nothing
         }

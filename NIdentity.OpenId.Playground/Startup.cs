@@ -1,9 +1,17 @@
+using System.Threading.Tasks;
+using GreenPipes;
+using GreenPipes.Filters;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Playground.Contexts;
+using NIdentity.OpenId.Playground.Pipes;
+using NIdentity.OpenId.Playground.Results;
 
 /*
  *
@@ -15,46 +23,162 @@ using Microsoft.OpenApi.Models;
 
 namespace NIdentity.OpenId.Playground
 {
-	public class Startup
-	{
-		public Startup(IConfiguration configuration)
-		{
-			Configuration = configuration;
-		}
+    public class Startup
+    {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
 
-		public IConfiguration Configuration { get; }
+        public IConfiguration Configuration { get; }
 
-		// This method gets called by the runtime. Use this method to add services to the container.
-		public void ConfigureServices(IServiceCollection services)
-		{
+        // This method gets called by the runtime. Use this method to add services to the container.
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddControllers();
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "NIdentity.OpenId.Playground", Version = "v1" });
+            });
+        }
 
-			services.AddControllers();
-			services.AddSwaggerGen(c =>
-			{
-				c.SwaggerDoc("v1", new OpenApiInfo { Title = "NIdentity.OpenId.Playground", Version = "v1" });
-			});
-		}
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            IPipeRouter pipeRouter = new CompositePipeRouter();
 
-		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-		{
-			if (env.IsDevelopment())
-			{
-				app.UseDeveloperExceptionPage();
-				app.UseSwagger();
-				app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "NIdentity.OpenId.Playground v1"));
-			}
+            var otherPipe1 = pipeRouter.CreateRequestPipe<HttpContext, IAuthorizationContext>();
 
-			app.UseHttpsRedirection();
+            var otherPipe2 = pipeRouter.CreateRequestPipe<IAuthorizationContext, IHttpResult>();
 
-			app.UseRouting();
+            var authPipe = Pipe.New<IAuthorizationContext>(configurator =>
+            {
+                configurator.UseExecute(context =>
+                {
+                });
+            });
+            pipeRouter.ConnectPipe(authPipe);
 
-			app.UseAuthorization();
+            var requestPipe = Pipe.New<RequestContext>(configurator =>
+            {
+                configurator.UseDispatch(new CompositePipeContextConverterFactory(), d =>
+                {
+                    d.Handle<HttpContext>(h =>
+                    {
+                        h.UseExecute(ctx =>
+                        {
+                            var httpContext = ctx.Request;
+                        });
+                    });
 
-			app.UseEndpoints(endpoints =>
-			{
-				endpoints.MapControllers();
-			});
-		}
-	}
+                    d.Handle<LoadAuthorization>(h =>
+                    {
+                        h.UseExecute(ctx =>
+                        {
+                            var httpContext = ctx.Request.HttpContext;
+                            var serviceProvider = httpContext.RequestServices;
+                            var authorization = new AuthorizationContext(null!, null!, null!);
+                            ctx.TrySetResult(authorization);
+                        });
+                    });
+                });
+            });
+
+            var loadAuthorizationPipe = requestPipe.CreateRequestPipe<LoadAuthorization, IAuthorizationContext>();
+
+            var httpContextRequestPipe = Pipe.New<RequestContext<HttpContext>>(configurator =>
+            {
+                configurator.UseExecuteAsync(async httpContextRequestContext =>
+                {
+                    var httpContext = httpContextRequestContext.Request;
+
+                    var authResult = await loadAuthorizationPipe.Send(new LoadAuthorization { HttpContext = httpContext });
+                    var auth = authResult.Result;
+
+                    await authPipe.Send(auth);
+
+                    var authorizationResultContext = await otherPipe1.Send(httpContext);
+                    var httpResultContext = await otherPipe2.Send(authorizationResultContext.Result);
+                    httpContextRequestContext.TrySetResult(httpResultContext.Result);
+
+                    // TODO: create the HTTP result
+                    //var httpResult = HttpResultFactory.Ok("hello world");
+                    //context.TrySetResult(httpResult);
+                });
+            });
+            pipeRouter.ConnectPipe(httpContextRequestPipe);
+
+            var httpContextPipe = pipeRouter.CreateRequestPipe<HttpContext, IHttpResult>(configurator =>
+            {
+                configurator.UseExecuteAsync(context => context.Result.ExecuteAsync(context.Request));
+            });
+
+            //
+
+            var consumeFilter = new DynamicFilter<IConsumeContext>(new CompositePipeContextConverterFactory());
+            var consumePipeInternal = Pipe.New<IConsumeContext>(cfg =>
+            {
+                cfg.UseFilter(consumeFilter);
+            });
+            var consumePipe = new ConsumePipe(consumePipeInternal);
+
+            var receivePipeInternal = Pipe.New<IReceiveContext>(cfg =>
+            {
+                cfg.UseFilter(new DeserializeFilter(consumePipe));
+            });
+            var receivePipe = new ReceivePipe(receivePipeInternal, consumePipe);
+
+            //
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "NIdentity.OpenId.Playground v1"));
+            }
+
+            app.UseHttpsRedirection();
+
+            app.UseRouting();
+
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapGet("/test", httpContext => httpContextPipe.Send(httpContext));
+                endpoints.MapGet("/test2", httpContext => receivePipe.Send(new ReceiveContext(httpContext)));
+                endpoints.MapControllers();
+            });
+        }
+    }
+
+    internal class AuthorizationContextFromHttpPipeContextFactory : IPipeContextSource<IAuthorizationContext, IReceiveContext>
+    {
+        public async Task Send(IReceiveContext context, IPipe<IAuthorizationContext> pipe)
+        {
+            var request = (IOpenIdAuthorizationRequest)null!;
+            var response = (IOpenIdAuthorizationResponse)null!;
+
+            var payloads = new object[]
+            {
+                context.HttpContext,
+                context.HttpContext.RequestServices
+            };
+
+            var authorizationContext = new AuthorizationContext(context, request, response, payloads);
+
+            await pipe.Send(authorizationContext);
+        }
+
+        public void Probe(ProbeContext context)
+        {
+            throw new System.NotImplementedException();
+        }
+    }
+
+    public class LoadAuthorization
+    {
+        public HttpContext HttpContext { get; set; }
+    }
+
 }

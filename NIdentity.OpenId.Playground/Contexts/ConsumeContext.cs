@@ -17,18 +17,15 @@
 
 #endregion
 
-using System;
 using System.Diagnostics.CodeAnalysis;
 using GreenPipes;
 using NIdentity.OpenId.Messages;
 
 namespace NIdentity.OpenId.Playground.Contexts
 {
-    internal interface IMessageContext : PipeContext
+    internal interface IConsumeContext : PipeContext
     {
-        IHttpPipeContext HttpPipeContext { get; }
-
-        IServiceProvider ServiceProvider { get; }
+        IReceiveContext ReceiveContext { get; }
 
         bool TryGetRequest<T>([NotNullWhen(true)] out T? request)
             where T : class, IOpenIdMessage;
@@ -37,37 +34,35 @@ namespace NIdentity.OpenId.Playground.Contexts
             where T : class, IOpenIdMessage;
     }
 
-    internal interface IMessageContext<out TRequest, out TResponse> : IMessageContext
+    internal interface IConsumeContext<out TRequest, out TResponse> : IConsumeContext
     {
         TRequest Request { get; }
 
         TResponse Response { get; }
     }
 
-    internal class MessageContext<TRequest, TResponse> : ScopePipeContext, IMessageContext<TRequest, TResponse>
+    internal class ConsumeContext<TRequest, TResponse> : ScopePipeContext, IConsumeContext<TRequest, TResponse>
         where TRequest : IOpenIdMessage
         where TResponse : IOpenIdMessage
     {
-        public IHttpPipeContext HttpPipeContext { get; }
-
-        public IServiceProvider ServiceProvider => HttpPipeContext.ServiceProvider;
+        public IReceiveContext ReceiveContext { get; }
 
         public TRequest Request { get; }
 
         public TResponse Response { get; }
 
-        public MessageContext(IHttpPipeContext context, TRequest request, TResponse response)
-            : base(context)
+        public ConsumeContext(IReceiveContext receiveContext, TRequest request, TResponse response)
+            : base(receiveContext)
         {
-            HttpPipeContext = context;
+            ReceiveContext = receiveContext;
             Request = request;
             Response = response;
         }
 
-        public MessageContext(IHttpPipeContext context, TRequest request, TResponse response, params object[] payloads)
-            : base(context, payloads)
+        public ConsumeContext(IReceiveContext receiveContext, TRequest request, TResponse response, params object[] payloads)
+            : base(receiveContext, payloads)
         {
-            HttpPipeContext = context;
+            ReceiveContext = receiveContext;
             Request = request;
             Response = response;
         }

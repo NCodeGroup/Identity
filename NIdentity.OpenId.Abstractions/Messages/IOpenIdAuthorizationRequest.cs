@@ -51,4 +51,8 @@ namespace NIdentity.OpenId.Messages
 
         CodeChallengeMethod CodeChallengeMethod { get; set; }
     }
+
+    public interface IOpenIdAuthorizationResponse : IOpenIdMessage
+    {
+    }
 }

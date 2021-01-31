@@ -106,18 +106,6 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.RedirectUri, value);
         }
 
-        //public string? Request
-        //{
-        //    get => GetKnownParameter(KnownParameters.Request);
-        //    set => SetKnownParameter(KnownParameters.Request, value);
-        //}
-
-        //public string? RequestUri
-        //{
-        //    get => GetKnownParameter(KnownParameters.RequestUri);
-        //    set => SetKnownParameter(KnownParameters.RequestUri, value);
-        //}
-
         /// <inheritdoc />
         public ResponseMode? ResponseMode
         {

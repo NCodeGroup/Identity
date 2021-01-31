@@ -17,6 +17,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Primitives;
@@ -36,6 +37,28 @@ namespace NIdentity.OpenId.Messages
         {
             var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new StringValues(kvp.Value.ToArray())));
             return message.TryLoad(newParameters, out result);
+        }
+
+        public static bool TryLoad(this IOpenIdMessage message, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult result)
+        {
+            parameters = parameters
+                .GroupBy(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.AsEnumerable(),
+                    StringComparer.Ordinal)
+                .Select(
+                    grouping => KeyValuePair.Create(
+                        grouping.Key,
+                        new StringValues(grouping.SelectMany(stringValues => stringValues).ToArray())));
+
+            foreach (var (parameterName, stringValues) in parameters)
+            {
+                if (!message.TryLoad(parameterName, stringValues, out result))
+                    return false;
+            }
+
+            result = ValidationResult.SuccessResult;
+            return true;
         }
     }
 }

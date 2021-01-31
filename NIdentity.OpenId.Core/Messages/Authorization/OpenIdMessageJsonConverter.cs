@@ -23,6 +23,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 
 namespace NIdentity.OpenId.Messages.Authorization
@@ -32,7 +33,12 @@ namespace NIdentity.OpenId.Messages.Authorization
     {
         private readonly ILogger<OpenIdMessageJsonConverter<T>> _logger;
 
-        internal OpenIdMessageJsonConverter(ILogger<OpenIdMessageJsonConverter<T>> logger)
+        public OpenIdMessageJsonConverter()
+        {
+            _logger = NullLogger<OpenIdMessageJsonConverter<T>>.Instance;
+        }
+
+        public OpenIdMessageJsonConverter(ILogger<OpenIdMessageJsonConverter<T>> logger)
         {
             _logger = logger;
         }
@@ -80,7 +86,7 @@ namespace NIdentity.OpenId.Messages.Authorization
                 };
 
                 if (!value.TryLoad(propertyName, stringValues, out var result))
-                    throw new JsonException(result.ErrorDetails?.ErrorDescription);
+                    value.LoadErrors.Add(result);
             }
 
             throw new JsonException();

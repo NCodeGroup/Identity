@@ -26,13 +26,13 @@ namespace NIdentity.OpenId.Messages
 {
     public interface IOpenIdMessageFactory
     {
-        IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factoryMethod)
+        IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factory)
             where TMessage : IOpenIdMessage;
 
         TMessage Create<TMessage>()
             where TMessage : IOpenIdMessage;
 
-        bool TryLoad<TMessage>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
+        bool TryLoad<TMessage>(ILoadContext context, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
             where TMessage : IOpenIdMessage;
     }
 }

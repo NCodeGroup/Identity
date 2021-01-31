@@ -20,7 +20,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Validation;
@@ -31,18 +30,18 @@ namespace NIdentity.OpenId.Messages
     {
         private readonly ConcurrentDictionary<Type, Func<IOpenIdMessage>> _registry;
 
-        public OpenIdMessageFactory(ILogger<OpenIdMessageFactory> logger)
+        public OpenIdMessageFactory()
         {
             _registry = new ConcurrentDictionary<Type, Func<IOpenIdMessage>>
             {
-                [typeof(IAuthorizationRequestMessage)] = () => new AuthorizationRequestMessage { Logger = logger }
+                [typeof(IAuthorizationRequestMessage)] = () => new AuthorizationRequestMessage()
             };
         }
 
-        public IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factoryMethod)
+        public IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factory)
             where TMessage : IOpenIdMessage
         {
-            _registry.TryAdd(typeof(TMessage), () => factoryMethod());
+            _registry.TryAdd(typeof(TMessage), () => factory());
             return this;
         }
 
@@ -55,12 +54,12 @@ namespace NIdentity.OpenId.Messages
             return (TMessage)factory();
         }
 
-        public bool TryLoad<TMessage>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
+        public bool TryLoad<TMessage>(ILoadContext context, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
             where TMessage : IOpenIdMessage
         {
             var message = Create<TMessage>();
 
-            if (!message.TryLoad(parameters, out var loadResult))
+            if (!message.TryLoad(context, parameters, out var loadResult))
             {
                 result = loadResult.As<TMessage>();
                 return false;

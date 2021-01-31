@@ -6,6 +6,6 @@ namespace NIdentity.OpenId.Messages
 {
     public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
     {
-        bool TryLoad(string parameterName, StringValues stringValues, out ValidationResult result);
+        bool TryLoad(ILoadContext context, string parameterName, StringValues stringValues, out ValidationResult result);
     }
 }

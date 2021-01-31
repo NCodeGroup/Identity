@@ -33,11 +33,9 @@ namespace NIdentity.OpenId.Messages
     {
         private readonly IDictionary<string, Parameter> _parameters = new Dictionary<string, Parameter>(StringComparer.Ordinal);
 
-        internal ILogger Logger { get; set; } = NullLogger.Instance;
+        private ILogger Logger { get; set; } = NullLogger.Instance;
 
         internal IEnumerable<Parameter> Parameters => _parameters.Values;
-
-        internal IList<ValidationResult> LoadErrors { get; } = new List<ValidationResult>();
 
         /// <inheritdoc />
         public int Count => _parameters.Count;
@@ -116,8 +114,10 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public bool TryLoad(string parameterName, StringValues stringValues, out ValidationResult result)
+        public bool TryLoad(ILoadContext context, string parameterName, StringValues stringValues, out ValidationResult result)
         {
+            Logger = context.Logger;
+
             if (!_parameters.TryGetValue(parameterName, out var parameter))
             {
                 var descriptor = KnownParameters.TryGet(parameterName, out var knownParameter) ?
@@ -128,7 +128,7 @@ namespace NIdentity.OpenId.Messages
                 _parameters[parameterName] = parameter;
             }
 
-            if (!parameter.TryLoad(Logger, stringValues, out result))
+            if (!parameter.TryLoad(context, stringValues, out result))
                 return false;
 
             result = ValidationResult.SuccessResult;

@@ -35,9 +35,9 @@ namespace NIdentity.OpenId.Messages.Parsers
 
         public abstract bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T> result);
 
-        public override bool TryLoad(ILogger logger, Parameter parameter, StringValues stringValues, out ValidationResult result)
+        public override bool TryLoad(ILoadContext context, Parameter parameter, StringValues stringValues, out ValidationResult result)
         {
-            if (!TryParse(logger, parameter.Descriptor, stringValues, out var parseResult))
+            if (!TryParse(context.Logger, parameter.Descriptor, stringValues, out var parseResult))
             {
                 parameter.Update(stringValues, null);
                 result = parseResult;

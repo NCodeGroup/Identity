@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    [JsonConverter(typeof(OpenIdMessageJsonConverter<JsonAuthorizationRequestObject>))]
     internal class JsonAuthorizationRequestObject : OpenIdMessage, IAuthorizationRequestObject
     {
         /// <inheritdoc />

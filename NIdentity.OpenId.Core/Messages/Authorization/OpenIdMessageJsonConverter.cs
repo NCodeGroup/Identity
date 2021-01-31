@@ -22,8 +22,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 
 namespace NIdentity.OpenId.Messages.Authorization
@@ -31,24 +29,22 @@ namespace NIdentity.OpenId.Messages.Authorization
     internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         where T : OpenIdMessage, new()
     {
-        private readonly ILogger<OpenIdMessageJsonConverter<T>> _logger;
+        private readonly ILoadContext _context;
 
-        public OpenIdMessageJsonConverter()
+        public OpenIdMessageJsonConverter(ILoadContext context)
         {
-            _logger = NullLogger<OpenIdMessageJsonConverter<T>>.Instance;
+            _context = context;
         }
 
-        public OpenIdMessageJsonConverter(ILogger<OpenIdMessageJsonConverter<T>> logger)
+        public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            _logger = logger;
-        }
+            if (reader.TokenType == JsonTokenType.Null)
+                return default;
 
-        public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
             if (reader.TokenType != JsonTokenType.StartObject)
                 throw new JsonException();
 
-            var value = new T { Logger = _logger };
+            var value = new T();
 
             while (reader.Read())
             {
@@ -85,8 +81,8 @@ namespace NIdentity.OpenId.Messages.Authorization
                     _ => throw new JsonException()
                 };
 
-                if (!value.TryLoad(propertyName, stringValues, out var result))
-                    value.LoadErrors.Add(result);
+                if (!value.TryLoad(_context, propertyName, stringValues, out var result))
+                    _context.Errors.Add(result);
             }
 
             throw new JsonException();

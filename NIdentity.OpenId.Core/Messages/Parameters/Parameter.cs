@@ -47,9 +47,9 @@ namespace NIdentity.OpenId.Messages.Parameters
             ParsedValue = parsedValue;
         }
 
-        public virtual bool TryLoad(ILogger logger, StringValues stringValues, out ValidationResult result)
+        public virtual bool TryLoad(ILoadContext context, StringValues stringValues, out ValidationResult result)
         {
-            return Descriptor.Loader.TryLoad(logger, this, stringValues, out result);
+            return Descriptor.Loader.TryLoad(context, this, stringValues, out result);
         }
     }
 }

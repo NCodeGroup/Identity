@@ -29,32 +29,30 @@ namespace NIdentity.OpenId.Messages
 {
     internal abstract class OpenIdMessage : IOpenIdMessage
     {
-        private readonly IDictionary<string, Parameter> _parameters = new Dictionary<string, Parameter>(StringComparer.Ordinal);
-
-        internal IEnumerable<Parameter> Parameters => _parameters.Values;
+        internal IDictionary<string, Parameter> Parameters { get; } = new Dictionary<string, Parameter>(StringComparer.Ordinal);
 
         /// <inheritdoc />
         public IOpenIdMessageContext? Context { get; set; }
 
         /// <inheritdoc />
-        public int Count => _parameters.Count;
+        public int Count => Parameters.Count;
 
         /// <inheritdoc />
-        public IEnumerable<string> Keys => _parameters.Keys;
+        public IEnumerable<string> Keys => Parameters.Keys;
 
         /// <inheritdoc />
-        public IEnumerable<StringValues> Values => _parameters.Values.Select(_ => _.StringValues);
+        public IEnumerable<StringValues> Values => Parameters.Values.Select(_ => _.StringValues);
 
         /// <inheritdoc />
-        public StringValues this[string key] => _parameters[key].StringValues;
+        public StringValues this[string key] => Parameters[key].StringValues;
 
         /// <inheritdoc />
-        public bool ContainsKey(string key) => _parameters.ContainsKey(key);
+        public bool ContainsKey(string key) => Parameters.ContainsKey(key);
 
         /// <inheritdoc />
         public bool TryGetValue(string key, out StringValues value)
         {
-            if (!_parameters.TryGetValue(key, out var parameter))
+            if (!Parameters.TryGetValue(key, out var parameter))
             {
                 value = default;
                 return false;
@@ -65,7 +63,7 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => _parameters
+        public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => Parameters
             .Select(kvp => KeyValuePair.Create(kvp.Key, kvp.Value.StringValues))
             .GetEnumerator();
 
@@ -76,7 +74,7 @@ namespace NIdentity.OpenId.Messages
             var context = Context ?? throw new InvalidOperationException();
 
             var parameterName = knownParameter.Name;
-            if (!_parameters.TryGetValue(parameterName, out var parameter))
+            if (!Parameters.TryGetValue(parameterName, out var parameter))
                 return default;
 
             if (parameter.ParsedValue is T parsedValue)
@@ -85,7 +83,7 @@ namespace NIdentity.OpenId.Messages
             if (!knownParameter.Parser.TryParse(context, parameter.Descriptor, parameter.StringValues, out var result))
                 return default;
 
-            parameter.SetParsedValue(result.Value);
+            parameter.UpdateParsedValue(result.Value);
             return result.Value;
         }
 
@@ -96,24 +94,24 @@ namespace NIdentity.OpenId.Messages
             var parameterName = knownParameter.Name;
             if (parsedValue is null)
             {
-                _parameters.Remove(parameterName);
+                Parameters.Remove(parameterName);
                 return;
             }
 
             var stringValues = knownParameter.Parser.Serialize(context, parsedValue);
             if (StringValues.IsNullOrEmpty(stringValues))
             {
-                _parameters.Remove(parameterName);
+                Parameters.Remove(parameterName);
                 return;
             }
 
-            if (!_parameters.TryGetValue(parameterName, out var parameter))
+            if (!Parameters.TryGetValue(parameterName, out var parameter))
             {
                 parameter = new Parameter(new ParameterDescriptor(knownParameter));
-                _parameters[parameterName] = parameter;
+                Parameters[parameterName] = parameter;
             }
 
-            parameter.Update(stringValues, parsedValue);
+            parameter.Load(stringValues, parsedValue);
         }
 
         /// <inheritdoc />
@@ -121,14 +119,14 @@ namespace NIdentity.OpenId.Messages
         {
             var context = Context ?? throw new InvalidOperationException();
 
-            if (!_parameters.TryGetValue(parameterName, out var parameter))
+            if (!Parameters.TryGetValue(parameterName, out var parameter))
             {
                 var descriptor = KnownParameters.TryGet(parameterName, out var knownParameter) ?
                     new ParameterDescriptor(knownParameter) :
                     new ParameterDescriptor(parameterName);
 
                 parameter = new Parameter(descriptor);
-                _parameters[parameterName] = parameter;
+                Parameters[parameterName] = parameter;
             }
 
             if (!parameter.TryLoad(context, stringValues, out result))

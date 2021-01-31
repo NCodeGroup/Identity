@@ -23,6 +23,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
@@ -36,6 +38,30 @@ namespace NIdentity.OpenId.Messages.Authorization
             _context = context;
         }
 
+        private void LoadNestedJson(ref Utf8JsonReader reader, JsonSerializerOptions options, T message, string propertyName)
+        {
+            var isNew = false;
+            if (!message.Parameters.TryGetValue(propertyName, out var parameter))
+            {
+                var descriptor = KnownParameters.TryGet(propertyName, out var knownParameter)
+                    ? new ParameterDescriptor(knownParameter)
+                    : new ParameterDescriptor(propertyName);
+
+                isNew = true;
+                parameter = new Parameter(descriptor);
+            }
+
+            var jsonParser = parameter.Descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
+
+            jsonParser.Load(_context, parameter, ref reader, options);
+
+            if (reader.TokenType != JsonTokenType.EndArray && reader.TokenType != JsonTokenType.EndObject)
+                throw new JsonException();
+
+            if (isNew)
+                message.Parameters[propertyName] = parameter;
+        }
+
         public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             if (reader.TokenType == JsonTokenType.Null)
@@ -44,7 +70,7 @@ namespace NIdentity.OpenId.Messages.Authorization
             if (reader.TokenType != JsonTokenType.StartObject)
                 throw new JsonException();
 
-            var value = new T { Context = _context };
+            var message = new T { Context = _context };
 
             while (reader.Read())
             {
@@ -57,7 +83,7 @@ namespace NIdentity.OpenId.Messages.Authorization
                         continue;
 
                     case JsonTokenType.EndObject:
-                        return value;
+                        return message;
 
                     case JsonTokenType.PropertyName:
                         propertyName = reader.GetString() ?? throw new JsonException();
@@ -70,18 +96,37 @@ namespace NIdentity.OpenId.Messages.Authorization
                 if (!reader.Read())
                     throw new JsonException();
 
-                // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-                var stringValues = reader.TokenType switch
+                StringValues stringValues;
+                // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+                switch (reader.TokenType)
                 {
-                    JsonTokenType.Null => StringValues.Empty,
-                    JsonTokenType.String => new StringValues(reader.GetString()?.Split(OpenIdConstants.ParameterSeparator) ?? Array.Empty<string>()),
-                    JsonTokenType.Number => new StringValues(reader.GetDecimal().ToString(CultureInfo.InvariantCulture)),
-                    JsonTokenType.True => new StringValues(reader.GetBoolean().ToString(CultureInfo.InvariantCulture)),
-                    JsonTokenType.False => new StringValues(reader.GetBoolean().ToString(CultureInfo.InvariantCulture)),
-                    _ => throw new JsonException()
-                };
+                    case JsonTokenType.Null:
+                        stringValues = StringValues.Empty;
+                        break;
 
-                if (!value.TryLoad(propertyName, stringValues, out var result))
+                    case JsonTokenType.String:
+                        stringValues = new StringValues(reader.GetString()?.Split(OpenIdConstants.ParameterSeparator) ?? Array.Empty<string>());
+                        break;
+
+                    case JsonTokenType.Number:
+                        stringValues = new StringValues(reader.GetDecimal().ToString(CultureInfo.InvariantCulture));
+                        break;
+
+                    case JsonTokenType.True:
+                    case JsonTokenType.False:
+                        stringValues = new StringValues(reader.GetBoolean().ToString(CultureInfo.InvariantCulture));
+                        break;
+
+                    case JsonTokenType.StartArray:
+                    case JsonTokenType.StartObject:
+                        LoadNestedJson(ref reader, options, message, propertyName);
+                        continue;
+
+                    default:
+                        throw new JsonException();
+                }
+
+                if (!message.TryLoad(propertyName, stringValues, out var result))
                     _context.Errors.Add(result);
             }
 
@@ -98,7 +143,7 @@ namespace NIdentity.OpenId.Messages.Authorization
 
             writer.WriteStartObject();
 
-            foreach (var parameter in value.Parameters)
+            foreach (var parameter in value.Parameters.Values)
             {
                 var stringValue = string.Join(OpenIdConstants.ParameterSeparator, parameter.StringValues.AsEnumerable());
                 writer.WriteString(parameter.Descriptor.ParameterName, stringValue);

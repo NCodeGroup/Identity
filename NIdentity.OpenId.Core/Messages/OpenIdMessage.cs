@@ -33,9 +33,11 @@ namespace NIdentity.OpenId.Messages
     {
         private readonly IDictionary<string, Parameter> _parameters = new Dictionary<string, Parameter>(StringComparer.Ordinal);
 
+        internal ILogger Logger { get; set; } = NullLogger.Instance;
+
         internal IEnumerable<Parameter> Parameters => _parameters.Values;
 
-        internal ILogger Logger { get; set; } = NullLogger.Instance;
+        internal IList<ValidationResult> LoadErrors { get; } = new List<ValidationResult>();
 
         /// <inheritdoc />
         public int Count => _parameters.Count;
@@ -111,29 +113,6 @@ namespace NIdentity.OpenId.Messages
             }
 
             parameter.Update(stringValues, parsedValue);
-        }
-
-        /// <inheritdoc />
-        public bool TryLoad(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult result)
-        {
-            parameters = parameters
-                .GroupBy(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.AsEnumerable(),
-                    StringComparer.Ordinal)
-                .Select(
-                    grouping => KeyValuePair.Create(
-                        grouping.Key,
-                        new StringValues(grouping.SelectMany(stringValues => stringValues).ToArray())));
-
-            foreach (var (parameterName, stringValues) in parameters)
-            {
-                if (!TryLoad(parameterName, stringValues, out result))
-                    return false;
-            }
-
-            result = ValidationResult.SuccessResult;
-            return true;
         }
 
         /// <inheritdoc />

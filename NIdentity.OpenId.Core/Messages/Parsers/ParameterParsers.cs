@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Text.Json;
 using NIdentity.OpenId.Messages.Authorization;
 
 namespace NIdentity.OpenId.Messages.Parsers
@@ -29,16 +28,10 @@ namespace NIdentity.OpenId.Messages.Parsers
         public static DisplayTypeParser DisplayType = new();
         public static PromptTypeParser PromptType = new();
         public static CodeChallengeMethodParser CodeChallengeMethod = new();
-        public static JsonParser<IRequestClaims> RequestClaims = new(ConfigureRequestClaimsParser);
+        public static JsonParser<IRequestClaims> RequestClaims = new();
 
         public static StringParser String = new();
         public static StringSetParser StringSet = new();
         public static TimeSpanParser TimeSpan = new();
-
-        private static void ConfigureRequestClaimsParser(JsonSerializerOptions options)
-        {
-            options.Converters.Add(new JsonRequestClaimJsonConverter());
-            options.Converters.Add(new JsonRequestClaimsJsonConverter());
-        }
     }
 }

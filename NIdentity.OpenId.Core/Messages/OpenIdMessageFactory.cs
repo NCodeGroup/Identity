@@ -19,54 +19,36 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Authorization;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdMessageFactory : IOpenIdMessageFactory
     {
-        private readonly ConcurrentDictionary<Type, Func<IOpenIdMessage>> _registry;
+        private readonly ConcurrentDictionary<Type, Func<IOpenIdMessageContext, IOpenIdMessage>> _registry;
 
         public OpenIdMessageFactory()
         {
-            _registry = new ConcurrentDictionary<Type, Func<IOpenIdMessage>>
+            _registry = new ConcurrentDictionary<Type, Func<IOpenIdMessageContext, IOpenIdMessage>>
             {
-                [typeof(IAuthorizationRequestMessage)] = () => new AuthorizationRequestMessage()
+                [typeof(IAuthorizationRequestMessage)] = context => new AuthorizationRequestMessage { Context = context }
             };
         }
 
-        public IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factory)
+        public IOpenIdMessageFactory Register<TMessage>(Func<IOpenIdMessageContext, TMessage> factory)
             where TMessage : IOpenIdMessage
         {
-            _registry.TryAdd(typeof(TMessage), () => factory());
+            _registry.TryAdd(typeof(TMessage), context => factory(context));
             return this;
         }
 
-        public TMessage Create<TMessage>()
+        public TMessage Create<TMessage>(IOpenIdMessageContext context)
             where TMessage : IOpenIdMessage
         {
             if (!_registry.TryGetValue(typeof(TMessage), out var factory))
                 throw new InvalidOperationException();
 
-            return (TMessage)factory();
-        }
-
-        public bool TryLoad<TMessage>(ILoadContext context, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
-            where TMessage : IOpenIdMessage
-        {
-            var message = Create<TMessage>();
-
-            if (!message.TryLoad(context, parameters, out var loadResult))
-            {
-                result = loadResult.As<TMessage>();
-                return false;
-            }
-
-            result = ValidationResult.Factory.Success(message);
-            return true;
+            return (TMessage)factory(context);
         }
     }
 }

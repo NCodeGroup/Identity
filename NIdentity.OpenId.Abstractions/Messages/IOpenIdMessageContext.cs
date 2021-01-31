@@ -18,21 +18,18 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages
 {
-    internal class LoadContext : ILoadContext
+    public interface IOpenIdMessageContext
     {
-        public ILogger Logger { get; }
+        ILogger Logger { get; }
 
-        public IList<ValidationResult> Errors { get; } = new List<ValidationResult>();
+        JsonSerializerOptions JsonSerializerOptions { get; }
 
-        // ReSharper disable once SuggestBaseTypeForParameter
-        public LoadContext(ILogger<LoadContext> logger)
-        {
-            Logger = logger;
-        }
+        IList<ValidationResult> Errors { get; }
     }
 }

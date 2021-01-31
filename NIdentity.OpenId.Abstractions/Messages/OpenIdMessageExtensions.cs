@@ -27,19 +27,19 @@ namespace NIdentity.OpenId.Messages
 {
     public static class OpenIdMessageExtensions
     {
-        public static bool TryLoad(this IOpenIdMessage message, ILoadContext context, IEnumerable<KeyValuePair<string, string>> parameters, out ValidationResult result)
+        public static bool TryLoad(this IOpenIdMessage message, IEnumerable<KeyValuePair<string, string>> parameters, out ValidationResult result)
         {
             var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new StringValues(kvp.Value)));
-            return message.TryLoad(context, newParameters, out result);
+            return message.TryLoad(newParameters, out result);
         }
 
-        public static bool TryLoad(this IOpenIdMessage message, ILoadContext context, IEnumerable<KeyValuePair<string, IEnumerable<string>>> parameters, out ValidationResult result)
+        public static bool TryLoad(this IOpenIdMessage message, IEnumerable<KeyValuePair<string, IEnumerable<string>>> parameters, out ValidationResult result)
         {
             var newParameters = parameters.Select(kvp => KeyValuePair.Create(kvp.Key, new StringValues(kvp.Value.ToArray())));
-            return message.TryLoad(context, newParameters, out result);
+            return message.TryLoad(newParameters, out result);
         }
 
-        public static bool TryLoad(this IOpenIdMessage message, ILoadContext context, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult result)
+        public static bool TryLoad(this IOpenIdMessage message, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult result)
         {
             parameters = parameters
                 .GroupBy(
@@ -53,7 +53,7 @@ namespace NIdentity.OpenId.Messages
 
             foreach (var (parameterName, stringValues) in parameters)
             {
-                if (!message.TryLoad(context, parameterName, stringValues, out result))
+                if (!message.TryLoad(parameterName, stringValues, out result))
                     return false;
             }
 

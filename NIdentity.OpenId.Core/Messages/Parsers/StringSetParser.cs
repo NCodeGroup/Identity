@@ -20,7 +20,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -29,7 +28,7 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class StringSetParser : ParameterParser<IEnumerable<string>?>
     {
-        public override StringValues Serialize(IEnumerable<string>? value)
+        public override StringValues Serialize(IOpenIdMessageContext context, IEnumerable<string>? value)
         {
             if (value is null)
                 return StringValues.Empty;
@@ -37,7 +36,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, value);
         }
 
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IEnumerable<string>?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IEnumerable<string>?> result)
         {
             switch (stringValues.Count)
             {

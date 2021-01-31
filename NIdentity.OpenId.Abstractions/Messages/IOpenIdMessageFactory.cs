@@ -18,21 +18,15 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages
 {
     public interface IOpenIdMessageFactory
     {
-        IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factory)
+        IOpenIdMessageFactory Register<TMessage>(Func<IOpenIdMessageContext, TMessage> factory)
             where TMessage : IOpenIdMessage;
 
-        TMessage Create<TMessage>()
-            where TMessage : IOpenIdMessage;
-
-        bool TryLoad<TMessage>(ILoadContext context, IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
+        TMessage Create<TMessage>(IOpenIdMessageContext context)
             where TMessage : IOpenIdMessage;
     }
 }

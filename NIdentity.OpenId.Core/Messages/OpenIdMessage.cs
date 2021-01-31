@@ -21,8 +21,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -33,9 +31,10 @@ namespace NIdentity.OpenId.Messages
     {
         private readonly IDictionary<string, Parameter> _parameters = new Dictionary<string, Parameter>(StringComparer.Ordinal);
 
-        private ILogger Logger { get; set; } = NullLogger.Instance;
-
         internal IEnumerable<Parameter> Parameters => _parameters.Values;
+
+        /// <inheritdoc />
+        public IOpenIdMessageContext? Context { get; set; }
 
         /// <inheritdoc />
         public int Count => _parameters.Count;
@@ -74,6 +73,8 @@ namespace NIdentity.OpenId.Messages
 
         protected T? GetKnownParameter<T>(KnownParameter<T> knownParameter)
         {
+            var context = Context ?? throw new InvalidOperationException();
+
             var parameterName = knownParameter.Name;
             if (!_parameters.TryGetValue(parameterName, out var parameter))
                 return default;
@@ -81,7 +82,7 @@ namespace NIdentity.OpenId.Messages
             if (parameter.ParsedValue is T parsedValue)
                 return parsedValue;
 
-            if (!knownParameter.Parser.TryParse(Logger, parameter.Descriptor, parameter.StringValues, out var result))
+            if (!knownParameter.Parser.TryParse(context, parameter.Descriptor, parameter.StringValues, out var result))
                 return default;
 
             parameter.SetParsedValue(result.Value);
@@ -90,6 +91,8 @@ namespace NIdentity.OpenId.Messages
 
         protected void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
         {
+            var context = Context ?? throw new InvalidOperationException();
+
             var parameterName = knownParameter.Name;
             if (parsedValue is null)
             {
@@ -97,7 +100,7 @@ namespace NIdentity.OpenId.Messages
                 return;
             }
 
-            var stringValues = knownParameter.Parser.Serialize(parsedValue);
+            var stringValues = knownParameter.Parser.Serialize(context, parsedValue);
             if (StringValues.IsNullOrEmpty(stringValues))
             {
                 _parameters.Remove(parameterName);
@@ -114,9 +117,9 @@ namespace NIdentity.OpenId.Messages
         }
 
         /// <inheritdoc />
-        public bool TryLoad(ILoadContext context, string parameterName, StringValues stringValues, out ValidationResult result)
+        public bool TryLoad(string parameterName, StringValues stringValues, out ValidationResult result)
         {
-            Logger = context.Logger;
+            var context = Context ?? throw new InvalidOperationException();
 
             if (!_parameters.TryGetValue(parameterName, out var parameter))
             {

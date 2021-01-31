@@ -10,36 +10,12 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class JsonParser<T> : ParameterParser<T?>
     {
-        private readonly Action<JsonSerializerOptions> _configureOptions;
-
-        public JsonParser()
+        public override StringValues Serialize(IOpenIdMessageContext context, T? value)
         {
-            _configureOptions = _ => { };
+            return JsonSerializer.Serialize(value, context.JsonSerializerOptions);
         }
 
-        public JsonParser(Action<JsonSerializerOptions> configureOptions)
-        {
-            _configureOptions = configureOptions;
-        }
-
-        private JsonSerializerOptions GetJsonSerializerOptions()
-        {
-            var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-            {
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            };
-            _configureOptions(options);
-            return options;
-        }
-
-        public override StringValues Serialize(T? value)
-        {
-            var options = GetJsonSerializerOptions();
-            return JsonSerializer.Serialize(value, options);
-        }
-
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -60,11 +36,9 @@ namespace NIdentity.OpenId.Messages.Parsers
 
             var json = stringValues[0];
 
-            var options = GetJsonSerializerOptions();
-
             try
             {
-                var value = JsonSerializer.Deserialize<T>(json, options);
+                var value = JsonSerializer.Deserialize<T>(json, context.JsonSerializerOptions);
                 result = ValidationResult.Factory.Success(value);
                 return true;
             }
@@ -72,7 +46,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             {
                 const string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest;
                 result = ValidationResult.Factory.FailedToDeserializeJson<T?>(errorCode);
-                logger.LogError(exception, result.ErrorDetails!.ErrorDescription);
+                context.Logger.LogError(exception, result.ErrorDetails!.ErrorDescription);
                 return false;
             }
         }

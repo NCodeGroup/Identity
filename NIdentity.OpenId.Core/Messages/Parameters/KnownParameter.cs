@@ -37,6 +37,8 @@ namespace NIdentity.OpenId.Messages.Parameters
 
         public string Name { get; }
 
+        public abstract Type ValueType { get; }
+
         public bool Optional { get; }
 
         public bool AllowMultipleValues { get; }
@@ -51,6 +53,8 @@ namespace NIdentity.OpenId.Messages.Parameters
         {
             Parser = parser;
         }
+
+        public override Type ValueType => typeof(T);
 
         public ParameterParser<T> Parser { get; }
     }

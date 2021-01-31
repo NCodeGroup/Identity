@@ -8,7 +8,7 @@ namespace NIdentity.OpenId.Messages.Parameters
     {
         public virtual bool TryLoad(IOpenIdMessageContext context, Parameter parameter, StringValues stringValues, out ValidationResult result)
         {
-            parameter.Update(stringValues, null);
+            parameter.Load(stringValues, null);
             result = ValidationResult.SuccessResult;
             return true;
         }

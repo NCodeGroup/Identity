@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
@@ -8,8 +9,21 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class JsonParser<T> : ParameterParser<T?>
+    internal interface IJsonParser
     {
+        void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options);
+    }
+
+    internal class JsonParser<T> : ParameterParser<T?>, IJsonParser
+    {
+        public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
+        {
+            var converter = (JsonConverter<T>)options.GetConverter(typeof(T));
+            var parsedValue = converter.Read(ref reader, typeof(T), options);
+            var stringValues = JsonSerializer.Serialize(parsedValue, options);
+            parameter.Load(stringValues, parsedValue);
+        }
+
         public override StringValues Serialize(IOpenIdMessageContext context, T? value)
         {
             return JsonSerializer.Serialize(value, context.JsonSerializerOptions);

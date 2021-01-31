@@ -38,12 +38,12 @@ namespace NIdentity.OpenId.Messages.Parsers
         {
             if (!TryParse(context, parameter.Descriptor, stringValues, out var parseResult))
             {
-                parameter.Update(stringValues, null);
+                parameter.Load(stringValues, null);
                 result = parseResult;
                 return false;
             }
 
-            parameter.Update(stringValues, parseResult.Value);
+            parameter.Load(stringValues, parseResult.Value);
             result = ValidationResult.SuccessResult;
             return true;
         }

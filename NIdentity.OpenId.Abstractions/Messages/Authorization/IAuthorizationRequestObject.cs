@@ -19,7 +19,7 @@
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    public interface IAuthorizationRequestObject : IAuthorizationRequestValues
+    public interface IAuthorizationRequestObject : IAuthorizationRequestValues, IOpenIdMessage
     {
         // nothing
     }

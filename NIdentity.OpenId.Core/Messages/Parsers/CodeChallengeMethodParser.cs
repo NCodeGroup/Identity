@@ -39,11 +39,14 @@ namespace NIdentity.OpenId.Messages.Parsers
 
         public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<CodeChallengeMethod?> result)
         {
-            Debug.Assert(descriptor.Optional);
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
+                case 0 when descriptor.Optional:
+                    result = ValidationResult.Factory.Success<CodeChallengeMethod?>(null);
+                    return true;
+
                 case 0:
                     result = ValidationResult.Factory.Success<CodeChallengeMethod?>(null);
                     return true;

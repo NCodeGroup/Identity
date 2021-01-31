@@ -2,6 +2,8 @@ namespace NIdentity.OpenId
 {
     public static class OpenIdConstants
     {
+        public const string ParameterSeparator = " ";
+
         public static class Parameters
         {
             public const string AccessToken = "access_token";
@@ -46,7 +48,7 @@ namespace NIdentity.OpenId
             public const string TokenTypeHint = "token_type_hint";
             public const string UiLocales = "ui_locales";
             public const string UserCode = "user_code";
-            public const string Userinfo = "userinfo";
+            public const string UserInfo = "userinfo";
             public const string Username = "username";
             public const string Value = "value";
             public const string Values = "values";

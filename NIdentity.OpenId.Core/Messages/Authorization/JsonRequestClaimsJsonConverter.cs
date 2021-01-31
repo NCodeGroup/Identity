@@ -18,21 +18,22 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Validation;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages.Authorization
 {
-    public interface IOpenIdMessageFactory
+    internal class JsonRequestClaimsJsonConverter : JsonConverter<IRequestClaims?>
     {
-        IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factoryMethod)
-            where TMessage : IOpenIdMessage;
+        public override IRequestClaims? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return JsonSerializer.Deserialize<JsonRequestClaims>(ref reader, options);
+        }
 
-        TMessage Create<TMessage>()
-            where TMessage : IOpenIdMessage;
-
-        bool TryLoad<TMessage>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
-            where TMessage : IOpenIdMessage;
+        public override void Write(Utf8JsonWriter writer, IRequestClaims? value, JsonSerializerOptions options)
+        {
+            var type = value?.GetType() ?? typeof(JsonRequestClaims);
+            JsonSerializer.Serialize(writer, value, type, options);
+        }
     }
 }

@@ -1,18 +1,21 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages.Authorization
 {
-    public class RequestClaim
+    internal class JsonRequestClaim : IRequestClaim
     {
+        /// <inheritdoc />
         [JsonPropertyName(OpenIdConstants.Parameters.Essential)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? Essential { get; set; }
 
+        /// <inheritdoc />
         [JsonPropertyName(OpenIdConstants.Parameters.Value)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Value { get; set; }
 
+        /// <inheritdoc />
         [JsonPropertyName(OpenIdConstants.Parameters.Values)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string[]? Values { get; set; }

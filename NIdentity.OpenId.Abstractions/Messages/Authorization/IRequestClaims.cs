@@ -17,22 +17,14 @@
 
 #endregion
 
-using System;
 using System.Collections.Generic;
-using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages.Authorization
 {
-    public interface IOpenIdMessageFactory
+    public interface IRequestClaims
     {
-        IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factoryMethod)
-            where TMessage : IOpenIdMessage;
+        IReadOnlyDictionary<string, IRequestClaim?>? UserInfo { get; }
 
-        TMessage Create<TMessage>()
-            where TMessage : IOpenIdMessage;
-
-        bool TryLoad<TMessage>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)
-            where TMessage : IOpenIdMessage;
+        IReadOnlyDictionary<string, IRequestClaim?>? IdToken { get; }
     }
 }

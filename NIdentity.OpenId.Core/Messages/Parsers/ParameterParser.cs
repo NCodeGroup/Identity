@@ -27,7 +27,7 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal abstract class ParameterParser<T> : ParameterLoader
     {
-        public virtual string Separator => " ";
+        public virtual string Separator => OpenIdConstants.ParameterSeparator;
 
         public virtual StringComparison StringComparison => StringComparison.Ordinal;
 
@@ -35,7 +35,7 @@ namespace NIdentity.OpenId.Messages.Parsers
 
         public abstract bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T> result);
 
-        public override bool TryLoad(ILogger logger, ParameterStore parameter, StringValues stringValues, out ValidationResult result)
+        public override bool TryLoad(ILogger logger, Parameter parameter, StringValues stringValues, out ValidationResult result)
         {
             if (!TryParse(logger, parameter.Descriptor, stringValues, out var parseResult))
             {

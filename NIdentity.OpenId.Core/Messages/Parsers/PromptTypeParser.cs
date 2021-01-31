@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -29,26 +30,41 @@ namespace NIdentity.OpenId.Messages.Parsers
     {
         public override StringValues Serialize(PromptTypes? value)
         {
-            return value switch
-            {
-                PromptTypes.None => OpenIdConstants.PromptTypes.None,
-                PromptTypes.Login => OpenIdConstants.PromptTypes.Login,
-                PromptTypes.Consent => OpenIdConstants.PromptTypes.Consent,
-                PromptTypes.SelectAccount => OpenIdConstants.PromptTypes.SelectAccount,
-                _ => null
-            };
+            if (value is null)
+                return StringValues.Empty;
+
+            var promptType = value.Value;
+            if (promptType.HasFlag(PromptTypes.None))
+                return OpenIdConstants.PromptTypes.None;
+
+            const int capacity = 3;
+            var list = new List<string>(capacity);
+
+            if (promptType.HasFlag(PromptTypes.Login))
+                list.Add(OpenIdConstants.PromptTypes.Login);
+
+            if (promptType.HasFlag(PromptTypes.Consent))
+                list.Add(OpenIdConstants.PromptTypes.Consent);
+
+            if (promptType.HasFlag(PromptTypes.SelectAccount))
+                list.Add(OpenIdConstants.PromptTypes.SelectAccount);
+
+            return string.Join(Separator, list);
         }
 
         public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<PromptTypes?> result)
         {
-            Debug.Assert(descriptor.Optional);
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
-                case 0:
+                case 0 when descriptor.Optional:
                     result = ValidationResult.Factory.Success<PromptTypes?>(null);
                     return true;
+
+                case 0:
+                    result = ValidationResult.Factory.MissingParameter<PromptTypes?>(descriptor.ParameterName);
+                    return false;
 
                 case > 1:
                     result = ValidationResult.Factory.TooManyParameterValues<PromptTypes?>(descriptor.ParameterName);

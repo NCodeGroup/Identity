@@ -43,7 +43,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             {
                 case 0 when descriptor.Optional:
                     result = ValidationResult.Factory.Success<TimeSpan?>(null);
-                    return false;
+                    return true;
 
                 case 0:
                     result = ValidationResult.Factory.MissingParameter<TimeSpan?>(descriptor.ParameterName);

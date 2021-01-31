@@ -10,13 +10,27 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class JsonParser<T> : ParameterParser<T?>
     {
-        private static JsonSerializerOptions GetJsonSerializerOptions()
+        private readonly Action<JsonSerializerOptions> _configureOptions;
+
+        public JsonParser()
         {
-            return new(JsonSerializerDefaults.Web)
+            _configureOptions = _ => { };
+        }
+
+        public JsonParser(Action<JsonSerializerOptions> configureOptions)
+        {
+            _configureOptions = configureOptions;
+        }
+
+        private JsonSerializerOptions GetJsonSerializerOptions()
+        {
+            var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
             {
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true
             };
+            _configureOptions(options);
+            return options;
         }
 
         public override StringValues Serialize(T? value)

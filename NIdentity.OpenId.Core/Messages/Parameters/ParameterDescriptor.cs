@@ -58,13 +58,5 @@ namespace NIdentity.OpenId.Messages.Parameters
 
         public override int GetHashCode() =>
             KnownParameter?.GetHashCode() ?? StringComparer.Ordinal.GetHashCode(ParameterName);
-
-        public static ParameterDescriptor Get(KnownParameter knownParameter) =>
-            new(knownParameter);
-
-        public static ParameterDescriptor Get(string parameterName) =>
-            KnownParameters.TryGet(parameterName, out var knownParameter) ?
-                new ParameterDescriptor(knownParameter) :
-                new ParameterDescriptor(parameterName);
     }
 }

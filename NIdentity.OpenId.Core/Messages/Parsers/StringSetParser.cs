@@ -27,37 +27,40 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class StringSetParser : ParameterParser<IEnumerable<string>>
+    internal class StringSetParser : ParameterParser<IEnumerable<string>?>
     {
-        public override StringValues Serialize(IEnumerable<string> value)
+        public override StringValues Serialize(IEnumerable<string>? value)
         {
+            if (value is null)
+                return StringValues.Empty;
+
             return string.Join(Separator, value);
         }
 
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IEnumerable<string>> result)
+        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IEnumerable<string>?> result)
         {
             switch (stringValues.Count)
             {
                 case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success(Enumerable.Empty<string>());
+                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(Enumerable.Empty<string>());
                     return true;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<IEnumerable<string>>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.MissingParameter<IEnumerable<string>?>(descriptor.ParameterName);
                     return false;
 
                 case > 1 when descriptor.AllowMultipleValues:
-                    result = ValidationResult.Factory.Success<IEnumerable<string>>(stringValues
+                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(stringValues
                         .SelectMany(stringValue => stringValue.Split(Separator))
                         .ToHashSet(StringComparer.Ordinal));
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<IEnumerable<string>>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues<IEnumerable<string>?>(descriptor.ParameterName);
                     return false;
 
                 default:
-                    result = ValidationResult.Factory.Success<IEnumerable<string>>(stringValues[0]
+                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(stringValues[0]
                         .Split(Separator)
                         .ToHashSet(StringComparer.Ordinal));
                     return true;

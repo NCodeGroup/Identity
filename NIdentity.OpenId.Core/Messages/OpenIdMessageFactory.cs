@@ -20,39 +20,39 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdMessageFactory : IOpenIdMessageFactory
     {
-        private readonly IServiceProvider _serviceProvider;
-        private readonly ConcurrentDictionary<Type, Type> _registry = new()
-        {
-            [typeof(IOpenIdAuthorizationRequest)] = typeof(OpenIdAuthorizationRequest)
-        };
+        private readonly ConcurrentDictionary<Type, Func<IOpenIdMessage>> _registry;
 
-        public OpenIdMessageFactory(IServiceProvider serviceProvider)
+        public OpenIdMessageFactory(ILogger<OpenIdMessageFactory> logger)
         {
-            _serviceProvider = serviceProvider;
+            _registry = new ConcurrentDictionary<Type, Func<IOpenIdMessage>>
+            {
+                [typeof(IAuthorizationRequestMessage)] = () => new AuthorizationRequestMessage { Logger = logger }
+            };
         }
 
-        public void Register<TMessage, TImplementation>()
+        public IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factoryMethod)
             where TMessage : IOpenIdMessage
-            where TImplementation : TMessage
         {
-            _registry.TryAdd(typeof(TMessage), typeof(TImplementation));
+            _registry.TryAdd(typeof(TMessage), () => factoryMethod());
+            return this;
         }
 
         public TMessage Create<TMessage>()
             where TMessage : IOpenIdMessage
         {
-            if (!_registry.TryGetValue(typeof(TMessage), out var implementationType))
+            if (!_registry.TryGetValue(typeof(TMessage), out var factory))
                 throw new InvalidOperationException();
 
-            return (TMessage)ActivatorUtilities.CreateInstance(_serviceProvider, implementationType);
+            return (TMessage)factory();
         }
 
         public bool TryLoad<TMessage>(IEnumerable<KeyValuePair<string, StringValues>> parameters, out ValidationResult<TMessage> result)

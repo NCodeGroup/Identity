@@ -26,38 +26,45 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class ResponseTypeParser : ParameterParser<ResponseTypes>
+    internal class ResponseTypeParser : ParameterParser<ResponseTypes?>
     {
-        public override StringValues Serialize(ResponseTypes value)
+        public override StringValues Serialize(ResponseTypes? value)
         {
+            if (value is null)
+                return StringValues.Empty;
+
             const int capacity = 3;
+            var responseType = value.Value;
             var list = new List<string>(capacity);
 
-            if (value.HasFlag(ResponseTypes.Code))
+            if (responseType.HasFlag(ResponseTypes.Code))
                 list.Add(OpenIdConstants.ResponseTypes.Code);
 
-            if (value.HasFlag(ResponseTypes.IdToken))
+            if (responseType.HasFlag(ResponseTypes.IdToken))
                 list.Add(OpenIdConstants.ResponseTypes.IdToken);
 
-            if (value.HasFlag(ResponseTypes.Token))
+            if (responseType.HasFlag(ResponseTypes.Token))
                 list.Add(OpenIdConstants.ResponseTypes.Token);
 
             return string.Join(Separator, list);
         }
 
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseTypes> result)
+        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseTypes?> result)
         {
-            Debug.Assert(!descriptor.Optional);
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
+                case 0 when descriptor.Optional:
+                    result = ValidationResult.Factory.Success<ResponseTypes?>(null);
+                    return true;
+
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<ResponseTypes>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.MissingParameter<ResponseTypes?>(descriptor.ParameterName);
                     return false;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<ResponseTypes>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues<ResponseTypes?>(descriptor.ParameterName);
                     return false;
             }
 
@@ -80,12 +87,12 @@ namespace NIdentity.OpenId.Messages.Parsers
                 }
                 else
                 {
-                    result = ValidationResult.Factory.InvalidParameterValue<ResponseTypes>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.InvalidParameterValue<ResponseTypes?>(descriptor.ParameterName);
                     return false;
                 }
             }
 
-            result = ValidationResult.Factory.Success(responseType);
+            result = ValidationResult.Factory.Success<ResponseTypes?>(responseType);
             return true;
         }
     }

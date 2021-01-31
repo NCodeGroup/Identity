@@ -19,27 +19,28 @@
 
 using System;
 using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Messages.Authorization;
 
 namespace NIdentity.OpenId.Playground.Contexts
 {
-    internal interface IAuthorizationContext : IConsumeContext<IOpenIdAuthorizationRequest, IOpenIdAuthorizationResponse>
+    internal interface IAuthorizationContext : IConsumeContext<IAuthorizationRequest, IAuthorizationResponse>
     {
         object? Client { get; set; }
     }
 
-    internal class AuthorizationContext : ConsumeContext<IOpenIdAuthorizationRequest, IOpenIdAuthorizationResponse>, IAuthorizationContext
+    internal class AuthorizationContext : ConsumeContext<IAuthorizationRequest, IAuthorizationResponse>, IAuthorizationContext
     {
         public Uri? Issuer { get; set; }
 
         public object? Client { get; set; }
 
-        public AuthorizationContext(IReceiveContext receiveContext, IOpenIdAuthorizationRequest request, IOpenIdAuthorizationResponse response)
+        public AuthorizationContext(IReceiveContext receiveContext, IAuthorizationRequest request, IAuthorizationResponse response)
             : base(receiveContext, request, response)
         {
             // nothing
         }
 
-        public AuthorizationContext(IReceiveContext receiveContext, IOpenIdAuthorizationRequest request, IOpenIdAuthorizationResponse response, params object[] payloads)
+        public AuthorizationContext(IReceiveContext receiveContext, IAuthorizationRequest request, IAuthorizationResponse response, params object[] payloads)
             : base(receiveContext, request, response, payloads)
         {
             // nothing

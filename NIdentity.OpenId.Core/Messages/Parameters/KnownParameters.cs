@@ -21,6 +21,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Messages.Parameters
@@ -52,8 +53,8 @@ namespace NIdentity.OpenId.Messages.Parameters
             };
         }
 
-        public static readonly KnownParameter<IEnumerable<string>> Scope = new(OpenIdConstants.Parameters.Scope, optional: false, allowMultipleValues: true, ParameterParsers.StringSet);
-        public static readonly KnownParameter<ResponseTypes> ResponseType = new(OpenIdConstants.Parameters.ResponseType, optional: false, allowMultipleValues: false, ParameterParsers.ResponseType);
+        public static readonly KnownParameter<IEnumerable<string>?> Scope = new(OpenIdConstants.Parameters.Scope, optional: false, allowMultipleValues: true, ParameterParsers.StringSet);
+        public static readonly KnownParameter<ResponseTypes?> ResponseType = new(OpenIdConstants.Parameters.ResponseType, optional: false, allowMultipleValues: false, ParameterParsers.ResponseType);
         public static readonly KnownParameter<ResponseMode?> ResponseMode = new(OpenIdConstants.Parameters.ResponseMode, optional: true, allowMultipleValues: false, ParameterParsers.ResponseMode);
         public static readonly KnownParameter<string?> ClientId = new(OpenIdConstants.Parameters.ClientId, optional: false, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<string?> RedirectUri = new(OpenIdConstants.Parameters.RedirectUri, optional: false, allowMultipleValues: false, ParameterParsers.String);
@@ -62,17 +63,17 @@ namespace NIdentity.OpenId.Messages.Parameters
         public static readonly KnownParameter<DisplayType?> Display = new(OpenIdConstants.Parameters.Display, optional: true, allowMultipleValues: false, ParameterParsers.DisplayType);
         public static readonly KnownParameter<PromptTypes?> Prompt = new(OpenIdConstants.Parameters.Prompt, optional: true, allowMultipleValues: false, ParameterParsers.PromptType);
         public static readonly KnownParameter<TimeSpan?> MaxAge = new(OpenIdConstants.Parameters.MaxAge, optional: true, allowMultipleValues: false, ParameterParsers.TimeSpan);
-        public static readonly KnownParameter<IEnumerable<string>> UiLocales = new(OpenIdConstants.Parameters.UiLocales, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
+        public static readonly KnownParameter<IEnumerable<string>?> UiLocales = new(OpenIdConstants.Parameters.UiLocales, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
         public static readonly KnownParameter<string?> IdTokenHint = new(OpenIdConstants.Parameters.IdTokenHint, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<string?> LoginHint = new(OpenIdConstants.Parameters.LoginHint, optional: true, allowMultipleValues: false, ParameterParsers.String);
-        public static readonly KnownParameter<IEnumerable<string>> AcrValues = new(OpenIdConstants.Parameters.AcrValues, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
-        public static readonly KnownParameter<IEnumerable<string>> ClaimsLocales = new(OpenIdConstants.Parameters.ClaimsLocales, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
+        public static readonly KnownParameter<IEnumerable<string>?> AcrValues = new(OpenIdConstants.Parameters.AcrValues, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
+        public static readonly KnownParameter<IEnumerable<string>?> ClaimsLocales = new(OpenIdConstants.Parameters.ClaimsLocales, optional: true, allowMultipleValues: false, ParameterParsers.StringSet);
         public static readonly KnownParameter<string?> Request = new(OpenIdConstants.Parameters.Request, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<string?> RequestUri = new(OpenIdConstants.Parameters.RequestUri, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<string?> CodeVerifier = new(OpenIdConstants.Parameters.CodeVerifier, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<string?> CodeChallenge = new(OpenIdConstants.Parameters.CodeChallenge, optional: true, allowMultipleValues: false, ParameterParsers.String);
         public static readonly KnownParameter<CodeChallengeMethod?> CodeChallengeMethod = new(OpenIdConstants.Parameters.CodeChallengeMethod, optional: true, allowMultipleValues: false, ParameterParsers.CodeChallengeMethod);
-        public static readonly KnownParameter<RequestClaims?> Claims = new(OpenIdConstants.Parameters.Claims, optional: true, allowMultipleValues: false, ParameterParsers.RequestClaims);
+        public static readonly KnownParameter<IRequestClaims?> Claims = new(OpenIdConstants.Parameters.Claims, optional: true, allowMultipleValues: false, ParameterParsers.RequestClaims);
 
         public static KnownParameter Register(KnownParameter knownParameter)
         {

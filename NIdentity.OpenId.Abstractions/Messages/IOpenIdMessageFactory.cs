@@ -17,6 +17,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Validation;
@@ -25,9 +26,8 @@ namespace NIdentity.OpenId.Messages
 {
     public interface IOpenIdMessageFactory
     {
-        void Register<TMessage, TImplementation>()
-            where TMessage : IOpenIdMessage
-            where TImplementation : TMessage;
+        IOpenIdMessageFactory Register<TMessage>(Func<TMessage> factoryMethod)
+            where TMessage : IOpenIdMessage;
 
         TMessage Create<TMessage>()
             where TMessage : IOpenIdMessage;

@@ -22,6 +22,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -30,13 +31,11 @@ namespace NIdentity.OpenId.Messages
 {
     internal abstract class OpenIdMessage : IOpenIdMessage
     {
-        private readonly ILogger _logger;
-        private readonly IDictionary<string, ParameterStore> _parameters = new Dictionary<string, ParameterStore>(StringComparer.Ordinal);
+        private readonly IDictionary<string, Parameter> _parameters = new Dictionary<string, Parameter>(StringComparer.Ordinal);
 
-        protected OpenIdMessage(ILogger logger)
-        {
-            _logger = logger;
-        }
+        internal IEnumerable<Parameter> Parameters => _parameters.Values;
+
+        internal ILogger Logger { get; set; } = NullLogger.Instance;
 
         /// <inheritdoc />
         public int Count => _parameters.Count;
@@ -82,7 +81,7 @@ namespace NIdentity.OpenId.Messages
             if (parameter.ParsedValue is T parsedValue)
                 return parsedValue;
 
-            if (!knownParameter.Parser.TryParse(_logger, parameter.Descriptor, parameter.StringValues, out var result))
+            if (!knownParameter.Parser.TryParse(Logger, parameter.Descriptor, parameter.StringValues, out var result))
                 return default;
 
             parameter.SetParsedValue(result.Value);
@@ -107,7 +106,7 @@ namespace NIdentity.OpenId.Messages
 
             if (!_parameters.TryGetValue(parameterName, out var parameter))
             {
-                parameter = new ParameterStore(ParameterDescriptor.Get(knownParameter));
+                parameter = new Parameter(new ParameterDescriptor(knownParameter));
                 _parameters[parameterName] = parameter;
             }
 
@@ -129,15 +128,29 @@ namespace NIdentity.OpenId.Messages
 
             foreach (var (parameterName, stringValues) in parameters)
             {
-                if (!_parameters.TryGetValue(parameterName, out var parameter))
-                {
-                    parameter = new ParameterStore(ParameterDescriptor.Get(parameterName));
-                    _parameters[parameterName] = parameter;
-                }
-
-                if (!parameter.TryLoad(_logger, stringValues, out result))
+                if (!TryLoad(parameterName, stringValues, out result))
                     return false;
             }
+
+            result = ValidationResult.SuccessResult;
+            return true;
+        }
+
+        /// <inheritdoc />
+        public bool TryLoad(string parameterName, StringValues stringValues, out ValidationResult result)
+        {
+            if (!_parameters.TryGetValue(parameterName, out var parameter))
+            {
+                var descriptor = KnownParameters.TryGet(parameterName, out var knownParameter) ?
+                    new ParameterDescriptor(knownParameter) :
+                    new ParameterDescriptor(parameterName);
+
+                parameter = new Parameter(descriptor);
+                _parameters[parameterName] = parameter;
+            }
+
+            if (!parameter.TryLoad(Logger, stringValues, out result))
+                return false;
 
             result = ValidationResult.SuccessResult;
             return true;

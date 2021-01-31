@@ -23,7 +23,7 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
-    internal class ParameterStore
+    internal class Parameter
     {
         public ParameterDescriptor Descriptor { get; }
 
@@ -31,7 +31,7 @@ namespace NIdentity.OpenId.Messages.Parameters
 
         public object? ParsedValue { get; private set; }
 
-        public ParameterStore(ParameterDescriptor descriptor)
+        public Parameter(ParameterDescriptor descriptor)
         {
             Descriptor = descriptor;
         }

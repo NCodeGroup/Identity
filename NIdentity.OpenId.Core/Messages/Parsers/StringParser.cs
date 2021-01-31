@@ -17,7 +17,6 @@
 
 #endregion
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -26,12 +25,12 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class StringParser : ParameterParser<string?>
     {
-        public override StringValues Serialize(string? value)
+        public override StringValues Serialize(IOpenIdMessageContext context, string? value)
         {
             return value;
         }
 
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<string?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<string?> result)
         {
             switch (stringValues.Count)
             {

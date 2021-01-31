@@ -18,7 +18,6 @@
 #endregion
 
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -27,7 +26,7 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class CodeChallengeMethodParser : ParameterParser<CodeChallengeMethod?>
     {
-        public override StringValues Serialize(CodeChallengeMethod? value)
+        public override StringValues Serialize(IOpenIdMessageContext context, CodeChallengeMethod? value)
         {
             return value switch
             {
@@ -37,7 +36,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             };
         }
 
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<CodeChallengeMethod?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<CodeChallengeMethod?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 

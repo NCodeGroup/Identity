@@ -25,7 +25,7 @@ namespace NIdentity.OpenId.Messages
             where TMessage : IOpenIdMessage
             where TImplementation : TMessage, new()
         {
-            return factory.Register<TMessage>(() => new TImplementation());
+            return factory.Register<TMessage>(context => new TImplementation { Context = context });
         }
     }
 }

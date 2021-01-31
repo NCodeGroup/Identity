@@ -6,7 +6,7 @@ namespace NIdentity.OpenId.Messages.Parameters
 {
     internal class ParameterLoader
     {
-        public virtual bool TryLoad(ILoadContext context, Parameter parameter, StringValues stringValues, out ValidationResult result)
+        public virtual bool TryLoad(IOpenIdMessageContext context, Parameter parameter, StringValues stringValues, out ValidationResult result)
         {
             parameter.Update(stringValues, null);
             result = ValidationResult.SuccessResult;

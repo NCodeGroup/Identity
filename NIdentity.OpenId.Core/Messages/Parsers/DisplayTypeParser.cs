@@ -18,7 +18,6 @@
 #endregion
 
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -27,7 +26,7 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class DisplayTypeParser : ParameterParser<DisplayType?>
     {
-        public override StringValues Serialize(DisplayType? value)
+        public override StringValues Serialize(IOpenIdMessageContext context, DisplayType? value)
         {
             return value switch
             {
@@ -39,7 +38,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             };
         }
 
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<DisplayType?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<DisplayType?> result)
         {
             Debug.Assert(descriptor.Optional);
             Debug.Assert(!descriptor.AllowMultipleValues);

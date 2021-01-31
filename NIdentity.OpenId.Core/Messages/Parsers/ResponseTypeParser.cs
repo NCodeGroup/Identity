@@ -19,7 +19,6 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -28,7 +27,7 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class ResponseTypeParser : ParameterParser<ResponseTypes?>
     {
-        public override StringValues Serialize(ResponseTypes? value)
+        public override StringValues Serialize(IOpenIdMessageContext context, ResponseTypes? value)
         {
             if (value is null)
                 return StringValues.Empty;
@@ -49,7 +48,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, list);
         }
 
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseTypes?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseTypes?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 

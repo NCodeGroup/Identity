@@ -29,9 +29,9 @@ namespace NIdentity.OpenId.Messages.Authorization
     internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         where T : OpenIdMessage, new()
     {
-        private readonly ILoadContext _context;
+        private readonly IOpenIdMessageContext _context;
 
-        public OpenIdMessageJsonConverter(ILoadContext context)
+        public OpenIdMessageJsonConverter(IOpenIdMessageContext context)
         {
             _context = context;
         }
@@ -44,7 +44,7 @@ namespace NIdentity.OpenId.Messages.Authorization
             if (reader.TokenType != JsonTokenType.StartObject)
                 throw new JsonException();
 
-            var value = new T();
+            var value = new T { Context = _context };
 
             while (reader.Read())
             {
@@ -81,7 +81,7 @@ namespace NIdentity.OpenId.Messages.Authorization
                     _ => throw new JsonException()
                 };
 
-                if (!value.TryLoad(_context, propertyName, stringValues, out var result))
+                if (!value.TryLoad(propertyName, stringValues, out var result))
                     _context.Errors.Add(result);
             }
 

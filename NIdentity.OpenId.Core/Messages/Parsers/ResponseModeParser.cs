@@ -18,7 +18,6 @@
 #endregion
 
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -27,7 +26,7 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal class ResponseModeParser : ParameterParser<ResponseMode?>
     {
-        public override StringValues Serialize(ResponseMode? value)
+        public override StringValues Serialize(IOpenIdMessageContext context, ResponseMode? value)
         {
             return value switch
             {
@@ -38,7 +37,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             };
         }
 
-        public override bool TryParse(ILogger logger, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseMode?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseMode?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 

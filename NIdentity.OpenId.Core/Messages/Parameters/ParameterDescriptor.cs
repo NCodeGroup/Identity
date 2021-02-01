@@ -47,9 +47,8 @@ namespace NIdentity.OpenId.Messages.Parameters
 
         public ParameterLoader Loader => KnownParameter?.Loader ?? DefaultLoader;
 
-        // disallow boxing
         public override bool Equals(object? obj) =>
-            throw new InvalidOperationException();
+            obj is ParameterDescriptor other && Equals(other);
 
         public bool Equals(ParameterDescriptor other) =>
             KnownParameter == null ?

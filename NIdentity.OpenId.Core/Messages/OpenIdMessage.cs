@@ -69,7 +69,7 @@ namespace NIdentity.OpenId.Messages
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        protected T? GetKnownParameter<T>(KnownParameter<T> knownParameter)
+        protected internal T? GetKnownParameter<T>(KnownParameter<T> knownParameter)
         {
             var context = Context ?? throw new InvalidOperationException();
 
@@ -87,7 +87,7 @@ namespace NIdentity.OpenId.Messages
             return result.Value;
         }
 
-        protected void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
+        protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
         {
             var context = Context ?? throw new InvalidOperationException();
 

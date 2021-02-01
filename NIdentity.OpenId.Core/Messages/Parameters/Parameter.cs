@@ -17,7 +17,6 @@
 
 #endregion
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Validation;
 

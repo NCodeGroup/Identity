@@ -47,8 +47,8 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case 0:
-                    result = ValidationResult.Factory.Success<CodeChallengeMethod?>(null);
-                    return true;
+                    result = ValidationResult.Factory.MissingParameter<CodeChallengeMethod?>(descriptor.ParameterName);
+                    return false;
 
                 case > 1:
                     result = ValidationResult.Factory.TooManyParameterValues<CodeChallengeMethod?>(descriptor.ParameterName);

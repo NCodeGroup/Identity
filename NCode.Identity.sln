@@ -18,7 +18,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Abstractio
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Core", "NIdentity.OpenId.Core\NIdentity.OpenId.Core.csproj", "{FF1AA0D2-80A8-4581-9CCE-57EB39AA095D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIdentity.OpenId.Playground", "NIdentity.OpenId.Playground\NIdentity.OpenId.Playground.csproj", "{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Playground", "NIdentity.OpenId.Playground\NIdentity.OpenId.Playground.csproj", "{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIdentity.OpenId.Core.Tests", "NIdentity.OpenId.Core.Tests\NIdentity.OpenId.Core.Tests.csproj", "{421E2D83-7CB1-4D1A-92C4-63DFC2152858}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,6 +52,10 @@ Global
 		{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{421E2D83-7CB1-4D1A-92C4-63DFC2152858}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{421E2D83-7CB1-4D1A-92C4-63DFC2152858}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{421E2D83-7CB1-4D1A-92C4-63DFC2152858}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{421E2D83-7CB1-4D1A-92C4-63DFC2152858}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

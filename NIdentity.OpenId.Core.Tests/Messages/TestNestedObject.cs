@@ -19,7 +19,12 @@
 
 namespace NIdentity.OpenId.Core.Tests.Messages
 {
-    internal class TestNestedObject
+    internal interface ITestNestedObject
+    {
+        string NestedPropertyName1 { get; set; }
+    }
+
+    internal class TestNestedObject : ITestNestedObject
     {
         public string NestedPropertyName1 { get; set; }
     }

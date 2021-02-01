@@ -21,7 +21,12 @@ using NIdentity.OpenId.Messages;
 
 namespace NIdentity.OpenId.Core.Tests.Messages
 {
-    internal class TestOpenIdMessage : OpenIdMessage
+    internal interface ITestOpenIdMessage : IOpenIdMessage
+    {
+        // nothing
+    }
+
+    internal class TestOpenIdMessage : OpenIdMessage, ITestOpenIdMessage
     {
         // nothing
     }

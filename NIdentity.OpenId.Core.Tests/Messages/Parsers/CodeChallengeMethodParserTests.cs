@@ -53,7 +53,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new CodeChallengeMethodParser();
 
-            var knownParameter = new KnownParameter<string>("parameterName", optional: true, allowMultipleValues: false, ParameterParsers.String);
+            var knownParameter = new KnownParameter<string?>("parameterName", optional: true, allowMultipleValues: false, ParameterParsers.String);
             var descriptor = new ParameterDescriptor(knownParameter);
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, StringValues.Empty, out var result);
@@ -67,7 +67,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new CodeChallengeMethodParser();
 
-            var knownParameter = new KnownParameter<string>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
+            var knownParameter = new KnownParameter<string?>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
             var descriptor = new ParameterDescriptor(knownParameter);
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, StringValues.Empty, out var result);
@@ -81,7 +81,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new CodeChallengeMethodParser();
 
-            var knownParameter = new KnownParameter<string>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
+            var knownParameter = new KnownParameter<string?>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
             var descriptor = new ParameterDescriptor(knownParameter);
 
             var stringValues = new[] { "value1", "value2" };
@@ -96,7 +96,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new CodeChallengeMethodParser();
 
-            var knownParameter = new KnownParameter<string>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
+            var knownParameter = new KnownParameter<string?>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "plain";
@@ -111,7 +111,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new CodeChallengeMethodParser();
 
-            var knownParameter = new KnownParameter<string>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
+            var knownParameter = new KnownParameter<string?>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "PLAIN";
@@ -126,7 +126,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new CodeChallengeMethodParser();
 
-            var knownParameter = new KnownParameter<string>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
+            var knownParameter = new KnownParameter<string?>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "S256";
@@ -141,7 +141,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new CodeChallengeMethodParser();
 
-            var knownParameter = new KnownParameter<string>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
+            var knownParameter = new KnownParameter<string?>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "s256";
@@ -156,7 +156,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new CodeChallengeMethodParser();
 
-            var knownParameter = new KnownParameter<string>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
+            var knownParameter = new KnownParameter<string?>("parameterName", optional: false, allowMultipleValues: false, ParameterParsers.String);
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "invalid_value";

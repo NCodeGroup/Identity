@@ -40,14 +40,17 @@ namespace NIdentity.OpenId.Messages.Parsers
 
         public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<DisplayType?> result)
         {
-            Debug.Assert(descriptor.Optional);
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
-                case 0:
+                case 0 when descriptor.Optional:
                     result = ValidationResult.Factory.Success<DisplayType?>(null);
                     return true;
+
+                case 0:
+                    result = ValidationResult.Factory.MissingParameter<DisplayType?>(descriptor.ParameterName);
+                    return false;
 
                 case > 1:
                     result = ValidationResult.Factory.TooManyParameterValues<DisplayType?>(descriptor.ParameterName);

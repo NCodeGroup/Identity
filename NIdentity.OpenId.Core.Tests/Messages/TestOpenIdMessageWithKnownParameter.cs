@@ -23,7 +23,7 @@ using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Core.Tests.Messages
 {
-    internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage
+    internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage, ITestOpenIdMessage
     {
         public static KnownParameter<ITestNestedObject?> KnownParameter { get; } =
             new("test-nested-object", optional: true, allowMultipleValues: false, new JsonParser<ITestNestedObject?>());

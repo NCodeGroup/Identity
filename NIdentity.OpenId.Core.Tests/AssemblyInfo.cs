@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [assembly: ComVisible(false)]
-[assembly: Guid("e10194e7-da4c-4b87-a6b6-99286b454d13")]
+[assembly: Guid("84129877-66F7-413B-998A-9B834E88A003")]
 
-[assembly: InternalsVisibleTo("NIdentity.OpenId.Core.Tests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

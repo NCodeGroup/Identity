@@ -17,15 +17,21 @@
 
 #endregion
 
+using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Messages.Parsers;
+
 namespace NIdentity.OpenId.Core.Tests.Messages
 {
-    internal interface ITestNestedObject
+    internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage
     {
-        string NestedPropertyName1 { get; set; }
-    }
+        public static KnownParameter<ITestNestedObject?> KnownParameter { get; } =
+            new("test-nested-object", optional: true, allowMultipleValues: false, new JsonParser<ITestNestedObject?>());
 
-    internal class TestNestedObject : ITestNestedObject
-    {
-        public string NestedPropertyName1 { get; set; }
+        public ITestNestedObject? TestNestedObject
+        {
+            get => GetKnownParameter(KnownParameter);
+            set => SetKnownParameter(KnownParameter, value);
+        }
     }
 }

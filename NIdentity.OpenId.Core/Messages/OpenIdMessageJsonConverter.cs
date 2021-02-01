@@ -38,8 +38,11 @@ namespace NIdentity.OpenId.Messages
             _context = context;
         }
 
-        private void LoadNestedJson(ref Utf8JsonReader reader, JsonSerializerOptions options, T message, string propertyName)
+        internal void LoadNestedJson(ref Utf8JsonReader reader, JsonSerializerOptions options, T message, string propertyName)
         {
+            if (reader.TokenType != JsonTokenType.StartArray && reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException();
+
             var isNew = false;
             if (!message.Parameters.TryGetValue(propertyName, out var parameter))
             {

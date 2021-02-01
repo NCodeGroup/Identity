@@ -21,6 +21,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Messages.Parsers;
 
@@ -28,7 +29,8 @@ namespace NIdentity.OpenId.Messages.Parameters
 {
     internal static class KnownParameters
     {
-        private static readonly ConcurrentDictionary<string, KnownParameter> Registry = LoadRegistry();
+        private static readonly Lazy<ConcurrentDictionary<string, KnownParameter>> LazyRegistry =
+            new(LoadRegistry, LazyThreadSafetyMode.PublicationOnly);
 
         private static ConcurrentDictionary<string, KnownParameter> LoadRegistry()
         {
@@ -77,12 +79,12 @@ namespace NIdentity.OpenId.Messages.Parameters
 
         public static KnownParameter Register(KnownParameter knownParameter)
         {
-            return Registry.GetOrAdd(knownParameter.Name, knownParameter);
+            return LazyRegistry.Value.GetOrAdd(knownParameter.Name, knownParameter);
         }
 
         public static bool TryGet(string parameterName, [NotNullWhen(true)] out KnownParameter? knownParameter)
         {
-            return Registry.TryGetValue(parameterName, out knownParameter);
+            return LazyRegistry.Value.TryGetValue(parameterName, out knownParameter);
         }
     }
 }

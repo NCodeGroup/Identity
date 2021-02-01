@@ -26,7 +26,7 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 
-namespace NIdentity.OpenId.Messages.Authorization
+namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         where T : OpenIdMessage, new()
@@ -79,9 +79,6 @@ namespace NIdentity.OpenId.Messages.Authorization
                 // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
                 switch (reader.TokenType)
                 {
-                    case JsonTokenType.Comment:
-                        continue;
-
                     case JsonTokenType.EndObject:
                         return message;
 

@@ -197,6 +197,48 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
+        public void TryParse_GivenNoneWithInvalidCase_ThenError()
+        {
+            var parser = new PromptTypeParser();
+
+            var knownParameter = new KnownParameter<PromptTypes?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
+            var descriptor = new ParameterDescriptor(knownParameter);
+
+            const string stringValue = "NONE";
+
+            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
+            Assert.False(success);
+            Assert.True(result.HasError);
+            Assert.Null(result.Value);
+        }
+
+        [Fact]
+        public void TryParse_GivenLoginWithValidCase_ThenSuccess()
+        {
+            var parser = new PromptTypeParser();
+
+            var knownParameter = new KnownParameter<PromptTypes?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
+            var descriptor = new ParameterDescriptor(knownParameter);
+
+            const string stringValue = "login";
+
+            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
+            Assert.True(success);
+            Assert.False(result.HasError);
+            Assert.Equal(PromptTypes.Login, result.Value);
+        }
+
+        [Fact]
         public void TryParse_GivenLoginWithInvalidCase_ThenError()
         {
             var parser = new PromptTypeParser();
@@ -293,8 +335,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            // ReSharper disable once StringLiteralTypo
-            const string stringValue = "SELECTACCOUNT";
+            const string stringValue = "SELECT_ACCOUNT";
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
             Assert.False(success);

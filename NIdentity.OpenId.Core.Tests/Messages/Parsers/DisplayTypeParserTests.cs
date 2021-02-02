@@ -69,10 +69,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: true, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: true,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, StringValues.Empty, out var result);
+            var success = parser.TryParse(
+                _mockOpenIdMessageContext.Object,
+                descriptor,
+                StringValues.Empty,
+                out var result);
+
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.Value);
@@ -83,10 +93,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, StringValues.Empty, out var result);
+            var success = parser.TryParse(
+                _mockOpenIdMessageContext.Object,
+                descriptor,
+                StringValues.Empty,
+                out var result);
+
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.Null(result.Value);
@@ -97,7 +117,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             var stringValues = new[] { "page", "wap" };
@@ -112,7 +137,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "page";
@@ -127,7 +157,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "PAGE";
@@ -142,7 +177,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "popup";
@@ -157,7 +197,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "POPUP";
@@ -172,7 +217,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "touch";
@@ -187,7 +237,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "TOUCH";
@@ -202,7 +257,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "wap";
@@ -217,7 +277,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "WAP";
@@ -232,7 +297,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         {
             var parser = new DisplayTypeParser();
 
-            var knownParameter = new KnownParameter<DisplayType?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<DisplayType?>(
+                "parameterName",
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
             const string stringValues = "invalid_value";

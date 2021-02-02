@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,8 @@ namespace NIdentity.OpenId.Messages
 {
     internal abstract class OpenIdMessage : IOpenIdMessage
     {
-        internal IDictionary<string, Parameter> Parameters { get; } = new Dictionary<string, Parameter>(StringComparer.Ordinal);
+        internal IDictionary<string, Parameter> Parameters { get; } =
+            new Dictionary<string, Parameter>(StringComparer.Ordinal);
 
         /// <inheritdoc />
         public IOpenIdMessageContext? Context { get; set; }
@@ -69,23 +70,11 @@ namespace NIdentity.OpenId.Messages
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        protected internal T? GetKnownParameter<T>(KnownParameter<T> knownParameter)
-        {
-            var context = Context ?? throw new InvalidOperationException();
-
-            var parameterName = knownParameter.Name;
-            if (!Parameters.TryGetValue(parameterName, out var parameter))
-                return default;
-
-            if (parameter.ParsedValue is T parsedValue)
-                return parsedValue;
-
-            if (!knownParameter.Parser.TryParse(context, parameter.Descriptor, parameter.StringValues, out var result))
-                return default;
-
-            parameter.UpdateParsedValue(result.Value);
-            return result.Value;
-        }
+        protected internal T? GetKnownParameter<T>(KnownParameter<T> knownParameter) =>
+            Parameters.TryGetValue(knownParameter.Name, out var parameter) &&
+            parameter.ParsedValue is T parsedValue ?
+                parsedValue :
+                default;
 
         protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
         {

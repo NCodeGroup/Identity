@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,10 +33,18 @@ namespace NIdentity.OpenId.Messages.Parsers
             if (value is null)
                 return StringValues.Empty;
 
-            return string.Join(Separator, value);
+            var stringValues = value.ToArray();
+            if (stringValues.Length == 0)
+                return StringValues.Empty;
+
+            return string.Join(Separator, stringValues);
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IEnumerable<string>?> result)
+        public override bool TryParse(
+            IOpenIdMessageContext context,
+            ParameterDescriptor descriptor,
+            StringValues stringValues,
+            out ValidationResult<IEnumerable<string>?> result)
         {
             switch (stringValues.Count)
             {
@@ -49,19 +57,22 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return false;
 
                 case > 1 when descriptor.AllowMultipleValues:
-                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(stringValues
-                        .SelectMany(stringValue => stringValue.Split(Separator))
-                        .ToHashSet(StringComparer.Ordinal));
+                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(
+                        stringValues
+                            .SelectMany(stringValue => stringValue.Split(Separator))
+                            .ToHashSet(StringComparer.Ordinal));
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<IEnumerable<string>?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues<IEnumerable<string>?>(
+                        descriptor.ParameterName);
                     return false;
 
                 default:
-                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(stringValues[0]
-                        .Split(Separator)
-                        .ToHashSet(StringComparer.Ordinal));
+                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(
+                        stringValues[0]
+                            .Split(Separator)
+                            .ToHashSet(StringComparer.Ordinal));
                     return true;
             }
         }

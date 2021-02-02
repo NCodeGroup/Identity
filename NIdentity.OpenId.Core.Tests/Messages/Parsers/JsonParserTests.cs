@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Primitives;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
@@ -35,7 +34,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var context = _mockOpenIdMessageContext.Object;
             var jsonSerializerOptions = new JsonSerializerOptions();
-            var converter = (JsonConverter<TestNestedObject>)jsonSerializerOptions.GetConverter(typeof(TestNestedObject));
+            var converter =
+                (JsonConverter<TestNestedObject>)jsonSerializerOptions.GetConverter(typeof(TestNestedObject));
 
             const string parameterName = "parameterName";
             var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
@@ -83,14 +83,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenEmpty_WhenOptional_ThenSuccess()
         {
             var parser = new JsonParser<TestNestedObject>();
-
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, optional: true, allowMultipleValues: false, parser);
+            var stringValues = Array.Empty<string>();
+
+            var knownParameter = new KnownParameter<TestNestedObject?>(
+                parameterName,
+                optional: true,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(context, descriptor, StringValues.Empty, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);
@@ -101,14 +112,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenEmpty_WhenRequired_ThenError()
         {
             var parser = new JsonParser<TestNestedObject>();
-
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, optional: false, allowMultipleValues: false, parser);
+            var stringValues = Array.Empty<string>();
+
+            var knownParameter = new KnownParameter<TestNestedObject?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(context, descriptor, StringValues.Empty, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.NotNull(result.ErrorDetails);
@@ -119,16 +141,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenMultipleValues_ThenError()
         {
             var parser = new JsonParser<TestNestedObject>();
-
             var context = _mockOpenIdMessageContext.Object;
 
+            const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2" };
 
-            const string parameterName = "parameterName";
-            var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, optional: false, allowMultipleValues: false, parser);
+            var knownParameter = new KnownParameter<TestNestedObject?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(context, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.NotNull(result.ErrorDetails);
@@ -139,7 +170,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenValidJson_ThenSuccess()
         {
             var parser = new JsonParser<TestNestedObject>();
-
             var context = _mockOpenIdMessageContext.Object;
             var jsonSerializerOptions = new JsonSerializerOptions();
 
@@ -149,13 +179,23 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
                 .Verifiable();
 
             const string parameterName = "parameterName";
-            var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, optional: false, allowMultipleValues: false, parser);
-            var descriptor = new ParameterDescriptor(knownParameter);
-
             var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
             var expectedValueAsJson = JsonSerializer.Serialize(expectedValue);
 
-            var success = parser.TryParse(context, descriptor, expectedValueAsJson, out var result);
+            var knownParameter = new KnownParameter<TestNestedObject?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
+            var descriptor = new ParameterDescriptor(knownParameter);
+
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                expectedValueAsJson,
+                out var result);
+
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);
@@ -166,7 +206,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenInvalidJson_ThenError()
         {
             var parser = new JsonParser<TestNestedObject>();
-
             var context = _mockOpenIdMessageContext.Object;
             var jsonSerializerOptions = new JsonSerializerOptions();
 
@@ -181,12 +220,22 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
                 .Verifiable();
 
             const string parameterName = "parameterName";
-            var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, optional: false, allowMultipleValues: false, parser);
+            const string stringValues = "@invalid_json$";
+
+            var knownParameter = new KnownParameter<TestNestedObject?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValue = "@invalid_json$";
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
-            var success = parser.TryParse(context, descriptor, stringValue, out var result);
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.NotNull(result.ErrorDetails);

@@ -18,6 +18,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Primitives;
 using Moq;
 using NIdentity.OpenId.Messages;
@@ -27,12 +29,12 @@ using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 {
-    public class TimeSpanParserTests : IDisposable
+    public class StringSetParserTests : IDisposable
     {
         private readonly MockRepository _mockRepository;
         private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
 
-        public TimeSpanParserTests()
+        public StringSetParserTests()
         {
             _mockRepository = new MockRepository(MockBehavior.Strict);
             _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
@@ -46,35 +48,37 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         [Fact]
         public void Serialize_GivenNull_ThenEmpty()
         {
-            var parser = new TimeSpanParser();
+            var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
-            var stringValue = parser.Serialize(context, null);
-            Assert.Equal(StringValues.Empty, stringValue);
+            var parsedValue = (IEnumerable<string>?)null;
+
+            var stringValues = parser.Serialize(context, parsedValue);
+            Assert.Equal(StringValues.Empty, stringValues);
         }
 
         [Fact]
-        public void Serialize_GivenValue_ThenValid()
+        public void Serialize_GivenEmpty_ThenEmpty()
         {
-            var parser = new TimeSpanParser();
+            var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
-            var timeSpan = TimeSpan.FromSeconds(123.456);
+            var parsedValue = Enumerable.Empty<string>();
 
-            var stringValue = parser.Serialize(context, timeSpan);
-            Assert.Equal("123", stringValue);
+            var stringValues = parser.Serialize(context, parsedValue);
+            Assert.Equal(StringValues.Empty, stringValues);
         }
 
         [Fact]
-        public void TryParse_GivenNull_WhenOptional_ThenSuccess()
+        public void TryParse_GivenEmpty_WhenOptional_ThenSuccess()
         {
-            var parser = new TimeSpanParser();
+            var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
             var stringValues = Array.Empty<string>();
 
-            var knownParameter = new KnownParameter<TimeSpan?>(
+            var knownParameter = new KnownParameter<IEnumerable<string>?>(
                 parameterName,
                 optional: true,
                 allowMultipleValues: false,
@@ -91,19 +95,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);
-            Assert.Null(result.Value);
+            Assert.NotNull(result.Value);
+            Assert.Empty(result.Value!);
         }
 
         [Fact]
-        public void TryParse_GivenNull_WhenRequired_ThenError()
+        public void TryParse_GivenEmpty_WhenRequired_ThenError()
         {
-            var parser = new TimeSpanParser();
+            var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
             var stringValues = Array.Empty<string>();
 
-            var knownParameter = new KnownParameter<TimeSpan?>(
+            var knownParameter = new KnownParameter<IEnumerable<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: false,
@@ -124,15 +129,15 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenMultipleValues_DisallowMultipleValues_ThenError()
+        public void TryParse_GivenMultipleValues_WhenDisallowMultipleValues_ThenError()
         {
-            var parser = new TimeSpanParser();
+            var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            var stringValues = new[] { "123", "456" };
+            var stringValues = new[] { "value1", "value2" };
 
-            var knownParameter = new KnownParameter<TimeSpan?>(
+            var knownParameter = new KnownParameter<IEnumerable<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: false,
@@ -153,16 +158,15 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenMultipleValues_AllowMultipleValues_ThenSuccess()
+        public void TryParse_GivenMultipleValues_WhenAllowMultipleValues_ThenSuccess()
         {
-            var parser = new TimeSpanParser();
+            var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            var stringValues = new[] { "123", "456" };
-            var expectedValue = TimeSpan.FromSeconds(123 + 456);
+            var stringValues = new[] { "value1", "value2" };
 
-            var knownParameter = new KnownParameter<TimeSpan?>(
+            var knownParameter = new KnownParameter<IEnumerable<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: true,
@@ -179,20 +183,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);
-            Assert.Equal(expectedValue, result.Value);
+            Assert.NotNull(result.Value);
+            Assert.Equal(stringValues, result.Value!);
         }
 
         [Fact]
-        public void TryParse_GivenSingleValue_ThenSuccess()
+        public void TryParse_GivenDuplicateValues_WhenAllowMultipleValues_ThenDistinctValues()
         {
-            var parser = new TimeSpanParser();
+            var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            var stringValues = new[] { "123" };
-            var expectedValue = TimeSpan.FromSeconds(123);
+            var stringValues = new[] { "value1", "value2", "value1", "value2" };
 
-            var knownParameter = new KnownParameter<TimeSpan?>(
+            var knownParameter = new KnownParameter<IEnumerable<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: true,
@@ -209,7 +213,70 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);
-            Assert.Equal(expectedValue, result.Value);
+            Assert.NotNull(result.Value);
+            Assert.Equal(stringValues.Distinct(), result.Value!);
+        }
+
+        [Fact]
+        public void TryParse_GivenStringList_ThenSuccess()
+        {
+            var parser = new StringSetParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "value1 value2";
+            var expectedResult = new[] { "value1", "value2" };
+
+            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
+            var descriptor = new ParameterDescriptor(knownParameter);
+
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
+            Assert.True(success);
+            Assert.False(result.HasError);
+            Assert.Null(result.ErrorDetails);
+            Assert.NotNull(result.Value);
+            Assert.Equal(expectedResult, result.Value!);
+        }
+
+        [Fact]
+        public void TryParse_GivenStringListWithDuplicates_ThenDistinctValues()
+        {
+            var parser = new StringSetParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "value1 value2 value1 value2";
+            var expectedResult = new[] { "value1", "value2" };
+
+            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
+            var descriptor = new ParameterDescriptor(knownParameter);
+
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
+            Assert.True(success);
+            Assert.False(result.HasError);
+            Assert.Null(result.ErrorDetails);
+            Assert.NotNull(result.Value);
+            Assert.Equal(expectedResult, result.Value!);
         }
     }
 }

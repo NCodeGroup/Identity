@@ -65,43 +65,46 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryLoad_GivenValidValue_ThenLoadParsedValue()
         {
             var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
+            var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            var stringValues = new StringValues("value1");
-            const string parsedValue = "value1";
+            const string stringValues = "value1";
 
-            var context = _mockOpenIdMessageContext.Object;
             var descriptor = new ParameterDescriptor(parameterName);
             var parameter = new Parameter(descriptor);
 
-            var parseResult = new ValidationResult<string>(parsedValue);
+            var parseResult = new ValidationResult<string>(stringValues);
             _mockTestParameterParser
                 .Setup(_ => _.TryParse(context, descriptor, stringValues, out parseResult))
                 .Returns(true)
                 .Verifiable();
 
-            var success = parser.TryLoad(context, parameter, stringValues, out var result);
+            var success = parser.TryLoad(
+                context,
+                parameter,
+                stringValues,
+                out var result);
+
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);
             Assert.Equal(stringValues, parameter.StringValues);
-            Assert.Same(parsedValue, parameter.ParsedValue);
+            Assert.Same(stringValues, parameter.ParsedValue);
         }
 
         [Fact]
         public void TryLoad_GivenInvalidValue_ThenResetParsedValue()
         {
             var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
+            var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            var stringValues = new StringValues("value1");
-            const string parsedValue = "value1";
+            const string stringValues = "value1";
 
-            var context = _mockOpenIdMessageContext.Object;
             var descriptor = new ParameterDescriptor(parameterName);
             var parameter = new Parameter(descriptor);
 
-            parameter.Load(stringValues, parsedValue);
+            parameter.Load(stringValues, stringValues);
 
             var parseResult = new ValidationResult<string>(new ErrorDetails { ErrorCode = "errorCode" });
             _mockTestParameterParser
@@ -109,7 +112,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
                 .Returns(false)
                 .Verifiable();
 
-            var success = parser.TryLoad(context, parameter, stringValues, out var result);
+            var success = parser.TryLoad(
+                context,
+                parameter,
+                stringValues,
+                out var result);
+
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.NotNull(result.ErrorDetails);

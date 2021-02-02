@@ -79,9 +79,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenEmpty_WhenOptional_ThenSuccess()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            var stringValues = Array.Empty<string>();
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: true,
                 allowMultipleValues: false,
                 parser);
@@ -89,9 +93,9 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             var descriptor = new ParameterDescriptor(knownParameter);
 
             var success = parser.TryParse(
-                _mockOpenIdMessageContext.Object,
+                context,
                 descriptor,
-                StringValues.Empty,
+                stringValues,
                 out var result);
 
             Assert.True(success);
@@ -103,9 +107,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenEmpty_WhenRequired_ThenError()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            var stringValues = Array.Empty<string>();
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
@@ -113,9 +121,9 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             var descriptor = new ParameterDescriptor(knownParameter);
 
             var success = parser.TryParse(
-                _mockOpenIdMessageContext.Object,
+                context,
                 descriptor,
-                StringValues.Empty,
+                stringValues,
                 out var result);
 
             Assert.False(success);
@@ -127,17 +135,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenMultipleValues_ThenError()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            var stringValues = new[] { "value1", "value2" };
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var stringValues = new[] { "value1", "value2" };
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
             Assert.False(success);
             Assert.True(result.HasError);
@@ -148,17 +163,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenQueryWithValidCase_ThenSuccess()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "query";
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "query";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
             Assert.True(success);
             Assert.False(result.HasError);
@@ -169,17 +191,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenQueryWithInvalidCase_ThenError()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "QUERY";
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "QUERY";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
             Assert.False(success);
             Assert.True(result.HasError);
@@ -190,17 +219,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenFragmentWithValidCase_ThenSuccess()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "fragment";
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "fragment";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
             Assert.True(success);
             Assert.False(result.HasError);
@@ -211,17 +247,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenFragmentWithInvalidCase_ThenError()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "FRAGMENT";
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "FRAGMENT";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
             Assert.False(success);
             Assert.True(result.HasError);
@@ -232,17 +275,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenFormPostWithValidCase_ThenSuccess()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "form_post";
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "form_post";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
             Assert.True(success);
             Assert.False(result.HasError);
@@ -253,17 +303,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenFormPostWithInvalidCase_ThenError()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "FORM_POST";
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "FORMPOST";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
             Assert.False(success);
             Assert.True(result.HasError);
@@ -274,17 +331,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenInvalidValue_ThenError()
         {
             var parser = new ResponseModeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "invalid_value";
 
             var knownParameter = new KnownParameter<ResponseMode?>(
-                "parameterName",
+                parameterName,
                 optional: false,
                 allowMultipleValues: false,
                 parser);
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "invalid_value";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
 
             Assert.False(success);
             Assert.True(result.HasError);

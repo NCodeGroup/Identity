@@ -72,7 +72,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            const string? stringValue = null;
+            var stringValues = Array.Empty<string>();
 
             var knownParameter = new KnownParameter<TimeSpan?>(
                 parameterName,
@@ -82,7 +82,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(context, descriptor, stringValue, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);
@@ -96,7 +101,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            const string? stringValue = null;
+            var stringValues = Array.Empty<string>();
 
             var knownParameter = new KnownParameter<TimeSpan?>(
                 parameterName,
@@ -106,7 +111,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(context, descriptor, stringValue, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.NotNull(result.ErrorDetails);
@@ -130,7 +140,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(context, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.NotNull(result.ErrorDetails);
@@ -155,7 +170,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(context, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);
@@ -180,7 +200,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(context, descriptor, stringValues, out var result);
+            var success = parser.TryParse(
+                context,
+                descriptor,
+                stringValues,
+                out var result);
+
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.ErrorDetails);

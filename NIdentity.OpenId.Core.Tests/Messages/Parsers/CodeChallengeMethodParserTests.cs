@@ -52,11 +52,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenEmpty_WhenOptional_ThenSuccess()
         {
             var parser = new CodeChallengeMethodParser();
+            var context = _mockOpenIdMessageContext.Object;
 
-            var knownParameter = new KnownParameter<CodeChallengeMethod?>("parameterName", optional: true, allowMultipleValues: false, parser);
+            const string parameterName = "parameterName";
+            var stringValues = Array.Empty<string>();
+
+            var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+                parameterName,
+                optional: true,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, StringValues.Empty, out var result);
+            var success = parser.TryParse(context, descriptor, stringValues, out var result);
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Null(result.Value);
@@ -66,11 +75,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenEmpty_WhenRequired_ThenError()
         {
             var parser = new CodeChallengeMethodParser();
+            var context = _mockOpenIdMessageContext.Object;
 
-            var knownParameter = new KnownParameter<CodeChallengeMethod?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            const string parameterName = "parameterName";
+            var stringValues = Array.Empty<string>();
+
+            var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, StringValues.Empty, out var result);
+            var success = parser.TryParse(context, descriptor, stringValues, out var result);
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.Null(result.Value);
@@ -80,12 +98,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenMultipleValues_ThenError()
         {
             var parser = new CodeChallengeMethodParser();
+            var context = _mockOpenIdMessageContext.Object;
 
-            var knownParameter = new KnownParameter<CodeChallengeMethod?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            const string parameterName = "parameterName";
+            var stringValues = new[] { "value1", "value2" };
+
+            var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var stringValues = new[] { "value1", "value2" };
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(context, descriptor, stringValues, out var result);
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.Null(result.Value);
@@ -95,12 +121,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenPlainWithValidCase_ThenSuccess()
         {
             var parser = new CodeChallengeMethodParser();
+            var context = _mockOpenIdMessageContext.Object;
 
-            var knownParameter = new KnownParameter<CodeChallengeMethod?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            const string parameterName = "parameterName";
+            const string stringValues = "plain";
+
+            var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "plain";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(context, descriptor, stringValues, out var result);
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Equal(CodeChallengeMethod.Plain, result.Value);
@@ -110,12 +144,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenPlainWithInvalidCase_ThenError()
         {
             var parser = new CodeChallengeMethodParser();
+            var context = _mockOpenIdMessageContext.Object;
 
-            var knownParameter = new KnownParameter<CodeChallengeMethod?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            const string parameterName = "parameterName";
+            const string stringValues = "PLAIN";
+
+            var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "PLAIN";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(context, descriptor, stringValues, out var result);
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.Null(result.Value);
@@ -125,12 +167,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenS256WithValidCase_ThenSuccess()
         {
             var parser = new CodeChallengeMethodParser();
+            var context = _mockOpenIdMessageContext.Object;
 
-            var knownParameter = new KnownParameter<CodeChallengeMethod?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            const string parameterName = "parameterName";
+            const string stringValues = "S256";
+
+            var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "S256";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(context, descriptor, stringValues, out var result);
             Assert.True(success);
             Assert.False(result.HasError);
             Assert.Equal(CodeChallengeMethod.S256, result.Value);
@@ -140,12 +190,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenS256WithInvalidCase_ThenError()
         {
             var parser = new CodeChallengeMethodParser();
+            var context = _mockOpenIdMessageContext.Object;
 
-            var knownParameter = new KnownParameter<CodeChallengeMethod?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            const string parameterName = "parameterName";
+            const string stringValues = "s256";
+
+            var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "s256";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(context, descriptor, stringValues, out var result);
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.Null(result.Value);
@@ -155,12 +213,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void TryParse_GivenInvalidValue_ThenError()
         {
             var parser = new CodeChallengeMethodParser();
+            var context = _mockOpenIdMessageContext.Object;
 
-            var knownParameter = new KnownParameter<CodeChallengeMethod?>("parameterName", optional: false, allowMultipleValues: false, parser);
+            const string parameterName = "parameterName";
+            const string stringValues = "invalid_value";
+
+            var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValues = "invalid_value";
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValues, out var result);
+            var success = parser.TryParse(context, descriptor, stringValues, out var result);
             Assert.False(success);
             Assert.True(result.HasError);
             Assert.Null(result.Value);

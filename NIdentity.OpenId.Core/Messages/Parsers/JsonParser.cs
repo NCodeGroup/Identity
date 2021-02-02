@@ -11,12 +11,14 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal interface IJsonParser
     {
-        void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options);
+        void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader,
+            JsonSerializerOptions options);
     }
 
     internal class JsonParser<T> : ParameterParser<T?>, IJsonParser
     {
-        public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
+        public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader,
+            JsonSerializerOptions options)
         {
             var converter = (JsonConverter<T>)options.GetConverter(typeof(T));
             var parsedValue = converter.Read(ref reader, typeof(T), options);
@@ -29,7 +31,8 @@ namespace NIdentity.OpenId.Messages.Parsers
             return JsonSerializer.Serialize(value, context.JsonSerializerOptions);
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor,
+            StringValues stringValues, out ValidationResult<T?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 

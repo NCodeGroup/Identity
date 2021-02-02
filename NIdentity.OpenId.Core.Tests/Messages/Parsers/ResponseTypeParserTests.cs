@@ -27,12 +27,12 @@ using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 {
-    public class PromptTypeParserTests : IDisposable
+    public class ResponseTypeParserTests : IDisposable
     {
         private readonly MockRepository _mockRepository;
         private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
 
-        public PromptTypeParserTests()
+        public ResponseTypeParserTests()
         {
             _mockRepository = new MockRepository(MockBehavior.Strict);
             _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
@@ -44,51 +44,43 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void Serialize_GivenNone_ThenValid()
+        public void Serialize_GivenCode_ThenValid()
         {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.None);
-            Assert.Equal("none", result);
+            var parser = new ResponseTypeParser();
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.Code);
+            Assert.Equal("code", result);
         }
 
         [Fact]
-        public void Serialize_GivenLogin_ThenValid()
+        public void Serialize_GivenIdToken_ThenValid()
         {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Login);
-            Assert.Equal("login", result);
+            var parser = new ResponseTypeParser();
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.IdToken);
+            Assert.Equal("id_token", result);
         }
 
         [Fact]
-        public void Serialize_GivenConsent_ThenValid()
+        public void Serialize_GivenToken_ThenValid()
         {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Consent);
-            Assert.Equal("consent", result);
-        }
-
-        [Fact]
-        public void Serialize_GivenSelectAccount_ThenValid()
-        {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.SelectAccount);
-            Assert.Equal("select_account", result);
+            var parser = new ResponseTypeParser();
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.Token);
+            Assert.Equal("token", result);
         }
 
         [Fact]
         public void Serialize_GivenUnknown_ThenEmpty()
         {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Unknown);
+            var parser = new ResponseTypeParser();
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.Unknown);
             Assert.Equal(StringValues.Empty, result);
         }
 
         [Fact]
         public void TryParse_GivenEmpty_WhenOptional_ThenSuccess()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: true,
                 allowMultipleValues: false,
@@ -110,9 +102,9 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         [Fact]
         public void TryParse_GivenEmpty_WhenRequired_ThenError()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,
@@ -132,11 +124,11 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenMultipleValues_WithNone_ThenError()
+        public void TryParse_GivenMultipleValues_ThenSuccess()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,
@@ -144,29 +136,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValue = "none login";
-
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
-            Assert.False(success);
-            Assert.True(result.HasError);
-            Assert.Null(result.Value);
-        }
-
-        [Fact]
-        public void TryParse_GivenMultipleValues_WithoutNone_ThenSuccess()
-        {
-            var parser = new PromptTypeParser();
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                "parameterName",
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            const string stringValue = "login consent";
-            const PromptTypes expectedValue = PromptTypes.Login | PromptTypes.Consent;
+            const string stringValue = "code id_token token";
+            const ResponseTypes expectedValue = ResponseTypes.Code | ResponseTypes.IdToken | ResponseTypes.Token;
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
             Assert.True(success);
@@ -176,11 +147,11 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenNoneWithValidCase_ThenSuccess()
+        public void TryParse_GivenCodeWithValidCase_ThenSuccess()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,
@@ -188,20 +159,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValue = "none";
+            const string stringValue = "code";
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Equal(PromptTypes.None, result.Value);
+            Assert.Equal(ResponseTypes.Code, result.Value);
         }
 
         [Fact]
-        public void TryParse_GivenNoneWithInvalidCase_ThenError()
+        public void TryParse_GivenCodeWithInvalidCase_ThenError()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,
@@ -209,7 +180,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValue = "NONE";
+            const string stringValue = "CODE";
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
             Assert.False(success);
@@ -218,11 +189,11 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenLoginWithValidCase_ThenSuccess()
+        public void TryParse_GivenIdTokenWithValidCase_ThenSuccess()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,
@@ -230,20 +201,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValue = "login";
+            const string stringValue = "id_token";
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Equal(PromptTypes.Login, result.Value);
+            Assert.Equal(ResponseTypes.IdToken, result.Value);
         }
 
         [Fact]
-        public void TryParse_GivenLoginWithInvalidCase_ThenError()
+        public void TryParse_GivenIdTokenWithInvalidCase_ThenError()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,
@@ -251,7 +222,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValue = "LOGIN";
+            const string stringValue = "ID_TOKEN";
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
             Assert.False(success);
@@ -260,11 +231,11 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenConsentWithValidCase_ThenSuccess()
+        public void TryParse_GivenTokenWithValidCase_ThenSuccess()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,
@@ -272,20 +243,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValue = "consent";
+            const string stringValue = "token";
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Equal(PromptTypes.Consent, result.Value);
+            Assert.Equal(ResponseTypes.Token, result.Value);
         }
 
         [Fact]
-        public void TryParse_GivenConsentWithInvalidCase_ThenError()
+        public void TryParse_GivenTokenWithInvalidCase_ThenError()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,
@@ -293,49 +264,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            const string stringValue = "CONSENT";
-
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
-            Assert.False(success);
-            Assert.True(result.HasError);
-            Assert.Null(result.Value);
-        }
-
-        [Fact]
-        public void TryParse_GivenSelectAccountWithValidCase_ThenSuccess()
-        {
-            var parser = new PromptTypeParser();
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                "parameterName",
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            const string stringValue = "select_account";
-
-            var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
-            Assert.True(success);
-            Assert.False(result.HasError);
-            Assert.Equal(PromptTypes.SelectAccount, result.Value);
-        }
-
-        [Fact]
-        public void TryParse_GivenSelectAccountWithInvalidCase_ThenError()
-        {
-            var parser = new PromptTypeParser();
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                "parameterName",
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            const string stringValue = "SELECT_ACCOUNT";
+            const string stringValue = "TOKEN";
 
             var success = parser.TryParse(_mockOpenIdMessageContext.Object, descriptor, stringValue, out var result);
             Assert.False(success);
@@ -346,9 +275,9 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         [Fact]
         public void TryParse_GivenInvalidValue_ThenError()
         {
-            var parser = new PromptTypeParser();
+            var parser = new ResponseTypeParser();
 
-            var knownParameter = new KnownParameter<PromptTypes?>(
+            var knownParameter = new KnownParameter<ResponseTypes?>(
                 "parameterName",
                 optional: false,
                 allowMultipleValues: false,

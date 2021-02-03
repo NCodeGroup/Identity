@@ -117,7 +117,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
 
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Null(result.ErrorDetails);
             Assert.Empty(parameter.StringValues);
             Assert.Null(parameter.ParsedValue);
         }

@@ -94,7 +94,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Null(result.ErrorDetails);
             Assert.NotNull(result.Value);
             Assert.Empty(result.Value!);
         }
@@ -124,8 +123,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.NotNull(result.ErrorDetails);
-            Assert.Null(result.Value);
         }
 
         [Fact]
@@ -153,8 +150,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.NotNull(result.ErrorDetails);
-            Assert.Null(result.Value);
         }
 
         [Fact]
@@ -182,7 +177,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Null(result.ErrorDetails);
             Assert.NotNull(result.Value);
             Assert.Equal(stringValues, result.Value!);
         }
@@ -212,9 +206,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Null(result.ErrorDetails);
-            Assert.NotNull(result.Value);
-            Assert.Equal(stringValues.Distinct(), result.Value!);
+            Assert.Equal(stringValues.Distinct(), result.Value);
         }
 
         [Fact]
@@ -243,7 +235,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Null(result.ErrorDetails);
             Assert.NotNull(result.Value);
             Assert.Equal(expectedResult, result.Value!);
         }
@@ -274,7 +265,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Null(result.ErrorDetails);
             Assert.NotNull(result.Value);
             Assert.Equal(expectedResult, result.Value!);
         }

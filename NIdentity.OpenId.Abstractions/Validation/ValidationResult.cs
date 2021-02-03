@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace NIdentity.OpenId.Validation
@@ -12,63 +12,81 @@ namespace NIdentity.OpenId.Validation
         public bool HasError
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => ErrorDetails != null;
+            get => ErrorOrDefault != null;
         }
 
-        public IErrorDetails? ErrorDetails
+        public IErrorDetails Error
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ErrorOrDefault ?? throw new InvalidOperationException();
+        }
+
+        public IErrorDetails? ErrorOrDefault
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult(IErrorDetails errorDetails)
+        public ValidationResult(IErrorDetails error)
         {
-            ErrorDetails = errorDetails;
+            ErrorOrDefault = error;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult<TValue> As<TValue>()
+        public ValidationResult<TValue> AsError<TValue>()
         {
-            Debug.Assert(ErrorDetails != null);
-            return new ValidationResult<TValue>(ErrorDetails);
+            return new(Error);
         }
     }
 
     public readonly struct ValidationResult<TValue>
     {
         private readonly ValidationResult _inner;
+        private readonly TValue _value;
 
         public bool HasError
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => ErrorDetails != null;
+            get => ErrorOrDefault != null;
         }
 
-        public IErrorDetails? ErrorDetails
+        public IErrorDetails Error
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _inner.ErrorDetails;
+            get => ErrorOrDefault ?? throw new InvalidOperationException();
         }
 
-        public TValue? Value
+        public IErrorDetails? ErrorOrDefault
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
+            get => _inner.ErrorOrDefault;
+        }
+
+        public TValue Value
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => HasError ? throw new InvalidOperationException() : _value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValidationResult(TValue value)
         {
             _inner = default;
-            Value = value;
+            _value = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult(IErrorDetails errorDetails)
+        public ValidationResult(IErrorDetails error)
         {
-            _inner = new ValidationResult(errorDetails);
-            Value = default;
+            _inner = new ValidationResult(error);
+            _value = default!;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ValidationResult<T> AsError<T>()
+        {
+            return new(Error);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

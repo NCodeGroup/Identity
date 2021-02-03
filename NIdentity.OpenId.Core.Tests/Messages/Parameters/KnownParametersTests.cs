@@ -42,7 +42,9 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
         [Fact]
         public void Register_GivenKnownParameter_ThenValid()
         {
-            const string parameterName = "parameterName";
+            // known parameters must have unique names
+            var parameterName = Guid.NewGuid().ToString("N");
+
             const bool optional = false;
             const bool allowMultipleValues = false;
 

@@ -63,7 +63,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             {
                 const string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest;
                 result = ValidationResult.Factory.FailedToDeserializeJson<T?>(errorCode);
-                context.Logger.LogError(exception, result.ErrorDetails!.ErrorDescription);
+                context.Logger.LogError(exception, result.Error.ErrorDescription);
                 return false;
             }
         }

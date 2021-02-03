@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +19,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using GreenPipes;
-using NIdentity.OpenId.Messages;
 
 namespace NIdentity.OpenId.Playground.Contexts
 {
@@ -28,10 +27,10 @@ namespace NIdentity.OpenId.Playground.Contexts
         IReceiveContext ReceiveContext { get; }
 
         bool TryGetRequest<T>([NotNullWhen(true)] out T? request)
-            where T : class, IOpenIdMessage;
+            where T : class;
 
         bool TryGetResponse<T>([NotNullWhen(true)] out T? response)
-            where T : class, IOpenIdMessage;
+            where T : class;
     }
 
     internal interface IConsumeContext<out TRequest, out TResponse> : IConsumeContext
@@ -42,8 +41,6 @@ namespace NIdentity.OpenId.Playground.Contexts
     }
 
     internal class ConsumeContext<TRequest, TResponse> : ScopePipeContext, IConsumeContext<TRequest, TResponse>
-        where TRequest : IOpenIdMessage
-        where TResponse : IOpenIdMessage
     {
         public IReceiveContext ReceiveContext { get; }
 
@@ -59,7 +56,11 @@ namespace NIdentity.OpenId.Playground.Contexts
             Response = response;
         }
 
-        public ConsumeContext(IReceiveContext receiveContext, TRequest request, TResponse response, params object[] payloads)
+        public ConsumeContext(
+            IReceiveContext receiveContext,
+            TRequest request,
+            TResponse response,
+            params object[] payloads)
             : base(receiveContext, payloads)
         {
             ReceiveContext = receiveContext;
@@ -68,14 +69,14 @@ namespace NIdentity.OpenId.Playground.Contexts
         }
 
         public bool TryGetRequest<T>([NotNullWhen(true)] out T? request)
-            where T : class, IOpenIdMessage
+            where T : class
         {
             request = Request as T;
             return request != null;
         }
 
         public bool TryGetResponse<T>([NotNullWhen(true)] out T? response)
-            where T : class, IOpenIdMessage
+            where T : class
         {
             response = Response as T;
             return response != null;

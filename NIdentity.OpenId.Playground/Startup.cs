@@ -1,5 +1,10 @@
+using System;
+using System.Reflection.Metadata;
+using System.Threading;
 using System.Threading.Tasks;
 using GreenPipes;
+using GreenPipes.Configurators;
+using GreenPipes.Contexts;
 using GreenPipes.Filters;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -62,28 +67,7 @@ namespace NIdentity.OpenId.Playground
 
             var requestPipe = Pipe.New<RequestContext>(configurator =>
             {
-                configurator.UseDispatch(new CompositePipeContextConverterFactory(),
-                    d =>
-                    {
-                        d.Handle<HttpContext>(h =>
-                        {
-                            h.UseExecute(ctx =>
-                            {
-                                var httpContext = ctx.Request;
-                            });
-                        });
-
-                        d.Handle<LoadAuthorization>(h =>
-                        {
-                            h.UseExecute(ctx =>
-                            {
-                                var httpContext = ctx.Request.HttpContext;
-                                var serviceProvider = httpContext.RequestServices;
-                                var authorization = new AuthorizationContext(null!, null!, null!);
-                                ctx.TrySetResult(authorization);
-                            });
-                        });
-                    });
+                configurator.UseRequestHandler<LoadAuthorization, AuthorizationContext>();
             });
 
             var loadAuthorizationPipe = requestPipe.CreateRequestPipe<LoadAuthorization, IAuthorizationContext>();
@@ -183,5 +167,46 @@ namespace NIdentity.OpenId.Playground
     public class LoadAuthorization
     {
         public HttpContext HttpContext { get; set; }
+    }
+
+    internal interface IRequestHandler<in TRequest, TResponse>
+    {
+        ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
+    }
+
+    internal static class DispatchConfiguratorExtensions
+    {
+        public static void UseRequestHandler<TRequest, TResponse>(
+            this IPipeConfigurator<RequestContext> pipeConfigurator)
+            where TRequest : class
+            where TResponse : class
+        {
+            pipeConfigurator.UseDispatch(
+                new RequestConverterFactory(),
+                dispatchConfigurator =>
+                {
+                    dispatchConfigurator.Handle<TRequest>(requestConfigurator =>
+                    {
+                        requestConfigurator.UseContextFilter(ctx => Task.FromResult(!ctx.IsCompleted));
+
+                        requestConfigurator.UseExecuteAsync(async context =>
+                        {
+                            if (!context.TryGetPayload<IServiceProvider>(out var serviceProvider))
+                                throw new InvalidOperationException();
+
+                            var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+
+                            using var serviceScope = serviceScopeFactory.CreateScope();
+
+                            var handler = serviceScope.ServiceProvider
+                                .GetRequiredService<IRequestHandler<TRequest, TResponse>>();
+
+                            var response = await handler.HandleAsync(context.Request, context.CancellationToken);
+
+                            context.TrySetResult(response);
+                        });
+                    });
+                });
+        }
     }
 }

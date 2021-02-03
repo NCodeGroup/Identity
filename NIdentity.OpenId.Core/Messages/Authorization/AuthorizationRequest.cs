@@ -26,9 +26,9 @@ namespace NIdentity.OpenId.Messages.Authorization
     internal class AuthorizationRequest : IAuthorizationRequest
     {
         private readonly AuthorizationRequestMessage _message;
-        private readonly JsonAuthorizationRequestObject? _object;
+        private readonly AuthorizationRequestObject? _object;
 
-        public AuthorizationRequest(AuthorizationRequestMessage message, JsonAuthorizationRequestObject? @object)
+        public AuthorizationRequest(AuthorizationRequestMessage message, AuthorizationRequestObject? @object)
         {
             _message = message;
             _object = @object;

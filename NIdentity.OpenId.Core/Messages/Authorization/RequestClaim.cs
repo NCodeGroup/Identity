@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    internal class JsonRequestClaim : IRequestClaim
+    internal class RequestClaim : IRequestClaim
     {
         /// <inheritdoc />
         [JsonPropertyName(OpenIdConstants.Parameters.Essential)]

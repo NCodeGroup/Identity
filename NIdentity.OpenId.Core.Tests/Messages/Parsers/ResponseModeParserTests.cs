@@ -128,7 +128,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.Null(result.Value);
         }
 
         [Fact]
@@ -156,7 +155,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.Null(result.Value);
         }
 
         [Fact]
@@ -212,7 +210,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.Null(result.Value);
         }
 
         [Fact]
@@ -268,7 +265,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.Null(result.Value);
         }
 
         [Fact]
@@ -324,7 +320,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.Null(result.Value);
         }
 
         [Fact]
@@ -352,7 +347,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.Null(result.Value);
         }
     }
 }

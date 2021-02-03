@@ -5,10 +5,10 @@ namespace NIdentity.OpenId.Validation
     public interface IValidationResultFactory
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        ValidationResult Error(IErrorDetails errorDetails);
+        ValidationResult Error(IErrorDetails error);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        ValidationResult<TValue> Error<TValue>(IErrorDetails errorDetails);
+        ValidationResult<TValue> Error<TValue>(IErrorDetails error);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         ValidationResult<TValue> Success<TValue>(TValue value);
@@ -17,10 +17,10 @@ namespace NIdentity.OpenId.Validation
     public class ValidationResultFactory : IValidationResultFactory
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult Error(IErrorDetails errorDetails) => new(errorDetails);
+        public ValidationResult Error(IErrorDetails error) => new(error);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult<TValue> Error<TValue>(IErrorDetails errorDetails) => new(errorDetails);
+        public ValidationResult<TValue> Error<TValue>(IErrorDetails error) => new(error);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValidationResult<TValue> Success<TValue>(TValue value) => new(value);

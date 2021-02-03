@@ -18,7 +18,6 @@
 #endregion
 
 using System;
-using Microsoft.Extensions.Primitives;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
@@ -87,7 +86,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.True(success);
             Assert.False(result.HasError);
-            Assert.Null(result.ErrorDetails);
             Assert.Equal(stringValues, parameter.StringValues);
             Assert.Same(stringValues, parameter.ParsedValue);
         }
@@ -120,7 +118,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.False(success);
             Assert.True(result.HasError);
-            Assert.NotNull(result.ErrorDetails);
+            Assert.NotNull(result.Error);
             Assert.Equal(stringValues, parameter.StringValues);
             Assert.Null(parameter.ParsedValue);
         }

@@ -1,7 +1,6 @@
 using System;
 using Moq;
 using NIdentity.OpenId.Messages;
-using NIdentity.OpenId.Messages.Authorization;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages
@@ -9,11 +8,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages
     public class OpenIdMessageFactoryTests : IDisposable
     {
         private readonly MockRepository _mockRepository;
+        private readonly Mock<IServiceProvider> _mockServiceProvider;
         private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
 
         public OpenIdMessageFactoryTests()
         {
             _mockRepository = new MockRepository(MockBehavior.Strict);
+            _mockServiceProvider = _mockRepository.Create<IServiceProvider>();
             _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
         }
 
@@ -23,63 +24,45 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         }
 
         [Fact]
-        public void Constructor_ThenIsValid()
+        public void CreateContext_ThenValid()
         {
-            var factory = new OpenIdMessageFactory();
+            var factory = new OpenIdMessageFactory(_mockServiceProvider.Object);
 
-            var context = _mockOpenIdMessageContext.Object;
-            var message = factory.Create<IAuthorizationRequestMessage>(context);
-            Assert.IsType<AuthorizationRequestMessage>(message);
-        }
-
-        [Fact]
-        public void Register_GivenNonExistingType_ThenAdded()
-        {
-            var factory = new OpenIdMessageFactory();
-
-            factory.Register<ITestOpenIdMessage>(ctx => new TestOpenIdMessage { Context = ctx });
-
-            var context = _mockOpenIdMessageContext.Object;
-            var message = factory.Create<ITestOpenIdMessage>(context);
-            Assert.IsType<TestOpenIdMessage>(message);
-        }
-
-        [Fact]
-        public void Register_GivenExistingType_ThenNotAdded()
-        {
-            var factory = new OpenIdMessageFactory();
-
-            factory.Register<ITestOpenIdMessage>(ctx => new TestOpenIdMessage { Context = ctx });
-            factory.Register<ITestOpenIdMessage>(ctx => new TestOpenIdMessageWithKnownParameter { Context = ctx });
-
-            var context = _mockOpenIdMessageContext.Object;
-            var message = factory.Create<ITestOpenIdMessage>(context);
-            Assert.IsType<TestOpenIdMessage>(message);
-        }
-
-        [Fact]
-        public void Create_GivenNonExistingType_ThenThrows()
-        {
-            var factory = new OpenIdMessageFactory();
-
-            var context = _mockOpenIdMessageContext.Object;
-
-            Assert.Throws<InvalidOperationException>(() =>
+            IOpenIdMessageContext LocalFactory()
             {
-                factory.Create<ITestOpenIdMessage>(context);
-            });
+                return _mockOpenIdMessageContext.Object;
+            }
+
+            _mockServiceProvider
+                .Setup(_ => _.GetService(typeof(Func<IOpenIdMessageContext>)))
+                .Returns((object)new Func<IOpenIdMessageContext>(LocalFactory))
+                .Verifiable();
+
+            var context = factory.CreateContext();
+            Assert.Same(_mockOpenIdMessageContext.Object, context);
         }
 
         [Fact]
-        public void Create_GivenExistingType_ThenContextIsSame()
+        public void CreateMessage_ThenValid()
         {
-            var factory = new OpenIdMessageFactory();
-
             var context = _mockOpenIdMessageContext.Object;
+            var factory = new OpenIdMessageFactory(_mockServiceProvider.Object);
 
-            var message = factory.Create<IAuthorizationRequestMessage>(context);
-            Assert.IsType<AuthorizationRequestMessage>(message);
-            Assert.Same(context, message.Context);
+            var mockTestOpenIdMessage = _mockRepository.Create<ITestOpenIdMessage>();
+
+            ITestOpenIdMessage LocalFactory(IOpenIdMessageContext ctx)
+            {
+                Assert.Same(context, ctx);
+                return mockTestOpenIdMessage.Object;
+            }
+
+            _mockServiceProvider
+                .Setup(_ => _.GetService(typeof(Func<IOpenIdMessageContext, ITestOpenIdMessage>)))
+                .Returns((object)new Func<IOpenIdMessageContext, ITestOpenIdMessage>(LocalFactory))
+                .Verifiable();
+
+            var message = factory.Create<ITestOpenIdMessage>(context);
+            Assert.Same(mockTestOpenIdMessage.Object, message);
         }
     }
 }

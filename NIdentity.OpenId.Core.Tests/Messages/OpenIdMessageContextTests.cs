@@ -41,11 +41,11 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.True(context.JsonSerializerOptions.AllowTrailingCommas);
 
             Assert.Contains(context.JsonSerializerOptions.Converters,
-                converter => converter is JsonRequestClaimJsonConverter);
+                converter => converter is RequestClaimJsonConverter);
             Assert.Contains(context.JsonSerializerOptions.Converters,
-                converter => converter is JsonRequestClaimsJsonConverter);
+                converter => converter is RequestClaimsJsonConverter);
             Assert.Contains(context.JsonSerializerOptions.Converters,
-                converter => converter is OpenIdMessageJsonConverter<JsonAuthorizationRequestObject>);
+                converter => converter is OpenIdMessageJsonConverter<AuthorizationRequestObject>);
         }
     }
 }

@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,21 +24,22 @@ using System.Linq;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    internal class JsonRequestClaimDictionary :
-        IDictionary<string, JsonRequestClaim?>,
-        IReadOnlyDictionary<string, JsonRequestClaim?>,
+    internal class RequestClaimDictionary :
+        IDictionary<string, RequestClaim?>,
+        IReadOnlyDictionary<string, RequestClaim?>,
         IReadOnlyDictionary<string, IRequestClaim?>
     {
-        private readonly IDictionary<string, JsonRequestClaim?> _inner;
+        private readonly IDictionary<string, RequestClaim?> _inner;
 
-        public JsonRequestClaimDictionary() : this(StringComparer.Ordinal)
+        public RequestClaimDictionary()
+            : this(StringComparer.Ordinal)
         {
             // nothing
         }
 
-        public JsonRequestClaimDictionary(StringComparer comparer)
+        public RequestClaimDictionary(StringComparer comparer)
         {
-            _inner = new Dictionary<string, JsonRequestClaim?>(comparer);
+            _inner = new Dictionary<string, RequestClaim?>(comparer);
         }
 
         public int Count => _inner.Count;
@@ -48,7 +49,7 @@ namespace NIdentity.OpenId.Messages.Authorization
             return _inner.ContainsKey(key);
         }
 
-        public bool TryGetValue(string key, out JsonRequestClaim? value)
+        public bool TryGetValue(string key, out RequestClaim? value)
         {
             return _inner.TryGetValue(key, out value);
         }
@@ -73,48 +74,52 @@ namespace NIdentity.OpenId.Messages.Authorization
             throw new NotSupportedException();
         }
 
-        IEnumerator<KeyValuePair<string, JsonRequestClaim?>> IEnumerable<KeyValuePair<string, JsonRequestClaim?>>.GetEnumerator()
+        IEnumerator<KeyValuePair<string, RequestClaim?>> IEnumerable<KeyValuePair<string, RequestClaim?>>.
+            GetEnumerator()
         {
             return _inner.GetEnumerator();
         }
 
         public IEnumerator<KeyValuePair<string, IRequestClaim?>> GetEnumerator()
         {
-            return _inner.Select(kvp => KeyValuePair.Create<string, IRequestClaim?>(kvp.Key, kvp.Value)).GetEnumerator();
+            return _inner.Select(kvp => KeyValuePair.Create<string, IRequestClaim?>(kvp.Key, kvp.Value))
+                .GetEnumerator();
         }
 
         #endregion
 
         #region ICollection Members
 
-        bool ICollection<KeyValuePair<string, JsonRequestClaim?>>.IsReadOnly => _inner.IsReadOnly;
+        bool ICollection<KeyValuePair<string, RequestClaim?>>.IsReadOnly => _inner.IsReadOnly;
 
-        bool ICollection<KeyValuePair<string, JsonRequestClaim?>>.Contains(KeyValuePair<string, JsonRequestClaim?> item)
+        bool ICollection<KeyValuePair<string, RequestClaim?>>.Contains(KeyValuePair<string, RequestClaim?> item)
         {
             return _inner.Contains(item);
         }
 
-        void ICollection<KeyValuePair<string, JsonRequestClaim?>>.CopyTo(KeyValuePair<string, JsonRequestClaim?>[] array, int arrayIndex)
+        void ICollection<KeyValuePair<string, RequestClaim?>>.CopyTo(
+            KeyValuePair<string, RequestClaim?>[] array,
+            int arrayIndex)
         {
             _inner.CopyTo(array, arrayIndex);
         }
 
-        void ICollection<KeyValuePair<string, JsonRequestClaim?>>.Add(KeyValuePair<string, JsonRequestClaim?> item)
+        void ICollection<KeyValuePair<string, RequestClaim?>>.Add(KeyValuePair<string, RequestClaim?> item)
         {
             _inner.Add(item);
         }
 
-        bool IDictionary<string, JsonRequestClaim?>.Remove(string key)
+        bool IDictionary<string, RequestClaim?>.Remove(string key)
         {
             return _inner.Remove(key);
         }
 
-        bool ICollection<KeyValuePair<string, JsonRequestClaim?>>.Remove(KeyValuePair<string, JsonRequestClaim?> item)
+        bool ICollection<KeyValuePair<string, RequestClaim?>>.Remove(KeyValuePair<string, RequestClaim?> item)
         {
             return _inner.Remove(item);
         }
 
-        void ICollection<KeyValuePair<string, JsonRequestClaim?>>.Clear()
+        void ICollection<KeyValuePair<string, RequestClaim?>>.Clear()
         {
             _inner.Clear();
         }
@@ -123,17 +128,17 @@ namespace NIdentity.OpenId.Messages.Authorization
 
         #region IDictionary Members
 
-        ICollection<string> IDictionary<string, JsonRequestClaim?>.Keys => _inner.Keys;
+        ICollection<string> IDictionary<string, RequestClaim?>.Keys => _inner.Keys;
 
-        ICollection<JsonRequestClaim?> IDictionary<string, JsonRequestClaim?>.Values => _inner.Values;
+        ICollection<RequestClaim?> IDictionary<string, RequestClaim?>.Values => _inner.Values;
 
-        JsonRequestClaim? IDictionary<string, JsonRequestClaim?>.this[string key]
+        RequestClaim? IDictionary<string, RequestClaim?>.this[string key]
         {
             get => _inner[key];
             set => _inner[key] = value;
         }
 
-        void IDictionary<string, JsonRequestClaim?>.Add(string key, JsonRequestClaim? value)
+        void IDictionary<string, RequestClaim?>.Add(string key, RequestClaim? value)
         {
             _inner.Add(key, value);
         }
@@ -142,19 +147,18 @@ namespace NIdentity.OpenId.Messages.Authorization
 
         #region IReadOnlyDictionary Members
 
-        IEnumerable<string> IReadOnlyDictionary<string, JsonRequestClaim?>.Keys => _inner.Keys;
+        IEnumerable<string> IReadOnlyDictionary<string, RequestClaim?>.Keys => _inner.Keys;
 
         IEnumerable<string> IReadOnlyDictionary<string, IRequestClaim?>.Keys => _inner.Keys;
 
-        IEnumerable<JsonRequestClaim?> IReadOnlyDictionary<string, JsonRequestClaim?>.Values => _inner.Values;
+        IEnumerable<RequestClaim?> IReadOnlyDictionary<string, RequestClaim?>.Values => _inner.Values;
 
         IEnumerable<IRequestClaim?> IReadOnlyDictionary<string, IRequestClaim?>.Values => _inner.Values;
 
-        JsonRequestClaim? IReadOnlyDictionary<string, JsonRequestClaim?>.this[string key] => _inner[key];
+        RequestClaim? IReadOnlyDictionary<string, RequestClaim?>.this[string key] => _inner[key];
 
         IRequestClaim? IReadOnlyDictionary<string, IRequestClaim?>.this[string key] => _inner[key];
 
         #endregion
-
     }
 }

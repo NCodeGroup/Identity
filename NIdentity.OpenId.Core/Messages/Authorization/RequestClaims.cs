@@ -3,18 +3,17 @@ using System.Text.Json.Serialization;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    internal class JsonRequestClaims : IRequestClaims
+    internal class RequestClaims : IRequestClaims
     {
         [JsonPropertyName(OpenIdConstants.Parameters.UserInfo)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonRequestClaimDictionary? UserInfo { get; set; }
+        public RequestClaimDictionary? UserInfo { get; set; }
 
         [JsonPropertyName(OpenIdConstants.Parameters.IdToken)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonRequestClaimDictionary? IdToken { get; set; }
+        public RequestClaimDictionary? IdToken { get; set; }
 
-        [JsonExtensionData]
-        public Dictionary<string, object> ExtensionData { get; set; } = new();
+        [JsonExtensionData] public Dictionary<string, object> ExtensionData { get; set; } = new();
 
         IReadOnlyDictionary<string, IRequestClaim?>? IRequestClaims.UserInfo => UserInfo;
 

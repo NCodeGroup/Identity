@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,18 +23,21 @@ using System.Text.Json.Serialization;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    internal class JsonRequestClaimJsonConverter : JsonConverter<IRequestClaim?>
+    internal class RequestClaimJsonConverter : JsonConverter<IRequestClaim?>
     {
         /// <inheritdoc />
-        public override IRequestClaim? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override IRequestClaim? Read(
+            ref Utf8JsonReader reader,
+            Type typeToConvert,
+            JsonSerializerOptions options)
         {
-            return JsonSerializer.Deserialize<JsonRequestClaim>(ref reader, options);
+            return JsonSerializer.Deserialize<RequestClaim>(ref reader, options);
         }
 
         /// <inheritdoc />
         public override void Write(Utf8JsonWriter writer, IRequestClaim? value, JsonSerializerOptions options)
         {
-            var type = value?.GetType() ?? typeof(JsonRequestClaim);
+            var type = value?.GetType() ?? typeof(RequestClaim);
             JsonSerializer.Serialize(writer, value, type, options);
         }
     }

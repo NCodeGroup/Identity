@@ -44,9 +44,9 @@ namespace NIdentity.OpenId.Messages
 
                 Converters =
                 {
-                    new JsonRequestClaimJsonConverter(),
-                    new JsonRequestClaimsJsonConverter(),
-                    new OpenIdMessageJsonConverter<JsonAuthorizationRequestObject>(this)
+                    new RequestClaimJsonConverter(),
+                    new RequestClaimsJsonConverter(),
+                    new OpenIdMessageJsonConverter<AuthorizationRequestObject>(this)
                 }
             };
         }

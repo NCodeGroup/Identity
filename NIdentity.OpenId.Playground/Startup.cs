@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Playground.Contexts;
 using NIdentity.OpenId.Playground.Pipes;
 using NIdentity.OpenId.Playground.Results;
@@ -61,27 +62,28 @@ namespace NIdentity.OpenId.Playground
 
             var requestPipe = Pipe.New<RequestContext>(configurator =>
             {
-                configurator.UseDispatch(new CompositePipeContextConverterFactory(), d =>
-                {
-                    d.Handle<HttpContext>(h =>
+                configurator.UseDispatch(new CompositePipeContextConverterFactory(),
+                    d =>
                     {
-                        h.UseExecute(ctx =>
+                        d.Handle<HttpContext>(h =>
                         {
-                            var httpContext = ctx.Request;
+                            h.UseExecute(ctx =>
+                            {
+                                var httpContext = ctx.Request;
+                            });
                         });
-                    });
 
-                    d.Handle<LoadAuthorization>(h =>
-                    {
-                        h.UseExecute(ctx =>
+                        d.Handle<LoadAuthorization>(h =>
                         {
-                            var httpContext = ctx.Request.HttpContext;
-                            var serviceProvider = httpContext.RequestServices;
-                            var authorization = new AuthorizationContext(null!, null!, null!);
-                            ctx.TrySetResult(authorization);
+                            h.UseExecute(ctx =>
+                            {
+                                var httpContext = ctx.Request.HttpContext;
+                                var serviceProvider = httpContext.RequestServices;
+                                var authorization = new AuthorizationContext(null!, null!, null!);
+                                ctx.TrySetResult(authorization);
+                            });
                         });
                     });
-                });
             });
 
             var loadAuthorizationPipe = requestPipe.CreateRequestPipe<LoadAuthorization, IAuthorizationContext>();
@@ -92,7 +94,8 @@ namespace NIdentity.OpenId.Playground
                 {
                     var httpContext = httpContextRequestContext.Request;
 
-                    var authResult = await loadAuthorizationPipe.Send(new LoadAuthorization { HttpContext = httpContext });
+                    var authResult =
+                        await loadAuthorizationPipe.Send(new LoadAuthorization { HttpContext = httpContext });
                     var auth = authResult.Result;
 
                     await authPipe.Send(auth);
@@ -152,12 +155,13 @@ namespace NIdentity.OpenId.Playground
         }
     }
 
-    internal class AuthorizationContextFromHttpPipeContextFactory : IPipeContextSource<IAuthorizationContext, IReceiveContext>
+    internal class AuthorizationContextFromHttpPipeContextFactory :
+        IPipeContextSource<IAuthorizationContext, IReceiveContext>
     {
         public async Task Send(IReceiveContext context, IPipe<IAuthorizationContext> pipe)
         {
-            var request = (IOpenIdAuthorizationRequest)null!;
-            var response = (IOpenIdAuthorizationResponse)null!;
+            var request = (IAuthorizationRequest)null!;
+            var response = (IAuthorizationResponse)null!;
 
             var payloads = new object[]
             {
@@ -180,5 +184,4 @@ namespace NIdentity.OpenId.Playground
     {
         public HttpContext HttpContext { get; set; }
     }
-
 }

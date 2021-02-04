@@ -36,15 +36,15 @@ namespace NIdentity.OpenId.Messages.Parameters
         private static ConcurrentDictionary<string, KnownParameter> LoadRegistry() =>
             new(StringComparer.Ordinal)
             {
-                [Scope.Name] = Scope,
+                [Scopes.Name] = Scopes,
                 [ResponseType.Name] = ResponseType,
                 [ResponseMode.Name] = ResponseMode,
                 [ClientId.Name] = ClientId,
                 [RedirectUri.Name] = RedirectUri,
                 [State.Name] = State,
                 [Nonce.Name] = Nonce,
-                [Display.Name] = Display,
-                [Prompt.Name] = Prompt,
+                [DisplayType.Name] = DisplayType,
+                [PromptType.Name] = PromptType,
                 [MaxAge.Name] = MaxAge,
                 [UiLocales.Name] = UiLocales,
                 [IdTokenHint.Name] = IdTokenHint,
@@ -54,7 +54,7 @@ namespace NIdentity.OpenId.Messages.Parameters
                 [CodeChallengeMethod.Name] = CodeChallengeMethod,
             };
 
-        public static readonly KnownParameter<IEnumerable<string>?> Scope = new(
+        public static readonly KnownParameter<IReadOnlyCollection<string>?> Scopes = new(
             OpenIdConstants.Parameters.Scope,
             optional: false,
             allowMultipleValues: true,
@@ -96,13 +96,13 @@ namespace NIdentity.OpenId.Messages.Parameters
             allowMultipleValues: false,
             ParameterParsers.String);
 
-        public static readonly KnownParameter<DisplayType?> Display = new(
+        public static readonly KnownParameter<DisplayType?> DisplayType = new(
             OpenIdConstants.Parameters.Display,
             optional: true,
             allowMultipleValues: false,
             ParameterParsers.DisplayType);
 
-        public static readonly KnownParameter<PromptTypes?> Prompt = new(
+        public static readonly KnownParameter<PromptTypes?> PromptType = new(
             OpenIdConstants.Parameters.Prompt,
             optional: true,
             allowMultipleValues: false,
@@ -114,7 +114,7 @@ namespace NIdentity.OpenId.Messages.Parameters
             allowMultipleValues: false,
             ParameterParsers.TimeSpan);
 
-        public static readonly KnownParameter<IEnumerable<string>?> UiLocales = new(
+        public static readonly KnownParameter<IReadOnlyCollection<string>?> UiLocales = new(
             OpenIdConstants.Parameters.UiLocales,
             optional: true,
             allowMultipleValues: false,
@@ -132,13 +132,13 @@ namespace NIdentity.OpenId.Messages.Parameters
             allowMultipleValues: false,
             ParameterParsers.String);
 
-        public static readonly KnownParameter<IEnumerable<string>?> AcrValues = new(
+        public static readonly KnownParameter<IReadOnlyCollection<string>?> AcrValues = new(
             OpenIdConstants.Parameters.AcrValues,
             optional: true,
             allowMultipleValues: false,
             ParameterParsers.StringSet);
 
-        public static readonly KnownParameter<IEnumerable<string>?> ClaimsLocales = new(
+        public static readonly KnownParameter<IReadOnlyCollection<string>?> ClaimsLocales = new(
             OpenIdConstants.Parameters.ClaimsLocales,
             optional: true,
             allowMultipleValues: false,

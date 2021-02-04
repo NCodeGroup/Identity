@@ -1,5 +1,4 @@
-#region Copyright Preamble
-
+﻿#region Copyright Preamble
 //
 //    Copyright @ 2021 NCode Group
 //
@@ -14,16 +13,18 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-
 #endregion
 
-namespace NIdentity.OpenId
+using System.Threading;
+using System.Threading.Tasks;
+using NIdentity.OpenId.DataContracts;
+
+namespace NIdentity.OpenId.Stores
 {
-    public enum ResponseMode
+    public interface IClientStore
     {
-        Unspecified = 0,
-        Query,
-        Fragment,
-        FormPost
+        ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken);
+
+        ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken);
     }
 }

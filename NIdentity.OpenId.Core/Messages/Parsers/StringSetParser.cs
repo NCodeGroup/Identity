@@ -26,53 +26,42 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class StringSetParser : ParameterParser<IEnumerable<string>?>
+    internal class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
     {
-        public override StringValues Serialize(IOpenIdMessageContext context, IEnumerable<string>? value)
+        public override StringValues Serialize(IOpenIdMessageContext context, IReadOnlyCollection<string>? value)
         {
             if (value is null)
                 return StringValues.Empty;
 
-            var stringValues = value.ToArray();
-            if (stringValues.Length == 0)
+            if (value.Count == 0)
                 return StringValues.Empty;
 
-            return string.Join(Separator, stringValues);
+            return string.Join(Separator, value);
         }
 
-        public override bool TryParse(
-            IOpenIdMessageContext context,
-            ParameterDescriptor descriptor,
-            StringValues stringValues,
-            out ValidationResult<IEnumerable<string>?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IReadOnlyCollection<string>?> result)
         {
             switch (stringValues.Count)
             {
                 case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(Enumerable.Empty<string>());
+                    result = ValidationResult.Factory.Success<IReadOnlyCollection<string>?>(
+                        Array.Empty<string>());
                     return true;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<IEnumerable<string>?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<IReadOnlyCollection<string>?>();
                     return false;
 
                 case > 1 when descriptor.AllowMultipleValues:
-                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(
-                        stringValues
-                            .SelectMany(stringValue => stringValue.Split(Separator))
-                            .ToHashSet(StringComparer.Ordinal));
+                    result = ValidationResult.Factory.Success<IReadOnlyCollection<string>?>(stringValues.SelectMany(stringValue => stringValue.Split(Separator)).ToHashSet(StringComparer.Ordinal));
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<IEnumerable<string>?>(
-                        descriptor.ParameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<IReadOnlyCollection<string>?>();
                     return false;
 
                 default:
-                    result = ValidationResult.Factory.Success<IEnumerable<string>?>(
-                        stringValues[0]
-                            .Split(Separator)
-                            .ToHashSet(StringComparer.Ordinal));
+                    result = ValidationResult.Factory.Success<IReadOnlyCollection<string>?>(stringValues[0].Split(Separator).ToHashSet(StringComparer.Ordinal));
                     return true;
             }
         }

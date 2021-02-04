@@ -1,14 +1,14 @@
 ﻿#region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,7 +25,7 @@ namespace NIdentity.OpenId.Messages.Authorization
 {
     internal class BaseAuthorizationRequestMessage : OpenIdMessage
     {
-        public IEnumerable<string>? AcrValues
+        public IReadOnlyCollection<string>? AcrValues
         {
             get => GetKnownParameter(KnownParameters.AcrValues);
             set => SetKnownParameter(KnownParameters.AcrValues, value);
@@ -37,7 +37,7 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.Claims, value);
         }
 
-        public IEnumerable<string>? ClaimsLocales
+        public IReadOnlyCollection<string>? ClaimsLocales
         {
             get => GetKnownParameter(KnownParameters.ClaimsLocales);
             set => SetKnownParameter(KnownParameters.ClaimsLocales, value);
@@ -67,10 +67,10 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.CodeVerifier, value);
         }
 
-        public DisplayType? Display
+        public DisplayType? DisplayType
         {
-            get => GetKnownParameter(KnownParameters.Display);
-            set => SetKnownParameter(KnownParameters.Display, value);
+            get => GetKnownParameter(KnownParameters.DisplayType);
+            set => SetKnownParameter(KnownParameters.DisplayType, value);
         }
 
         public string? IdTokenHint
@@ -97,10 +97,10 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.Nonce, value);
         }
 
-        public PromptTypes? Prompt
+        public PromptTypes? PromptType
         {
-            get => GetKnownParameter(KnownParameters.Prompt);
-            set => SetKnownParameter(KnownParameters.Prompt, value);
+            get => GetKnownParameter(KnownParameters.PromptType);
+            set => SetKnownParameter(KnownParameters.PromptType, value);
         }
 
         public string? RedirectUri
@@ -133,10 +133,10 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.ResponseType, value);
         }
 
-        public IEnumerable<string>? Scopes
+        public IReadOnlyCollection<string>? Scopes
         {
-            get => GetKnownParameter(KnownParameters.Scope);
-            set => SetKnownParameter(KnownParameters.Scope, value);
+            get => GetKnownParameter(KnownParameters.Scopes);
+            set => SetKnownParameter(KnownParameters.Scopes, value);
         }
 
         public string? State
@@ -145,7 +145,7 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.State, value);
         }
 
-        public IEnumerable<string>? UiLocales
+        public IReadOnlyCollection<string>? UiLocales
         {
             get => GetKnownParameter(KnownParameters.UiLocales);
             set => SetKnownParameter(KnownParameters.UiLocales, value);

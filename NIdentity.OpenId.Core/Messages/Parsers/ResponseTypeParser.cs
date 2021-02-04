@@ -29,7 +29,7 @@ namespace NIdentity.OpenId.Messages.Parsers
     {
         public override StringValues Serialize(IOpenIdMessageContext context, ResponseTypes? value)
         {
-            if (value is null || value == ResponseTypes.Unknown)
+            if (value is null || value == ResponseTypes.Unspecified)
                 return StringValues.Empty;
 
             const int capacity = 3;
@@ -48,11 +48,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, list);
         }
 
-        public override bool TryParse(
-            IOpenIdMessageContext context,
-            ParameterDescriptor descriptor,
-            StringValues stringValues,
-            out ValidationResult<ResponseTypes?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseTypes?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -63,17 +59,17 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<ResponseTypes?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<ResponseTypes?>();
                     return false;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<ResponseTypes?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<ResponseTypes?>();
                     return false;
             }
 
             stringValues = stringValues[0].Split(Separator);
 
-            var responseType = ResponseTypes.Unknown;
+            var responseType = ResponseTypes.Unspecified;
             foreach (var stringValue in stringValues)
             {
                 if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Code, StringComparison))
@@ -90,7 +86,7 @@ namespace NIdentity.OpenId.Messages.Parsers
                 }
                 else
                 {
-                    result = ValidationResult.Factory.InvalidParameterValue<ResponseTypes?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.InvalidParameterValue(descriptor.ParameterName).As<ResponseTypes?>();
                     return false;
                 }
             }

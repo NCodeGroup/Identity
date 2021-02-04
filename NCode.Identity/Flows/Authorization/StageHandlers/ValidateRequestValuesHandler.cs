@@ -53,12 +53,12 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             var redirectUri = context.Request.RedirectUri;
 
             if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri))
-                return ValueTask.FromResult<ValidationResult>(ValidationResult.Factory.InvalidRequest<string>(
+                return ValueTask.FromResult(ValidationResult.Factory.InvalidRequest(
                     "The value for redirect_uri is invalid."));
 
             var redirectUris = context.Client.RedirectUris;
             if (!redirectUris.Contains(redirectUri, StringComparer.OrdinalIgnoreCase) && !(context.Client.AllowLoopback && uri.IsLoopback))
-                return ValueTask.FromResult<ValidationResult>(ValidationResult.Factory.InvalidRequest<string>(
+                return ValueTask.FromResult(ValidationResult.Factory.InvalidRequest(
                     "The value for redirect_uri is invalid."));
 
             // TODO: move elsewhere...
@@ -71,25 +71,25 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
             // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
             if (context.Request.ResponseType.HasFlag(ResponseTypes.Token) && !context.Client.AllowUnsafeTokenResponse)
-                return ValueTask.FromResult<ValidationResult>(ValidationResult.Factory.UnauthorizedClient<string>());
+                return ValueTask.FromResult(ValidationResult.Factory.UnauthorizedClient());
 
             if (context.Request.ResponseType.HasFlag(ResponseTypes.IdToken) && !hasOpenIdScope)
-                return ValueTask.FromResult<ValidationResult>(ValidationResult.Factory.InvalidRequest<string>(
+                return ValueTask.FromResult(ValidationResult.Factory.InvalidRequest(
                     "The openid scope is required when requesting id tokens."));
 
             if (hasOpenIdScope && string.IsNullOrEmpty(context.Request.Nonce) && (isImplicit || isHybrid))
-                return ValueTask.FromResult<ValidationResult>(ValidationResult.Factory.InvalidRequest<string>(
+                return ValueTask.FromResult(ValidationResult.Factory.InvalidRequest(
                     "The nonce parameter is required when using the implicit or hybrid flows for openid requests."));
 
             var hasCodeChallenge = !string.IsNullOrEmpty(context.Request.CodeChallenge);
             var codeChallengeMethodIsPlain = context.Request.CodeChallengeMethod == CodeChallengeMethod.Plain;
 
             if (!hasCodeChallenge && context.Client.RequirePkce)
-                return ValueTask.FromResult<ValidationResult>(ValidationResult.Factory.InvalidRequest<string>(
+                return ValueTask.FromResult(ValidationResult.Factory.InvalidRequest(
                     "Client configuration requires the use of PKCE parameters."));
 
             if (hasCodeChallenge && codeChallengeMethodIsPlain && !context.Client.AllowPlainCodeChallengeMethod)
-                return ValueTask.FromResult<ValidationResult>(ValidationResult.Factory.InvalidRequest<string>(
+                return ValueTask.FromResult(ValidationResult.Factory.InvalidRequest(
                     "Client configuration prohibits the plain PKCE method."));
 
             // TODO: check IdP
@@ -115,11 +115,9 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
             var client = await _clientService.GetClientAsync(context.Request.ClientId, cancellationToken);
             if (client == null)
-                return ValidationResult.Factory.InvalidRequest<string>(
-                    "Client not found.");
+                return ValidationResult.Factory.InvalidRequest("Client not found.");
             if (client.Disabled)
-                return ValidationResult.Factory.InvalidRequest<string>(
-                    "Client disabled.");
+                return ValidationResult.Factory.InvalidRequest("Client disabled.");
 
             context.Client = client;
             return ValidationResult.SuccessResult;
@@ -139,10 +137,12 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             }
             else
             {
-                result = ValidationResult.Factory.Error<IReadOnlyDictionary<string, StringValues>>(
-                    "TODO: error",
-                    "TODO: errorDescription",
-                    StatusCodes.Status405MethodNotAllowed);
+                result = ValidationResult.Factory
+                    .Error(
+                        "TODO: error",
+                        "TODO: errorDescription",
+                        StatusCodes.Status405MethodNotAllowed)
+                    .As<IReadOnlyDictionary<string, StringValues>>();
 
                 return false;
             }
@@ -259,7 +259,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
             if (!StringValueParser.TryParseResponseType(stringValues, out var responseTypeResult))
             {
-                result = ValidationResult.Factory.Error<(ResponseTypes ResponseType, GrantType GrantType)>(responseTypeResult.ErrorDetails);
+                result = ValidationResult.Factory.Error(responseTypeResult.ErrorDetails).As<(ResponseTypes ResponseType, GrantType GrantType)>();
                 return false;
             }
 
@@ -453,6 +453,5 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
             return StringValueParser.TryParseCodeChallengeMethod(stringValues, out result);
         }
-
     }
 }

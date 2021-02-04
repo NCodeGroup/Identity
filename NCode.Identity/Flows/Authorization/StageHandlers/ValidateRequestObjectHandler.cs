@@ -74,17 +74,21 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             var requestUriStringValues = rawValues[IdentityConstants.Parameters.RequestUri];
 
             if (requestStringValues.Count + requestUriStringValues.Count > 1)
-                return ValidationResult.Factory.InvalidRequest<(string jwt, string useErrorCode)>(
-                    "Both the request and request_uri parameters cannot be present at the same time.");
+                return ValidationResult.Factory
+                    .InvalidRequest(
+                        "Both the request and request_uri parameters cannot be present at the same time.")
+                    .As<(string jwt, string useErrorCode)>();
 
             string jwt = null;
             string useErrorCode = null;
             if (requestStringValues.Count == 1)
             {
                 if (!_options.JwtRequest.RequestEnabled)
-                    return ValidationResult.Factory.BadRequest<(string jwt, string useErrorCode)>(
-                        IdentityConstants.ErrorCodes.RequestNotSupported,
-                        "The request parameter is not supported.");
+                    return ValidationResult.Factory
+                        .BadRequest(
+                            IdentityConstants.ErrorCodes.RequestNotSupported,
+                            "The request parameter is not supported.")
+                        .As<(string jwt, string useErrorCode)>();
 
                 jwt = requestStringValues[0];
                 useErrorCode = IdentityConstants.ErrorCodes.InvalidRequestObject;
@@ -92,29 +96,37 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             else if (requestUriStringValues.Count == 1)
             {
                 if (!_options.JwtRequest.RequestUriEnabled)
-                    return ValidationResult.Factory.BadRequest<(string jwt, string useErrorCode)>(
-                        IdentityConstants.ErrorCodes.RequestUriNotSupported,
-                        "The request_uri parameter is not supported.");
+                    return ValidationResult.Factory
+                        .BadRequest(
+                            IdentityConstants.ErrorCodes.RequestUriNotSupported,
+                            "The request_uri parameter is not supported.")
+                        .As<(string jwt, string useErrorCode)>();
 
                 var requestUri = requestUriStringValues[0];
                 var requestUriMaxLength = _options.JwtRequest.RequestUriMaxLength;
                 if (requestUri.Length > requestUriMaxLength)
-                    return ValidationResult.Factory.BadRequest<(string jwt, string useErrorCode)>(
-                        IdentityConstants.ErrorCodes.InvalidRequestUri,
-                        $"The request_uri parameter must not exceed {requestUriMaxLength} characters.");
+                    return ValidationResult.Factory
+                        .BadRequest(
+                            IdentityConstants.ErrorCodes.InvalidRequestUri,
+                            $"The request_uri parameter must not exceed {requestUriMaxLength} characters.")
+                        .As<(string jwt, string useErrorCode)>();
 
                 var jwtResult = await GetJwtAsync(client, requestUri, cancellationToken);
                 if (jwtResult.HasError)
-                    return ValidationResult.Factory.Error<(string jwt, string useErrorCode)>(
-                        jwtResult.ErrorDetails);
+                    return ValidationResult.Factory
+                        .Error(
+                            jwtResult.ErrorDetails)
+                        .As<(string jwt, string useErrorCode)>();
 
                 jwt = jwtResult.Value;
                 useErrorCode = IdentityConstants.ErrorCodes.InvalidRequestUri;
             }
             else if (client.RequireRequestObject)
             {
-                return ValidationResult.Factory.InvalidRequest<(string jwt, string useErrorCode)>(
-                    "Client configuration requires the use of request or request_uri parameters.");
+                return ValidationResult.Factory
+                    .InvalidRequest(
+                        "Client configuration requires the use of request or request_uri parameters.")
+                    .As<(string jwt, string useErrorCode)>();
             }
 
             return ValidationResult.Factory.Success((jwt, useErrorCode));
@@ -132,25 +144,31 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             {
                 using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                    return ValidationResult.Factory.BadRequest<string>(
-                        IdentityConstants.ErrorCodes.InvalidRequestUri,
-                        $"The http status code of the response must be OK. Received {response.StatusCode}.");
+                    return ValidationResult.Factory
+                        .BadRequest(
+                            IdentityConstants.ErrorCodes.InvalidRequestUri,
+                            $"The http status code of the response must be OK. Received {response.StatusCode}.")
+                        .As<string>();
 
                 var contentType = response.Content.Headers.ContentType?.MediaType;
                 var expectedContentType = _options.JwtRequest.ExpectedContentType;
                 if (_options.JwtRequest.StrictContentType && contentType != expectedContentType)
-                    return ValidationResult.Factory.BadRequest<string>(
-                        IdentityConstants.ErrorCodes.InvalidRequestUri,
-                        $"The content type of the response must be \"{expectedContentType}\". Received \"{contentType}\".");
+                    return ValidationResult.Factory
+                        .BadRequest(
+                            IdentityConstants.ErrorCodes.InvalidRequestUri,
+                            $"The content type of the response must be \"{expectedContentType}\". Received \"{contentType}\".")
+                        .As<string>();
 
                 var jwt = await response.Content.ReadAsStringAsync(cancellationToken);
                 return ValidationResult.Factory.Success(jwt);
             }
             catch (Exception exception)
             {
-                var result = ValidationResult.Factory.BadRequest<string>(
-                    IdentityConstants.ErrorCodes.InvalidRequestUri,
-                    "An error occurred while attempting to fetch request_uri.");
+                var result = ValidationResult.Factory
+                    .BadRequest(
+                        IdentityConstants.ErrorCodes.InvalidRequestUri,
+                        "An error occurred while attempting to fetch request_uri.")
+                    .As<string>();
                 _logger.LogError(exception, result.ErrorDetails.ErrorDescription);
                 return result;
             }
@@ -172,7 +190,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             }
             catch (Exception exception)
             {
-                result = ValidationResult.Factory.FailedToDeserializeJson<JwtAuthorizationRequest>(useErrorCode);
+                result = ValidationResult.Factory.FailedToDeserializeJson(useErrorCode).As<JwtAuthorizationRequest>();
                 _logger.LogError(exception, result.ErrorDetails.ErrorDescription);
                 return false;
             }
@@ -357,6 +375,5 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             result = ValidationResult.SuccessResult;
             return true;
         }
-
     }
 }

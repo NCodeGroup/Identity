@@ -79,7 +79,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void Serialize_GivenUnknown_ThenEmpty()
         {
             var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Unknown);
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Unspecified);
             Assert.Equal(StringValues.Empty, result);
         }
 
@@ -139,41 +139,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenMultipleValues_WithNone_ThenError()
+        public void TryParse_GivenMultipleValues_ThenSuccess()
         {
             var parser = new PromptTypeParser();
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            const string stringValues = "none login";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.False(success);
-            Assert.True(result.HasError);
-        }
-
-        [Fact]
-        public void TryParse_GivenMultipleValues_WithoutNone_ThenSuccess()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "login consent";
-            const PromptTypes expectedResult = PromptTypes.Login | PromptTypes.Consent;
+            const string stringValues = "login select_account";
+            const PromptTypes expectedResult = PromptTypes.Login | PromptTypes.SelectAccount;
 
             var knownParameter = new KnownParameter<PromptTypes?>(
                 parameterName,

@@ -29,8 +29,7 @@ namespace NIdentity.OpenId.Messages
 {
     internal abstract class OpenIdMessage : IOpenIdMessage
     {
-        internal IDictionary<string, Parameter> Parameters { get; } =
-            new Dictionary<string, Parameter>(StringComparer.Ordinal);
+        internal IDictionary<string, Parameter> Parameters { get; } = new Dictionary<string, Parameter>(StringComparer.Ordinal);
 
         /// <inheritdoc />
         public IOpenIdMessageContext? Context { get; set; }

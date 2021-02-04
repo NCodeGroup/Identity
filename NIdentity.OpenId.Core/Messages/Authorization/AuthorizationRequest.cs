@@ -37,8 +37,8 @@ namespace NIdentity.OpenId.Messages.Authorization
         private static GrantType DetermineGrantType(ResponseTypes? responseType) =>
             responseType switch
             {
-                null => GrantType.Unknown,
-                ResponseTypes.Unknown => GrantType.Unknown,
+                null => GrantType.Unspecified,
+                ResponseTypes.Unspecified => GrantType.Unspecified,
                 ResponseTypes.Code => GrantType.AuthorizationCode,
                 _ => responseType.Value.HasFlag(ResponseTypes.Code) ? GrantType.Hybrid : GrantType.Implicit
             };
@@ -75,7 +75,7 @@ namespace NIdentity.OpenId.Messages.Authorization
 
         public string? CodeVerifier => _object?.CodeVerifier ?? _message.CodeVerifier;
 
-        public DisplayType Display => _object?.Display ?? _message.Display ?? DisplayType.Unknown;
+        public DisplayType Display => _object?.DisplayType ?? _message.DisplayType ?? DisplayType.Unspecified;
 
         public GrantType GrantType => DetermineGrantType(ResponseType);
 
@@ -87,7 +87,7 @@ namespace NIdentity.OpenId.Messages.Authorization
 
         public string? Nonce => _object?.Nonce ?? _message.Nonce;
 
-        public PromptTypes Prompt => _object?.Prompt ?? _message.Prompt ?? PromptTypes.Unknown;
+        public PromptTypes Prompt => _object?.PromptType ?? _message.PromptType ?? PromptTypes.Unspecified;
 
         public string? RedirectUri => _object?.RedirectUri ?? _message.RedirectUri;
 
@@ -99,7 +99,7 @@ namespace NIdentity.OpenId.Messages.Authorization
         public ResponseTypes ResponseType =>
             _object?.ResponseType ??
             _message.ResponseType ??
-            ResponseTypes.Unknown;
+            ResponseTypes.Unspecified;
 
         public IEnumerable<string> Scopes => _object?.Scopes ?? _message.Scopes ?? Enumerable.Empty<string>();
 

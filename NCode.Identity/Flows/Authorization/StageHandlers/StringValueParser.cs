@@ -23,11 +23,11 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                     return true;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<string>(key);
+                    result = ValidationResult.Factory.MissingParameter(key).As<string>();
                     return false;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<string>(key);
+                    result = ValidationResult.Factory.TooManyParameterValues(key).As<string>();
                     return false;
 
                 default:
@@ -41,7 +41,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
         {
             if (!optional && stringValues.Count == 0)
             {
-                result = ValidationResult.Factory.MissingParameter<IReadOnlyList<string>>(key);
+                result = ValidationResult.Factory.MissingParameter(key).As<IReadOnlyList<string>>();
                 return false;
             }
 
@@ -56,7 +56,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
             if (stringValues.Count == 0)
             {
-                result = ValidationResult.Factory.MissingParameter<IReadOnlySet<string>>(key);
+                result = ValidationResult.Factory.MissingParameter(key).As<IReadOnlySet<string>>();
                 return false;
             }
 
@@ -71,7 +71,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
             if (stringValues.Count == 0)
             {
-                result = ValidationResult.Factory.MissingParameter<ResponseTypes>(key, IdentityConstants.ErrorCodes.UnsupportedResponseType);
+                result = ValidationResult.Factory.MissingParameter(key, IdentityConstants.ErrorCodes.UnsupportedResponseType).As<ResponseTypes>();
                 return false;
             }
 
@@ -93,7 +93,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                         break;
 
                     default:
-                        result = ValidationResult.Factory.InvalidParameterValue<ResponseTypes>(key, IdentityConstants.ErrorCodes.UnsupportedResponseType);
+                        result = ValidationResult.Factory.InvalidParameterValue(key, IdentityConstants.ErrorCodes.UnsupportedResponseType).As<ResponseTypes>();
                         return false;
                 }
             }
@@ -113,13 +113,11 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             {
                 case 0:
                     result = ValidationResult.Factory.Success(
-                        grantType == GrantType.AuthorizationCode
-                            ? ResponseMode.Query
-                            : ResponseMode.Fragment);
+                        grantType == GrantType.AuthorizationCode ? ResponseMode.Query : ResponseMode.Fragment);
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<ResponseMode>(key);
+                    result = ValidationResult.Factory.TooManyParameterValues(key).As<ResponseMode>();
                     return false;
             }
 
@@ -129,9 +127,10 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                 case IdentityConstants.ResponseModes.Query:
                     if (grantType != GrantType.AuthorizationCode)
                     {
-                        result = ValidationResult.Factory.InvalidRequest<ResponseMode>("The query encoding is only allowed for the authorization code grant.");
+                        result = ValidationResult.Factory.InvalidRequest("The query encoding is only allowed for the authorization code grant.").As<ResponseMode>();
                         return false;
                     }
+
                     responseMode = ResponseMode.Query;
                     break;
 
@@ -144,7 +143,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                     break;
 
                 default:
-                    result = ValidationResult.Factory.InvalidParameterValue<ResponseMode>(key);
+                    result = ValidationResult.Factory.InvalidParameterValue(key).As<ResponseMode>();
                     return false;
             }
 
@@ -164,7 +163,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<DisplayType?>(key);
+                    result = ValidationResult.Factory.TooManyParameterValues(key).As<DisplayType?>();
                     return false;
             }
 
@@ -189,7 +188,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
                 default:
                     // TODO: ignore unsupported values
-                    result = ValidationResult.Factory.InvalidParameterValue<DisplayType?>(key);
+                    result = ValidationResult.Factory.InvalidParameterValue(key).As<DisplayType?>();
                     return false;
             }
 
@@ -214,7 +213,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                 // 'none' must be by itself
                 if (promptTypes.HasFlag(PromptTypes.None))
                 {
-                    result = ValidationResult.Factory.InvalidRequest<PromptTypes?>("The none value for prompt must not be combined with other values.");
+                    result = ValidationResult.Factory.InvalidRequest("The none value for prompt must not be combined with other values.").As<PromptTypes?>();
                     return false;
                 }
 
@@ -238,7 +237,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
                     default:
                         // TODO: ignore unsupported values
-                        result = ValidationResult.Factory.InvalidParameterValue<PromptTypes?>(key);
+                        result = ValidationResult.Factory.InvalidParameterValue(key).As<PromptTypes?>();
                         return false;
                 }
             }
@@ -259,13 +258,13 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<TimeSpan?>(key);
+                    result = ValidationResult.Factory.TooManyParameterValues(key).As<TimeSpan?>();
                     return false;
             }
 
             if (!int.TryParse(stringValues[0], out var seconds) || seconds < 0)
             {
-                result = ValidationResult.Factory.InvalidParameterValue<TimeSpan?>(key);
+                result = ValidationResult.Factory.InvalidParameterValue(key).As<TimeSpan?>();
                 return false;
             }
 
@@ -287,7 +286,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<AuthorizationRequestClaims>(key);
+                    result = ValidationResult.Factory.TooManyParameterValues(key).As<AuthorizationRequestClaims>();
                     return false;
             }
 
@@ -308,7 +307,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
             catch (Exception exception)
             {
                 const string errorCode = IdentityConstants.ErrorCodes.InvalidRequest;
-                result = ValidationResult.Factory.FailedToDeserializeJson<AuthorizationRequestClaims>(errorCode);
+                result = ValidationResult.Factory.FailedToDeserializeJson(errorCode).As<AuthorizationRequestClaims>();
                 logger.LogError(exception, result.ErrorDetails.ErrorDescription);
                 return false;
             }
@@ -326,7 +325,7 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<CodeChallengeMethod?>(key);
+                    result = ValidationResult.Factory.TooManyParameterValues(key).As<CodeChallengeMethod?>();
                     return false;
             }
 
@@ -343,13 +342,12 @@ namespace NCode.Identity.Flows.Authorization.StageHandlers
 
                 default:
                     // TODO: ignore unsupported values
-                    result = ValidationResult.Factory.InvalidParameterValue<CodeChallengeMethod?>(key);
+                    result = ValidationResult.Factory.InvalidParameterValue(key).As<CodeChallengeMethod?>();
                     return false;
             }
 
             result = ValidationResult.Factory.Success(codeChallengeMethod);
             return true;
         }
-
     }
 }

@@ -6,7 +6,7 @@ namespace NCode.Identity.Validation
     {
         public static ValidationResult SuccessResult => default;
 
-        public static IValidationResultFactory Factory { get; } = new ValidationResultFactory();
+        public static IValidationResultFactory Factory { get; } = ValidationResultFactory.Instance;
 
         public bool HasError
         {
@@ -35,7 +35,7 @@ namespace NCode.Identity.Validation
 
     public readonly struct ValidationResult<TValue>
     {
-        private readonly ValidationResult Inner;
+        private readonly ValidationResult BaseResult;
 
         public bool HasError
         {
@@ -46,7 +46,7 @@ namespace NCode.Identity.Validation
         public IErrorDetails ErrorDetails
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Inner.ErrorDetails;
+            get => BaseResult.ErrorDetails;
         }
 
         public TValue Value
@@ -58,18 +58,18 @@ namespace NCode.Identity.Validation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValidationResult(TValue value)
         {
-            Inner = default;
+            BaseResult = default;
             Value = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult(IErrorDetails errorDetails)
+        public ValidationResult(IErrorDetails error)
         {
-            Inner = new ValidationResult(errorDetails);
+            BaseResult = new ValidationResult(error);
             Value = default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator ValidationResult(ValidationResult<TValue> result) => result.Inner;
+        public static implicit operator ValidationResult(ValidationResult<TValue> result) => result.BaseResult;
     }
 }

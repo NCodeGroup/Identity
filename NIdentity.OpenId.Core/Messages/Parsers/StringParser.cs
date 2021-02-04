@@ -30,11 +30,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return value;
         }
 
-        public override bool TryParse(
-            IOpenIdMessageContext context,
-            ParameterDescriptor descriptor,
-            StringValues stringValues,
-            out ValidationResult<string?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<string?> result)
         {
             switch (stringValues.Count)
             {
@@ -43,7 +39,7 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<string?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<string?>();
                     return false;
 
                 case > 1 when descriptor.AllowMultipleValues:
@@ -51,7 +47,7 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<string?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<string?>();
                     return false;
 
                 default:

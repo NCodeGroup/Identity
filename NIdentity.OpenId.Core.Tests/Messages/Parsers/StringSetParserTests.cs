@@ -51,7 +51,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
-            var parsedValue = (IEnumerable<string>?)null;
+            var parsedValue = (IReadOnlyCollection<string>?)null;
 
             var stringValues = parser.Serialize(context, parsedValue);
             Assert.Equal(StringValues.Empty, stringValues);
@@ -63,7 +63,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             var parser = new StringSetParser();
             var context = _mockOpenIdMessageContext.Object;
 
-            var parsedValue = Enumerable.Empty<string>();
+            var parsedValue = Array.Empty<string>();
 
             var stringValues = parser.Serialize(context, parsedValue);
             Assert.Equal(StringValues.Empty, stringValues);
@@ -78,7 +78,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             const string parameterName = "parameterName";
             var stringValues = Array.Empty<string>();
 
-            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
                 parameterName,
                 optional: true,
                 allowMultipleValues: false,
@@ -107,7 +107,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             const string parameterName = "parameterName";
             var stringValues = Array.Empty<string>();
 
-            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: false,
@@ -134,7 +134,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2" };
 
-            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: false,
@@ -161,7 +161,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2" };
 
-            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: true,
@@ -190,7 +190,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2", "value1", "value2" };
 
-            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: true,
@@ -219,7 +219,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             const string stringValues = "value1 value2";
             var expectedResult = new[] { "value1", "value2" };
 
-            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: false,
@@ -249,7 +249,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             const string stringValues = "value1 value2 value1 value2";
             var expectedResult = new[] { "value1", "value2" };
 
-            var knownParameter = new KnownParameter<IEnumerable<string>?>(
+            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
                 parameterName,
                 optional: false,
                 allowMultipleValues: false,

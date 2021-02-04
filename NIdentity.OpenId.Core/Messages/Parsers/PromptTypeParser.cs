@@ -29,15 +29,15 @@ namespace NIdentity.OpenId.Messages.Parsers
     {
         public override StringValues Serialize(IOpenIdMessageContext context, PromptTypes? value)
         {
-            if (value is null || value == PromptTypes.Unknown)
+            if (value is null || value == PromptTypes.Unspecified)
                 return StringValues.Empty;
 
-            var promptType = value.Value;
-            if (promptType.HasFlag(PromptTypes.None))
-                return OpenIdConstants.PromptTypes.None;
-
-            const int capacity = 3;
+            const int capacity = 4;
             var list = new List<string>(capacity);
+            var promptType = value.Value;
+
+            if (promptType.HasFlag(PromptTypes.None))
+                list.Add(OpenIdConstants.PromptTypes.None);
 
             if (promptType.HasFlag(PromptTypes.Login))
                 list.Add(OpenIdConstants.PromptTypes.Login);
@@ -51,11 +51,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, list);
         }
 
-        public override bool TryParse(
-            IOpenIdMessageContext context,
-            ParameterDescriptor descriptor,
-            StringValues stringValues,
-            out ValidationResult<PromptTypes?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<PromptTypes?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -66,27 +62,19 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<PromptTypes?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<PromptTypes?>();
                     return false;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<PromptTypes?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<PromptTypes?>();
                     return false;
             }
 
             stringValues = stringValues[0].Split(Separator);
 
-            var promptType = PromptTypes.Unknown;
+            var promptType = PromptTypes.Unspecified;
             foreach (var stringValue in stringValues)
             {
-                // 'none' must be by itself
-                if (promptType.HasFlag(PromptTypes.None))
-                {
-                    result = ValidationResult.Factory.InvalidRequest<PromptTypes?>(
-                        "The none value for prompt must not be combined with other values.");
-                    return false;
-                }
-
                 if (string.Equals(stringValue, OpenIdConstants.PromptTypes.None, StringComparison))
                 {
                     promptType |= PromptTypes.None;
@@ -106,7 +94,7 @@ namespace NIdentity.OpenId.Messages.Parsers
                 else
                 {
                     // TODO: ignore unsupported values
-                    result = ValidationResult.Factory.InvalidParameterValue<PromptTypes?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.InvalidParameterValue(descriptor.ParameterName).As<PromptTypes?>();
                     return false;
                 }
             }

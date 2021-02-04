@@ -71,7 +71,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void Serialize_GivenUnknown_ThenEmpty()
         {
             var parser = new ResponseModeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseMode.Unknown);
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseMode.Unspecified);
             Assert.Equal(StringValues.Empty, result);
         }
 

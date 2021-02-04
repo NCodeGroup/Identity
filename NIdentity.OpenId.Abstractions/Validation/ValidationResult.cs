@@ -34,7 +34,7 @@ namespace NIdentity.OpenId.Validation
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult<TValue> AsError<TValue>()
+        public ValidationResult<TValue> As<TValue>()
         {
             return new(Error);
         }
@@ -84,7 +84,7 @@ namespace NIdentity.OpenId.Validation
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValidationResult<T> AsError<T>()
+        public ValidationResult<T> As<T>()
         {
             return new(Error);
         }

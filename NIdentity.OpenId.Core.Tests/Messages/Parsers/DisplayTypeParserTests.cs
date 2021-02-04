@@ -60,7 +60,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void Serialize_GivenUnknown_ThenEmpty()
         {
             var parser = new DisplayTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, DisplayType.Unknown);
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, DisplayType.Unspecified);
             Assert.Equal(StringValues.Empty, result);
         }
 

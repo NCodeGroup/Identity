@@ -11,14 +11,12 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     internal interface IJsonParser
     {
-        void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader,
-            JsonSerializerOptions options);
+        void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options);
     }
 
     internal class JsonParser<T> : ParameterParser<T?>, IJsonParser
     {
-        public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader,
-            JsonSerializerOptions options)
+        public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             var converter = (JsonConverter<T>)options.GetConverter(typeof(T));
             var parsedValue = converter.Read(ref reader, typeof(T), options);
@@ -31,8 +29,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return JsonSerializer.Serialize(value, context.JsonSerializerOptions);
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor,
-            StringValues stringValues, out ValidationResult<T?> result)
+        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T?> result)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -43,11 +40,11 @@ namespace NIdentity.OpenId.Messages.Parsers
                     return true;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter<T?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<T?>();
                     return false;
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues<T?>(descriptor.ParameterName);
+                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<T?>();
                     return false;
             }
 
@@ -62,7 +59,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             catch (Exception exception)
             {
                 const string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest;
-                result = ValidationResult.Factory.FailedToDeserializeJson<T?>(errorCode);
+                result = ValidationResult.Factory.FailedToDeserializeJson(errorCode).As<T?>();
                 context.Logger.LogError(exception, result.Error.ErrorDescription);
                 return false;
             }

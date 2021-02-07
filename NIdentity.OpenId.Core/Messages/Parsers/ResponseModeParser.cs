@@ -37,47 +37,34 @@ namespace NIdentity.OpenId.Messages.Parsers
             };
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<ResponseMode?> result)
+        public override ResponseMode? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
                 case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<ResponseMode?>(null);
-                    return true;
+                    return null;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<ResponseMode?>();
-                    return false;
+                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<ResponseMode?>();
-                    return false;
+                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
             }
 
             var stringValue = stringValues[0];
 
             if (string.Equals(stringValue, OpenIdConstants.ResponseModes.Query, StringComparison))
-            {
-                result = ValidationResult.Factory.Success<ResponseMode?>(ResponseMode.Query);
-                return true;
-            }
+                return ResponseMode.Query;
 
             if (string.Equals(stringValue, OpenIdConstants.ResponseModes.Fragment, StringComparison))
-            {
-                result = ValidationResult.Factory.Success<ResponseMode?>(ResponseMode.Fragment);
-                return true;
-            }
+                return ResponseMode.Fragment;
 
             if (string.Equals(stringValue, OpenIdConstants.ResponseModes.FormPost, StringComparison))
-            {
-                result = ValidationResult.Factory.Success<ResponseMode?>(ResponseMode.FormPost);
-                return true;
-            }
+                return ResponseMode.FormPost;
 
-            result = ValidationResult.Factory.InvalidParameterValue(descriptor.ParameterName).As<ResponseMode?>();
-            return false;
+            throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
         }
     }
 }

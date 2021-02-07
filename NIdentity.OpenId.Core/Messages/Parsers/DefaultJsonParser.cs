@@ -32,7 +32,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             var converter = (JsonConverter<JsonElement>)options.GetConverter(typeof(JsonElement));
             var jsonElement = converter.Read(ref reader, typeof(JsonElement), options);
             var stringValues = jsonElement.GetRawText();
-            parameter.Load(stringValues, jsonElement);
+            parameter.Update(stringValues, jsonElement);
         }
     }
 }

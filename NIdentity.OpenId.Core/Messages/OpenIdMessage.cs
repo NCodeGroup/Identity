@@ -23,7 +23,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages
 {
@@ -99,11 +98,11 @@ namespace NIdentity.OpenId.Messages
                 Parameters[parameterName] = parameter;
             }
 
-            parameter.Load(stringValues, parsedValue);
+            parameter.Update(stringValues, parsedValue);
         }
 
         /// <inheritdoc />
-        public bool TryLoad(string parameterName, StringValues stringValues, out ValidationResult result)
+        public void LoadParameter(string parameterName, StringValues stringValues)
         {
             var context = Context ?? throw new InvalidOperationException();
 
@@ -117,11 +116,7 @@ namespace NIdentity.OpenId.Messages
                 Parameters[parameterName] = parameter;
             }
 
-            if (!parameter.TryLoad(context, stringValues, out result))
-                return false;
-
-            result = ValidationResult.SuccessResult;
-            return true;
+            parameter.Load(context, stringValues);
         }
     }
 }

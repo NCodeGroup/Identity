@@ -36,37 +36,30 @@ namespace NIdentity.OpenId.Messages.Parsers
             return wholeSeconds.ToString(CultureInfo.InvariantCulture);
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<TimeSpan?> result)
+        public override TimeSpan? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             switch (stringValues.Count)
             {
                 case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<TimeSpan?>(null);
-                    return true;
+                    return null;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<TimeSpan?>();
-                    return false;
+                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
 
                 case > 1 when !descriptor.AllowMultipleValues:
-                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<TimeSpan?>();
-                    return false;
+                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
             }
 
             var value = TimeSpan.Zero;
             foreach (var stringValue in stringValues)
             {
                 if (!int.TryParse(stringValue, out var seconds))
-                {
-                    result = ValidationResult.Factory.InvalidParameterValue(descriptor.ParameterName).As<TimeSpan?>();
-                    return false;
-                }
+                    throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
 
                 value += TimeSpan.FromSeconds(seconds);
             }
 
-            result = ValidationResult.Factory.Success<TimeSpan?>(value);
-            return true;
+            return value;
         }
     }
 }

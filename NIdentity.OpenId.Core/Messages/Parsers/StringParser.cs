@@ -30,30 +30,13 @@ namespace NIdentity.OpenId.Messages.Parsers
             return value;
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<string?> result)
+        public override string? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
         {
-            switch (stringValues.Count)
-            {
-                case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<string?>(null);
-                    return true;
-
-                case 0:
-                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<string?>();
-                    return false;
-
-                case > 1 when descriptor.AllowMultipleValues:
-                    result = ValidationResult.Factory.Success<string?>(string.Join(Separator, stringValues));
-                    return true;
-
-                case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<string?>();
-                    return false;
-
-                default:
-                    result = ValidationResult.Factory.Success<string?>(stringValues[0]);
-                    return true;
-            }
-        }
+            0 when descriptor.Optional => null,
+            0 => throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName),
+            > 1 when descriptor.AllowMultipleValues => string.Join(Separator, stringValues),
+            > 1 => throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName),
+            _ => stringValues[0]
+        };
     }
 }

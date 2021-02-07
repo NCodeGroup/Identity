@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages
 {
@@ -8,6 +7,6 @@ namespace NIdentity.OpenId.Messages
     {
         IOpenIdMessageContext? Context { get; set; }
 
-        bool TryLoad(string parameterName, StringValues stringValues, out ValidationResult result);
+        void LoadParameter(string parameterName, StringValues stringValues);
     }
 }

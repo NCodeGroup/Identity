@@ -5,7 +5,6 @@ using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
-using NIdentity.OpenId.Validation;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages
@@ -64,9 +63,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             const string parameterName = "parameterName";
             var expectedValue = new[] { "value1", "value2" };
 
-            var loadSuccess = message.TryLoad(parameterName, expectedValue, out var loadResult);
-            Assert.True(loadSuccess);
-            Assert.False(loadResult.HasError);
+            message.LoadParameter(parameterName, expectedValue);
 
             var getSuccess = message.TryGetValue(parameterName, out var actualValue);
             Assert.True(getSuccess);
@@ -117,7 +114,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             var descriptor = new ParameterDescriptor(knownParameter);
             var parameter = new Parameter(descriptor);
-            parameter.Load(stringValues, parsedValue);
+            parameter.Update(stringValues, parsedValue);
 
             message.Parameters[knownParameter.Name] = parameter;
 
@@ -151,7 +148,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             var descriptor = new ParameterDescriptor(knownParameter);
             var parameter = new Parameter(descriptor);
-            parameter.Load(stringValues, null);
+            parameter.Update(stringValues, null);
 
             message.Parameters[knownParameter.Name] = parameter;
 
@@ -179,7 +176,10 @@ namespace NIdentity.OpenId.Core.Tests.Messages
                 allowMultipleValues: false,
                 mockParameterParser.Object);
 
-            Assert.Throws<InvalidOperationException>(() => { message.SetKnownParameter(knownParameter, parsedValue); });
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                message.SetKnownParameter(knownParameter, parsedValue);
+            });
         }
 
         [Fact]
@@ -208,7 +208,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             var descriptor = new ParameterDescriptor(knownParameter);
             var parameter = new Parameter(descriptor);
-            parameter.Load(stringValues, parsedValue);
+            parameter.Update(stringValues, parsedValue);
 
             message.Parameters[parameterName] = parameter;
 
@@ -243,7 +243,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             var descriptor = new ParameterDescriptor(knownParameter);
             var parameter = new Parameter(descriptor);
-            parameter.Load(stringValues, null);
+            parameter.Update(stringValues, null);
 
             message.Parameters[parameterName] = parameter;
 
@@ -321,7 +321,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             var descriptor = new ParameterDescriptor(knownParameter);
             var parameter = new Parameter(descriptor);
-            parameter.Load(stringValues, parsedValue);
+            parameter.Update(stringValues, parsedValue);
 
             message.Parameters[parameterName] = parameter;
 
@@ -343,7 +343,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         }
 
         [Fact]
-        public void TryLoad_WhenContextIsNull_ThenThrows()
+        public void LoadParameter_WhenContextIsNull_ThenThrows()
         {
             var message = new TestOpenIdMessage();
 
@@ -354,11 +354,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             };
             var stringValues = JsonSerializer.Serialize(parsedValue);
 
-            Assert.Throws<InvalidOperationException>(() => { message.TryLoad(parameterName, stringValues, out _); });
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                message.LoadParameter(parameterName, stringValues);
+            });
         }
 
         [Fact]
-        public void TryLoad_GivenMissingUnknownParameter_ThenParameterAdded()
+        public void LoadParameter_GivenMissingUnknownParameter_ThenParameterAdded()
         {
             var context = _mockOpenIdMessageContext.Object;
             var message = new TestOpenIdMessage
@@ -373,9 +376,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             };
             var stringValues = JsonSerializer.Serialize(parsedValue);
 
-            var success = message.TryLoad(parameterName, stringValues, out var result);
-            Assert.True(success);
-            Assert.False(result.HasError);
+            message.LoadParameter(parameterName, stringValues);
 
             var (key, value) = Assert.Single(message.Parameters);
             Assert.Equal(parameterName, key);
@@ -385,7 +386,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         }
 
         [Fact]
-        public void TryLoad_GivenExistingUnknownParameter_ThenParameterAdded()
+        public void LoadParameter_GivenExistingUnknownParameter_ThenParameterAdded()
         {
             var context = _mockOpenIdMessageContext.Object;
             var message = new TestOpenIdMessage
@@ -402,16 +403,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             var descriptor = new ParameterDescriptor(parameterName);
             var parameter = new Parameter(descriptor);
-            parameter.Load(stringValues, parsedValue);
+            parameter.Update(stringValues, parsedValue);
 
             message.Parameters[parameterName] = parameter;
 
             parsedValue.NestedPropertyName1 = "NestedPropertyValue2";
             stringValues = JsonSerializer.Serialize(parsedValue);
 
-            var success = message.TryLoad(parameterName, stringValues, out var result);
-            Assert.True(success);
-            Assert.False(result.HasError);
+            message.LoadParameter(parameterName, stringValues);
 
             var (key, value) = Assert.Single(message.Parameters);
             Assert.Equal(parameterName, key);
@@ -421,7 +420,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         }
 
         [Fact]
-        public void TryLoad_GivenExistingUnknownParameter_WhenLoadFails_ThenParameterNotUpdated()
+        public void LoadParameter_GivenExistingUnknownParameter_WhenLoadFails_ThenParameterNotUpdated()
         {
             var context = _mockOpenIdMessageContext.Object;
             var message = new TestOpenIdMessage
@@ -439,17 +438,15 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var descriptor = new ParameterDescriptor(parameterName);
             var mockParameter = _mockRepository.Create<Parameter>(descriptor);
 
-            var loadResult = new ValidationResult(new ErrorDetails { ErrorCode = "errorCode" });
             mockParameter
-                .Setup(_ => _.TryLoad(context, stringValues, out loadResult))
-                .Returns(false)
+                .Setup(_ => _.Load(context, stringValues))
                 .Verifiable();
             mockParameter
-                .Setup(_ => _.Load(stringValues, parsedValue))
+                .Setup(_ => _.Update(stringValues, parsedValue))
                 .CallBase()
                 .Verifiable();
 
-            mockParameter.Object.Load(stringValues, parsedValue);
+            mockParameter.Object.Update(stringValues, parsedValue);
             message.Parameters[parameterName] = mockParameter.Object;
 
             var newParsedValue = new TestNestedObject
@@ -458,9 +455,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             };
             var newStringValues = JsonSerializer.Serialize(newParsedValue);
 
-            var success = message.TryLoad(parameterName, newStringValues, out var result);
-            Assert.False(success);
-            Assert.Equal(loadResult, result);
+            message.LoadParameter(parameterName, newStringValues);
 
             var (key, value) = Assert.Single(message.Parameters);
             Assert.Equal(parameterName, key);

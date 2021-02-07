@@ -38,53 +38,45 @@ namespace NIdentity.OpenId.Messages.Parsers
             };
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<DisplayType?> result)
+        public override DisplayType? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
                 case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<DisplayType?>(null);
-                    return true;
+                    return null;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<DisplayType?>();
-                    return false;
+                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<DisplayType?>();
-                    return false;
+                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
             }
 
             var stringValue = stringValues[0];
 
             if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Page, StringComparison))
             {
-                result = ValidationResult.Factory.Success<DisplayType?>(DisplayType.Page);
-                return true;
+                return DisplayType.Page;
             }
 
             if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Popup, StringComparison))
             {
-                result = ValidationResult.Factory.Success<DisplayType?>(DisplayType.Popup);
-                return true;
+                return DisplayType.Popup;
             }
 
             if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Touch, StringComparison))
             {
-                result = ValidationResult.Factory.Success<DisplayType?>(DisplayType.Touch);
-                return true;
+                return DisplayType.Touch;
             }
 
             if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Wap, StringComparison))
             {
-                result = ValidationResult.Factory.Success<DisplayType?>(DisplayType.Wap);
-                return true;
+                return DisplayType.Wap;
             }
 
-            result = ValidationResult.Factory.InvalidParameterValue(descriptor.ParameterName).As<DisplayType?>();
-            return false;
+            throw OpenIdException.Factory.InvalidRequest(descriptor.ParameterName);
         }
     }
 }

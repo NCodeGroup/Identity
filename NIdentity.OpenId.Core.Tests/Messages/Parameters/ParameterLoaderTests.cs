@@ -21,7 +21,6 @@ using System;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
@@ -41,7 +40,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
         }
 
         [Fact]
-        public void TryLoad_ThenValid()
+        public void Load_ThenValid()
         {
             var loader = new ParameterLoader();
 
@@ -54,16 +53,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
             var mockParameter = _mockRepository.Create<Parameter>(descriptor);
 
             mockParameter
-                .Setup(_ => _.Load(stringValues, parsedValue))
+                .Setup(_ => _.Update(stringValues, parsedValue))
                 .Verifiable();
 
-            var success = loader.TryLoad(mockOpenIdMessageContext.Object,
+            loader.Load(mockOpenIdMessageContext.Object,
                 mockParameter.Object,
-                stringValues,
-                out var result);
-
-            Assert.True(success);
-            Assert.Equal(ValidationResult.SuccessResult, result);
+                stringValues);
         }
     }
 }

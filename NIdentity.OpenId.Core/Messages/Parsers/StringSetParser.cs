@@ -39,31 +39,13 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, value);
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<IReadOnlyCollection<string>?> result)
+        public override IReadOnlyCollection<string>? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
         {
-            switch (stringValues.Count)
-            {
-                case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<IReadOnlyCollection<string>?>(
-                        Array.Empty<string>());
-                    return true;
-
-                case 0:
-                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<IReadOnlyCollection<string>?>();
-                    return false;
-
-                case > 1 when descriptor.AllowMultipleValues:
-                    result = ValidationResult.Factory.Success<IReadOnlyCollection<string>?>(stringValues.SelectMany(stringValue => stringValue.Split(Separator)).ToHashSet(StringComparer.Ordinal));
-                    return true;
-
-                case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<IReadOnlyCollection<string>?>();
-                    return false;
-
-                default:
-                    result = ValidationResult.Factory.Success<IReadOnlyCollection<string>?>(stringValues[0].Split(Separator).ToHashSet(StringComparer.Ordinal));
-                    return true;
-            }
-        }
+            0 when descriptor.Optional => null,
+            0 => throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName),
+            > 1 when descriptor.AllowMultipleValues => stringValues.SelectMany(stringValue => stringValue.Split(Separator)).ToHashSet(StringComparer.Ordinal),
+            > 1 => throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName),
+            _ => stringValues[0].Split(Separator).ToHashSet(StringComparer.Ordinal)
+        };
     }
 }

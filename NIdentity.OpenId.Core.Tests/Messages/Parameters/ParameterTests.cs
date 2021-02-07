@@ -23,7 +23,6 @@ using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
-using NIdentity.OpenId.Validation;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
@@ -64,7 +63,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
         }
 
         [Fact]
-        public void Load_ThenValid()
+        public void Update_ThenValid()
         {
             var mockParser = _mockRepository.Create<ParameterParser<string>>();
 
@@ -82,14 +81,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
             var stringValues = new[] { "value1", "value2" };
             var parsedValue = new object();
 
-            parameter.Load(stringValues, parsedValue);
+            parameter.Update(stringValues, parsedValue);
 
             Assert.Equal(stringValues, parameter.StringValues);
             Assert.Equal(parsedValue, parameter.ParsedValue);
         }
 
         [Fact]
-        public void TryLoad_ThenValid()
+        public void Load_ThenValid()
         {
             var mockParser = _mockRepository.Create<ParameterParser<string>>();
             var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
@@ -107,16 +106,11 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
             var descriptor = new ParameterDescriptor(knownParameter);
             var parameter = new Parameter(descriptor);
 
-            var loadResult = ValidationResult.SuccessResult;
             mockParser
-                .Setup(_ => _.TryLoad(context, parameter, stringValues, out loadResult))
-                .Returns(true)
+                .Setup(_ => _.Load(context, parameter, stringValues))
                 .Verifiable();
 
-            var success = parameter.TryLoad(context, stringValues, out var result);
-
-            Assert.True(success);
-            Assert.False(result.HasError);
+            parameter.Load(context, stringValues);
             Assert.Empty(parameter.StringValues);
             Assert.Null(parameter.ParsedValue);
         }

@@ -18,7 +18,6 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
@@ -35,15 +34,15 @@ namespace NIdentity.OpenId.Messages.Parameters
             Descriptor = descriptor;
         }
 
-        public virtual void Load(StringValues stringValues, object? parsedValue)
+        public virtual void Update(StringValues stringValues, object? parsedValue)
         {
             StringValues = stringValues;
             ParsedValue = parsedValue;
         }
 
-        public virtual bool TryLoad(IOpenIdMessageContext context, StringValues stringValues, out ValidationResult result)
+        public virtual void Load(IOpenIdMessageContext context, StringValues stringValues)
         {
-            return Descriptor.Loader.TryLoad(context, this, stringValues, out result);
+            Descriptor.Loader.Load(context, this, stringValues);
         }
     }
 }

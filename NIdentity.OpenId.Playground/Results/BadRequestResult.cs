@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Playground.Results
         /// Creates a new <see cref="BadRequestResult"/> instance.
         /// </summary>
         public BadRequestResult(string error, string errorDescription)
-            : this(new ErrorDetails { ErrorCode = error, ErrorDescription = errorDescription })
+            : this(new ErrorDetails { Code = error, Description = errorDescription })
         {
             // nothing
         }

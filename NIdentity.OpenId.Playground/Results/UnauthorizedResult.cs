@@ -58,12 +58,12 @@ namespace NIdentity.OpenId.Playground.Results
                 $"realm=\"{Realm}\""
             };
 
-            var error = ErrorDetails?.ErrorCode;
+            var error = ErrorDetails?.Code;
             if (!string.IsNullOrEmpty(error))
             {
                 values.Add($"error=\"{error}\"");
 
-                var errorDescription = ErrorDetails?.ErrorDescription;
+                var errorDescription = ErrorDetails?.Description;
                 if (!string.IsNullOrEmpty(errorDescription))
                     values.Add($"error_description=\"{errorDescription}\"");
             }

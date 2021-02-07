@@ -23,6 +23,7 @@ using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
+using NIdentity.OpenId.Validation;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
@@ -66,7 +67,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenNull_WhenOptional_ThenSuccess()
+        public void Parse_GivenNull_WhenOptional_ThenValid()
         {
             var parser = new TimeSpanParser();
             var context = _mockOpenIdMessageContext.Object;
@@ -82,19 +83,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.True(success);
-            Assert.False(result.HasError);
-            Assert.Null(result.Value);
+            var result = parser.Parse(context, descriptor, stringValues);
+            Assert.Null(result);
         }
 
         [Fact]
-        public void TryParse_GivenNull_WhenRequired_ThenError()
+        public void Parse_GivenNull_WhenRequired_ThenThrows()
         {
             var parser = new TimeSpanParser();
             var context = _mockOpenIdMessageContext.Object;
@@ -110,18 +104,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.False(success);
-            Assert.True(result.HasError);
+            Assert.Throws<OpenIdException>(() =>
+            {
+                parser.Parse(context, descriptor, stringValues);
+            });
         }
 
         [Fact]
-        public void TryParse_GivenMultipleValues_DisallowMultipleValues_ThenError()
+        public void Parse_GivenMultipleValues_DisallowMultipleValues_ThenThrows()
         {
             var parser = new TimeSpanParser();
             var context = _mockOpenIdMessageContext.Object;
@@ -137,18 +127,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.False(success);
-            Assert.True(result.HasError);
+            Assert.Throws<OpenIdException>(() =>
+            {
+                parser.Parse(context, descriptor, stringValues);
+            });
         }
 
         [Fact]
-        public void TryParse_GivenMultipleValues_AllowMultipleValues_ThenSuccess()
+        public void Parse_GivenMultipleValues_AllowMultipleValues_ThenValid()
         {
             var parser = new TimeSpanParser();
             var context = _mockOpenIdMessageContext.Object;
@@ -165,19 +151,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.True(success);
-            Assert.False(result.HasError);
-            Assert.Equal(expectedValue, result.Value);
+            var result = parser.Parse(context, descriptor, stringValues);
+            Assert.Equal(expectedValue, result);
         }
 
         [Fact]
-        public void TryParse_GivenSingleValue_ThenSuccess()
+        public void Parse_GivenSingleValue_ThenValid()
         {
             var parser = new TimeSpanParser();
             var context = _mockOpenIdMessageContext.Object;
@@ -194,15 +173,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.True(success);
-            Assert.False(result.HasError);
-            Assert.Equal(expectedValue, result.Value);
+            var result = parser.Parse(context, descriptor, stringValues);
+            Assert.Equal(expectedValue, result);
         }
     }
 }

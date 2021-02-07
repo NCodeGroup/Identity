@@ -2,7 +2,7 @@ namespace NIdentity.OpenId.Playground.Options
 {
     public class AuthorizationRequestObjectOptions
     {
-        public bool RequestEnabled { get; set; }
+        public bool RequestJwtEnabled { get; set; }
 
         public bool RequestUriEnabled { get; set; }
 

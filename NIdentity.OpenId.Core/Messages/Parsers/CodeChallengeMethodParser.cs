@@ -36,41 +36,35 @@ namespace NIdentity.OpenId.Messages.Parsers
             };
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<CodeChallengeMethod?> result)
+        public override CodeChallengeMethod? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
                 case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<CodeChallengeMethod?>(null);
-                    return true;
+                    return null;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<CodeChallengeMethod?>();
-                    return false;
+                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<CodeChallengeMethod?>();
-                    return false;
+                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
             }
 
             var stringValue = stringValues[0];
 
             if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.Plain, StringComparison))
             {
-                result = ValidationResult.Factory.Success<CodeChallengeMethod?>(CodeChallengeMethod.Plain);
-                return true;
+                return CodeChallengeMethod.Plain;
             }
 
             if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.S256, StringComparison))
             {
-                result = ValidationResult.Factory.Success<CodeChallengeMethod?>(CodeChallengeMethod.S256);
-                return true;
+                return CodeChallengeMethod.S256;
             }
 
-            result = ValidationResult.Factory.InvalidParameterValue(descriptor.ParameterName).As<CodeChallengeMethod?>();
-            return false;
+            throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
         }
     }
 }

@@ -20,7 +20,6 @@
 using System;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
@@ -32,22 +31,12 @@ namespace NIdentity.OpenId.Messages.Parsers
 
         public abstract StringValues Serialize(IOpenIdMessageContext context, T value);
 
-        public abstract bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor,
-            StringValues stringValues, out ValidationResult<T> result);
+        public abstract T Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues);
 
-        public override bool TryLoad(IOpenIdMessageContext context, Parameter parameter, StringValues stringValues,
-            out ValidationResult result)
+        public override void Load(IOpenIdMessageContext context, Parameter parameter, StringValues stringValues)
         {
-            if (!TryParse(context, parameter.Descriptor, stringValues, out var parseResult))
-            {
-                parameter.Load(stringValues, null);
-                result = parseResult;
-                return false;
-            }
-
-            parameter.Load(stringValues, parseResult.Value);
-            result = ValidationResult.SuccessResult;
-            return true;
+            var parsedValue = Parse(context, parameter.Descriptor, stringValues);
+            parameter.Update(stringValues, parsedValue);
         }
     }
 }

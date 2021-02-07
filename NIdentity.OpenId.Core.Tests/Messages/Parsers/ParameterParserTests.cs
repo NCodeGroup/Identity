@@ -21,7 +21,6 @@ using System;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
@@ -61,66 +60,26 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryLoad_GivenValidValue_ThenLoadParsedValue()
+        public void Load_ThenValid()
         {
             var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
             var context = _mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
-            const string stringValues = "value1";
+            const string stringValues = "stringValues";
+            const string parsedValue = "parsedValue";
 
             var descriptor = new ParameterDescriptor(parameterName);
             var parameter = new Parameter(descriptor);
 
-            var parseResult = new ValidationResult<string>(stringValues);
             _mockTestParameterParser
-                .Setup(_ => _.TryParse(context, descriptor, stringValues, out parseResult))
-                .Returns(true)
+                .Setup(_ => _.Parse(context, descriptor, stringValues))
+                .Returns(parsedValue)
                 .Verifiable();
 
-            var success = parser.TryLoad(
-                context,
-                parameter,
-                stringValues,
-                out var result);
-
-            Assert.True(success);
-            Assert.False(result.HasError);
+            parser.Load(context, parameter, stringValues);
             Assert.Equal(stringValues, parameter.StringValues);
-            Assert.Same(stringValues, parameter.ParsedValue);
-        }
-
-        [Fact]
-        public void TryLoad_GivenInvalidValue_ThenResetParsedValue()
-        {
-            var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "value1";
-
-            var descriptor = new ParameterDescriptor(parameterName);
-            var parameter = new Parameter(descriptor);
-
-            parameter.Load(stringValues, stringValues);
-
-            var parseResult = new ValidationResult<string>(new ErrorDetails { ErrorCode = "errorCode" });
-            _mockTestParameterParser
-                .Setup(_ => _.TryParse(context, descriptor, stringValues, out parseResult))
-                .Returns(false)
-                .Verifiable();
-
-            var success = parser.TryLoad(
-                context,
-                parameter,
-                stringValues,
-                out var result);
-
-            Assert.False(success);
-            Assert.True(result.HasError);
-            Assert.NotNull(result.Error);
-            Assert.Equal(stringValues, parameter.StringValues);
-            Assert.Null(parameter.ParsedValue);
+            Assert.Same(parsedValue, parameter.ParsedValue);
         }
     }
 }

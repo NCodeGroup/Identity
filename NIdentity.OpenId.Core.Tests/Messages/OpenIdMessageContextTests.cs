@@ -31,7 +31,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var context = new OpenIdMessageContext(_mockLogger.Object);
 
             Assert.Same(_mockLogger.Object, context.Logger);
-            Assert.Empty(context.Errors);
 
             Assert.True(context.JsonSerializerOptions.PropertyNameCaseInsensitive);
             Assert.Equal(JsonNamingPolicy.CamelCase, context.JsonSerializerOptions.PropertyNamingPolicy);

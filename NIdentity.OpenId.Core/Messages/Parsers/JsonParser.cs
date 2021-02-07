@@ -21,7 +21,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             var converter = (JsonConverter<T>)options.GetConverter(typeof(T));
             var parsedValue = converter.Read(ref reader, typeof(T), options);
             var stringValues = JsonSerializer.Serialize(parsedValue, options);
-            parameter.Load(stringValues, parsedValue);
+            parameter.Update(stringValues, parsedValue);
         }
 
         public override StringValues Serialize(IOpenIdMessageContext context, T? value)
@@ -29,23 +29,20 @@ namespace NIdentity.OpenId.Messages.Parsers
             return JsonSerializer.Serialize(value, context.JsonSerializerOptions);
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<T?> result)
+        public override T? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
                 case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<T?>(default);
-                    return true;
+                    return default;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<T?>();
-                    return false;
+                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<T?>();
-                    return false;
+                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
             }
 
             var json = stringValues[0];
@@ -53,15 +50,13 @@ namespace NIdentity.OpenId.Messages.Parsers
             try
             {
                 var value = JsonSerializer.Deserialize<T>(json, context.JsonSerializerOptions);
-                result = ValidationResult.Factory.Success(value);
-                return true;
+                return value;
             }
-            catch (Exception exception)
+            catch (Exception innerException)
             {
-                const string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest;
-                result = ValidationResult.Factory.FailedToDeserializeJson(errorCode).As<T?>();
-                context.Logger.LogError(exception, result.Error.ErrorDescription);
-                return false;
+                var exception = OpenIdException.Factory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest, innerException);
+                context.Logger.LogError(exception, exception.ErrorDescription);
+                throw exception;
             }
         }
     }

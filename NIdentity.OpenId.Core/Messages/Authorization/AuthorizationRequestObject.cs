@@ -6,6 +6,6 @@ namespace NIdentity.OpenId.Messages.Authorization
 {
     internal class AuthorizationRequestObject : BaseAuthorizationRequestMessage, IAuthorizationRequestObject
     {
-        // nothing
+        public RequestObjectSource Source { get; set; }
     }
 }

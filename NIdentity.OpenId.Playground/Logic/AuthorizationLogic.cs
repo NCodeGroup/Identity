@@ -19,9 +19,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -44,56 +43,52 @@ namespace NIdentity.OpenId.Playground.Logic
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IOpenIdMessageFactory _openIdMessageFactory;
         private readonly IClientStore _clientStore;
+        private readonly ISecretService _secretService;
+        private readonly IJwtDecoder _jwtDecoder;
 
-        public AuthorizationLogic(ILogger<AuthorizationLogic> logger, IOptions<AuthorizationOptions> optionsAccessor, IHttpClientFactory httpClientFactory, IOpenIdMessageFactory openIdMessageFactory, IClientStore clientStore)
+        public AuthorizationLogic(ILogger<AuthorizationLogic> logger, IOptions<AuthorizationOptions> optionsAccessor, IHttpClientFactory httpClientFactory, IOpenIdMessageFactory openIdMessageFactory, IClientStore clientStore, ISecretService secretService, IJwtDecoder jwtDecoder)
         {
             _logger = logger;
             _options = optionsAccessor.Value;
             _httpClientFactory = httpClientFactory;
             _openIdMessageFactory = openIdMessageFactory;
             _clientStore = clientStore;
+            _secretService = secretService;
+            _jwtDecoder = jwtDecoder;
         }
 
-        public ValidationResult Handle(HttpContext httpContext)
-        {
-            if (!TryLoadRequestMessage(httpContext, out var requestMessageResult))
-                return requestMessageResult;
-
-            return ValidationResult.SuccessResult;
-        }
-
-        public async ValueTask<ValidationResult> ValidateRequestMessageOnlyAsync(IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
+        public async ValueTask ValidateRequestMessageOnlyAsync(IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
         {
             var scopes = requestMessage.Scopes ?? Array.Empty<string>();
             if (scopes.Count == 0)
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
 
             var responseType = requestMessage.ResponseType ?? ResponseTypes.Unspecified;
             if (responseType == ResponseTypes.Unspecified)
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
 
             if (string.IsNullOrEmpty(requestMessage.ClientId))
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ClientId);
 
             if (string.IsNullOrEmpty(requestMessage.RedirectUri))
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
 
-            if (!Uri.TryCreate(requestMessage.RedirectUri, UriKind.Absolute, out var redirectUri))
-                return ValidationResult.Factory.InvalidParameterValue("TODO").As<string>();
+            if (!Uri.TryCreate(requestMessage.RedirectUri, UriKind.Absolute, out _))
+                throw OpenIdException.Factory.InvalidParameterValue(OpenIdConstants.Parameters.RedirectUri);
 
             var grantType = DetermineGrantType(responseType);
             if (grantType == GrantType.Unspecified)
-                return ValidationResult.Factory.InvalidParameterValue("TODO").As<string>();
+                throw OpenIdException.Factory.InvalidParameterValue(OpenIdConstants.Parameters.ResponseType);
             if (responseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(requestMessage.Nonce))
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Nonce);
 
             var responseMode = requestMessage.ResponseMode ?? DetermineDefaultResponseNode(grantType);
             if (responseMode == ResponseMode.Query && grantType != GrantType.AuthorizationCode)
-                return ValidationResult.Factory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.").As<string>();
+                throw OpenIdException.Factory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.");
 
             var promptType = requestMessage.PromptType ?? PromptTypes.Unspecified;
             if (promptType.HasFlag(PromptTypes.None) && promptType != PromptTypes.None)
-                return ValidationResult.Factory.InvalidRequest("The 'none' prompt must not be combined with other values.").As<string>();
+                throw OpenIdException.Factory.InvalidRequest("The 'none' prompt must not be combined with other values.");
 
             // other defaults
             var codeChallengeMethod = requestMessage.CodeChallengeMethod ?? CodeChallengeMethod.Plain;
@@ -101,45 +96,43 @@ namespace NIdentity.OpenId.Playground.Logic
 
             var client = await _clientStore.GetByClientIdAsync(requestMessage.ClientId, cancellationToken);
             if (client == null)
-                return ValidationResult.Factory.InvalidRequest("TODO").As<string>();
+                throw OpenIdException.Factory.InvalidRequest("TODO");
             if (client.IsDisabled)
-                return ValidationResult.Factory.InvalidRequest("TODO").As<string>();
-
-            return ValidationResult.SuccessResult;
+                throw OpenIdException.Factory.InvalidRequest("TODO");
         }
 
-        public async ValueTask<ValidationResult> ValidateRequestMessageWithObjectAsync(IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
+        public async ValueTask ValidateRequestMessageWithObjectAsync(IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
         {
             var scopes = requestMessage.Scopes ?? Array.Empty<string>();
             if (scopes.Count == 0)
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
 
             var responseType = requestMessage.ResponseType ?? ResponseTypes.Unspecified;
             if (responseType == ResponseTypes.Unspecified)
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
 
             if (string.IsNullOrEmpty(requestMessage.ClientId))
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ClientId);
 
             if (string.IsNullOrEmpty(requestMessage.RedirectUri))
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
 
-            if (!Uri.TryCreate(requestMessage.RedirectUri, UriKind.Absolute, out var redirectUri))
-                return ValidationResult.Factory.InvalidParameterValue("TODO").As<string>();
+            if (!Uri.TryCreate(requestMessage.RedirectUri, UriKind.Absolute, out _))
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
 
             var grantType = DetermineGrantType(responseType);
             if (grantType == GrantType.Unspecified)
-                return ValidationResult.Factory.InvalidParameterValue("TODO").As<string>();
+                throw OpenIdException.Factory.InvalidParameterValue(OpenIdConstants.Parameters.ResponseType);
             if (responseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(requestMessage.Nonce))
-                return ValidationResult.Factory.MissingParameter("TODO").As<string>();
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Nonce);
 
             var responseMode = requestMessage.ResponseMode ?? DetermineDefaultResponseNode(grantType);
             if (responseMode == ResponseMode.Query && grantType != GrantType.AuthorizationCode)
-                return ValidationResult.Factory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.").As<string>();
+                throw OpenIdException.Factory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.");
 
             var promptType = requestMessage.PromptType ?? PromptTypes.Unspecified;
             if (promptType.HasFlag(PromptTypes.None) && promptType != PromptTypes.None)
-                return ValidationResult.Factory.InvalidRequest("The 'none' prompt must not be combined with other values.").As<string>();
+                throw OpenIdException.Factory.InvalidRequest("The 'none' prompt must not be combined with other values.");
 
             // other defaults
             var codeChallengeMethod = requestMessage.CodeChallengeMethod ?? CodeChallengeMethod.Plain;
@@ -147,64 +140,168 @@ namespace NIdentity.OpenId.Playground.Logic
 
             var client = await _clientStore.GetByClientIdAsync(requestMessage.ClientId, cancellationToken);
             if (client == null)
-                return ValidationResult.Factory.InvalidRequest("TODO").As<string>();
+                throw OpenIdException.Factory.InvalidRequest("TODO");
             if (client.IsDisabled)
-                return ValidationResult.Factory.InvalidRequest("TODO").As<string>();
+                throw OpenIdException.Factory.InvalidRequest("TODO");
 
-            return ValidationResult.SuccessResult;
+            var requestObject = await LoadRequestObjectAsync(client, requestMessage, cancellationToken);
+            if (requestObject != null)
+            {
+                ValidateRequestObject(requestMessage, requestObject);
+            }
         }
 
-        private struct GetJwtResult
+        private static void ValidateRequestObject(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject requestObject)
         {
-            public string Jwt { get; set; }
+            var errorCode = requestObject.Source == RequestObjectSource.RequestUri ?
+                OpenIdConstants.ErrorCodes.InvalidRequestUri :
+                OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
-            public string ErrorCodeForErrors { get; set; }
+            /*
+             * request and request_uri parameters MUST NOT be included in Request Objects.
+             */
+
+            if (requestObject.ContainsKey(OpenIdConstants.Parameters.Request))
+                throw OpenIdException.Factory.InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode);
+
+            if (requestObject.ContainsKey(OpenIdConstants.Parameters.RequestUri))
+                throw OpenIdException.Factory.InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode);
+
+            /*
+             * So that the request is a valid OAuth 2.0 Authorization Request, values for the response_type and client_id parameters MUST
+             * be included using the OAuth 2.0 request syntax, since they are REQUIRED by OAuth 2.0. The values for these parameters MUST
+             * match those in the Request Object, if present.
+             */
+
+            if (requestObject.ResponseType == null || requestObject.ResponseType != requestMessage.ResponseType)
+                throw OpenIdException.Factory.InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode);
+
+            var grantType = DetermineGrantType(requestObject.ResponseType.Value);
+
+            /*
+             * The Client ID values in the "client_id" request parameter and in the Request Object "client_id" claim MUST be identical.
+             */
+
+            if (string.IsNullOrEmpty(requestObject.ClientId))
+                throw OpenIdException.Factory.MissingParameter("The 'client_id' parameter in the JWT request object is missing.", errorCode);
+
+            if (!string.Equals(requestObject.ClientId, requestMessage.ClientId, StringComparison.Ordinal))
+                throw OpenIdException.Factory.InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode);
+
+            /*
+             * The Authorization Server MUST assemble the set of Authorization Request parameters to be used from the Request Object value and the
+             * OAuth 2.0 Authorization Request parameters (minus the request or request_uri parameters). If the same parameter exists both in the
+             * Request Object and the OAuth Authorization Request parameters, the parameter in the Request Object is used. Using the assembled set
+             * of Authorization Request parameters, the Authorization Server then validates the request the normal manner for the flow being used,
+             * as specified in Sections 3.1.2.2, 3.2.2.2, or 3.3.2.2.
+             */
+
+            var acrValues = requestObject.AcrValues ?? requestMessage.AcrValues ?? Array.Empty<string>();
+            var claims = requestObject.Claims ?? requestMessage.Claims;
+            var claimsLocales = requestObject.ClaimsLocales ?? requestMessage.ClaimsLocales ?? Array.Empty<string>();
+            var clientId = requestObject.ClientId;
+            var codeChallenge = requestObject.CodeChallenge ?? requestMessage.CodeChallenge; // TODO
+            var codeChallengeMethod = requestObject.CodeChallengeMethod ?? requestMessage.CodeChallengeMethod ?? CodeChallengeMethod.Plain;
+            var codeVerifier = requestObject.CodeVerifier ?? requestMessage.CodeVerifier; // TODO
+            var displayType = requestObject.DisplayType ?? requestMessage.DisplayType ?? DisplayType.Unspecified;
+            var idTokenHint = requestObject.IdTokenHint ?? requestMessage.IdTokenHint;
+            var loginHint = requestObject.LoginHint ?? requestMessage.LoginHint;
+            var maxAge = requestObject.MaxAge ?? requestMessage.MaxAge;
+            var nonce = requestObject.Nonce ?? requestMessage.Nonce;
+            var promptType = requestObject.PromptType ?? requestMessage.PromptType ?? PromptTypes.Unspecified;
+            var redirectUri = requestObject.RedirectUri ?? requestMessage.RedirectUri;
+            var responseMode = requestObject.ResponseMode ?? requestMessage.ResponseMode ?? DetermineDefaultResponseNode(grantType);
+            var responseType = requestObject.ResponseType ?? requestMessage.ResponseType; // TODO
+            var scopes = requestObject.Scopes ?? requestMessage.Scopes ?? Array.Empty<string>();
+            var state = requestObject.State ?? requestMessage.State;
+            var uiLocales = requestObject.UiLocales ?? requestMessage.UiLocales ?? Array.Empty<string>();
         }
 
-        private async ValueTask<ValidationResult<GetJwtResult?>> GetJwtAsync(Client client, IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
+        public async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(Client client, IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
         {
-            var request = requestMessage.Request;
+            var requestJwt = requestMessage.Request;
             var requestUri = requestMessage.RequestUri;
 
-            if (!string.IsNullOrEmpty(request))
-            {
-                if (!string.IsNullOrEmpty(requestUri))
-                    return ValidationResult.Factory.InvalidRequest("Both the request and request_uri parameters cannot be present at the same time.").As<GetJwtResult?>();
-
-                return ValidationResult.Factory.Success<GetJwtResult?>(new GetJwtResult
-                {
-                    Jwt = request,
-                    ErrorCodeForErrors = OpenIdConstants.ErrorCodes.InvalidRequestObject
-                });
-            }
+            RequestObjectSource requestObjectSource;
+            string errorCode;
 
             if (!string.IsNullOrEmpty(requestUri))
             {
+                requestObjectSource = RequestObjectSource.RequestUri;
+                errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri;
+
+                if (!string.IsNullOrEmpty(requestJwt))
+                    throw OpenIdException.Factory.InvalidRequest("Both the request and request_uri parameters cannot be present at the same time.", errorCode);
+
                 if (!_options.RequestObject.RequestUriEnabled)
-                    return ValidationResult.Factory.BadRequest(OpenIdConstants.ErrorCodes.RequestUriNotSupported, "The request_uri parameter is not supported.").As<GetJwtResult?>();
+                    throw OpenIdException.Factory.RequestUriNotSupported();
 
                 var requestUriMaxLength = _options.RequestObject.RequestUriMaxLength;
                 if (requestUri.Length > requestUriMaxLength)
-                    return ValidationResult.Factory.BadRequest(OpenIdConstants.ErrorCodes.InvalidRequestUri, $"The request_uri parameter must not exceed {requestUriMaxLength} characters.").As<GetJwtResult?>();
+                    throw OpenIdException.Factory.InvalidRequest($"The request_uri parameter must not exceed {requestUriMaxLength} characters.", errorCode);
 
-                var fetchJwtResult = await FetchJwtAsync(client, requestUri, cancellationToken);
-                if (fetchJwtResult.HasError)
-                    return fetchJwtResult.As<GetJwtResult?>();
+                requestJwt = await FetchRequestUriAsync(client, requestUri, cancellationToken);
+            }
+            else if (!string.IsNullOrEmpty(requestJwt))
+            {
+                requestObjectSource = RequestObjectSource.Request;
+                errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
-                return ValidationResult.Factory.Success<GetJwtResult?>(new GetJwtResult
-                {
-                    Jwt = fetchJwtResult.Value,
-                    ErrorCodeForErrors = OpenIdConstants.ErrorCodes.InvalidRequestUri
-                });
+                if (!_options.RequestObject.RequestJwtEnabled)
+                    throw OpenIdException.Factory.RequestJwtNotSupported();
+            }
+            else if (client.RequireRequestObject)
+            {
+                throw OpenIdException.Factory.InvalidRequest("Client configuration requires the use of request or request_uri parameters.");
+            }
+            else
+            {
+                return null;
             }
 
-            if (client.RequireRequestObject)
-                return ValidationResult.Factory.InvalidRequest("Client configuration requires the use of request or request_uri parameters.").As<GetJwtResult?>();
+            string json;
+            try
+            {
+                using var securityKeys = _secretService.LoadSecurityKeys(client.Secrets);
 
-            return ValidationResult.Factory.Success<GetJwtResult?>(null);
+                var issuer = client.ClientId;
+                var audience = _options.RequestObject.Audience;
+
+                json = _jwtDecoder.DecodeJwt(requestJwt, issuer, audience, securityKeys);
+            }
+            catch (Exception innerException)
+            {
+                var exception = OpenIdException.Factory.FailedToDecodeJwt(errorCode, innerException);
+                _logger.LogError(exception, exception.ErrorDescription);
+                throw exception;
+            }
+
+            //var converter = new OpenIdMessageJsonConverter<AuthorizationRequestObject>();
+            var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                AllowTrailingCommas = true,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+            };
+
+            try
+            {
+                var requestObject = JsonSerializer.Deserialize<AuthorizationRequestObject>(json, options);
+                if (requestObject == null)
+                    throw new JsonException("TODO");
+
+                requestObject.Source = requestObjectSource;
+
+                return requestObject;
+            }
+            catch (Exception innerException)
+            {
+                var exception = OpenIdException.Factory.FailedToDeserializeJson(errorCode, innerException);
+                _logger.LogError(exception, exception.ErrorDescription);
+                throw exception;
+            }
         }
 
-        private async ValueTask<ValidationResult<string>> FetchJwtAsync(Client client, string requestUri, CancellationToken cancellationToken)
+        private async ValueTask<string> FetchRequestUriAsync(Client client, string requestUri, CancellationToken cancellationToken)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
@@ -216,21 +313,20 @@ namespace NIdentity.OpenId.Playground.Logic
             {
                 using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                    return ValidationResult.Factory.BadRequest(OpenIdConstants.ErrorCodes.InvalidRequestUri, $"The http status code of the response must be OK. Received {response.StatusCode}.").As<string>();
+                    throw OpenIdException.Factory.InvalidRequestUri($"The http status code of the response must be OK. Received {response.StatusCode}.");
 
                 var contentType = response.Content.Headers.ContentType?.MediaType;
                 var expectedContentType = _options.RequestObject.ExpectedContentType;
                 if (_options.RequestObject.StrictContentType && contentType != expectedContentType)
-                    return ValidationResult.Factory.BadRequest(OpenIdConstants.ErrorCodes.InvalidRequestUri, $"The content type of the response must be \"{expectedContentType}\". Received \"{contentType}\".").As<string>();
+                    throw OpenIdException.Factory.InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.");
 
-                var jwt = await response.Content.ReadAsStringAsync(cancellationToken);
-                return ValidationResult.Factory.Success(jwt);
+                return await response.Content.ReadAsStringAsync(cancellationToken);
             }
-            catch (Exception exception)
+            catch (Exception innerException)
             {
-                const string errorDescription = "An error occurred while attempting to fetch request_uri.";
-                _logger.LogError(exception, errorDescription);
-                return ValidationResult.Factory.BadRequest(OpenIdConstants.ErrorCodes.InvalidRequestUri, errorDescription).As<string>();
+                var exception = OpenIdException.Factory.InvalidRequestUri(innerException);
+                _logger.LogError(exception, exception.ErrorDescription);
+                throw exception;
             }
         }
 
@@ -249,7 +345,7 @@ namespace NIdentity.OpenId.Playground.Logic
             return grantType == GrantType.AuthorizationCode ? ResponseMode.Query : ResponseMode.Fragment;
         }
 
-        public bool TryLoadRequestMessage(HttpContext httpContext, out ValidationResult<IAuthorizationRequestMessage> result)
+        public IAuthorizationRequestMessage LoadRequestMessage(HttpContext httpContext)
         {
             IEnumerable<KeyValuePair<string, StringValues>> source;
             if (HttpMethods.IsGet(httpContext.Request.Method))
@@ -262,21 +358,18 @@ namespace NIdentity.OpenId.Playground.Logic
             }
             else
             {
-                result = ValidationResult.Factory.Error("TODO: error", "TODO: errorDescription", StatusCodes.Status405MethodNotAllowed).As<IAuthorizationRequestMessage>();
-                return false;
+                throw OpenIdException.Factory
+                    .Create("TODO: errorCode")
+                    .WithErrorDescription("TODO: errorDescription")
+                    .WithStatusCode(StatusCodes.Status405MethodNotAllowed);
             }
 
             var context = _openIdMessageFactory.CreateContext();
             var message = _openIdMessageFactory.Create<IAuthorizationRequestMessage>(context);
 
-            if (!message.TryLoad(source, out var loadResult))
-            {
-                result = loadResult.As<IAuthorizationRequestMessage>();
-                return false;
-            }
+            message.Load(source);
 
-            result = ValidationResult.Factory.Success(message);
-            return true;
+            return message;
         }
     }
 }

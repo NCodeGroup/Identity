@@ -7,6 +7,7 @@ using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
+using NIdentity.OpenId.Validation;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
@@ -80,7 +81,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
-        public void TryParse_GivenEmpty_WhenOptional_ThenSuccess()
+        public void Parse_GivenEmpty_WhenOptional_ThenValid()
         {
             var parser = new JsonParser<TestNestedObject>();
             var context = _mockOpenIdMessageContext.Object;
@@ -96,19 +97,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.True(success);
-            Assert.False(result.HasError);
-            Assert.Null(result.Value);
+            var result = parser.Parse(context, descriptor, stringValues);
+            Assert.Null(result);
         }
 
         [Fact]
-        public void TryParse_GivenEmpty_WhenRequired_ThenError()
+        public void Parse_GivenEmpty_WhenRequired_ThenThrows()
         {
             var parser = new JsonParser<TestNestedObject>();
             var context = _mockOpenIdMessageContext.Object;
@@ -124,19 +118,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.False(success);
-            Assert.True(result.HasError);
-            Assert.NotNull(result.Error);
+            Assert.Throws<OpenIdException>(() =>
+            {
+                parser.Parse(context, descriptor, stringValues);
+            });
         }
 
         [Fact]
-        public void TryParse_GivenMultipleValues_ThenError()
+        public void Parse_GivenMultipleValues_ThenThrows()
         {
             var parser = new JsonParser<TestNestedObject>();
             var context = _mockOpenIdMessageContext.Object;
@@ -152,19 +141,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.False(success);
-            Assert.True(result.HasError);
-            Assert.NotNull(result.Error);
+            Assert.Throws<OpenIdException>(() =>
+            {
+                parser.Parse(context, descriptor, stringValues);
+            });
         }
 
         [Fact]
-        public void TryParse_GivenValidJson_ThenSuccess()
+        public void Parse_GivenValidJson_ThenValid()
         {
             var parser = new JsonParser<TestNestedObject>();
             var context = _mockOpenIdMessageContext.Object;
@@ -187,19 +171,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                expectedValueAsJson,
-                out var result);
-
-            Assert.True(success);
-            Assert.False(result.HasError);
-            Assert.Equal(expectedValueAsJson, JsonSerializer.Serialize(result.Value));
+            var result = parser.Parse(context, descriptor, expectedValueAsJson);
+            Assert.Equal(expectedValueAsJson, JsonSerializer.Serialize(result));
         }
 
         [Fact]
-        public void TryParse_GivenInvalidJson_ThenError()
+        public void Parse_GivenInvalidJson_ThenThrows()
         {
             var parser = new JsonParser<TestNestedObject>();
             var context = _mockOpenIdMessageContext.Object;
@@ -226,15 +203,10 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var descriptor = new ParameterDescriptor(knownParameter);
 
-            var success = parser.TryParse(
-                context,
-                descriptor,
-                stringValues,
-                out var result);
-
-            Assert.False(success);
-            Assert.True(result.HasError);
-            Assert.NotNull(result.Error);
+            Assert.Throws<OpenIdException>(() =>
+            {
+                parser.Parse(context, descriptor, stringValues);
+            });
         }
     }
 }

@@ -13,17 +13,17 @@ namespace NIdentity.OpenId.Validation
         /// <summary>
         /// Gets the <c>error</c> parameter.
         /// </summary>
-        string? ErrorCode { get; set; }
+        string? Code { get; set; }
 
         /// <summary>
         /// Gets or sets the <c>error_description</c> parameter.
         /// </summary>
-        string? ErrorDescription { get; set; }
+        string? Description { get; set; }
 
         /// <summary>
         /// Gets or sets the <c>error_uri</c> parameter.
         /// </summary>
-        string? ErrorUri { get; set; }
+        string? Uri { get; set; }
 
         /// <summary>
         /// Gets or sets a dictionary that is used to handle JSON serialization (or
@@ -44,17 +44,17 @@ namespace NIdentity.OpenId.Validation
         /// <inheritdoc />
         [JsonPropertyName("error")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? ErrorCode { get; set; }
+        public string? Code { get; set; }
 
         /// <inheritdoc />
         [JsonPropertyName("error_description")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? ErrorDescription { get; set; }
+        public string? Description { get; set; }
 
         /// <inheritdoc />
         [JsonPropertyName("error_uri")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? ErrorUri { get; set; }
+        public string? Uri { get; set; }
 
         /// <inheritdoc />
         [JsonExtensionData]

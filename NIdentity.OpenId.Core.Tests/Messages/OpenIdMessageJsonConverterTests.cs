@@ -203,7 +203,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var json = JsonSerializer.Serialize(new Dictionary<string, object> { [propertyName!] = stringValue! });
             var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
 
-            parameter.Load(json, jsonElement);
+            parameter.Update(json, jsonElement);
         }
 
         [Fact]
@@ -724,7 +724,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         }
 
         [Fact]
-        public void Read_GivenLoadFailure_ThenError()
+        public void Read_GivenLoadFailure_ThenThrows()
         {
             var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
 
@@ -747,36 +747,21 @@ namespace NIdentity.OpenId.Core.Tests.Messages
                 ParameterParsers.String);
             KnownParameters.Register(knownParameter);
 
-            var errors = new List<ValidationResult>();
-            _mockOpenIdMessageContext
-                .Setup(_ => _.Errors)
-                .Returns(errors)
-                .Verifiable();
-
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteNullValue();
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
 
-            var reader = new Utf8JsonReader(bufferWriter.WrittenSpan);
+            Assert.Throws<OpenIdException>(() =>
+            {
+                var reader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
-            Assert.True(reader.Read());
-            Assert.Equal(JsonTokenType.StartObject, reader.TokenType);
+                Assert.True(reader.Read());
+                Assert.Equal(JsonTokenType.StartObject, reader.TokenType);
 
-            var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
-            Assert.NotNull(message);
-            Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
-
-            var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(parameterName, key);
-            Assert.Equal(parameterName, value.Descriptor.ParameterName);
-            Assert.Equal(StringValues.Empty, value.StringValues);
-            Assert.Null(value.ParsedValue);
-
-            var error = Assert.Single(errors);
-            Assert.True(error.HasError);
-            Assert.NotNull(error.Error);
+                converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
+            });
         }
 
         [Fact]
@@ -837,9 +822,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             const string parameterName = "parameterName";
             const string stringValue = "stringValue";
-            var success = message.TryLoad(parameterName, stringValue, out var result);
-            Assert.True(success);
-            Assert.False(result.HasError);
+            message.LoadParameter(parameterName, stringValue);
 
             converter.Write(jsonWriter, message, jsonSerializerOptions);
             jsonWriter.Flush();
@@ -877,9 +860,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2" };
-            var success = message.TryLoad(parameterName, stringValues, out var result);
-            Assert.True(success);
-            Assert.False(result.HasError);
+            message.LoadParameter(parameterName, stringValues);
 
             converter.Write(jsonWriter, message, jsonSerializerOptions);
             jsonWriter.Flush();

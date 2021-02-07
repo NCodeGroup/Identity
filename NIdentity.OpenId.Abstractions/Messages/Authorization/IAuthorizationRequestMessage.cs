@@ -17,6 +17,8 @@
 
 #endregion
 
+using System;
+
 namespace NIdentity.OpenId.Messages.Authorization
 {
     public interface IAuthorizationRequestMessage : IAuthorizationRequestValues, IOpenIdMessage

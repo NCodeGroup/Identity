@@ -51,23 +51,20 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, list);
         }
 
-        public override bool TryParse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, out ValidationResult<PromptTypes?> result)
+        public override PromptTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
             switch (stringValues.Count)
             {
                 case 0 when descriptor.Optional:
-                    result = ValidationResult.Factory.Success<PromptTypes?>(null);
-                    return true;
+                    return null;
 
                 case 0:
-                    result = ValidationResult.Factory.MissingParameter(descriptor.ParameterName).As<PromptTypes?>();
-                    return false;
+                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
 
                 case > 1:
-                    result = ValidationResult.Factory.TooManyParameterValues(descriptor.ParameterName).As<PromptTypes?>();
-                    return false;
+                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
             }
 
             stringValues = stringValues[0].Split(Separator);
@@ -94,13 +91,11 @@ namespace NIdentity.OpenId.Messages.Parsers
                 else
                 {
                     // TODO: ignore unsupported values
-                    result = ValidationResult.Factory.InvalidParameterValue(descriptor.ParameterName).As<PromptTypes?>();
-                    return false;
+                    throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
                 }
             }
 
-            result = ValidationResult.Factory.Success<PromptTypes?>(promptType);
-            return true;
+            return promptType;
         }
     }
 }

@@ -19,6 +19,7 @@
 
 using System;
 using System.Collections.Generic;
+using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
@@ -35,6 +36,8 @@ namespace NIdentity.OpenId.Messages.Authorization
         IRequestClaims? Claims { get; }
 
         IReadOnlyCollection<string> ClaimsLocales { get; }
+
+        Client Client { get; }
 
         string ClientId { get; }
 
@@ -56,7 +59,7 @@ namespace NIdentity.OpenId.Messages.Authorization
 
         string? Nonce { get; }
 
-        PromptTypes Prompt { get; }
+        PromptTypes PromptType { get; }
 
         Uri RedirectUri { get; }
 

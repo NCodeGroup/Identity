@@ -28,10 +28,16 @@ namespace NIdentity.OpenId.Messages
 {
     internal abstract class OpenIdMessage : IOpenIdMessage
     {
+        private readonly IOpenIdMessageContext? _context;
+
         internal IDictionary<string, Parameter> Parameters { get; } = new Dictionary<string, Parameter>(StringComparer.Ordinal);
 
         /// <inheritdoc />
-        public IOpenIdMessageContext? Context { get; set; }
+        public IOpenIdMessageContext Context
+        {
+            get => _context ?? throw new InvalidOperationException("TODO");
+            init => _context = value;
+        }
 
         /// <inheritdoc />
         public int Count => Parameters.Count;
@@ -76,8 +82,6 @@ namespace NIdentity.OpenId.Messages
 
         protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
         {
-            var context = Context ?? throw new InvalidOperationException();
-
             var parameterName = knownParameter.Name;
             if (parsedValue is null)
             {
@@ -85,7 +89,7 @@ namespace NIdentity.OpenId.Messages
                 return;
             }
 
-            var stringValues = knownParameter.Parser.Serialize(context, parsedValue);
+            var stringValues = knownParameter.Parser.Serialize(Context, parsedValue);
             if (StringValues.IsNullOrEmpty(stringValues))
             {
                 Parameters.Remove(parameterName);
@@ -104,8 +108,6 @@ namespace NIdentity.OpenId.Messages
         /// <inheritdoc />
         public void LoadParameter(string parameterName, StringValues stringValues)
         {
-            var context = Context ?? throw new InvalidOperationException();
-
             if (!Parameters.TryGetValue(parameterName, out var parameter))
             {
                 var descriptor = KnownParameters.TryGet(parameterName, out var knownParameter) ?
@@ -116,7 +118,7 @@ namespace NIdentity.OpenId.Messages
                 Parameters[parameterName] = parameter;
             }
 
-            parameter.Load(context, stringValues);
+            parameter.Load(Context, stringValues);
         }
     }
 }

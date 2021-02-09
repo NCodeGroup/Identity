@@ -109,10 +109,10 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.RedirectUri, value);
         }
 
-        public string? Request
+        public string? RequestJwt
         {
-            get => GetKnownParameter(KnownParameters.Request);
-            set => SetKnownParameter(KnownParameters.Request, value);
+            get => GetKnownParameter(KnownParameters.RequestJwt);
+            set => SetKnownParameter(KnownParameters.RequestJwt, value);
         }
 
         public Uri? RequestUri

@@ -144,6 +144,7 @@ namespace NIdentity.OpenId.Messages
 
             foreach (var parameter in value.Parameters.Values)
             {
+                // TODO: use ParameterLoader/Parser to serialize
                 var stringValue = string.Join(OpenIdConstants.ParameterSeparator, parameter.StringValues.AsEnumerable());
                 writer.WriteString(parameter.Descriptor.ParameterName, stringValue);
             }

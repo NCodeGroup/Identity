@@ -26,12 +26,21 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         }
 
         [Fact]
-        public void DefaultConstructor_ThenValid()
+        public void DefaultConstructor_GivenContext_ThenValid()
+        {
+            var context = _mockOpenIdMessageContext.Object;
+            var message = new TestOpenIdMessage { Context = context };
+
+            Assert.Empty(message.Parameters);
+            Assert.Same(context, message.Context);
+        }
+
+        [Fact]
+        public void DefaultConstructor_GivenNoContext_ThenThrows()
         {
             var message = new TestOpenIdMessage();
 
-            Assert.Empty(message.Parameters);
-            Assert.Null(message.Context);
+            Assert.Throws<InvalidOperationException>(() => message.Context);
         }
 
         [Fact]

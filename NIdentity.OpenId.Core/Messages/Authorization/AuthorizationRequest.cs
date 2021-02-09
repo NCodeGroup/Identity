@@ -19,19 +19,18 @@
 
 using System;
 using System.Collections.Generic;
+using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
     internal class AuthorizationRequest : IAuthorizationRequest
     {
-        private readonly IAuthorizationRequestMessage _requestMessage;
-        private readonly IAuthorizationRequestObject? _requestObject;
-
-        public AuthorizationRequest(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject? requestObject)
+        public AuthorizationRequest(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject? requestObject, Client client)
         {
-            _requestMessage = requestMessage;
-            _requestObject = requestObject;
+            OriginalRequestMessage = requestMessage;
+            OriginalRequestObject = requestObject;
+            Client = client;
         }
 
         private static GrantType DetermineGrantType(ResponseTypes responseType) => responseType switch
@@ -46,48 +45,58 @@ namespace NIdentity.OpenId.Messages.Authorization
                 ResponseMode.Query :
                 ResponseMode.Fragment;
 
-        public IAuthorizationRequestMessage OriginalRequestMessage => _requestMessage;
+        public IAuthorizationRequestMessage OriginalRequestMessage { get; }
 
-        public IAuthorizationRequestObject? OriginalRequestObject => _requestObject;
+        public IAuthorizationRequestObject? OriginalRequestObject { get; }
 
-        public IReadOnlyCollection<string> AcrValues => _requestObject?.AcrValues ?? _requestMessage.AcrValues ?? Array.Empty<string>();
+        /*
+         * The Authorization Server MUST assemble the set of Authorization Request parameters to be used from the Request Object value and the
+         * OAuth 2.0 Authorization Request parameters (minus the request or request_uri parameters). If the same parameter exists both in the
+         * Request Object and the OAuth Authorization Request parameters, the parameter in the Request Object is used. Using the assembled set
+         * of Authorization Request parameters, the Authorization Server then validates the request the normal manner for the flow being used,
+         * as specified in Sections 3.1.2.2, 3.2.2.2, or 3.3.2.2.
+         */
 
-        public IRequestClaims? Claims => _requestObject?.Claims ?? _requestMessage.Claims;
+        public IReadOnlyCollection<string> AcrValues => OriginalRequestObject?.AcrValues ?? OriginalRequestMessage.AcrValues ?? Array.Empty<string>();
 
-        public IReadOnlyCollection<string> ClaimsLocales => _requestObject?.ClaimsLocales ?? _requestMessage.ClaimsLocales ?? Array.Empty<string>();
+        public IRequestClaims? Claims => OriginalRequestObject?.Claims ?? OriginalRequestMessage.Claims;
 
-        public string ClientId => _requestObject?.ClientId ?? _requestMessage.ClientId ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ClientId);
+        public IReadOnlyCollection<string> ClaimsLocales => OriginalRequestObject?.ClaimsLocales ?? OriginalRequestMessage.ClaimsLocales ?? Array.Empty<string>();
 
-        public string? CodeChallenge => _requestObject?.CodeChallenge ?? _requestMessage.CodeChallenge;
+        public Client Client { get; }
 
-        public CodeChallengeMethod CodeChallengeMethod => _requestObject?.CodeChallengeMethod ?? _requestMessage.CodeChallengeMethod ?? CodeChallengeMethod.Plain;
+        public string ClientId => OriginalRequestObject?.ClientId ?? OriginalRequestMessage.ClientId ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ClientId);
 
-        public string? CodeVerifier => _requestObject?.CodeVerifier ?? _requestMessage.CodeVerifier;
+        public string? CodeChallenge => OriginalRequestObject?.CodeChallenge ?? OriginalRequestMessage.CodeChallenge;
 
-        public DisplayType Display => _requestObject?.DisplayType ?? _requestMessage.DisplayType ?? DisplayType.Unspecified;
+        public CodeChallengeMethod CodeChallengeMethod => OriginalRequestObject?.CodeChallengeMethod ?? OriginalRequestMessage.CodeChallengeMethod ?? CodeChallengeMethod.Plain;
+
+        public string? CodeVerifier => OriginalRequestObject?.CodeVerifier ?? OriginalRequestMessage.CodeVerifier;
+
+        public DisplayType Display => OriginalRequestObject?.DisplayType ?? OriginalRequestMessage.DisplayType ?? DisplayType.Unspecified;
 
         public GrantType GrantType => DetermineGrantType(ResponseType);
 
-        public string? IdTokenHint => _requestObject?.IdTokenHint ?? _requestMessage.IdTokenHint;
+        public string? IdTokenHint => OriginalRequestObject?.IdTokenHint ?? OriginalRequestMessage.IdTokenHint;
 
-        public string? LoginHint => _requestObject?.LoginHint ?? _requestMessage.LoginHint;
+        public string? LoginHint => OriginalRequestObject?.LoginHint ?? OriginalRequestMessage.LoginHint;
 
-        public TimeSpan? MaxAge => _requestObject?.MaxAge ?? _requestMessage.MaxAge;
+        public TimeSpan? MaxAge => OriginalRequestObject?.MaxAge ?? OriginalRequestMessage.MaxAge;
 
-        public string? Nonce => _requestObject?.Nonce ?? _requestMessage.Nonce;
+        public string? Nonce => OriginalRequestObject?.Nonce ?? OriginalRequestMessage.Nonce;
 
-        public PromptTypes Prompt => _requestObject?.PromptType ?? _requestMessage.PromptType ?? PromptTypes.Unspecified;
+        public PromptTypes PromptType => OriginalRequestObject?.PromptType ?? OriginalRequestMessage.PromptType ?? PromptTypes.Unspecified;
 
-        public Uri RedirectUri => _requestObject?.RedirectUri ?? _requestMessage.RedirectUri ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
+        public Uri RedirectUri => OriginalRequestObject?.RedirectUri ?? OriginalRequestMessage.RedirectUri ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
 
-        public ResponseMode ResponseMode => _requestObject?.ResponseMode ?? _requestMessage.ResponseMode ?? DetermineDefaultResponseNode(GrantType);
+        public ResponseMode ResponseMode => OriginalRequestObject?.ResponseMode ?? OriginalRequestMessage.ResponseMode ?? DetermineDefaultResponseNode(GrantType);
 
-        public ResponseTypes ResponseType => _requestObject?.ResponseType ?? _requestMessage.ResponseType ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
+        public ResponseTypes ResponseType => OriginalRequestObject?.ResponseType ?? OriginalRequestMessage.ResponseType ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
 
-        public IReadOnlyCollection<string> Scopes => _requestObject?.Scopes ?? _requestMessage.Scopes ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
+        public IReadOnlyCollection<string> Scopes => OriginalRequestObject?.Scopes ?? OriginalRequestMessage.Scopes ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
 
-        public string? State => _requestObject?.State ?? _requestMessage.State;
+        public string? State => OriginalRequestObject?.State ?? OriginalRequestMessage.State;
 
-        public IReadOnlyCollection<string> UiLocales => _requestObject?.UiLocales ?? _requestMessage.UiLocales ?? Array.Empty<string>();
+        public IReadOnlyCollection<string> UiLocales => OriginalRequestObject?.UiLocales ?? OriginalRequestMessage.UiLocales ?? Array.Empty<string>();
     }
 }

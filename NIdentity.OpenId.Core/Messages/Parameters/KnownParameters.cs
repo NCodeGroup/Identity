@@ -50,7 +50,7 @@ namespace NIdentity.OpenId.Messages.Parameters
                 [Nonce.Name] = Nonce,
                 [PromptType.Name] = PromptType,
                 [RedirectUri.Name] = RedirectUri,
-                [Request.Name] = Request,
+                [RequestJwt.Name] = RequestJwt,
                 [RequestUri.Name] = RequestUri,
                 [ResponseMode.Name] = ResponseMode,
                 [ResponseType.Name] = ResponseType,
@@ -143,7 +143,7 @@ namespace NIdentity.OpenId.Messages.Parameters
             allowMultipleValues: false,
             ParameterParsers.Uri);
 
-        public static readonly KnownParameter<string?> Request = new(
+        public static readonly KnownParameter<string?> RequestJwt = new(
             OpenIdConstants.Parameters.Request,
             optional: true,
             allowMultipleValues: false,

@@ -23,7 +23,7 @@ namespace NIdentity.OpenId.Messages.Authorization
 {
     public interface IAuthorizationRequestMessage : IAuthorizationRequestValues, IOpenIdMessage
     {
-        string? Request { get; }
+        string? RequestJwt { get; }
 
         Uri? RequestUri { get; }
     }

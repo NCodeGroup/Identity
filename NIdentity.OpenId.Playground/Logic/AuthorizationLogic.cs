@@ -23,6 +23,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -46,7 +47,14 @@ namespace NIdentity.OpenId.Playground.Logic
         private readonly ISecretService _secretService;
         private readonly IJwtDecoder _jwtDecoder;
 
-        public AuthorizationLogic(ILogger<AuthorizationLogic> logger, IOptions<AuthorizationOptions> optionsAccessor, IHttpClientFactory httpClientFactory, IOpenIdMessageFactory openIdMessageFactory, IClientStore clientStore, ISecretService secretService, IJwtDecoder jwtDecoder)
+        public AuthorizationLogic(
+            ILogger<AuthorizationLogic> logger,
+            IOptions<AuthorizationOptions> optionsAccessor,
+            IHttpClientFactory httpClientFactory,
+            IOpenIdMessageFactory openIdMessageFactory,
+            IClientStore clientStore,
+            ISecretService secretService,
+            IJwtDecoder jwtDecoder)
         {
             _logger = logger;
             _options = optionsAccessor.Value;
@@ -63,10 +71,12 @@ namespace NIdentity.OpenId.Playground.Logic
 
             var requestMessage = LoadRequestMessage(httpContext, messageContext);
 
-            await ValidateRequestMessageAsync(messageContext, requestMessage, cancellationToken);
+            var request = await ValidateRequestMessageAsync(requestMessage, cancellationToken);
+
+            ValidateRequest(request);
         }
 
-        private async ValueTask ValidateRequestMessageAsync(IOpenIdMessageContext messageContext, IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
+        private async ValueTask<IAuthorizationRequest> ValidateRequestMessageAsync(IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
         {
             var responseType = requestMessage.ResponseType ?? ResponseTypes.Unspecified;
             if (responseType == ResponseTypes.Unspecified)
@@ -80,57 +90,37 @@ namespace NIdentity.OpenId.Playground.Logic
             if (redirectUri is null)
                 throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
 
-            var grantType = DetermineGrantType(responseType);
-            if (grantType == GrantType.Unspecified)
-                throw OpenIdException.Factory.InvalidParameterValue(OpenIdConstants.Parameters.ResponseType);
-
             var client = await _clientStore.GetByClientIdAsync(clientId, cancellationToken);
             if (client == null)
                 throw OpenIdException.Factory.InvalidRequest("TODO");
             if (client.IsDisabled)
                 throw OpenIdException.Factory.InvalidRequest("TODO");
 
-            var requestObject = await LoadRequestObjectAsync(messageContext, requestMessage, client, cancellationToken);
+            var requestObject = await LoadRequestObjectAsync(requestMessage, client, cancellationToken);
             if (requestObject != null)
             {
                 ValidateRequestObject(requestMessage, requestObject);
             }
 
-            /*
-             * The Authorization Server MUST assemble the set of Authorization Request parameters to be used from the Request Object value and the
-             * OAuth 2.0 Authorization Request parameters (minus the request or request_uri parameters). If the same parameter exists both in the
-             * Request Object and the OAuth Authorization Request parameters, the parameter in the Request Object is used. Using the assembled set
-             * of Authorization Request parameters, the Authorization Server then validates the request the normal manner for the flow being used,
-             * as specified in Sections 3.1.2.2, 3.2.2.2, or 3.3.2.2.
-             */
+            return new AuthorizationRequest(requestMessage, requestObject, client);
+        }
 
-            var acrValues = requestObject?.AcrValues ?? requestMessage.AcrValues ?? Array.Empty<string>();
-            var claims = requestObject?.Claims ?? requestMessage.Claims;
-            var claimsLocales = requestObject?.ClaimsLocales ?? requestMessage.ClaimsLocales ?? Array.Empty<string>();
-            var codeChallenge = requestObject?.CodeChallenge ?? requestMessage.CodeChallenge;
-            var codeChallengeMethod = requestObject?.CodeChallengeMethod ?? requestMessage.CodeChallengeMethod ?? CodeChallengeMethod.Plain;
-            var codeVerifier = requestObject?.CodeVerifier ?? requestMessage.CodeVerifier;
-            var displayType = requestObject?.DisplayType ?? requestMessage.DisplayType ?? DisplayType.Unspecified;
-            var idTokenHint = requestObject?.IdTokenHint ?? requestMessage.IdTokenHint;
-            var loginHint = requestObject?.LoginHint ?? requestMessage.LoginHint;
-            var maxAge = requestObject?.MaxAge ?? requestMessage.MaxAge;
-            var nonce = requestObject?.Nonce ?? requestMessage.Nonce;
-            var promptType = requestObject?.PromptType ?? requestMessage.PromptType ?? PromptTypes.Unspecified;
-            var responseMode = requestObject?.ResponseMode ?? requestMessage.ResponseMode ?? DetermineDefaultResponseNode(grantType);
-            var scopes = requestObject?.Scopes ?? requestMessage.Scopes ?? Array.Empty<string>();
-            var state = requestObject?.State ?? requestMessage.State;
-            var uiLocales = requestObject?.UiLocales ?? requestMessage.UiLocales ?? Array.Empty<string>();
-
-            if (scopes.Count == 0)
+        [AssertionMethod]
+        private static void ValidateRequest(IAuthorizationRequest request)
+        {
+            if (request.Scopes.Count == 0)
                 throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
 
-            if (responseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(requestMessage.Nonce))
+            if (request.ResponseType == ResponseTypes.Unspecified)
+                throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
+
+            if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(request.Nonce))
                 throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Nonce);
 
-            if (responseMode == ResponseMode.Query && grantType != GrantType.AuthorizationCode)
+            if (request.ResponseMode == ResponseMode.Query && request.GrantType != GrantType.AuthorizationCode)
                 throw OpenIdException.Factory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.");
 
-            if (promptType.HasFlag(PromptTypes.None) && promptType != PromptTypes.None)
+            if (request.PromptType.HasFlag(PromptTypes.None) && request.PromptType != PromptTypes.None)
                 throw OpenIdException.Factory.InvalidRequest("The 'none' prompt must not be combined with other values.");
         }
 
@@ -156,8 +146,6 @@ namespace NIdentity.OpenId.Playground.Logic
              * match those in the Request Object, if present.
              */
 
-            // TODO: must they really be present in the request object?
-
             if (requestObject.ResponseType != null && requestObject.ResponseType != requestMessage.ResponseType)
                 throw OpenIdException.Factory.InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode);
 
@@ -172,9 +160,9 @@ namespace NIdentity.OpenId.Playground.Logic
                 throw OpenIdException.Factory.InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode);
         }
 
-        private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(IOpenIdMessageContext messageContext, IAuthorizationRequestMessage requestMessage, Client client, CancellationToken cancellationToken)
+        private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(IAuthorizationRequestMessage requestMessage, Client client, CancellationToken cancellationToken)
         {
-            var requestJwt = requestMessage.Request;
+            var requestJwt = requestMessage.RequestJwt;
             var requestUri = requestMessage.RequestUri;
 
             RequestObjectSource requestObjectSource;
@@ -233,7 +221,7 @@ namespace NIdentity.OpenId.Playground.Logic
 
             try
             {
-                var requestObject = JsonSerializer.Deserialize<AuthorizationRequestObject>(json, messageContext.JsonSerializerOptions);
+                var requestObject = JsonSerializer.Deserialize<AuthorizationRequestObject>(json, requestMessage.Context.JsonSerializerOptions);
                 if (requestObject == null)
                     throw new JsonException("TODO");
 
@@ -278,21 +266,6 @@ namespace NIdentity.OpenId.Playground.Logic
             }
         }
 
-        private static GrantType DetermineGrantType(ResponseTypes responseType)
-        {
-            return responseType switch
-            {
-                ResponseTypes.Unspecified => GrantType.Unspecified,
-                ResponseTypes.Code => GrantType.AuthorizationCode,
-                _ => responseType.HasFlag(ResponseTypes.Code) ? GrantType.Hybrid : GrantType.Implicit
-            };
-        }
-
-        private static ResponseMode DetermineDefaultResponseNode(GrantType grantType)
-        {
-            return grantType == GrantType.AuthorizationCode ? ResponseMode.Query : ResponseMode.Fragment;
-        }
-
         private IAuthorizationRequestMessage LoadRequestMessage(HttpContext httpContext, IOpenIdMessageContext messageContext)
         {
             IEnumerable<KeyValuePair<string, StringValues>> source;
@@ -312,11 +285,11 @@ namespace NIdentity.OpenId.Playground.Logic
                     .WithStatusCode(StatusCodes.Status405MethodNotAllowed);
             }
 
-            var message = _openIdMessageFactory.Create<IAuthorizationRequestMessage>(messageContext);
+            var requestMessage = _openIdMessageFactory.Create<IAuthorizationRequestMessage>(messageContext);
 
-            message.Load(source);
+            requestMessage.Load(source);
 
-            return message;
+            return requestMessage;
         }
     }
 }

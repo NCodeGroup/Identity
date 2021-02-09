@@ -25,6 +25,6 @@ namespace NIdentity.OpenId.Messages.Authorization
     {
         string? Request { get; }
 
-        string? RequestUri { get; }
+        Uri? RequestUri { get; }
     }
 }

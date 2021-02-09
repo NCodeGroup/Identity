@@ -19,13 +19,6 @@
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    public enum RequestObjectSource
-    {
-        Unknown = 0,
-        Request,
-        RequestUri
-    }
-
     public interface IAuthorizationRequestObject : IAuthorizationRequestValues, IOpenIdMessage
     {
         RequestObjectSource Source { get; }

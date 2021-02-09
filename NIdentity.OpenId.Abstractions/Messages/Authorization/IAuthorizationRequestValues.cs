@@ -50,7 +50,7 @@ namespace NIdentity.OpenId.Messages.Authorization
 
         PromptTypes? PromptType { get; }
 
-        string? RedirectUri { get; }
+        Uri? RedirectUri { get; }
 
         ResponseMode? ResponseMode { get; }
 

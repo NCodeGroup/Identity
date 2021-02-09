@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,19 +24,19 @@ namespace NIdentity.OpenId.Messages.Authorization
 {
     public interface IAuthorizationRequest
     {
-        IAuthorizationRequestMessage Message { get; }
+        IAuthorizationRequestMessage OriginalRequestMessage { get; }
 
-        IAuthorizationRequestObject? Object { get; }
+        IAuthorizationRequestObject? OriginalRequestObject { get; }
 
         //
 
-        IEnumerable<string> AcrValues { get; }
+        IReadOnlyCollection<string> AcrValues { get; }
 
         IRequestClaims? Claims { get; }
 
-        IEnumerable<string> ClaimsLocales { get; }
+        IReadOnlyCollection<string> ClaimsLocales { get; }
 
-        string? ClientId { get; }
+        string ClientId { get; }
 
         string? CodeChallenge { get; }
 
@@ -58,16 +58,16 @@ namespace NIdentity.OpenId.Messages.Authorization
 
         PromptTypes Prompt { get; }
 
-        string? RedirectUri { get; }
+        Uri RedirectUri { get; }
 
         ResponseMode ResponseMode { get; }
 
         ResponseTypes ResponseType { get; }
 
-        IEnumerable<string> Scopes { get; }
+        IReadOnlyCollection<string> Scopes { get; }
 
         string? State { get; }
 
-        IEnumerable<string> UiLocales { get; }
+        IReadOnlyCollection<string> UiLocales { get; }
     }
 }

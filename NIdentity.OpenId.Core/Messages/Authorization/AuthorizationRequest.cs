@@ -19,95 +19,75 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
     internal class AuthorizationRequest : IAuthorizationRequest
     {
-        private readonly IAuthorizationRequestMessage _message;
-        private readonly IAuthorizationRequestObject? _object;
+        private readonly IAuthorizationRequestMessage _requestMessage;
+        private readonly IAuthorizationRequestObject? _requestObject;
 
-        public AuthorizationRequest(IAuthorizationRequestMessage message, IAuthorizationRequestObject? @object)
+        public AuthorizationRequest(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject? requestObject)
         {
-            _message = message;
-            _object = @object;
+            _requestMessage = requestMessage;
+            _requestObject = requestObject;
         }
 
-        private static GrantType DetermineGrantType(ResponseTypes? responseType) =>
-            responseType switch
-            {
-                null => GrantType.Unspecified,
-                ResponseTypes.Unspecified => GrantType.Unspecified,
-                ResponseTypes.Code => GrantType.AuthorizationCode,
-                _ => responseType.Value.HasFlag(ResponseTypes.Code) ? GrantType.Hybrid : GrantType.Implicit
-            };
+        private static GrantType DetermineGrantType(ResponseTypes responseType) => responseType switch
+        {
+            ResponseTypes.Unspecified => GrantType.Unspecified,
+            ResponseTypes.Code => GrantType.AuthorizationCode,
+            _ => responseType.HasFlag(ResponseTypes.Code) ? GrantType.Hybrid : GrantType.Implicit
+        };
 
         private static ResponseMode DetermineDefaultResponseNode(GrantType grantType) =>
             grantType == GrantType.AuthorizationCode ?
                 ResponseMode.Query :
                 ResponseMode.Fragment;
 
-        public IAuthorizationRequestMessage Message => _message;
+        public IAuthorizationRequestMessage OriginalRequestMessage => _requestMessage;
 
-        public IAuthorizationRequestObject? Object => _object;
+        public IAuthorizationRequestObject? OriginalRequestObject => _requestObject;
 
-        public IEnumerable<string> AcrValues =>
-            _object?.AcrValues ??
-            _message.AcrValues ??
-            Enumerable.Empty<string>();
+        public IReadOnlyCollection<string> AcrValues => _requestObject?.AcrValues ?? _requestMessage.AcrValues ?? Array.Empty<string>();
 
-        public IRequestClaims? Claims => _object?.Claims ?? _message.Claims;
+        public IRequestClaims? Claims => _requestObject?.Claims ?? _requestMessage.Claims;
 
-        public IEnumerable<string> ClaimsLocales =>
-            _object?.ClaimsLocales ??
-            _message.ClaimsLocales ??
-            Enumerable.Empty<string>();
+        public IReadOnlyCollection<string> ClaimsLocales => _requestObject?.ClaimsLocales ?? _requestMessage.ClaimsLocales ?? Array.Empty<string>();
 
-        public string? ClientId => _object?.ClientId ?? _message.ClientId;
+        public string ClientId => _requestObject?.ClientId ?? _requestMessage.ClientId ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ClientId);
 
-        public string? CodeChallenge => _object?.CodeChallenge ?? _message.CodeChallenge;
+        public string? CodeChallenge => _requestObject?.CodeChallenge ?? _requestMessage.CodeChallenge;
 
-        public CodeChallengeMethod CodeChallengeMethod =>
-            _object?.CodeChallengeMethod ??
-            _message.CodeChallengeMethod ??
-            CodeChallengeMethod.Plain;
+        public CodeChallengeMethod CodeChallengeMethod => _requestObject?.CodeChallengeMethod ?? _requestMessage.CodeChallengeMethod ?? CodeChallengeMethod.Plain;
 
-        public string? CodeVerifier => _object?.CodeVerifier ?? _message.CodeVerifier;
+        public string? CodeVerifier => _requestObject?.CodeVerifier ?? _requestMessage.CodeVerifier;
 
-        public DisplayType Display => _object?.DisplayType ?? _message.DisplayType ?? DisplayType.Unspecified;
+        public DisplayType Display => _requestObject?.DisplayType ?? _requestMessage.DisplayType ?? DisplayType.Unspecified;
 
         public GrantType GrantType => DetermineGrantType(ResponseType);
 
-        public string? IdTokenHint => _object?.IdTokenHint ?? _message.IdTokenHint;
+        public string? IdTokenHint => _requestObject?.IdTokenHint ?? _requestMessage.IdTokenHint;
 
-        public string? LoginHint => _object?.LoginHint ?? _message.LoginHint;
+        public string? LoginHint => _requestObject?.LoginHint ?? _requestMessage.LoginHint;
 
-        public TimeSpan? MaxAge => _object?.MaxAge ?? _message.MaxAge;
+        public TimeSpan? MaxAge => _requestObject?.MaxAge ?? _requestMessage.MaxAge;
 
-        public string? Nonce => _object?.Nonce ?? _message.Nonce;
+        public string? Nonce => _requestObject?.Nonce ?? _requestMessage.Nonce;
 
-        public PromptTypes Prompt => _object?.PromptType ?? _message.PromptType ?? PromptTypes.Unspecified;
+        public PromptTypes Prompt => _requestObject?.PromptType ?? _requestMessage.PromptType ?? PromptTypes.Unspecified;
 
-        public string? RedirectUri => _object?.RedirectUri ?? _message.RedirectUri;
+        public Uri RedirectUri => _requestObject?.RedirectUri ?? _requestMessage.RedirectUri ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
 
-        public ResponseMode ResponseMode =>
-            _object?.ResponseMode ??
-            _message.ResponseMode ??
-            DetermineDefaultResponseNode(GrantType);
+        public ResponseMode ResponseMode => _requestObject?.ResponseMode ?? _requestMessage.ResponseMode ?? DetermineDefaultResponseNode(GrantType);
 
-        public ResponseTypes ResponseType =>
-            _object?.ResponseType ??
-            _message.ResponseType ??
-            ResponseTypes.Unspecified;
+        public ResponseTypes ResponseType => _requestObject?.ResponseType ?? _requestMessage.ResponseType ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
 
-        public IEnumerable<string> Scopes => _object?.Scopes ?? _message.Scopes ?? Enumerable.Empty<string>();
+        public IReadOnlyCollection<string> Scopes => _requestObject?.Scopes ?? _requestMessage.Scopes ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
 
-        public string? State => _object?.State ?? _message.State;
+        public string? State => _requestObject?.State ?? _requestMessage.State;
 
-        public IEnumerable<string> UiLocales =>
-            _object?.UiLocales ??
-            _message.UiLocales ??
-            Enumerable.Empty<string>();
+        public IReadOnlyCollection<string> UiLocales => _requestObject?.UiLocales ?? _requestMessage.UiLocales ?? Array.Empty<string>();
     }
 }

@@ -103,7 +103,7 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.PromptType, value);
         }
 
-        public string? RedirectUri
+        public Uri? RedirectUri
         {
             get => GetKnownParameter(KnownParameters.RedirectUri);
             set => SetKnownParameter(KnownParameters.RedirectUri, value);
@@ -115,7 +115,7 @@ namespace NIdentity.OpenId.Messages.Authorization
             set => SetKnownParameter(KnownParameters.Request, value);
         }
 
-        public string? RequestUri
+        public Uri? RequestUri
         {
             get => GetKnownParameter(KnownParameters.RequestUri);
             set => SetKnownParameter(KnownParameters.RequestUri, value);

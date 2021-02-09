@@ -33,5 +33,6 @@ namespace NIdentity.OpenId.Messages.Parsers
         public static readonly StringParser String = new();
         public static readonly StringSetParser StringSet = new();
         public static readonly TimeSpanParser TimeSpan = new();
+        public static readonly UriParser Uri = new();
     }
 }

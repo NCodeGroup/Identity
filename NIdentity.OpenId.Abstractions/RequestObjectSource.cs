@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2021 NCode Group
@@ -17,10 +17,12 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Messages.Authorization
+namespace NIdentity.OpenId
 {
-    public interface IAuthorizationRequestObject : IAuthorizationRequestValues, IOpenIdMessage
+    public enum RequestObjectSource
     {
-        RequestObjectSource Source { get; }
+        Unknown = 0,
+        RequestJwt,
+        RequestUri
     }
 }

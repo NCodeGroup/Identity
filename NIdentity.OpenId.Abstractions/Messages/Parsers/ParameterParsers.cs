@@ -21,7 +21,7 @@ using NIdentity.OpenId.Messages.Authorization;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal static class ParameterParsers
+    public static class ParameterParsers
     {
         public static readonly ResponseTypeParser ResponseType = new();
         public static readonly ResponseModeParser ResponseMode = new();

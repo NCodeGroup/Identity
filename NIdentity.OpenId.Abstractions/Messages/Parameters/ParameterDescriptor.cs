@@ -21,10 +21,8 @@ using System;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
-    internal readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
+    public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     {
-        internal static ParameterLoader DefaultLoader { get; } = new();
-
         public ParameterDescriptor(KnownParameter knownParameter)
         {
             ParameterName = knownParameter.Name;
@@ -45,7 +43,7 @@ namespace NIdentity.OpenId.Messages.Parameters
 
         public bool AllowMultipleValues => KnownParameter?.AllowMultipleValues ?? true;
 
-        public ParameterLoader Loader => KnownParameter?.Loader ?? DefaultLoader;
+        public ParameterLoader Loader => KnownParameter?.Loader ?? ParameterLoader.Default;
 
         public override bool Equals(object? obj) =>
             obj is ParameterDescriptor other && Equals(other);

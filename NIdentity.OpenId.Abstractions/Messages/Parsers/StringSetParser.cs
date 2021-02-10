@@ -26,7 +26,7 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
+    public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
     {
         public override StringValues Serialize(IOpenIdMessageContext context, IReadOnlyCollection<string>? value)
         {

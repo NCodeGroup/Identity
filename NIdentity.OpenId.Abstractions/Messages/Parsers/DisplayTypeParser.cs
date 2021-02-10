@@ -24,7 +24,7 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class DisplayTypeParser : ParameterParser<DisplayType?>
+    public class DisplayTypeParser : ParameterParser<DisplayType?>
     {
         public override StringValues Serialize(IOpenIdMessageContext context, DisplayType? value)
         {

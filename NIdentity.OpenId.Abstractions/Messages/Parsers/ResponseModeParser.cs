@@ -24,7 +24,7 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class ResponseModeParser : ParameterParser<ResponseMode?>
+    public class ResponseModeParser : ParameterParser<ResponseMode?>
     {
         public override StringValues Serialize(IOpenIdMessageContext context, ResponseMode? value)
         {

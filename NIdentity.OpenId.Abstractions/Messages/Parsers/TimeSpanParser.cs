@@ -25,7 +25,7 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class TimeSpanParser : ParameterParser<TimeSpan?>
+    public class TimeSpanParser : ParameterParser<TimeSpan?>
     {
         public override StringValues Serialize(IOpenIdMessageContext context, TimeSpan? value)
         {

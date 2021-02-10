@@ -42,7 +42,7 @@ namespace NIdentity.OpenId.Messages
                 {
                     new RequestClaimJsonConverter(),
                     new RequestClaimsJsonConverter(),
-                    new OpenIdMessageJsonConverter<AuthorizationRequestObject>(this)
+                    new OpenIdMessageJsonConverterFactory(this)
                 }
             };
         }

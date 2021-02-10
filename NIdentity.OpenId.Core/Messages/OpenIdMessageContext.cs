@@ -17,14 +17,43 @@
 
 #endregion
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NIdentity.OpenId.Messages.Authorization;
+using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages
 {
     internal class OpenIdMessageContext : IOpenIdMessageContext
     {
+        private static readonly IReadOnlyDictionary<string, KnownParameter> StaticKnownParameters = new Dictionary<string, KnownParameter>(StringComparer.Ordinal)
+        {
+            [KnownParameters.AcrValues.Name] = KnownParameters.AcrValues,
+            [KnownParameters.Claims.Name] = KnownParameters.Claims,
+            [KnownParameters.ClaimsLocales.Name] = KnownParameters.ClaimsLocales,
+            [KnownParameters.ClientId.Name] = KnownParameters.ClientId,
+            [KnownParameters.CodeChallenge.Name] = KnownParameters.CodeChallenge,
+            [KnownParameters.CodeChallengeMethod.Name] = KnownParameters.CodeChallengeMethod,
+            [KnownParameters.CodeVerifier.Name] = KnownParameters.CodeVerifier,
+            [KnownParameters.DisplayType.Name] = KnownParameters.DisplayType,
+            [KnownParameters.IdTokenHint.Name] = KnownParameters.IdTokenHint,
+            [KnownParameters.LoginHint.Name] = KnownParameters.LoginHint,
+            [KnownParameters.MaxAge.Name] = KnownParameters.MaxAge,
+            [KnownParameters.Nonce.Name] = KnownParameters.Nonce,
+            [KnownParameters.PromptType.Name] = KnownParameters.PromptType,
+            [KnownParameters.RedirectUri.Name] = KnownParameters.RedirectUri,
+            [KnownParameters.RequestJwt.Name] = KnownParameters.RequestJwt,
+            [KnownParameters.RequestUri.Name] = KnownParameters.RequestUri,
+            [KnownParameters.ResponseMode.Name] = KnownParameters.ResponseMode,
+            [KnownParameters.ResponseType.Name] = KnownParameters.ResponseType,
+            [KnownParameters.Scopes.Name] = KnownParameters.Scopes,
+            [KnownParameters.State.Name] = KnownParameters.State,
+            [KnownParameters.UiLocales.Name] = KnownParameters.UiLocales,
+        };
+
         public ILogger Logger { get; }
 
         public JsonSerializerOptions JsonSerializerOptions { get; }
@@ -45,6 +74,11 @@ namespace NIdentity.OpenId.Messages
                     new OpenIdMessageJsonConverterFactory(this)
                 }
             };
+        }
+
+        public bool TryGetKnownParameter(string parameterName, [NotNullWhen(true)] out KnownParameter? knownParameter)
+        {
+            return StaticKnownParameters.TryGetValue(parameterName, out knownParameter);
         }
     }
 }

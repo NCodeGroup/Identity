@@ -38,7 +38,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
 
             jsonWriter.WriteNullValue();
             jsonWriter.Flush();
@@ -49,7 +49,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             {
                 var reader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
-                converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, propertyName);
+                converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, parameterName);
             });
         }
 
@@ -62,13 +62,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const string stringValue = "stringValue";
-            var expectedValue =
-                JsonSerializer.Serialize(new Dictionary<string, object> { [propertyName] = stringValue });
+            var expectedValue = JsonSerializer.Serialize(new Dictionary<string, object> { [parameterName] = stringValue });
+
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
 
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteStringValue(stringValue);
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
@@ -80,13 +85,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             var message = new TestOpenIdMessage();
 
-            converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, propertyName);
+            converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, parameterName);
 
             Assert.Equal(JsonTokenType.EndObject, reader.TokenType);
 
             var (key, value) = Assert.Single(message.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Null(value.Descriptor.KnownParameter);
             Assert.Equal(expectedValue, value.StringValues);
             Assert.Equal(expectedValue, JsonSerializer.Serialize(value.ParsedValue));
@@ -101,9 +106,15 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const string stringValue = "stringValue";
             var expectedValue = JsonSerializer.Serialize(new[] { stringValue });
+
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
 
             jsonWriter.WriteStartArray();
             jsonWriter.WriteStringValue(stringValue);
@@ -117,13 +128,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             var message = new TestOpenIdMessage();
 
-            converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, propertyName);
+            converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, parameterName);
 
             Assert.Equal(JsonTokenType.EndArray, reader.TokenType);
 
             var (key, value) = Assert.Single(message.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Null(value.Descriptor.KnownParameter);
             Assert.Equal(expectedValue, value.StringValues);
             Assert.Equal(expectedValue, JsonSerializer.Serialize(value.ParsedValue));
@@ -138,20 +149,22 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            // known parameters must have unique names
-            var parameterName = Guid.NewGuid().ToString("N");
-
+            const string parameterName = "parameterName";
+            const string stringValue = "stringValue";
             const bool optional = true;
             const bool allowMultipleValues = true;
-            const string stringValue = "stringValue";
-            var expectedValue =
-                JsonSerializer.Serialize(new Dictionary<string, object> { [parameterName] = stringValue });
+            var expectedValue = JsonSerializer.Serialize(new Dictionary<string, object> { [parameterName] = stringValue });
 
             var mockTestParameterParser = _mockRepository.Create<ITestParameterParser>();
             var parser = new TestParameterParser(mockTestParameterParser.Object, LoadJsonValid);
 
             var knownParameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, parser);
-            KnownParameters.Register(knownParameter);
+
+            KnownParameter? knownParameterBase = knownParameter;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
+                .Returns(true)
+                .Verifiable();
 
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName(parameterName);
@@ -178,18 +191,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Equal(expectedValue, JsonSerializer.Serialize(value.ParsedValue));
         }
 
-        private static void LoadJsonValid(
-            IOpenIdMessageContext context,
-            Parameter parameter,
-            ref Utf8JsonReader reader,
-            JsonSerializerOptions options)
+        private static void LoadJsonValid(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             Assert.True(reader.Read());
             Assert.Equal(JsonTokenType.PropertyName, reader.TokenType);
 
-            var propertyName = reader.GetString();
-            Assert.NotNull(propertyName);
-            Assert.Equal(parameter.Descriptor.ParameterName, propertyName);
+            var parameterName = reader.GetString();
+            Assert.NotNull(parameterName);
+            Assert.Equal(parameter.Descriptor.ParameterName, parameterName);
 
             Assert.True(reader.Read());
             Assert.Equal(JsonTokenType.String, reader.TokenType);
@@ -200,7 +209,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.True(reader.Read());
             Assert.Equal(JsonTokenType.EndObject, reader.TokenType);
 
-            var json = JsonSerializer.Serialize(new Dictionary<string, object> { [propertyName!] = stringValue! });
+            var json = JsonSerializer.Serialize(new Dictionary<string, object> { [parameterName!] = stringValue! });
             var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
 
             parameter.Update(json, jsonElement);
@@ -215,18 +224,21 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            // known parameters must have unique names
-            var parameterName = Guid.NewGuid().ToString("N");
-
+            const string parameterName = "parameterName";
+            const string stringValue = "stringValue";
             const bool optional = true;
             const bool allowMultipleValues = true;
-            const string stringValue = "stringValue";
 
             var mockTestParameterParser = _mockRepository.Create<ITestParameterParser>();
             var parser = new TestParameterParser(mockTestParameterParser.Object, LoadJsonThrows);
 
             var knownParameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, parser);
-            KnownParameters.Register(knownParameter);
+
+            KnownParameter? knownParameterBase = knownParameter;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
+                .Returns(true)
+                .Verifiable();
 
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName(parameterName);
@@ -249,11 +261,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Empty(message.Parameters);
         }
 
-        private static void LoadJsonThrows(
-            IOpenIdMessageContext context,
-            Parameter parameter,
-            ref Utf8JsonReader reader,
-            JsonSerializerOptions options)
+        private static void LoadJsonThrows(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             throw new InvalidOperationException();
         }
@@ -343,10 +351,16 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
+
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
 
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteNullValue();
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
@@ -361,8 +375,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(StringValues.Empty, value.StringValues);
             Assert.Null(value.ParsedValue);
         }
@@ -378,11 +392,17 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const string expectedValue = "value1";
 
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteStringValue(expectedValue);
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
@@ -397,8 +417,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(expectedValue, value.StringValues);
             Assert.Null(value.ParsedValue);
         }
@@ -414,11 +434,17 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             var expectedValue = new[] { "value1", "value2" };
 
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteStringValue(string.Join(OpenIdConstants.ParameterSeparator, expectedValue));
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
@@ -433,8 +459,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(expectedValue, value.StringValues);
             Assert.Null(value.ParsedValue);
         }
@@ -450,12 +476,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const decimal expectedValue = 3.1415m;
             var expectedValueAsString = expectedValue.ToString(CultureInfo.InvariantCulture);
 
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteNumberValue(expectedValue);
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
@@ -470,8 +502,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(expectedValueAsString, value.StringValues);
             Assert.Null(value.ParsedValue);
         }
@@ -487,12 +519,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const int expectedValue = 3;
             var expectedValueAsString = expectedValue.ToString(CultureInfo.InvariantCulture);
 
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteNumberValue(expectedValue);
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
@@ -507,8 +545,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(expectedValueAsString, value.StringValues);
             Assert.Null(value.ParsedValue);
         }
@@ -524,12 +562,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const bool expectedValue = true;
             var expectedValueAsString = expectedValue.ToString(CultureInfo.InvariantCulture);
 
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteBooleanValue(expectedValue);
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
@@ -544,8 +588,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(expectedValueAsString, value.StringValues);
             Assert.Null(value.ParsedValue);
         }
@@ -561,12 +605,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const bool expectedValue = false;
             var expectedValueAsString = expectedValue.ToString(CultureInfo.InvariantCulture);
 
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteBooleanValue(expectedValue);
             jsonWriter.WriteEndObject();
             jsonWriter.Flush();
@@ -581,8 +631,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(expectedValueAsString, value.StringValues);
             Assert.Null(value.ParsedValue);
         }
@@ -598,12 +648,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const string stringValue = "value1";
             var expectedValue = JsonSerializer.Serialize(new[] { stringValue });
 
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteStartArray();
             jsonWriter.WriteStringValue(stringValue);
             jsonWriter.WriteEndArray();
@@ -620,8 +676,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(expectedValue, value.StringValues);
             Assert.Equal(expectedValue, JsonSerializer.Serialize(value.ParsedValue));
         }
@@ -637,13 +693,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            const string propertyName = "propertyName";
+            const string parameterName = "parameterName";
             const string nestedStringValue = "value1";
-            var expectedValue = JsonSerializer.Serialize(new TestNestedObject
-                { NestedPropertyName1 = nestedStringValue });
+            var expectedValue = JsonSerializer.Serialize(new TestNestedObject { NestedPropertyName1 = nestedStringValue });
+
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
 
             jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName(propertyName);
+            jsonWriter.WritePropertyName(parameterName);
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName(nameof(TestNestedObject.NestedPropertyName1));
             jsonWriter.WriteStringValue(nestedStringValue);
@@ -661,8 +722,8 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Same(_mockOpenIdMessageContext.Object, message!.Context);
 
             var (key, value) = Assert.Single(message!.Parameters);
-            Assert.Equal(propertyName, key);
-            Assert.Equal(propertyName, value.Descriptor.ParameterName);
+            Assert.Equal(parameterName, key);
+            Assert.Equal(parameterName, value.Descriptor.ParameterName);
             Assert.Equal(expectedValue, value.StringValues);
             Assert.Equal(expectedValue, JsonSerializer.Serialize(value.ParsedValue));
         }
@@ -681,22 +742,24 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            // known parameters must have unique names
-            var parameterName = Guid.NewGuid().ToString("N");
-
+            const string parameterName = "parameterName";
+            const string nestedStringValue = "value1";
             const bool optional = false;
             const bool allowMultipleValues = false;
-            const string nestedStringValue = "value1";
 
             var knownParameter = new KnownParameter<string?>(
                 parameterName,
                 optional,
                 allowMultipleValues,
                 ParameterParsers.String);
-            KnownParameters.Register(knownParameter);
 
-            var expectedValue = JsonSerializer.Serialize(new TestNestedObject
-                { NestedPropertyName1 = nestedStringValue });
+            KnownParameter? knownParameterBase = knownParameter;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
+                .Returns(true)
+                .Verifiable();
+
+            var expectedValue = JsonSerializer.Serialize(new TestNestedObject { NestedPropertyName1 = nestedStringValue });
 
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName(parameterName);
@@ -734,9 +797,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
 
-            // known parameters must have unique names
-            var parameterName = Guid.NewGuid().ToString("N");
-
+            const string parameterName = "parameterName";
             const bool optional = false;
             const bool allowMultipleValues = false;
 
@@ -745,7 +806,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages
                 optional,
                 allowMultipleValues,
                 ParameterParsers.String);
-            KnownParameters.Register(knownParameter);
+
+            KnownParameter? knownParameterBase = knownParameter;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
+                .Returns(true)
+                .Verifiable();
 
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName(parameterName);
@@ -822,6 +888,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             const string parameterName = "parameterName";
             const string stringValue = "stringValue";
+
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             message.LoadParameter(parameterName, stringValue);
 
             converter.Write(jsonWriter, message, jsonSerializerOptions);
@@ -860,6 +933,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages
 
             const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2" };
+
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             message.LoadParameter(parameterName, stringValues);
 
             converter.Write(jsonWriter, message, jsonSerializerOptions);

@@ -18,47 +18,14 @@
 #endregion
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
-    internal static class KnownParameters
+    public static class KnownParameters
     {
-        private static readonly Lazy<ConcurrentDictionary<string, KnownParameter>> LazyRegistry = new(
-            LoadRegistry,
-            LazyThreadSafetyMode.PublicationOnly);
-
-        private static ConcurrentDictionary<string, KnownParameter> LoadRegistry() =>
-            new(StringComparer.Ordinal)
-            {
-                [AcrValues.Name] = AcrValues,
-                [Claims.Name] = Claims,
-                [ClaimsLocales.Name] = ClaimsLocales,
-                [ClientId.Name] = ClientId,
-                [CodeChallenge.Name] = CodeChallenge,
-                [CodeChallengeMethod.Name] = CodeChallengeMethod,
-                [CodeVerifier.Name] = CodeVerifier,
-                [DisplayType.Name] = DisplayType,
-                [IdTokenHint.Name] = IdTokenHint,
-                [LoginHint.Name] = LoginHint,
-                [MaxAge.Name] = MaxAge,
-                [Nonce.Name] = Nonce,
-                [PromptType.Name] = PromptType,
-                [RedirectUri.Name] = RedirectUri,
-                [RequestJwt.Name] = RequestJwt,
-                [RequestUri.Name] = RequestUri,
-                [ResponseMode.Name] = ResponseMode,
-                [ResponseType.Name] = ResponseType,
-                [Scopes.Name] = Scopes,
-                [State.Name] = State,
-                [UiLocales.Name] = UiLocales,
-            };
-
         public static readonly KnownParameter<IReadOnlyCollection<string>?> AcrValues = new(
             OpenIdConstants.Parameters.AcrValues,
             optional: true,
@@ -184,11 +151,5 @@ namespace NIdentity.OpenId.Messages.Parameters
             optional: true,
             allowMultipleValues: false,
             ParameterParsers.StringSet);
-
-        public static KnownParameter Register(KnownParameter knownParameter) =>
-            LazyRegistry.Value.GetOrAdd(knownParameter.Name, knownParameter);
-
-        public static bool TryGet(string parameterName, [NotNullWhen(true)] out KnownParameter? knownParameter) =>
-            LazyRegistry.Value.TryGetValue(parameterName, out knownParameter);
     }
 }

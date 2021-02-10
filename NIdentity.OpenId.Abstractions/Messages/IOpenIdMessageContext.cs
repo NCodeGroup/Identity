@@ -17,8 +17,10 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages
 {
@@ -27,5 +29,7 @@ namespace NIdentity.OpenId.Messages
         ILogger Logger { get; }
 
         JsonSerializerOptions JsonSerializerOptions { get; }
+
+        bool TryGetKnownParameter(string parameterName, [NotNullWhen(true)] out KnownParameter? knownParameter);
     }
 }

@@ -24,7 +24,7 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class CodeChallengeMethodParser : ParameterParser<CodeChallengeMethod?>
+    public class CodeChallengeMethodParser : ParameterParser<CodeChallengeMethod?>
     {
         public override StringValues Serialize(IOpenIdMessageContext context, CodeChallengeMethod? value)
         {

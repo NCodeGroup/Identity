@@ -25,30 +25,33 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal class ResponseTypeParser : ParameterParser<ResponseTypes?>
+    public class PromptTypeParser : ParameterParser<PromptTypes?>
     {
-        public override StringValues Serialize(IOpenIdMessageContext context, ResponseTypes? value)
+        public override StringValues Serialize(IOpenIdMessageContext context, PromptTypes? value)
         {
-            if (value is null || value == ResponseTypes.Unspecified)
+            if (value is null || value == PromptTypes.Unspecified)
                 return StringValues.Empty;
 
-            const int capacity = 3;
-            var responseType = value.Value;
+            const int capacity = 4;
             var list = new List<string>(capacity);
+            var promptType = value.Value;
 
-            if (responseType.HasFlag(ResponseTypes.Code))
-                list.Add(OpenIdConstants.ResponseTypes.Code);
+            if (promptType.HasFlag(PromptTypes.None))
+                list.Add(OpenIdConstants.PromptTypes.None);
 
-            if (responseType.HasFlag(ResponseTypes.IdToken))
-                list.Add(OpenIdConstants.ResponseTypes.IdToken);
+            if (promptType.HasFlag(PromptTypes.Login))
+                list.Add(OpenIdConstants.PromptTypes.Login);
 
-            if (responseType.HasFlag(ResponseTypes.Token))
-                list.Add(OpenIdConstants.ResponseTypes.Token);
+            if (promptType.HasFlag(PromptTypes.Consent))
+                list.Add(OpenIdConstants.PromptTypes.Consent);
+
+            if (promptType.HasFlag(PromptTypes.SelectAccount))
+                list.Add(OpenIdConstants.PromptTypes.SelectAccount);
 
             return string.Join(Separator, list);
         }
 
-        public override ResponseTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+        public override PromptTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -66,28 +69,33 @@ namespace NIdentity.OpenId.Messages.Parsers
 
             stringValues = stringValues[0].Split(Separator);
 
-            var responseType = ResponseTypes.Unspecified;
+            var promptType = PromptTypes.Unspecified;
             foreach (var stringValue in stringValues)
             {
-                if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Code, StringComparison))
+                if (string.Equals(stringValue, OpenIdConstants.PromptTypes.None, StringComparison))
                 {
-                    responseType |= ResponseTypes.Code;
+                    promptType |= PromptTypes.None;
                 }
-                else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.IdToken, StringComparison))
+                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.Login, StringComparison))
                 {
-                    responseType |= ResponseTypes.IdToken;
+                    promptType |= PromptTypes.Login;
                 }
-                else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Token, StringComparison))
+                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.Consent, StringComparison))
                 {
-                    responseType |= ResponseTypes.Token;
+                    promptType |= PromptTypes.Consent;
+                }
+                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.SelectAccount, StringComparison))
+                {
+                    promptType |= PromptTypes.SelectAccount;
                 }
                 else
                 {
+                    // TODO: ignore unsupported values
                     throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
                 }
             }
 
-            return responseType;
+            return promptType;
         }
     }
 }

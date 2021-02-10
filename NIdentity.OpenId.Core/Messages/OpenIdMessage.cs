@@ -110,7 +110,7 @@ namespace NIdentity.OpenId.Messages
         {
             if (!Parameters.TryGetValue(parameterName, out var parameter))
             {
-                var descriptor = KnownParameters.TryGet(parameterName, out var knownParameter) ?
+                var descriptor = Context.TryGetKnownParameter(parameterName, out var knownParameter) ?
                     new ParameterDescriptor(knownParameter) :
                     new ParameterDescriptor(parameterName);
 

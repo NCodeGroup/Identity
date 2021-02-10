@@ -9,12 +9,12 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal interface IJsonParser
+    public interface IJsonParser
     {
         void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options);
     }
 
-    internal class JsonParser<T> : ParameterParser<T?>, IJsonParser
+    public class JsonParser<T> : ParameterParser<T?>, IJsonParser
     {
         public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {

@@ -39,12 +39,9 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.Equal(JsonCommentHandling.Skip, context.JsonSerializerOptions.ReadCommentHandling);
             Assert.True(context.JsonSerializerOptions.AllowTrailingCommas);
 
-            Assert.Contains(context.JsonSerializerOptions.Converters,
-                converter => converter is RequestClaimJsonConverter);
-            Assert.Contains(context.JsonSerializerOptions.Converters,
-                converter => converter is RequestClaimsJsonConverter);
-            Assert.Contains(context.JsonSerializerOptions.Converters,
-                converter => converter is OpenIdMessageJsonConverter<AuthorizationRequestObject>);
+            Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is RequestClaimJsonConverter);
+            Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is RequestClaimsJsonConverter);
+            Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is OpenIdMessageJsonConverterFactory);
         }
     }
 }

@@ -46,7 +46,7 @@ namespace NIdentity.OpenId.Messages
             var isNew = false;
             if (!message.Parameters.TryGetValue(parameterName, out var parameter))
             {
-                var descriptor = KnownParameters.TryGet(parameterName, out var knownParameter) ?
+                var descriptor = _context.TryGetKnownParameter(parameterName, out var knownParameter) ?
                     new ParameterDescriptor(knownParameter) :
                     new ParameterDescriptor(parameterName);
 

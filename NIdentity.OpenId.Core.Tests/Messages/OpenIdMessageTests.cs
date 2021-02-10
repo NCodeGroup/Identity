@@ -72,6 +72,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             const string parameterName = "parameterName";
             var expectedValue = new[] { "value1", "value2" };
 
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
+
             message.LoadParameter(parameterName, expectedValue);
 
             var getSuccess = message.TryGetValue(parameterName, out var actualValue);
@@ -384,6 +390,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages
                 NestedPropertyName1 = "NestedPropertyValue"
             };
             var stringValues = JsonSerializer.Serialize(parsedValue);
+
+            KnownParameter? knownParameter = null;
+            _mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
+                .Returns(false)
+                .Verifiable();
 
             message.LoadParameter(parameterName, stringValues);
 

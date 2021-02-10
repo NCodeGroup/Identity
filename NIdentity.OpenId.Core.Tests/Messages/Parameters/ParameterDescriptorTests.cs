@@ -76,7 +76,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
             Assert.Null(descriptor.KnownParameter);
             Assert.Equal(optional, descriptor.Optional);
             Assert.Equal(allowMultipleValues, descriptor.AllowMultipleValues);
-            Assert.Same(ParameterDescriptor.DefaultLoader, descriptor.Loader);
+            Assert.Same(ParameterLoader.Default, descriptor.Loader);
         }
 
         [Fact]

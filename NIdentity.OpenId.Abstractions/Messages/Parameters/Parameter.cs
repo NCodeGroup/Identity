@@ -21,7 +21,7 @@ using Microsoft.Extensions.Primitives;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
-    internal class Parameter
+    public class Parameter
     {
         public ParameterDescriptor Descriptor { get; }
 

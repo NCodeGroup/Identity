@@ -17,26 +17,26 @@
 
 #endregion
 
-using System;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
-    internal abstract class ParameterParser<T> : ParameterLoader
+    public class StringParser : ParameterParser<string?>
     {
-        public virtual string Separator => OpenIdConstants.ParameterSeparator;
-
-        public virtual StringComparison StringComparison => StringComparison.Ordinal;
-
-        public abstract StringValues Serialize(IOpenIdMessageContext context, T value);
-
-        public abstract T Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues);
-
-        public override void Load(IOpenIdMessageContext context, Parameter parameter, StringValues stringValues)
+        public override StringValues Serialize(IOpenIdMessageContext context, string? value)
         {
-            var parsedValue = Parse(context, parameter.Descriptor, stringValues);
-            parameter.Update(stringValues, parsedValue);
+            return value;
         }
+
+        public override string? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
+        {
+            0 when descriptor.Optional => null,
+            0 => throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName),
+            > 1 when descriptor.AllowMultipleValues => string.Join(Separator, stringValues),
+            > 1 => throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName),
+            _ => stringValues[0]
+        };
     }
 }

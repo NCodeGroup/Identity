@@ -1,9 +1,6 @@
 using System;
-using System.Reflection.Metadata;
-using System.Threading;
 using System.Threading.Tasks;
 using GreenPipes;
-using GreenPipes.Configurators;
 using GreenPipes.Contexts;
 using GreenPipes.Filters;
 using Microsoft.AspNetCore.Builder;
@@ -13,7 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Playground.Contexts;
 using NIdentity.OpenId.Playground.Pipes;
@@ -169,11 +166,6 @@ namespace NIdentity.OpenId.Playground
         public HttpContext HttpContext { get; set; }
     }
 
-    internal interface IRequestHandler<in TRequest, TResponse>
-    {
-        ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
-    }
-
     internal static class DispatchConfiguratorExtensions
     {
         public static void UseRequestHandler<TRequest, TResponse>(
@@ -198,8 +190,7 @@ namespace NIdentity.OpenId.Playground
 
                             using var serviceScope = serviceScopeFactory.CreateScope();
 
-                            var handler = serviceScope.ServiceProvider
-                                .GetRequiredService<IRequestHandler<TRequest, TResponse>>();
+                            var handler = serviceScope.ServiceProvider.GetRequiredService<IRequestResponseHandler<TRequest, TResponse>>();
 
                             var response = await handler.HandleAsync(context.Request, context.CancellationToken);
 

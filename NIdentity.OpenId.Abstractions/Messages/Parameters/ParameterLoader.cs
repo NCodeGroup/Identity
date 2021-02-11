@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
@@ -8,9 +6,14 @@ namespace NIdentity.OpenId.Messages.Parameters
     {
         public static ParameterLoader Default { get; } = new();
 
-        public virtual void Load(IOpenIdMessageContext context, Parameter parameter, StringValues stringValues)
+        public virtual Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
-            parameter.Update(stringValues, null);
+            return new(descriptor, stringValues);
+        }
+
+        public virtual Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, object parsedValue)
+        {
+            return new(descriptor, stringValues, parsedValue);
         }
     }
 }

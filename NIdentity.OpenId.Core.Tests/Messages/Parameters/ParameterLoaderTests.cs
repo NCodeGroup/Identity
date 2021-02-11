@@ -40,25 +40,41 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
         }
 
         [Fact]
-        public void Load_ThenValid()
+        public void Load_GivenNoParsedValue_ThenValid()
         {
             var loader = new ParameterLoader();
 
             const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2" };
-            const object? parsedValue = null;
 
             var descriptor = new ParameterDescriptor(parameterName);
             var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-            var mockParameter = _mockRepository.Create<Parameter>(descriptor);
+            var context = mockOpenIdMessageContext.Object;
 
-            mockParameter
-                .Setup(_ => _.Update(stringValues, parsedValue))
-                .Verifiable();
+            var parameter = loader.Load(context, descriptor, stringValues);
 
-            loader.Load(mockOpenIdMessageContext.Object,
-                mockParameter.Object,
-                stringValues);
+            Assert.Equal(descriptor, parameter.Descriptor);
+            Assert.Equal(stringValues, parameter.StringValues);
+            Assert.Null(parameter.ParsedValue);
+        }
+
+        [Fact]
+        public void Load_GivenParsedValue_ThenValid()
+        {
+            var loader = new ParameterLoader();
+
+            const string parameterName = "parameterName";
+            var stringValues = new[] { "value1", "value2" };
+
+            var descriptor = new ParameterDescriptor(parameterName);
+            var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+            var context = mockOpenIdMessageContext.Object;
+
+            var parameter = loader.Load(context, descriptor, stringValues, stringValues);
+
+            Assert.Equal(descriptor, parameter.Descriptor);
+            Assert.Equal(stringValues, parameter.StringValues);
+            Assert.Same(stringValues, parameter.ParsedValue);
         }
     }
 }

@@ -19,7 +19,7 @@
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    internal class AuthorizationRequestMessage : BaseAuthorizationRequestMessage, IAuthorizationRequestMessage
+    internal class AuthorizationRequestMessage : BaseAuthorizationRequestMessage<AuthorizationRequestMessage>, IAuthorizationRequestMessage
     {
         // nothing
     }

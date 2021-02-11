@@ -18,7 +18,7 @@
 #endregion
 
 using System;
-using Microsoft.Extensions.Primitives;
+using System.Linq;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
@@ -47,6 +47,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
             var mockParser = _mockRepository.Create<ParameterParser<string>>();
 
             const string parameterName = "parameterName";
+            var stringValues = new[] { "value1", "value1" };
 
             var knownParameter = new KnownParameter<string>(
                 parameterName,
@@ -55,44 +56,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
                 mockParser.Object);
 
             var descriptor = new ParameterDescriptor(knownParameter);
-            var parameter = new Parameter(descriptor);
+            var parameter = new Parameter(descriptor, stringValues, stringValues);
 
             Assert.Equal(descriptor, parameter.Descriptor);
-            Assert.Equal(StringValues.Empty, parameter.StringValues);
-            Assert.Null(parameter.ParsedValue);
-        }
-
-        [Fact]
-        public void Update_ThenValid()
-        {
-            var mockParser = _mockRepository.Create<ParameterParser<string>>();
-
-            const string parameterName = "parameterName";
-
-            var knownParameter = new KnownParameter<string>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                mockParser.Object);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-            var parameter = new Parameter(descriptor);
-
-            var stringValues = new[] { "value1", "value2" };
-            var parsedValue = new object();
-
-            parameter.Update(stringValues, parsedValue);
-
             Assert.Equal(stringValues, parameter.StringValues);
-            Assert.Equal(parsedValue, parameter.ParsedValue);
+            Assert.Same(stringValues, parameter.ParsedValue);
         }
 
         [Fact]
-        public void Load_ThenValid()
+        public void Load_GivenEnumerable_ThenValid()
         {
             var mockParser = _mockRepository.Create<ParameterParser<string>>();
             var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-            var context = mockOpenIdMessageContext.Object;
 
             const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2" };
@@ -103,16 +78,26 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
                 allowMultipleValues: false,
                 mockParser.Object);
 
+            var context = mockOpenIdMessageContext.Object;
             var descriptor = new ParameterDescriptor(knownParameter);
-            var parameter = new Parameter(descriptor);
+            var expectedParameter = new Parameter(descriptor, stringValues, stringValues);
 
             mockParser
-                .Setup(_ => _.Load(context, parameter, stringValues))
+                .Setup(_ => _.Load(context, descriptor, stringValues))
+                .Returns(expectedParameter)
                 .Verifiable();
 
-            parameter.Load(context, stringValues);
-            Assert.Empty(parameter.StringValues);
-            Assert.Null(parameter.ParsedValue);
+            KnownParameter? knownParameterBase = knownParameter;
+            mockOpenIdMessageContext
+                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
+                .Returns(true)
+                .Verifiable();
+
+            var actualParameter = Parameter.Load(context, parameterName, stringValues.AsEnumerable());
+
+            Assert.Equal(expectedParameter.Descriptor, actualParameter.Descriptor);
+            Assert.Equal(expectedParameter.StringValues, actualParameter.StringValues);
+            Assert.Same(expectedParameter.ParsedValue, actualParameter.ParsedValue);
         }
     }
 }

@@ -17,32 +17,39 @@
 
 #endregion
 
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Primitives;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
-    public class Parameter
+    public readonly struct Parameter
     {
         public ParameterDescriptor Descriptor { get; }
 
-        public StringValues StringValues { get; private set; }
+        public StringValues StringValues { get; }
 
-        public object? ParsedValue { get; private set; }
+        public object? ParsedValue { get; }
 
-        public Parameter(ParameterDescriptor descriptor)
+        public Parameter(ParameterDescriptor descriptor, StringValues stringValues, object? parsedValue = null)
         {
             Descriptor = descriptor;
-        }
-
-        public virtual void Update(StringValues stringValues, object? parsedValue)
-        {
             StringValues = stringValues;
             ParsedValue = parsedValue;
         }
 
-        public virtual void Load(IOpenIdMessageContext context, StringValues stringValues)
+        public static Parameter Load(IOpenIdMessageContext context, string parameterName, IEnumerable<string> stringValues)
         {
-            Descriptor.Loader.Load(context, this, stringValues);
+            return Load(context, parameterName, stringValues.ToArray());
+        }
+
+        public static Parameter Load(IOpenIdMessageContext context, string parameterName, StringValues stringValues)
+        {
+            var descriptor = context.TryGetKnownParameter(parameterName, out var knownParameter) ?
+                new ParameterDescriptor(knownParameter) :
+                new ParameterDescriptor(parameterName);
+
+            return descriptor.Loader.Load(context, descriptor, stringValues);
         }
     }
 }

@@ -44,7 +44,6 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             var jsonSerializerOptions = new JsonSerializerOptions();
 
             var descriptor = new ParameterDescriptor(parameterName);
-            var parameter = new Parameter(descriptor);
 
             var buffer = new ArrayBufferWriter<byte>();
             var writer = new Utf8JsonWriter(buffer);
@@ -55,10 +54,10 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var reader = new Utf8JsonReader(buffer.WrittenSpan);
 
-            parser.Load(context, parameter, ref reader, jsonSerializerOptions);
+            var parameter = parser.Load(context, descriptor, ref reader, jsonSerializerOptions);
 
-            Assert.IsType<JsonElement>(parameter.ParsedValue);
             Assert.Equal(expectedStringValue, parameter.StringValues);
+            Assert.IsType<JsonElement>(parameter.ParsedValue);
             Assert.Equal(expectedStringValue, JsonSerializer.Serialize(parameter.ParsedValue));
         }
     }

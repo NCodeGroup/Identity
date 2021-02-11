@@ -27,12 +27,12 @@ namespace NIdentity.OpenId.Messages.Parsers
     {
         public static DefaultJsonParser Instance { get; } = new();
 
-        public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
+        public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             var converter = (JsonConverter<JsonElement>)options.GetConverter(typeof(JsonElement));
             var jsonElement = converter.Read(ref reader, typeof(JsonElement), options);
             var stringValues = jsonElement.GetRawText();
-            parameter.Update(stringValues, jsonElement);
+            return new Parameter(descriptor, stringValues, jsonElement);
         }
     }
 }

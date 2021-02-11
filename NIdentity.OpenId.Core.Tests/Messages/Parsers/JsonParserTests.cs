@@ -35,15 +35,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var context = _mockOpenIdMessageContext.Object;
             var jsonSerializerOptions = new JsonSerializerOptions();
-            var converter =
-                (JsonConverter<TestNestedObject>)jsonSerializerOptions.GetConverter(typeof(TestNestedObject));
+            var converter = (JsonConverter<TestNestedObject>)jsonSerializerOptions.GetConverter(typeof(TestNestedObject));
 
             const string parameterName = "parameterName";
             var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
             var expectedValueAsJson = JsonSerializer.Serialize(expectedValue);
 
             var descriptor = new ParameterDescriptor(parameterName);
-            var parameter = new Parameter(descriptor);
 
             var buffer = new ArrayBufferWriter<byte>();
             var writer = new Utf8JsonWriter(buffer);
@@ -54,7 +52,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             Assert.True(reader.Read());
 
-            parser.Load(context, parameter, ref reader, jsonSerializerOptions);
+            var parameter = parser.Load(context, descriptor, ref reader, jsonSerializerOptions);
 
             Assert.Equal(expectedValueAsJson, parameter.StringValues);
             Assert.Equal(expectedValueAsJson, JsonSerializer.Serialize(parameter.ParsedValue));

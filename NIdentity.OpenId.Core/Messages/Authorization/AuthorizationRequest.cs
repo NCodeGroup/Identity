@@ -73,7 +73,7 @@ namespace NIdentity.OpenId.Messages.Authorization
 
         public string? CodeVerifier => OriginalRequestObject?.CodeVerifier ?? OriginalRequestMessage.CodeVerifier;
 
-        public DisplayType Display => OriginalRequestObject?.DisplayType ?? OriginalRequestMessage.DisplayType ?? DisplayType.Unspecified;
+        public DisplayType DisplayType => OriginalRequestObject?.DisplayType ?? OriginalRequestMessage.DisplayType ?? DisplayType.Page;
 
         public GrantType GrantType => DetermineGrantType(ResponseType);
 

@@ -42,7 +42,7 @@ namespace NIdentity.OpenId.Playground.Results
         /// <summary>
         /// Gets or sets the serializer settings.
         /// </summary>
-        public JsonSerializerOptions SerializerOptions { get; set; }
+        public JsonSerializerOptions? SerializerOptions { get; set; }
 
         /// <summary>
         /// Gets or sets the HTTP status code.

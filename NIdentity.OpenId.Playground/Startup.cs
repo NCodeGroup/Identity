@@ -163,7 +163,7 @@ namespace NIdentity.OpenId.Playground
 
     public class LoadAuthorization
     {
-        public HttpContext HttpContext { get; set; }
+        public HttpContext HttpContext { get; set; } = null!;
     }
 
     internal static class DispatchConfiguratorExtensions

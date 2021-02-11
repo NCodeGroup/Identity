@@ -20,8 +20,18 @@ using System.Threading.Tasks;
 
 namespace NIdentity.OpenId.Handlers
 {
+    /// <summary>
+    /// Defines a handler that accepts an input argument and doesn't return anything.
+    /// </summary>
+    /// <typeparam name="TRequestOrContext">The type of the input argument.</typeparam>
     public interface IRequestHandler<in TRequestOrContext>
     {
+        /// <summary>
+        /// Handles a request given an input argument.
+        /// </summary>
+        /// <param name="requestOrContext">The input argument for the request handler.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+        /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
         ValueTask HandleAsync(TRequestOrContext requestOrContext, CancellationToken cancellationToken);
     }
 }

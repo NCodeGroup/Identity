@@ -31,7 +31,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return value switch
             {
                 CodeChallengeMethod.Plain => OpenIdConstants.CodeChallengeMethods.Plain,
-                CodeChallengeMethod.S256 => OpenIdConstants.CodeChallengeMethods.S256,
+                CodeChallengeMethod.Sha256 => OpenIdConstants.CodeChallengeMethods.S256,
                 _ => null
             };
         }
@@ -61,7 +61,7 @@ namespace NIdentity.OpenId.Messages.Parsers
 
             if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.S256, StringComparison))
             {
-                return CodeChallengeMethod.S256;
+                return CodeChallengeMethod.Sha256;
             }
 
             throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);

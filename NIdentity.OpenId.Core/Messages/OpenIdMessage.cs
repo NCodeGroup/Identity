@@ -28,15 +28,22 @@ namespace NIdentity.OpenId.Messages
 {
     internal abstract class OpenIdMessage : IOpenIdMessage
     {
-        private readonly IOpenIdMessageContext? _context;
-
-        internal IDictionary<string, Parameter> Parameters { get; } = new Dictionary<string, Parameter>(StringComparer.Ordinal);
+        private bool _isInitialized;
+        private IOpenIdMessageContext? _context;
+        private Dictionary<string, Parameter>? _parameters;
 
         /// <inheritdoc />
-        public IOpenIdMessageContext Context
+        public IOpenIdMessageContext Context => _context ?? throw new InvalidOperationException("TODO");
+
+        public IReadOnlyDictionary<string, Parameter> Parameters => _parameters ?? throw new InvalidOperationException("TODO");
+
+        protected internal void Initialize(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
         {
-            get => _context ?? throw new InvalidOperationException("TODO");
-            init => _context = value;
+            if (_isInitialized) throw new InvalidOperationException("TODO");
+
+            _context = context;
+            _parameters = parameters.ToDictionary(parameter => parameter.Descriptor.ParameterName, StringComparer.Ordinal);
+            _isInitialized = true;
         }
 
         /// <inheritdoc />
@@ -82,43 +89,52 @@ namespace NIdentity.OpenId.Messages
 
         protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
         {
+            var context = _context ?? throw new InvalidOperationException("TODO");
+            var parameters = _parameters ?? throw new InvalidOperationException("TODO");
+
             var parameterName = knownParameter.Name;
             if (parsedValue is null)
             {
-                Parameters.Remove(parameterName);
+                parameters.Remove(parameterName);
                 return;
             }
 
-            var stringValues = knownParameter.Parser.Serialize(Context, parsedValue);
+            var stringValues = knownParameter.Parser.Serialize(context, parsedValue);
             if (StringValues.IsNullOrEmpty(stringValues))
             {
-                Parameters.Remove(parameterName);
+                parameters.Remove(parameterName);
                 return;
             }
 
-            if (!Parameters.TryGetValue(parameterName, out var parameter))
-            {
-                parameter = new Parameter(new ParameterDescriptor(knownParameter));
-                Parameters[parameterName] = parameter;
-            }
+            var descriptor = new ParameterDescriptor(knownParameter);
+            var parameter = descriptor.Loader.Load(context, descriptor, stringValues, parsedValue);
+            parameters[knownParameter.Name] = parameter;
+        }
+    }
 
-            parameter.Update(stringValues, parsedValue);
+    internal abstract class OpenIdMessage<T> : OpenIdMessage
+        where T : OpenIdMessage, new()
+    {
+        public static T Load(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
+        {
+            var message = new T();
+            message.Initialize(context, parameters);
+            return message;
         }
 
-        /// <inheritdoc />
-        public void LoadParameter(string parameterName, StringValues stringValues)
+        public static T Load(IOpenIdMessageContext context, IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues)
         {
-            if (!Parameters.TryGetValue(parameterName, out var parameter))
-            {
-                var descriptor = Context.TryGetKnownParameter(parameterName, out var knownParameter) ?
-                    new ParameterDescriptor(knownParameter) :
-                    new ParameterDescriptor(parameterName);
+            var parameters = parameterStringValues
+                .GroupBy(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.AsEnumerable(),
+                    StringComparer.Ordinal)
+                .Select(grouping => Parameter.Load(
+                    context,
+                    grouping.Key,
+                    grouping.SelectMany(stringValues => stringValues)));
 
-                parameter = new Parameter(descriptor);
-                Parameters[parameterName] = parameter;
-            }
-
-            parameter.Load(Context, stringValues);
+            return Load(context, parameters);
         }
     }
 }

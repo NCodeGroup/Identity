@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         }
 
         [Fact]
-        public void LoadNestedJson_GivenInvalidTokenType_ThenThrows()
+        public void LoadParameter_GivenInvalidTokenType_ThenThrows()
         {
             var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
 
@@ -43,18 +43,16 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             jsonWriter.WriteNullValue();
             jsonWriter.Flush();
 
-            var message = new TestOpenIdMessage();
-
             Assert.Throws<JsonException>(() =>
             {
                 var reader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
-                converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, parameterName);
+                converter.LoadParameter(parameterName, ref reader, jsonSerializerOptions);
             });
         }
 
         [Fact]
-        public void LoadNestedJson_GivenStringValueInObject_ThenValid()
+        public void LoadParameter_GivenStringValueInObject_ThenValid()
         {
             var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
 
@@ -83,22 +81,17 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.True(reader.Read());
             Assert.Equal(JsonTokenType.StartObject, reader.TokenType);
 
-            var message = new TestOpenIdMessage();
-
-            converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, parameterName);
+            var parameter = converter.LoadParameter(parameterName, ref reader, jsonSerializerOptions);
 
             Assert.Equal(JsonTokenType.EndObject, reader.TokenType);
-
-            var (key, value) = Assert.Single(message.Parameters);
-            Assert.Equal(parameterName, key);
-            Assert.Equal(parameterName, value.Descriptor.ParameterName);
-            Assert.Null(value.Descriptor.KnownParameter);
-            Assert.Equal(expectedValue, value.StringValues);
-            Assert.Equal(expectedValue, JsonSerializer.Serialize(value.ParsedValue));
+            Assert.Equal(parameterName, parameter.Descriptor.ParameterName);
+            Assert.Null(parameter.Descriptor.KnownParameter);
+            Assert.Equal(expectedValue, parameter.StringValues);
+            Assert.Equal(expectedValue, JsonSerializer.Serialize(parameter.ParsedValue));
         }
 
         [Fact]
-        public void LoadNestedJson_GivenStringValueInArray_ThenValid()
+        public void LoadParameter_GivenStringValueInArray_ThenValid()
         {
             var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
 
@@ -126,24 +119,20 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.True(reader.Read());
             Assert.Equal(JsonTokenType.StartArray, reader.TokenType);
 
-            var message = new TestOpenIdMessage();
-
-            converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, parameterName);
+            var parameter = converter.LoadParameter(parameterName, ref reader, jsonSerializerOptions);
 
             Assert.Equal(JsonTokenType.EndArray, reader.TokenType);
-
-            var (key, value) = Assert.Single(message.Parameters);
-            Assert.Equal(parameterName, key);
-            Assert.Equal(parameterName, value.Descriptor.ParameterName);
-            Assert.Null(value.Descriptor.KnownParameter);
-            Assert.Equal(expectedValue, value.StringValues);
-            Assert.Equal(expectedValue, JsonSerializer.Serialize(value.ParsedValue));
+            Assert.Equal(parameterName, parameter.Descriptor.ParameterName);
+            Assert.Null(parameter.Descriptor.KnownParameter);
+            Assert.Equal(expectedValue, parameter.StringValues);
+            Assert.Equal(expectedValue, JsonSerializer.Serialize(parameter.ParsedValue));
         }
 
         [Fact]
-        public void LoadNestedJson_GivenJsonParser_WhenSuccess_ThenParameterAdded()
+        public void LoadParameter_GivenJsonParser_WhenSuccess_ThenParameterAdded()
         {
-            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
+            var context = _mockOpenIdMessageContext.Object;
+            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(context);
 
             var jsonSerializerOptions = new JsonSerializerOptions();
             var bufferWriter = new ArrayBufferWriter<byte>();
@@ -177,28 +166,23 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             Assert.True(reader.Read());
             Assert.Equal(JsonTokenType.StartObject, reader.TokenType);
 
-            var message = new TestOpenIdMessage();
-
-            converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, parameterName);
+            var parameter = converter.LoadParameter(parameterName, ref reader, jsonSerializerOptions);
 
             Assert.Equal(JsonTokenType.EndObject, reader.TokenType);
-
-            var (key, value) = Assert.Single(message.Parameters);
-            Assert.Equal(parameterName, key);
-            Assert.Equal(parameterName, value.Descriptor.ParameterName);
-            Assert.Same(knownParameter, value.Descriptor.KnownParameter);
-            Assert.Equal(expectedValue, value.StringValues);
-            Assert.Equal(expectedValue, JsonSerializer.Serialize(value.ParsedValue));
+            Assert.Equal(parameterName, parameter.Descriptor.ParameterName);
+            Assert.Same(knownParameter, parameter.Descriptor.KnownParameter);
+            Assert.Equal(expectedValue, parameter.StringValues);
+            Assert.Equal(expectedValue, JsonSerializer.Serialize(parameter.ParsedValue));
         }
 
-        private static void LoadJsonValid(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
+        private static Parameter LoadJsonValid(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             Assert.True(reader.Read());
             Assert.Equal(JsonTokenType.PropertyName, reader.TokenType);
 
             var parameterName = reader.GetString();
             Assert.NotNull(parameterName);
-            Assert.Equal(parameter.Descriptor.ParameterName, parameterName);
+            Assert.Equal(descriptor.ParameterName, parameterName);
 
             Assert.True(reader.Read());
             Assert.Equal(JsonTokenType.String, reader.TokenType);
@@ -212,13 +196,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             var json = JsonSerializer.Serialize(new Dictionary<string, object> { [parameterName!] = stringValue! });
             var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
 
-            parameter.Update(json, jsonElement);
+            return new Parameter(descriptor, json, jsonElement);
         }
 
         [Fact]
-        public void LoadNestedJson_GivenJsonParser_WhenFailure_ThenParameterNotAdded()
+        public void LoadParameter_GivenJsonParser_WhenFailure_ThenParameterNotAdded()
         {
-            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
+            var context = _mockOpenIdMessageContext.Object;
+            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(context);
 
             var jsonSerializerOptions = new JsonSerializerOptions();
             var bufferWriter = new ArrayBufferWriter<byte>();
@@ -247,6 +232,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             jsonWriter.Flush();
 
             var message = new TestOpenIdMessage();
+            message.Initialize(context, Array.Empty<Parameter>());
 
             Assert.Throws<InvalidOperationException>(() =>
             {
@@ -255,13 +241,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages
                 Assert.True(reader.Read());
                 Assert.Equal(JsonTokenType.StartObject, reader.TokenType);
 
-                converter.LoadNestedJson(ref reader, jsonSerializerOptions, message, parameterName);
+                converter.LoadParameter(parameterName, ref reader, jsonSerializerOptions);
             });
 
             Assert.Empty(message.Parameters);
         }
 
-        private static void LoadJsonThrows(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
+        private static Parameter LoadJsonThrows(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             throw new InvalidOperationException();
         }
@@ -852,13 +838,15 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         [Fact]
         public void Write_GivenEmpty_ThenValid()
         {
-            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
+            var context = _mockOpenIdMessageContext.Object;
+            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(context);
 
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
             var jsonSerializerOptions = new JsonSerializerOptions();
 
             var message = new TestOpenIdMessage();
+            message.Initialize(context, Array.Empty<Parameter>());
 
             converter.Write(jsonWriter, message, jsonSerializerOptions);
             jsonWriter.Flush();
@@ -875,27 +863,19 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         [Fact]
         public void Write_GivenStringValue_ThenValid()
         {
-            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
+            var context = _mockOpenIdMessageContext.Object;
+            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(context);
 
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
             var jsonSerializerOptions = new JsonSerializerOptions();
 
-            var message = new TestOpenIdMessage
-            {
-                Context = _mockOpenIdMessageContext.Object
-            };
-
             const string parameterName = "parameterName";
             const string stringValue = "stringValue";
 
-            KnownParameter? knownParameter = null;
-            _mockOpenIdMessageContext
-                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
-                .Returns(false)
-                .Verifiable();
-
-            message.LoadParameter(parameterName, stringValue);
+            var message = new TestOpenIdMessage();
+            var parameter = new Parameter(new ParameterDescriptor(parameterName), stringValue);
+            message.Initialize(context, new[] { parameter });
 
             converter.Write(jsonWriter, message, jsonSerializerOptions);
             jsonWriter.Flush();
@@ -920,27 +900,19 @@ namespace NIdentity.OpenId.Core.Tests.Messages
         [Fact]
         public void Write_GivenStringList_ThenValid()
         {
-            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(_mockOpenIdMessageContext.Object);
+            var context = _mockOpenIdMessageContext.Object;
+            var converter = new OpenIdMessageJsonConverter<TestOpenIdMessage>(context);
 
             var bufferWriter = new ArrayBufferWriter<byte>();
             var jsonWriter = new Utf8JsonWriter(bufferWriter);
             var jsonSerializerOptions = new JsonSerializerOptions();
 
-            var message = new TestOpenIdMessage
-            {
-                Context = _mockOpenIdMessageContext.Object
-            };
-
             const string parameterName = "parameterName";
             var stringValues = new[] { "value1", "value2" };
 
-            KnownParameter? knownParameter = null;
-            _mockOpenIdMessageContext
-                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameter))
-                .Returns(false)
-                .Verifiable();
-
-            message.LoadParameter(parameterName, stringValues);
+            var message = new TestOpenIdMessage();
+            var parameter = new Parameter(new ParameterDescriptor(parameterName), stringValues);
+            message.Initialize(context, new[] { parameter });
 
             converter.Write(jsonWriter, message, jsonSerializerOptions);
             jsonWriter.Flush();

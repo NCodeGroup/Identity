@@ -25,7 +25,7 @@ using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Core.Tests.Messages
 {
-    internal delegate void LoadJsonDelegate(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options);
+    internal delegate Parameter LoadJsonDelegate(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options);
 
     internal interface ITestParameterParser
     {
@@ -55,9 +55,9 @@ namespace NIdentity.OpenId.Core.Tests.Messages
             return _innerParser.Parse(context, descriptor, stringValues);
         }
 
-        public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
+        public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
-            _loadJsonDelegate?.Invoke(context, parameter, ref reader, options);
+            return _loadJsonDelegate?.Invoke(context, descriptor, ref reader, options) ?? new Parameter();
         }
     }
 }

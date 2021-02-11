@@ -58,8 +58,7 @@ namespace NIdentity.OpenId.Messages
 
         public JsonSerializerOptions JsonSerializerOptions { get; }
 
-        // ReSharper disable once SuggestBaseTypeForParameter
-        public OpenIdMessageContext(ILogger<OpenIdMessageContext> logger)
+        public OpenIdMessageContext(ILogger logger)
         {
             Logger = logger;
             JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)

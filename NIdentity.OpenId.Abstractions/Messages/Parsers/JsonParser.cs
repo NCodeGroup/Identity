@@ -11,17 +11,17 @@ namespace NIdentity.OpenId.Messages.Parsers
 {
     public interface IJsonParser
     {
-        void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options);
+        Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options);
     }
 
     public class JsonParser<T> : ParameterParser<T?>, IJsonParser
     {
-        public void Load(IOpenIdMessageContext context, Parameter parameter, ref Utf8JsonReader reader, JsonSerializerOptions options)
+        public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             var converter = (JsonConverter<T>)options.GetConverter(typeof(T));
             var parsedValue = converter.Read(ref reader, typeof(T), options);
             var stringValues = JsonSerializer.Serialize(parsedValue, options);
-            parameter.Update(stringValues, parsedValue);
+            return new Parameter(descriptor, stringValues, parsedValue);
         }
 
         public override StringValues Serialize(IOpenIdMessageContext context, T? value)

@@ -70,14 +70,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             const string parsedValue = "parsedValue";
 
             var descriptor = new ParameterDescriptor(parameterName);
-            var parameter = new Parameter(descriptor);
 
             _mockTestParameterParser
                 .Setup(_ => _.Parse(context, descriptor, stringValues))
                 .Returns(parsedValue)
                 .Verifiable();
 
-            parser.Load(context, parameter, stringValues);
+            var parameter = parser.Load(context, descriptor, stringValues);
             Assert.Equal(stringValues, parameter.StringValues);
             Assert.Same(parsedValue, parameter.ParsedValue);
         }

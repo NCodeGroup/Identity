@@ -42,7 +42,6 @@ namespace NIdentity.OpenId.Playground.Logic
         private readonly ILogger<LoadAuthorizationRequestHandler> _logger;
         private readonly AuthorizationOptions _options;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IOpenIdMessageFactory _openIdMessageFactory;
         private readonly IClientStore _clientStore;
         private readonly ISecretService _secretService;
         private readonly IJwtDecoder _jwtDecoder;
@@ -51,7 +50,6 @@ namespace NIdentity.OpenId.Playground.Logic
             ILogger<LoadAuthorizationRequestHandler> logger,
             IOptions<AuthorizationOptions> optionsAccessor,
             IHttpClientFactory httpClientFactory,
-            IOpenIdMessageFactory openIdMessageFactory,
             IClientStore clientStore,
             ISecretService secretService,
             IJwtDecoder jwtDecoder)
@@ -59,7 +57,6 @@ namespace NIdentity.OpenId.Playground.Logic
             _logger = logger;
             _options = optionsAccessor.Value;
             _httpClientFactory = httpClientFactory;
-            _openIdMessageFactory = openIdMessageFactory;
             _clientStore = clientStore;
             _secretService = secretService;
             _jwtDecoder = jwtDecoder;
@@ -70,7 +67,7 @@ namespace NIdentity.OpenId.Playground.Logic
         {
             var httpContext = requestOrContext.HttpContext;
 
-            var messageContext = _openIdMessageFactory.CreateContext();
+            var messageContext = new OpenIdMessageContext(_logger);
 
             var requestMessage = LoadRequestMessage(httpContext, messageContext);
 
@@ -198,16 +195,16 @@ namespace NIdentity.OpenId.Playground.Logic
             }
         }
 
-        private IAuthorizationRequestMessage LoadRequestMessage(HttpContext httpContext, IOpenIdMessageContext messageContext)
+        private static IAuthorizationRequestMessage LoadRequestMessage(HttpContext httpContext, IOpenIdMessageContext messageContext)
         {
-            IEnumerable<KeyValuePair<string, StringValues>> source;
+            IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues;
             if (HttpMethods.IsGet(httpContext.Request.Method))
             {
-                source = httpContext.Request.Query;
+                parameterStringValues = httpContext.Request.Query;
             }
             else if (HttpMethods.IsPost(httpContext.Request.Method))
             {
-                source = httpContext.Request.Form;
+                parameterStringValues = httpContext.Request.Form;
             }
             else
             {
@@ -217,11 +214,7 @@ namespace NIdentity.OpenId.Playground.Logic
                     .WithStatusCode(StatusCodes.Status405MethodNotAllowed);
             }
 
-            var requestMessage = _openIdMessageFactory.Create<IAuthorizationRequestMessage>(messageContext);
-
-            requestMessage.Load(source);
-
-            return requestMessage;
+            return AuthorizationRequestMessage.Load(messageContext, parameterStringValues);
         }
     }
 }

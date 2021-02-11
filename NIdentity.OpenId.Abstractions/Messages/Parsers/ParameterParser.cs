@@ -33,10 +33,10 @@ namespace NIdentity.OpenId.Messages.Parsers
 
         public abstract T Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues);
 
-        public override void Load(IOpenIdMessageContext context, Parameter parameter, StringValues stringValues)
+        public override Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
-            var parsedValue = Parse(context, parameter.Descriptor, stringValues);
-            parameter.Update(stringValues, parsedValue);
+            var parsedValue = Parse(context, descriptor, stringValues);
+            return new Parameter(descriptor, stringValues, parsedValue);
         }
     }
 }

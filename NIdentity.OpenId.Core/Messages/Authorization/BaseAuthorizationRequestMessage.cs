@@ -23,7 +23,8 @@ using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
-    internal class BaseAuthorizationRequestMessage : OpenIdMessage
+    internal class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
+        where T : OpenIdMessage, new()
     {
         public IReadOnlyCollection<string>? AcrValues
         {

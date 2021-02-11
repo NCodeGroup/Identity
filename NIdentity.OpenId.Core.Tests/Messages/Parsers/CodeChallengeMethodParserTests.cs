@@ -37,7 +37,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         public void Serialize_GivenS256_ThenValid()
         {
             var parser = new CodeChallengeMethodParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, CodeChallengeMethod.S256);
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, CodeChallengeMethod.Sha256);
             Assert.Equal("S256", result);
         }
 
@@ -178,7 +178,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
             var descriptor = new ParameterDescriptor(knownParameter);
 
             var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(CodeChallengeMethod.S256, result);
+            Assert.Equal(CodeChallengeMethod.Sha256, result);
         }
 
         [Fact]

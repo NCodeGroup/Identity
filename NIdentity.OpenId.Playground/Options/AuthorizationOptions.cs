@@ -2,6 +2,6 @@
 {
     public class AuthorizationOptions
     {
-        public AuthorizationRequestObjectOptions RequestObject { get; set; }
+        public AuthorizationRequestObjectOptions RequestObject { get; set; } = null!;
     }
 }

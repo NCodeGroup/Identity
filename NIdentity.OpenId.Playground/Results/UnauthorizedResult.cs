@@ -42,7 +42,7 @@ namespace NIdentity.OpenId.Playground.Results
         /// <summary>
         /// Gets or sets the error details.
         /// </summary>
-        public IErrorDetails ErrorDetails { get; set; }
+        public IErrorDetails? ErrorDetails { get; set; }
 
         /// <inheritdoc />
         public override Task ExecuteAsync(HttpContext httpContext)

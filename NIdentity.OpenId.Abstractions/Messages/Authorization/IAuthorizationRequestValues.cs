@@ -22,44 +22,104 @@ using System.Collections.Generic;
 
 namespace NIdentity.OpenId.Messages.Authorization
 {
+    /// <summary>
+    /// Contains the common values used in an <c>OAuth</c> or <c>OpenID Connect</c> authorization request.
+    /// </summary>
     public interface IAuthorizationRequestValues
     {
+        /// <summary>
+        /// Gets the <c>acr_values</c> parameter.
+        /// </summary>
         IReadOnlyCollection<string>? AcrValues { get; }
 
+        /// <summary>
+        /// Gets the <c>claims</c> parameter.
+        /// </summary>
         IRequestClaims? Claims { get; }
 
+        /// <summary>
+        /// Gets the <c>claims_locales</c> parameter.
+        /// </summary>
         IReadOnlyCollection<string>? ClaimsLocales { get; }
 
+        /// <summary>
+        /// Gets the <c>client_id</c> parameter.
+        /// </summary>
         string? ClientId { get; }
 
+        /// <summary>
+        /// Gets the <c>code_challenge</c> parameter.
+        /// </summary>
         string? CodeChallenge { get; }
 
+        /// <summary>
+        /// Gets the <c>code_challenge_method</c> parameter.
+        /// </summary>
         CodeChallengeMethod? CodeChallengeMethod { get; }
 
+        /// <summary>
+        /// Gets the <c>code_verifier</c> parameter.
+        /// </summary>
         string? CodeVerifier { get; }
 
+        /// <summary>
+        /// Gets the <c>display</c> parameter.
+        /// </summary>
         DisplayType? DisplayType { get; }
 
+        /// <summary>
+        /// Gets the <c>id_token_hint</c> parameter.
+        /// </summary>
         string? IdTokenHint { get; }
 
+        /// <summary>
+        /// Gets the <c>login_hint</c> parameter.
+        /// </summary>
         string? LoginHint { get; }
 
+        /// <summary>
+        /// Gets the <c>max_age</c> parameter.
+        /// </summary>
         TimeSpan? MaxAge { get; }
 
+        /// <summary>
+        /// Gets the <c>nonce</c> parameter.
+        /// </summary>
         string? Nonce { get; }
 
+        /// <summary>
+        /// Gets the <c>prompt</c> parameter.
+        /// </summary>
         PromptTypes? PromptType { get; }
 
+        /// <summary>
+        /// Gets the <c>redirect_uri</c> parameter.
+        /// </summary>
         Uri? RedirectUri { get; }
 
+        /// <summary>
+        /// Gets the <c>response_mode</c> parameter.
+        /// </summary>
         ResponseMode? ResponseMode { get; }
 
+        /// <summary>
+        /// Gets the <c>response_type</c> parameter.
+        /// </summary>
         ResponseTypes? ResponseType { get; }
 
+        /// <summary>
+        /// Gets the <c>scope</c> parameter.
+        /// </summary>
         IReadOnlyCollection<string>? Scopes { get; }
 
+        /// <summary>
+        /// Gets the <c>state</c> parameter.
+        /// </summary>
         string? State { get; }
 
+        /// <summary>
+        /// Gets the <c>ui_locales</c> parameter.
+        /// </summary>
         IReadOnlyCollection<string>? UiLocales { get; }
     }
 }

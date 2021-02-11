@@ -19,10 +19,24 @@
 
 namespace NIdentity.OpenId
 {
+    /// <summary>
+    /// Specifies which transformation to use when verifying the PKCE code challenge.
+    /// </summary>
     public enum CodeChallengeMethod
     {
+        /// <summary>
+        /// Represents a value that hasn't been initialized yet.
+        /// </summary>
         Unspecified = 0,
+
+        /// <summary>
+        /// Specifies to use the <c>plain</c> PKCE code challenge method.
+        /// </summary>
         Plain,
-        S256
+
+        /// <summary>
+        /// Specifies to use the <c>S256</c> PKCE code challenge method.
+        /// </summary>
+        Sha256
     }
 }

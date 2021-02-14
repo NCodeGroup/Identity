@@ -32,7 +32,7 @@ namespace NIdentity.OpenId.Playground.Results
         public BadRequestResult(IErrorDetails errorDetails)
             : base(errorDetails)
         {
-            StatusCode = DefaultStatusCode;
+            StatusCode = errorDetails.StatusCode ?? DefaultStatusCode;
         }
 
         /// <inheritdoc />

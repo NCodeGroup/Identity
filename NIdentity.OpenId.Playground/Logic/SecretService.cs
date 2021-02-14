@@ -48,8 +48,17 @@ public static class SecurityAlgorithms
 
 namespace NIdentity.OpenId.Playground.Logic
 {
+    /// <summary>
+    /// Provides methods that operate on <see cref="Secret"/>.
+    /// </summary>
     public interface ISecretService
     {
+        /// <summary>
+        /// Given a collection of <see cref="Secret"/> items, converts and loads them into a disposable collection of
+        /// <see cref="SecurityKey"/> items.
+        /// </summary>
+        /// <param name="secrets">The secrets to convert and load.</param>
+        /// <returns>The collection of <see cref="SecurityKey"/> items.</returns>
         ISecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets);
     }
 

@@ -5,6 +5,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace NIdentity.OpenId.Playground.Logic
 {
+    /// <summary>
+    /// Provides a collection of <see cref="SecurityKey"/> items that are disposed when the collection itself is disposed.
+    /// </summary>
     public interface ISecurityKeyCollection : IReadOnlyCollection<SecurityKey>, IDisposable
     {
         // nothing

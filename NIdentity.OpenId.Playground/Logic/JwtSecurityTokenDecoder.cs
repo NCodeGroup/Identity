@@ -19,25 +19,29 @@
 
 using System;
 using System.IdentityModel.Tokens.Jwt;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace NIdentity.OpenId.Playground.Logic
 {
+    /// <summary>
+    /// Provides an abstraction to decode and validate Json Web Tokens (i.e. JWT).
+    /// For more information see: http://tools.ietf.org/html/rfc7519 and http://www.rfc-editor.org/info/rfc7515
+    /// </summary>
     public interface IJwtDecoder
     {
+        /// <summary>
+        /// Validates a Json Web Token (JWT) and returns the decoded JSON payload.
+        /// </summary>
+        /// <param name="jwt">The Json Web Token to decode and validate.</param>
+        /// <param name="issuer">A <see cref="String"/> that represents a valid issuer that will be used to check against the token's issuer.</param>
+        /// <param name="audience">A <see cref="String"/> that represents a valid audience that will be used to check against the token's audience.</param>
+        /// <param name="securityKeys">An <see cref="ISecurityKeyCollection"/> used for signature validation.</param>
+        /// <returns>The decoded payload from Json Web Token in JSON format.</returns>
         string DecodeJwt(string jwt, string issuer, string audience, ISecurityKeyCollection securityKeys);
     }
 
     internal class JwtSecurityTokenDecoder : IJwtDecoder
     {
-        private readonly ILogger<JwtSecurityTokenDecoder> _logger;
-
-        public JwtSecurityTokenDecoder(ILogger<JwtSecurityTokenDecoder> logger)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
-
         public string DecodeJwt(string jwt, string issuer, string audience, ISecurityKeyCollection securityKeys)
         {
             var jwtSecurityTokenHandler = new JwtSecurityTokenHandler

@@ -18,41 +18,75 @@
 #endregion
 
 using System;
+using Microsoft.Extensions.Primitives;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
+    /// <summary>
+    /// Contains information about how an <c>OAuth</c> or <c>OpenId Connect</c> parameter should be parsed and loaded.
+    /// </summary>
     public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ParameterDescriptor"/> struct using a <see cref="KnownParameter"/>.
+        /// </summary>
+        /// <param name="knownParameter">The <see cref="KnownParameter"/>.</param>
         public ParameterDescriptor(KnownParameter knownParameter)
         {
             ParameterName = knownParameter.Name;
             KnownParameter = knownParameter;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ParameterDescriptor"/> struct using a parameter name.
+        /// </summary>
+        /// <param name="parameterName">The name of the parameter.</param>
         public ParameterDescriptor(string parameterName)
         {
             ParameterName = parameterName;
             KnownParameter = null;
         }
 
+        /// <summary>
+        /// Gets the name of the parameter.
+        /// </summary>
         public string ParameterName { get; }
 
+        /// <summary>
+        /// Gets the <see cref="KnownParameter"/> or <c>null</c> if none provided.
+        /// </summary>
         public KnownParameter? KnownParameter { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the parameter is optional or required when parsing. Returns the result from
+        /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>true</c>.
+        /// </summary>
         public bool Optional => KnownParameter?.Optional ?? true;
 
+        /// <summary>
+        /// Gets a value indicating whether the parameter allows multiple values when parsing. Returns the result from
+        /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>true</c>.
+        /// </summary>
         public bool AllowMultipleValues => KnownParameter?.AllowMultipleValues ?? true;
 
+        /// <summary>
+        /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given
+        /// <see cref="StringValues"/>. Uses the result from <see cref="KnownParameter"/> if one was provided; otherwise
+        /// always returns <see cref="ParameterLoader.Default"/>.
+        /// </summary>
         public ParameterLoader Loader => KnownParameter?.Loader ?? ParameterLoader.Default;
 
+        /// <inheritdoc/>
         public override bool Equals(object? obj) =>
             obj is ParameterDescriptor other && Equals(other);
 
+        /// <inheritdoc/>
         public bool Equals(ParameterDescriptor other) =>
             KnownParameter == null ?
                 string.Equals(ParameterName, other.ParameterName, StringComparison.Ordinal) :
                 KnownParameter == other.KnownParameter;
 
+        /// <inheritdoc/>
         public override int GetHashCode() =>
             KnownParameter?.GetHashCode() ?? StringComparer.Ordinal.GetHashCode(ParameterName);
     }

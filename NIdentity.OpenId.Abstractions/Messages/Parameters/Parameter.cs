@@ -23,14 +23,32 @@ using Microsoft.Extensions.Primitives;
 
 namespace NIdentity.OpenId.Messages.Parameters
 {
+    /// <summary>
+    /// Contains the parsed value and string values from which a parameter was parsed from.
+    /// </summary>
     public readonly struct Parameter
     {
+        /// <summary>
+        /// Gets the <see cref="ParameterDescriptor"/> that describes this parameter.
+        /// </summary>
         public ParameterDescriptor Descriptor { get; }
 
+        /// <summary>
+        /// Gets the <see cref="StringValues"/> that this parameter was loaded with.
+        /// </summary>
         public StringValues StringValues { get; }
 
+        /// <summary>
+        /// Gets the <see cref="object"/> value that this parameter was parsed with.
+        /// </summary>
         public object? ParsedValue { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Parameter"/> struct.
+        /// </summary>
+        /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes this parameter.</param>
+        /// <param name="stringValues">The <see cref="StringValues"/> that this parameter was loaded with.</param>
+        /// <param name="parsedValue">The <see cref="object"/> value that this parameter was parsed with.</param>
         public Parameter(ParameterDescriptor descriptor, StringValues stringValues, object? parsedValue = null)
         {
             Descriptor = descriptor;
@@ -38,11 +56,25 @@ namespace NIdentity.OpenId.Messages.Parameters
             ParsedValue = parsedValue;
         }
 
+        /// <summary>
+        /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
+        /// </summary>
+        /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use while loading the parameter.</param>
+        /// <param name="parameterName">The name of parameter.</param>
+        /// <param name="stringValues">The string values to parse for the parameter.</param>
+        /// <returns>The newly parsed and loaded parameter.</returns>
         public static Parameter Load(IOpenIdMessageContext context, string parameterName, IEnumerable<string> stringValues)
         {
             return Load(context, parameterName, stringValues.ToArray());
         }
 
+        /// <summary>
+        /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
+        /// </summary>
+        /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use while loading the parameter.</param>
+        /// <param name="parameterName">The name of parameter.</param>
+        /// <param name="stringValues">The string values to parse for the parameter.</param>
+        /// <returns>The newly parsed and loaded parameter.</returns>
         public static Parameter Load(IOpenIdMessageContext context, string parameterName, StringValues stringValues)
         {
             var descriptor = context.TryGetKnownParameter(parameterName, out var knownParameter) ?

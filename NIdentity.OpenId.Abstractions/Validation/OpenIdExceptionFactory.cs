@@ -21,8 +21,17 @@ using System;
 
 namespace NIdentity.OpenId.Validation
 {
+    /// <summary>
+    /// Provides the ability to create an <see cref="OpenIdException"/> instance from an <c>OAuth</c> or <c>OpenID Connect</c> error.
+    /// </summary>
     public interface IOpenIdExceptionFactory
     {
+        /// <summary>
+        /// Creates an <see cref="OpenIdException"/> instance from an <c>OAuth</c> or <c>OpenID Connect</c> error.
+        /// </summary>
+        /// <param name="errorCode">The error code value.</param>
+        /// <param name="innerException">The optional inner <see cref="Exception"/> if any.</param>
+        /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         OpenIdException Create(string errorCode, Exception? innerException = null);
     }
 

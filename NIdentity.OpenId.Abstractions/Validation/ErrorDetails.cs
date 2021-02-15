@@ -33,7 +33,7 @@ namespace NIdentity.OpenId.Validation
     }
 
     /// <summary>
-    /// Represents the response payload when an error occurs.
+    /// Provides a default implementation for the <see cref="IErrorDetails"/> interface.
     /// </summary>
     public class ErrorDetails : IErrorDetails
     {

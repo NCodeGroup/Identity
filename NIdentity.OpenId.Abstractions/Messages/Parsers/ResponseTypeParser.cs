@@ -25,8 +25,12 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
+    /// <summary>
+    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="ResponseTypes"/> values.
+    /// </summary>
     public class ResponseTypeParser : ParameterParser<ResponseTypes?>
     {
+        /// <inheritdoc/>
         public override StringValues Serialize(IOpenIdMessageContext context, ResponseTypes? value)
         {
             if (value is null || value == ResponseTypes.Unspecified)
@@ -48,6 +52,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, list);
         }
 
+        /// <inheritdoc/>
         public override ResponseTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);

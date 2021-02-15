@@ -19,11 +19,18 @@
 
 namespace NIdentity.OpenId.Requests
 {
+    /// <summary>
+    /// Defines the request contract used by request handlers that don't return a value.
+    /// </summary>
     public interface IRequest
     {
         // nothing
     }
 
+    /// <summary>
+    /// Defines the request contract used by request handlers that return a value.
+    /// </summary>
+    /// <typeparam name="TResponse">The type of the return value.</typeparam>
     public interface IRequest<out TResponse>
     {
         // nothing

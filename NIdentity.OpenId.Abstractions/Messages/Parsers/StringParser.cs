@@ -23,13 +23,18 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
+    /// <summary>
+    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="string"/> values.
+    /// </summary>
     public class StringParser : ParameterParser<string?>
     {
+        /// <inheritdoc/>
         public override StringValues Serialize(IOpenIdMessageContext context, string? value)
         {
             return value;
         }
 
+        /// <inheritdoc/>
         public override string? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
         {
             0 when descriptor.Optional => null,

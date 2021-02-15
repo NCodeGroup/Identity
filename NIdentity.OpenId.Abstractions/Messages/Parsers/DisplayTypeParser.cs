@@ -24,8 +24,12 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
+    /// <summary>
+    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="DisplayType"/> values.
+    /// </summary>
     public class DisplayTypeParser : ParameterParser<DisplayType?>
     {
+        /// <inheritdoc/>
         public override StringValues Serialize(IOpenIdMessageContext context, DisplayType? value)
         {
             return value switch
@@ -38,6 +42,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             };
         }
 
+        /// <inheritdoc/>
         public override DisplayType? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);

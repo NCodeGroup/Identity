@@ -26,7 +26,7 @@ using NIdentity.OpenId.Messages.Parsers;
 namespace NIdentity.OpenId.Messages.Parameters
 {
     /// <summary>
-    /// Contains constants for various <see cref="KnownParameters"/> used by <c>OAuth</c> or <c>OpenID Connect</c> messages.
+    /// Contains constants for various <see cref="KnownParameters"/> used by <c>OAuth</c> and <c>OpenID Connect</c> messages.
     /// </summary>
     public static class KnownParameters
     {

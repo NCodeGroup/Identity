@@ -23,9 +23,20 @@ using NIdentity.OpenId.Requests;
 
 namespace NIdentity.OpenId.Handlers
 {
+    /// <summary>
+    /// Defines a handler that accepts an input argument and returns a value.
+    /// </summary>
+    /// <typeparam name="TRequest">The type of the input argument.</typeparam>
+    /// <typeparam name="TResponse">The type of the return value.</typeparam>
     public interface IRequestResponseHandler<in TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
+        /// <summary>
+        /// Handles a request given an input argument and returns a value.
+        /// </summary>
+        /// <param name="request">The input argument to handle.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+        /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation and contains its resulting value.</returns>
         ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
     }
 }

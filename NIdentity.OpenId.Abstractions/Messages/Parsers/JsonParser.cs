@@ -55,7 +55,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             catch (Exception innerException)
             {
                 var exception = OpenIdException.Factory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest, innerException);
-                context.Logger.LogError(exception, exception.ErrorDescription);
+                context.Logger.LogError(exception, exception.ErrorDetails.Description);
                 throw exception;
             }
         }

@@ -157,7 +157,7 @@ namespace NIdentity.OpenId.Playground.Handlers
             catch (Exception innerException)
             {
                 var exception = OpenIdException.Factory.FailedToDecodeJwt(errorCode, innerException);
-                _logger.LogError(exception, exception.ErrorDescription);
+                _logger.LogError(exception, exception.ErrorDetails.Description);
                 throw exception;
             }
 
@@ -174,7 +174,7 @@ namespace NIdentity.OpenId.Playground.Handlers
             catch (Exception innerException)
             {
                 var exception = OpenIdException.Factory.FailedToDeserializeJson(errorCode, innerException);
-                _logger.LogError(exception, exception.ErrorDescription);
+                _logger.LogError(exception, exception.ErrorDetails.Description);
                 throw exception;
             }
         }
@@ -203,7 +203,7 @@ namespace NIdentity.OpenId.Playground.Handlers
             catch (Exception innerException)
             {
                 var exception = OpenIdException.Factory.InvalidRequestUri(innerException);
-                _logger.LogError(exception, exception.ErrorDescription);
+                _logger.LogError(exception, exception.ErrorDetails.Description);
                 throw exception;
             }
         }

@@ -18,7 +18,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace NIdentity.OpenId.Validation
@@ -28,36 +27,24 @@ namespace NIdentity.OpenId.Validation
     {
         public static IOpenIdExceptionFactory Factory { get; set; } = OpenIdExceptionFactory.Instance;
 
-        public int? StatusCode { get; set; }
-
-        public string ErrorCode { get; }
-
-        public string? ErrorDescription { get; set; }
-
-        public string? ErrorUri { get; set; }
-
-        public Dictionary<string, object?> ExtensionData { get; set; } = new();
+        public IErrorDetails ErrorDetails { get; }
 
         public OpenIdException(string message, string errorCode)
             : base(message)
         {
-            ErrorCode = errorCode;
+            ErrorDetails = new ErrorDetails(errorCode);
         }
 
         public OpenIdException(string message, string errorCode, Exception? inner)
             : base(message, inner)
         {
-            ErrorCode = errorCode;
+            ErrorDetails = new ErrorDetails(errorCode);
         }
 
         protected OpenIdException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            StatusCode = (int?)info.GetValue(nameof(StatusCode), typeof(int?));
-            ErrorCode = (string)info.GetValue(nameof(ErrorCode), typeof(string));
-            ErrorDescription = (string?)info.GetValue(nameof(ErrorDescription), typeof(string));
-            ErrorUri = (string?)info.GetValue(nameof(ErrorUri), typeof(string));
-            ExtensionData = (Dictionary<string, object?>)info.GetValue(nameof(ExtensionData), typeof(Dictionary<string, object?>));
+            ErrorDetails = (ErrorDetails)(info.GetValue(nameof(ErrorDetails), typeof(ErrorDetails)) ?? new ErrorDetails(OpenIdConstants.ErrorCodes.ServerError));
         }
 
         /// <inheritdoc />
@@ -65,11 +52,7 @@ namespace NIdentity.OpenId.Validation
         {
             base.GetObjectData(info, context);
 
-            info.AddValue(nameof(StatusCode), StatusCode, typeof(int?));
-            info.AddValue(nameof(ErrorCode), ErrorCode, typeof(string));
-            info.AddValue(nameof(ErrorDescription), ErrorDescription, typeof(string));
-            info.AddValue(nameof(ErrorUri), ErrorUri, typeof(string));
-            info.AddValue(nameof(ExtensionData), ExtensionData, typeof(Dictionary<string, object?>));
+            info.AddValue(nameof(ErrorDetails), ErrorDetails, typeof(ErrorDetails));
         }
     }
 }

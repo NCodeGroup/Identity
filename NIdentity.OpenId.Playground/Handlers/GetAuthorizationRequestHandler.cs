@@ -31,23 +31,25 @@ using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Authorization;
+using NIdentity.OpenId.Playground.Logic;
 using NIdentity.OpenId.Playground.Options;
+using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Stores;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Playground.Logic
+namespace NIdentity.OpenId.Playground.Handlers
 {
-    internal class LoadAuthorizationRequestHandler : IRequestResponseHandler<LoadAuthorizationRequestContext, IAuthorizationRequest>
+    internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>
     {
-        private readonly ILogger<LoadAuthorizationRequestHandler> _logger;
+        private readonly ILogger<GetAuthorizationRequestHandler> _logger;
         private readonly AuthorizationOptions _options;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IClientStore _clientStore;
         private readonly ISecretService _secretService;
         private readonly IJwtDecoder _jwtDecoder;
 
-        public LoadAuthorizationRequestHandler(
-            ILogger<LoadAuthorizationRequestHandler> logger,
+        public GetAuthorizationRequestHandler(
+            ILogger<GetAuthorizationRequestHandler> logger,
             IOptions<AuthorizationOptions> optionsAccessor,
             IHttpClientFactory httpClientFactory,
             IClientStore clientStore,
@@ -63,15 +65,26 @@ namespace NIdentity.OpenId.Playground.Logic
         }
 
         /// <inheritdoc />
-        public async ValueTask<IAuthorizationRequest> HandleAsync(LoadAuthorizationRequestContext requestOrContext, CancellationToken cancellationToken)
+        public async ValueTask<IAuthorizationRequest> HandleAsync(GetAuthorizationRequest request, CancellationToken cancellationToken)
         {
-            var httpContext = requestOrContext.HttpContext;
+            var httpContext = request.HttpContext;
 
             var messageContext = new OpenIdMessageContext(_logger);
 
             var requestMessage = LoadRequestMessage(httpContext, messageContext);
+            try
+            {
+                return await LoadRequestAsync(requestMessage, cancellationToken);
+            }
+            catch (OpenIdException exception)
+            {
+                if (!string.IsNullOrEmpty(requestMessage.State))
+                {
+                    exception.WithExtensionData(OpenIdConstants.Parameters.State, requestMessage.State);
+                }
 
-            return await LoadRequestAsync(requestMessage, cancellationToken);
+                throw;
+            }
         }
 
         private async ValueTask<IAuthorizationRequest> LoadRequestAsync(IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
@@ -82,7 +95,7 @@ namespace NIdentity.OpenId.Playground.Logic
 
             var client = await _clientStore.GetByClientIdAsync(clientId, cancellationToken);
             if (client == null)
-                throw OpenIdException.Factory.InvalidRequest("TODO");
+                throw OpenIdException.Factory.InvalidRequest("TODO: GetByClientIdAsync returned null");
 
             var requestObject = await LoadRequestObjectAsync(requestMessage, client, cancellationToken);
 

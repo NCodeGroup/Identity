@@ -18,16 +18,9 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Messages.Authorization;
 
-namespace NIdentity.OpenId.Playground.Logic
+namespace NIdentity.OpenId.Requests
 {
-    internal class LoadAuthorizationRequestContext
-    {
-        public LoadAuthorizationRequestContext(HttpContext httpContext)
-        {
-            HttpContext = httpContext;
-        }
-
-        public HttpContext HttpContext { get; }
-    }
+    public record GetAuthorizationRequest(HttpContext HttpContext) : IRequest<IAuthorizationRequest>;
 }

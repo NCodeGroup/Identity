@@ -19,23 +19,13 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using NIdentity.OpenId.Requests;
 
 namespace NIdentity.OpenId.Handlers
 {
-    /// <summary>
-    /// Defines a handler that accepts an input argument and returns a response.
-    /// </summary>
-    /// <typeparam name="TRequestOrContext">The type of the input argument.</typeparam>
-    /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public interface IRequestResponseHandler<in TRequestOrContext, TResponse>
+    public interface IRequestResponseHandler<in TRequest, TResponse>
+        where TRequest : IRequest<TResponse>
     {
-        /// <summary>
-        /// Handles a request given an input argument and returns a response.
-        /// </summary>
-        /// <param name="requestOrContext">The input argument for the request handler.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-        /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation,
-        /// whose result contains the response from the request handler.</returns>
-        ValueTask<TResponse> HandleAsync(TRequestOrContext requestOrContext, CancellationToken cancellationToken);
+        ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
     }
 }

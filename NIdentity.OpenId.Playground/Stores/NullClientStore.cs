@@ -1,14 +1,14 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,31 +17,25 @@
 
 #endregion
 
+using System.Threading;
 using System.Threading.Tasks;
-using GreenPipes;
-using NIdentity.OpenId.Playground.Contexts;
+using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Stores;
 
-namespace NIdentity.OpenId.Playground.Pipes
+namespace NIdentity.OpenId.Playground.Stores
 {
-    internal interface IConsumePipe : IPipe<IConsumeContext>
+    internal class NullClientStore : IClientStore
     {
-    }
-
-    internal class ConsumePipe : IConsumePipe
-    {
-        private readonly IPipe<IConsumeContext> _consumePipe;
-
-        public ConsumePipe(IPipe<IConsumeContext> consumePipe)
+        /// <inheritdoc />
+        public ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken)
         {
-            _consumePipe = consumePipe;
+            return ValueTask.FromResult<Client?>(null);
         }
 
-        public Task Send(IConsumeContext context) => _consumePipe.Send(context);
-
-        public void Probe(ProbeContext context)
+        /// <inheritdoc />
+        public ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken)
         {
-            var scope = context.CreateScope("consumePipe");
-            _consumePipe.Probe(scope);
+            return ValueTask.FromResult<Client?>(null);
         }
     }
 }

@@ -23,21 +23,24 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Messages.Authorization;
+using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Playground.Logic
+namespace NIdentity.OpenId.Playground.Handlers
 {
-    internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAuthorizationRequestContext>
+    internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAuthorizationRequest>
     {
         /// <inheritdoc />
-        public ValueTask HandleAsync(ValidateAuthorizationRequestContext requestOrContext, CancellationToken cancellationToken)
+        public ValueTask HandleAsync(ValidateAuthorizationRequest request, CancellationToken cancellationToken)
         {
-            ValidateRequestMessage(requestOrContext.Request.OriginalRequestMessage);
+            var authorizationRequest = request.AuthorizationRequest;
 
-            if (requestOrContext.Request.OriginalRequestObject != null)
-                ValidateRequestObject(requestOrContext.Request.OriginalRequestMessage, requestOrContext.Request.OriginalRequestObject);
+            ValidateRequestMessage(authorizationRequest.OriginalRequestMessage);
 
-            ValidateRequest(requestOrContext.Request);
+            if (authorizationRequest.OriginalRequestObject != null)
+                ValidateRequestObject(authorizationRequest.OriginalRequestMessage, authorizationRequest.OriginalRequestObject);
+
+            ValidateRequest(authorizationRequest);
 
             return ValueTask.CompletedTask;
         }

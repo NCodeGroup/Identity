@@ -17,15 +17,15 @@
 
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
-using NIdentity.OpenId.Requests;
-
-namespace NIdentity.OpenId.Handlers
+namespace NIdentity.OpenId.Requests
 {
-    public interface IRequestResponseHandler<in TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
+    public interface IRequest
     {
-        ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
+        // nothing
+    }
+
+    public interface IRequest<out TResponse>
+    {
+        // nothing
     }
 }

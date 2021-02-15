@@ -29,7 +29,7 @@ namespace NIdentity.OpenId.Validation
         /// Gets or sets a dictionary that is used to handle JSON serialization (or
         /// deserialization) of additional properties that aren't declared.
         /// </summary>
-        Dictionary<string, object> ExtensionData { get; set; }
+        Dictionary<string, object?> ExtensionData { get; set; }
     }
 
     /// <summary>
@@ -58,6 +58,6 @@ namespace NIdentity.OpenId.Validation
 
         /// <inheritdoc />
         [JsonExtensionData]
-        public Dictionary<string, object> ExtensionData { get; set; } = new();
+        public Dictionary<string, object?> ExtensionData { get; set; } = new();
     }
 }

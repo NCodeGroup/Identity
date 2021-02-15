@@ -17,15 +17,10 @@
 
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
-using NIdentity.OpenId.Requests;
+using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Handlers
+namespace NIdentity.OpenId.Requests
 {
-    public interface IRequestResponseHandler<in TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-    {
-        ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
-    }
+    public abstract record ProcessHttpEndpoint(HttpContext HttpContext) : IRequest<IHttpResult>;
 }

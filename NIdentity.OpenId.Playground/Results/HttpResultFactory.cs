@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Playground.Results

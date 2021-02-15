@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace NIdentity.OpenId.Playground.Results
+namespace NIdentity.OpenId.Results
 {
 	// https://github.com/dotnet/aspnetcore/blob/master/src/Mvc/Mvc.Abstractions/src/IActionResult.cs
 

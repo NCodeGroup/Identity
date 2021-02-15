@@ -2,6 +2,7 @@ using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Playground.Results
 {

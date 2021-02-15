@@ -9,7 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="GreenPipes" Version="4.0.0" />
         <PackageReference Include="JetBrains.Annotations" Version="10.2.1" />
         <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.8.0" />
         <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.9" />
@@ -20,10 +19,6 @@
     <ItemGroup>
         <ProjectReference Include="..\NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj" />
         <ProjectReference Include="..\NIdentity.OpenId.Core\NIdentity.OpenId.Core.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Stores" />
     </ItemGroup>
 
 </Project>

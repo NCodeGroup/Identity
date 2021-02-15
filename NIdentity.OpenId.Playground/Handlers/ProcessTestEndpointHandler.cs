@@ -19,13 +19,22 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Requests;
+using NIdentity.OpenId.Results;
+using static NIdentity.OpenId.Playground.Results.HttpResultFactory;
 
-namespace NIdentity.OpenId.Handlers
+namespace NIdentity.OpenId.Playground.Handlers
 {
-    public interface IRequestResponseHandler<in TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
+    internal record ProcessTestEndpoint(HttpContext HttpContext) : ProcessHttpEndpoint(HttpContext);
+
+    internal class ProcessTestEndpointHandler : IHttpEndpointHandler<ProcessTestEndpoint>
     {
-        ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
+        /// <inheritdoc />
+        public ValueTask<IHttpResult> HandleAsync(ProcessTestEndpoint request, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(Ok());
+        }
     }
 }

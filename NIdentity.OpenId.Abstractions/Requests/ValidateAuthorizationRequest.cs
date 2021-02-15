@@ -17,15 +17,9 @@
 
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
-using NIdentity.OpenId.Requests;
+using NIdentity.OpenId.Messages.Authorization;
 
-namespace NIdentity.OpenId.Handlers
+namespace NIdentity.OpenId.Requests
 {
-    public interface IRequestResponseHandler<in TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-    {
-        ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
-    }
+    public record ValidateAuthorizationRequest(IAuthorizationRequest AuthorizationRequest) : IRequest;
 }

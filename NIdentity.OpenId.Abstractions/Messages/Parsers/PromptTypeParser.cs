@@ -25,8 +25,12 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
+    /// <summary>
+    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="PromptTypes"/> values.
+    /// </summary>
     public class PromptTypeParser : ParameterParser<PromptTypes?>
     {
+        /// <inheritdoc/>
         public override StringValues Serialize(IOpenIdMessageContext context, PromptTypes? value)
         {
             if (value is null || value == PromptTypes.Unspecified)
@@ -51,6 +55,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return string.Join(Separator, list);
         }
 
+        /// <inheritdoc/>
         public override PromptTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);

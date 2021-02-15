@@ -25,8 +25,12 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
+    /// <summary>
+    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="Uri"/> values.
+    /// </summary>
     public class UriParser : ParameterParser<Uri?>
     {
+        /// <inheritdoc/>
         public override StringValues Serialize(IOpenIdMessageContext context, Uri? value)
         {
             if (value is null)
@@ -35,6 +39,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return value.AbsoluteUri;
         }
 
+        /// <inheritdoc/>
         public override Uri? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);

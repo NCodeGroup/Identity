@@ -25,8 +25,12 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
+    /// <summary>
+    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="TimeSpan"/> values.
+    /// </summary>
     public class TimeSpanParser : ParameterParser<TimeSpan?>
     {
+        /// <inheritdoc/>
         public override StringValues Serialize(IOpenIdMessageContext context, TimeSpan? value)
         {
             if (value == null)
@@ -36,6 +40,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             return wholeSeconds.ToString(CultureInfo.InvariantCulture);
         }
 
+        /// <inheritdoc/>
         public override TimeSpan? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             switch (stringValues.Count)

@@ -24,8 +24,12 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
+    /// <summary>
+    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="CodeChallengeMethod"/> values.
+    /// </summary>
     public class CodeChallengeMethodParser : ParameterParser<CodeChallengeMethod?>
     {
+        /// <inheritdoc/>
         public override StringValues Serialize(IOpenIdMessageContext context, CodeChallengeMethod? value)
         {
             return value switch
@@ -36,6 +40,7 @@ namespace NIdentity.OpenId.Messages.Parsers
             };
         }
 
+        /// <inheritdoc/>
         public override CodeChallengeMethod? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
         {
             Debug.Assert(!descriptor.AllowMultipleValues);

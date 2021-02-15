@@ -22,25 +22,56 @@ using System.Runtime.Serialization;
 
 namespace NIdentity.OpenId.Validation
 {
+    /// <summary>
+    /// Represents an error that occured while executing an <c>OAuth</c> or <c>OpenID Connect</c> handler.
+    /// </summary>
     [Serializable]
     public class OpenIdException : Exception
     {
+        /// <summary>
+        /// Gets the <see cref="IOpenIdExceptionFactory"/> singleton instance that can be used to create
+        /// <see cref="OpenIdException"/> instances.
+        /// </summary>
         public static IOpenIdExceptionFactory Factory { get; set; } = OpenIdExceptionFactory.Instance;
 
+        /// <summary>
+        /// Gets the <see cref="IErrorDetails"/> that contains detailed error information.
+        /// </summary>
         public IErrorDetails ErrorDetails { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OpenIdException"/> class with a specified error message and
+        /// error code.
+        /// </summary>
+        /// <param name="message">The message that describes the error.</param>
+        /// <param name="errorCode">The value that identifies the error.</param>
         public OpenIdException(string message, string errorCode)
             : base(message)
         {
             ErrorDetails = new ErrorDetails(errorCode);
         }
 
-        public OpenIdException(string message, string errorCode, Exception? inner)
-            : base(message, inner)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OpenIdException"/> class with a specified error message, error
+        /// code, and a reference to the inner exception that is the cause of this exception.
+        /// </summary>
+        /// <param name="message">The message that describes the error.</param>
+        /// <param name="errorCode">The value that identifies the error.</param>
+        /// <param name="innerException">The exception that is the cause of the current exception, or a <c>null</c>
+        /// reference if no inner exception is specified.</param>
+        public OpenIdException(string message, string errorCode, Exception? innerException)
+            : base(message, innerException)
         {
             ErrorDetails = new ErrorDetails(errorCode);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OpenIdException"/> class with serialized data.
+        /// </summary>
+        /// <param name="info">The <see cref="SerializationInfo"/> that holds the serialized object data about the
+        /// exception being thrown.</param>
+        /// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the
+        /// source or destination.</param>
         protected OpenIdException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {

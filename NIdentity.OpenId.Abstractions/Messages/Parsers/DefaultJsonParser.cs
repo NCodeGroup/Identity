@@ -23,10 +23,17 @@ using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages.Parsers
 {
+    /// <summary>
+    /// Provides a default implementation of <see cref="IJsonParser"/> that parses JSON into <see cref="JsonElement"/>.
+    /// </summary>
     public class DefaultJsonParser : IJsonParser
     {
+        /// <summary>
+        /// Gets a singleton instance for the <see cref="DefaultJsonParser"/> class.
+        /// </summary>
         public static DefaultJsonParser Instance { get; } = new();
 
+        /// <inheritdoc/>
         public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             var converter = (JsonConverter<JsonElement>)options.GetConverter(typeof(JsonElement));

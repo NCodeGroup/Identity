@@ -31,7 +31,7 @@ using static NIdentity.OpenId.Playground.Results.HttpResultFactory;
 
 namespace NIdentity.OpenId.Playground.Handlers
 {
-    internal class ProcessAuthorizationEndpointHandler : IHttpEndpointHandler<ProcessAuthorizationEndpoint>
+    internal class ProcessAuthorizationEndpointHandler : OpenIdEndpointHandler<ProcessAuthorizationEndpoint>
     {
         private readonly IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> _getAuthorizationRequestHandler;
         private readonly IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> _validateAuthorizationRequestHandlers;
@@ -45,13 +45,12 @@ namespace NIdentity.OpenId.Playground.Handlers
         }
 
         /// <inheritdoc />
-        public async ValueTask<IHttpResult> HandleAsync(ProcessAuthorizationEndpoint request, CancellationToken cancellationToken)
+        protected override async ValueTask<IHttpResult> HandleAsync(HttpContext httpContext, CancellationToken cancellationToken)
         {
-            var httpContext = request.HttpContext;
             var authorizationRequest = await GetAuthorizationRequestAsync(httpContext, cancellationToken);
             try
             {
-                await ValidateAuthorizationRequestAsync(authorizationRequest, cancellationToken);
+                return await HandleAuthorizationRequestAsync(authorizationRequest, cancellationToken);
             }
             catch (OpenIdException exception)
             {
@@ -62,8 +61,17 @@ namespace NIdentity.OpenId.Playground.Handlers
 
                 throw;
             }
+            catch (Exception baseException)
+            {
+                var exception = OpenIdException.Factory.Create(OpenIdConstants.ErrorCodes.ServerError, baseException);
 
-            return Ok();
+                if (!string.IsNullOrEmpty(authorizationRequest.State))
+                {
+                    exception.WithExtensionData(OpenIdConstants.Parameters.State, authorizationRequest.State);
+                }
+
+                throw exception;
+            }
         }
 
         private async ValueTask<IAuthorizationRequest> GetAuthorizationRequestAsync(HttpContext httpContext, CancellationToken cancellationToken)
@@ -87,6 +95,13 @@ namespace NIdentity.OpenId.Playground.Handlers
             {
                 await handler.HandleAsync(request, cancellationToken);
             }
+        }
+
+        private async ValueTask<IHttpResult> HandleAuthorizationRequestAsync(IAuthorizationRequest authorizationRequest, CancellationToken cancellationToken)
+        {
+            await ValidateAuthorizationRequestAsync(authorizationRequest, cancellationToken);
+
+            return Ok();
         }
     }
 }

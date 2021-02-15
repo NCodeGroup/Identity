@@ -23,25 +23,25 @@ namespace NIdentity.OpenId.Validation
     {
         public static OpenIdException WithStatusCode(this OpenIdException exception, int statusCode)
         {
-            exception.StatusCode = statusCode;
+            exception.ErrorDetails.StatusCode = statusCode;
             return exception;
         }
 
         public static OpenIdException WithErrorUri(this OpenIdException exception, string errorUri)
         {
-            exception.ErrorUri = errorUri;
+            exception.ErrorDetails.Uri = errorUri;
             return exception;
         }
 
         public static OpenIdException WithErrorDescription(this OpenIdException exception, string errorDescription)
         {
-            exception.ErrorDescription = errorDescription;
+            exception.ErrorDetails.Description = errorDescription;
             return exception;
         }
 
         public static OpenIdException WithExtensionData(this OpenIdException exception, string propertyName, object? propertyValue)
         {
-            exception.ExtensionData[propertyName] = propertyValue;
+            exception.ErrorDetails.ExtensionData[propertyName] = propertyValue;
             return exception;
         }
     }

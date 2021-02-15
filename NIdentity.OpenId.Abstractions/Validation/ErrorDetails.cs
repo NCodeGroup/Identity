@@ -11,9 +11,9 @@ namespace NIdentity.OpenId.Validation
         public int? StatusCode { get; set; }
 
         /// <summary>
-        /// Gets the <c>error</c> parameter.
+        /// Gets or sets the <c>error</c> parameter.
         /// </summary>
-        string? Code { get; set; }
+        string Code { get; set; }
 
         /// <summary>
         /// Gets or sets the <c>error_description</c> parameter.
@@ -29,7 +29,7 @@ namespace NIdentity.OpenId.Validation
         /// Gets or sets a dictionary that is used to handle JSON serialization (or
         /// deserialization) of additional properties that aren't declared.
         /// </summary>
-        Dictionary<string, object?> ExtensionData { get; set; }
+        Dictionary<string, object?> ExtensionData { get; }
     }
 
     /// <summary>
@@ -37,14 +37,22 @@ namespace NIdentity.OpenId.Validation
     /// </summary>
     public class ErrorDetails : IErrorDetails
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ErrorDetails"/> class.
+        /// </summary>
+        /// <param name="code">The value for the <c>error</c> parameter.</param>
+        public ErrorDetails(string code)
+        {
+            Code = code;
+        }
+
         /// <inheritdoc />
         [JsonIgnore]
         public int? StatusCode { get; set; }
 
         /// <inheritdoc />
         [JsonPropertyName("error")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? Code { get; set; }
+        public string Code { get; set; }
 
         /// <inheritdoc />
         [JsonPropertyName("error_description")]
@@ -58,6 +66,6 @@ namespace NIdentity.OpenId.Validation
 
         /// <inheritdoc />
         [JsonExtensionData]
-        public Dictionary<string, object?> ExtensionData { get; set; } = new();
+        public Dictionary<string, object?> ExtensionData { get; } = new();
     }
 }

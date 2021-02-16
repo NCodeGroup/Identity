@@ -8,8 +8,10 @@ using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Playground.Handlers;
+using NIdentity.OpenId.Playground.Results;
 using NIdentity.OpenId.Playground.Stores;
 using NIdentity.OpenId.Requests;
+using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Stores;
 
 /*
@@ -35,6 +37,7 @@ namespace NIdentity.OpenId.Playground
         {
             services.AddHttpClient();
 
+            services.AddTransient<IHttpResultFactory, HttpResultFactory>();
             services.AddTransient<ISecretService, SecretService>();
             services.AddTransient<IJwtDecoder, JwtSecurityTokenDecoder>();
             services.AddTransient<IClientStore, NullClientStore>();

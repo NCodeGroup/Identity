@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Playground.Extensions;
 
 namespace NIdentity.OpenId.Playground.Results
 {
@@ -32,8 +33,7 @@ namespace NIdentity.OpenId.Playground.Results
             if (httpContext == null)
                 throw new ArgumentNullException(nameof(httpContext));
 
-            // TODO
-            // httpContext.Response.SetNoCache();
+            httpContext.Response.SetNoCache();
 
             return base.ExecuteAsync(httpContext);
         }

@@ -18,6 +18,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -99,6 +100,15 @@ namespace NIdentity.OpenId.Handlers
         [AssertionMethod]
         private static void ValidateRequest(IAuthorizationRequest request)
         {
+            var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
+            var isImplicit = request.GrantType == GrantType.Implicit;
+            var isHybrid = request.GrantType == GrantType.Hybrid;
+
+            var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
+            var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
+
+            var redirectUris = request.Client.RedirectUris;
+
             if (request.Scopes.Count == 0)
                 throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
 
@@ -108,14 +118,42 @@ namespace NIdentity.OpenId.Handlers
             if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(request.Nonce))
                 throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Nonce);
 
+            if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && !hasOpenIdScope)
+                throw OpenIdException.Factory.InvalidRequest("The openid scope is required when requesting id tokens.");
+
             if (request.ResponseMode == ResponseMode.Query && request.GrantType != GrantType.AuthorizationCode)
                 throw OpenIdException.Factory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.");
 
             if (request.PromptType.HasFlag(PromptTypes.None) && request.PromptType != PromptTypes.None)
                 throw OpenIdException.Factory.InvalidRequest("The 'none' prompt must not be combined with other values.");
 
+            if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
+                throw OpenIdException.Factory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.");
+
             if (request.Client.IsDisabled)
-                throw OpenIdException.Factory.InvalidRequest("TODO: client disabled");
+                throw OpenIdException.Factory.UnauthorizedClient("The client is disabled.");
+
+            if (!redirectUris.Contains(request.RedirectUri) && !(request.Client.AllowLoopback && request.RedirectUri.IsLoopback))
+                throw OpenIdException.Factory.InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.");
+
+            // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
+            if (request.ResponseType.HasFlag(ResponseTypes.Token) && !request.Client.AllowUnsafeTokenResponse)
+                throw OpenIdException.Factory.UnauthorizedClient("The client configuration prohibits the use of unsafe token responses.");
+
+            // ReSharper disable once ConvertIfStatementToSwitchStatement
+            if (!hasCodeChallenge && request.Client.RequirePkce)
+                throw OpenIdException.Factory.UnauthorizedClient("The client configuration requires the use of PKCE parameters.");
+
+            if (hasCodeChallenge && codeChallengeMethodIsPlain && !request.Client.AllowPlainCodeChallengeMethod)
+                throw OpenIdException.Factory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.");
+
+            // TODO: should we have an assertion for grant types?
+
+            // TODO: check IdP
+            // https://github.com/IdentityServer/IdentityServer4/blob/main/src/IdentityServer4/src/Validation/Default/AuthorizeRequestValidator.cs#L784
+
+            // TODO: check session cookie
+            // https://github.com/IdentityServer/IdentityServer4/blob/main/src/IdentityServer4/src/Validation/Default/AuthorizeRequestValidator.cs#L801
         }
     }
 }

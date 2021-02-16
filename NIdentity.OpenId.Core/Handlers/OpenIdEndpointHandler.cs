@@ -22,9 +22,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Handlers
 {
@@ -34,24 +34,15 @@ namespace NIdentity.OpenId.Handlers
         /// <inheritdoc />
         public async ValueTask<IHttpResult> HandleAsync(TRequest request, CancellationToken cancellationToken)
         {
+            var httpContext = request.HttpContext;
             try
             {
-                return await HandleAsync(request.HttpContext, cancellationToken);
+                return await HandleAsync(httpContext, cancellationToken);
             }
-            catch (OpenIdException exception)
+            catch (Exception exception)
             {
-                var httpResultFactory = request.HttpContext.RequestServices.GetRequiredService<IHttpResultFactory>();
-                var statusCode = exception.ErrorDetails.StatusCode ?? StatusCodes.Status500InternalServerError;
-                var httpResult = httpResultFactory.Object(statusCode, exception.ErrorDetails);
-                return httpResult;
-            }
-            catch (Exception baseException)
-            {
-                var httpResultFactory = request.HttpContext.RequestServices.GetRequiredService<IHttpResultFactory>();
-                var exception = OpenIdException.Factory.Create(OpenIdConstants.ErrorCodes.ServerError, baseException);
-                var statusCode = exception.ErrorDetails.StatusCode ?? StatusCodes.Status500InternalServerError;
-                var httpResult = httpResultFactory.Object(statusCode, exception.ErrorDetails);
-                return httpResult;
+                var exceptionService = httpContext.RequestServices.GetRequiredService<IExceptionService>();
+                return exceptionService.GetHttpResultForException(exception);
             }
         }
 

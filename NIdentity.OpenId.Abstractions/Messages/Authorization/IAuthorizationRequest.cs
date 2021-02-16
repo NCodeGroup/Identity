@@ -56,7 +56,7 @@ namespace NIdentity.OpenId.Messages.Authorization
         IReadOnlyCollection<string> ClaimsLocales { get; }
 
         /// <summary>
-        /// Gets the <see cref="Client"/> configuration that was loaded from the <see cref="ClientId"/> parameter.
+        /// Gets the <see cref="Client"/> configuration that was loaded using the <see cref="ClientId"/> parameter.
         /// </summary>
         Client Client { get; }
 

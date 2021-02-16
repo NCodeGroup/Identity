@@ -16,8 +16,6 @@ namespace NIdentity.OpenId.Playground.Results
 
         public IHttpResult Object<T>(int statusCode, T value, JsonSerializerOptions serializerOptions) => new ObjectResult<T>(value, serializerOptions) { StatusCode = statusCode };
 
-        public IHttpResult NotFound() => new NotFoundResult();
-
         public IHttpResult Unauthorized(string challenge, string realm) => new UnauthorizedResult(challenge, realm);
 
         public IHttpResult Unauthorized(string challenge, string realm, IErrorDetails errorDetails) => new UnauthorizedResult(challenge, realm) { ErrorDetails = errorDetails };
@@ -25,5 +23,9 @@ namespace NIdentity.OpenId.Playground.Results
         public IHttpResult BadRequest() => new BadRequestResult();
 
         public IHttpResult BadRequest<T>(T value) => new BadRequestObjectResult<T>(value);
+
+        public IHttpResult NotFound() => new NotFoundResult();
+
+        public IHttpResult NotFound<T>(T value) => new NotFoundObjectResult<T>(value);
     }
 }

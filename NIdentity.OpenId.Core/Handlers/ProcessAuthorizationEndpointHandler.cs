@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
@@ -31,15 +32,18 @@ namespace NIdentity.OpenId.Handlers
 {
     internal class ProcessAuthorizationEndpointHandler : OpenIdEndpointHandler<ProcessAuthorizationEndpoint>
     {
+        private readonly IExceptionService _exceptionService;
         private readonly IHttpResultFactory _httpResultFactory;
         private readonly IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> _getAuthorizationRequestHandler;
         private readonly IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> _validateAuthorizationRequestHandlers;
 
         public ProcessAuthorizationEndpointHandler(
+            IExceptionService exceptionService,
             IHttpResultFactory httpResultFactory,
             IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> getAuthorizationRequestHandler,
             IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> validateAuthorizationRequestHandlers)
         {
+            _exceptionService = exceptionService;
             _httpResultFactory = httpResultFactory;
             _getAuthorizationRequestHandler = getAuthorizationRequestHandler;
             _validateAuthorizationRequestHandlers = validateAuthorizationRequestHandlers;
@@ -48,44 +52,35 @@ namespace NIdentity.OpenId.Handlers
         /// <inheritdoc />
         protected override async ValueTask<IHttpResult> HandleAsync(HttpContext httpContext, CancellationToken cancellationToken)
         {
-            var authorizationRequest = await GetAuthorizationRequestAsync(httpContext, cancellationToken);
+            IAuthorizationRequest? authorizationRequest = null;
             try
             {
+                authorizationRequest = await GetAuthorizationRequestAsync(httpContext, cancellationToken);
+
                 return await HandleAuthorizationRequestAsync(authorizationRequest, cancellationToken);
             }
-            catch (OpenIdException exception)
+            catch (Exception exception)
             {
-                if (!string.IsNullOrEmpty(authorizationRequest.State))
+                if (!(exception is OpenIdException openIdException))
                 {
-                    exception.WithExtensionData(OpenIdConstants.Parameters.State, authorizationRequest.State);
+                    openIdException = OpenIdException.Factory.Create(OpenIdConstants.ErrorCodes.ServerError, exception);
                 }
 
-                throw;
-            }
-            catch (Exception baseException)
-            {
-                var exception = OpenIdException.Factory.Create(OpenIdConstants.ErrorCodes.ServerError, baseException);
-
-                if (!string.IsNullOrEmpty(authorizationRequest.State))
+                var state = authorizationRequest?.State;
+                if (!string.IsNullOrEmpty(state))
                 {
-                    exception.WithExtensionData(OpenIdConstants.Parameters.State, authorizationRequest.State);
+                    openIdException.WithExtensionData(OpenIdConstants.Parameters.State, state);
                 }
 
-                throw exception;
+                return _exceptionService.GetHttpResultForException(openIdException);
             }
         }
 
         private async ValueTask<IAuthorizationRequest> GetAuthorizationRequestAsync(HttpContext httpContext, CancellationToken cancellationToken)
         {
-            try
-            {
-                var request = new GetAuthorizationRequest(httpContext);
-                return await _getAuthorizationRequestHandler.HandleAsync(request, cancellationToken);
-            }
-            catch (Exception exception) when (exception is not OpenIdException)
-            {
-                throw OpenIdException.Factory.Create(OpenIdConstants.ErrorCodes.ServerError, exception);
-            }
+            var request = new GetAuthorizationRequest(httpContext);
+
+            return await _getAuthorizationRequestHandler.HandleAsync(request, cancellationToken);
         }
 
         private async ValueTask ValidateAuthorizationRequestAsync(IAuthorizationRequest authorizationRequest, CancellationToken cancellationToken)

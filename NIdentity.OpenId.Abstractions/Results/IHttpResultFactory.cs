@@ -71,12 +71,6 @@ namespace NIdentity.OpenId.Results
         IHttpResult Object<T>(int statusCode, T value, JsonSerializerOptions serializerOptions);
 
         /// <summary>
-        /// Creates an <see cref="IHttpResult"/> that produces a 404 Not Found response with an empty response payload.
-        /// </summary>
-        /// <returns>The created <see cref="IHttpResult"/> for the response.</returns>
-        IHttpResult NotFound();
-
-        /// <summary>
         /// Creates an <see cref="IHttpResult"/> that produces a 400 Bad Request response with an empty response payload.
         /// </summary>
         /// <returns>The created <see cref="IHttpResult"/> for the response.</returns>
@@ -89,5 +83,19 @@ namespace NIdentity.OpenId.Results
         /// <typeparam name="T">The type of the value to return in the response payload.</typeparam>
         /// <returns>The created <see cref="IHttpResult"/> for the response.</returns>
         IHttpResult BadRequest<T>(T value);
+
+        /// <summary>
+        /// Creates an <see cref="IHttpResult"/> that produces a 404 Not Found response with an empty response payload.
+        /// </summary>
+        /// <returns>The created <see cref="IHttpResult"/> for the response.</returns>
+        IHttpResult NotFound();
+
+        /// <summary>
+        /// Creates an <see cref="IHttpResult"/> that produces a 404 Not Found response with the specified response payload.
+        /// </summary>
+        /// <param name="value">The value to return in the response payload.</param>
+        /// <typeparam name="T">The type of the value to return in the response payload.</typeparam>
+        /// <returns>The created <see cref="IHttpResult"/> for the response.</returns>
+        IHttpResult NotFound<T>(T value);
     }
 }

@@ -38,6 +38,7 @@ namespace NIdentity.OpenId.Playground
             services.AddHttpClient();
 
             services.AddTransient<IHttpResultFactory, HttpResultFactory>();
+            services.AddTransient<IExceptionService, ExceptionService>();
             services.AddTransient<ISecretService, SecretService>();
             services.AddTransient<IJwtDecoder, JwtSecurityTokenDecoder>();
             services.AddTransient<IClientStore, NullClientStore>();

@@ -18,6 +18,7 @@
 #endregion
 
 using System;
+using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Validation
 {
@@ -27,6 +28,11 @@ namespace NIdentity.OpenId.Validation
     /// </summary>
     public static class OpenIdExceptionFactoryExtensions
     {
+        private static OpenIdException Create(IOpenIdExceptionFactory factory, string errorCode)
+        {
+            return factory.Create(errorCode).WithStatusCode(StatusCodes.Status400BadRequest);
+        }
+
         /// <summary>
         /// Creates an <see cref="OpenIdException"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c> message produces an error.
         /// </summary>
@@ -36,7 +42,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException InvalidRequest(this IOpenIdExceptionFactory factory, string errorDescription, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest)
         {
-            return factory.Create(errorCode).WithErrorDescription(errorDescription);
+            return Create(factory, errorCode).WithErrorDescription(errorDescription);
         }
 
         /// <summary>
@@ -48,7 +54,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException InvalidRequestUri(this IOpenIdExceptionFactory factory, string errorDescription, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri)
         {
-            return factory.Create(errorCode).WithErrorDescription(errorDescription);
+            return Create(factory, errorCode).WithErrorDescription(errorDescription);
         }
 
         /// <summary>
@@ -72,7 +78,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException MissingParameter(this IOpenIdExceptionFactory factory, string parameterName, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest)
         {
-            return factory.Create(errorCode).WithErrorDescription($"The request is missing the {parameterName} parameter.");
+            return Create(factory, errorCode).WithErrorDescription($"The request is missing the {parameterName} parameter.");
         }
 
         /// <summary>
@@ -84,7 +90,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException InvalidParameterValue(this IOpenIdExceptionFactory factory, string parameterName, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest)
         {
-            return factory.Create(errorCode).WithErrorDescription($"The request includes an invalid value for the {parameterName} parameter.");
+            return Create(factory, errorCode).WithErrorDescription($"The request includes an invalid value for the {parameterName} parameter.");
         }
 
         /// <summary>
@@ -96,7 +102,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException TooManyParameterValues(this IOpenIdExceptionFactory factory, string parameterName, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest)
         {
-            return factory.Create(errorCode).WithErrorDescription($"The request includes the {parameterName} parameter more than once.");
+            return Create(factory, errorCode).WithErrorDescription($"The request includes the {parameterName} parameter more than once.");
         }
 
         /// <summary>
@@ -107,7 +113,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException RequestJwtNotSupported(this IOpenIdExceptionFactory factory, string errorCode = OpenIdConstants.ErrorCodes.RequestNotSupported)
         {
-            return factory.Create(errorCode).WithErrorDescription("The 'request' parameter is not supported.");
+            return Create(factory, errorCode).WithErrorDescription("The 'request' parameter is not supported.");
         }
 
         /// <summary>
@@ -118,7 +124,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException RequestUriNotSupported(this IOpenIdExceptionFactory factory, string errorCode = OpenIdConstants.ErrorCodes.RequestUriNotSupported)
         {
-            return factory.Create(errorCode).WithErrorDescription("The request_uri parameter is not supported.");
+            return Create(factory, errorCode).WithErrorDescription("The request_uri parameter is not supported.");
         }
 
         /// <summary>

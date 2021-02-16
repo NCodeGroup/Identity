@@ -67,14 +67,12 @@ namespace NIdentity.OpenId.Messages.Parsers
 
             try
             {
-                var value = JsonSerializer.Deserialize<T>(json, context.JsonSerializerOptions);
-                return value;
+                return JsonSerializer.Deserialize<T>(json, context.JsonSerializerOptions);
             }
-            catch (Exception innerException)
+            catch (Exception exception)
             {
-                var exception = OpenIdException.Factory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest, innerException);
-                context.Logger.LogError(exception, exception.ErrorDetails.Description);
-                throw exception;
+                context.Logger.LogWarning(exception, "Failed to deserialize JSON");
+                throw OpenIdException.Factory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest, exception);
             }
         }
     }

@@ -153,11 +153,10 @@ namespace NIdentity.OpenId.Handlers
 
                 json = _jwtDecoder.DecodeJwt(requestJwt, issuer, audience, securityKeys);
             }
-            catch (Exception innerException)
+            catch (Exception exception)
             {
-                var exception = OpenIdException.Factory.FailedToDecodeJwt(errorCode, innerException);
-                _logger.LogError(exception, exception.ErrorDetails.Description);
-                throw exception;
+                _logger.LogWarning(exception, "Failed to decode JWT");
+                throw OpenIdException.Factory.FailedToDecodeJwt(errorCode, exception);
             }
 
             try
@@ -170,11 +169,10 @@ namespace NIdentity.OpenId.Handlers
 
                 return requestObject;
             }
-            catch (Exception innerException)
+            catch (Exception exception)
             {
-                var exception = OpenIdException.Factory.FailedToDeserializeJson(errorCode, innerException);
-                _logger.LogError(exception, exception.ErrorDetails.Description);
-                throw exception;
+                _logger.LogWarning(exception, "Failed to deserialize JSON");
+                throw OpenIdException.Factory.FailedToDeserializeJson(errorCode, exception);
             }
         }
 
@@ -199,11 +197,10 @@ namespace NIdentity.OpenId.Handlers
 
                 return await response.Content.ReadAsStringAsync(cancellationToken);
             }
-            catch (Exception innerException)
+            catch (Exception exception)
             {
-                var exception = OpenIdException.Factory.InvalidRequestUri(innerException);
-                _logger.LogError(exception, exception.ErrorDetails.Description);
-                throw exception;
+                _logger.LogWarning(exception, "Failed to fetch the request URI");
+                throw OpenIdException.Factory.InvalidRequestUri(exception);
             }
         }
 

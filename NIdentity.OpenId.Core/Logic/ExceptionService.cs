@@ -19,6 +19,7 @@
 
 using System;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Validation;
 
@@ -34,17 +35,29 @@ namespace NIdentity.OpenId.Logic
         private const string DefaultErrorCode = OpenIdConstants.ErrorCodes.ServerError;
         private const int DefaultStatusCode = StatusCodes.Status500InternalServerError;
 
+        private readonly ILogger<ExceptionService> _logger;
         private readonly IHttpResultFactory _httpResultFactory;
 
-        public ExceptionService(IHttpResultFactory httpResultFactory)
+        public ExceptionService(ILogger<ExceptionService> logger, IHttpResultFactory httpResultFactory)
         {
+            _logger = logger;
             _httpResultFactory = httpResultFactory;
         }
 
         public IHttpResult GetHttpResultForException(Exception exception)
         {
-            if (!(exception is OpenIdException openIdException))
+            if (exception is OpenIdException openIdException)
             {
+                _logger.LogWarning(
+                    "An OAuth/OpenID operation failed: StatusCode={StatusCode}; ErrorCode={ErrorCode}; ErrorDescription={ErrorDescription}; ErrorUri={ErrorUri}",
+                    openIdException.ErrorDetails.StatusCode,
+                    openIdException.ErrorDetails.Code,
+                    openIdException.ErrorDetails.Description,
+                    openIdException.ErrorDetails.Uri);
+            }
+            else
+            {
+                _logger.LogError(exception, "An unhandled exception occured");
                 openIdException = OpenIdException.Factory.Create(DefaultErrorCode, exception);
             }
 

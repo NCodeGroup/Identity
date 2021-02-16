@@ -33,6 +33,11 @@ namespace NIdentity.OpenId.Validation
             return factory.Create(errorCode).WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
+        private static OpenIdException Create(IOpenIdExceptionFactory factory, string errorCode, Exception? innerException)
+        {
+            return factory.Create(errorCode, innerException).WithStatusCode(StatusCodes.Status400BadRequest);
+        }
+
         /// <summary>
         /// Creates an <see cref="OpenIdException"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c> message produces an error.
         /// </summary>
@@ -66,7 +71,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException InvalidRequestUri(this IOpenIdExceptionFactory factory, Exception innerException, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri)
         {
-            return factory.Create(errorCode, innerException).WithErrorDescription("An error occurred while attempting to fetch request_uri.");
+            return Create(factory, errorCode, innerException).WithErrorDescription("An error occurred while attempting to fetch request_uri.");
         }
 
         /// <summary>
@@ -136,7 +141,7 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException FailedToDecodeJwt(this IOpenIdExceptionFactory factory, string errorCode, Exception? innerException = null)
         {
-            return factory.Create(errorCode, innerException).WithErrorDescription("An error occurred while attempting to decode the JWT value.");
+            return Create(factory, errorCode, innerException).WithErrorDescription("An error occurred while attempting to decode the JWT value.");
         }
 
         /// <summary>
@@ -148,7 +153,19 @@ namespace NIdentity.OpenId.Validation
         /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
         public static OpenIdException FailedToDeserializeJson(this IOpenIdExceptionFactory factory, string errorCode, Exception? innerException = null)
         {
-            return factory.Create(errorCode, innerException).WithErrorDescription("An error occurred while attempting to deserialize the JSON value.");
+            return Create(factory, errorCode, innerException).WithErrorDescription("An error occurred while attempting to deserialize the JSON value.");
+        }
+
+        /// <summary>
+        /// Creates an <see cref="OpenIdException"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
+        /// message produces an <see cref="OpenIdConstants.ErrorCodes.UnauthorizedClient"/> error.
+        /// </summary>
+        /// <param name="factory">The <see cref="IOpenIdExceptionFactory"/> instance.</param>
+        /// <param name="errorDescription">The value for <see cref="IErrorDetails.Description"/>..</param>
+        /// <returns>The newly created <see cref="OpenIdException"/> instance.</returns>
+        public static OpenIdException UnauthorizedClient(this IOpenIdExceptionFactory factory, string errorDescription)
+        {
+            return Create(factory, OpenIdConstants.ErrorCodes.UnauthorizedClient).WithErrorDescription(errorDescription);
         }
     }
 }

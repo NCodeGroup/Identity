@@ -13,7 +13,7 @@ namespace NIdentity.OpenId.Playground.Results
 
     /// <summary>
     /// An <see cref="StatusCodeResult"/> that when executed will produce an empty
-    /// <see cref="StatusCodes.Status401Unauthorized"/> response.
+    /// <see cref="Microsoft.AspNetCore.Http.StatusCodes.Status401Unauthorized"/> response.
     /// </summary>
     public class UnauthorizedResult : StatusCodeResult
     {
@@ -75,6 +75,5 @@ namespace NIdentity.OpenId.Playground.Results
 
             return Task.CompletedTask;
         }
-
     }
 }

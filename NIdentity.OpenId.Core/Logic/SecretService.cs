@@ -46,7 +46,7 @@ public static class SecurityAlgorithms
 
 */
 
-namespace NIdentity.OpenId.Playground.Logic
+namespace NIdentity.OpenId.Logic
 {
     /// <summary>
     /// Provides methods that operate on <see cref="Secret"/>.
@@ -55,14 +55,13 @@ namespace NIdentity.OpenId.Playground.Logic
     {
         /// <summary>
         /// Given a collection of <see cref="Secret"/> items, converts and loads them into a disposable collection of
-        /// <see cref="SecurityKey"/> items.
+        /// <see cref="Microsoft.IdentityModel.Tokens.SecurityKey"/> items.
         /// </summary>
         /// <param name="secrets">The secrets to convert and load.</param>
-        /// <returns>The collection of <see cref="SecurityKey"/> items.</returns>
+        /// <returns>The collection of <see cref="Microsoft.IdentityModel.Tokens.SecurityKey"/> items.</returns>
         ISecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets);
     }
 
-    /// <summary />
     internal class SecretService : ISecretService
     {
         /// <inheritdoc />

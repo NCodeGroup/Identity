@@ -6,7 +6,7 @@ namespace NIdentity.OpenId.Playground.Results
 
     /// <summary>
     /// An <see cref="StatusCodeResult"/> that when executed will produce an empty
-    /// <see cref="StatusCodes.Status200OK"/> response.
+    /// <see cref="Microsoft.AspNetCore.Http.StatusCodes.Status200OK"/> response.
     /// </summary>
     public class OkResult : StatusCodeResult
     {

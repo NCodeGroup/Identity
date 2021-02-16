@@ -21,12 +21,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Playground.Handlers
+namespace NIdentity.OpenId.Handlers
 {
     internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAuthorizationRequest>
     {

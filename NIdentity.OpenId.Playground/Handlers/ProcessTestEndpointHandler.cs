@@ -23,7 +23,6 @@ using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
-using static NIdentity.OpenId.Playground.Results.HttpResultFactory;
 
 namespace NIdentity.OpenId.Playground.Handlers
 {
@@ -31,10 +30,17 @@ namespace NIdentity.OpenId.Playground.Handlers
 
     internal class ProcessTestEndpointHandler : IHttpEndpointHandler<ProcessTestEndpoint>
     {
+        private readonly IHttpResultFactory _httpResultFactory;
+
+        public ProcessTestEndpointHandler(IHttpResultFactory httpResultFactory)
+        {
+            _httpResultFactory = httpResultFactory;
+        }
+
         /// <inheritdoc />
         public ValueTask<IHttpResult> HandleAsync(ProcessTestEndpoint request, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(Ok());
+            return ValueTask.FromResult(_httpResultFactory.Ok());
         }
     }
 }

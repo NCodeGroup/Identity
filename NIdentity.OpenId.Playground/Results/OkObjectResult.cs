@@ -7,7 +7,7 @@ namespace NIdentity.OpenId.Playground.Results
 
     /// <summary>
     /// An <see cref="ObjectResult{T}"/> result which formats the given object as JSON and
-    /// will produce a <see cref="StatusCodes.Status200OK"/> response.
+    /// will produce a <see cref="Microsoft.AspNetCore.Http.StatusCodes.Status200OK"/> response.
     /// </summary>
     public class OkObjectResult<T> : ObjectResult<T>
     {

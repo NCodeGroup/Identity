@@ -1,4 +1,4 @@
-﻿namespace NIdentity.OpenId.Playground.Options
+﻿namespace NIdentity.OpenId.Options
 {
     /// <summary>
     /// Contains configurable options for the <c>OpenID Connect</c> authorization handler.

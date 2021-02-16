@@ -4,7 +4,7 @@ namespace NIdentity.OpenId.Playground.Results
 {
     /// <summary>
     /// An <see cref="StatusCodeResult"/> that when executed will produce an empty
-    /// <see cref="StatusCodes.Status404NotFound"/> response.
+    /// <see cref="Microsoft.AspNetCore.Http.StatusCodes.Status404NotFound"/> response.
     /// </summary>
     public class NotFoundResult : StatusCodeResult
     {

@@ -19,6 +19,10 @@
 
 using Microsoft.AspNetCore.Http;
 
+#pragma warning disable 1572 // ProcessAuthorizationEndpoint.cs(28, 22): [CS1572] XML comment has a param tag for 'HttpContext', but there is no parameter by that name
+#pragma warning disable 1573 // ProcessAuthorizationEndpoint.cs(29, 60): [CS1573] Parameter 'HttpContext' has no matching param tag in the XML comment for 'ProcessAuthorizationEndpoint.ProcessAuthorizationEndpoint(HttpContext)' (but other parameters do)
+#pragma warning disable 1574 // ProcessAuthorizationEndpoint.cs(25, 30): [CS1574] XML comment has cref attribute 'ProcessHttpEndpoint' that could not be resolved
+
 namespace NIdentity.OpenId.Requests
 {
     /// <summary>

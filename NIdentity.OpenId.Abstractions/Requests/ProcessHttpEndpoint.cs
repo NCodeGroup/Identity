@@ -20,6 +20,11 @@
 using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Results;
 
+#pragma warning disable 1572 // ProcessHttpEndpoint.cs(29, 22): [CS1572] XML comment has a param tag for 'HttpContext', but there is no parameter by that name
+#pragma warning disable 1573 // ProcessHttpEndpoint.cs(30, 60): [CS1573] Parameter 'HttpContext' has no matching param tag in the XML comment for 'ProcessHttpEndpoint.ProcessHttpEndpoint(HttpContext)' (but other parameters do)
+#pragma warning disable 1574 // ProcessHttpEndpoint.cs(26, 31): [CS1574] XML comment has cref attribute 'IRequest{TResponse}' that could not be resolved
+#pragma warning disable 1591 // ProcessHttpEndpoint.cs(30, 60): [CS1591] Missing XML comment for publicly visible type or member 'ProcessHttpEndpoint.HttpContext'
+
 namespace NIdentity.OpenId.Requests
 {
     /// <summary>

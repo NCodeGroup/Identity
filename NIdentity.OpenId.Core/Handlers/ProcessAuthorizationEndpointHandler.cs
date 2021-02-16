@@ -22,24 +22,25 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Validation;
-using static NIdentity.OpenId.Playground.Results.HttpResultFactory;
 
-namespace NIdentity.OpenId.Playground.Handlers
+namespace NIdentity.OpenId.Handlers
 {
     internal class ProcessAuthorizationEndpointHandler : OpenIdEndpointHandler<ProcessAuthorizationEndpoint>
     {
+        private readonly IHttpResultFactory _httpResultFactory;
         private readonly IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> _getAuthorizationRequestHandler;
         private readonly IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> _validateAuthorizationRequestHandlers;
 
         public ProcessAuthorizationEndpointHandler(
+            IHttpResultFactory httpResultFactory,
             IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> getAuthorizationRequestHandler,
             IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> validateAuthorizationRequestHandlers)
         {
+            _httpResultFactory = httpResultFactory;
             _getAuthorizationRequestHandler = getAuthorizationRequestHandler;
             _validateAuthorizationRequestHandlers = validateAuthorizationRequestHandlers;
         }
@@ -101,7 +102,7 @@ namespace NIdentity.OpenId.Playground.Handlers
         {
             await ValidateAuthorizationRequestAsync(authorizationRequest, cancellationToken);
 
-            return Ok();
+            return _httpResultFactory.Ok();
         }
     }
 }

@@ -1,50 +1,41 @@
-using System;
-using System.Threading.Tasks;
+﻿#region Copyright Preamble
+
+// 
+//    Copyright @ 2021 NCode Group
+// 
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+// 
+//        http://www.apache.org/licenses/LICENSE-2.0
+// 
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
 using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Playground.Results
 {
-    // https://github.com/dotnet/aspnetcore/blob/master/src/Mvc/Mvc.Core/src/BadRequestResult.cs
-    // https://github.com/IdentityServer/IdentityServer4/blob/main/src/IdentityServer4/src/Endpoints/Results/BadRequestResult.cs
-    // https://github.com/IdentityServer/IdentityServer4/blob/main/src/IdentityServer4/src/Endpoints/Results/TokenErrorResult.cs
-
     /// <summary>
-    /// A <see cref="ObjectResult{T}"/> that when executed will produce a Bad
-    /// Request (400) response and the error details formatted as JSON.
+    /// A <see cref="StatusCodeResult"/> that when executed will produce a Bad
+    /// Request (400) response.
     /// </summary>
-    public class BadRequestResult : ObjectResult<IErrorDetails>
+    public class BadRequestResult : StatusCodeResult
     {
         private const int DefaultStatusCode = StatusCodes.Status400BadRequest;
 
         /// <summary>
         /// Creates a new <see cref="BadRequestResult"/> instance.
         /// </summary>
-        public BadRequestResult(string errorCode, string? errorDescription = null)
-            : this(new ErrorDetails(errorCode) { Description = errorDescription })
+        public BadRequestResult()
+            : base(DefaultStatusCode)
         {
             // nothing
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="BadRequestResult"/> instance.
-        /// </summary>
-        public BadRequestResult(IErrorDetails errorDetails)
-            : base(errorDetails)
-        {
-            StatusCode = errorDetails.StatusCode ?? DefaultStatusCode;
-        }
-
-        /// <inheritdoc />
-        public override Task ExecuteAsync(HttpContext httpContext)
-        {
-            if (httpContext == null)
-                throw new ArgumentNullException(nameof(httpContext));
-
-            // TODO
-            // httpContext.Response.SetNoCache();
-
-            return base.ExecuteAsync(httpContext);
         }
     }
 }

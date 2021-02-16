@@ -28,16 +28,15 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Handlers;
+using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Authorization;
-using NIdentity.OpenId.Playground.Logic;
-using NIdentity.OpenId.Playground.Options;
+using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Stores;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Playground.Handlers
+namespace NIdentity.OpenId.Handlers
 {
     internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>
     {

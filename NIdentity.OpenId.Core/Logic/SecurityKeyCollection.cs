@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using Microsoft.IdentityModel.Tokens;
 
-namespace NIdentity.OpenId.Playground.Logic
+namespace NIdentity.OpenId.Logic
 {
     /// <summary>
-    /// Provides a collection of <see cref="SecurityKey"/> items that are disposed when the collection itself is disposed.
+    /// Provides a collection of <see cref="Microsoft.IdentityModel.Tokens.SecurityKey"/> items that are disposed when
+    /// the collection itself is disposed.
     /// </summary>
     public interface ISecurityKeyCollection : IReadOnlyCollection<SecurityKey>, IDisposable
     {

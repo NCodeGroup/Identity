@@ -11,7 +11,7 @@ namespace NIdentity.OpenId.Validation
         /// <summary>
         /// Gets or sets the HTTP status code to be used when returning a response.
         /// </summary>
-        public int? StatusCode { get; set; }
+        int? StatusCode { get; set; }
 
         /// <summary>
         /// Gets or sets the <c>error</c> parameter.

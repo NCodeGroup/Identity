@@ -45,6 +45,14 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
         }
 
         [Fact]
+        public void Serialize_GivenNone_ThenValid()
+        {
+            var parser = new ResponseTypeParser();
+            var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.None);
+            Assert.Equal("none", result);
+        }
+
+        [Fact]
         public void Serialize_GivenCode_ThenValid()
         {
             var parser = new ResponseTypeParser();
@@ -140,6 +148,50 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
 
             var result = parser.Parse(context, descriptor, stringValues);
             Assert.Equal(expectedResult, result);
+        }
+
+        [Fact]
+        public void Parse_GivenNoneWithValidCase_ThenValid()
+        {
+            var parser = new ResponseTypeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "none";
+
+            var knownParameter = new KnownParameter<ResponseTypes?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
+            var descriptor = new ParameterDescriptor(knownParameter);
+
+            var result = parser.Parse(context, descriptor, stringValues);
+            Assert.Equal(ResponseTypes.None, result);
+        }
+
+        [Fact]
+        public void Parse_GivenNoneWithInvalidCase_ThenThrows()
+        {
+            var parser = new ResponseTypeParser();
+            var context = _mockOpenIdMessageContext.Object;
+
+            const string parameterName = "parameterName";
+            const string stringValues = "NONE";
+
+            var knownParameter = new KnownParameter<ResponseTypes?>(
+                parameterName,
+                optional: false,
+                allowMultipleValues: false,
+                parser);
+
+            var descriptor = new ParameterDescriptor(knownParameter);
+
+            Assert.Throws<OpenIdException>(() =>
+            {
+                parser.Parse(context, descriptor, stringValues);
+            });
         }
 
         [Fact]

@@ -36,9 +36,12 @@ namespace NIdentity.OpenId.Messages.Parsers
             if (value is null || value == ResponseTypes.Unspecified)
                 return StringValues.Empty;
 
-            const int capacity = 3;
+            const int capacity = 4;
             var responseType = value.Value;
             var list = new List<string>(capacity);
+
+            if (responseType.HasFlag(ResponseTypes.None))
+                list.Add(OpenIdConstants.ResponseTypes.None);
 
             if (responseType.HasFlag(ResponseTypes.Code))
                 list.Add(OpenIdConstants.ResponseTypes.Code);
@@ -74,7 +77,11 @@ namespace NIdentity.OpenId.Messages.Parsers
             var responseType = ResponseTypes.Unspecified;
             foreach (var stringValue in stringValues)
             {
-                if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Code, StringComparison))
+                if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.None, StringComparison))
+                {
+                    responseType |= ResponseTypes.None;
+                }
+                else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Code, StringComparison))
                 {
                     responseType |= ResponseTypes.Code;
                 }

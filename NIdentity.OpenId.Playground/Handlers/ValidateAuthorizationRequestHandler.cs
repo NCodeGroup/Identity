@@ -52,6 +52,9 @@ namespace NIdentity.OpenId.Playground.Handlers
             if (responseType == ResponseTypes.Unspecified)
                 throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
 
+            if (responseType.HasFlag(ResponseTypes.None) && responseType != ResponseTypes.None)
+                throw OpenIdException.Factory.InvalidRequest("The 'none' response_type must not be combined with other values.");
+
             var redirectUri = requestMessage.RedirectUri;
             if (redirectUri is null)
                 throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);

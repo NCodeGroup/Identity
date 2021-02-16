@@ -25,7 +25,7 @@ namespace NIdentity.OpenId
     public enum GrantType
     {
         /// <summary>
-        /// Represents a value that hasn't been initialized yet.
+        /// Represents a value that hasn't been initialized yet and its value is unknown.
         /// </summary>
         Unspecified = 0,
 

@@ -19,10 +19,24 @@
 
 namespace NIdentity.OpenId
 {
+    /// <summary>
+    /// Specifies from where the <c>Request Object</c> was loaded from.
+    /// </summary>
     public enum RequestObjectSource
     {
+        /// <summary>
+        /// Represents a value that hasn't been initialized yet and its value is unknown.
+        /// </summary>
         Unknown = 0,
+
+        /// <summary>
+        /// Specifies that the <c>Request Object</c> was loaded from the <c>request</c> parameter.
+        /// </summary>
         RequestJwt,
+
+        /// <summary>
+        /// Specifies that the <c>Request Object</c> was loaded by fetching <c>request_uri</c> parameter.
+        /// </summary>
         RequestUri
     }
 }

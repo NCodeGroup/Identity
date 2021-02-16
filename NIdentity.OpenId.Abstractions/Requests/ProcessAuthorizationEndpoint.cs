@@ -21,5 +21,10 @@ using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Requests
 {
+    /// <summary>
+    /// Defines a <see cref="ProcessHttpEndpoint"/> request contract that accepts a <see cref="HttpContext"/> as an
+    /// input argument and doesn't return a value.
+    /// </summary>
+    /// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
     public record ProcessAuthorizationEndpoint(HttpContext HttpContext) : ProcessHttpEndpoint(HttpContext);
 }

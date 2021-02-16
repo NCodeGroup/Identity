@@ -20,12 +20,14 @@
 namespace NIdentity.OpenId
 {
     /// <summary>
-    /// Specifies how the Authorization Server displays the authentication and consent user interface pages to the End-User.
+    /// Specifies how the Authorization Server displays the authentication and consent user interface pages to the
+    /// End-User. The Authorization Server MAY also attempt to detect the capabilities of the User Agent and present an
+    /// appropriate display.
     /// </summary>
     public enum DisplayType
     {
         /// <summary>
-        /// Represents a value that hasn't been initialized yet.
+        /// Represents a value that hasn't been initialized yet and its value is unknown.
         /// </summary>
         Unspecified = 0,
 

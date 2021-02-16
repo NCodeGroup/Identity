@@ -3,16 +3,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30320.27
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCode.Identity", "NCode.Identity\NCode.Identity.csproj", "{CCA25BE7-2AA2-4899-9DB9-5B3CFFB5AA86}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EFDC133A-6CAA-4A79-8E19-FB32FFA95181}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCode.Identity.Abstractions", "NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj", "{B84A7FF7-EBD8-4AB1-976B-F4691B83E7C4}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCode.Identity.Logic", "NCode.Identity.Logic\NCode.Identity.Logic.csproj", "{4BE77383-C305-43AC-BAFF-A41EC1865696}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Abstractions", "NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj", "{BC401E46-D702-42E4-AFBD-09D05FCCB0C9}"
 EndProject
@@ -28,18 +22,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{CCA25BE7-2AA2-4899-9DB9-5B3CFFB5AA86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CCA25BE7-2AA2-4899-9DB9-5B3CFFB5AA86}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CCA25BE7-2AA2-4899-9DB9-5B3CFFB5AA86}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CCA25BE7-2AA2-4899-9DB9-5B3CFFB5AA86}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B84A7FF7-EBD8-4AB1-976B-F4691B83E7C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B84A7FF7-EBD8-4AB1-976B-F4691B83E7C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B84A7FF7-EBD8-4AB1-976B-F4691B83E7C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B84A7FF7-EBD8-4AB1-976B-F4691B83E7C4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4BE77383-C305-43AC-BAFF-A41EC1865696}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4BE77383-C305-43AC-BAFF-A41EC1865696}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4BE77383-C305-43AC-BAFF-A41EC1865696}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4BE77383-C305-43AC-BAFF-A41EC1865696}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BC401E46-D702-42E4-AFBD-09D05FCCB0C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BC401E46-D702-42E4-AFBD-09D05FCCB0C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC401E46-D702-42E4-AFBD-09D05FCCB0C9}.Release|Any CPU.ActiveCfg = Release|Any CPU

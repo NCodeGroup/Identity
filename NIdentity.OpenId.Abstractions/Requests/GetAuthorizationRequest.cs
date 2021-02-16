@@ -20,6 +20,11 @@
 using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Messages.Authorization;
 
+#pragma warning disable 1572 // GetAuthorizationRequest.cs(33, 22): [CS1572] XML comment has a param tag for 'HttpContext', but there is no parameter by that name
+#pragma warning disable 1573 // GetAuthorizationRequest.cs(34, 55): [CS1573] Parameter 'HttpContext' has no matching param tag in the XML comment for 'GetAuthorizationRequest.GetAuthorizationRequest(HttpContext)' (but other parameters do)
+#pragma warning disable 1574 // GetAuthorizationRequest.cs(28, 31): [CS1574] XML comment has cref attribute 'IRequest{TResponse}' that could not be resolved
+#pragma warning disable 1591 // GetAuthorizationRequest.cs(34, 55): [CS1591] Missing XML comment for publicly visible type or member 'GetAuthorizationRequest.HttpContext'
+
 namespace NIdentity.OpenId.Requests
 {
     /// <summary>

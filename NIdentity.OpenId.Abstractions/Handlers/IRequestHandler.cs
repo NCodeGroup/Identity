@@ -34,8 +34,8 @@ namespace NIdentity.OpenId.Handlers
         /// Handles a request given an input argument.
         /// </summary>
         /// <param name="request">The input argument to handle.</param>
-        /// <param name="cancellationToken">A <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-        /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+        /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
         ValueTask HandleAsync(TRequest request, CancellationToken cancellationToken);
     }
 }

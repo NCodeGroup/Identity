@@ -22,5 +22,10 @@ using NIdentity.OpenId.Messages.Authorization;
 
 namespace NIdentity.OpenId.Requests
 {
+    /// <summary>
+    /// Defines an <see cref="IRequest{TResponse}"/> request contract that accepts a <see cref="HttpContext"/> as an
+    /// input argument and expects <see cref="IAuthorizationRequest"/> as a response.
+    /// </summary>
+    /// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
     public record GetAuthorizationRequest(HttpContext HttpContext) : IRequest<IAuthorizationRequest>;
 }

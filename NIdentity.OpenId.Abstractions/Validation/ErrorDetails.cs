@@ -8,6 +8,9 @@ namespace NIdentity.OpenId.Validation
     /// </summary>
     public interface IErrorDetails
     {
+        /// <summary>
+        /// Gets or sets the HTTP status code to be used when returning a response.
+        /// </summary>
         public int? StatusCode { get; set; }
 
         /// <summary>

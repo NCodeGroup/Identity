@@ -13,7 +13,8 @@ namespace NIdentity.OpenId.Messages.Authorization
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public RequestClaimDictionary? IdToken { get; set; }
 
-        [JsonExtensionData] public Dictionary<string, object> ExtensionData { get; set; } = new();
+        [JsonExtensionData]
+        public Dictionary<string, object?> ExtensionData { get; set; } = new();
 
         IReadOnlyDictionary<string, IRequestClaim?>? IRequestClaims.UserInfo => UserInfo;
 

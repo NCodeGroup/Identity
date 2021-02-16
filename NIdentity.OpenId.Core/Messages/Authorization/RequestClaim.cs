@@ -21,6 +21,6 @@ namespace NIdentity.OpenId.Messages.Authorization
         public string[]? Values { get; set; }
 
         [JsonExtensionData]
-        public Dictionary<string, object> ExtensionData { get; set; } = new();
+        public Dictionary<string, object?> ExtensionData { get; set; } = new();
     }
 }

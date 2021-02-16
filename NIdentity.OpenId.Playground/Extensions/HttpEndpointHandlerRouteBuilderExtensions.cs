@@ -26,7 +26,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Requests;
 
-namespace NIdentity.OpenId.Playground
+namespace NIdentity.OpenId.Playground.Extensions
 {
     internal static class HttpEndpointHandlerRouteBuilderExtensions
     {

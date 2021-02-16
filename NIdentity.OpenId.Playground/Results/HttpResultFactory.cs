@@ -4,9 +4,6 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Playground.Results
 {
-    /// <summary>
-    /// Provides <see cref="IHttpResult"/> factory functions that represent the result of a HTTP operation.
-    /// </summary>
     internal class HttpResultFactory : IHttpResultFactory
     {
         public IHttpResult Ok() => new OkResult();
@@ -14,10 +11,6 @@ namespace NIdentity.OpenId.Playground.Results
         public IHttpResult Ok<T>(T value) => new OkObjectResult<T>(value);
 
         public IHttpResult StatusCode(int statusCode) => new StatusCodeResult(statusCode);
-
-        public IHttpResult Object<T>(T value) => new ObjectResult<T>(value);
-
-        public IHttpResult Object<T>(T value, JsonSerializerOptions serializerOptions) => new ObjectResult<T>(value, serializerOptions);
 
         public IHttpResult Object<T>(int statusCode, T value) => new ObjectResult<T>(value) { StatusCode = statusCode };
 

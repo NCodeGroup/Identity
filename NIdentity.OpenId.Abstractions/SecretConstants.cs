@@ -27,9 +27,9 @@ namespace NIdentity.OpenId
     public static class SecretConstants
     {
         /// <summary>
-        /// Contains constants for the possible values of the <see cref="Secret.Encoding"/> property.
+        /// Contains constants for the possible values of the <see cref="Secret.EncodingType"/> property.
         /// </summary>
-        public static class Encodings
+        public static class EncodingTypes
         {
             /// <summary>
             /// Indicates that a <see cref="Secret"/> is encoded as a byte array using base64 encoding.
@@ -43,10 +43,16 @@ namespace NIdentity.OpenId
         }
 
         /// <summary>
-        /// Contains constants for the possible values of the <see cref="Secret.Algorithm"/> property.
+        /// Contains constants for the possible values of the <see cref="Secret.AlgorithmType"/> property.
         /// </summary>
-        public static class Algorithms
+        public static class AlgorithmTypes
         {
+            /// <summary>
+            /// Indicates the a <see cref="Secret"/> doesn't use a cryptographic algorithm. This algorithm type is only
+            /// used by shared secrets.
+            /// </summary>
+            public const string None = "none";
+
             /// <summary>
             /// Indicates that a <see cref="Secret"/> is using the <c>Advanced Encryption Standard (AES)</c> cryptographic algorithm.
             /// </summary>
@@ -74,9 +80,9 @@ namespace NIdentity.OpenId
         }
 
         /// <summary>
-        /// Contains constants for the possible values of the <see cref="Secret.Type"/> property.
+        /// Contains constants for the possible values of the <see cref="Secret.SecretType"/> property.
         /// </summary>
-        public static class Types
+        public static class SecretTypes
         {
             /// <summary>
             /// Indicates that a <see cref="Secret"/> represents a shared secret.
@@ -84,7 +90,7 @@ namespace NIdentity.OpenId
             public const string SharedSecret = "shared_secret";
 
             /// <summary>
-            /// Indicates that a <see cref="Secret"/> represents a symmetric key.
+            /// Indicates that a <see cref="Secret"/> represents a cryptographic symmetric key.
             /// </summary>
             public const string SymmetricKey = "symmetric_key";
 

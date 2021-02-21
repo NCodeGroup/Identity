@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace NIdentity.OpenId.DataContracts
 {
@@ -14,18 +15,14 @@ namespace NIdentity.OpenId.DataContracts
         public long Id { get; set; }
 
         /// <inheritdoc/>
+        [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
         public string ConcurrencyToken { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the natural key for this entity.
         /// </summary>
+        [MaxLength(DataConstants.MaxIndexLength)]
         public string ClientId { get; set; } = null!;
-
-        /// <summary>
-        /// Gets or sets the value of <see cref="ClientId"/> in uppercase so that lookups can be sargable for DBMS
-        /// engines that don't support case-insensitive indices.
-        /// </summary>
-        public string NormalizedClientId { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets a value indicating whether the client is disabled.

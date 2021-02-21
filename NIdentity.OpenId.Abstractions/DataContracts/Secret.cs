@@ -16,13 +16,7 @@ namespace NIdentity.OpenId.DataContracts
         public string KeyId { get; set; } = null!;
 
         /// <summary>
-        /// Gets or sets the value of <see cref="KeyId"/> in uppercase so that lookups can be sargable for DBMS
-        /// engines that don't support case-insensitive indices.
-        /// </summary>
-        public string NormalizedKeyId { get; set; } = null!;
-
-        /// <summary>
-        /// Gets or sets a value that specifies how <see cref="Value"/> is encoded to/from a string. Examples values are:
+        /// Gets or sets a value that specifies how <see cref="EncodedValue"/> is encoded to/from a string. Examples values are:
         /// <list type="bullet">
         ///     <item>
         ///         <term>base64</term>
@@ -32,11 +26,14 @@ namespace NIdentity.OpenId.DataContracts
         ///     </item>
         /// </list>
         /// </summary>
-        public string Encoding { get; set; } = null!;
+        public string EncodingType { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets a value that specifies the cryptographic algorithm used by the secret. Examples values are:
         /// <list type="bullet">
+        ///     <item>
+        ///         <term>none</term>
+        ///     </item>
         ///     <item>
         ///         <term>aes</term>
         ///     </item>
@@ -54,7 +51,7 @@ namespace NIdentity.OpenId.DataContracts
         ///     </item>
         /// </list>
         /// </summary>
-        public string Algorithm { get; set; } = null!;
+        public string AlgorithmType { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets a value that specifies the type of secret. Examples values are:
@@ -73,11 +70,11 @@ namespace NIdentity.OpenId.DataContracts
         ///     </item>
         /// </list>
         /// </summary>
-        public string Type { get; set; } = null!;
+        public string SecretType { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the encoded value of the secret.
         /// </summary>
-        public string Value { get; set; } = null!;
+        public string EncodedValue { get; set; } = null!;
     }
 }

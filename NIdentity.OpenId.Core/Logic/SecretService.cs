@@ -88,21 +88,21 @@ namespace NIdentity.OpenId.Logic
 
         private static void LoadSecurityKey(ICollection<SecurityKey> list, Secret secret)
         {
-            switch (secret.Type)
+            switch (secret.SecretType)
             {
-                case SecretConstants.Types.SharedSecret:
+                case SecretConstants.SecretTypes.SharedSecret:
                     //return LoadSharedSecurityKey(secret);
                     throw new NotImplementedException();
 
-                case SecretConstants.Types.SymmetricKey:
+                case SecretConstants.SecretTypes.SymmetricKey:
                     LoadSymmetricSecurityKey(list, secret);
                     break;
 
-                case SecretConstants.Types.AsymmetricKey:
+                case SecretConstants.SecretTypes.AsymmetricKey:
                     LoadAsymmetricSecurityKey(list, secret);
                     break;
 
-                case SecretConstants.Types.Certificate:
+                case SecretConstants.SecretTypes.Certificate:
                     LoadCertificateSecurityKey(list, secret);
                     break;
             }
@@ -110,38 +110,38 @@ namespace NIdentity.OpenId.Logic
 
         private static void LoadSymmetricSecurityKey(ICollection<SecurityKey> list, Secret secret)
         {
-            if (secret.Encoding != SecretConstants.Encodings.Base64)
+            if (secret.EncodingType != SecretConstants.EncodingTypes.Base64)
                 return;
 
-            list.Add(new SymmetricSecurityKey(Convert.FromBase64String(secret.Value)) { KeyId = secret.KeyId });
+            list.Add(new SymmetricSecurityKey(Convert.FromBase64String(secret.EncodedValue)) { KeyId = secret.KeyId });
         }
 
         private static void LoadAsymmetricSecurityKey(ICollection<SecurityKey> list, Secret secret)
         {
-            if (secret.Encoding != SecretConstants.Encodings.Pem)
+            if (secret.EncodingType != SecretConstants.EncodingTypes.Pem)
                 return;
 
-            switch (secret.Algorithm)
+            switch (secret.AlgorithmType)
             {
-                case SecretConstants.Algorithms.Dsa:
+                case SecretConstants.AlgorithmTypes.Dsa:
                     //var dsa = DSA.Create();
                     //dsa.ImportFromPem(secret.Value);
                     //return new DsaSecurityKey(dsa) { KeyId = secret.KeyId };
                     throw new NotImplementedException();
 
-                case SecretConstants.Algorithms.Rsa:
+                case SecretConstants.AlgorithmTypes.Rsa:
                     var rsa = RSA.Create();
-                    rsa.ImportFromPem(secret.Value);
+                    rsa.ImportFromPem(secret.EncodedValue);
                     list.Add(new RsaSecurityKey(rsa) { KeyId = secret.KeyId });
                     break;
 
-                case SecretConstants.Algorithms.Ecdsa:
+                case SecretConstants.AlgorithmTypes.Ecdsa:
                     var ecdsa = ECDsa.Create() ?? throw new InvalidOperationException();
-                    ecdsa.ImportFromPem(secret.Value);
+                    ecdsa.ImportFromPem(secret.EncodedValue);
                     list.Add(new ECDsaSecurityKey(ecdsa) { KeyId = secret.KeyId });
                     break;
 
-                case SecretConstants.Algorithms.Ecdh:
+                case SecretConstants.AlgorithmTypes.Ecdh:
                     //var ecdh = ECDiffieHellman.Create();
                     //ecdh.ImportFromPem(secret.Value);
                     //return new ECDiffieHellmanSecurityKey(ecdsa) { KeyId = secret.KeyId };
@@ -151,10 +151,10 @@ namespace NIdentity.OpenId.Logic
 
         private static void LoadCertificateSecurityKey(ICollection<SecurityKey> list, Secret secret)
         {
-            if (secret.Encoding != SecretConstants.Encodings.Pem)
+            if (secret.EncodingType != SecretConstants.EncodingTypes.Pem)
                 return;
 
-            list.Add(new X509SecurityKey(X509Certificate2.CreateFromPem(secret.Value, secret.Value), secret.KeyId));
+            list.Add(new X509SecurityKey(X509Certificate2.CreateFromPem(secret.EncodedValue, secret.EncodedValue), secret.KeyId));
         }
     }
 }

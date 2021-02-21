@@ -17,12 +17,68 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Playground.DataLayer.Entities
 {
+    internal abstract class PropertyEntity : ISupportId, ISupportConcurrencyToken
+    {
+        /// <inheritdoc />
+        public long Id { get; set; }
+
+        /// <inheritdoc />
+        public string ConcurrencyToken { get; set; } = null!;
+
+        [MaxLength(DataConstants.MaxIndexLength)]
+        public string CodeName { get; set; } = null!;
+
+        [MaxLength(DataConstants.MaxIndexLength)]
+        public string NormalizedCodeName { get; set; } = null!;
+
+        public string SerializedValue { get; set; } = null!;
+    }
+
+    internal class ClientPropertyEntity : PropertyEntity
+    {
+        public long ClientId { get; set; }
+
+        public ClientEntity Client { get; set; } = null!;
+    }
+
+    internal readonly struct PropertyDescriptor
+    {
+        public PropertyDescriptor(
+            string codeName,
+            string displayName,
+            string description,
+            Type valueType,
+            object? defaultValue,
+            bool isRequired)
+        {
+            CodeName = codeName;
+            DisplayName = displayName;
+            Description = description;
+            ValueType = valueType;
+            DefaultValue = defaultValue;
+            IsRequired = isRequired;
+        }
+
+        public string CodeName { get; }
+
+        public string DisplayName { get; }
+
+        public string Description { get; }
+
+        public Type ValueType { get; }
+
+        public object? DefaultValue { get; }
+
+        public bool IsRequired { get; }
+    }
+
     internal class ClientEntity : ISupportId, ISupportConcurrencyToken
     {
         public long Id { get; set; }

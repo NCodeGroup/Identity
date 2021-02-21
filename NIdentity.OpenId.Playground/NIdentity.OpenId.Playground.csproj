@@ -23,4 +23,8 @@
         <ProjectReference Include="..\NIdentity.OpenId.Core\NIdentity.OpenId.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="DataLayer\Entities\Parameters" />
+    </ItemGroup>
+
 </Project>

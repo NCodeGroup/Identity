@@ -44,7 +44,8 @@ namespace NIdentity.OpenId.Playground.DataLayer.Configuration
             builder.Property(_ => _.AllowPlainCodeChallengeMethod);
 
             builder.HasMany(_ => _.ClientSecrets).WithOne(_ => _.Client).HasForeignKey(_ => _.ClientId).IsRequired();
-            builder.HasMany(_ => _.ClientUrls).WithOne().HasForeignKey(_ => _.ClientId).IsRequired();
+            builder.HasMany(_ => _.Urls).WithOne().HasForeignKey(_ => _.ClientId).IsRequired();
+            builder.HasMany(_ => _.Properties).WithOne(_ => _.Client).HasForeignKey(_ => _.ClientId).IsRequired();
         }
     }
 }

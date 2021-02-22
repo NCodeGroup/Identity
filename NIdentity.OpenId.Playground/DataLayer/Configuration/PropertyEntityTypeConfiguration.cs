@@ -23,29 +23,30 @@ using NIdentity.OpenId.Playground.DataLayer.Entities;
 
 namespace NIdentity.OpenId.Playground.DataLayer.Configuration
 {
-    internal class ClientEntityTypeConfiguration : IEntityTypeConfiguration<ClientEntity>
+    internal abstract class PropertyEntityTypeConfiguration<T> : IEntityTypeConfiguration<T>
+        where T : PropertyEntity
     {
-        /// <inheritdoc />
-        public void Configure(EntityTypeBuilder<ClientEntity> builder)
+        protected abstract void PreConfigure(EntityTypeBuilder<T> builder);
+
+        protected virtual void PostConfigure(EntityTypeBuilder<T> builder)
         {
+            // nothing
+        }
+
+        /// <inheritdoc />
+        public void Configure(EntityTypeBuilder<T> builder)
+        {
+            PreConfigure(builder);
+
             builder.HasKey(_ => _.Id);
-            builder.HasIndex(_ => _.NormalizedClientId).IsUnique();
 
             builder.Property(_ => _.Id).UseIdGenerator();
             builder.Property(_ => _.ConcurrencyToken).AsStandardConcurrencyToken();
-            builder.Property(_ => _.ClientId).AsStandardIndex();
-            builder.Property(_ => _.NormalizedClientId).AsStandardIndex();
+            builder.Property(_ => _.CodeName).AsStandardIndex();
+            builder.Property(_ => _.NormalizedCodeName).AsStandardIndex();
+            builder.Property(_ => _.JsonValue).AsStandardString();
 
-            builder.Property(_ => _.IsDisabled);
-            builder.Property(_ => _.AllowUnsafeTokenResponse);
-            builder.Property(_ => _.AllowLoopback);
-            builder.Property(_ => _.RequireRequestObject);
-            builder.Property(_ => _.RequirePkce);
-            builder.Property(_ => _.AllowPlainCodeChallengeMethod);
-
-            builder.HasMany(_ => _.ClientSecrets).WithOne(_ => _.Client).HasForeignKey(_ => _.ClientId).IsRequired();
-            builder.HasMany(_ => _.Urls).WithOne().HasForeignKey(_ => _.ClientId).IsRequired();
-            builder.HasMany(_ => _.Properties).WithOne(_ => _.Client).HasForeignKey(_ => _.ClientId).IsRequired();
+            PostConfigure(builder);
         }
     }
 }

@@ -17,26 +17,25 @@
 
 #endregion
 
-using System;
-using System.Linq;
-using AutoMapper;
+using System.ComponentModel.DataAnnotations;
 using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Playground.DataLayer.Entities;
 
-namespace NIdentity.OpenId.Playground.Stores
+namespace NIdentity.OpenId.Playground.DataLayer.Entities
 {
-    internal class IdentityProfile : Profile
+    internal abstract class PropertyEntity : ISupportId, ISupportConcurrencyToken
     {
-        public IdentityProfile()
-        {
-            CreateMap<ClientUrlEntity, Uri>()
-                .ConstructUsing(src => new Uri(src.Url));
+        /// <inheritdoc />
+        public long Id { get; set; }
 
-            CreateMap<SecretEntity, Secret>();
+        /// <inheritdoc />
+        public string ConcurrencyToken { get; set; } = null!;
 
-            CreateMap<ClientEntity, Client>()
-                .ForMember(dst => dst.Secrets, cfg => cfg.MapFrom(src => src.ClientSecrets.Select(entity => entity.Secret)))
-                .ForMember(dst => dst.RedirectUris, cfg => cfg.MapFrom(src => src.Urls.Where(clientUrl => clientUrl.UrlType == "RedirectUrl")));
-        }
+        [MaxLength(DataConstants.MaxIndexLength)]
+        public string CodeName { get; set; } = null!;
+
+        [MaxLength(DataConstants.MaxIndexLength)]
+        public string NormalizedCodeName { get; set; } = null!;
+
+        public string JsonValue { get; set; } = null!;
     }
 }

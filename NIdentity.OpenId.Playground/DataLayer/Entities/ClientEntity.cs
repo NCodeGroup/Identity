@@ -24,30 +24,6 @@ using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Playground.DataLayer.Entities
 {
-    internal abstract class PropertyEntity : ISupportId, ISupportConcurrencyToken
-    {
-        /// <inheritdoc />
-        public long Id { get; set; }
-
-        /// <inheritdoc />
-        public string ConcurrencyToken { get; set; } = null!;
-
-        [MaxLength(DataConstants.MaxIndexLength)]
-        public string CodeName { get; set; } = null!;
-
-        [MaxLength(DataConstants.MaxIndexLength)]
-        public string NormalizedCodeName { get; set; } = null!;
-
-        public string SerializedValue { get; set; } = null!;
-    }
-
-    internal class ClientPropertyEntity : PropertyEntity
-    {
-        public long ClientId { get; set; }
-
-        public ClientEntity Client { get; set; } = null!;
-    }
-
     internal readonly struct PropertyDescriptor
     {
         public PropertyDescriptor(
@@ -110,6 +86,8 @@ namespace NIdentity.OpenId.Playground.DataLayer.Entities
 
         public IList<ClientSecretEntity> ClientSecrets { get; set; } = null!;
 
-        public IList<ClientUrlEntity> ClientUrls { get; set; } = null!;
+        public IList<ClientUrlEntity> Urls { get; set; } = null!;
+
+        public IList<ClientPropertyEntity> Properties { get; set; } = null!;
     }
 }

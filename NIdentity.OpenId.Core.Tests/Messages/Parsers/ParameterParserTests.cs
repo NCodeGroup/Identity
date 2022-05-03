@@ -26,26 +26,26 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class ParameterParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
-    private readonly Mock<ITestParameterParser> _mockTestParameterParser;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
+    private Mock<ITestParameterParser> MockTestParameterParser { get; }
 
     public ParameterParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-        _mockTestParameterParser = _mockRepository.Create<ITestParameterParser>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
+        MockTestParameterParser = MockRepository.Create<ITestParameterParser>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Separator_ThenValid()
     {
-        var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
+        var parser = new TestParameterParser(MockTestParameterParser.Object, null);
 
         Assert.Equal(OpenIdConstants.ParameterSeparator, parser.Separator);
     }
@@ -53,7 +53,7 @@ public class ParameterParserTests : IDisposable
     [Fact]
     public void StringComparison_ThenValid()
     {
-        var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
+        var parser = new TestParameterParser(MockTestParameterParser.Object, null);
 
         Assert.Equal(StringComparison.Ordinal, parser.StringComparison);
     }
@@ -61,8 +61,8 @@ public class ParameterParserTests : IDisposable
     [Fact]
     public void Load_ThenValid()
     {
-        var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
-        var context = _mockOpenIdMessageContext.Object;
+        var parser = new TestParameterParser(MockTestParameterParser.Object, null);
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "stringValues";
@@ -70,7 +70,7 @@ public class ParameterParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(parameterName);
 
-        _mockTestParameterParser
+        MockTestParameterParser
             .Setup(_ => _.Parse(context, descriptor, stringValues))
             .Returns(parsedValue)
             .Verifiable();

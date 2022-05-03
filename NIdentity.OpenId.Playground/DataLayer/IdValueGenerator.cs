@@ -26,17 +26,17 @@ namespace NIdentity.OpenId.Playground.DataLayer;
 internal class IdValueGenerator : ValueGenerator<long>
 {
     // https://medium.com/ingeniouslysimple/why-did-we-shift-away-from-database-generated-ids-7e0e54a49bb3
-    private readonly IIdGenerator<long> _generator;
+    private IIdGenerator<long> Generator { get; }
 
     public IdValueGenerator(IIdGenerator<long> generator)
     {
-        _generator = generator;
+        Generator = generator;
     }
 
     public override bool GeneratesTemporaryValues => false;
 
     public override long Next(EntityEntry entry)
     {
-        return _generator.CreateId();
+        return Generator.CreateId();
     }
 }

@@ -25,22 +25,22 @@ namespace NIdentity.OpenId.Messages;
 
 internal abstract class OpenIdMessage : IOpenIdMessage
 {
-    private bool _isInitialized;
-    private IOpenIdMessageContext? _context;
-    private Dictionary<string, Parameter>? _parameters;
+    private bool IsInitialized { get; set; }
+    private IOpenIdMessageContext? ContextOrNull { get; set; }
+    private Dictionary<string, Parameter>? ParametersOrNull { get; set; }
 
     /// <inheritdoc />
-    public IOpenIdMessageContext Context => _context ?? throw new InvalidOperationException("TODO");
+    public IOpenIdMessageContext Context => ContextOrNull ?? throw new InvalidOperationException("TODO");
 
-    public IReadOnlyDictionary<string, Parameter> Parameters => _parameters ?? throw new InvalidOperationException("TODO");
+    public IReadOnlyDictionary<string, Parameter> Parameters => ParametersOrNull ?? throw new InvalidOperationException("TODO");
 
     protected internal void Initialize(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
     {
-        if (_isInitialized) throw new InvalidOperationException("TODO");
+        if (IsInitialized) throw new InvalidOperationException("TODO");
 
-        _context = context;
-        _parameters = parameters.ToDictionary(parameter => parameter.Descriptor.ParameterName, StringComparer.Ordinal);
-        _isInitialized = true;
+        ContextOrNull = context;
+        ParametersOrNull = parameters.ToDictionary(parameter => parameter.Descriptor.ParameterName, StringComparer.Ordinal);
+        IsInitialized = true;
     }
 
     /// <inheritdoc />
@@ -86,8 +86,8 @@ internal abstract class OpenIdMessage : IOpenIdMessage
 
     protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
     {
-        var context = _context ?? throw new InvalidOperationException("TODO");
-        var parameters = _parameters ?? throw new InvalidOperationException("TODO");
+        var context = ContextOrNull ?? throw new InvalidOperationException("TODO");
+        var parameters = ParametersOrNull ?? throw new InvalidOperationException("TODO");
 
         var parameterName = knownParameter.Name;
         if (parsedValue is null)

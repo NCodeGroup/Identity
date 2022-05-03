@@ -29,11 +29,11 @@ namespace NIdentity.OpenId.Messages;
 internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
     where T : OpenIdMessage<T>, new()
 {
-    private readonly IOpenIdMessageContext _context;
+    private IOpenIdMessageContext Context { get; }
 
     public OpenIdMessageJsonConverter(IOpenIdMessageContext context)
     {
-        _context = context;
+        Context = context;
     }
 
     internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
@@ -41,12 +41,12 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         if (reader.TokenType != JsonTokenType.StartArray && reader.TokenType != JsonTokenType.StartObject)
             throw new JsonException("TODO");
 
-        var descriptor = _context.TryGetKnownParameter(parameterName, out var knownParameter) ?
+        var descriptor = Context.TryGetKnownParameter(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
 
         var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
-        var parameter = jsonParser.Load(_context, descriptor, ref reader, options);
+        var parameter = jsonParser.Load(Context, descriptor, ref reader, options);
 
         if (reader.TokenType != JsonTokenType.EndArray && reader.TokenType != JsonTokenType.EndObject)
             throw new JsonException("TODO");
@@ -72,7 +72,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             switch (reader.TokenType)
             {
                 case JsonTokenType.EndObject:
-                    return OpenIdMessage<T>.Load(_context, parameters);
+                    return OpenIdMessage<T>.Load(Context, parameters);
 
                 case JsonTokenType.PropertyName:
                     parameterName = reader.GetString() ?? throw new JsonException("TODO");
@@ -90,20 +90,20 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             switch (reader.TokenType)
             {
                 case JsonTokenType.Null:
-                    parameter = Parameter.Load(_context, parameterName, StringValues.Empty);
+                    parameter = Parameter.Load(Context, parameterName, StringValues.Empty);
                     break;
 
                 case JsonTokenType.String:
-                    parameter = Parameter.Load(_context, parameterName, reader.GetString()?.Split(OpenIdConstants.ParameterSeparator) ?? Array.Empty<string>());
+                    parameter = Parameter.Load(Context, parameterName, reader.GetString()?.Split(OpenIdConstants.ParameterSeparator) ?? Array.Empty<string>());
                     break;
 
                 case JsonTokenType.Number:
-                    parameter = Parameter.Load(_context, parameterName, reader.GetDecimal().ToString(CultureInfo.InvariantCulture));
+                    parameter = Parameter.Load(Context, parameterName, reader.GetDecimal().ToString(CultureInfo.InvariantCulture));
                     break;
 
                 case JsonTokenType.True:
                 case JsonTokenType.False:
-                    parameter = Parameter.Load(_context, parameterName, reader.GetBoolean().ToString(CultureInfo.InvariantCulture));
+                    parameter = Parameter.Load(Context, parameterName, reader.GetBoolean().ToString(CultureInfo.InvariantCulture));
                     break;
 
                 case JsonTokenType.StartArray:

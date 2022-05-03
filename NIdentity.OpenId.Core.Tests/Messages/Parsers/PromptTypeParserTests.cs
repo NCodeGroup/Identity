@@ -29,25 +29,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class PromptTypeParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public PromptTypeParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Serialize_GivenNone_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.None);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.None);
         Assert.Equal("none", result);
     }
 
@@ -55,7 +55,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenLogin_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Login);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.Login);
         Assert.Equal("login", result);
     }
 
@@ -63,7 +63,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenConsent_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Consent);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.Consent);
         Assert.Equal("consent", result);
     }
 
@@ -71,7 +71,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenSelectAccount_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.SelectAccount);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.SelectAccount);
         Assert.Equal("select_account", result);
     }
 
@@ -79,7 +79,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenUnknown_ThenEmpty()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Unspecified);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.Unspecified);
         Assert.Equal(StringValues.Empty, result);
     }
 
@@ -87,7 +87,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -108,7 +108,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -121,17 +121,14 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "login select_account";
@@ -153,7 +150,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenNoneWithValidCase_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "none";
@@ -174,7 +171,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenNoneWithInvalidCase_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "NONE";
@@ -187,17 +184,14 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenLoginWithValidCase_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "login";
@@ -218,7 +212,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenLoginWithInvalidCase_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "LOGIN";
@@ -231,17 +225,14 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenConsentWithValidCase_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "consent";
@@ -262,7 +253,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenConsentWithInvalidCase_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "CONSENT";
@@ -275,17 +266,14 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenSelectAccountWithValidCase_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "select_account";
@@ -306,7 +294,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenSelectAccountWithInvalidCase_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "SELECT_ACCOUNT";
@@ -319,17 +307,14 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "invalid_value";
@@ -342,9 +327,6 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 }

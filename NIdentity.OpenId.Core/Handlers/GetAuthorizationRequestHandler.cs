@@ -35,12 +35,12 @@ namespace NIdentity.OpenId.Handlers;
 
 internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>
 {
-    private readonly ILogger<GetAuthorizationRequestHandler> _logger;
-    private readonly AuthorizationOptions _options;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IClientStore _clientStore;
-    private readonly ISecretService _secretService;
-    private readonly IJwtDecoder _jwtDecoder;
+    private ILogger<GetAuthorizationRequestHandler> Logger { get; }
+    private AuthorizationOptions Options { get; }
+    private IHttpClientFactory HttpClientFactory { get; }
+    private IClientStore ClientStore { get; }
+    private ISecretService SecretService { get; }
+    private IJwtDecoder JwtDecoder { get; }
 
     public GetAuthorizationRequestHandler(
         ILogger<GetAuthorizationRequestHandler> logger,
@@ -50,20 +50,21 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         ISecretService secretService,
         IJwtDecoder jwtDecoder)
     {
-        _logger = logger;
-        _options = optionsAccessor.Value;
-        _httpClientFactory = httpClientFactory;
-        _clientStore = clientStore;
-        _secretService = secretService;
-        _jwtDecoder = jwtDecoder;
+        Logger = logger;
+        Options = optionsAccessor.Value;
+        HttpClientFactory = httpClientFactory;
+        ClientStore = clientStore;
+        SecretService = secretService;
+        JwtDecoder = jwtDecoder;
     }
 
     /// <inheritdoc />
-    public async ValueTask<IAuthorizationRequest> HandleAsync(GetAuthorizationRequest request, CancellationToken cancellationToken)
+    public async ValueTask<IAuthorizationRequest> HandleAsync(GetAuthorizationRequest request,
+        CancellationToken cancellationToken)
     {
         var httpContext = request.HttpContext;
 
-        var messageContext = new OpenIdMessageContext(_logger);
+        var messageContext = new OpenIdMessageContext(Logger);
 
         var requestMessage = LoadRequestMessage(httpContext, messageContext);
         try
@@ -81,13 +82,14 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         }
     }
 
-    private async ValueTask<IAuthorizationRequest> LoadRequestAsync(IAuthorizationRequestMessage requestMessage, CancellationToken cancellationToken)
+    private async ValueTask<IAuthorizationRequest> LoadRequestAsync(IAuthorizationRequestMessage requestMessage,
+        CancellationToken cancellationToken)
     {
         var clientId = requestMessage.ClientId;
         if (string.IsNullOrEmpty(clientId))
             throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ClientId);
 
-        var client = await _clientStore.GetByClientIdAsync(clientId, cancellationToken);
+        var client = await ClientStore.GetByClientIdAsync(clientId, cancellationToken);
         if (client == null)
             throw OpenIdException.Factory.InvalidRequest("TODO: GetByClientIdAsync returned null");
 
@@ -96,7 +98,8 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         return new AuthorizationRequest(requestMessage, requestObject, client);
     }
 
-    private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(IAuthorizationRequestMessage requestMessage, Client client, CancellationToken cancellationToken)
+    private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
+        IAuthorizationRequestMessage requestMessage, Client client, CancellationToken cancellationToken)
     {
         var requestJwt = requestMessage.RequestJwt;
         var requestUri = requestMessage.RequestUri;
@@ -110,14 +113,16 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri;
 
             if (!string.IsNullOrEmpty(requestJwt))
-                throw OpenIdException.Factory.InvalidRequest("Both the request and request_uri parameters cannot be present at the same time.", errorCode);
+                throw OpenIdException.Factory.InvalidRequest(
+                    "Both the request and request_uri parameters cannot be present at the same time.", errorCode);
 
-            if (!_options.RequestObject.RequestUriEnabled)
+            if (!Options.RequestObject.RequestUriEnabled)
                 throw OpenIdException.Factory.RequestUriNotSupported();
 
-            var requestUriMaxLength = _options.RequestObject.RequestUriMaxLength;
+            var requestUriMaxLength = Options.RequestObject.RequestUriMaxLength;
             if (requestUri.OriginalString.Length > requestUriMaxLength)
-                throw OpenIdException.Factory.InvalidRequest($"The request_uri parameter must not exceed {requestUriMaxLength} characters.", errorCode);
+                throw OpenIdException.Factory.InvalidRequest(
+                    $"The request_uri parameter must not exceed {requestUriMaxLength} characters.", errorCode);
 
             requestJwt = await FetchRequestUriAsync(client, requestUri, cancellationToken);
         }
@@ -126,12 +131,13 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
             requestObjectSource = RequestObjectSource.RequestJwt;
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
-            if (!_options.RequestObject.RequestJwtEnabled)
+            if (!Options.RequestObject.RequestJwtEnabled)
                 throw OpenIdException.Factory.RequestJwtNotSupported();
         }
         else if (client.RequireRequestObject)
         {
-            throw OpenIdException.Factory.InvalidRequest("Client configuration requires the use of request or request_uri parameters.");
+            throw OpenIdException.Factory.InvalidRequest(
+                "Client configuration requires the use of request or request_uri parameters.");
         }
         else
         {
@@ -141,22 +147,24 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         string json;
         try
         {
-            using var securityKeys = _secretService.LoadSecurityKeys(client.Secrets);
+            using var securityKeys = SecretService.LoadSecurityKeys(client.Secrets);
 
             var issuer = client.ClientId;
-            var audience = _options.RequestObject.Audience;
+            var audience = Options.RequestObject.Audience;
 
-            json = _jwtDecoder.DecodeJwt(requestJwt, issuer, audience, securityKeys);
+            json = JwtDecoder.DecodeJwt(requestJwt, issuer, audience, securityKeys);
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(exception, "Failed to decode JWT");
+            Logger.LogWarning(exception, "Failed to decode JWT");
             throw OpenIdException.Factory.FailedToDecodeJwt(errorCode, exception);
         }
 
         try
         {
-            var requestObject = JsonSerializer.Deserialize<AuthorizationRequestObject>(json, requestMessage.Context.JsonSerializerOptions);
+            var requestObject =
+                JsonSerializer.Deserialize<AuthorizationRequestObject>(json,
+                    requestMessage.Context.JsonSerializerOptions);
             if (requestObject == null)
                 throw new JsonException("TODO");
 
@@ -166,40 +174,45 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(exception, "Failed to deserialize JSON");
+            Logger.LogWarning(exception, "Failed to deserialize JSON");
             throw OpenIdException.Factory.FailedToDeserializeJson(errorCode, exception);
         }
     }
 
-    private async ValueTask<string> FetchRequestUriAsync(Client client, Uri requestUri, CancellationToken cancellationToken)
+    private async ValueTask<string> FetchRequestUriAsync(Client client, Uri requestUri,
+        CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
         request.Options.Set(new HttpRequestOptionsKey<Client>("Client"), client);
 
-        using var httpClient = _httpClientFactory.CreateClient();
+        using var httpClient = HttpClientFactory.CreateClient();
 
         try
         {
-            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            using var response =
+                await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                throw OpenIdException.Factory.InvalidRequestUri($"The http status code of the response must be OK. Received {response.StatusCode}.");
+                throw OpenIdException.Factory.InvalidRequestUri(
+                    $"The http status code of the response must be OK. Received {response.StatusCode}.");
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            var expectedContentType = _options.RequestObject.ExpectedContentType;
-            if (_options.RequestObject.StrictContentType && contentType != expectedContentType)
-                throw OpenIdException.Factory.InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.");
+            var expectedContentType = Options.RequestObject.ExpectedContentType;
+            if (Options.RequestObject.StrictContentType && contentType != expectedContentType)
+                throw OpenIdException.Factory.InvalidRequestUri(
+                    $"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.");
 
             return await response.Content.ReadAsStringAsync(cancellationToken);
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(exception, "Failed to fetch the request URI");
+            Logger.LogWarning(exception, "Failed to fetch the request URI");
             throw OpenIdException.Factory.InvalidRequestUri(exception);
         }
     }
 
-    private static IAuthorizationRequestMessage LoadRequestMessage(HttpContext httpContext, IOpenIdMessageContext messageContext)
+    private static IAuthorizationRequestMessage LoadRequestMessage(HttpContext httpContext,
+        IOpenIdMessageContext messageContext)
     {
         IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues;
         if (HttpMethods.IsGet(httpContext.Request.Method))

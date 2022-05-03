@@ -10,25 +10,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class CodeChallengeMethodParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public CodeChallengeMethodParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Serialize_GivenPlain_ThenValid()
     {
         var parser = new CodeChallengeMethodParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, CodeChallengeMethod.Plain);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, CodeChallengeMethod.Plain);
         Assert.Equal("plain", result);
     }
 
@@ -36,7 +36,7 @@ public class CodeChallengeMethodParserTests : IDisposable
     public void Serialize_GivenS256_ThenValid()
     {
         var parser = new CodeChallengeMethodParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, CodeChallengeMethod.Sha256);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, CodeChallengeMethod.Sha256);
         Assert.Equal("S256", result);
     }
 
@@ -44,7 +44,7 @@ public class CodeChallengeMethodParserTests : IDisposable
     public void Serialize_GivenUnknown_ThenEmpty()
     {
         var parser = new CodeChallengeMethodParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, CodeChallengeMethod.Unspecified);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, CodeChallengeMethod.Unspecified);
         Assert.Equal(StringValues.Empty, result);
     }
 
@@ -52,7 +52,7 @@ public class CodeChallengeMethodParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new CodeChallengeMethodParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -73,7 +73,7 @@ public class CodeChallengeMethodParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new CodeChallengeMethodParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -86,17 +86,14 @@ public class CodeChallengeMethodParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new CodeChallengeMethodParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
@@ -109,17 +106,14 @@ public class CodeChallengeMethodParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenPlainWithValidCase_ThenValid()
     {
         var parser = new CodeChallengeMethodParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "plain";
@@ -140,7 +134,7 @@ public class CodeChallengeMethodParserTests : IDisposable
     public void Parse_GivenPlainWithInvalidCase_ThenThrows()
     {
         var parser = new CodeChallengeMethodParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "PLAIN";
@@ -153,17 +147,14 @@ public class CodeChallengeMethodParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenS256WithValidCase_ThenValid()
     {
         var parser = new CodeChallengeMethodParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "S256";
@@ -184,7 +175,7 @@ public class CodeChallengeMethodParserTests : IDisposable
     public void Parse_GivenS256WithInvalidCase_ThenThrows()
     {
         var parser = new CodeChallengeMethodParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "s256";
@@ -197,17 +188,14 @@ public class CodeChallengeMethodParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new CodeChallengeMethodParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "invalid_value";
@@ -220,9 +208,6 @@ public class CodeChallengeMethodParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 }

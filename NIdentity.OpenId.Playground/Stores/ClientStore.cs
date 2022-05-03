@@ -27,20 +27,20 @@ namespace NIdentity.OpenId.Playground.Stores;
 
 internal class ClientStore : IClientStore
 {
-    private readonly IdentityDbContext _context;
-    private readonly IMapper _mapper;
+    private IdentityDbContext Context { get; }
+    private IMapper Mapper { get; }
 
     public ClientStore(IdentityDbContext context, IMapper mapper)
     {
-        _context = context;
-        _mapper = mapper;
+        Context = context;
+        Mapper = mapper;
     }
 
     /// <inheritdoc />
     public async ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken)
     {
-        var clientEntity = await _context.Clients.FirstOrDefaultAsync(_ => _.Id == id, cancellationToken);
-        var client = _mapper.Map<Client>(clientEntity);
+        var clientEntity = await Context.Clients.FirstOrDefaultAsync(_ => _.Id == id, cancellationToken);
+        var client = Mapper.Map<Client>(clientEntity);
         return client;
     }
 
@@ -48,8 +48,8 @@ internal class ClientStore : IClientStore
     public async ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken)
     {
         var normalizedClientId = clientId.ToUpperInvariant();
-        var clientEntity = await _context.Clients.FirstOrDefaultAsync(_ => _.NormalizedClientId == normalizedClientId, cancellationToken);
-        var client = _mapper.Map<Client>(clientEntity);
+        var clientEntity = await Context.Clients.FirstOrDefaultAsync(_ => _.NormalizedClientId == normalizedClientId, cancellationToken);
+        var client = Mapper.Map<Client>(clientEntity);
         return client;
     }
 }

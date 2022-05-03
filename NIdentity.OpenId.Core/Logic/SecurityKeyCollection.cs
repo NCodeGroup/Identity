@@ -14,29 +14,29 @@ public interface ISecurityKeyCollection : IReadOnlyCollection<SecurityKey>, IDis
 
 internal class SecurityKeyCollection : ISecurityKeyCollection
 {
-    private bool _disposed;
-    private readonly IReadOnlyCollection<SecurityKey> _collection;
+    private bool Disposed { get; set; }
+    private IReadOnlyCollection<SecurityKey> Collection { get; }
 
     public SecurityKeyCollection(IReadOnlyCollection<SecurityKey> collection)
     {
-        _collection = collection ?? throw new ArgumentNullException(nameof(collection));
+        Collection = collection ?? throw new ArgumentNullException(nameof(collection));
     }
 
     /// <inheritdoc />
-    public int Count => _collection.Count;
+    public int Count => Collection.Count;
 
     /// <inheritdoc />
-    public IEnumerator<SecurityKey> GetEnumerator() => _collection.GetEnumerator();
+    public IEnumerator<SecurityKey> GetEnumerator() => Collection.GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() => _collection.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => Collection.GetEnumerator();
 
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
+        if (Disposed) return;
+        Disposed = true;
 
-        foreach (var securityKey in _collection)
+        foreach (var securityKey in Collection)
         {
             DisposeSecurityKey(securityKey);
         }

@@ -10,25 +10,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class DisplayTypeParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public DisplayTypeParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Serialize_GivenPage_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, DisplayType.Page);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, DisplayType.Page);
         Assert.Equal("page", result);
     }
 
@@ -36,7 +36,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenPopup_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, DisplayType.Popup);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, DisplayType.Popup);
         Assert.Equal("popup", result);
     }
 
@@ -44,7 +44,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenTouch_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, DisplayType.Touch);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, DisplayType.Touch);
         Assert.Equal("touch", result);
     }
 
@@ -52,7 +52,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenWap_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, DisplayType.Wap);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, DisplayType.Wap);
         Assert.Equal("wap", result);
     }
 
@@ -60,7 +60,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenUnknown_ThenEmpty()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, DisplayType.Unspecified);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, DisplayType.Unspecified);
         Assert.Equal(StringValues.Empty, result);
     }
 
@@ -68,7 +68,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -89,7 +89,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -112,7 +112,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "page", "wap" };
@@ -135,7 +135,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenPageWithValidCase_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "page";
@@ -156,7 +156,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenPageWithInvalidCase_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "PAGE";
@@ -179,7 +179,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenPopupWithValidCase_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "popup";
@@ -200,7 +200,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenPopupWithInvalidCase_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "POPUP";
@@ -223,7 +223,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenTouchWithValidCase_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "touch";
@@ -244,7 +244,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenTouchWithInvalidCase_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "TOUCH";
@@ -267,7 +267,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenWapWithValidCase_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "wap";
@@ -288,7 +288,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenWapWithInvalidCase_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "WAP";
@@ -311,7 +311,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "invalid_value";

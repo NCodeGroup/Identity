@@ -27,7 +27,7 @@ namespace NIdentity.OpenId.Playground.DataLayer;
 
 internal class IdentityDbContext : DbContext
 {
-    private readonly IdValueGenerator _idValueGenerator;
+    private IdValueGenerator IdValueGenerator { get; }
 
     public DbSet<SecretEntity> Secrets { get; set; } = null!;
 
@@ -37,7 +37,7 @@ internal class IdentityDbContext : DbContext
         : base(options)
     {
         // TODO: verify id generator arguments
-        _idValueGenerator = new IdValueGenerator(new IdGenerator(0));
+        IdValueGenerator = new IdValueGenerator(new IdGenerator(0));
     }
 
     /// <inheritdoc />
@@ -48,6 +48,6 @@ internal class IdentityDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
         modelBuilder.UseUtcDateTime();
-        modelBuilder.UseIdGenerator(_idValueGenerator);
+        modelBuilder.UseIdGenerator(IdValueGenerator);
     }
 }

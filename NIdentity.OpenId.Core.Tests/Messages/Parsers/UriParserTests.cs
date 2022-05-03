@@ -29,25 +29,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class UriParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public UriParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Serialize_GivenNull_ThenEmpty()
     {
         var parser = new UriParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         var stringValue = parser.Serialize(context, null);
         Assert.Equal(StringValues.Empty, stringValue);
@@ -57,7 +57,7 @@ public class UriParserTests : IDisposable
     public void Serialize_GivenValue_ThenValid()
     {
         var parser = new UriParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         var uri = new Uri("http://localhost/path1/path2?key1=value1&key2");
 
@@ -69,7 +69,7 @@ public class UriParserTests : IDisposable
     public void Parse_GivenNull_WhenOptional_ThenValid()
     {
         var parser = new UriParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -90,7 +90,7 @@ public class UriParserTests : IDisposable
     public void Parse_GivenNull_WhenRequired_ThenThrows()
     {
         var parser = new UriParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -103,17 +103,14 @@ public class UriParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new UriParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "123", "456" };
@@ -126,17 +123,14 @@ public class UriParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenSingleValue_ThenValid()
     {
         var parser = new UriParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string url = "http://localhost/path1/path2?key1=value1&key2";

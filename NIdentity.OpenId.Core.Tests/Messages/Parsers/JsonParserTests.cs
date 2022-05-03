@@ -13,18 +13,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class JsonParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public JsonParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class JsonParserTests : IDisposable
     {
         var parser = new JsonParser<TestNestedObject>();
 
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
         var converter = (JsonConverter<TestNestedObject>)jsonSerializerOptions.GetConverter(typeof(TestNestedObject));
 
@@ -62,10 +62,10 @@ public class JsonParserTests : IDisposable
     {
         var parser = new JsonParser<TestNestedObject>();
 
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
-        _mockOpenIdMessageContext
+        MockOpenIdMessageContext
             .Setup(_ => _.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
@@ -81,7 +81,7 @@ public class JsonParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -102,7 +102,7 @@ public class JsonParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -115,17 +115,14 @@ public class JsonParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
@@ -138,20 +135,17 @@ public class JsonParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenValidJson_ThenValid()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
-        _mockOpenIdMessageContext
+        MockOpenIdMessageContext
             .Setup(_ => _.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
@@ -176,15 +170,15 @@ public class JsonParserTests : IDisposable
     public void Parse_GivenInvalidJson_ThenThrows()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
-        _mockOpenIdMessageContext
+        MockOpenIdMessageContext
             .Setup(_ => _.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
 
-        _mockOpenIdMessageContext
+        MockOpenIdMessageContext
             .Setup(_ => _.Logger)
             .Returns(NullLogger.Instance)
             .Verifiable();
@@ -200,9 +194,6 @@ public class JsonParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 }

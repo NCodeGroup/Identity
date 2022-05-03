@@ -59,7 +59,8 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
     }
 
     /// <inheritdoc />
-    public async ValueTask<IAuthorizationRequest> HandleAsync(GetAuthorizationRequest request,
+    public async ValueTask<IAuthorizationRequest> HandleAsync(
+        GetAuthorizationRequest request,
         CancellationToken cancellationToken)
     {
         var httpContext = request.HttpContext;
@@ -82,7 +83,8 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         }
     }
 
-    private async ValueTask<IAuthorizationRequest> LoadRequestAsync(IAuthorizationRequestMessage requestMessage,
+    private async ValueTask<IAuthorizationRequest> LoadRequestAsync(
+        IAuthorizationRequestMessage requestMessage,
         CancellationToken cancellationToken)
     {
         var clientId = requestMessage.ClientId;
@@ -99,7 +101,9 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
-        IAuthorizationRequestMessage requestMessage, Client client, CancellationToken cancellationToken)
+        IAuthorizationRequestMessage requestMessage,
+        Client client,
+        CancellationToken cancellationToken)
     {
         var requestJwt = requestMessage.RequestJwt;
         var requestUri = requestMessage.RequestUri;
@@ -174,7 +178,9 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         }
     }
 
-    private async ValueTask<string> FetchRequestUriAsync(Client client, Uri requestUri,
+    private async ValueTask<string> FetchRequestUriAsync(
+        Client client,
+        Uri requestUri,
         CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
@@ -203,7 +209,8 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         }
     }
 
-    private static IAuthorizationRequestMessage LoadRequestMessage(HttpContext httpContext,
+    private static IAuthorizationRequestMessage LoadRequestMessage(
+        HttpContext httpContext,
         IOpenIdMessageContext messageContext)
     {
         IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues;
@@ -218,7 +225,7 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         else
         {
             throw OpenIdException.Factory
-                .Create("TODO: errorCode")
+                .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
                 .WithErrorDescription("TODO: errorDescription")
                 .WithStatusCode(StatusCodes.Status405MethodNotAllowed);
         }

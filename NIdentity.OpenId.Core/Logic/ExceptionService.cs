@@ -34,20 +34,20 @@ internal class ExceptionService : IExceptionService
     private const string DefaultErrorCode = OpenIdConstants.ErrorCodes.ServerError;
     private const int DefaultStatusCode = StatusCodes.Status500InternalServerError;
 
-    private readonly ILogger<ExceptionService> _logger;
-    private readonly IHttpResultFactory _httpResultFactory;
+    private ILogger<ExceptionService> Logger { get; }
+    private IHttpResultFactory HttpResultFactory { get; }
 
     public ExceptionService(ILogger<ExceptionService> logger, IHttpResultFactory httpResultFactory)
     {
-        _logger = logger;
-        _httpResultFactory = httpResultFactory;
+        Logger = logger;
+        HttpResultFactory = httpResultFactory;
     }
 
     public IHttpResult GetHttpResultForException(Exception exception)
     {
         if (exception is OpenIdException openIdException)
         {
-            _logger.LogWarning(
+            Logger.LogWarning(
                 "An OAuth/OpenID operation failed: StatusCode={StatusCode}; ErrorCode={ErrorCode}; ErrorDescription={ErrorDescription}; ErrorUri={ErrorUri}",
                 openIdException.ErrorDetails.StatusCode,
                 openIdException.ErrorDetails.Code,
@@ -56,7 +56,7 @@ internal class ExceptionService : IExceptionService
         }
         else
         {
-            _logger.LogError(exception, "An unhandled exception occured");
+            Logger.LogError(exception, "An unhandled exception occured");
             openIdException = OpenIdException.Factory.Create(DefaultErrorCode, exception);
         }
 
@@ -64,9 +64,9 @@ internal class ExceptionService : IExceptionService
 
         var httpResult = statusCode switch
         {
-            StatusCodes.Status400BadRequest => _httpResultFactory.BadRequest(openIdException.ErrorDetails),
-            StatusCodes.Status404NotFound => _httpResultFactory.NotFound(openIdException.ErrorDetails),
-            _ => _httpResultFactory.Object(statusCode, openIdException.ErrorDetails)
+            StatusCodes.Status400BadRequest => HttpResultFactory.BadRequest(openIdException.ErrorDetails),
+            StatusCodes.Status404NotFound => HttpResultFactory.NotFound(openIdException.ErrorDetails),
+            _ => HttpResultFactory.Object(statusCode, openIdException.ErrorDetails)
         };
 
         return httpResult;

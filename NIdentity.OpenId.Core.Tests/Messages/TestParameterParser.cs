@@ -36,27 +36,27 @@ internal interface ITestParameterParser
 
 internal class TestParameterParser : ParameterParser<string>, IJsonParser
 {
-    private readonly ITestParameterParser _innerParser;
-    private readonly LoadJsonDelegate? _loadJsonDelegate;
+    private ITestParameterParser InnerParser { get; }
+    private LoadJsonDelegate? LoadJsonDelegate { get; }
 
     public TestParameterParser(ITestParameterParser innerParser, LoadJsonDelegate? loadJsonDelegate)
     {
-        _innerParser = innerParser;
-        _loadJsonDelegate = loadJsonDelegate;
+        InnerParser = innerParser;
+        LoadJsonDelegate = loadJsonDelegate;
     }
 
     public override StringValues Serialize(IOpenIdMessageContext context, string value)
     {
-        return _innerParser.Serialize(context, value);
+        return InnerParser.Serialize(context, value);
     }
 
     public override string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
-        return _innerParser.Parse(context, descriptor, stringValues);
+        return InnerParser.Parse(context, descriptor, stringValues);
     }
 
     public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
-        return _loadJsonDelegate?.Invoke(context, descriptor, ref reader, options) ?? new Parameter();
+        return LoadJsonDelegate?.Invoke(context, descriptor, ref reader, options) ?? new Parameter();
     }
 }

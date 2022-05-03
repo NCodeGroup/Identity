@@ -27,22 +27,22 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
 
 public class ParameterTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
+    private MockRepository MockRepository { get; }
 
     public ParameterTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
+        MockRepository = new MockRepository(MockBehavior.Strict);
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Constructor_ThenValid()
     {
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value1" };
@@ -64,8 +64,8 @@ public class ParameterTests : IDisposable
     [Fact]
     public void Load_GivenEnumerable_ThenValid()
     {
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
-        var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
+        var mockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };

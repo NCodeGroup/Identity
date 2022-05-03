@@ -29,25 +29,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class ResponseTypeParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public ResponseTypeParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Serialize_GivenNone_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.None);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.None);
         Assert.Equal("none", result);
     }
 
@@ -55,7 +55,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenCode_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.Code);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.Code);
         Assert.Equal("code", result);
     }
 
@@ -63,7 +63,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenIdToken_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.IdToken);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.IdToken);
         Assert.Equal("id_token", result);
     }
 
@@ -71,7 +71,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenToken_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.Token);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.Token);
         Assert.Equal("token", result);
     }
 
@@ -79,7 +79,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenUnknown_ThenEmpty()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseTypes.Unspecified);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.Unspecified);
         Assert.Equal(StringValues.Empty, result);
     }
 
@@ -87,7 +87,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -108,7 +108,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -121,17 +121,14 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "code id_token token";
@@ -153,7 +150,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenNoneWithValidCase_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "none";
@@ -174,7 +171,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenNoneWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "NONE";
@@ -187,17 +184,14 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenCodeWithValidCase_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "code";
@@ -218,7 +212,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenCodeWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "CODE";
@@ -231,17 +225,14 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenIdTokenWithValidCase_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "id_token";
@@ -262,7 +253,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenIdTokenWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "ID_TOKEN";
@@ -275,17 +266,14 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenTokenWithValidCase_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "token";
@@ -306,7 +294,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenTokenWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "TOKEN";
@@ -319,17 +307,14 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "invalid_value";
@@ -342,9 +327,6 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 }

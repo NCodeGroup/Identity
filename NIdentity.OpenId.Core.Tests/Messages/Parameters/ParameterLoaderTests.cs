@@ -26,16 +26,16 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
 
 public class ParameterLoaderTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
+    private MockRepository MockRepository { get; }
 
     public ParameterLoaderTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
+        MockRepository = new MockRepository(MockBehavior.Strict);
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class ParameterLoaderTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var descriptor = new ParameterDescriptor(parameterName);
-        var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        var mockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
         var context = mockOpenIdMessageContext.Object;
 
         var parameter = loader.Load(context, descriptor, stringValues);
@@ -66,7 +66,7 @@ public class ParameterLoaderTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var descriptor = new ParameterDescriptor(parameterName);
-        var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        var mockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
         var context = mockOpenIdMessageContext.Object;
 
         var parameter = loader.Load(context, descriptor, stringValues, stringValues);

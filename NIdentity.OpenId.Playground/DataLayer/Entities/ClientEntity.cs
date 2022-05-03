@@ -22,6 +22,7 @@ using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Playground.DataLayer.Entities;
 
+// TODO: what is this for?
 internal readonly struct PropertyDescriptor
 {
     public PropertyDescriptor(

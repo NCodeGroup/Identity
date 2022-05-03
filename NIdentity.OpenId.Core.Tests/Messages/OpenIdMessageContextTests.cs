@@ -10,26 +10,26 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 
 public class OpenIdMessageContextTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<ILogger<OpenIdMessageContext>> _mockLogger;
+    private MockRepository MockRepository { get; }
+    private Mock<ILogger<OpenIdMessageContext>> MockLogger { get; }
 
     public OpenIdMessageContextTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockLogger = _mockRepository.Create<ILogger<OpenIdMessageContext>>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockLogger = MockRepository.Create<ILogger<OpenIdMessageContext>>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Constructor_ThenValid()
     {
-        var context = new OpenIdMessageContext(_mockLogger.Object);
+        var context = new OpenIdMessageContext(MockLogger.Object);
 
-        Assert.Same(_mockLogger.Object, context.Logger);
+        Assert.Same(MockLogger.Object, context.Logger);
 
         Assert.True(context.JsonSerializerOptions.PropertyNameCaseInsensitive);
         Assert.Equal(JsonNamingPolicy.CamelCase, context.JsonSerializerOptions.PropertyNamingPolicy);

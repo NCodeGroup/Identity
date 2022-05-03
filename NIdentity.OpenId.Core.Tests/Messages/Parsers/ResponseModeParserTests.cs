@@ -29,25 +29,25 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class ResponseModeParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public ResponseModeParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
     public void Serialize_GivenQuery_ThenValid()
     {
         var parser = new ResponseModeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseMode.Query);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseMode.Query);
         Assert.Equal("query", result);
     }
 
@@ -55,7 +55,7 @@ public class ResponseModeParserTests : IDisposable
     public void Serialize_GivenFragment_ThenValid()
     {
         var parser = new ResponseModeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseMode.Fragment);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseMode.Fragment);
         Assert.Equal("fragment", result);
     }
 
@@ -63,7 +63,7 @@ public class ResponseModeParserTests : IDisposable
     public void Serialize_GivenFormPost_ThenValid()
     {
         var parser = new ResponseModeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseMode.FormPost);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseMode.FormPost);
         Assert.Equal("form_post", result);
     }
 
@@ -71,7 +71,7 @@ public class ResponseModeParserTests : IDisposable
     public void Serialize_GivenUnknown_ThenEmpty()
     {
         var parser = new ResponseModeParser();
-        var result = parser.Serialize(_mockOpenIdMessageContext.Object, ResponseMode.Unspecified);
+        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseMode.Unspecified);
         Assert.Equal(StringValues.Empty, result);
     }
 
@@ -79,7 +79,7 @@ public class ResponseModeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -100,7 +100,7 @@ public class ResponseModeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -113,17 +113,14 @@ public class ResponseModeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
@@ -136,17 +133,14 @@ public class ResponseModeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenQueryWithValidCase_ThenValid()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "query";
@@ -167,7 +161,7 @@ public class ResponseModeParserTests : IDisposable
     public void Parse_GivenQueryWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "QUERY";
@@ -180,17 +174,14 @@ public class ResponseModeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenFragmentWithValidCase_ThenValid()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "fragment";
@@ -211,7 +202,7 @@ public class ResponseModeParserTests : IDisposable
     public void Parse_GivenFragmentWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "FRAGMENT";
@@ -224,17 +215,14 @@ public class ResponseModeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenFormPostWithValidCase_ThenValid()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "form_post";
@@ -255,7 +243,7 @@ public class ResponseModeParserTests : IDisposable
     public void Parse_GivenFormPostWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "FORM_POST";
@@ -268,17 +256,14 @@ public class ResponseModeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new ResponseModeParser();
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "invalid_value";
@@ -291,9 +276,6 @@ public class ResponseModeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() =>
-        {
-            parser.Parse(context, descriptor, stringValues);
-        });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
     }
 }

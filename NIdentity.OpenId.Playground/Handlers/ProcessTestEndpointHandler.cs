@@ -27,16 +27,16 @@ internal record ProcessTestEndpoint(HttpContext HttpContext) : ProcessHttpEndpoi
 
 internal class ProcessTestEndpointHandler : IHttpEndpointHandler<ProcessTestEndpoint>
 {
-    private readonly IHttpResultFactory _httpResultFactory;
+    private IHttpResultFactory HttpResultFactory { get; }
 
     public ProcessTestEndpointHandler(IHttpResultFactory httpResultFactory)
     {
-        _httpResultFactory = httpResultFactory;
+        HttpResultFactory = httpResultFactory;
     }
 
     /// <inheritdoc />
     public ValueTask<IHttpResult> HandleAsync(ProcessTestEndpoint request, CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult(_httpResultFactory.Ok());
+        return ValueTask.FromResult(HttpResultFactory.Ok());
     }
 }

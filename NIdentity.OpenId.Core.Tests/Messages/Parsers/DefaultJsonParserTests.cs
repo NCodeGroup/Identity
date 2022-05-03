@@ -10,18 +10,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 public class DefaultJsonParserTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
-    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private MockRepository MockRepository { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public DefaultJsonParserTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
-        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class DefaultJsonParserTests : IDisposable
 
         const string parameterName = "parameterName";
 
-        var context = _mockOpenIdMessageContext.Object;
+        var context = MockOpenIdMessageContext.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
         var descriptor = new ParameterDescriptor(parameterName);

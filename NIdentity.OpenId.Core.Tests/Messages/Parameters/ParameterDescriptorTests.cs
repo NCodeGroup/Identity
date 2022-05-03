@@ -26,16 +26,16 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
 
 public class ParameterDescriptorTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
+    private MockRepository MockRepository { get; }
 
     public ParameterDescriptorTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
+        MockRepository = new MockRepository(MockBehavior.Strict);
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class ParameterDescriptorTests : IDisposable
         const bool optional = false;
         const bool allowMultipleValues = false;
 
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
 
         var knownParameter = new KnownParameter<string>(
             parameterName,
@@ -85,7 +85,7 @@ public class ParameterDescriptorTests : IDisposable
         const bool optional = false;
         const bool allowMultipleValues = false;
 
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
 
         var knownParameter = new KnownParameter<string>(
             parameterName,
@@ -117,7 +117,7 @@ public class ParameterDescriptorTests : IDisposable
         const bool optional = false;
         const bool allowMultipleValues = false;
 
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
 
         var knownParameter = new KnownParameter<string>(
             parameterName,
@@ -149,7 +149,7 @@ public class ParameterDescriptorTests : IDisposable
         const bool optional = false;
         const bool allowMultipleValues = false;
 
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
 
         var knownParameter = new KnownParameter<string>(
             parameterName,

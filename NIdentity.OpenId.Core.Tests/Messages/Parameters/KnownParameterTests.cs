@@ -26,16 +26,16 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
 
 public class KnownParameterTests : IDisposable
 {
-    private readonly MockRepository _mockRepository;
+    private MockRepository MockRepository { get; }
 
     public KnownParameterTests()
     {
-        _mockRepository = new MockRepository(MockBehavior.Strict);
+        MockRepository = new MockRepository(MockBehavior.Strict);
     }
 
     public void Dispose()
     {
-        _mockRepository.Verify();
+        MockRepository.Verify();
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class KnownParameterTests : IDisposable
         const bool optional = false;
         const bool allowMultipleValues = false;
 
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
 
         var parameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, mockParser.Object);
 
@@ -63,7 +63,7 @@ public class KnownParameterTests : IDisposable
         const bool optional = false;
         const bool allowMultipleValues = false;
 
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
 
         Assert.Throws<ArgumentNullException>(() =>
         {
@@ -81,7 +81,7 @@ public class KnownParameterTests : IDisposable
         const bool optional = false;
         const bool allowMultipleValues = false;
 
-        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string>>();
 
         Assert.Throws<ArgumentNullException>(() =>
         {

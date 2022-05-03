@@ -41,7 +41,6 @@ namespace NIdentity.OpenId.Playground.DataLayer.Configuration
             builder.HasKey(_ => _.Id);
 
             builder.Property(_ => _.Id).UseIdGenerator();
-            builder.Property(_ => _.ConcurrencyToken).AsStandardConcurrencyToken();
             builder.Property(_ => _.CodeName).AsStandardIndex();
             builder.Property(_ => _.NormalizedCodeName).AsStandardIndex();
             builder.Property(_ => _.JsonValue).AsStandardString();

@@ -1,16 +1,15 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Primitives;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages;
+
+/// <summary>
+/// Represents the base interface for <c>OAuth</c> or <c>OpenId Connect</c> request messages
+/// </summary>
+public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
 {
     /// <summary>
-    /// Represents the base interface for <c>OAuth</c> or <c>OpenId Connect</c> request messages
+    /// Gets the <see cref="IOpenIdMessageContext"/> for the current instance.
     /// </summary>
-    public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
-    {
-        /// <summary>
-        /// Gets the <see cref="IOpenIdMessageContext"/> for the current instance.
-        /// </summary>
-        IOpenIdMessageContext Context { get; }
-    }
+    IOpenIdMessageContext Context { get; }
 }

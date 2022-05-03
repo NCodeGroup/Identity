@@ -21,83 +21,82 @@ using System;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parsers;
 
-namespace NIdentity.OpenId.Messages.Parameters
+namespace NIdentity.OpenId.Messages.Parameters;
+
+/// <summary>
+/// Defines the contract for all known parameters in an <c>OAuth</c> or <c>OpenID Connect</c> message.
+/// </summary>
+public abstract class KnownParameter
 {
     /// <summary>
-    /// Defines the contract for all known parameters in an <c>OAuth</c> or <c>OpenID Connect</c> message.
+    /// Initializes a new instance of the <see cref="KnownParameter"/> class.
     /// </summary>
-    public abstract class KnownParameter
+    /// <param name="name">The name of the parameter.</param>
+    /// <param name="optional">A value indicating whether the parameter is optional or required when parsing.</param>
+    /// <param name="allowMultipleValues">A value indicating whether the parameter allows multiple values when parsing.</param>
+    /// <param name="loader">The <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <c>null</c> or empty.</exception>
+    protected KnownParameter(string name, bool optional, bool allowMultipleValues, ParameterLoader loader)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="KnownParameter"/> class.
-        /// </summary>
-        /// <param name="name">The name of the parameter.</param>
-        /// <param name="optional">A value indicating whether the parameter is optional or required when parsing.</param>
-        /// <param name="allowMultipleValues">A value indicating whether the parameter allows multiple values when parsing.</param>
-        /// <param name="loader">The <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <c>null</c> or empty.</exception>
-        protected KnownParameter(string name, bool optional, bool allowMultipleValues, ParameterLoader loader)
-        {
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(nameof(name));
+        if (string.IsNullOrEmpty(name))
+            throw new ArgumentNullException(nameof(name));
 
-            Name = name;
-            Optional = optional;
-            AllowMultipleValues = allowMultipleValues;
-            Loader = loader;
-        }
-
-        /// <summary>
-        /// Gets the name of the parameter.
-        /// </summary>
-        public string Name { get; }
-
-        /// <summary>
-        /// Gets the type of the parameter's parsed value.
-        /// </summary>
-        public abstract Type ValueType { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the parameter is optional or required when parsing.
-        /// </summary>
-        public bool Optional { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the parameter allows multiple values when parsing.
-        /// </summary>
-        public bool AllowMultipleValues { get; }
-
-        /// <summary>
-        /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.
-        /// </summary>
-        public ParameterLoader Loader { get; }
+        Name = name;
+        Optional = optional;
+        AllowMultipleValues = allowMultipleValues;
+        Loader = loader;
     }
 
     /// <summary>
-    /// Defines the contract for all known parameters in an <c>OAuth</c> or <c>OpenID Connect</c> message.
+    /// Gets the name of the parameter.
     /// </summary>
-    /// <typeparam name="T">The type of the parameter's parsed value.</typeparam>
-    public class KnownParameter<T> : KnownParameter
+    public string Name { get; }
+
+    /// <summary>
+    /// Gets the type of the parameter's parsed value.
+    /// </summary>
+    public abstract Type ValueType { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the parameter is optional or required when parsing.
+    /// </summary>
+    public bool Optional { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the parameter allows multiple values when parsing.
+    /// </summary>
+    public bool AllowMultipleValues { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.
+    /// </summary>
+    public ParameterLoader Loader { get; }
+}
+
+/// <summary>
+/// Defines the contract for all known parameters in an <c>OAuth</c> or <c>OpenID Connect</c> message.
+/// </summary>
+/// <typeparam name="T">The type of the parameter's parsed value.</typeparam>
+public class KnownParameter<T> : KnownParameter
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KnownParameter{T}"/> class.
+    /// </summary>
+    /// <param name="name">The name of the parameter.</param>
+    /// <param name="optional">A value indicating whether the parameter is optional or required when parsing.</param>
+    /// <param name="allowMultipleValues">A value indicating whether the parameter allows multiple values when parsing.</param>
+    /// <param name="parser">The <see cref="ParameterParser{T}"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.</param>
+    public KnownParameter(string name, bool optional, bool allowMultipleValues, ParameterParser<T> parser)
+        : base(name, optional, allowMultipleValues, parser)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="KnownParameter{T}"/> class.
-        /// </summary>
-        /// <param name="name">The name of the parameter.</param>
-        /// <param name="optional">A value indicating whether the parameter is optional or required when parsing.</param>
-        /// <param name="allowMultipleValues">A value indicating whether the parameter allows multiple values when parsing.</param>
-        /// <param name="parser">The <see cref="ParameterParser{T}"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.</param>
-        public KnownParameter(string name, bool optional, bool allowMultipleValues, ParameterParser<T> parser)
-            : base(name, optional, allowMultipleValues, parser)
-        {
-            Parser = parser;
-        }
-
-        /// <inheritdoc/>
-        public override Type ValueType => typeof(T);
-
-        /// <summary>
-        /// Gets the <see cref="ParameterParser{T}"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.
-        /// </summary>
-        public ParameterParser<T> Parser { get; }
+        Parser = parser;
     }
+
+    /// <inheritdoc/>
+    public override Type ValueType => typeof(T);
+
+    /// <summary>
+    /// Gets the <see cref="ParameterParser{T}"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.
+    /// </summary>
+    public ParameterParser<T> Parser { get; }
 }

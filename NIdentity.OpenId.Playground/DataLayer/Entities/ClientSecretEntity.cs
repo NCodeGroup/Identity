@@ -17,16 +17,15 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Playground.DataLayer.Entities
+namespace NIdentity.OpenId.Playground.DataLayer.Entities;
+
+internal class ClientSecretEntity
 {
-    internal class ClientSecretEntity
-    {
-        public long ClientId { get; set; }
+    public long ClientId { get; set; }
 
-        public long SecretId { get; set; }
+    public long SecretId { get; set; }
 
-        public ClientEntity Client { get; set; } = null!;
+    public ClientEntity Client { get; set; } = null!;
 
-        public SecretEntity Secret { get; set; } = null!;
-    }
+    public SecretEntity Secret { get; set; } = null!;
 }

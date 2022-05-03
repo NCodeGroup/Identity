@@ -17,34 +17,33 @@
 
 #endregion
 
-namespace NIdentity.OpenId
+namespace NIdentity.OpenId;
+
+public static partial class OpenIdConstants
 {
-    public static partial class OpenIdConstants
+    /// <summary>
+    /// Contains constants for possible values of the <c>prompt</c> parameter.
+    /// </summary>
+    public static class PromptTypes
     {
         /// <summary>
-        /// Contains constants for possible values of the <c>prompt</c> parameter.
+        /// Contains the <c>prompt</c> parameter value for <c>none</c>.
         /// </summary>
-        public static class PromptTypes
-        {
-            /// <summary>
-            /// Contains the <c>prompt</c> parameter value for <c>none</c>.
-            /// </summary>
-            public const string None = "none";
+        public const string None = "none";
 
-            /// <summary>
-            /// Contains the <c>prompt</c> parameter value for <c>login</c>.
-            /// </summary>
-            public const string Login = "login";
+        /// <summary>
+        /// Contains the <c>prompt</c> parameter value for <c>login</c>.
+        /// </summary>
+        public const string Login = "login";
 
-            /// <summary>
-            /// Contains the <c>prompt</c> parameter value for <c>consent</c>.
-            /// </summary>
-            public const string Consent = "consent";
+        /// <summary>
+        /// Contains the <c>prompt</c> parameter value for <c>consent</c>.
+        /// </summary>
+        public const string Consent = "consent";
 
-            /// <summary>
-            /// Contains the <c>prompt</c> parameter value for <c>select_account</c>.
-            /// </summary>
-            public const string SelectAccount = "select_account";
-        }
+        /// <summary>
+        /// Contains the <c>prompt</c> parameter value for <c>select_account</c>.
+        /// </summary>
+        public const string SelectAccount = "select_account";
     }
 }

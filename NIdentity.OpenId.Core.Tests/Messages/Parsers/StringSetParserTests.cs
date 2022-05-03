@@ -28,199 +28,198 @@ using NIdentity.OpenId.Messages.Parsers;
 using NIdentity.OpenId.Validation;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
+namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
+
+public class StringSetParserTests : IDisposable
 {
-    public class StringSetParserTests : IDisposable
+    private readonly MockRepository _mockRepository;
+    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+
+    public StringSetParserTests()
     {
-        private readonly MockRepository _mockRepository;
-        private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+        _mockRepository = new MockRepository(MockBehavior.Strict);
+        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+    }
 
-        public StringSetParserTests()
+    public void Dispose()
+    {
+        _mockRepository.Verify();
+    }
+
+    [Fact]
+    public void Serialize_GivenNull_ThenEmpty()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        var parsedValue = (IReadOnlyCollection<string>?)null;
+
+        var stringValues = parser.Serialize(context, parsedValue);
+        Assert.Equal(StringValues.Empty, stringValues);
+    }
+
+    [Fact]
+    public void Serialize_GivenEmpty_ThenEmpty()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        var parsedValue = Array.Empty<string>();
+
+        var stringValues = parser.Serialize(context, parsedValue);
+        Assert.Equal(StringValues.Empty, stringValues);
+    }
+
+    [Fact]
+    public void Parse_GivenEmpty_WhenOptional_ThenValid()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
+            parameterName,
+            optional: true,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Parse_GivenEmpty_WhenRequired_ThenThrows()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            _mockRepository = new MockRepository(MockBehavior.Strict);
-            _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        public void Dispose()
+    [Fact]
+    public void Parse_GivenMultipleValues_WhenDisallowMultipleValues_ThenThrows()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "value1", "value2" };
+
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            _mockRepository.Verify();
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        [Fact]
-        public void Serialize_GivenNull_ThenEmpty()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
+    [Fact]
+    public void Parse_GivenMultipleValues_WhenAllowMultipleValues_ThenValid()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
 
-            var parsedValue = (IReadOnlyCollection<string>?)null;
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "value1", "value2" };
 
-            var stringValues = parser.Serialize(context, parsedValue);
-            Assert.Equal(StringValues.Empty, stringValues);
-        }
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: true,
+            parser);
 
-        [Fact]
-        public void Serialize_GivenEmpty_ThenEmpty()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
+        var descriptor = new ParameterDescriptor(knownParameter);
 
-            var parsedValue = Array.Empty<string>();
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(stringValues, result!);
+    }
 
-            var stringValues = parser.Serialize(context, parsedValue);
-            Assert.Equal(StringValues.Empty, stringValues);
-        }
+    [Fact]
+    public void Parse_GivenDuplicateValues_WhenAllowMultipleValues_ThenDistinctValues()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
 
-        [Fact]
-        public void Parse_GivenEmpty_WhenOptional_ThenValid()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "value1", "value2", "value1", "value2" };
 
-            const string parameterName = "parameterName";
-            var stringValues = Array.Empty<string>();
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: true,
+            parser);
 
-            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-                parameterName,
-                optional: true,
-                allowMultipleValues: false,
-                parser);
+        var descriptor = new ParameterDescriptor(knownParameter);
 
-            var descriptor = new ParameterDescriptor(knownParameter);
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(stringValues.Distinct(), result);
+    }
 
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Null(result);
-        }
+    [Fact]
+    public void Parse_GivenStringList_ThenValid()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
 
-        [Fact]
-        public void Parse_GivenEmpty_WhenRequired_ThenThrows()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
+        const string parameterName = "parameterName";
+        const string stringValues = "value1 value2";
+        var expectedResult = new[] { "value1", "value2" };
 
-            const string parameterName = "parameterName";
-            var stringValues = Array.Empty<string>();
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
 
-            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
+        var descriptor = new ParameterDescriptor(knownParameter);
 
-            var descriptor = new ParameterDescriptor(knownParameter);
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(expectedResult, result!);
+    }
 
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
+    [Fact]
+    public void Parse_GivenStringListWithDuplicates_ThenDistinctValues()
+    {
+        var parser = new StringSetParser();
+        var context = _mockOpenIdMessageContext.Object;
 
-        [Fact]
-        public void Parse_GivenMultipleValues_WhenDisallowMultipleValues_ThenThrows()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
+        const string parameterName = "parameterName";
+        const string stringValues = "value1 value2 value1 value2";
+        var expectedResult = new[] { "value1", "value2" };
 
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "value1", "value2" };
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
 
-            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
+        var descriptor = new ParameterDescriptor(knownParameter);
 
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenMultipleValues_WhenAllowMultipleValues_ThenValid()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "value1", "value2" };
-
-            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: true,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(stringValues, result!);
-        }
-
-        [Fact]
-        public void Parse_GivenDuplicateValues_WhenAllowMultipleValues_ThenDistinctValues()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "value1", "value2", "value1", "value2" };
-
-            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: true,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(stringValues.Distinct(), result);
-        }
-
-        [Fact]
-        public void Parse_GivenStringList_ThenValid()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "value1 value2";
-            var expectedResult = new[] { "value1", "value2" };
-
-            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(expectedResult, result!);
-        }
-
-        [Fact]
-        public void Parse_GivenStringListWithDuplicates_ThenDistinctValues()
-        {
-            var parser = new StringSetParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "value1 value2 value1 value2";
-            var expectedResult = new[] { "value1", "value2" };
-
-            var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(expectedResult, result!);
-        }
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(expectedResult, result!);
     }
 }

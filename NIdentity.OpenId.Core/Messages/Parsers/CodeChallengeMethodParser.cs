@@ -22,54 +22,53 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="CodeChallengeMethod"/> values.
+/// </summary>
+public class CodeChallengeMethodParser : ParameterParser<CodeChallengeMethod?>
 {
-    /// <summary>
-    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="CodeChallengeMethod"/> values.
-    /// </summary>
-    public class CodeChallengeMethodParser : ParameterParser<CodeChallengeMethod?>
+    /// <inheritdoc/>
+    public override StringValues Serialize(IOpenIdMessageContext context, CodeChallengeMethod? value)
     {
-        /// <inheritdoc/>
-        public override StringValues Serialize(IOpenIdMessageContext context, CodeChallengeMethod? value)
+        return value switch
         {
-            return value switch
-            {
-                CodeChallengeMethod.Plain => OpenIdConstants.CodeChallengeMethods.Plain,
-                CodeChallengeMethod.Sha256 => OpenIdConstants.CodeChallengeMethods.S256,
-                _ => null
-            };
+            CodeChallengeMethod.Plain => OpenIdConstants.CodeChallengeMethods.Plain,
+            CodeChallengeMethod.Sha256 => OpenIdConstants.CodeChallengeMethods.S256,
+            _ => null
+        };
+    }
+
+    /// <inheritdoc/>
+    public override CodeChallengeMethod? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    {
+        Debug.Assert(!descriptor.AllowMultipleValues);
+
+        switch (stringValues.Count)
+        {
+            case 0 when descriptor.Optional:
+                return null;
+
+            case 0:
+                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+
+            case > 1:
+                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
         }
 
-        /// <inheritdoc/>
-        public override CodeChallengeMethod? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+        var stringValue = stringValues[0];
+
+        if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.Plain, StringComparison))
         {
-            Debug.Assert(!descriptor.AllowMultipleValues);
-
-            switch (stringValues.Count)
-            {
-                case 0 when descriptor.Optional:
-                    return null;
-
-                case 0:
-                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
-
-                case > 1:
-                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
-            }
-
-            var stringValue = stringValues[0];
-
-            if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.Plain, StringComparison))
-            {
-                return CodeChallengeMethod.Plain;
-            }
-
-            if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.S256, StringComparison))
-            {
-                return CodeChallengeMethod.Sha256;
-            }
-
-            throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
+            return CodeChallengeMethod.Plain;
         }
+
+        if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.S256, StringComparison))
+        {
+            return CodeChallengeMethod.Sha256;
+        }
+
+        throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
     }
 }

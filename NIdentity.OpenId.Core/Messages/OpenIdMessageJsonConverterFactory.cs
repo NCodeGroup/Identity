@@ -21,30 +21,29 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages;
+
+internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
 {
-    internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
+    private readonly IOpenIdMessageContext _context;
+
+    /// <inheritdoc />
+    public OpenIdMessageJsonConverterFactory(IOpenIdMessageContext context)
     {
-        private readonly IOpenIdMessageContext _context;
+        _context = context;
+    }
 
-        /// <inheritdoc />
-        public OpenIdMessageJsonConverterFactory(IOpenIdMessageContext context)
-        {
-            _context = context;
-        }
+    /// <inheritdoc />
+    public override bool CanConvert(Type typeToConvert)
+    {
+        var hasDefaultConstructor = typeToConvert.GetConstructor(Type.EmptyTypes) != null;
+        return typeof(OpenIdMessage).IsAssignableFrom(typeToConvert) && hasDefaultConstructor;
+    }
 
-        /// <inheritdoc />
-        public override bool CanConvert(Type typeToConvert)
-        {
-            var hasDefaultConstructor = typeToConvert.GetConstructor(Type.EmptyTypes) != null;
-            return typeof(OpenIdMessage).IsAssignableFrom(typeToConvert) && hasDefaultConstructor;
-        }
-
-        /// <inheritdoc />
-        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-        {
-            var type = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
-            return (JsonConverter?)Activator.CreateInstance(type, _context);
-        }
+    /// <inheritdoc />
+    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    {
+        var type = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
+        return (JsonConverter?)Activator.CreateInstance(type, _context);
     }
 }

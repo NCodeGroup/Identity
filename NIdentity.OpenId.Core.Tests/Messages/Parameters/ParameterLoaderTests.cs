@@ -23,58 +23,57 @@ using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
+namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
+
+public class ParameterLoaderTests : IDisposable
 {
-    public class ParameterLoaderTests : IDisposable
+    private readonly MockRepository _mockRepository;
+
+    public ParameterLoaderTests()
     {
-        private readonly MockRepository _mockRepository;
+        _mockRepository = new MockRepository(MockBehavior.Strict);
+    }
 
-        public ParameterLoaderTests()
-        {
-            _mockRepository = new MockRepository(MockBehavior.Strict);
-        }
+    public void Dispose()
+    {
+        _mockRepository.Verify();
+    }
 
-        public void Dispose()
-        {
-            _mockRepository.Verify();
-        }
+    [Fact]
+    public void Load_GivenNoParsedValue_ThenValid()
+    {
+        var loader = new ParameterLoader();
 
-        [Fact]
-        public void Load_GivenNoParsedValue_ThenValid()
-        {
-            var loader = new ParameterLoader();
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "value1", "value2" };
 
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "value1", "value2" };
+        var descriptor = new ParameterDescriptor(parameterName);
+        var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        var context = mockOpenIdMessageContext.Object;
 
-            var descriptor = new ParameterDescriptor(parameterName);
-            var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-            var context = mockOpenIdMessageContext.Object;
+        var parameter = loader.Load(context, descriptor, stringValues);
 
-            var parameter = loader.Load(context, descriptor, stringValues);
+        Assert.Equal(descriptor, parameter.Descriptor);
+        Assert.Equal(stringValues, parameter.StringValues);
+        Assert.Null(parameter.ParsedValue);
+    }
 
-            Assert.Equal(descriptor, parameter.Descriptor);
-            Assert.Equal(stringValues, parameter.StringValues);
-            Assert.Null(parameter.ParsedValue);
-        }
+    [Fact]
+    public void Load_GivenParsedValue_ThenValid()
+    {
+        var loader = new ParameterLoader();
 
-        [Fact]
-        public void Load_GivenParsedValue_ThenValid()
-        {
-            var loader = new ParameterLoader();
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "value1", "value2" };
 
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "value1", "value2" };
+        var descriptor = new ParameterDescriptor(parameterName);
+        var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        var context = mockOpenIdMessageContext.Object;
 
-            var descriptor = new ParameterDescriptor(parameterName);
-            var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-            var context = mockOpenIdMessageContext.Object;
+        var parameter = loader.Load(context, descriptor, stringValues, stringValues);
 
-            var parameter = loader.Load(context, descriptor, stringValues, stringValues);
-
-            Assert.Equal(descriptor, parameter.Descriptor);
-            Assert.Equal(stringValues, parameter.StringValues);
-            Assert.Same(stringValues, parameter.ParsedValue);
-        }
+        Assert.Equal(descriptor, parameter.Descriptor);
+        Assert.Equal(stringValues, parameter.StringValues);
+        Assert.Same(stringValues, parameter.ParsedValue);
     }
 }

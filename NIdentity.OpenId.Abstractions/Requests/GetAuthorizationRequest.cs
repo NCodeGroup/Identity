@@ -25,12 +25,11 @@ using NIdentity.OpenId.Messages.Authorization;
 #pragma warning disable 1574 // GetAuthorizationRequest.cs(28, 31): [CS1574] XML comment has cref attribute 'IRequest{TResponse}' that could not be resolved
 #pragma warning disable 1591 // GetAuthorizationRequest.cs(34, 55): [CS1591] Missing XML comment for publicly visible type or member 'GetAuthorizationRequest.HttpContext'
 
-namespace NIdentity.OpenId.Requests
-{
-    /// <summary>
-    /// Defines an <see cref="IRequest{TResponse}"/> request contract that accepts a <see cref="HttpContext"/> as an
-    /// input argument and expects <see cref="IAuthorizationRequest"/> as a response.
-    /// </summary>
-    /// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
-    public record GetAuthorizationRequest(HttpContext HttpContext) : IRequest<IAuthorizationRequest>;
-}
+namespace NIdentity.OpenId.Requests;
+
+/// <summary>
+/// Defines an <see cref="IRequest{TResponse}"/> request contract that accepts a <see cref="HttpContext"/> as an
+/// input argument and expects <see cref="IAuthorizationRequest"/> as a response.
+/// </summary>
+/// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
+public record GetAuthorizationRequest(HttpContext HttpContext) : IRequest<IAuthorizationRequest>;

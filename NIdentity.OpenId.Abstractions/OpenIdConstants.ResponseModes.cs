@@ -17,29 +17,28 @@
 
 #endregion
 
-namespace NIdentity.OpenId
+namespace NIdentity.OpenId;
+
+public static partial class OpenIdConstants
 {
-    public static partial class OpenIdConstants
+    /// <summary>
+    /// Contains constants for possible values of the <c>response_mode</c> parameter.
+    /// </summary>
+    public static class ResponseModes
     {
         /// <summary>
-        /// Contains constants for possible values of the <c>response_mode</c> parameter.
+        /// Contains the <c>response_mode</c> parameter value for <c>query</c>.
         /// </summary>
-        public static class ResponseModes
-        {
-            /// <summary>
-            /// Contains the <c>response_mode</c> parameter value for <c>query</c>.
-            /// </summary>
-            public const string Query = "query";
+        public const string Query = "query";
 
-            /// <summary>
-            /// Contains the <c>response_mode</c> parameter value for <c>fragment</c>.
-            /// </summary>
-            public const string Fragment = "fragment";
+        /// <summary>
+        /// Contains the <c>response_mode</c> parameter value for <c>fragment</c>.
+        /// </summary>
+        public const string Fragment = "fragment";
 
-            /// <summary>
-            /// Contains the <c>response_mode</c> parameter value for <c>form_post</c>.
-            /// </summary>
-            public const string FormPost = "form_post";
-        }
+        /// <summary>
+        /// Contains the <c>response_mode</c> parameter value for <c>form_post</c>.
+        /// </summary>
+        public const string FormPost = "form_post";
     }
 }

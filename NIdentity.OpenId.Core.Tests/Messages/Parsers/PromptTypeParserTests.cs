@@ -26,327 +26,326 @@ using NIdentity.OpenId.Messages.Parsers;
 using NIdentity.OpenId.Validation;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
+namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
+
+public class PromptTypeParserTests : IDisposable
 {
-    public class PromptTypeParserTests : IDisposable
+    private readonly MockRepository _mockRepository;
+    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+
+    public PromptTypeParserTests()
     {
-        private readonly MockRepository _mockRepository;
-        private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+        _mockRepository = new MockRepository(MockBehavior.Strict);
+        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+    }
 
-        public PromptTypeParserTests()
+    public void Dispose()
+    {
+        _mockRepository.Verify();
+    }
+
+    [Fact]
+    public void Serialize_GivenNone_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.None);
+        Assert.Equal("none", result);
+    }
+
+    [Fact]
+    public void Serialize_GivenLogin_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Login);
+        Assert.Equal("login", result);
+    }
+
+    [Fact]
+    public void Serialize_GivenConsent_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Consent);
+        Assert.Equal("consent", result);
+    }
+
+    [Fact]
+    public void Serialize_GivenSelectAccount_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.SelectAccount);
+        Assert.Equal("select_account", result);
+    }
+
+    [Fact]
+    public void Serialize_GivenUnknown_ThenEmpty()
+    {
+        var parser = new PromptTypeParser();
+        var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Unspecified);
+        Assert.Equal(StringValues.Empty, result);
+    }
+
+    [Fact]
+    public void Parse_GivenEmpty_WhenOptional_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: true,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Parse_GivenEmpty_WhenRequired_ThenThrows()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            _mockRepository = new MockRepository(MockBehavior.Strict);
-            _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        public void Dispose()
+    [Fact]
+    public void Parse_GivenMultipleValues_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "login select_account";
+        const PromptTypes expectedResult = PromptTypes.Login | PromptTypes.SelectAccount;
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(expectedResult, result);
+    }
+
+    [Fact]
+    public void Parse_GivenNoneWithValidCase_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "none";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(PromptTypes.None, result);
+    }
+
+    [Fact]
+    public void Parse_GivenNoneWithInvalidCase_ThenThrows()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "NONE";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            _mockRepository.Verify();
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        [Fact]
-        public void Serialize_GivenNone_ThenValid()
+    [Fact]
+    public void Parse_GivenLoginWithValidCase_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "login";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(PromptTypes.Login, result);
+    }
+
+    [Fact]
+    public void Parse_GivenLoginWithInvalidCase_ThenThrows()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "LOGIN";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.None);
-            Assert.Equal("none", result);
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        [Fact]
-        public void Serialize_GivenLogin_ThenValid()
+    [Fact]
+    public void Parse_GivenConsentWithValidCase_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "consent";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(PromptTypes.Consent, result);
+    }
+
+    [Fact]
+    public void Parse_GivenConsentWithInvalidCase_ThenThrows()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "CONSENT";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Login);
-            Assert.Equal("login", result);
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        [Fact]
-        public void Serialize_GivenConsent_ThenValid()
+    [Fact]
+    public void Parse_GivenSelectAccountWithValidCase_ThenValid()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "select_account";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(PromptTypes.SelectAccount, result);
+    }
+
+    [Fact]
+    public void Parse_GivenSelectAccountWithInvalidCase_ThenThrows()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "SELECT_ACCOUNT";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Consent);
-            Assert.Equal("consent", result);
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        [Fact]
-        public void Serialize_GivenSelectAccount_ThenValid()
+    [Fact]
+    public void Parse_GivenInvalidValue_ThenThrows()
+    {
+        var parser = new PromptTypeParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "invalid_value";
+
+        var knownParameter = new KnownParameter<PromptTypes?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.SelectAccount);
-            Assert.Equal("select_account", result);
-        }
-
-        [Fact]
-        public void Serialize_GivenUnknown_ThenEmpty()
-        {
-            var parser = new PromptTypeParser();
-            var result = parser.Serialize(_mockOpenIdMessageContext.Object, PromptTypes.Unspecified);
-            Assert.Equal(StringValues.Empty, result);
-        }
-
-        [Fact]
-        public void Parse_GivenEmpty_WhenOptional_ThenValid()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = Array.Empty<string>();
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: true,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public void Parse_GivenEmpty_WhenRequired_ThenThrows()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = Array.Empty<string>();
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenMultipleValues_ThenValid()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "login select_account";
-            const PromptTypes expectedResult = PromptTypes.Login | PromptTypes.SelectAccount;
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(expectedResult, result);
-        }
-
-        [Fact]
-        public void Parse_GivenNoneWithValidCase_ThenValid()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "none";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(PromptTypes.None, result);
-        }
-
-        [Fact]
-        public void Parse_GivenNoneWithInvalidCase_ThenThrows()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "NONE";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenLoginWithValidCase_ThenValid()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "login";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(PromptTypes.Login, result);
-        }
-
-        [Fact]
-        public void Parse_GivenLoginWithInvalidCase_ThenThrows()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "LOGIN";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenConsentWithValidCase_ThenValid()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "consent";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(PromptTypes.Consent, result);
-        }
-
-        [Fact]
-        public void Parse_GivenConsentWithInvalidCase_ThenThrows()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "CONSENT";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenSelectAccountWithValidCase_ThenValid()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "select_account";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(PromptTypes.SelectAccount, result);
-        }
-
-        [Fact]
-        public void Parse_GivenSelectAccountWithInvalidCase_ThenThrows()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "SELECT_ACCOUNT";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenInvalidValue_ThenThrows()
-        {
-            var parser = new PromptTypeParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string stringValues = "invalid_value";
-
-            var knownParameter = new KnownParameter<PromptTypes?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
     }
 }

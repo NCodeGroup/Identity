@@ -23,54 +23,53 @@ using Microsoft.Extensions.Logging;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Logic
+namespace NIdentity.OpenId.Logic;
+
+internal interface IExceptionService
 {
-    internal interface IExceptionService
+    IHttpResult GetHttpResultForException(Exception exception);
+}
+
+internal class ExceptionService : IExceptionService
+{
+    private const string DefaultErrorCode = OpenIdConstants.ErrorCodes.ServerError;
+    private const int DefaultStatusCode = StatusCodes.Status500InternalServerError;
+
+    private readonly ILogger<ExceptionService> _logger;
+    private readonly IHttpResultFactory _httpResultFactory;
+
+    public ExceptionService(ILogger<ExceptionService> logger, IHttpResultFactory httpResultFactory)
     {
-        IHttpResult GetHttpResultForException(Exception exception);
+        _logger = logger;
+        _httpResultFactory = httpResultFactory;
     }
 
-    internal class ExceptionService : IExceptionService
+    public IHttpResult GetHttpResultForException(Exception exception)
     {
-        private const string DefaultErrorCode = OpenIdConstants.ErrorCodes.ServerError;
-        private const int DefaultStatusCode = StatusCodes.Status500InternalServerError;
-
-        private readonly ILogger<ExceptionService> _logger;
-        private readonly IHttpResultFactory _httpResultFactory;
-
-        public ExceptionService(ILogger<ExceptionService> logger, IHttpResultFactory httpResultFactory)
+        if (exception is OpenIdException openIdException)
         {
-            _logger = logger;
-            _httpResultFactory = httpResultFactory;
+            _logger.LogWarning(
+                "An OAuth/OpenID operation failed: StatusCode={StatusCode}; ErrorCode={ErrorCode}; ErrorDescription={ErrorDescription}; ErrorUri={ErrorUri}",
+                openIdException.ErrorDetails.StatusCode,
+                openIdException.ErrorDetails.Code,
+                openIdException.ErrorDetails.Description,
+                openIdException.ErrorDetails.Uri);
+        }
+        else
+        {
+            _logger.LogError(exception, "An unhandled exception occured");
+            openIdException = OpenIdException.Factory.Create(DefaultErrorCode, exception);
         }
 
-        public IHttpResult GetHttpResultForException(Exception exception)
+        var statusCode = openIdException.ErrorDetails.StatusCode ?? DefaultStatusCode;
+
+        var httpResult = statusCode switch
         {
-            if (exception is OpenIdException openIdException)
-            {
-                _logger.LogWarning(
-                    "An OAuth/OpenID operation failed: StatusCode={StatusCode}; ErrorCode={ErrorCode}; ErrorDescription={ErrorDescription}; ErrorUri={ErrorUri}",
-                    openIdException.ErrorDetails.StatusCode,
-                    openIdException.ErrorDetails.Code,
-                    openIdException.ErrorDetails.Description,
-                    openIdException.ErrorDetails.Uri);
-            }
-            else
-            {
-                _logger.LogError(exception, "An unhandled exception occured");
-                openIdException = OpenIdException.Factory.Create(DefaultErrorCode, exception);
-            }
+            StatusCodes.Status400BadRequest => _httpResultFactory.BadRequest(openIdException.ErrorDetails),
+            StatusCodes.Status404NotFound => _httpResultFactory.NotFound(openIdException.ErrorDetails),
+            _ => _httpResultFactory.Object(statusCode, openIdException.ErrorDetails)
+        };
 
-            var statusCode = openIdException.ErrorDetails.StatusCode ?? DefaultStatusCode;
-
-            var httpResult = statusCode switch
-            {
-                StatusCodes.Status400BadRequest => _httpResultFactory.BadRequest(openIdException.ErrorDetails),
-                StatusCodes.Status404NotFound => _httpResultFactory.NotFound(openIdException.ErrorDetails),
-                _ => _httpResultFactory.Object(statusCode, openIdException.ErrorDetails)
-            };
-
-            return httpResult;
-        }
+        return httpResult;
     }
 }

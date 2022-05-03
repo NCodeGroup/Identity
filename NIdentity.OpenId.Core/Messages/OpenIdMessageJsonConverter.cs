@@ -27,121 +27,120 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages;
+
+internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
+    where T : OpenIdMessage<T>, new()
 {
-    internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
-        where T : OpenIdMessage<T>, new()
+    private readonly IOpenIdMessageContext _context;
+
+    public OpenIdMessageJsonConverter(IOpenIdMessageContext context)
     {
-        private readonly IOpenIdMessageContext _context;
+        _context = context;
+    }
 
-        public OpenIdMessageJsonConverter(IOpenIdMessageContext context)
-        {
-            _context = context;
-        }
-
-        internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            if (reader.TokenType != JsonTokenType.StartArray && reader.TokenType != JsonTokenType.StartObject)
-                throw new JsonException("TODO");
-
-            var descriptor = _context.TryGetKnownParameter(parameterName, out var knownParameter) ?
-                new ParameterDescriptor(knownParameter) :
-                new ParameterDescriptor(parameterName);
-
-            var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
-            var parameter = jsonParser.Load(_context, descriptor, ref reader, options);
-
-            if (reader.TokenType != JsonTokenType.EndArray && reader.TokenType != JsonTokenType.EndObject)
-                throw new JsonException("TODO");
-
-            return parameter;
-        }
-
-        public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            if (reader.TokenType == JsonTokenType.Null)
-                return default;
-
-            if (reader.TokenType != JsonTokenType.StartObject)
-                throw new JsonException("TODO");
-
-            var parameters = new List<Parameter>();
-
-            while (reader.Read())
-            {
-                string parameterName;
-
-                // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-                switch (reader.TokenType)
-                {
-                    case JsonTokenType.EndObject:
-                        return OpenIdMessage<T>.Load(_context, parameters);
-
-                    case JsonTokenType.PropertyName:
-                        parameterName = reader.GetString() ?? throw new JsonException("TODO");
-                        break;
-
-                    default:
-                        throw new JsonException("TODO");
-                }
-
-                if (!reader.Read())
-                    throw new JsonException("TODO");
-
-                Parameter parameter;
-                // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-                switch (reader.TokenType)
-                {
-                    case JsonTokenType.Null:
-                        parameter = Parameter.Load(_context, parameterName, StringValues.Empty);
-                        break;
-
-                    case JsonTokenType.String:
-                        parameter = Parameter.Load(_context, parameterName, reader.GetString()?.Split(OpenIdConstants.ParameterSeparator) ?? Array.Empty<string>());
-                        break;
-
-                    case JsonTokenType.Number:
-                        parameter = Parameter.Load(_context, parameterName, reader.GetDecimal().ToString(CultureInfo.InvariantCulture));
-                        break;
-
-                    case JsonTokenType.True:
-                    case JsonTokenType.False:
-                        parameter = Parameter.Load(_context, parameterName, reader.GetBoolean().ToString(CultureInfo.InvariantCulture));
-                        break;
-
-                    case JsonTokenType.StartArray:
-                    case JsonTokenType.StartObject:
-                        parameter = LoadParameter(parameterName, ref reader, options);
-                        break;
-
-                    default:
-                        throw new JsonException("TODO");
-                }
-
-                parameters.Add(parameter);
-            }
-
+    internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartArray && reader.TokenType != JsonTokenType.StartObject)
             throw new JsonException("TODO");
-        }
 
-        public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+        var descriptor = _context.TryGetKnownParameter(parameterName, out var knownParameter) ?
+            new ParameterDescriptor(knownParameter) :
+            new ParameterDescriptor(parameterName);
+
+        var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
+        var parameter = jsonParser.Load(_context, descriptor, ref reader, options);
+
+        if (reader.TokenType != JsonTokenType.EndArray && reader.TokenType != JsonTokenType.EndObject)
+            throw new JsonException("TODO");
+
+        return parameter;
+    }
+
+    public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+            return default;
+
+        if (reader.TokenType != JsonTokenType.StartObject)
+            throw new JsonException("TODO");
+
+        var parameters = new List<Parameter>();
+
+        while (reader.Read())
         {
-            if (value == null)
+            string parameterName;
+
+            // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+            switch (reader.TokenType)
             {
-                writer.WriteNullValue();
-                return;
+                case JsonTokenType.EndObject:
+                    return OpenIdMessage<T>.Load(_context, parameters);
+
+                case JsonTokenType.PropertyName:
+                    parameterName = reader.GetString() ?? throw new JsonException("TODO");
+                    break;
+
+                default:
+                    throw new JsonException("TODO");
             }
 
-            writer.WriteStartObject();
+            if (!reader.Read())
+                throw new JsonException("TODO");
 
-            foreach (var parameter in value.Parameters.Values)
+            Parameter parameter;
+            // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+            switch (reader.TokenType)
             {
-                // TODO: use ParameterLoader/Parser to serialize
-                var stringValue = string.Join(OpenIdConstants.ParameterSeparator, parameter.StringValues.AsEnumerable());
-                writer.WriteString(parameter.Descriptor.ParameterName, stringValue);
+                case JsonTokenType.Null:
+                    parameter = Parameter.Load(_context, parameterName, StringValues.Empty);
+                    break;
+
+                case JsonTokenType.String:
+                    parameter = Parameter.Load(_context, parameterName, reader.GetString()?.Split(OpenIdConstants.ParameterSeparator) ?? Array.Empty<string>());
+                    break;
+
+                case JsonTokenType.Number:
+                    parameter = Parameter.Load(_context, parameterName, reader.GetDecimal().ToString(CultureInfo.InvariantCulture));
+                    break;
+
+                case JsonTokenType.True:
+                case JsonTokenType.False:
+                    parameter = Parameter.Load(_context, parameterName, reader.GetBoolean().ToString(CultureInfo.InvariantCulture));
+                    break;
+
+                case JsonTokenType.StartArray:
+                case JsonTokenType.StartObject:
+                    parameter = LoadParameter(parameterName, ref reader, options);
+                    break;
+
+                default:
+                    throw new JsonException("TODO");
             }
 
-            writer.WriteEndObject();
+            parameters.Add(parameter);
         }
+
+        throw new JsonException("TODO");
+    }
+
+    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+    {
+        if (value == null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        writer.WriteStartObject();
+
+        foreach (var parameter in value.Parameters.Values)
+        {
+            // TODO: use ParameterLoader/Parser to serialize
+            var stringValue = string.Join(OpenIdConstants.ParameterSeparator, parameter.StringValues.AsEnumerable());
+            writer.WriteString(parameter.Descriptor.ParameterName, stringValue);
+        }
+
+        writer.WriteEndObject();
     }
 }

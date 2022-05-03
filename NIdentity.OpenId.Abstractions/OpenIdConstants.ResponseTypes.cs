@@ -17,34 +17,33 @@
 
 #endregion
 
-namespace NIdentity.OpenId
+namespace NIdentity.OpenId;
+
+public static partial class OpenIdConstants
 {
-    public static partial class OpenIdConstants
+    /// <summary>
+    /// Contains constants for possible values of the <c>response_type</c> parameter.
+    /// </summary>
+    public static class ResponseTypes
     {
         /// <summary>
-        /// Contains constants for possible values of the <c>response_type</c> parameter.
+        /// Contains the <c>response_type</c> parameter value for <c>none</c>.
         /// </summary>
-        public static class ResponseTypes
-        {
-            /// <summary>
-            /// Contains the <c>response_type</c> parameter value for <c>none</c>.
-            /// </summary>
-            public const string None = "none";
+        public const string None = "none";
 
-            /// <summary>
-            /// Contains the <c>response_type</c> parameter value for <c>code</c>.
-            /// </summary>
-            public const string Code = "code";
+        /// <summary>
+        /// Contains the <c>response_type</c> parameter value for <c>code</c>.
+        /// </summary>
+        public const string Code = "code";
 
-            /// <summary>
-            /// Contains the <c>response_type</c> parameter value for <c>id_token</c>.
-            /// </summary>
-            public const string IdToken = "id_token";
+        /// <summary>
+        /// Contains the <c>response_type</c> parameter value for <c>id_token</c>.
+        /// </summary>
+        public const string IdToken = "id_token";
 
-            /// <summary>
-            /// Contains the <c>response_type</c> parameter value for <c>token</c>.
-            /// </summary>
-            public const string Token = "token";
-        }
+        /// <summary>
+        /// Contains the <c>response_type</c> parameter value for <c>token</c>.
+        /// </summary>
+        public const string Token = "token";
     }
 }

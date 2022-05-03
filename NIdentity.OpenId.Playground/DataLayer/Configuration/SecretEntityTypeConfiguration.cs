@@ -21,24 +21,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NIdentity.OpenId.Playground.DataLayer.Entities;
 
-namespace NIdentity.OpenId.Playground.DataLayer.Configuration
+namespace NIdentity.OpenId.Playground.DataLayer.Configuration;
+
+internal class SecretEntityTypeConfiguration : IEntityTypeConfiguration<SecretEntity>
 {
-    internal class SecretEntityTypeConfiguration : IEntityTypeConfiguration<SecretEntity>
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<SecretEntity> builder)
     {
-        /// <inheritdoc />
-        public void Configure(EntityTypeBuilder<SecretEntity> builder)
-        {
-            builder.HasKey(_ => _.Id);
-            builder.HasIndex(_ => _.NormalizedKeyId).IsUnique();
+        builder.HasKey(_ => _.Id);
+        builder.HasIndex(_ => _.NormalizedKeyId).IsUnique();
 
-            builder.Property(_ => _.Id).UseIdGenerator();
-            builder.Property(_ => _.KeyId).AsStandardIndex();
-            builder.Property(_ => _.NormalizedKeyId).AsStandardIndex();
+        builder.Property(_ => _.Id).UseIdGenerator();
+        builder.Property(_ => _.KeyId).AsStandardIndex();
+        builder.Property(_ => _.NormalizedKeyId).AsStandardIndex();
 
-            builder.Property(_ => _.EncodingType).AsStandardString();
-            builder.Property(_ => _.AlgorithmType).AsStandardString();
-            builder.Property(_ => _.SecretType).AsStandardString();
-            builder.Property(_ => _.EncodedValue).AsStandardString();
-        }
+        builder.Property(_ => _.EncodingType).AsStandardString();
+        builder.Property(_ => _.AlgorithmType).AsStandardString();
+        builder.Property(_ => _.SecretType).AsStandardString();
+        builder.Property(_ => _.EncodedValue).AsStandardString();
     }
 }

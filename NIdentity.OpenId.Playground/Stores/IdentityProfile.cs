@@ -23,20 +23,19 @@ using AutoMapper;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Playground.DataLayer.Entities;
 
-namespace NIdentity.OpenId.Playground.Stores
+namespace NIdentity.OpenId.Playground.Stores;
+
+internal class IdentityProfile : Profile
 {
-    internal class IdentityProfile : Profile
+    public IdentityProfile()
     {
-        public IdentityProfile()
-        {
-            CreateMap<ClientUrlEntity, Uri>()
-                .ConstructUsing(src => new Uri(src.Url));
+        CreateMap<ClientUrlEntity, Uri>()
+            .ConstructUsing(src => new Uri(src.Url));
 
-            CreateMap<SecretEntity, Secret>();
+        CreateMap<SecretEntity, Secret>();
 
-            CreateMap<ClientEntity, Client>()
-                .ForMember(dst => dst.Secrets, cfg => cfg.MapFrom(src => src.ClientSecrets.Select(entity => entity.Secret)))
-                .ForMember(dst => dst.RedirectUris, cfg => cfg.MapFrom(src => src.Urls.Where(clientUrl => clientUrl.UrlType == "RedirectUrl")));
-        }
+        CreateMap<ClientEntity, Client>()
+            .ForMember(dst => dst.Secrets, cfg => cfg.MapFrom(src => src.ClientSecrets.Select(entity => entity.Secret)))
+            .ForMember(dst => dst.RedirectUris, cfg => cfg.MapFrom(src => src.Urls.Where(clientUrl => clientUrl.UrlType == "RedirectUrl")));
     }
 }

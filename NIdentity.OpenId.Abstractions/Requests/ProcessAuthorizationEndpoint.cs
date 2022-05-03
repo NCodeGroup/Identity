@@ -23,12 +23,11 @@ using Microsoft.AspNetCore.Http;
 #pragma warning disable 1573 // ProcessAuthorizationEndpoint.cs(29, 60): [CS1573] Parameter 'HttpContext' has no matching param tag in the XML comment for 'ProcessAuthorizationEndpoint.ProcessAuthorizationEndpoint(HttpContext)' (but other parameters do)
 #pragma warning disable 1574 // ProcessAuthorizationEndpoint.cs(25, 30): [CS1574] XML comment has cref attribute 'ProcessHttpEndpoint' that could not be resolved
 
-namespace NIdentity.OpenId.Requests
-{
-    /// <summary>
-    /// Defines a <see cref="ProcessHttpEndpoint"/> request contract that accepts a <see cref="HttpContext"/> as an
-    /// input argument and doesn't return a value.
-    /// </summary>
-    /// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
-    public record ProcessAuthorizationEndpoint(HttpContext HttpContext) : ProcessHttpEndpoint(HttpContext);
-}
+namespace NIdentity.OpenId.Requests;
+
+/// <summary>
+/// Defines a <see cref="ProcessHttpEndpoint"/> request contract that accepts a <see cref="HttpContext"/> as an
+/// input argument and doesn't return a value.
+/// </summary>
+/// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
+public record ProcessAuthorizationEndpoint(HttpContext HttpContext) : ProcessHttpEndpoint(HttpContext);

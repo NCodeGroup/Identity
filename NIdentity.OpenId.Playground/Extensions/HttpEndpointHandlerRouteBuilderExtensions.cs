@@ -26,44 +26,43 @@ using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Requests;
 
-namespace NIdentity.OpenId.Playground.Extensions
+namespace NIdentity.OpenId.Playground.Extensions;
+
+internal static class HttpEndpointHandlerRouteBuilderExtensions
 {
-    internal static class HttpEndpointHandlerRouteBuilderExtensions
+    public static IEndpointConventionBuilder MapGet<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, Func<HttpContext, TRequest> requestFactory)
+        where TRequest : ProcessHttpEndpoint
     {
-        public static IEndpointConventionBuilder MapGet<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, Func<HttpContext, TRequest> requestFactory)
-            where TRequest : ProcessHttpEndpoint
+        return endpoints.MapGet(pattern, async httpContext =>
         {
-            return endpoints.MapGet(pattern, async httpContext =>
-            {
-                var request = requestFactory(httpContext);
-                var handler = httpContext.RequestServices.GetRequiredService<IHttpEndpointHandler<TRequest>>();
-                var httpResult = await handler.HandleAsync(request, httpContext.RequestAborted);
-                await httpResult.ExecuteAsync(httpContext);
-            });
-        }
+            var request = requestFactory(httpContext);
+            var handler = httpContext.RequestServices.GetRequiredService<IHttpEndpointHandler<TRequest>>();
+            var httpResult = await handler.HandleAsync(request, httpContext.RequestAborted);
+            await httpResult.ExecuteAsync(httpContext);
+        });
+    }
 
-        public static IEndpointConventionBuilder MapPost<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, Func<HttpContext, TRequest> requestFactory)
-            where TRequest : ProcessHttpEndpoint
+    public static IEndpointConventionBuilder MapPost<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, Func<HttpContext, TRequest> requestFactory)
+        where TRequest : ProcessHttpEndpoint
+    {
+        return endpoints.MapPost(pattern, async httpContext =>
         {
-            return endpoints.MapPost(pattern, async httpContext =>
-            {
-                var request = requestFactory(httpContext);
-                var handler = httpContext.RequestServices.GetRequiredService<IHttpEndpointHandler<TRequest>>();
-                var httpResult = await handler.HandleAsync(request, httpContext.RequestAborted);
-                await httpResult.ExecuteAsync(httpContext);
-            });
-        }
+            var request = requestFactory(httpContext);
+            var handler = httpContext.RequestServices.GetRequiredService<IHttpEndpointHandler<TRequest>>();
+            var httpResult = await handler.HandleAsync(request, httpContext.RequestAborted);
+            await httpResult.ExecuteAsync(httpContext);
+        });
+    }
 
-        public static IEndpointConventionBuilder MapMethods<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, IEnumerable<string> httpMethods, Func<HttpContext, TRequest> requestFactory)
-            where TRequest : ProcessHttpEndpoint
+    public static IEndpointConventionBuilder MapMethods<TRequest>(this IEndpointRouteBuilder endpoints, string pattern, IEnumerable<string> httpMethods, Func<HttpContext, TRequest> requestFactory)
+        where TRequest : ProcessHttpEndpoint
+    {
+        return endpoints.MapMethods(pattern, httpMethods, async httpContext =>
         {
-            return endpoints.MapMethods(pattern, httpMethods, async httpContext =>
-            {
-                var request = requestFactory(httpContext);
-                var handler = httpContext.RequestServices.GetRequiredService<IHttpEndpointHandler<TRequest>>();
-                var httpResult = await handler.HandleAsync(request, httpContext.RequestAborted);
-                await httpResult.ExecuteAsync(httpContext);
-            });
-        }
+            var request = requestFactory(httpContext);
+            var handler = httpContext.RequestServices.GetRequiredService<IHttpEndpointHandler<TRequest>>();
+            var httpResult = await handler.HandleAsync(request, httpContext.RequestAborted);
+            await httpResult.ExecuteAsync(httpContext);
+        });
     }
 }

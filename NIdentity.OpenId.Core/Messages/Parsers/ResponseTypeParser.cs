@@ -23,83 +23,82 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="ResponseTypes"/> values.
+/// </summary>
+public class ResponseTypeParser : ParameterParser<ResponseTypes?>
 {
-    /// <summary>
-    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="ResponseTypes"/> values.
-    /// </summary>
-    public class ResponseTypeParser : ParameterParser<ResponseTypes?>
+    /// <inheritdoc/>
+    public override StringValues Serialize(IOpenIdMessageContext context, ResponseTypes? value)
     {
-        /// <inheritdoc/>
-        public override StringValues Serialize(IOpenIdMessageContext context, ResponseTypes? value)
+        if (value is null || value == ResponseTypes.Unspecified)
+            return StringValues.Empty;
+
+        const int capacity = 4;
+        var responseType = value.Value;
+        var list = new List<string>(capacity);
+
+        if (responseType.HasFlag(ResponseTypes.None))
+            list.Add(OpenIdConstants.ResponseTypes.None);
+
+        if (responseType.HasFlag(ResponseTypes.Code))
+            list.Add(OpenIdConstants.ResponseTypes.Code);
+
+        if (responseType.HasFlag(ResponseTypes.IdToken))
+            list.Add(OpenIdConstants.ResponseTypes.IdToken);
+
+        if (responseType.HasFlag(ResponseTypes.Token))
+            list.Add(OpenIdConstants.ResponseTypes.Token);
+
+        return string.Join(Separator, list);
+    }
+
+    /// <inheritdoc/>
+    public override ResponseTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    {
+        Debug.Assert(!descriptor.AllowMultipleValues);
+
+        switch (stringValues.Count)
         {
-            if (value is null || value == ResponseTypes.Unspecified)
-                return StringValues.Empty;
+            case 0 when descriptor.Optional:
+                return null;
 
-            const int capacity = 4;
-            var responseType = value.Value;
-            var list = new List<string>(capacity);
+            case 0:
+                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
 
-            if (responseType.HasFlag(ResponseTypes.None))
-                list.Add(OpenIdConstants.ResponseTypes.None);
-
-            if (responseType.HasFlag(ResponseTypes.Code))
-                list.Add(OpenIdConstants.ResponseTypes.Code);
-
-            if (responseType.HasFlag(ResponseTypes.IdToken))
-                list.Add(OpenIdConstants.ResponseTypes.IdToken);
-
-            if (responseType.HasFlag(ResponseTypes.Token))
-                list.Add(OpenIdConstants.ResponseTypes.Token);
-
-            return string.Join(Separator, list);
+            case > 1:
+                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
         }
 
-        /// <inheritdoc/>
-        public override ResponseTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+        stringValues = stringValues[0].Split(Separator);
+
+        var responseType = ResponseTypes.Unspecified;
+        foreach (var stringValue in stringValues)
         {
-            Debug.Assert(!descriptor.AllowMultipleValues);
-
-            switch (stringValues.Count)
+            if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.None, StringComparison))
             {
-                case 0 when descriptor.Optional:
-                    return null;
-
-                case 0:
-                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
-
-                case > 1:
-                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
+                responseType |= ResponseTypes.None;
             }
-
-            stringValues = stringValues[0].Split(Separator);
-
-            var responseType = ResponseTypes.Unspecified;
-            foreach (var stringValue in stringValues)
+            else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Code, StringComparison))
             {
-                if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.None, StringComparison))
-                {
-                    responseType |= ResponseTypes.None;
-                }
-                else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Code, StringComparison))
-                {
-                    responseType |= ResponseTypes.Code;
-                }
-                else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.IdToken, StringComparison))
-                {
-                    responseType |= ResponseTypes.IdToken;
-                }
-                else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Token, StringComparison))
-                {
-                    responseType |= ResponseTypes.Token;
-                }
-                else
-                {
-                    throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
-                }
+                responseType |= ResponseTypes.Code;
             }
-
-            return responseType;
+            else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.IdToken, StringComparison))
+            {
+                responseType |= ResponseTypes.IdToken;
+            }
+            else if (string.Equals(stringValue, OpenIdConstants.ResponseTypes.Token, StringComparison))
+            {
+                responseType |= ResponseTypes.Token;
+            }
+            else
+            {
+                throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
+            }
         }
+
+        return responseType;
     }
 }

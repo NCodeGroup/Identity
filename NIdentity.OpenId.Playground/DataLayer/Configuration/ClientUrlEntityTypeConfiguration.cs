@@ -21,19 +21,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NIdentity.OpenId.Playground.DataLayer.Entities;
 
-namespace NIdentity.OpenId.Playground.DataLayer.Configuration
-{
-    internal class ClientUrlEntityTypeConfiguration : IEntityTypeConfiguration<ClientUrlEntity>
-    {
-        /// <inheritdoc />
-        public void Configure(EntityTypeBuilder<ClientUrlEntity> builder)
-        {
-            builder.HasKey(_ => _.Id);
+namespace NIdentity.OpenId.Playground.DataLayer.Configuration;
 
-            builder.Property(_ => _.Id).UseIdGenerator();
-            builder.Property(_ => _.ClientId);
-            builder.Property(_ => _.UrlType).AsStandardString();
-            builder.Property(_ => _.Url).AsStandardString();
-        }
+internal class ClientUrlEntityTypeConfiguration : IEntityTypeConfiguration<ClientUrlEntity>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ClientUrlEntity> builder)
+    {
+        builder.HasKey(_ => _.Id);
+
+        builder.Property(_ => _.Id).UseIdGenerator();
+        builder.Property(_ => _.ClientId);
+        builder.Property(_ => _.UrlType).AsStandardString();
+        builder.Property(_ => _.Url).AsStandardString();
     }
 }

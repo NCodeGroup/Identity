@@ -17,10 +17,9 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Messages.Authorization
+namespace NIdentity.OpenId.Messages.Authorization;
+
+internal class AuthorizationRequestMessage : BaseAuthorizationRequestMessage<AuthorizationRequestMessage>, IAuthorizationRequestMessage
 {
-    internal class AuthorizationRequestMessage : BaseAuthorizationRequestMessage<AuthorizationRequestMessage>, IAuthorizationRequestMessage
-    {
-        // nothing
-    }
+    // nothing
 }

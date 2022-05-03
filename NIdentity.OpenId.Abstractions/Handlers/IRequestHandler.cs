@@ -21,21 +21,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using NIdentity.OpenId.Requests;
 
-namespace NIdentity.OpenId.Handlers
+namespace NIdentity.OpenId.Handlers;
+
+/// <summary>
+/// Defines a handler that accepts an input argument and doesn't return anything.
+/// </summary>
+/// <typeparam name="TRequest">The type of the input argument.</typeparam>
+public interface IRequestHandler<in TRequest>
+    where TRequest : IRequest
 {
     /// <summary>
-    /// Defines a handler that accepts an input argument and doesn't return anything.
+    /// Handles a request given an input argument.
     /// </summary>
-    /// <typeparam name="TRequest">The type of the input argument.</typeparam>
-    public interface IRequestHandler<in TRequest>
-        where TRequest : IRequest
-    {
-        /// <summary>
-        /// Handles a request given an input argument.
-        /// </summary>
-        /// <param name="request">The input argument to handle.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-        /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-        ValueTask HandleAsync(TRequest request, CancellationToken cancellationToken);
-    }
+    /// <param name="request">The input argument to handle.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask HandleAsync(TRequest request, CancellationToken cancellationToken);
 }

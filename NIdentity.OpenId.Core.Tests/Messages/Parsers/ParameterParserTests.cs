@@ -23,62 +23,61 @@ using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
+namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
+
+public class ParameterParserTests : IDisposable
 {
-    public class ParameterParserTests : IDisposable
+    private readonly MockRepository _mockRepository;
+    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+    private readonly Mock<ITestParameterParser> _mockTestParameterParser;
+
+    public ParameterParserTests()
     {
-        private readonly MockRepository _mockRepository;
-        private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
-        private readonly Mock<ITestParameterParser> _mockTestParameterParser;
+        _mockRepository = new MockRepository(MockBehavior.Strict);
+        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        _mockTestParameterParser = _mockRepository.Create<ITestParameterParser>();
+    }
 
-        public ParameterParserTests()
-        {
-            _mockRepository = new MockRepository(MockBehavior.Strict);
-            _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-            _mockTestParameterParser = _mockRepository.Create<ITestParameterParser>();
-        }
+    public void Dispose()
+    {
+        _mockRepository.Verify();
+    }
 
-        public void Dispose()
-        {
-            _mockRepository.Verify();
-        }
+    [Fact]
+    public void Separator_ThenValid()
+    {
+        var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
 
-        [Fact]
-        public void Separator_ThenValid()
-        {
-            var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
+        Assert.Equal(OpenIdConstants.ParameterSeparator, parser.Separator);
+    }
 
-            Assert.Equal(OpenIdConstants.ParameterSeparator, parser.Separator);
-        }
+    [Fact]
+    public void StringComparison_ThenValid()
+    {
+        var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
 
-        [Fact]
-        public void StringComparison_ThenValid()
-        {
-            var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
+        Assert.Equal(StringComparison.Ordinal, parser.StringComparison);
+    }
 
-            Assert.Equal(StringComparison.Ordinal, parser.StringComparison);
-        }
+    [Fact]
+    public void Load_ThenValid()
+    {
+        var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
+        var context = _mockOpenIdMessageContext.Object;
 
-        [Fact]
-        public void Load_ThenValid()
-        {
-            var parser = new TestParameterParser(_mockTestParameterParser.Object, null);
-            var context = _mockOpenIdMessageContext.Object;
+        const string parameterName = "parameterName";
+        const string stringValues = "stringValues";
+        const string parsedValue = "parsedValue";
 
-            const string parameterName = "parameterName";
-            const string stringValues = "stringValues";
-            const string parsedValue = "parsedValue";
+        var descriptor = new ParameterDescriptor(parameterName);
 
-            var descriptor = new ParameterDescriptor(parameterName);
+        _mockTestParameterParser
+            .Setup(_ => _.Parse(context, descriptor, stringValues))
+            .Returns(parsedValue)
+            .Verifiable();
 
-            _mockTestParameterParser
-                .Setup(_ => _.Parse(context, descriptor, stringValues))
-                .Returns(parsedValue)
-                .Verifiable();
-
-            var parameter = parser.Load(context, descriptor, stringValues);
-            Assert.Equal(stringValues, parameter.StringValues);
-            Assert.Same(parsedValue, parameter.ParsedValue);
-        }
+        var parameter = parser.Load(context, descriptor, stringValues);
+        Assert.Equal(stringValues, parameter.StringValues);
+        Assert.Same(parsedValue, parameter.ParsedValue);
     }
 }

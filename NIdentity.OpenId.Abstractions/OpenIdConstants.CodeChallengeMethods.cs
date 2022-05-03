@@ -17,24 +17,23 @@
 
 #endregion
 
-namespace NIdentity.OpenId
+namespace NIdentity.OpenId;
+
+public static partial class OpenIdConstants
 {
-    public static partial class OpenIdConstants
+    /// <summary>
+    /// Contains constants for possible values of the <c>code_challenge_method</c> parameter.
+    /// </summary>
+    public static class CodeChallengeMethods
     {
         /// <summary>
-        /// Contains constants for possible values of the <c>code_challenge_method</c> parameter.
+        /// Contains the <c>code_challenge_method</c> parameter value for <c>plain</c>.
         /// </summary>
-        public static class CodeChallengeMethods
-        {
-            /// <summary>
-            /// Contains the <c>code_challenge_method</c> parameter value for <c>plain</c>.
-            /// </summary>
-            public const string Plain = "plain";
+        public const string Plain = "plain";
 
-            /// <summary>
-            /// Contains the <c>code_challenge_method</c> parameter value for <c>S256</c>.
-            /// </summary>
-            public const string S256 = "S256";
-        }
+        /// <summary>
+        /// Contains the <c>code_challenge_method</c> parameter value for <c>S256</c>.
+        /// </summary>
+        public const string S256 = "S256";
     }
 }

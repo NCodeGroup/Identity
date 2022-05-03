@@ -17,36 +17,35 @@
 
 #endregion
 
-namespace NIdentity.OpenId
+namespace NIdentity.OpenId;
+
+/// <summary>
+/// Specifies the mechanism to be used for returning Authorization Response parameters from the Authorization
+/// Endpoint.
+/// </summary>
+public enum ResponseMode
 {
     /// <summary>
-    /// Specifies the mechanism to be used for returning Authorization Response parameters from the Authorization
-    /// Endpoint.
+    /// Represents a value that hasn't been initialized yet and its value is unknown.
     /// </summary>
-    public enum ResponseMode
-    {
-        /// <summary>
-        /// Represents a value that hasn't been initialized yet and its value is unknown.
-        /// </summary>
-        Unspecified = 0,
+    Unspecified = 0,
 
-        /// <summary>
-        /// Specifies that Authorization Response parameters are encoded in the query string added to the
-        /// <c>redirect_uri</c> when redirecting back to the Client.
-        /// </summary>
-        Query,
+    /// <summary>
+    /// Specifies that Authorization Response parameters are encoded in the query string added to the
+    /// <c>redirect_uri</c> when redirecting back to the Client.
+    /// </summary>
+    Query,
 
-        /// <summary>
-        /// Specifies that Authorization Response parameters are encoded in the fragment added to the
-        /// <c>redirect_uri</c> when redirecting back to the Client.
-        /// </summary>
-        Fragment,
+    /// <summary>
+    /// Specifies that Authorization Response parameters are encoded in the fragment added to the
+    /// <c>redirect_uri</c> when redirecting back to the Client.
+    /// </summary>
+    Fragment,
 
-        /// <summary>
-        /// Specifies that Authorization Response parameters are encoded as HTML form values that are auto-submitted in
-        /// the User Agent, and thus are transmitted via the HTTP <c>POST</c> method to the Client, with the result
-        /// parameters being encoded in the body using the <c>application/x-www-form-urlencoded</c> format.
-        /// </summary>
-        FormPost
-    }
+    /// <summary>
+    /// Specifies that Authorization Response parameters are encoded as HTML form values that are auto-submitted in
+    /// the User Agent, and thus are transmitted via the HTTP <c>POST</c> method to the Client, with the result
+    /// parameters being encoded in the body using the <c>application/x-www-form-urlencoded</c> format.
+    /// </summary>
+    FormPost
 }

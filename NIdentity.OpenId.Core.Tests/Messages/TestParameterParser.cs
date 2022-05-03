@@ -23,41 +23,40 @@ using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 
-namespace NIdentity.OpenId.Core.Tests.Messages
+namespace NIdentity.OpenId.Core.Tests.Messages;
+
+internal delegate Parameter LoadJsonDelegate(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options);
+
+internal interface ITestParameterParser
 {
-    internal delegate Parameter LoadJsonDelegate(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options);
+    StringValues Serialize(IOpenIdMessageContext context, string value);
 
-    internal interface ITestParameterParser
+    string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues);
+}
+
+internal class TestParameterParser : ParameterParser<string>, IJsonParser
+{
+    private readonly ITestParameterParser _innerParser;
+    private readonly LoadJsonDelegate? _loadJsonDelegate;
+
+    public TestParameterParser(ITestParameterParser innerParser, LoadJsonDelegate? loadJsonDelegate)
     {
-        StringValues Serialize(IOpenIdMessageContext context, string value);
-
-        string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues);
+        _innerParser = innerParser;
+        _loadJsonDelegate = loadJsonDelegate;
     }
 
-    internal class TestParameterParser : ParameterParser<string>, IJsonParser
+    public override StringValues Serialize(IOpenIdMessageContext context, string value)
     {
-        private readonly ITestParameterParser _innerParser;
-        private readonly LoadJsonDelegate? _loadJsonDelegate;
+        return _innerParser.Serialize(context, value);
+    }
 
-        public TestParameterParser(ITestParameterParser innerParser, LoadJsonDelegate? loadJsonDelegate)
-        {
-            _innerParser = innerParser;
-            _loadJsonDelegate = loadJsonDelegate;
-        }
+    public override string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    {
+        return _innerParser.Parse(context, descriptor, stringValues);
+    }
 
-        public override StringValues Serialize(IOpenIdMessageContext context, string value)
-        {
-            return _innerParser.Serialize(context, value);
-        }
-
-        public override string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
-        {
-            return _innerParser.Parse(context, descriptor, stringValues);
-        }
-
-        public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            return _loadJsonDelegate?.Invoke(context, descriptor, ref reader, options) ?? new Parameter();
-        }
+    public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
+    {
+        return _loadJsonDelegate?.Invoke(context, descriptor, ref reader, options) ?? new Parameter();
     }
 }

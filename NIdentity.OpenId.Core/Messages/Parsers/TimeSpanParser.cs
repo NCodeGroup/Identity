@@ -23,48 +23,47 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="TimeSpan"/> values.
+/// </summary>
+public class TimeSpanParser : ParameterParser<TimeSpan?>
 {
-    /// <summary>
-    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="TimeSpan"/> values.
-    /// </summary>
-    public class TimeSpanParser : ParameterParser<TimeSpan?>
+    /// <inheritdoc/>
+    public override StringValues Serialize(IOpenIdMessageContext context, TimeSpan? value)
     {
-        /// <inheritdoc/>
-        public override StringValues Serialize(IOpenIdMessageContext context, TimeSpan? value)
-        {
-            if (value == null)
-                return StringValues.Empty;
+        if (value == null)
+            return StringValues.Empty;
 
-            var wholeSeconds = (int)value.Value.TotalSeconds;
-            return wholeSeconds.ToString(CultureInfo.InvariantCulture);
+        var wholeSeconds = (int)value.Value.TotalSeconds;
+        return wholeSeconds.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <inheritdoc/>
+    public override TimeSpan? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    {
+        switch (stringValues.Count)
+        {
+            case 0 when descriptor.Optional:
+                return null;
+
+            case 0:
+                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+
+            case > 1 when !descriptor.AllowMultipleValues:
+                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
         }
 
-        /// <inheritdoc/>
-        public override TimeSpan? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+        var value = TimeSpan.Zero;
+        foreach (var stringValue in stringValues)
         {
-            switch (stringValues.Count)
-            {
-                case 0 when descriptor.Optional:
-                    return null;
+            if (!int.TryParse(stringValue, out var seconds))
+                throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
 
-                case 0:
-                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
-
-                case > 1 when !descriptor.AllowMultipleValues:
-                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
-            }
-
-            var value = TimeSpan.Zero;
-            foreach (var stringValue in stringValues)
-            {
-                if (!int.TryParse(stringValue, out var seconds))
-                    throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
-
-                value += TimeSpan.FromSeconds(seconds);
-            }
-
-            return value;
+            value += TimeSpan.FromSeconds(seconds);
         }
+
+        return value;
     }
 }

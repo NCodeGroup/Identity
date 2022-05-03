@@ -24,12 +24,11 @@ using NIdentity.OpenId.Messages.Authorization;
 #pragma warning disable 1574 // ValidateAuthorizationRequest.cs(25, 31): [CS1574] XML comment has cref attribute 'IRequest' that could not be resolved
 #pragma warning disable 1591 // ValidateAuthorizationRequest.cs(29, 70): [CS1591] Missing XML comment for publicly visible type or member 'ValidateAuthorizationRequest.AuthorizationRequest'
 
-namespace NIdentity.OpenId.Requests
-{
-    /// <summary>
-    /// Defines an <see cref="IRequest"/> request contract that accepts an <see cref="IAuthorizationRequest"/> as an
-    /// input argument and doesn't return a value.
-    /// </summary>
-    /// <param name="AuthorizationRequest">The <see cref="IAuthorizationRequest"/> input argument for the request contract.</param>
-    public record ValidateAuthorizationRequest(IAuthorizationRequest AuthorizationRequest) : IRequest;
-}
+namespace NIdentity.OpenId.Requests;
+
+/// <summary>
+/// Defines an <see cref="IRequest"/> request contract that accepts an <see cref="IAuthorizationRequest"/> as an
+/// input argument and doesn't return a value.
+/// </summary>
+/// <param name="AuthorizationRequest">The <see cref="IAuthorizationRequest"/> input argument for the request contract.</param>
+public record ValidateAuthorizationRequest(IAuthorizationRequest AuthorizationRequest) : IRequest;

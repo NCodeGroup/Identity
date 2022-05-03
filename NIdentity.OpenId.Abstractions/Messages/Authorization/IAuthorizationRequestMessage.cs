@@ -19,22 +19,21 @@
 
 using System;
 
-namespace NIdentity.OpenId.Messages.Authorization
+namespace NIdentity.OpenId.Messages.Authorization;
+
+/// <summary>
+/// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request from the request
+/// message only.
+/// </summary>
+public interface IAuthorizationRequestMessage : IAuthorizationRequestValues, IOpenIdMessage
 {
     /// <summary>
-    /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request from the request
-    /// message only.
+    /// Gets the <c>request</c> parameter.
     /// </summary>
-    public interface IAuthorizationRequestMessage : IAuthorizationRequestValues, IOpenIdMessage
-    {
-        /// <summary>
-        /// Gets the <c>request</c> parameter.
-        /// </summary>
-        string? RequestJwt { get; }
+    string? RequestJwt { get; }
 
-        /// <summary>
-        /// Gets the <c>request_uri</c> parameter.
-        /// </summary>
-        Uri? RequestUri { get; }
-    }
+    /// <summary>
+    /// Gets the <c>request_uri</c> parameter.
+    /// </summary>
+    Uri? RequestUri { get; }
 }

@@ -46,115 +46,114 @@ public static class SecurityAlgorithms
 
 */
 
-namespace NIdentity.OpenId.Logic
+namespace NIdentity.OpenId.Logic;
+
+/// <summary>
+/// Provides methods that operate on <see cref="Secret"/>.
+/// </summary>
+public interface ISecretService
 {
     /// <summary>
-    /// Provides methods that operate on <see cref="Secret"/>.
+    /// Given a collection of <see cref="Secret"/> items, converts and loads them into a disposable collection of
+    /// <see cref="Microsoft.IdentityModel.Tokens.SecurityKey"/> items.
     /// </summary>
-    public interface ISecretService
+    /// <param name="secrets">The secrets to convert and load.</param>
+    /// <returns>The collection of <see cref="Microsoft.IdentityModel.Tokens.SecurityKey"/> items.</returns>
+    ISecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets);
+}
+
+internal class SecretService : ISecretService
+{
+    /// <inheritdoc />
+    public ISecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets)
     {
-        /// <summary>
-        /// Given a collection of <see cref="Secret"/> items, converts and loads them into a disposable collection of
-        /// <see cref="Microsoft.IdentityModel.Tokens.SecurityKey"/> items.
-        /// </summary>
-        /// <param name="secrets">The secrets to convert and load.</param>
-        /// <returns>The collection of <see cref="Microsoft.IdentityModel.Tokens.SecurityKey"/> items.</returns>
-        ISecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets);
+        var list = new List<SecurityKey>();
+        var collection = new SecurityKeyCollection(list);
+
+        try
+        {
+            foreach (var secret in secrets)
+            {
+                LoadSecurityKey(list, secret);
+            }
+        }
+        catch
+        {
+            collection.Dispose();
+            throw;
+        }
+
+        return collection;
     }
 
-    internal class SecretService : ISecretService
+    private static void LoadSecurityKey(ICollection<SecurityKey> list, Secret secret)
     {
-        /// <inheritdoc />
-        public ISecurityKeyCollection LoadSecurityKeys(IEnumerable<Secret> secrets)
+        switch (secret.SecretType)
         {
-            var list = new List<SecurityKey>();
-            var collection = new SecurityKeyCollection(list);
+            case SecretConstants.SecretTypes.SharedSecret:
+                //return LoadSharedSecurityKey(secret);
+                throw new NotImplementedException();
 
-            try
-            {
-                foreach (var secret in secrets)
-                {
-                    LoadSecurityKey(list, secret);
-                }
-            }
-            catch
-            {
-                collection.Dispose();
-                throw;
-            }
+            case SecretConstants.SecretTypes.SymmetricKey:
+                LoadSymmetricSecurityKey(list, secret);
+                break;
 
-            return collection;
+            case SecretConstants.SecretTypes.AsymmetricKey:
+                LoadAsymmetricSecurityKey(list, secret);
+                break;
+
+            case SecretConstants.SecretTypes.Certificate:
+                LoadCertificateSecurityKey(list, secret);
+                break;
         }
+    }
 
-        private static void LoadSecurityKey(ICollection<SecurityKey> list, Secret secret)
+    private static void LoadSymmetricSecurityKey(ICollection<SecurityKey> list, Secret secret)
+    {
+        if (secret.EncodingType != SecretConstants.EncodingTypes.Base64)
+            return;
+
+        list.Add(new SymmetricSecurityKey(Convert.FromBase64String(secret.EncodedValue)) { KeyId = secret.KeyId });
+    }
+
+    private static void LoadAsymmetricSecurityKey(ICollection<SecurityKey> list, Secret secret)
+    {
+        if (secret.EncodingType != SecretConstants.EncodingTypes.Pem)
+            return;
+
+        switch (secret.AlgorithmType)
         {
-            switch (secret.SecretType)
-            {
-                case SecretConstants.SecretTypes.SharedSecret:
-                    //return LoadSharedSecurityKey(secret);
-                    throw new NotImplementedException();
+            case SecretConstants.AlgorithmTypes.Dsa:
+                //var dsa = DSA.Create();
+                //dsa.ImportFromPem(secret.Value);
+                //return new DsaSecurityKey(dsa) { KeyId = secret.KeyId };
+                throw new NotImplementedException();
 
-                case SecretConstants.SecretTypes.SymmetricKey:
-                    LoadSymmetricSecurityKey(list, secret);
-                    break;
+            case SecretConstants.AlgorithmTypes.Rsa:
+                var rsa = RSA.Create();
+                rsa.ImportFromPem(secret.EncodedValue);
+                list.Add(new RsaSecurityKey(rsa) { KeyId = secret.KeyId });
+                break;
 
-                case SecretConstants.SecretTypes.AsymmetricKey:
-                    LoadAsymmetricSecurityKey(list, secret);
-                    break;
+            case SecretConstants.AlgorithmTypes.Ecdsa:
+                var ecdsa = ECDsa.Create() ?? throw new InvalidOperationException();
+                ecdsa.ImportFromPem(secret.EncodedValue);
+                list.Add(new ECDsaSecurityKey(ecdsa) { KeyId = secret.KeyId });
+                break;
 
-                case SecretConstants.SecretTypes.Certificate:
-                    LoadCertificateSecurityKey(list, secret);
-                    break;
-            }
+            case SecretConstants.AlgorithmTypes.Ecdh:
+                //var ecdh = ECDiffieHellman.Create();
+                //ecdh.ImportFromPem(secret.Value);
+                //return new ECDiffieHellmanSecurityKey(ecdsa) { KeyId = secret.KeyId };
+                throw new NotImplementedException();
         }
+    }
 
-        private static void LoadSymmetricSecurityKey(ICollection<SecurityKey> list, Secret secret)
-        {
-            if (secret.EncodingType != SecretConstants.EncodingTypes.Base64)
-                return;
+    private static void LoadCertificateSecurityKey(ICollection<SecurityKey> list, Secret secret)
+    {
+        if (secret.EncodingType != SecretConstants.EncodingTypes.Pem)
+            return;
 
-            list.Add(new SymmetricSecurityKey(Convert.FromBase64String(secret.EncodedValue)) { KeyId = secret.KeyId });
-        }
-
-        private static void LoadAsymmetricSecurityKey(ICollection<SecurityKey> list, Secret secret)
-        {
-            if (secret.EncodingType != SecretConstants.EncodingTypes.Pem)
-                return;
-
-            switch (secret.AlgorithmType)
-            {
-                case SecretConstants.AlgorithmTypes.Dsa:
-                    //var dsa = DSA.Create();
-                    //dsa.ImportFromPem(secret.Value);
-                    //return new DsaSecurityKey(dsa) { KeyId = secret.KeyId };
-                    throw new NotImplementedException();
-
-                case SecretConstants.AlgorithmTypes.Rsa:
-                    var rsa = RSA.Create();
-                    rsa.ImportFromPem(secret.EncodedValue);
-                    list.Add(new RsaSecurityKey(rsa) { KeyId = secret.KeyId });
-                    break;
-
-                case SecretConstants.AlgorithmTypes.Ecdsa:
-                    var ecdsa = ECDsa.Create() ?? throw new InvalidOperationException();
-                    ecdsa.ImportFromPem(secret.EncodedValue);
-                    list.Add(new ECDsaSecurityKey(ecdsa) { KeyId = secret.KeyId });
-                    break;
-
-                case SecretConstants.AlgorithmTypes.Ecdh:
-                    //var ecdh = ECDiffieHellman.Create();
-                    //ecdh.ImportFromPem(secret.Value);
-                    //return new ECDiffieHellmanSecurityKey(ecdsa) { KeyId = secret.KeyId };
-                    throw new NotImplementedException();
-            }
-        }
-
-        private static void LoadCertificateSecurityKey(ICollection<SecurityKey> list, Secret secret)
-        {
-            if (secret.EncodingType != SecretConstants.EncodingTypes.Pem)
-                return;
-
-            list.Add(new X509SecurityKey(X509Certificate2.CreateFromPem(secret.EncodedValue, secret.EncodedValue), secret.KeyId));
-        }
+        list.Add(new X509SecurityKey(X509Certificate2.CreateFromPem(secret.EncodedValue, secret.EncodedValue), secret.KeyId));
     }
 }

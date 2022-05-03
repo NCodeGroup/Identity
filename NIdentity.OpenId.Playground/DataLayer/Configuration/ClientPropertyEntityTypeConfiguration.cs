@@ -22,16 +22,15 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NIdentity.OpenId.Playground.DataLayer.Entities;
 
-namespace NIdentity.OpenId.Playground.DataLayer.Configuration
-{
-    internal class ClientPropertyEntityTypeConfiguration : PropertyEntityTypeConfiguration<ClientPropertyEntity>
-    {
-        protected Expression<Func<ClientPropertyEntity, long>> ParentKey => entity => entity.ClientId;
+namespace NIdentity.OpenId.Playground.DataLayer.Configuration;
 
-        /// <inheritdoc />
-        protected override void PreConfigure(EntityTypeBuilder<ClientPropertyEntity> builder)
-        {
-            builder.HasIndex(_ => new { _.ClientId, _.NormalizedCodeName });
-        }
+internal class ClientPropertyEntityTypeConfiguration : PropertyEntityTypeConfiguration<ClientPropertyEntity>
+{
+    protected Expression<Func<ClientPropertyEntity, long>> ParentKey => entity => entity.ClientId;
+
+    /// <inheritdoc />
+    protected override void PreConfigure(EntityTypeBuilder<ClientPropertyEntity> builder)
+    {
+        builder.HasIndex(_ => new { _.ClientId, _.NormalizedCodeName });
     }
 }

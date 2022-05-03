@@ -23,75 +23,74 @@ using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
+namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
+
+public class KnownParameterTests : IDisposable
 {
-    public class KnownParameterTests : IDisposable
+    private readonly MockRepository _mockRepository;
+
+    public KnownParameterTests()
     {
-        private readonly MockRepository _mockRepository;
+        _mockRepository = new MockRepository(MockBehavior.Strict);
+    }
 
-        public KnownParameterTests()
+    public void Dispose()
+    {
+        _mockRepository.Verify();
+    }
+
+    [Fact]
+    public void Constructor_GivenValid_ThenValid()
+    {
+        const string parameterName = "parameterName";
+        const bool optional = false;
+        const bool allowMultipleValues = false;
+
+        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+
+        var parameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, mockParser.Object);
+
+        Assert.Equal(parameterName, parameter.Name);
+        Assert.Equal(typeof(string), parameter.ValueType);
+        Assert.Equal(optional, parameter.Optional);
+        Assert.Equal(allowMultipleValues, parameter.AllowMultipleValues);
+        Assert.Same(mockParser.Object, parameter.Loader);
+        Assert.Same(mockParser.Object, parameter.Parser);
+    }
+
+    [Fact]
+    public void Constructor_GivenNullName_ThenThrow()
+    {
+        const bool optional = false;
+        const bool allowMultipleValues = false;
+
+        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+
+        Assert.Throws<ArgumentNullException>(() =>
         {
-            _mockRepository = new MockRepository(MockBehavior.Strict);
-        }
+            var _ = new KnownParameter<string>(
+                null!,
+                optional,
+                allowMultipleValues,
+                mockParser.Object);
+        });
+    }
 
-        public void Dispose()
+    [Fact]
+    public void Constructor_GivenEmptyName_ThenThrow()
+    {
+        const bool optional = false;
+        const bool allowMultipleValues = false;
+
+        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+
+        Assert.Throws<ArgumentNullException>(() =>
         {
-            _mockRepository.Verify();
-        }
-
-        [Fact]
-        public void Constructor_GivenValid_ThenValid()
-        {
-            const string parameterName = "parameterName";
-            const bool optional = false;
-            const bool allowMultipleValues = false;
-
-            var mockParser = _mockRepository.Create<ParameterParser<string>>();
-
-            var parameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, mockParser.Object);
-
-            Assert.Equal(parameterName, parameter.Name);
-            Assert.Equal(typeof(string), parameter.ValueType);
-            Assert.Equal(optional, parameter.Optional);
-            Assert.Equal(allowMultipleValues, parameter.AllowMultipleValues);
-            Assert.Same(mockParser.Object, parameter.Loader);
-            Assert.Same(mockParser.Object, parameter.Parser);
-        }
-
-        [Fact]
-        public void Constructor_GivenNullName_ThenThrow()
-        {
-            const bool optional = false;
-            const bool allowMultipleValues = false;
-
-            var mockParser = _mockRepository.Create<ParameterParser<string>>();
-
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                var _ = new KnownParameter<string>(
-                    null!,
-                    optional,
-                    allowMultipleValues,
-                    mockParser.Object);
-            });
-        }
-
-        [Fact]
-        public void Constructor_GivenEmptyName_ThenThrow()
-        {
-            const bool optional = false;
-            const bool allowMultipleValues = false;
-
-            var mockParser = _mockRepository.Create<ParameterParser<string>>();
-
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                var _ = new KnownParameter<string>(
-                    string.Empty,
-                    optional,
-                    allowMultipleValues,
-                    mockParser.Object);
-            });
-        }
+            var _ = new KnownParameter<string>(
+                string.Empty,
+                optional,
+                allowMultipleValues,
+                mockParser.Object);
+        });
     }
 }

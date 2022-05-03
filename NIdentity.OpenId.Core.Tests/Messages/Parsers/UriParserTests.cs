@@ -26,134 +26,133 @@ using NIdentity.OpenId.Validation;
 using Xunit;
 using UriParser = NIdentity.OpenId.Messages.Parsers.UriParser;
 
-namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
+namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
+
+public class UriParserTests : IDisposable
 {
-    public class UriParserTests : IDisposable
+    private readonly MockRepository _mockRepository;
+    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+
+    public UriParserTests()
     {
-        private readonly MockRepository _mockRepository;
-        private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+        _mockRepository = new MockRepository(MockBehavior.Strict);
+        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+    }
 
-        public UriParserTests()
+    public void Dispose()
+    {
+        _mockRepository.Verify();
+    }
+
+    [Fact]
+    public void Serialize_GivenNull_ThenEmpty()
+    {
+        var parser = new UriParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        var stringValue = parser.Serialize(context, null);
+        Assert.Equal(StringValues.Empty, stringValue);
+    }
+
+    [Fact]
+    public void Serialize_GivenValue_ThenValid()
+    {
+        var parser = new UriParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        var uri = new Uri("http://localhost/path1/path2?key1=value1&key2");
+
+        var stringValue = parser.Serialize(context, uri);
+        Assert.Equal(uri.AbsoluteUri, stringValue);
+    }
+
+    [Fact]
+    public void Parse_GivenNull_WhenOptional_ThenValid()
+    {
+        var parser = new UriParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<Uri?>(
+            parameterName,
+            optional: true,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Parse_GivenNull_WhenRequired_ThenThrows()
+    {
+        var parser = new UriParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<Uri?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            _mockRepository = new MockRepository(MockBehavior.Strict);
-            _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        public void Dispose()
+    [Fact]
+    public void Parse_GivenMultipleValues_ThenThrows()
+    {
+        var parser = new UriParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "123", "456" };
+
+        var knownParameter = new KnownParameter<Uri?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            _mockRepository.Verify();
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        [Fact]
-        public void Serialize_GivenNull_ThenEmpty()
-        {
-            var parser = new UriParser();
-            var context = _mockOpenIdMessageContext.Object;
+    [Fact]
+    public void Parse_GivenSingleValue_ThenValid()
+    {
+        var parser = new UriParser();
+        var context = _mockOpenIdMessageContext.Object;
 
-            var stringValue = parser.Serialize(context, null);
-            Assert.Equal(StringValues.Empty, stringValue);
-        }
+        const string parameterName = "parameterName";
+        const string url = "http://localhost/path1/path2?key1=value1&key2";
+        var stringValues = new[] { url };
+        var expectedValue = new Uri(url);
 
-        [Fact]
-        public void Serialize_GivenValue_ThenValid()
-        {
-            var parser = new UriParser();
-            var context = _mockOpenIdMessageContext.Object;
+        var knownParameter = new KnownParameter<Uri?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
 
-            var uri = new Uri("http://localhost/path1/path2?key1=value1&key2");
+        var descriptor = new ParameterDescriptor(knownParameter);
 
-            var stringValue = parser.Serialize(context, uri);
-            Assert.Equal(uri.AbsoluteUri, stringValue);
-        }
-
-        [Fact]
-        public void Parse_GivenNull_WhenOptional_ThenValid()
-        {
-            var parser = new UriParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = Array.Empty<string>();
-
-            var knownParameter = new KnownParameter<Uri?>(
-                parameterName,
-                optional: true,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public void Parse_GivenNull_WhenRequired_ThenThrows()
-        {
-            var parser = new UriParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = Array.Empty<string>();
-
-            var knownParameter = new KnownParameter<Uri?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenMultipleValues_ThenThrows()
-        {
-            var parser = new UriParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "123", "456" };
-
-            var knownParameter = new KnownParameter<Uri?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenSingleValue_ThenValid()
-        {
-            var parser = new UriParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            const string url = "http://localhost/path1/path2?key1=value1&key2";
-            var stringValues = new[] { url };
-            var expectedValue = new Uri(url);
-
-            var knownParameter = new KnownParameter<Uri?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(expectedValue, result);
-        }
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(expectedValue, result);
     }
 }

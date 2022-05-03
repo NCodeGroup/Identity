@@ -21,19 +21,18 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace NIdentity.OpenId.Core.Tests.Messages
-{
-    internal class TestNestedObjectJsonConverter : JsonConverter<ITestNestedObject?>
-    {
-        public override ITestNestedObject? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize<TestNestedObject>(ref reader, options);
-        }
+namespace NIdentity.OpenId.Core.Tests.Messages;
 
-        public override void Write(Utf8JsonWriter writer, ITestNestedObject? value, JsonSerializerOptions options)
-        {
-            var type = value?.GetType() ?? typeof(TestNestedObject);
-            JsonSerializer.Serialize(writer, value, type, options);
-        }
+internal class TestNestedObjectJsonConverter : JsonConverter<ITestNestedObject?>
+{
+    public override ITestNestedObject? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return JsonSerializer.Deserialize<TestNestedObject>(ref reader, options);
+    }
+
+    public override void Write(Utf8JsonWriter writer, ITestNestedObject? value, JsonSerializerOptions options)
+    {
+        var type = value?.GetType() ?? typeof(TestNestedObject);
+        JsonSerializer.Serialize(writer, value, type, options);
     }
 }

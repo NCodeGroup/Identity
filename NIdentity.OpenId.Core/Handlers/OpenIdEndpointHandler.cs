@@ -26,26 +26,25 @@ using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Handlers
-{
-    internal abstract class OpenIdEndpointHandler<TRequest> : IHttpEndpointHandler<TRequest>
-        where TRequest : ProcessHttpEndpoint
-    {
-        /// <inheritdoc />
-        public async ValueTask<IHttpResult> HandleAsync(TRequest request, CancellationToken cancellationToken)
-        {
-            var httpContext = request.HttpContext;
-            try
-            {
-                return await HandleAsync(httpContext, cancellationToken);
-            }
-            catch (Exception exception)
-            {
-                var exceptionService = httpContext.RequestServices.GetRequiredService<IExceptionService>();
-                return exceptionService.GetHttpResultForException(exception);
-            }
-        }
+namespace NIdentity.OpenId.Handlers;
 
-        protected abstract ValueTask<IHttpResult> HandleAsync(HttpContext httpContext, CancellationToken cancellationToken);
+internal abstract class OpenIdEndpointHandler<TRequest> : IHttpEndpointHandler<TRequest>
+    where TRequest : ProcessHttpEndpoint
+{
+    /// <inheritdoc />
+    public async ValueTask<IHttpResult> HandleAsync(TRequest request, CancellationToken cancellationToken)
+    {
+        var httpContext = request.HttpContext;
+        try
+        {
+            return await HandleAsync(httpContext, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            var exceptionService = httpContext.RequestServices.GetRequiredService<IExceptionService>();
+            return exceptionService.GetHttpResultForException(exception);
+        }
     }
+
+    protected abstract ValueTask<IHttpResult> HandleAsync(HttpContext httpContext, CancellationToken cancellationToken);
 }

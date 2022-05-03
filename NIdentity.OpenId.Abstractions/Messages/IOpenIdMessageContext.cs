@@ -22,31 +22,30 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NIdentity.OpenId.Messages.Parameters;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages;
+
+/// <summary>
+/// Contains supporting properties that an <see cref="IOpenIdMessage"/> requires.
+/// </summary>
+public interface IOpenIdMessageContext
 {
     /// <summary>
-    /// Contains supporting properties that an <see cref="IOpenIdMessage"/> requires.
+    /// Gets the <see cref="ILogger"/> to be used for any logging.
     /// </summary>
-    public interface IOpenIdMessageContext
-    {
-        /// <summary>
-        /// Gets the <see cref="ILogger"/> to be used for any logging.
-        /// </summary>
-        ILogger Logger { get; }
+    ILogger Logger { get; }
 
-        /// <summary>
-        /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.
-        /// </summary>
-        JsonSerializerOptions JsonSerializerOptions { get; }
+    /// <summary>
+    /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.
+    /// </summary>
+    JsonSerializerOptions JsonSerializerOptions { get; }
 
-        /// <summary>
-        /// Attempts to get a <see cref="KnownParameter"/> that has the specified name.
-        /// </summary>
-        /// <param name="parameterName">The name of the <see cref="KnownParameter"/> to locate.</param>
-        /// <param name="knownParameter">When this method returns, the <see cref="KnownParameter"/> with the specified
-        /// name, if found; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the <see cref="KnownParameter"/> with the specified name was found; otherwise,
-        /// <c>false</c>.</returns>
-        bool TryGetKnownParameter(string parameterName, [NotNullWhen(true)] out KnownParameter? knownParameter);
-    }
+    /// <summary>
+    /// Attempts to get a <see cref="KnownParameter"/> that has the specified name.
+    /// </summary>
+    /// <param name="parameterName">The name of the <see cref="KnownParameter"/> to locate.</param>
+    /// <param name="knownParameter">When this method returns, the <see cref="KnownParameter"/> with the specified
+    /// name, if found; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if the <see cref="KnownParameter"/> with the specified name was found; otherwise,
+    /// <c>false</c>.</returns>
+    bool TryGetKnownParameter(string parameterName, [NotNullWhen(true)] out KnownParameter? knownParameter);
 }

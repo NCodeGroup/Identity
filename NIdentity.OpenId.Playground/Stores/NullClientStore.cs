@@ -22,20 +22,19 @@ using System.Threading.Tasks;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Stores;
 
-namespace NIdentity.OpenId.Playground.Stores
-{
-    internal class NullClientStore : IClientStore
-    {
-        /// <inheritdoc />
-        public ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken)
-        {
-            return ValueTask.FromResult<Client?>(null);
-        }
+namespace NIdentity.OpenId.Playground.Stores;
 
-        /// <inheritdoc />
-        public ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken)
-        {
-            return ValueTask.FromResult<Client?>(null);
-        }
+internal class NullClientStore : IClientStore
+{
+    /// <inheritdoc />
+    public ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult<Client?>(null);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult<Client?>(null);
     }
 }

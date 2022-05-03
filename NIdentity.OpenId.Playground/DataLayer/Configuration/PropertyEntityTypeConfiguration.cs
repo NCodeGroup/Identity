@@ -21,31 +21,30 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NIdentity.OpenId.Playground.DataLayer.Entities;
 
-namespace NIdentity.OpenId.Playground.DataLayer.Configuration
+namespace NIdentity.OpenId.Playground.DataLayer.Configuration;
+
+internal abstract class PropertyEntityTypeConfiguration<T> : IEntityTypeConfiguration<T>
+    where T : PropertyEntity
 {
-    internal abstract class PropertyEntityTypeConfiguration<T> : IEntityTypeConfiguration<T>
-        where T : PropertyEntity
+    protected abstract void PreConfigure(EntityTypeBuilder<T> builder);
+
+    protected virtual void PostConfigure(EntityTypeBuilder<T> builder)
     {
-        protected abstract void PreConfigure(EntityTypeBuilder<T> builder);
+        // nothing
+    }
 
-        protected virtual void PostConfigure(EntityTypeBuilder<T> builder)
-        {
-            // nothing
-        }
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<T> builder)
+    {
+        PreConfigure(builder);
 
-        /// <inheritdoc />
-        public void Configure(EntityTypeBuilder<T> builder)
-        {
-            PreConfigure(builder);
+        builder.HasKey(_ => _.Id);
 
-            builder.HasKey(_ => _.Id);
+        builder.Property(_ => _.Id).UseIdGenerator();
+        builder.Property(_ => _.CodeName).AsStandardIndex();
+        builder.Property(_ => _.NormalizedCodeName).AsStandardIndex();
+        builder.Property(_ => _.JsonValue).AsStandardString();
 
-            builder.Property(_ => _.Id).UseIdGenerator();
-            builder.Property(_ => _.CodeName).AsStandardIndex();
-            builder.Property(_ => _.NormalizedCodeName).AsStandardIndex();
-            builder.Property(_ => _.JsonValue).AsStandardString();
-
-            PostConfigure(builder);
-        }
+        PostConfigure(builder);
     }
 }

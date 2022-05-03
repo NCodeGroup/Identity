@@ -20,15 +20,14 @@
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Handlers
+namespace NIdentity.OpenId.Handlers;
+
+/// <summary>
+/// Defines a handler that accepts an input argument derived from <see cref="ProcessHttpEndpoint"/>> and returns an <see cref="IHttpResult"/>.
+/// </summary>
+/// <typeparam name="TRequest">The type of input argument which must derive from <see cref="ProcessHttpEndpoint"/>.</typeparam>
+public interface IHttpEndpointHandler<in TRequest> : IRequestResponseHandler<TRequest, IHttpResult>
+    where TRequest : ProcessHttpEndpoint
 {
-    /// <summary>
-    /// Defines a handler that accepts an input argument derived from <see cref="ProcessHttpEndpoint"/>> and returns an <see cref="IHttpResult"/>.
-    /// </summary>
-    /// <typeparam name="TRequest">The type of input argument which must derive from <see cref="ProcessHttpEndpoint"/>.</typeparam>
-    public interface IHttpEndpointHandler<in TRequest> : IRequestResponseHandler<TRequest, IHttpResult>
-        where TRequest : ProcessHttpEndpoint
-    {
-        // nothing
-    }
+    // nothing
 }

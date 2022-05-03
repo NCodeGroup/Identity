@@ -19,16 +19,15 @@
 
 using NIdentity.OpenId.DataContracts;
 
-namespace NIdentity.OpenId.Playground.DataLayer.Entities
+namespace NIdentity.OpenId.Playground.DataLayer.Entities;
+
+internal class ClientUrlEntity : ISupportId
 {
-    internal class ClientUrlEntity : ISupportId
-    {
-        public long Id { get; set; }
+    public long Id { get; set; }
 
-        public long ClientId { get; set; }
+    public long ClientId { get; set; }
 
-        public string UrlType { get; set; } = null!;
+    public string UrlType { get; set; } = null!;
 
-        public string Url { get; set; } = null!;
-    }
+    public string Url { get; set; } = null!;
 }

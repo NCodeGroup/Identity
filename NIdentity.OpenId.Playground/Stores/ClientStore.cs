@@ -25,34 +25,33 @@ using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Playground.DataLayer;
 using NIdentity.OpenId.Stores;
 
-namespace NIdentity.OpenId.Playground.Stores
+namespace NIdentity.OpenId.Playground.Stores;
+
+internal class ClientStore : IClientStore
 {
-    internal class ClientStore : IClientStore
+    private readonly IdentityDbContext _context;
+    private readonly IMapper _mapper;
+
+    public ClientStore(IdentityDbContext context, IMapper mapper)
     {
-        private readonly IdentityDbContext _context;
-        private readonly IMapper _mapper;
+        _context = context;
+        _mapper = mapper;
+    }
 
-        public ClientStore(IdentityDbContext context, IMapper mapper)
-        {
-            _context = context;
-            _mapper = mapper;
-        }
+    /// <inheritdoc />
+    public async ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken)
+    {
+        var clientEntity = await _context.Clients.FirstOrDefaultAsync(_ => _.Id == id, cancellationToken);
+        var client = _mapper.Map<Client>(clientEntity);
+        return client;
+    }
 
-        /// <inheritdoc />
-        public async ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken)
-        {
-            var clientEntity = await _context.Clients.FirstOrDefaultAsync(_ => _.Id == id, cancellationToken);
-            var client = _mapper.Map<Client>(clientEntity);
-            return client;
-        }
-
-        /// <inheritdoc />
-        public async ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken)
-        {
-            var normalizedClientId = clientId.ToUpperInvariant();
-            var clientEntity = await _context.Clients.FirstOrDefaultAsync(_ => _.NormalizedClientId == normalizedClientId, cancellationToken);
-            var client = _mapper.Map<Client>(clientEntity);
-            return client;
-        }
+    /// <inheritdoc />
+    public async ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken)
+    {
+        var normalizedClientId = clientId.ToUpperInvariant();
+        var clientEntity = await _context.Clients.FirstOrDefaultAsync(_ => _.NormalizedClientId == normalizedClientId, cancellationToken);
+        var client = _mapper.Map<Client>(clientEntity);
+        return client;
     }
 }

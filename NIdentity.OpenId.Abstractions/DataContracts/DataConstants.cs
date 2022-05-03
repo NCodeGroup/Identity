@@ -17,12 +17,11 @@
 
 #endregion
 
-namespace NIdentity.OpenId.DataContracts
-{
-    public static class DataConstants
-    {
-        public const int MaxIndexLength = 256;
+namespace NIdentity.OpenId.DataContracts;
 
-        public const int MaxConcurrencyTokenLength = 50;
-    }
+public static class DataConstants
+{
+    public const int MaxIndexLength = 256;
+
+    public const int MaxConcurrencyTokenLength = 50;
 }

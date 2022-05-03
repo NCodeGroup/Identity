@@ -21,25 +21,24 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using NIdentity.OpenId.Messages.Parameters;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides a default implementation of <see cref="IJsonParser"/> that parses JSON into <see cref="JsonElement"/>.
+/// </summary>
+public class DefaultJsonParser : IJsonParser
 {
     /// <summary>
-    /// Provides a default implementation of <see cref="IJsonParser"/> that parses JSON into <see cref="JsonElement"/>.
+    /// Gets a singleton instance for the <see cref="DefaultJsonParser"/> class.
     /// </summary>
-    public class DefaultJsonParser : IJsonParser
-    {
-        /// <summary>
-        /// Gets a singleton instance for the <see cref="DefaultJsonParser"/> class.
-        /// </summary>
-        public static DefaultJsonParser Instance { get; } = new();
+    public static DefaultJsonParser Instance { get; } = new();
 
-        /// <inheritdoc/>
-        public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
-        {
-            var converter = (JsonConverter<JsonElement>)options.GetConverter(typeof(JsonElement));
-            var jsonElement = converter.Read(ref reader, typeof(JsonElement), options);
-            var stringValues = jsonElement.GetRawText();
-            return new Parameter(descriptor, stringValues, jsonElement);
-        }
+    /// <inheritdoc/>
+    public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
+    {
+        var converter = (JsonConverter<JsonElement>)options.GetConverter(typeof(JsonElement));
+        var jsonElement = converter.Read(ref reader, typeof(JsonElement), options);
+        var stringValues = jsonElement.GetRawText();
+        return new Parameter(descriptor, stringValues, jsonElement);
     }
 }

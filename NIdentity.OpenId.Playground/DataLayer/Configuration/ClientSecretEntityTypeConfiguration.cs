@@ -21,16 +21,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NIdentity.OpenId.Playground.DataLayer.Entities;
 
-namespace NIdentity.OpenId.Playground.DataLayer.Configuration
-{
-    internal class ClientSecretEntityTypeConfiguration : IEntityTypeConfiguration<ClientSecretEntity>
-    {
-        /// <inheritdoc />
-        public void Configure(EntityTypeBuilder<ClientSecretEntity> builder)
-        {
-            builder.HasKey(_ => new { _.ClientId, _.SecretId });
+namespace NIdentity.OpenId.Playground.DataLayer.Configuration;
 
-            builder.HasOne(_ => _.Secret).WithMany().HasForeignKey(_ => _.SecretId).IsRequired();
-        }
+internal class ClientSecretEntityTypeConfiguration : IEntityTypeConfiguration<ClientSecretEntity>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ClientSecretEntity> builder)
+    {
+        builder.HasKey(_ => new { _.ClientId, _.SecretId });
+
+        builder.HasOne(_ => _.Secret).WithMany().HasForeignKey(_ => _.SecretId).IsRequired();
     }
 }

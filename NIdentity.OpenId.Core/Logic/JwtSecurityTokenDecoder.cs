@@ -20,55 +20,54 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 
-namespace NIdentity.OpenId.Logic
+namespace NIdentity.OpenId.Logic;
+
+/// <summary>
+/// Provides an abstraction to decode and validate Json Web Tokens (i.e. JWT).
+/// For more information see: http://tools.ietf.org/html/rfc7519 and http://www.rfc-editor.org/info/rfc7515
+/// </summary>
+public interface IJwtDecoder
 {
     /// <summary>
-    /// Provides an abstraction to decode and validate Json Web Tokens (i.e. JWT).
-    /// For more information see: http://tools.ietf.org/html/rfc7519 and http://www.rfc-editor.org/info/rfc7515
+    /// Validates a Json Web Token (JWT) and returns the decoded JSON payload.
     /// </summary>
-    public interface IJwtDecoder
-    {
-        /// <summary>
-        /// Validates a Json Web Token (JWT) and returns the decoded JSON payload.
-        /// </summary>
-        /// <param name="jwt">The Json Web Token to decode and validate.</param>
-        /// <param name="issuer">A <see cref="string"/> that represents a valid issuer that will be used to check against the token's issuer.</param>
-        /// <param name="audience">A <see cref="string"/> that represents a valid audience that will be used to check against the token's audience.</param>
-        /// <param name="securityKeys">An <see cref="ISecurityKeyCollection"/> used for signature validation.</param>
-        /// <returns>The decoded payload from Json Web Token in JSON format.</returns>
-        string DecodeJwt(string jwt, string issuer, string audience, ISecurityKeyCollection securityKeys);
-    }
+    /// <param name="jwt">The Json Web Token to decode and validate.</param>
+    /// <param name="issuer">A <see cref="string"/> that represents a valid issuer that will be used to check against the token's issuer.</param>
+    /// <param name="audience">A <see cref="string"/> that represents a valid audience that will be used to check against the token's audience.</param>
+    /// <param name="securityKeys">An <see cref="ISecurityKeyCollection"/> used for signature validation.</param>
+    /// <returns>The decoded payload from Json Web Token in JSON format.</returns>
+    string DecodeJwt(string jwt, string issuer, string audience, ISecurityKeyCollection securityKeys);
+}
 
-    internal class JwtSecurityTokenDecoder : IJwtDecoder
+internal class JwtSecurityTokenDecoder : IJwtDecoder
+{
+    public string DecodeJwt(string jwt, string issuer, string audience, ISecurityKeyCollection securityKeys)
     {
-        public string DecodeJwt(string jwt, string issuer, string audience, ISecurityKeyCollection securityKeys)
+        var jwtSecurityTokenHandler = new JwtSecurityTokenHandler
         {
-            var jwtSecurityTokenHandler = new JwtSecurityTokenHandler
-            {
-                MapInboundClaims = false
-            };
+            MapInboundClaims = false
+        };
 
-            var tokenValidationParameters = new TokenValidationParameters
-            {
-                ValidIssuer = issuer,
-                ValidateIssuer = true,
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = issuer,
+            ValidateIssuer = true,
 
-                ValidAudience = audience,
-                ValidateAudience = true,
+            ValidAudience = audience,
+            ValidateAudience = true,
 
-                IssuerSigningKeys = securityKeys,
-                ValidateIssuerSigningKey = true,
+            IssuerSigningKeys = securityKeys,
+            ValidateIssuerSigningKey = true,
 
-                RequireSignedTokens = true,
-                RequireExpirationTime = true
-            };
+            RequireSignedTokens = true,
+            RequireExpirationTime = true
+        };
 
-            jwtSecurityTokenHandler.ValidateToken(jwt, tokenValidationParameters, out var validatedToken);
+        jwtSecurityTokenHandler.ValidateToken(jwt, tokenValidationParameters, out var validatedToken);
 
-            var jwtSecurityToken = (JwtSecurityToken)validatedToken;
-            var json = jwtSecurityToken.RawPayload;
+        var jwtSecurityToken = (JwtSecurityToken)validatedToken;
+        var json = jwtSecurityToken.RawPayload;
 
-            return json;
-        }
+        return json;
     }
 }

@@ -24,23 +24,22 @@ using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Playground.Handlers
+namespace NIdentity.OpenId.Playground.Handlers;
+
+internal record ProcessTestEndpoint(HttpContext HttpContext) : ProcessHttpEndpoint(HttpContext);
+
+internal class ProcessTestEndpointHandler : IHttpEndpointHandler<ProcessTestEndpoint>
 {
-    internal record ProcessTestEndpoint(HttpContext HttpContext) : ProcessHttpEndpoint(HttpContext);
+    private readonly IHttpResultFactory _httpResultFactory;
 
-    internal class ProcessTestEndpointHandler : IHttpEndpointHandler<ProcessTestEndpoint>
+    public ProcessTestEndpointHandler(IHttpResultFactory httpResultFactory)
     {
-        private readonly IHttpResultFactory _httpResultFactory;
+        _httpResultFactory = httpResultFactory;
+    }
 
-        public ProcessTestEndpointHandler(IHttpResultFactory httpResultFactory)
-        {
-            _httpResultFactory = httpResultFactory;
-        }
-
-        /// <inheritdoc />
-        public ValueTask<IHttpResult> HandleAsync(ProcessTestEndpoint request, CancellationToken cancellationToken)
-        {
-            return ValueTask.FromResult(_httpResultFactory.Ok());
-        }
+    /// <inheritdoc />
+    public ValueTask<IHttpResult> HandleAsync(ProcessTestEndpoint request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(_httpResultFactory.Ok());
     }
 }

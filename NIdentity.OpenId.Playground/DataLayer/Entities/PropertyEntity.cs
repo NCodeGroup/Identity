@@ -20,19 +20,18 @@
 using System.ComponentModel.DataAnnotations;
 using NIdentity.OpenId.DataContracts;
 
-namespace NIdentity.OpenId.Playground.DataLayer.Entities
+namespace NIdentity.OpenId.Playground.DataLayer.Entities;
+
+internal abstract class PropertyEntity : ISupportId
 {
-    internal abstract class PropertyEntity : ISupportId
-    {
-        /// <inheritdoc />
-        public long Id { get; set; }
+    /// <inheritdoc />
+    public long Id { get; set; }
 
-        [MaxLength(DataConstants.MaxIndexLength)]
-        public string CodeName { get; set; } = null!;
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public string CodeName { get; set; } = null!;
 
-        [MaxLength(DataConstants.MaxIndexLength)]
-        public string NormalizedCodeName { get; set; } = null!;
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public string NormalizedCodeName { get; set; } = null!;
 
-        public string JsonValue { get; set; } = null!;
-    }
+    public string JsonValue { get; set; } = null!;
 }

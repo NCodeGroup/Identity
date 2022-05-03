@@ -23,84 +23,83 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="PromptTypes"/> values.
+/// </summary>
+public class PromptTypeParser : ParameterParser<PromptTypes?>
 {
-    /// <summary>
-    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="PromptTypes"/> values.
-    /// </summary>
-    public class PromptTypeParser : ParameterParser<PromptTypes?>
+    /// <inheritdoc/>
+    public override StringValues Serialize(IOpenIdMessageContext context, PromptTypes? value)
     {
-        /// <inheritdoc/>
-        public override StringValues Serialize(IOpenIdMessageContext context, PromptTypes? value)
+        if (value is null || value == PromptTypes.Unspecified)
+            return StringValues.Empty;
+
+        const int capacity = 4;
+        var list = new List<string>(capacity);
+        var promptType = value.Value;
+
+        if (promptType.HasFlag(PromptTypes.None))
+            list.Add(OpenIdConstants.PromptTypes.None);
+
+        if (promptType.HasFlag(PromptTypes.Login))
+            list.Add(OpenIdConstants.PromptTypes.Login);
+
+        if (promptType.HasFlag(PromptTypes.Consent))
+            list.Add(OpenIdConstants.PromptTypes.Consent);
+
+        if (promptType.HasFlag(PromptTypes.SelectAccount))
+            list.Add(OpenIdConstants.PromptTypes.SelectAccount);
+
+        return string.Join(Separator, list);
+    }
+
+    /// <inheritdoc/>
+    public override PromptTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    {
+        Debug.Assert(!descriptor.AllowMultipleValues);
+
+        switch (stringValues.Count)
         {
-            if (value is null || value == PromptTypes.Unspecified)
-                return StringValues.Empty;
+            case 0 when descriptor.Optional:
+                return null;
 
-            const int capacity = 4;
-            var list = new List<string>(capacity);
-            var promptType = value.Value;
+            case 0:
+                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
 
-            if (promptType.HasFlag(PromptTypes.None))
-                list.Add(OpenIdConstants.PromptTypes.None);
-
-            if (promptType.HasFlag(PromptTypes.Login))
-                list.Add(OpenIdConstants.PromptTypes.Login);
-
-            if (promptType.HasFlag(PromptTypes.Consent))
-                list.Add(OpenIdConstants.PromptTypes.Consent);
-
-            if (promptType.HasFlag(PromptTypes.SelectAccount))
-                list.Add(OpenIdConstants.PromptTypes.SelectAccount);
-
-            return string.Join(Separator, list);
+            case > 1:
+                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
         }
 
-        /// <inheritdoc/>
-        public override PromptTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+        stringValues = stringValues[0].Split(Separator);
+
+        var promptType = PromptTypes.Unspecified;
+        foreach (var stringValue in stringValues)
         {
-            Debug.Assert(!descriptor.AllowMultipleValues);
-
-            switch (stringValues.Count)
+            if (string.Equals(stringValue, OpenIdConstants.PromptTypes.None, StringComparison))
             {
-                case 0 when descriptor.Optional:
-                    return null;
-
-                case 0:
-                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
-
-                case > 1:
-                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
+                promptType |= PromptTypes.None;
             }
-
-            stringValues = stringValues[0].Split(Separator);
-
-            var promptType = PromptTypes.Unspecified;
-            foreach (var stringValue in stringValues)
+            else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.Login, StringComparison))
             {
-                if (string.Equals(stringValue, OpenIdConstants.PromptTypes.None, StringComparison))
-                {
-                    promptType |= PromptTypes.None;
-                }
-                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.Login, StringComparison))
-                {
-                    promptType |= PromptTypes.Login;
-                }
-                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.Consent, StringComparison))
-                {
-                    promptType |= PromptTypes.Consent;
-                }
-                else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.SelectAccount, StringComparison))
-                {
-                    promptType |= PromptTypes.SelectAccount;
-                }
-                else
-                {
-                    // TODO: ignore unsupported values
-                    throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
-                }
+                promptType |= PromptTypes.Login;
             }
-
-            return promptType;
+            else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.Consent, StringComparison))
+            {
+                promptType |= PromptTypes.Consent;
+            }
+            else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.SelectAccount, StringComparison))
+            {
+                promptType |= PromptTypes.SelectAccount;
+            }
+            else
+            {
+                // TODO: ignore unsupported values
+                throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
+            }
         }
+
+        return promptType;
     }
 }

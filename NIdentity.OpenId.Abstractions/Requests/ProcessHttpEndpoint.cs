@@ -25,12 +25,11 @@ using NIdentity.OpenId.Results;
 #pragma warning disable 1574 // ProcessHttpEndpoint.cs(26, 31): [CS1574] XML comment has cref attribute 'IRequest{TResponse}' that could not be resolved
 #pragma warning disable 1591 // ProcessHttpEndpoint.cs(30, 60): [CS1591] Missing XML comment for publicly visible type or member 'ProcessHttpEndpoint.HttpContext'
 
-namespace NIdentity.OpenId.Requests
-{
-    /// <summary>
-    /// Defines an <see cref="IRequest{TResponse}"/> request contract that accepts a <see cref="HttpContext"/> as an
-    /// input argument and expects <see cref="IHttpResult"/> as a response.
-    /// </summary>
-    /// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
-    public abstract record ProcessHttpEndpoint(HttpContext HttpContext) : IRequest<IHttpResult>;
-}
+namespace NIdentity.OpenId.Requests;
+
+/// <summary>
+/// Defines an <see cref="IRequest{TResponse}"/> request contract that accepts a <see cref="HttpContext"/> as an
+/// input argument and expects <see cref="IHttpResult"/> as a response.
+/// </summary>
+/// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
+public abstract record ProcessHttpEndpoint(HttpContext HttpContext) : IRequest<IHttpResult>;

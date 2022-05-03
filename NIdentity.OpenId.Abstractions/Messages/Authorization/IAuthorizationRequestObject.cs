@@ -17,17 +17,16 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Messages.Authorization
+namespace NIdentity.OpenId.Messages.Authorization;
+
+/// <summary>
+/// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request from the request
+/// object only.
+/// </summary>
+public interface IAuthorizationRequestObject : IAuthorizationRequestValues, IOpenIdMessage
 {
     /// <summary>
-    /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request from the request
-    /// object only.
+    /// Gets a value indicating where the request object was loaded from.
     /// </summary>
-    public interface IAuthorizationRequestObject : IAuthorizationRequestValues, IOpenIdMessage
-    {
-        /// <summary>
-        /// Gets a value indicating where the request object was loaded from.
-        /// </summary>
-        RequestObjectSource Source { get; }
-    }
+    RequestObjectSource Source { get; }
 }

@@ -24,117 +24,116 @@ using System.Linq;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 
-namespace NIdentity.OpenId.Messages
+namespace NIdentity.OpenId.Messages;
+
+internal abstract class OpenIdMessage : IOpenIdMessage
 {
-    internal abstract class OpenIdMessage : IOpenIdMessage
+    private bool _isInitialized;
+    private IOpenIdMessageContext? _context;
+    private Dictionary<string, Parameter>? _parameters;
+
+    /// <inheritdoc />
+    public IOpenIdMessageContext Context => _context ?? throw new InvalidOperationException("TODO");
+
+    public IReadOnlyDictionary<string, Parameter> Parameters => _parameters ?? throw new InvalidOperationException("TODO");
+
+    protected internal void Initialize(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
     {
-        private bool _isInitialized;
-        private IOpenIdMessageContext? _context;
-        private Dictionary<string, Parameter>? _parameters;
+        if (_isInitialized) throw new InvalidOperationException("TODO");
 
-        /// <inheritdoc />
-        public IOpenIdMessageContext Context => _context ?? throw new InvalidOperationException("TODO");
-
-        public IReadOnlyDictionary<string, Parameter> Parameters => _parameters ?? throw new InvalidOperationException("TODO");
-
-        protected internal void Initialize(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
-        {
-            if (_isInitialized) throw new InvalidOperationException("TODO");
-
-            _context = context;
-            _parameters = parameters.ToDictionary(parameter => parameter.Descriptor.ParameterName, StringComparer.Ordinal);
-            _isInitialized = true;
-        }
-
-        /// <inheritdoc />
-        public int Count => Parameters.Count;
-
-        /// <inheritdoc />
-        public IEnumerable<string> Keys => Parameters.Keys;
-
-        /// <inheritdoc />
-        public IEnumerable<StringValues> Values => Parameters.Values.Select(_ => _.StringValues);
-
-        /// <inheritdoc />
-        public StringValues this[string key] => Parameters[key].StringValues;
-
-        /// <inheritdoc />
-        public bool ContainsKey(string key) => Parameters.ContainsKey(key);
-
-        /// <inheritdoc />
-        public bool TryGetValue(string key, out StringValues value)
-        {
-            if (!Parameters.TryGetValue(key, out var parameter))
-            {
-                value = default;
-                return false;
-            }
-
-            value = parameter.StringValues;
-            return true;
-        }
-
-        /// <inheritdoc />
-        public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => Parameters
-            .Select(kvp => KeyValuePair.Create(kvp.Key, kvp.Value.StringValues))
-            .GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        protected internal T? GetKnownParameter<T>(KnownParameter<T> knownParameter) =>
-            Parameters.TryGetValue(knownParameter.Name, out var parameter) &&
-            parameter.ParsedValue is T parsedValue ?
-                parsedValue :
-                default;
-
-        protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
-        {
-            var context = _context ?? throw new InvalidOperationException("TODO");
-            var parameters = _parameters ?? throw new InvalidOperationException("TODO");
-
-            var parameterName = knownParameter.Name;
-            if (parsedValue is null)
-            {
-                parameters.Remove(parameterName);
-                return;
-            }
-
-            var stringValues = knownParameter.Parser.Serialize(context, parsedValue);
-            if (StringValues.IsNullOrEmpty(stringValues))
-            {
-                parameters.Remove(parameterName);
-                return;
-            }
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-            var parameter = descriptor.Loader.Load(context, descriptor, stringValues, parsedValue);
-            parameters[knownParameter.Name] = parameter;
-        }
+        _context = context;
+        _parameters = parameters.ToDictionary(parameter => parameter.Descriptor.ParameterName, StringComparer.Ordinal);
+        _isInitialized = true;
     }
 
-    internal abstract class OpenIdMessage<T> : OpenIdMessage
-        where T : OpenIdMessage, new()
+    /// <inheritdoc />
+    public int Count => Parameters.Count;
+
+    /// <inheritdoc />
+    public IEnumerable<string> Keys => Parameters.Keys;
+
+    /// <inheritdoc />
+    public IEnumerable<StringValues> Values => Parameters.Values.Select(_ => _.StringValues);
+
+    /// <inheritdoc />
+    public StringValues this[string key] => Parameters[key].StringValues;
+
+    /// <inheritdoc />
+    public bool ContainsKey(string key) => Parameters.ContainsKey(key);
+
+    /// <inheritdoc />
+    public bool TryGetValue(string key, out StringValues value)
     {
-        public static T Load(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
+        if (!Parameters.TryGetValue(key, out var parameter))
         {
-            var message = new T();
-            message.Initialize(context, parameters);
-            return message;
+            value = default;
+            return false;
         }
 
-        public static T Load(IOpenIdMessageContext context, IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues)
-        {
-            var parameters = parameterStringValues
-                .GroupBy(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.AsEnumerable(),
-                    StringComparer.Ordinal)
-                .Select(grouping => Parameter.Load(
-                    context,
-                    grouping.Key,
-                    grouping.SelectMany(stringValues => stringValues)));
+        value = parameter.StringValues;
+        return true;
+    }
 
-            return Load(context, parameters);
+    /// <inheritdoc />
+    public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => Parameters
+        .Select(kvp => KeyValuePair.Create(kvp.Key, kvp.Value.StringValues))
+        .GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    protected internal T? GetKnownParameter<T>(KnownParameter<T> knownParameter) =>
+        Parameters.TryGetValue(knownParameter.Name, out var parameter) &&
+        parameter.ParsedValue is T parsedValue ?
+            parsedValue :
+            default;
+
+    protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
+    {
+        var context = _context ?? throw new InvalidOperationException("TODO");
+        var parameters = _parameters ?? throw new InvalidOperationException("TODO");
+
+        var parameterName = knownParameter.Name;
+        if (parsedValue is null)
+        {
+            parameters.Remove(parameterName);
+            return;
         }
+
+        var stringValues = knownParameter.Parser.Serialize(context, parsedValue);
+        if (StringValues.IsNullOrEmpty(stringValues))
+        {
+            parameters.Remove(parameterName);
+            return;
+        }
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+        var parameter = descriptor.Loader.Load(context, descriptor, stringValues, parsedValue);
+        parameters[knownParameter.Name] = parameter;
+    }
+}
+
+internal abstract class OpenIdMessage<T> : OpenIdMessage
+    where T : OpenIdMessage, new()
+{
+    public static T Load(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
+    {
+        var message = new T();
+        message.Initialize(context, parameters);
+        return message;
+    }
+
+    public static T Load(IOpenIdMessageContext context, IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues)
+    {
+        var parameters = parameterStringValues
+            .GroupBy(
+                kvp => kvp.Key,
+                kvp => kvp.Value.AsEnumerable(),
+                StringComparer.Ordinal)
+            .Select(grouping => Parameter.Load(
+                context,
+                grouping.Key,
+                grouping.SelectMany(stringValues => stringValues)));
+
+        return Load(context, parameters);
     }
 }

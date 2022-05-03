@@ -25,79 +25,78 @@ using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Messages.Parameters
+namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
+
+public class ParameterTests : IDisposable
 {
-    public class ParameterTests : IDisposable
+    private readonly MockRepository _mockRepository;
+
+    public ParameterTests()
     {
-        private readonly MockRepository _mockRepository;
+        _mockRepository = new MockRepository(MockBehavior.Strict);
+    }
 
-        public ParameterTests()
-        {
-            _mockRepository = new MockRepository(MockBehavior.Strict);
-        }
+    public void Dispose()
+    {
+        _mockRepository.Verify();
+    }
 
-        public void Dispose()
-        {
-            _mockRepository.Verify();
-        }
+    [Fact]
+    public void Constructor_ThenValid()
+    {
+        var mockParser = _mockRepository.Create<ParameterParser<string>>();
 
-        [Fact]
-        public void Constructor_ThenValid()
-        {
-            var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "value1", "value1" };
 
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "value1", "value1" };
+        var knownParameter = new KnownParameter<string>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            mockParser.Object);
 
-            var knownParameter = new KnownParameter<string>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                mockParser.Object);
+        var descriptor = new ParameterDescriptor(knownParameter);
+        var parameter = new Parameter(descriptor, stringValues, stringValues);
 
-            var descriptor = new ParameterDescriptor(knownParameter);
-            var parameter = new Parameter(descriptor, stringValues, stringValues);
+        Assert.Equal(descriptor, parameter.Descriptor);
+        Assert.Equal(stringValues, parameter.StringValues);
+        Assert.Same(stringValues, parameter.ParsedValue);
+    }
 
-            Assert.Equal(descriptor, parameter.Descriptor);
-            Assert.Equal(stringValues, parameter.StringValues);
-            Assert.Same(stringValues, parameter.ParsedValue);
-        }
+    [Fact]
+    public void Load_GivenEnumerable_ThenValid()
+    {
+        var mockParser = _mockRepository.Create<ParameterParser<string>>();
+        var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
 
-        [Fact]
-        public void Load_GivenEnumerable_ThenValid()
-        {
-            var mockParser = _mockRepository.Create<ParameterParser<string>>();
-            var mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "value1", "value2" };
 
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "value1", "value2" };
+        var knownParameter = new KnownParameter<string>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            mockParser.Object);
 
-            var knownParameter = new KnownParameter<string>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                mockParser.Object);
+        var context = mockOpenIdMessageContext.Object;
+        var descriptor = new ParameterDescriptor(knownParameter);
+        var expectedParameter = new Parameter(descriptor, stringValues, stringValues);
 
-            var context = mockOpenIdMessageContext.Object;
-            var descriptor = new ParameterDescriptor(knownParameter);
-            var expectedParameter = new Parameter(descriptor, stringValues, stringValues);
+        mockParser
+            .Setup(_ => _.Load(context, descriptor, stringValues))
+            .Returns(expectedParameter)
+            .Verifiable();
 
-            mockParser
-                .Setup(_ => _.Load(context, descriptor, stringValues))
-                .Returns(expectedParameter)
-                .Verifiable();
+        KnownParameter? knownParameterBase = knownParameter;
+        mockOpenIdMessageContext
+            .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
+            .Returns(true)
+            .Verifiable();
 
-            KnownParameter? knownParameterBase = knownParameter;
-            mockOpenIdMessageContext
-                .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
-                .Returns(true)
-                .Verifiable();
+        var actualParameter = Parameter.Load(context, parameterName, stringValues.AsEnumerable());
 
-            var actualParameter = Parameter.Load(context, parameterName, stringValues.AsEnumerable());
-
-            Assert.Equal(expectedParameter.Descriptor, actualParameter.Descriptor);
-            Assert.Equal(expectedParameter.StringValues, actualParameter.StringValues);
-            Assert.Same(expectedParameter.ParsedValue, actualParameter.ParsedValue);
-        }
+        Assert.Equal(expectedParameter.Descriptor, actualParameter.Descriptor);
+        Assert.Equal(expectedParameter.StringValues, actualParameter.StringValues);
+        Assert.Same(expectedParameter.ParsedValue, actualParameter.ParsedValue);
     }
 }

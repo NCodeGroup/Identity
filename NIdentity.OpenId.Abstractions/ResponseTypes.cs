@@ -19,42 +19,41 @@
 
 using System;
 
-namespace NIdentity.OpenId
+namespace NIdentity.OpenId;
+
+/// <summary>
+/// Specifies the desired authorization processing flow, including what parameters are returned from the endpoints
+/// used.
+/// </summary>
+[Flags]
+public enum ResponseTypes
 {
     /// <summary>
-    /// Specifies the desired authorization processing flow, including what parameters are returned from the endpoints
-    /// used.
+    /// Represents a value that hasn't been initialized yet and its value is unknown.
     /// </summary>
-    [Flags]
-    public enum ResponseTypes
-    {
-        /// <summary>
-        /// Represents a value that hasn't been initialized yet and its value is unknown.
-        /// </summary>
-        Unspecified = 0,
+    Unspecified = 0,
 
-        /// <summary>
-        /// Specifies that the Authorization Server SHOULD NOT return an OAuth 2.0 Authorization Code, Access Token,
-        /// Access Token Type, or ID Token in a successful response to the grant request.
-        /// </summary>
-        None = 1,
+    /// <summary>
+    /// Specifies that the Authorization Server SHOULD NOT return an OAuth 2.0 Authorization Code, Access Token,
+    /// Access Token Type, or ID Token in a successful response to the grant request.
+    /// </summary>
+    None = 1,
 
-        /// <summary>
-        /// Specifies that the the Authorization Server MUST return an Authorization Code in a successful response to
-        /// the grant request.
-        /// </summary>
-        Code = 2,
+    /// <summary>
+    /// Specifies that the the Authorization Server MUST return an Authorization Code in a successful response to
+    /// the grant request.
+    /// </summary>
+    Code = 2,
 
-        /// <summary>
-        /// Specifies that the the Authorization Server MUST return an ID Token in a successful response to the grant
-        /// request.
-        /// </summary>
-        IdToken = 4,
+    /// <summary>
+    /// Specifies that the the Authorization Server MUST return an ID Token in a successful response to the grant
+    /// request.
+    /// </summary>
+    IdToken = 4,
 
-        /// <summary>
-        /// Specifies that the the Authorization Server MUST return an Access Token in a successful response to the
-        /// grant request.
-        /// </summary>
-        Token = 8
-    }
+    /// <summary>
+    /// Specifies that the the Authorization Server MUST return an Access Token in a successful response to the
+    /// grant request.
+    /// </summary>
+    Token = 8
 }

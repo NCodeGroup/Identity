@@ -22,66 +22,65 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="DisplayType"/> values.
+/// </summary>
+public class DisplayTypeParser : ParameterParser<DisplayType?>
 {
-    /// <summary>
-    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="DisplayType"/> values.
-    /// </summary>
-    public class DisplayTypeParser : ParameterParser<DisplayType?>
+    /// <inheritdoc/>
+    public override StringValues Serialize(IOpenIdMessageContext context, DisplayType? value)
     {
-        /// <inheritdoc/>
-        public override StringValues Serialize(IOpenIdMessageContext context, DisplayType? value)
+        return value switch
         {
-            return value switch
-            {
-                DisplayType.Page => OpenIdConstants.DisplayTypes.Page,
-                DisplayType.Popup => OpenIdConstants.DisplayTypes.Popup,
-                DisplayType.Touch => OpenIdConstants.DisplayTypes.Touch,
-                DisplayType.Wap => OpenIdConstants.DisplayTypes.Wap,
-                _ => null
-            };
+            DisplayType.Page => OpenIdConstants.DisplayTypes.Page,
+            DisplayType.Popup => OpenIdConstants.DisplayTypes.Popup,
+            DisplayType.Touch => OpenIdConstants.DisplayTypes.Touch,
+            DisplayType.Wap => OpenIdConstants.DisplayTypes.Wap,
+            _ => null
+        };
+    }
+
+    /// <inheritdoc/>
+    public override DisplayType? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    {
+        Debug.Assert(!descriptor.AllowMultipleValues);
+
+        switch (stringValues.Count)
+        {
+            case 0 when descriptor.Optional:
+                return null;
+
+            case 0:
+                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+
+            case > 1:
+                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
         }
 
-        /// <inheritdoc/>
-        public override DisplayType? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+        var stringValue = stringValues[0];
+
+        if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Page, StringComparison))
         {
-            Debug.Assert(!descriptor.AllowMultipleValues);
-
-            switch (stringValues.Count)
-            {
-                case 0 when descriptor.Optional:
-                    return null;
-
-                case 0:
-                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
-
-                case > 1:
-                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
-            }
-
-            var stringValue = stringValues[0];
-
-            if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Page, StringComparison))
-            {
-                return DisplayType.Page;
-            }
-
-            if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Popup, StringComparison))
-            {
-                return DisplayType.Popup;
-            }
-
-            if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Touch, StringComparison))
-            {
-                return DisplayType.Touch;
-            }
-
-            if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Wap, StringComparison))
-            {
-                return DisplayType.Wap;
-            }
-
-            throw OpenIdException.Factory.InvalidRequest(descriptor.ParameterName);
+            return DisplayType.Page;
         }
+
+        if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Popup, StringComparison))
+        {
+            return DisplayType.Popup;
+        }
+
+        if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Touch, StringComparison))
+        {
+            return DisplayType.Touch;
+        }
+
+        if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Wap, StringComparison))
+        {
+            return DisplayType.Wap;
+        }
+
+        throw OpenIdException.Factory.InvalidRequest(descriptor.ParameterName);
     }
 }

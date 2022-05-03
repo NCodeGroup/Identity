@@ -21,17 +21,16 @@ using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 
-namespace NIdentity.OpenId.Core.Tests.Messages
-{
-    internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage, ITestOpenIdMessage
-    {
-        public static KnownParameter<ITestNestedObject?> KnownParameter { get; } =
-            new("test-nested-object", optional: true, allowMultipleValues: false, new JsonParser<ITestNestedObject?>());
+namespace NIdentity.OpenId.Core.Tests.Messages;
 
-        public ITestNestedObject? TestNestedObject
-        {
-            get => GetKnownParameter(KnownParameter);
-            set => SetKnownParameter(KnownParameter, value);
-        }
+internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage, ITestOpenIdMessage
+{
+    public static KnownParameter<ITestNestedObject?> KnownParameter { get; } =
+        new("test-nested-object", optional: true, allowMultipleValues: false, new JsonParser<ITestNestedObject?>());
+
+    public ITestNestedObject? TestNestedObject
+    {
+        get => GetKnownParameter(KnownParameter);
+        set => SetKnownParameter(KnownParameter, value);
     }
 }

@@ -23,32 +23,31 @@ using Microsoft.EntityFrameworkCore;
 using NIdentity.OpenId.Playground.DataLayer.Configuration;
 using NIdentity.OpenId.Playground.DataLayer.Entities;
 
-namespace NIdentity.OpenId.Playground.DataLayer
+namespace NIdentity.OpenId.Playground.DataLayer;
+
+internal class IdentityDbContext : DbContext
 {
-    internal class IdentityDbContext : DbContext
+    private readonly IdValueGenerator _idValueGenerator;
+
+    public DbSet<SecretEntity> Secrets { get; set; } = null!;
+
+    public DbSet<ClientEntity> Clients { get; set; } = null!;
+
+    public IdentityDbContext(DbContextOptions<IdentityDbContext> options)
+        : base(options)
     {
-        private readonly IdValueGenerator _idValueGenerator;
+        // TODO: verify id generator arguments
+        _idValueGenerator = new IdValueGenerator(new IdGenerator(0));
+    }
 
-        public DbSet<SecretEntity> Secrets { get; set; } = null!;
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema("Identity");
 
-        public DbSet<ClientEntity> Clients { get; set; } = null!;
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-        public IdentityDbContext(DbContextOptions<IdentityDbContext> options)
-            : base(options)
-        {
-            // TODO: verify id generator arguments
-            _idValueGenerator = new IdValueGenerator(new IdGenerator(0));
-        }
-
-        /// <inheritdoc />
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.HasDefaultSchema("Identity");
-
-            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
-            modelBuilder.UseUtcDateTime();
-            modelBuilder.UseIdGenerator(_idValueGenerator);
-        }
+        modelBuilder.UseUtcDateTime();
+        modelBuilder.UseIdGenerator(_idValueGenerator);
     }
 }

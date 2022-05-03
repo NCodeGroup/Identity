@@ -24,34 +24,33 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that parses string lists which are separated by
+/// the space ' ' character.
+/// </summary>
+public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
 {
-    /// <summary>
-    /// Provides an implementation of <see cref="ParameterParser{T}"/> that parses string lists which are separated by
-    /// the space ' ' character.
-    /// </summary>
-    public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
+    /// <inheritdoc/>
+    public override StringValues Serialize(IOpenIdMessageContext context, IReadOnlyCollection<string>? value)
     {
-        /// <inheritdoc/>
-        public override StringValues Serialize(IOpenIdMessageContext context, IReadOnlyCollection<string>? value)
-        {
-            if (value is null)
-                return StringValues.Empty;
+        if (value is null)
+            return StringValues.Empty;
 
-            if (value.Count == 0)
-                return StringValues.Empty;
+        if (value.Count == 0)
+            return StringValues.Empty;
 
-            return string.Join(Separator, value);
-        }
-
-        /// <inheritdoc/>
-        public override IReadOnlyCollection<string>? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
-        {
-            0 when descriptor.Optional => null,
-            0 => throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName),
-            > 1 when descriptor.AllowMultipleValues => stringValues.SelectMany(stringValue => stringValue.Split(Separator)).ToHashSet(StringComparer.Ordinal),
-            > 1 => throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName),
-            _ => stringValues[0].Split(Separator).ToHashSet(StringComparer.Ordinal)
-        };
+        return string.Join(Separator, value);
     }
+
+    /// <inheritdoc/>
+    public override IReadOnlyCollection<string>? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
+    {
+        0 when descriptor.Optional => null,
+        0 => throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName),
+        > 1 when descriptor.AllowMultipleValues => stringValues.SelectMany(stringValue => stringValue.Split(Separator)).ToHashSet(StringComparer.Ordinal),
+        > 1 => throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName),
+        _ => stringValues[0].Split(Separator).ToHashSet(StringComparer.Ordinal)
+    };
 }

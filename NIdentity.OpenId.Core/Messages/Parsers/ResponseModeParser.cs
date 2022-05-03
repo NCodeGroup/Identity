@@ -22,54 +22,53 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="ResponseMode"/> values.
+/// </summary>
+public class ResponseModeParser : ParameterParser<ResponseMode?>
 {
-    /// <summary>
-    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="ResponseMode"/> values.
-    /// </summary>
-    public class ResponseModeParser : ParameterParser<ResponseMode?>
+    /// <inheritdoc/>
+    public override StringValues Serialize(IOpenIdMessageContext context, ResponseMode? value)
     {
-        /// <inheritdoc/>
-        public override StringValues Serialize(IOpenIdMessageContext context, ResponseMode? value)
+        return value switch
         {
-            return value switch
-            {
-                ResponseMode.Query => OpenIdConstants.ResponseModes.Query,
-                ResponseMode.Fragment => OpenIdConstants.ResponseModes.Fragment,
-                ResponseMode.FormPost => OpenIdConstants.ResponseModes.FormPost,
-                _ => null
-            };
+            ResponseMode.Query => OpenIdConstants.ResponseModes.Query,
+            ResponseMode.Fragment => OpenIdConstants.ResponseModes.Fragment,
+            ResponseMode.FormPost => OpenIdConstants.ResponseModes.FormPost,
+            _ => null
+        };
+    }
+
+    /// <inheritdoc/>
+    public override ResponseMode? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    {
+        Debug.Assert(!descriptor.AllowMultipleValues);
+
+        switch (stringValues.Count)
+        {
+            case 0 when descriptor.Optional:
+                return null;
+
+            case 0:
+                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+
+            case > 1:
+                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
         }
 
-        /// <inheritdoc/>
-        public override ResponseMode? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
-        {
-            Debug.Assert(!descriptor.AllowMultipleValues);
+        var stringValue = stringValues[0];
 
-            switch (stringValues.Count)
-            {
-                case 0 when descriptor.Optional:
-                    return null;
+        if (string.Equals(stringValue, OpenIdConstants.ResponseModes.Query, StringComparison))
+            return ResponseMode.Query;
 
-                case 0:
-                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+        if (string.Equals(stringValue, OpenIdConstants.ResponseModes.Fragment, StringComparison))
+            return ResponseMode.Fragment;
 
-                case > 1:
-                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
-            }
+        if (string.Equals(stringValue, OpenIdConstants.ResponseModes.FormPost, StringComparison))
+            return ResponseMode.FormPost;
 
-            var stringValue = stringValues[0];
-
-            if (string.Equals(stringValue, OpenIdConstants.ResponseModes.Query, StringComparison))
-                return ResponseMode.Query;
-
-            if (string.Equals(stringValue, OpenIdConstants.ResponseModes.Fragment, StringComparison))
-                return ResponseMode.Fragment;
-
-            if (string.Equals(stringValue, OpenIdConstants.ResponseModes.FormPost, StringComparison))
-                return ResponseMode.FormPost;
-
-            throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
-        }
+        throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
     }
 }

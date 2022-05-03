@@ -18,28 +18,27 @@
 using System.ComponentModel.DataAnnotations;
 using NIdentity.OpenId.DataContracts;
 
-namespace NIdentity.OpenId.Playground.DataLayer.Entities
+namespace NIdentity.OpenId.Playground.DataLayer.Entities;
+
+internal class SecretEntity : ISupportId
 {
-    internal class SecretEntity : ISupportId
-    {
-        public long Id { get; set; }
+    public long Id { get; set; }
 
-        [MaxLength(DataConstants.MaxIndexLength)]
-        public string KeyId { get; set; } = null!;
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public string KeyId { get; set; } = null!;
 
-        /// <summary>
-        /// Gets or sets the value of <see cref="KeyId"/> in uppercase so that lookups can be sargable for DBMS
-        /// engines that don't support case-insensitive indices.
-        /// </summary>
-        [MaxLength(DataConstants.MaxIndexLength)]
-        public string NormalizedKeyId { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the value of <see cref="KeyId"/> in uppercase so that lookups can be sargable for DBMS
+    /// engines that don't support case-insensitive indices.
+    /// </summary>
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public string NormalizedKeyId { get; set; } = null!;
 
-        public string EncodingType { get; set; } = null!;
+    public string EncodingType { get; set; } = null!;
 
-        public string AlgorithmType { get; set; } = null!;
+    public string AlgorithmType { get; set; } = null!;
 
-        public string SecretType { get; set; } = null!;
+    public string SecretType { get; set; } = null!;
 
-        public string EncodedValue { get; set; } = null!;
-    }
+    public string EncodedValue { get; set; } = null!;
 }

@@ -17,26 +17,25 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Messages.Authorization
+namespace NIdentity.OpenId.Messages.Authorization;
+
+/// <summary>
+/// Used to provide additional information about the Claim being requested.
+/// </summary>
+public interface IRequestClaim
 {
     /// <summary>
-    /// Used to provide additional information about the Claim being requested.
+    /// Gets a value indicating whether the Claim being requested is an Essential or Voluntary Claim.
     /// </summary>
-    public interface IRequestClaim
-    {
-        /// <summary>
-        /// Gets a value indicating whether the Claim being requested is an Essential or Voluntary Claim.
-        /// </summary>
-        bool? Essential { get; }
+    bool? Essential { get; }
 
-        /// <summary>
-        /// Gets a value that should be returned when the Claim is being requested.
-        /// </summary>
-        string? Value { get; }
+    /// <summary>
+    /// Gets a value that should be returned when the Claim is being requested.
+    /// </summary>
+    string? Value { get; }
 
-        /// <summary>
-        /// Gets a set of values that should be returned when the Claim is being requested.
-        /// </summary>
-        string[]? Values { get; }
-    }
+    /// <summary>
+    /// Gets a set of values that should be returned when the Claim is being requested.
+    /// </summary>
+    string[]? Values { get; }
 }

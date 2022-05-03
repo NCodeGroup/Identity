@@ -26,155 +26,154 @@ using NIdentity.OpenId.Messages.Parsers;
 using NIdentity.OpenId.Validation;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Messages.Parsers
+namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
+
+public class TimeSpanParserTests : IDisposable
 {
-    public class TimeSpanParserTests : IDisposable
+    private readonly MockRepository _mockRepository;
+    private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+
+    public TimeSpanParserTests()
     {
-        private readonly MockRepository _mockRepository;
-        private readonly Mock<IOpenIdMessageContext> _mockOpenIdMessageContext;
+        _mockRepository = new MockRepository(MockBehavior.Strict);
+        _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
+    }
 
-        public TimeSpanParserTests()
+    public void Dispose()
+    {
+        _mockRepository.Verify();
+    }
+
+    [Fact]
+    public void Serialize_GivenNull_ThenEmpty()
+    {
+        var parser = new TimeSpanParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        var stringValue = parser.Serialize(context, null);
+        Assert.Equal(StringValues.Empty, stringValue);
+    }
+
+    [Fact]
+    public void Serialize_GivenValue_ThenValid()
+    {
+        var parser = new TimeSpanParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        var timeSpan = TimeSpan.FromSeconds(123.456);
+
+        var stringValue = parser.Serialize(context, timeSpan);
+        Assert.Equal("123", stringValue);
+    }
+
+    [Fact]
+    public void Parse_GivenNull_WhenOptional_ThenValid()
+    {
+        var parser = new TimeSpanParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<TimeSpan?>(
+            parameterName,
+            optional: true,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Parse_GivenNull_WhenRequired_ThenThrows()
+    {
+        var parser = new TimeSpanParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<TimeSpan?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            _mockRepository = new MockRepository(MockBehavior.Strict);
-            _mockOpenIdMessageContext = _mockRepository.Create<IOpenIdMessageContext>();
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        public void Dispose()
+    [Fact]
+    public void Parse_GivenMultipleValues_DisallowMultipleValues_ThenThrows()
+    {
+        var parser = new TimeSpanParser();
+        var context = _mockOpenIdMessageContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "123", "456" };
+
+        var knownParameter = new KnownParameter<TimeSpan?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        Assert.Throws<OpenIdException>(() =>
         {
-            _mockRepository.Verify();
-        }
+            parser.Parse(context, descriptor, stringValues);
+        });
+    }
 
-        [Fact]
-        public void Serialize_GivenNull_ThenEmpty()
-        {
-            var parser = new TimeSpanParser();
-            var context = _mockOpenIdMessageContext.Object;
+    [Fact]
+    public void Parse_GivenMultipleValues_AllowMultipleValues_ThenValid()
+    {
+        var parser = new TimeSpanParser();
+        var context = _mockOpenIdMessageContext.Object;
 
-            var stringValue = parser.Serialize(context, null);
-            Assert.Equal(StringValues.Empty, stringValue);
-        }
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "123", "456" };
+        var expectedValue = TimeSpan.FromSeconds(123 + 456);
 
-        [Fact]
-        public void Serialize_GivenValue_ThenValid()
-        {
-            var parser = new TimeSpanParser();
-            var context = _mockOpenIdMessageContext.Object;
+        var knownParameter = new KnownParameter<TimeSpan?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: true,
+            parser);
 
-            var timeSpan = TimeSpan.FromSeconds(123.456);
+        var descriptor = new ParameterDescriptor(knownParameter);
 
-            var stringValue = parser.Serialize(context, timeSpan);
-            Assert.Equal("123", stringValue);
-        }
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(expectedValue, result);
+    }
 
-        [Fact]
-        public void Parse_GivenNull_WhenOptional_ThenValid()
-        {
-            var parser = new TimeSpanParser();
-            var context = _mockOpenIdMessageContext.Object;
+    [Fact]
+    public void Parse_GivenSingleValue_ThenValid()
+    {
+        var parser = new TimeSpanParser();
+        var context = _mockOpenIdMessageContext.Object;
 
-            const string parameterName = "parameterName";
-            var stringValues = Array.Empty<string>();
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "123" };
+        var expectedValue = TimeSpan.FromSeconds(123);
 
-            var knownParameter = new KnownParameter<TimeSpan?>(
-                parameterName,
-                optional: true,
-                allowMultipleValues: false,
-                parser);
+        var knownParameter = new KnownParameter<TimeSpan?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: true,
+            parser);
 
-            var descriptor = new ParameterDescriptor(knownParameter);
+        var descriptor = new ParameterDescriptor(knownParameter);
 
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public void Parse_GivenNull_WhenRequired_ThenThrows()
-        {
-            var parser = new TimeSpanParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = Array.Empty<string>();
-
-            var knownParameter = new KnownParameter<TimeSpan?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenMultipleValues_DisallowMultipleValues_ThenThrows()
-        {
-            var parser = new TimeSpanParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "123", "456" };
-
-            var knownParameter = new KnownParameter<TimeSpan?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: false,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            Assert.Throws<OpenIdException>(() =>
-            {
-                parser.Parse(context, descriptor, stringValues);
-            });
-        }
-
-        [Fact]
-        public void Parse_GivenMultipleValues_AllowMultipleValues_ThenValid()
-        {
-            var parser = new TimeSpanParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "123", "456" };
-            var expectedValue = TimeSpan.FromSeconds(123 + 456);
-
-            var knownParameter = new KnownParameter<TimeSpan?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: true,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(expectedValue, result);
-        }
-
-        [Fact]
-        public void Parse_GivenSingleValue_ThenValid()
-        {
-            var parser = new TimeSpanParser();
-            var context = _mockOpenIdMessageContext.Object;
-
-            const string parameterName = "parameterName";
-            var stringValues = new[] { "123" };
-            var expectedValue = TimeSpan.FromSeconds(123);
-
-            var knownParameter = new KnownParameter<TimeSpan?>(
-                parameterName,
-                optional: false,
-                allowMultipleValues: true,
-                parser);
-
-            var descriptor = new ParameterDescriptor(knownParameter);
-
-            var result = parser.Parse(context, descriptor, stringValues);
-            Assert.Equal(expectedValue, result);
-        }
+        var result = parser.Parse(context, descriptor, stringValues);
+        Assert.Equal(expectedValue, result);
     }
 }

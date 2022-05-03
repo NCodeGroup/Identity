@@ -19,10 +19,9 @@
 
 using System.Collections.Generic;
 
-namespace NIdentity.OpenId.Playground
+namespace NIdentity.OpenId.Playground;
+
+internal static class HttpVerbs
 {
-    internal static class HttpVerbs
-    {
-        public static IEnumerable<string> GetAndPost { get; } = new[] { "GET", "POST" };
-    }
+    public static IEnumerable<string> GetAndPost { get; } = new[] { "GET", "POST" };
 }

@@ -21,23 +21,22 @@ using IdGen;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.ValueGeneration;
 
-namespace NIdentity.OpenId.Playground.DataLayer
+namespace NIdentity.OpenId.Playground.DataLayer;
+
+internal class IdValueGenerator : ValueGenerator<long>
 {
-    internal class IdValueGenerator : ValueGenerator<long>
+    // https://medium.com/ingeniouslysimple/why-did-we-shift-away-from-database-generated-ids-7e0e54a49bb3
+    private readonly IIdGenerator<long> _generator;
+
+    public IdValueGenerator(IIdGenerator<long> generator)
     {
-        // https://medium.com/ingeniouslysimple/why-did-we-shift-away-from-database-generated-ids-7e0e54a49bb3
-        private readonly IIdGenerator<long> _generator;
+        _generator = generator;
+    }
 
-        public IdValueGenerator(IIdGenerator<long> generator)
-        {
-            _generator = generator;
-        }
+    public override bool GeneratesTemporaryValues => false;
 
-        public override bool GeneratesTemporaryValues => false;
-
-        public override long Next(EntityEntry entry)
-        {
-            return _generator.CreateId();
-        }
+    public override long Next(EntityEntry entry)
+    {
+        return _generator.CreateId();
     }
 }

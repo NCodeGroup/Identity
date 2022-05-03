@@ -17,13 +17,12 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Messages.Authorization
+namespace NIdentity.OpenId.Messages.Authorization;
+
+/// <summary>
+/// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
+/// </summary>
+public interface IAuthorizationResponse
 {
-    /// <summary>
-    /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
-    /// </summary>
-    public interface IAuthorizationResponse
-    {
-        // TODO
-    }
+    // TODO
 }

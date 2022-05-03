@@ -23,45 +23,44 @@ using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Messages.Parsers
+namespace NIdentity.OpenId.Messages.Parsers;
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="Uri"/> values.
+/// </summary>
+public class UriParser : ParameterParser<Uri?>
 {
-    /// <summary>
-    /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="Uri"/> values.
-    /// </summary>
-    public class UriParser : ParameterParser<Uri?>
+    /// <inheritdoc/>
+    public override StringValues Serialize(IOpenIdMessageContext context, Uri? value)
     {
-        /// <inheritdoc/>
-        public override StringValues Serialize(IOpenIdMessageContext context, Uri? value)
-        {
-            if (value is null)
-                return StringValues.Empty;
+        if (value is null)
+            return StringValues.Empty;
 
-            return value.AbsoluteUri;
+        return value.AbsoluteUri;
+    }
+
+    /// <inheritdoc/>
+    public override Uri? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    {
+        Debug.Assert(!descriptor.AllowMultipleValues);
+
+        switch (stringValues.Count)
+        {
+            case 0 when descriptor.Optional:
+                return null;
+
+            case 0:
+                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+
+            case > 1:
+                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
         }
 
-        /// <inheritdoc/>
-        public override Uri? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
-        {
-            Debug.Assert(!descriptor.AllowMultipleValues);
+        var stringValue = stringValues[0];
 
-            switch (stringValues.Count)
-            {
-                case 0 when descriptor.Optional:
-                    return null;
+        if (!Uri.TryCreate(stringValue, UriKind.Absolute, out var uri))
+            throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
 
-                case 0:
-                    throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
-
-                case > 1:
-                    throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
-            }
-
-            var stringValue = stringValues[0];
-
-            if (!Uri.TryCreate(stringValue, UriKind.Absolute, out var uri))
-                throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
-
-            return uri;
-        }
+        return uri;
     }
 }

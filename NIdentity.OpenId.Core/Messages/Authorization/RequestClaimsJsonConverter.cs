@@ -21,22 +21,21 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace NIdentity.OpenId.Messages.Authorization
-{
-    internal class RequestClaimsJsonConverter : JsonConverter<IRequestClaims?>
-    {
-        public override IRequestClaims? Read(
-            ref Utf8JsonReader reader,
-            Type typeToConvert,
-            JsonSerializerOptions options)
-        {
-            return JsonSerializer.Deserialize<RequestClaims>(ref reader, options);
-        }
+namespace NIdentity.OpenId.Messages.Authorization;
 
-        public override void Write(Utf8JsonWriter writer, IRequestClaims? value, JsonSerializerOptions options)
-        {
-            var type = value?.GetType() ?? typeof(RequestClaims);
-            JsonSerializer.Serialize(writer, value, type, options);
-        }
+internal class RequestClaimsJsonConverter : JsonConverter<IRequestClaims?>
+{
+    public override IRequestClaims? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
+    {
+        return JsonSerializer.Deserialize<RequestClaims>(ref reader, options);
+    }
+
+    public override void Write(Utf8JsonWriter writer, IRequestClaims? value, JsonSerializerOptions options)
+    {
+        var type = value?.GetType() ?? typeof(RequestClaims);
+        JsonSerializer.Serialize(writer, value, type, options);
     }
 }

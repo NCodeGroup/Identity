@@ -113,16 +113,14 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri;
 
             if (!string.IsNullOrEmpty(requestJwt))
-                throw OpenIdException.Factory.InvalidRequest(
-                    "Both the request and request_uri parameters cannot be present at the same time.", errorCode);
+                throw OpenIdException.Factory.InvalidRequest("Both the request and request_uri parameters cannot be present at the same time.", errorCode);
 
             if (!Options.RequestObject.RequestUriEnabled)
                 throw OpenIdException.Factory.RequestUriNotSupported();
 
             var requestUriMaxLength = Options.RequestObject.RequestUriMaxLength;
             if (requestUri.OriginalString.Length > requestUriMaxLength)
-                throw OpenIdException.Factory.InvalidRequest(
-                    $"The request_uri parameter must not exceed {requestUriMaxLength} characters.", errorCode);
+                throw OpenIdException.Factory.InvalidRequest($"The request_uri parameter must not exceed {requestUriMaxLength} characters.", errorCode);
 
             requestJwt = await FetchRequestUriAsync(client, requestUri, cancellationToken);
         }
@@ -136,8 +134,7 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         }
         else if (client.RequireRequestObject)
         {
-            throw OpenIdException.Factory.InvalidRequest(
-                "Client configuration requires the use of request or request_uri parameters.");
+            throw OpenIdException.Factory.InvalidRequest("Client configuration requires the use of request or request_uri parameters.");
         }
         else
         {
@@ -162,9 +159,7 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
 
         try
         {
-            var requestObject =
-                JsonSerializer.Deserialize<AuthorizationRequestObject>(json,
-                    requestMessage.Context.JsonSerializerOptions);
+            var requestObject = JsonSerializer.Deserialize<AuthorizationRequestObject>(json, requestMessage.Context.JsonSerializerOptions);
             if (requestObject == null)
                 throw new JsonException("TODO");
 
@@ -190,17 +185,14 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
 
         try
         {
-            using var response =
-                await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                throw OpenIdException.Factory.InvalidRequestUri(
-                    $"The http status code of the response must be OK. Received {response.StatusCode}.");
+                throw OpenIdException.Factory.InvalidRequestUri($"The http status code of the response must be OK. Received {response.StatusCode}.");
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
             var expectedContentType = Options.RequestObject.ExpectedContentType;
             if (Options.RequestObject.StrictContentType && contentType != expectedContentType)
-                throw OpenIdException.Factory.InvalidRequestUri(
-                    $"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.");
+                throw OpenIdException.Factory.InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.");
 
             return await response.Content.ReadAsStringAsync(cancellationToken);
         }

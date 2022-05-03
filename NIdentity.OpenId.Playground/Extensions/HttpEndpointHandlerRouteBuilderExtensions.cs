@@ -17,12 +17,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Requests;
 

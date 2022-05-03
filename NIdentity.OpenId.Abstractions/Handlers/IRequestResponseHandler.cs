@@ -17,8 +17,6 @@
 
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
 using NIdentity.OpenId.Requests;
 
 namespace NIdentity.OpenId.Handlers;

@@ -17,7 +17,6 @@
 
 #endregion
 
-using System;
 using Moq;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;

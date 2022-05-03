@@ -1,5 +1,3 @@
-using System;
-
 namespace NIdentity.OpenId.Playground;
 
 internal class WeatherForecast

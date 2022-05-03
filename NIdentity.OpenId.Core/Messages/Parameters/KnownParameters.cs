@@ -17,8 +17,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Messages.Parsers;

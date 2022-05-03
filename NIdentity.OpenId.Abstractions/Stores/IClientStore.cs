@@ -15,8 +15,6 @@
 //    limitations under the License.
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
 using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Stores;

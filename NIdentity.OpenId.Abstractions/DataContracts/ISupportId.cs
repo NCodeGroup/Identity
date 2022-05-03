@@ -1,5 +1,3 @@
-using System;
-
 namespace NIdentity.OpenId.DataContracts;
 
 /// <summary>

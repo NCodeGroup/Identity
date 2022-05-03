@@ -1,7 +1,4 @@
-﻿using System;
-using Microsoft.AspNetCore.Http;
-
-namespace NIdentity.OpenId.Playground.Extensions;
+﻿namespace NIdentity.OpenId.Playground.Extensions;
 
 internal static class HttpResponseExtensions
 {

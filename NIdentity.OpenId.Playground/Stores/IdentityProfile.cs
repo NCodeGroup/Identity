@@ -17,8 +17,6 @@
 
 #endregion
 
-using System;
-using System.Linq;
 using AutoMapper;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Playground.DataLayer.Entities;

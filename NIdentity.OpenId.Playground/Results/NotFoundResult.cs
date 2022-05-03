@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace NIdentity.OpenId.Playground.Results;
 
 /// <summary>

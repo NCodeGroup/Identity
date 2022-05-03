@@ -5,6 +5,7 @@
         <IsPackable>false</IsPackable>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
         <NoWarn>1591</NoWarn>
     </PropertyGroup>
 

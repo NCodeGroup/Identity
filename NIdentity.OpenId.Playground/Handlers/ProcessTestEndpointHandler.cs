@@ -17,9 +17,6 @@
 
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;

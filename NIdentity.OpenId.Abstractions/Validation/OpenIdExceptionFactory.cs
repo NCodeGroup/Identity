@@ -17,8 +17,6 @@
 
 #endregion
 
-using System;
-
 namespace NIdentity.OpenId.Validation;
 
 /// <summary>

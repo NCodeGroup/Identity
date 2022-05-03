@@ -17,10 +17,6 @@
 
 #endregion
 
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using JetBrains.Annotations;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Requests;

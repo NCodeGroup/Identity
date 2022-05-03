@@ -17,8 +17,6 @@
 
 #endregion
 
-using System.Collections.Generic;
-
 namespace NIdentity.OpenId.Playground;
 
 internal static class HttpVerbs

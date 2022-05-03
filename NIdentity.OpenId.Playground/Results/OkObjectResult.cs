@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Playground.Results;
 // https://github.com/dotnet/aspnetcore/blob/master/src/Mvc/Mvc.Core/src/OkObjectResult.cs

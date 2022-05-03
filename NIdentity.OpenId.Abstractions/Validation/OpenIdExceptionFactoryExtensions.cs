@@ -17,7 +17,6 @@
 
 #endregion
 
-using System;
 using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Validation;

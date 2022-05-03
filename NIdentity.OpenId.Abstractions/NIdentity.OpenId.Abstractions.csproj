@@ -5,6 +5,7 @@
         <RootNamespace>NIdentity.OpenId</RootNamespace>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
 
     <ItemGroup>

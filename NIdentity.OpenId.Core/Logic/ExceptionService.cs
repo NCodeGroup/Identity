@@ -17,7 +17,6 @@
 
 #endregion
 
-using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NIdentity.OpenId.Results;

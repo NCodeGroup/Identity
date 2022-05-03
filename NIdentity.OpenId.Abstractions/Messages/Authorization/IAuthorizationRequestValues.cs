@@ -17,9 +17,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-
 namespace NIdentity.OpenId.Messages.Authorization;
 
 /// <summary>

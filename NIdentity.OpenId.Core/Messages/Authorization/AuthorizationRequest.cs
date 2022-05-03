@@ -17,8 +17,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Validation;
 

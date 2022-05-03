@@ -17,8 +17,6 @@
 
 #endregion
 
-using System;
-using System.Linq;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;

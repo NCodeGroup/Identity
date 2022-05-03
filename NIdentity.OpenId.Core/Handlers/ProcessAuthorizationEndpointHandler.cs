@@ -17,10 +17,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Messages.Authorization;

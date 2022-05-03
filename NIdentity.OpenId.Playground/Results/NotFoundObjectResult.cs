@@ -1,6 +1,3 @@
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Playground.Extensions;
 
 namespace NIdentity.OpenId.Playground.Results;

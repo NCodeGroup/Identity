@@ -17,7 +17,7 @@ internal class RequestClaim : IRequestClaim
     /// <inheritdoc />
     [JsonPropertyName(OpenIdConstants.Parameters.Values)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string[]? Values { get; set; }
+    public IEnumerable<string>? Values { get; set; }
 
     [JsonExtensionData]
     public Dictionary<string, object?> ExtensionData { get; set; } = new();

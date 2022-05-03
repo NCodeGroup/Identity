@@ -37,5 +37,5 @@ public interface IRequestClaim
     /// <summary>
     /// Gets a set of values that should be returned when the Claim is being requested.
     /// </summary>
-    string[]? Values { get; }
+    IEnumerable<string>? Values { get; }
 }

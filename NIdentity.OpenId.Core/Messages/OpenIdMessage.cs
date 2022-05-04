@@ -136,16 +136,17 @@ internal abstract class OpenIdMessage<T> : OpenIdMessage
         return Load(context, parameters);
     }
 
-    public static T Load(HttpContext httpContext, IOpenIdMessageContext messageContext)
+    public static T Load(IOpenIdMessageContext messageContext)
     {
+        var httpRequest = messageContext.HttpContext.Request;
         IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues;
-        if (HttpMethods.IsGet(httpContext.Request.Method))
+        if (HttpMethods.IsGet(httpRequest.Method))
         {
-            parameterStringValues = httpContext.Request.Query;
+            parameterStringValues = httpRequest.Query;
         }
-        else if (HttpMethods.IsPost(httpContext.Request.Method))
+        else if (HttpMethods.IsPost(httpRequest.Method))
         {
-            parameterStringValues = httpContext.Request.Form;
+            parameterStringValues = httpRequest.Form;
         }
         else
         {

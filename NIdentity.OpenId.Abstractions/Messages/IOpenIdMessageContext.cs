@@ -19,7 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages;
@@ -30,9 +30,9 @@ namespace NIdentity.OpenId.Messages;
 public interface IOpenIdMessageContext
 {
     /// <summary>
-    /// Gets the <see cref="ILogger"/> to be used for any logging.
+    /// Gets the <see cref="HttpContext"/> that is associated with the current request.
     /// </summary>
-    ILogger Logger { get; }
+    HttpContext HttpContext { get; }
 
     /// <summary>
     /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.

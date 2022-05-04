@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
@@ -174,11 +173,6 @@ public class JsonParserTests : IDisposable
         MockOpenIdMessageContext
             .Setup(_ => _.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
-            .Verifiable();
-
-        MockOpenIdMessageContext
-            .Setup(_ => _.Logger)
-            .Returns(NullLogger.Instance)
             .Verifiable();
 
         const string parameterName = "parameterName";

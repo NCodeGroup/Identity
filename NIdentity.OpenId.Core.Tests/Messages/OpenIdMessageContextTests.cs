@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Authorization;
@@ -11,12 +11,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 public class OpenIdMessageContextTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<ILogger<OpenIdMessageContext>> MockLogger { get; }
+    private Mock<HttpContext> MockHttpContext { get; }
 
     public OpenIdMessageContextTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockLogger = MockRepository.Create<ILogger<OpenIdMessageContext>>();
+        MockHttpContext = MockRepository.Create<HttpContext>();
     }
 
     public void Dispose()
@@ -27,9 +27,9 @@ public class OpenIdMessageContextTests : IDisposable
     [Fact]
     public void Constructor_ThenValid()
     {
-        var context = new OpenIdMessageContext(MockLogger.Object);
+        var context = new OpenIdMessageContext(MockHttpContext.Object);
 
-        Assert.Same(MockLogger.Object, context.Logger);
+        Assert.Same(MockHttpContext.Object, context.HttpContext);
 
         Assert.True(context.JsonSerializerOptions.PropertyNameCaseInsensitive);
         Assert.Equal(JsonNamingPolicy.CamelCase, context.JsonSerializerOptions.PropertyNamingPolicy);

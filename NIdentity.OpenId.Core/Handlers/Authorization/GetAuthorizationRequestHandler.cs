@@ -61,8 +61,9 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         GetAuthorizationRequest request,
         CancellationToken cancellationToken)
     {
-        var messageContext = new OpenIdMessageContext(Logger);
-        var requestMessage = AuthorizationRequestMessage.Load(request.HttpContext, messageContext);
+        var httpContext = request.HttpContext;
+        var messageContext = new OpenIdMessageContext(httpContext);
+        var requestMessage = AuthorizationRequestMessage.Load(messageContext);
         try
         {
             return await LoadRequestAsync(requestMessage, cancellationToken);

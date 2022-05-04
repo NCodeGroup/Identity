@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Text.Json;
 using Moq;
-using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 using Xunit;
@@ -11,12 +10,10 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class DefaultJsonParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
 
     public DefaultJsonParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
@@ -39,7 +36,6 @@ public class DefaultJsonParserTests : IDisposable
 
         const string parameterName = "parameterName";
 
-        var context = MockOpenIdMessageContext.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
         var descriptor = new ParameterDescriptor(parameterName);
@@ -53,7 +49,7 @@ public class DefaultJsonParserTests : IDisposable
 
         var reader = new Utf8JsonReader(buffer.WrittenSpan);
 
-        var parameter = parser.Load(context, descriptor, ref reader, jsonSerializerOptions);
+        var parameter = parser.Read(ref reader, descriptor, jsonSerializerOptions);
         var typedParameter = Assert.IsType<Parameter<JsonElement>>(parameter);
 
         Assert.Equal(expectedStringValue, typedParameter.StringValues);

@@ -145,7 +145,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var expectedValue = JsonSerializer.Serialize(new Dictionary<string, object> { [parameterName] = stringValue });
 
         var mockTestParameterParser = MockRepository.Create<ITestParameterParser>();
-        var parser = new TestParameterParser(mockTestParameterParser.Object, LoadJsonValid);
+        var parser = new TestParameterParser(mockTestParameterParser.Object, ReadJsonValid, null);
 
         var knownParameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, parser);
 
@@ -176,7 +176,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         Assert.Equal(expectedValue, JsonSerializer.Serialize(typedParameter.ParsedValue));
     }
 
-    private static Parameter LoadJsonValid(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
+    private static Parameter ReadJsonValid(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         Assert.True(reader.Read());
         Assert.Equal(JsonTokenType.PropertyName, reader.TokenType);
@@ -216,7 +216,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         const bool allowMultipleValues = true;
 
         var mockTestParameterParser = MockRepository.Create<ITestParameterParser>();
-        var parser = new TestParameterParser(mockTestParameterParser.Object, LoadJsonThrows);
+        var parser = new TestParameterParser(mockTestParameterParser.Object, ReadJsonThrows, null);
 
         var knownParameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, parser);
 
@@ -248,7 +248,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         Assert.Empty(message.Parameters);
     }
 
-    private static Parameter LoadJsonThrows(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
+    private static Parameter ReadJsonThrows(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         throw new InvalidOperationException();
     }

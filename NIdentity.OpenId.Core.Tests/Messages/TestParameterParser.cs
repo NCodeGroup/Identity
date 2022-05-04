@@ -25,7 +25,9 @@ using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
 
-internal delegate Parameter LoadJsonDelegate(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options);
+internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options);
+
+internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options);
 
 internal interface ITestParameterParser
 {
@@ -37,12 +39,14 @@ internal interface ITestParameterParser
 internal class TestParameterParser : ParameterParser<string>, IJsonParser
 {
     private ITestParameterParser InnerParser { get; }
-    private LoadJsonDelegate? LoadJsonDelegate { get; }
+    private ReadJsonDelegate? ReadJsonDelegate { get; }
+    private WriteJsonDelegate? WriteJsonDelegate { get; }
 
-    public TestParameterParser(ITestParameterParser innerParser, LoadJsonDelegate? loadJsonDelegate)
+    public TestParameterParser(ITestParameterParser innerParser, ReadJsonDelegate? readJsonDelegate, WriteJsonDelegate? writeJsonDelegate)
     {
         InnerParser = innerParser;
-        LoadJsonDelegate = loadJsonDelegate;
+        ReadJsonDelegate = readJsonDelegate;
+        WriteJsonDelegate = writeJsonDelegate;
     }
 
     public override StringValues Serialize(IOpenIdMessageContext context, string value)
@@ -55,8 +59,13 @@ internal class TestParameterParser : ParameterParser<string>, IJsonParser
         return InnerParser.Parse(context, descriptor, stringValues);
     }
 
-    public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
+    public Parameter Read(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
-        return LoadJsonDelegate?.Invoke(context, descriptor, ref reader, options) ?? new Parameter<string>(descriptor, string.Empty);
+        return ReadJsonDelegate?.Invoke(ref reader, descriptor, options) ?? new Parameter<string>(descriptor, string.Empty);
+    }
+
+    public void Write(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options)
+    {
+        WriteJsonDelegate?.Invoke(writer, parameter, options);
     }
 }

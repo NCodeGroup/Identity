@@ -46,7 +46,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             new ParameterDescriptor(parameterName);
 
         var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
-        var parameter = jsonParser.Load(Context, descriptor, ref reader, options);
+        var parameter = jsonParser.Read(ref reader, descriptor, options);
 
         if (reader.TokenType != JsonTokenType.EndArray && reader.TokenType != JsonTokenType.EndObject)
             throw new JsonException("TODO");
@@ -133,9 +133,8 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
 
         foreach (var parameter in message.Parameters.Values)
         {
-            // TODO: use ParameterLoader/Parser to serialize
-            var stringValue = string.Join(OpenIdConstants.ParameterSeparator, parameter.StringValues.AsEnumerable());
-            writer.WriteString(parameter.Descriptor.ParameterName, stringValue);
+            var jsonParser = parameter.Descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
+            jsonParser.Write(writer, parameter, options);
         }
 
         writer.WriteEndObject();

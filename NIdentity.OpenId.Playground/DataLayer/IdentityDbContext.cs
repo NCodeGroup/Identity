@@ -29,9 +29,9 @@ internal class IdentityDbContext : DbContext
 {
     private IdValueGenerator IdValueGenerator { get; }
 
-    public DbSet<SecretEntity> Secrets { get; set; } = null!;
+    public DbSet<SecretEntity> Secrets => Set<SecretEntity>();
 
-    public DbSet<ClientEntity> Clients { get; set; } = null!;
+    public DbSet<ClientEntity> Clients => Set<ClientEntity>();
 
     public IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         : base(options)

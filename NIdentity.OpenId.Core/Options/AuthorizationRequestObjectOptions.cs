@@ -39,5 +39,5 @@ public class AuthorizationRequestObjectOptions
     /// Gets or sets the value to use when validating the <c>audience</c> JWT claim when fetching the request object
     /// from <c>request_uri</c>.
     /// </summary>
-    public string Audience { get; set; } = "TODO";
+    public string Audience { get; set; } = string.Empty;
 }

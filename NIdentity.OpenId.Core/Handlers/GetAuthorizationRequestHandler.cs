@@ -69,9 +69,10 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         }
         catch (OpenIdException exception)
         {
-            if (!string.IsNullOrEmpty(requestMessage.State))
+            var state = requestMessage.State;
+            if (!string.IsNullOrEmpty(state))
             {
-                exception.WithExtensionData(OpenIdConstants.Parameters.State, requestMessage.State);
+                exception.WithExtensionData(OpenIdConstants.Parameters.State, state);
             }
 
             throw;

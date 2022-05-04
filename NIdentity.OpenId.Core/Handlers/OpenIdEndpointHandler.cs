@@ -28,6 +28,15 @@ namespace NIdentity.OpenId.Handlers;
 internal abstract class OpenIdEndpointHandler<TRequest> : IHttpEndpointHandler<TRequest>
     where TRequest : ProcessHttpEndpoint
 {
+    protected IExceptionService ExceptionService { get; }
+    protected IHttpResultFactory HttpResultFactory { get; }
+
+    protected OpenIdEndpointHandler(IExceptionService exceptionService, IHttpResultFactory httpResultFactory)
+    {
+        ExceptionService = exceptionService;
+        HttpResultFactory = httpResultFactory;
+    }
+
     /// <inheritdoc />
     public async ValueTask<IHttpResult> HandleAsync(TRequest request, CancellationToken cancellationToken)
     {

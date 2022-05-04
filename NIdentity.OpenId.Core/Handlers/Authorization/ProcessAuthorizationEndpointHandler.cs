@@ -28,9 +28,6 @@ namespace NIdentity.OpenId.Handlers.Authorization;
 
 internal class ProcessAuthorizationEndpointHandler : OpenIdEndpointHandler<ProcessAuthorizationEndpoint>
 {
-    private IExceptionService ExceptionService { get; }
-    private IHttpResultFactory HttpResultFactory { get; }
-
     private IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> GetAuthorizationRequestHandler { get; }
     private IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> ValidateAuthorizationRequestHandlers { get; }
 
@@ -39,9 +36,8 @@ internal class ProcessAuthorizationEndpointHandler : OpenIdEndpointHandler<Proce
         IHttpResultFactory httpResultFactory,
         IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> getAuthorizationRequestHandler,
         IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> validateAuthorizationRequestHandlers)
+        : base(exceptionService, httpResultFactory)
     {
-        ExceptionService = exceptionService;
-        HttpResultFactory = httpResultFactory;
         GetAuthorizationRequestHandler = getAuthorizationRequestHandler;
         ValidateAuthorizationRequestHandlers = validateAuthorizationRequestHandlers;
     }

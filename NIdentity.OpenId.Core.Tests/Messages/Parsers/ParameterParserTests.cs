@@ -45,7 +45,7 @@ public class ParameterParserTests : IDisposable
     [Fact]
     public void Separator_ThenValid()
     {
-        var parser = new TestParameterParser(MockTestParameterParser.Object, null);
+        var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
 
         Assert.Equal(OpenIdConstants.ParameterSeparator, parser.Separator);
     }
@@ -53,7 +53,7 @@ public class ParameterParserTests : IDisposable
     [Fact]
     public void StringComparison_ThenValid()
     {
-        var parser = new TestParameterParser(MockTestParameterParser.Object, null);
+        var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
 
         Assert.Equal(StringComparison.Ordinal, parser.StringComparison);
     }
@@ -61,7 +61,7 @@ public class ParameterParserTests : IDisposable
     [Fact]
     public void Load_ThenValid()
     {
-        var parser = new TestParameterParser(MockTestParameterParser.Object, null);
+        var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
         var context = MockOpenIdMessageContext.Object;
 
         const string parameterName = "parameterName";

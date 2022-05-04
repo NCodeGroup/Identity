@@ -16,12 +16,19 @@ public interface IJsonParser
     /// <summary>
     /// Parses and loads JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when parsing the value.</param>
-    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="reader">The <see cref="Utf8JsonReader"/> to read from.</param>
+    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options);
+    Parameter Read(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options);
+
+    /// <summary>
+    /// Serializes the JSON value from a <see cref="Parameter"/> into the given <see cref="Utf8JsonWriter"/>.
+    /// </summary>
+    /// <param name="writer">The <see cref="Utf8JsonWriter"/> to write to.</param>
+    /// <param name="parameter">The <see cref="Parameter"/> to serialize as JSON.</param>
+    /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
+    void Write(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options);
 }
 
 /// <summary>
@@ -31,12 +38,22 @@ public interface IJsonParser
 public class JsonParser<T> : ParameterParser<T?>, IJsonParser
 {
     /// <inheritdoc/>
-    public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
+    public Parameter Read(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         var converter = (JsonConverter<T>)options.GetConverter(typeof(T));
         var parsedValue = converter.Read(ref reader, typeof(T), options);
         var stringValues = JsonSerializer.Serialize(parsedValue, options);
         return new Parameter<T>(descriptor, stringValues, parsedValue);
+    }
+
+    // TODO: unit tests for Write
+
+    /// <inheritdoc/>
+    public void Write(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options)
+    {
+        var typedParameter = (Parameter<T>)parameter;
+        var converter = (JsonConverter<T?>)options.GetConverter(typeof(T));
+        converter.Write(writer, typedParameter.ParsedValue, options);
     }
 
     /// <inheritdoc/>

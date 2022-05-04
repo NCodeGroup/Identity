@@ -31,7 +31,6 @@ public class JsonParserTests : IDisposable
     {
         var parser = new JsonParser<TestNestedObject>();
 
-        var context = MockOpenIdMessageContext.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
         const string parameterName = "parameterName";
@@ -49,7 +48,7 @@ public class JsonParserTests : IDisposable
 
         Assert.True(reader.Read());
 
-        var parameter = parser.Load(context, descriptor, ref reader, jsonSerializerOptions);
+        var parameter = parser.Read(ref reader, descriptor, jsonSerializerOptions);
         var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(parameter);
 
         Assert.Equal(expectedValueAsJson, typedParameter.StringValues);

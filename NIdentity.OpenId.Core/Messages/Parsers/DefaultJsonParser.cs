@@ -39,6 +39,6 @@ public class DefaultJsonParser : IJsonParser
         var converter = (JsonConverter<JsonElement>)options.GetConverter(typeof(JsonElement));
         var jsonElement = converter.Read(ref reader, typeof(JsonElement), options);
         var stringValues = jsonElement.GetRawText();
-        return new Parameter(descriptor, stringValues, jsonElement);
+        return new Parameter<JsonElement>(descriptor, stringValues, jsonElement);
     }
 }

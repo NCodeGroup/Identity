@@ -82,8 +82,8 @@ internal abstract class OpenIdMessage : IOpenIdMessage
 
     protected internal T? GetKnownParameter<T>(KnownParameter<T> knownParameter) =>
         Parameters.TryGetValue(knownParameter.Name, out var parameter) &&
-        parameter.ParsedValue is T parsedValue ?
-            parsedValue :
+        parameter is Parameter<T> typedParameter ?
+            typedParameter.ParsedValue :
             default;
 
     protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)

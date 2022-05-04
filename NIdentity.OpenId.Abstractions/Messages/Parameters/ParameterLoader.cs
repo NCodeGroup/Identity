@@ -21,7 +21,7 @@ public class ParameterLoader
     /// <returns>The newly loaded parameter.</returns>
     public virtual Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
-        return new(descriptor, stringValues);
+        return new Parameter<StringValues>(descriptor, stringValues, stringValues);
     }
 
     /// <summary>
@@ -32,8 +32,8 @@ public class ParameterLoader
     /// <param name="stringValues">The string values for the parameter.</param>
     /// <param name="parsedValue">The parsed value for the parameter.</param>
     /// <returns>The newly loaded parameter.</returns>
-    public virtual Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, object parsedValue)
+    public virtual Parameter<T> Load<T>(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, T? parsedValue)
     {
-        return new(descriptor, stringValues, parsedValue);
+        return new Parameter<T>(descriptor, stringValues, parsedValue);
     }
 }

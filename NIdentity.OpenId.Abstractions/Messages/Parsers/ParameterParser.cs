@@ -65,6 +65,6 @@ public abstract class ParameterParser<T> : ParameterLoader
     public override Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
         var parsedValue = Parse(context, descriptor, stringValues);
-        return new Parameter(descriptor, stringValues, parsedValue);
+        return new Parameter<T>(descriptor, stringValues, parsedValue);
     }
 }

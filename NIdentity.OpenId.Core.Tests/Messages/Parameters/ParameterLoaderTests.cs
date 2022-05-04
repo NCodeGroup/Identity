@@ -54,7 +54,6 @@ public class ParameterLoaderTests : IDisposable
 
         Assert.Equal(descriptor, parameter.Descriptor);
         Assert.Equal(stringValues, parameter.StringValues);
-        Assert.Null(parameter.ParsedValue);
     }
 
     [Fact]

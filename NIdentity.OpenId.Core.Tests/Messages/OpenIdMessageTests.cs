@@ -84,7 +84,7 @@ public class OpenIdMessageTests : IDisposable
         var expectedValue = new[] { "value1", "value2" };
 
         var context = MockOpenIdMessageContext.Object;
-        var parameter = new Parameter(new ParameterDescriptor(parameterName), expectedValue);
+        var parameter = new Parameter<string[]>(new ParameterDescriptor(parameterName), expectedValue);
         message.Initialize(context, new[] { parameter });
 
         var getSuccess = message.TryGetValue(parameterName, out var actualValue);
@@ -131,7 +131,7 @@ public class OpenIdMessageTests : IDisposable
         var message = new TestOpenIdMessage();
         var context = MockOpenIdMessageContext.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter(descriptor, stringValues, parsedValue);
+        var parameter = new Parameter<TestNestedObject>(descriptor, stringValues, parsedValue);
         message.Initialize(context, new[] { parameter });
 
         var result = message.GetKnownParameter(knownParameter);
@@ -159,7 +159,7 @@ public class OpenIdMessageTests : IDisposable
         var message = new TestOpenIdMessage();
         var context = MockOpenIdMessageContext.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter(descriptor, stringValues);
+        var parameter = new Parameter<TestNestedObject>(descriptor, stringValues);
         message.Initialize(context, new[] { parameter });
 
         var result = message.GetKnownParameter(knownParameter);
@@ -210,7 +210,7 @@ public class OpenIdMessageTests : IDisposable
         var message = new TestOpenIdMessage();
         var context = MockOpenIdMessageContext.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter(descriptor, stringValues, parsedValue);
+        var parameter = new Parameter<TestNestedObject>(descriptor, stringValues, parsedValue);
         message.Initialize(context, new[] { parameter });
 
         message.SetKnownParameter(knownParameter, null);
@@ -239,7 +239,7 @@ public class OpenIdMessageTests : IDisposable
         var message = new TestOpenIdMessage();
         var context = MockOpenIdMessageContext.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter(descriptor, stringValues);
+        var parameter = new Parameter<TestNestedObject>(descriptor, stringValues);
         message.Initialize(context, new[] { parameter });
 
         mockParameterParser
@@ -275,7 +275,7 @@ public class OpenIdMessageTests : IDisposable
         message.Initialize(context, Array.Empty<Parameter>());
 
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter(descriptor, stringValues, parsedValue);
+        var parameter = new Parameter<TestNestedObject>(descriptor, stringValues, parsedValue);
 
         mockParameterParser
             .Setup(_ => _.Serialize(context, parsedValue))
@@ -289,11 +289,13 @@ public class OpenIdMessageTests : IDisposable
 
         message.SetKnownParameter(knownParameter, parsedValue);
 
-        var (key, value) = Assert.Single(message.Parameters);
-        Assert.Equal(parameterName, key);
-        Assert.Equal(parameterName, value.Descriptor.ParameterName);
-        Assert.Equal(stringValues, value.StringValues);
-        Assert.Equal(parsedValue, value.ParsedValue);
+        var (actualParameterName, actualParameter) = Assert.Single(message.Parameters);
+        var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(actualParameter);
+
+        Assert.Equal(parameterName, actualParameterName);
+        Assert.Equal(parameterName, typedParameter.Descriptor.ParameterName);
+        Assert.Equal(stringValues, typedParameter.StringValues);
+        Assert.Equal(parsedValue, typedParameter.ParsedValue);
     }
 
     [Fact]
@@ -317,12 +319,12 @@ public class OpenIdMessageTests : IDisposable
         var message = new TestOpenIdMessage();
         var context = MockOpenIdMessageContext.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter(descriptor, stringValues, parsedValue);
+        var parameter = new Parameter<TestNestedObject>(descriptor, stringValues, parsedValue);
         message.Initialize(context, new[] { parameter });
 
         parsedValue.NestedPropertyName1 = "NestedPropertyValue2";
         stringValues = JsonSerializer.Serialize(parsedValue);
-        parameter = new Parameter(descriptor, stringValues, parsedValue);
+        parameter = new Parameter<TestNestedObject>(descriptor, stringValues, parsedValue);
 
         mockParameterParser
             .Setup(_ => _.Serialize(context, parsedValue))
@@ -336,10 +338,12 @@ public class OpenIdMessageTests : IDisposable
 
         message.SetKnownParameter(knownParameter, parsedValue);
 
-        var (key, value) = Assert.Single(message.Parameters);
-        Assert.Equal(parameterName, key);
-        Assert.Equal(parameterName, value.Descriptor.ParameterName);
-        Assert.Equal(stringValues, value.StringValues);
-        Assert.Equal(parsedValue, value.ParsedValue);
+        var (actualParameterName, actualParameter) = Assert.Single(message.Parameters);
+        var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(actualParameter);
+
+        Assert.Equal(parameterName, actualParameterName);
+        Assert.Equal(parameterName, typedParameter.Descriptor.ParameterName);
+        Assert.Equal(stringValues, typedParameter.StringValues);
+        Assert.Equal(parsedValue, typedParameter.ParsedValue);
     }
 }

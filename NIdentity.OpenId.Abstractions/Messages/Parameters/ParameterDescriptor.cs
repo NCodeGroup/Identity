@@ -88,4 +88,16 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     /// <inheritdoc/>
     public override int GetHashCode() =>
         KnownParameter?.GetHashCode() ?? StringComparer.Ordinal.GetHashCode(ParameterName);
+
+    /// <summary/>
+    public static bool operator ==(ParameterDescriptor left, ParameterDescriptor right)
+    {
+        return left.Equals(right);
+    }
+
+    /// <summary/>
+    public static bool operator !=(ParameterDescriptor left, ParameterDescriptor right)
+    {
+        return !(left == right);
+    }
 }

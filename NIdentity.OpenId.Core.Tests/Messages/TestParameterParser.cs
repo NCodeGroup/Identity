@@ -57,6 +57,6 @@ internal class TestParameterParser : ParameterParser<string>, IJsonParser
 
     public Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
-        return LoadJsonDelegate?.Invoke(context, descriptor, ref reader, options) ?? new Parameter();
+        return LoadJsonDelegate?.Invoke(context, descriptor, ref reader, options) ?? new Parameter<string>(descriptor, string.Empty);
     }
 }

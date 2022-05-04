@@ -24,7 +24,7 @@ namespace NIdentity.OpenId.Messages.Parameters;
 /// <summary>
 /// Contains the parsed value and string values from which a parameter was parsed from.
 /// </summary>
-public readonly struct Parameter
+public abstract class Parameter
 {
     /// <summary>
     /// Gets the <see cref="ParameterDescriptor"/> that describes this parameter.
@@ -37,21 +37,14 @@ public readonly struct Parameter
     public StringValues StringValues { get; }
 
     /// <summary>
-    /// Gets the <see cref="object"/> value that this parameter was parsed with.
-    /// </summary>
-    public object? ParsedValue { get; }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="Parameter"/> struct.
     /// </summary>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes this parameter.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> that this parameter was loaded with.</param>
-    /// <param name="parsedValue">The <see cref="object"/> value that this parameter was parsed with.</param>
-    public Parameter(ParameterDescriptor descriptor, StringValues stringValues, object? parsedValue = null)
+    protected Parameter(ParameterDescriptor descriptor, StringValues stringValues)
     {
         Descriptor = descriptor;
         StringValues = stringValues;
-        ParsedValue = parsedValue;
     }
 
     /// <summary>
@@ -80,5 +73,29 @@ public readonly struct Parameter
             new ParameterDescriptor(parameterName);
 
         return descriptor.Loader.Load(context, descriptor, stringValues);
+    }
+}
+
+/// <summary>
+/// Contains the parsed value and string values from which a parameter was parsed from.
+/// </summary>
+/// <typeparam name="T">The type of the parameter's parsed value.</typeparam>
+public class Parameter<T> : Parameter
+{
+    /// <summary>
+    /// Gets the value that this parameter was parsed with.
+    /// </summary>
+    public T? ParsedValue { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Parameter"/> struct.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes this parameter.</param>
+    /// <param name="stringValues">The <see cref="StringValues"/> that this parameter was loaded with.</param>
+    /// <param name="parsedValue">The value that this parameter was parsed with.</param>
+    public Parameter(ParameterDescriptor descriptor, StringValues stringValues, T? parsedValue = default)
+        : base(descriptor, stringValues)
+    {
+        ParsedValue = parsedValue;
     }
 }

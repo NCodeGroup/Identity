@@ -36,7 +36,7 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
         var converter = (JsonConverter<T>)options.GetConverter(typeof(T));
         var parsedValue = converter.Read(ref reader, typeof(T), options);
         var stringValues = JsonSerializer.Serialize(parsedValue, options);
-        return new Parameter(descriptor, stringValues, parsedValue);
+        return new Parameter<T>(descriptor, stringValues, parsedValue);
     }
 
     /// <inheritdoc/>

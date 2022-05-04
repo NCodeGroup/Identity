@@ -54,9 +54,10 @@ public class DefaultJsonParserTests : IDisposable
         var reader = new Utf8JsonReader(buffer.WrittenSpan);
 
         var parameter = parser.Load(context, descriptor, ref reader, jsonSerializerOptions);
+        var typedParameter = Assert.IsType<Parameter<JsonElement>>(parameter);
 
-        Assert.Equal(expectedStringValue, parameter.StringValues);
-        Assert.IsType<JsonElement>(parameter.ParsedValue);
-        Assert.Equal(expectedStringValue, JsonSerializer.Serialize(parameter.ParsedValue));
+        Assert.Equal(expectedStringValue, typedParameter.StringValues);
+        Assert.IsType<JsonElement>(typedParameter.ParsedValue);
+        Assert.Equal(expectedStringValue, JsonSerializer.Serialize(typedParameter.ParsedValue));
     }
 }

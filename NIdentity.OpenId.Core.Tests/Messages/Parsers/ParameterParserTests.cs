@@ -76,7 +76,8 @@ public class ParameterParserTests : IDisposable
             .Verifiable();
 
         var parameter = parser.Load(context, descriptor, stringValues);
-        Assert.Equal(stringValues, parameter.StringValues);
-        Assert.Same(parsedValue, parameter.ParsedValue);
+        var typedParameter = Assert.IsType<Parameter<string>>(parameter);
+        Assert.Equal(stringValues, typedParameter.StringValues);
+        Assert.Same(parsedValue, typedParameter.ParsedValue);
     }
 }

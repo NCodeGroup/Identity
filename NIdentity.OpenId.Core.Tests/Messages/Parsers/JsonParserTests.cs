@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NIdentity.OpenId.Messages;
@@ -34,7 +33,6 @@ public class JsonParserTests : IDisposable
 
         var context = MockOpenIdMessageContext.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
-        var converter = (JsonConverter<TestNestedObject>)jsonSerializerOptions.GetConverter(typeof(TestNestedObject));
 
         const string parameterName = "parameterName";
         var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
@@ -44,7 +42,7 @@ public class JsonParserTests : IDisposable
 
         var buffer = new ArrayBufferWriter<byte>();
         var writer = new Utf8JsonWriter(buffer);
-        converter.Write(writer, expectedValue, jsonSerializerOptions);
+        JsonSerializer.Serialize(writer, expectedValue, jsonSerializerOptions);
         writer.Flush();
 
         var reader = new Utf8JsonReader(buffer.WrittenSpan);
@@ -52,9 +50,10 @@ public class JsonParserTests : IDisposable
         Assert.True(reader.Read());
 
         var parameter = parser.Load(context, descriptor, ref reader, jsonSerializerOptions);
+        var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(parameter);
 
-        Assert.Equal(expectedValueAsJson, parameter.StringValues);
-        Assert.Equal(expectedValueAsJson, JsonSerializer.Serialize(parameter.ParsedValue));
+        Assert.Equal(expectedValueAsJson, typedParameter.StringValues);
+        Assert.Equal(expectedValueAsJson, JsonSerializer.Serialize(typedParameter.ParsedValue));
     }
 
     [Fact]

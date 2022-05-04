@@ -54,7 +54,7 @@ public class ParameterTests : IDisposable
             mockParser.Object);
 
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter(descriptor, stringValues, stringValues);
+        var parameter = new Parameter<string[]>(descriptor, stringValues, stringValues);
 
         Assert.Equal(descriptor, parameter.Descriptor);
         Assert.Equal(stringValues, parameter.StringValues);
@@ -78,7 +78,7 @@ public class ParameterTests : IDisposable
 
         var context = mockOpenIdMessageContext.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var expectedParameter = new Parameter(descriptor, stringValues, stringValues);
+        var expectedParameter = new Parameter<string[]>(descriptor, stringValues, stringValues);
 
         mockParser
             .Setup(_ => _.Load(context, descriptor, stringValues))
@@ -92,9 +92,10 @@ public class ParameterTests : IDisposable
             .Verifiable();
 
         var actualParameter = Parameter.Load(context, parameterName, stringValues.AsEnumerable());
+        var typedParameter = Assert.IsType<Parameter<string[]>>(actualParameter);
 
-        Assert.Equal(expectedParameter.Descriptor, actualParameter.Descriptor);
-        Assert.Equal(expectedParameter.StringValues, actualParameter.StringValues);
-        Assert.Same(expectedParameter.ParsedValue, actualParameter.ParsedValue);
+        Assert.Equal(expectedParameter.Descriptor, typedParameter.Descriptor);
+        Assert.Equal(expectedParameter.StringValues, typedParameter.StringValues);
+        Assert.Same(expectedParameter.ParsedValue, typedParameter.ParsedValue);
     }
 }

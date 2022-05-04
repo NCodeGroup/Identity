@@ -51,10 +51,10 @@ internal class JwtSecurityTokenDecoder : IJwtDecoder
         var tokenValidationParameters = new TokenValidationParameters
         {
             ValidIssuer = issuer,
-            ValidateIssuer = true,
+            ValidateIssuer = !string.IsNullOrEmpty(issuer),
 
             ValidAudience = audience,
-            ValidateAudience = true,
+            ValidateAudience = !string.IsNullOrEmpty(audience),
 
             IssuerSigningKeys = securityKeys,
             ValidateIssuerSigningKey = true,

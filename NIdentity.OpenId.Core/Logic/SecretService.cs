@@ -89,6 +89,7 @@ internal class SecretService : ISecretService
         switch (secret.SecretType)
         {
             case SecretConstants.SecretTypes.SharedSecret:
+                //TODO
                 //return LoadSharedSecurityKey(secret);
                 throw new NotImplementedException();
 
@@ -111,7 +112,9 @@ internal class SecretService : ISecretService
         if (secret.EncodingType != SecretConstants.EncodingTypes.Base64)
             return;
 
-        list.Add(new SymmetricSecurityKey(Convert.FromBase64String(secret.EncodedValue)) { KeyId = secret.KeyId });
+        var bytes = Convert.FromBase64String(secret.EncodedValue);
+        var securityKey = new SymmetricSecurityKey(bytes) { KeyId = secret.KeyId };
+        list.Add(securityKey);
     }
 
     private static void LoadAsymmetricSecurityKey(ICollection<SecurityKey> list, Secret secret)
@@ -122,8 +125,9 @@ internal class SecretService : ISecretService
         switch (secret.AlgorithmType)
         {
             case SecretConstants.AlgorithmTypes.Dsa:
+                //TODO
                 //var dsa = DSA.Create();
-                //dsa.ImportFromPem(secret.Value);
+                //dsa.ImportFromPem(secret.EncodedValue);
                 //return new DsaSecurityKey(dsa) { KeyId = secret.KeyId };
                 throw new NotImplementedException();
 
@@ -140,8 +144,9 @@ internal class SecretService : ISecretService
                 break;
 
             case SecretConstants.AlgorithmTypes.Ecdh:
+                //TODO
                 //var ecdh = ECDiffieHellman.Create();
-                //ecdh.ImportFromPem(secret.Value);
+                //ecdh.ImportFromPem(secret.EncodedValue);
                 //return new ECDiffieHellmanSecurityKey(ecdsa) { KeyId = secret.KeyId };
                 throw new NotImplementedException();
         }
@@ -152,6 +157,8 @@ internal class SecretService : ISecretService
         if (secret.EncodingType != SecretConstants.EncodingTypes.Pem)
             return;
 
-        list.Add(new X509SecurityKey(X509Certificate2.CreateFromPem(secret.EncodedValue, secret.EncodedValue), secret.KeyId));
+        var certificate = X509Certificate2.CreateFromPem(secret.EncodedValue, secret.EncodedValue);
+        var securityKey = new X509SecurityKey(certificate, secret.KeyId);
+        list.Add(securityKey);
     }
 }

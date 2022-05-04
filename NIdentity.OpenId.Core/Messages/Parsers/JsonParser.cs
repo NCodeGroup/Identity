@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Validation;
@@ -87,7 +86,6 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
         }
         catch (Exception exception)
         {
-            context.Logger.LogWarning(exception, "Failed to deserialize JSON");
             throw OpenIdException.Factory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest, exception);
         }
     }

@@ -19,7 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Messages.Parameters;
 
@@ -52,13 +52,13 @@ internal class OpenIdMessageContext : IOpenIdMessageContext
         [KnownParameters.UiLocales.Name] = KnownParameters.UiLocales,
     };
 
-    public ILogger Logger { get; }
+    public HttpContext HttpContext { get; }
 
     public JsonSerializerOptions JsonSerializerOptions { get; }
 
-    public OpenIdMessageContext(ILogger logger)
+    public OpenIdMessageContext(HttpContext httpContext)
     {
-        Logger = logger;
+        HttpContext = httpContext;
         JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
             ReadCommentHandling = JsonCommentHandling.Skip,

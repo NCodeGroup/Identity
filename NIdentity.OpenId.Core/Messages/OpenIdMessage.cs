@@ -18,8 +18,10 @@
 #endregion
 
 using System.Collections;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Messages;
 
@@ -132,5 +134,27 @@ internal abstract class OpenIdMessage<T> : OpenIdMessage
                 grouping.SelectMany(stringValues => stringValues)));
 
         return Load(context, parameters);
+    }
+
+    public static T Load(HttpContext httpContext, IOpenIdMessageContext messageContext)
+    {
+        IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues;
+        if (HttpMethods.IsGet(httpContext.Request.Method))
+        {
+            parameterStringValues = httpContext.Request.Query;
+        }
+        else if (HttpMethods.IsPost(httpContext.Request.Method))
+        {
+            parameterStringValues = httpContext.Request.Form;
+        }
+        else
+        {
+            throw OpenIdException.Factory
+                .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
+                .WithErrorDescription("TODO: errorDescription")
+                .WithStatusCode(StatusCodes.Status405MethodNotAllowed);
+        }
+
+        return Load(messageContext, parameterStringValues);
     }
 }

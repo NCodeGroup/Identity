@@ -18,10 +18,8 @@
 #endregion
 
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Messages;
@@ -63,11 +61,8 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         GetAuthorizationRequest request,
         CancellationToken cancellationToken)
     {
-        var httpContext = request.HttpContext;
-
         var messageContext = new OpenIdMessageContext(Logger);
-
-        var requestMessage = LoadRequestMessage(httpContext, messageContext);
+        var requestMessage = AuthorizationRequestMessage.Load(request.HttpContext, messageContext);
         try
         {
             return await LoadRequestAsync(requestMessage, cancellationToken);
@@ -207,29 +202,5 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
             Logger.LogWarning(exception, "Failed to fetch the request URI");
             throw OpenIdException.Factory.InvalidRequestUri(exception);
         }
-    }
-
-    private static IAuthorizationRequestMessage LoadRequestMessage(
-        HttpContext httpContext,
-        IOpenIdMessageContext messageContext)
-    {
-        IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues;
-        if (HttpMethods.IsGet(httpContext.Request.Method))
-        {
-            parameterStringValues = httpContext.Request.Query;
-        }
-        else if (HttpMethods.IsPost(httpContext.Request.Method))
-        {
-            parameterStringValues = httpContext.Request.Form;
-        }
-        else
-        {
-            throw OpenIdException.Factory
-                .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
-                .WithErrorDescription("TODO: errorDescription")
-                .WithStatusCode(StatusCodes.Status405MethodNotAllowed);
-        }
-
-        return AuthorizationRequestMessage.Load(messageContext, parameterStringValues);
     }
 }

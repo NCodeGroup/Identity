@@ -159,6 +159,7 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
 
         try
         {
+            // this will deserialize the object using: OpenIdMessageJsonConverterFactory => OpenIdMessageJsonConverter => OpenIdMessage.Load
             var requestObject = JsonSerializer.Deserialize<AuthorizationRequestObject>(json, requestMessage.Context.JsonSerializerOptions);
             if (requestObject == null)
                 throw new JsonException("TODO");

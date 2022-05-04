@@ -29,7 +29,7 @@ using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Stores;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Handlers;
+namespace NIdentity.OpenId.Handlers.Authorization;
 
 internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>
 {

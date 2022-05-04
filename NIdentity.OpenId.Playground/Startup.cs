@@ -1,5 +1,6 @@
 using Microsoft.OpenApi.Models;
 using NIdentity.OpenId.Handlers;
+using NIdentity.OpenId.Handlers.Authorization;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Playground.Extensions;

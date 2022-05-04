@@ -55,45 +55,95 @@ internal class AuthorizationRequest : IAuthorizationRequest
      * as specified in Sections 3.1.2.2, 3.2.2.2, or 3.3.2.2.
      */
 
-    public IReadOnlyCollection<string> AcrValues => OriginalRequestObject?.AcrValues ?? OriginalRequestMessage.AcrValues ?? Array.Empty<string>();
+    public IReadOnlyCollection<string> AcrValues =>
+        OriginalRequestObject?.AcrValues ??
+        OriginalRequestMessage.AcrValues ??
+        Array.Empty<string>();
 
-    public IRequestClaims? Claims => OriginalRequestObject?.Claims ?? OriginalRequestMessage.Claims;
+    public IRequestClaims? Claims =>
+        OriginalRequestObject?.Claims ??
+        OriginalRequestMessage.Claims;
 
-    public IReadOnlyCollection<string> ClaimsLocales => OriginalRequestObject?.ClaimsLocales ?? OriginalRequestMessage.ClaimsLocales ?? Array.Empty<string>();
+    public IReadOnlyCollection<string> ClaimsLocales =>
+        OriginalRequestObject?.ClaimsLocales ??
+        OriginalRequestMessage.ClaimsLocales ??
+        Array.Empty<string>();
 
     public Client Client { get; }
 
-    public string ClientId => OriginalRequestObject?.ClientId ?? OriginalRequestMessage.ClientId ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ClientId);
+    public string ClientId =>
+        OriginalRequestObject?.ClientId ??
+        OriginalRequestMessage.ClientId ??
+        throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ClientId);
 
-    public string? CodeChallenge => OriginalRequestObject?.CodeChallenge ?? OriginalRequestMessage.CodeChallenge;
+    public string? CodeChallenge =>
+        OriginalRequestObject?.CodeChallenge ??
+        OriginalRequestMessage.CodeChallenge;
 
-    public CodeChallengeMethod CodeChallengeMethod => OriginalRequestObject?.CodeChallengeMethod ?? OriginalRequestMessage.CodeChallengeMethod ?? CodeChallengeMethod.Plain;
+    public CodeChallengeMethod CodeChallengeMethod =>
+        OriginalRequestObject?.CodeChallengeMethod ??
+        OriginalRequestMessage.CodeChallengeMethod ??
+        CodeChallengeMethod.Plain;
 
-    public string? CodeVerifier => OriginalRequestObject?.CodeVerifier ?? OriginalRequestMessage.CodeVerifier;
+    public string? CodeVerifier =>
+        OriginalRequestObject?.CodeVerifier ??
+        OriginalRequestMessage.CodeVerifier;
 
-    public DisplayType DisplayType => OriginalRequestObject?.DisplayType ?? OriginalRequestMessage.DisplayType ?? DisplayType.Page;
+    public DisplayType DisplayType =>
+        OriginalRequestObject?.DisplayType ??
+        OriginalRequestMessage.DisplayType ??
+        DisplayType.Page;
 
-    public GrantType GrantType => DetermineGrantType(ResponseType);
+    public GrantType GrantType =>
+        DetermineGrantType(ResponseType);
 
-    public string? IdTokenHint => OriginalRequestObject?.IdTokenHint ?? OriginalRequestMessage.IdTokenHint;
+    public string? IdTokenHint =>
+        OriginalRequestObject?.IdTokenHint ??
+        OriginalRequestMessage.IdTokenHint;
 
-    public string? LoginHint => OriginalRequestObject?.LoginHint ?? OriginalRequestMessage.LoginHint;
+    public string? LoginHint =>
+        OriginalRequestObject?.LoginHint ??
+        OriginalRequestMessage.LoginHint;
 
-    public TimeSpan? MaxAge => OriginalRequestObject?.MaxAge ?? OriginalRequestMessage.MaxAge;
+    public TimeSpan? MaxAge =>
+        OriginalRequestObject?.MaxAge ??
+        OriginalRequestMessage.MaxAge;
 
-    public string? Nonce => OriginalRequestObject?.Nonce ?? OriginalRequestMessage.Nonce;
+    public string? Nonce =>
+        OriginalRequestObject?.Nonce ??
+        OriginalRequestMessage.Nonce;
 
-    public PromptTypes PromptType => OriginalRequestObject?.PromptType ?? OriginalRequestMessage.PromptType ?? PromptTypes.Unspecified;
+    public PromptTypes PromptType =>
+        OriginalRequestObject?.PromptType ??
+        OriginalRequestMessage.PromptType ??
+        PromptTypes.Unspecified;
 
-    public Uri RedirectUri => OriginalRequestObject?.RedirectUri ?? OriginalRequestMessage.RedirectUri ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
+    public Uri RedirectUri =>
+        OriginalRequestObject?.RedirectUri ??
+        OriginalRequestMessage.RedirectUri ??
+        throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
 
-    public ResponseMode ResponseMode => OriginalRequestObject?.ResponseMode ?? OriginalRequestMessage.ResponseMode ?? DetermineDefaultResponseNode(GrantType);
+    public ResponseMode ResponseMode =>
+        OriginalRequestObject?.ResponseMode ??
+        OriginalRequestMessage.ResponseMode ??
+        DetermineDefaultResponseNode(GrantType);
 
-    public ResponseTypes ResponseType => OriginalRequestObject?.ResponseType ?? OriginalRequestMessage.ResponseType ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
+    public ResponseTypes ResponseType =>
+        OriginalRequestObject?.ResponseType ??
+        OriginalRequestMessage.ResponseType ??
+        throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
 
-    public IReadOnlyCollection<string> Scopes => OriginalRequestObject?.Scopes ?? OriginalRequestMessage.Scopes ?? throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
+    public IReadOnlyCollection<string> Scopes =>
+        OriginalRequestObject?.Scopes ??
+        OriginalRequestMessage.Scopes ??
+        throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
 
-    public string? State => OriginalRequestObject?.State ?? OriginalRequestMessage.State;
+    public string? State =>
+        OriginalRequestObject?.State ??
+        OriginalRequestMessage.State;
 
-    public IReadOnlyCollection<string> UiLocales => OriginalRequestObject?.UiLocales ?? OriginalRequestMessage.UiLocales ?? Array.Empty<string>();
+    public IReadOnlyCollection<string> UiLocales =>
+        OriginalRequestObject?.UiLocales ??
+        OriginalRequestMessage.UiLocales ??
+        Array.Empty<string>();
 }

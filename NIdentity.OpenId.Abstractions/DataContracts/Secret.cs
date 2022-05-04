@@ -13,7 +13,7 @@ public class Secret : ISupportId
     /// <summary>
     /// Gets or sets the natural key for this entity.
     /// </summary>
-    public string KeyId { get; set; } = null!;
+    public string KeyId { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value that specifies how <see cref="EncodedValue"/> is encoded to/from a string. Examples values are:
@@ -26,7 +26,7 @@ public class Secret : ISupportId
     ///     </item>
     /// </list>
     /// </summary>
-    public string EncodingType { get; set; } = null!;
+    public string EncodingType { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value that specifies the cryptographic algorithm used by the secret. Examples values are:
@@ -51,7 +51,7 @@ public class Secret : ISupportId
     ///     </item>
     /// </list>
     /// </summary>
-    public string AlgorithmType { get; set; } = null!;
+    public string AlgorithmType { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value that specifies the type of secret. Examples values are:
@@ -70,10 +70,10 @@ public class Secret : ISupportId
     ///     </item>
     /// </list>
     /// </summary>
-    public string SecretType { get; set; } = null!;
+    public string SecretType { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the encoded value of the secret.
     /// </summary>
-    public string EncodedValue { get; set; } = null!;
+    public string EncodedValue { get; set; } = string.Empty;
 }

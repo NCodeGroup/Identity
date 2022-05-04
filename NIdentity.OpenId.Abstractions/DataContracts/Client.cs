@@ -14,13 +14,13 @@ public class Client : ISupportId, ISupportConcurrencyToken
 
     /// <inheritdoc/>
     [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    public string ConcurrencyToken { get; set; } = null!;
+    public string ConcurrencyToken { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the natural key for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string ClientId { get; set; } = null!;
+    public string ClientId { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value indicating whether the client is disabled.
@@ -36,12 +36,12 @@ public class Client : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the collection of secrets only known to the application and the authorization server.
     /// </summary>
-    public IList<Secret> Secrets { get; set; } = null!;
+    public IList<Secret> Secrets { get; set; } = new List<Secret>();
 
     /// <summary>
     /// Gets or sets the collection of redirect addresses registered for this client.
     /// </summary>
-    public IList<Uri> RedirectUris { get; set; } = null!;
+    public IList<Uri> RedirectUris { get; set; } = new List<Uri>();
 
     /// <summary>
     /// Gets or sets a value indicating whether the loopback address (i.e. 127.0.0.1 or localhost) is allowed to be

@@ -121,9 +121,9 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         throw new JsonException("TODO");
     }
 
-    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, T? message, JsonSerializerOptions options)
     {
-        if (value == null)
+        if (message == null)
         {
             writer.WriteNullValue();
             return;
@@ -131,7 +131,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
 
         writer.WriteStartObject();
 
-        foreach (var parameter in value.Parameters.Values)
+        foreach (var parameter in message.Parameters.Values)
         {
             // TODO: use ParameterLoader/Parser to serialize
             var stringValue = string.Join(OpenIdConstants.ParameterSeparator, parameter.StringValues.AsEnumerable());

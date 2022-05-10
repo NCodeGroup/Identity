@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages.Authorization;
 
 #pragma warning disable 1572 // GetAuthorizationRequest.cs(33, 22): [CS1572] XML comment has a param tag for 'HttpContext', but there is no parameter by that name

@@ -17,20 +17,25 @@
 
 #endregion
 
-using Microsoft.Extensions.DependencyInjection;
+namespace NIdentity.OpenId.Mediator;
 
-namespace NIdentity.OpenId.Endpoints;
-
-public interface IOpenIdEndpointHandlerProvider<TProvider>
+internal interface IRequestHandlerWrapper
 {
-    IOpenIdEndpointHandler CreateHandler(IServiceProvider serviceProvider);
+    ValueTask HandleAsync(IRequest request, CancellationToken cancellationToken);
 }
 
-internal class OpenIdEndpointHandlerProvider<TProvider, THandler> : IOpenIdEndpointHandlerProvider<TProvider>
-    where THandler : IOpenIdEndpointHandler
+internal class RequestHandlerWrapper<TRequest> : IRequestHandlerWrapper
+    where TRequest : IRequest
 {
-    public IOpenIdEndpointHandler CreateHandler(IServiceProvider serviceProvider)
+    private IEnumerable<IRequestHandler<TRequest>> Handlers { get; }
+
+    public RequestHandlerWrapper(IEnumerable<IRequestHandler<TRequest>> handlers) => Handlers = handlers;
+
+    public async ValueTask HandleAsync(IRequest request, CancellationToken cancellationToken)
     {
-        return serviceProvider.GetRequiredService<THandler>();
+        foreach (var handler in Handlers)
+        {
+            await handler.HandleAsync((TRequest)request, cancellationToken);
+        }
     }
 }

@@ -18,20 +18,17 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Requests.Authorization;
 
 namespace NIdentity.OpenId.Endpoints.Authorization;
 
 internal class AuthorizationEndpointProvider : IOpenIdEndpointProvider
 {
     private IOpenIdEndpointFactory EndpointFactory { get; }
-    private IOpenIdEndpointHandlerProvider<AuthorizationEndpointProvider> HandlerProvider { get; }
 
-    public AuthorizationEndpointProvider(
-        IOpenIdEndpointFactory endpointFactory,
-        IOpenIdEndpointHandlerProvider<AuthorizationEndpointProvider> handlerProvider)
+    public AuthorizationEndpointProvider(IOpenIdEndpointFactory endpointFactory)
     {
         EndpointFactory = endpointFactory;
-        HandlerProvider = handlerProvider;
     }
 
     public Endpoint CreateEndpoint()
@@ -46,9 +43,6 @@ internal class AuthorizationEndpointProvider : IOpenIdEndpointProvider
             OpenIdConstants.EndpointNames.Authorization,
             OpenIdConstants.EndpointPaths.Authorization,
             httpMethods,
-            HandlerFactory);
+            httpContext => new AuthorizationEndpointRequest(httpContext));
     }
-
-    private IOpenIdEndpointHandler HandlerFactory(IServiceProvider serviceProvider) =>
-        HandlerProvider.CreateHandler(serviceProvider);
 }

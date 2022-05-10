@@ -17,16 +17,21 @@
 
 #endregion
 
-using NIdentity.OpenId.Handlers;
-using NIdentity.OpenId.Requests;
-using NIdentity.OpenId.Results;
-
-namespace NIdentity.OpenId.Endpoints;
+namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Defines a handler that accepts an <see cref="OpenIdEndpointRequest"/> input argument and returns an <see cref="IHttpResult"/>.
+/// Defines the request contract used by request handlers that don't return a value.
 /// </summary>
-public interface IOpenIdEndpointHandler : IRequestResponseHandler<OpenIdEndpointRequest, IHttpResult>
+public interface IRequest
+{
+    // nothing
+}
+
+/// <summary>
+/// Defines the request contract used by request handlers that return a value.
+/// </summary>
+/// <typeparam name="TResponse">The type of the return value.</typeparam>
+public interface IRequest<out TResponse>
 {
     // nothing
 }

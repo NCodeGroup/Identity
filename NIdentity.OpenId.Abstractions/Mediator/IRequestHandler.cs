@@ -17,9 +17,7 @@
 
 #endregion
 
-using NIdentity.OpenId.Requests;
-
-namespace NIdentity.OpenId.Handlers;
+namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
 /// Defines a handler that accepts an input argument and doesn't return anything.

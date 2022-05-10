@@ -8,7 +8,7 @@ using NIdentity.OpenId.Validation;
 namespace NIdentity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Provides the ability parse and load JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
+/// Provides the ability to parse and load JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
 /// </summary>
 public interface IJsonParser
 {

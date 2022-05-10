@@ -1,7 +1,7 @@
 ﻿#region Copyright Preamble
 
 //
-//    Copyright @ 2021 NCode Group
+//    Copyright @ 2022 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,21 +17,14 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Requests;
+namespace NIdentity.OpenId.Endpoints.Discovery;
 
-/// <summary>
-/// Defines the request contract used by request handlers that don't return a value.
-/// </summary>
-public interface IRequest
+public interface ISuppressDiscoveryMetadata
 {
-    // nothing
+    bool SuppressDiscovery { get; }
 }
 
-/// <summary>
-/// Defines the request contract used by request handlers that return a value.
-/// </summary>
-/// <typeparam name="TResponse">The type of the return value.</typeparam>
-public interface IRequest<out TResponse>
+public class SuppressDiscoveryMetadata : ISuppressDiscoveryMetadata
 {
-    // nothing
+    public bool SuppressDiscovery { get; init; }
 }

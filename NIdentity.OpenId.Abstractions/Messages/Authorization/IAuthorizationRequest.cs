@@ -25,7 +25,7 @@ namespace NIdentity.OpenId.Messages.Authorization;
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request after combining
 /// values from the request message and request object.
 /// </summary>
-public interface IAuthorizationRequest
+public interface IAuthorizationRequest : ISupportState
 {
     /// <summary>
     /// Gets the <see cref="IAuthorizationRequestMessage"/> which represents the OAuth request message.
@@ -133,11 +133,6 @@ public interface IAuthorizationRequest
     /// Gets the <c>scope</c> parameter.
     /// </summary>
     IReadOnlyCollection<string> Scopes { get; }
-
-    /// <summary>
-    /// Gets the <c>state</c> parameter.
-    /// </summary>
-    string? State { get; }
 
     /// <summary>
     /// Gets the <c>ui_locales</c> parameter.

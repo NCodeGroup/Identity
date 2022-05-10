@@ -18,54 +18,43 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Logic;
+using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Requests;
+using NIdentity.OpenId.Requests.Authorization;
 using NIdentity.OpenId.Results;
-using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Handlers.Authorization;
+namespace NIdentity.OpenId.Endpoints.Authorization;
 
-internal class ProcessAuthorizationEndpointHandler : OpenIdEndpointHandler<ProcessAuthorizationEndpoint>
+internal class AuthorizationEndpointHandler : IOpenIdEndpointHandler
 {
+    private IHttpResultFactory HttpResultFactory { get; }
     private IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> GetAuthorizationRequestHandler { get; }
     private IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> ValidateAuthorizationRequestHandlers { get; }
 
-    public ProcessAuthorizationEndpointHandler(
-        IExceptionService exceptionService,
+    public AuthorizationEndpointHandler(
         IHttpResultFactory httpResultFactory,
         IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest> getAuthorizationRequestHandler,
         IEnumerable<IRequestHandler<ValidateAuthorizationRequest>> validateAuthorizationRequestHandlers)
-        : base(exceptionService, httpResultFactory)
     {
+        HttpResultFactory = httpResultFactory;
         GetAuthorizationRequestHandler = getAuthorizationRequestHandler;
         ValidateAuthorizationRequestHandlers = validateAuthorizationRequestHandlers;
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<IHttpResult> HandleAsync(HttpContext httpContext, CancellationToken cancellationToken)
+    public async ValueTask<IHttpResult> HandleAsync(OpenIdEndpointRequest request, CancellationToken cancellationToken)
     {
-        IAuthorizationRequest? authorizationRequest = null;
+        var authorizationRequest = await GetAuthorizationRequestAsync(request.HttpContext, cancellationToken);
         try
         {
-            authorizationRequest = await GetAuthorizationRequestAsync(httpContext, cancellationToken);
+            await ValidateAuthorizationRequestAsync(authorizationRequest, cancellationToken);
 
-            return await HandleAuthorizationRequestAsync(authorizationRequest, cancellationToken);
+            return await GetAuthorizationResponseAsync(authorizationRequest, cancellationToken);
         }
         catch (Exception exception)
         {
-            if (exception is not OpenIdException openIdException)
-            {
-                openIdException = OpenIdException.Factory.Create(OpenIdConstants.ErrorCodes.ServerError, exception);
-            }
-
-            var state = authorizationRequest?.State;
-            if (!string.IsNullOrEmpty(state))
-            {
-                openIdException.WithExtensionData(OpenIdConstants.Parameters.State, state);
-            }
-
-            return ExceptionService.GetHttpResultForException(openIdException);
+            throw authorizationRequest.AnnotateExceptionWithState(exception);
         }
     }
 
@@ -86,10 +75,8 @@ internal class ProcessAuthorizationEndpointHandler : OpenIdEndpointHandler<Proce
         }
     }
 
-    private async ValueTask<IHttpResult> HandleAuthorizationRequestAsync(IAuthorizationRequest authorizationRequest, CancellationToken cancellationToken)
+    private async ValueTask<IHttpResult> GetAuthorizationResponseAsync(IAuthorizationRequest authorizationRequest, CancellationToken cancellationToken)
     {
-        await ValidateAuthorizationRequestAsync(authorizationRequest, cancellationToken);
-
         // TODO
 
         return HttpResultFactory.Ok();

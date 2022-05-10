@@ -32,4 +32,4 @@ namespace NIdentity.OpenId.Requests;
 /// input argument and expects <see cref="IHttpResult"/> as a response.
 /// </summary>
 /// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
-public abstract record ProcessHttpEndpoint(HttpContext HttpContext) : IRequest<IHttpResult>;
+public record OpenIdEndpointRequest(HttpContext HttpContext) : IRequest<IHttpResult>;

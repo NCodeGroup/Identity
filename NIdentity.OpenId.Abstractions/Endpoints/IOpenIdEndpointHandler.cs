@@ -17,17 +17,16 @@
 
 #endregion
 
+using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Handlers;
+namespace NIdentity.OpenId.Endpoints;
 
 /// <summary>
-/// Defines a handler that accepts an input argument derived from <see cref="ProcessHttpEndpoint"/>> and returns an <see cref="IHttpResult"/>.
+/// Defines a handler that accepts an <see cref="OpenIdEndpointRequest"/> input argument and returns an <see cref="IHttpResult"/>.
 /// </summary>
-/// <typeparam name="TRequest">The type of input argument which must derive from <see cref="ProcessHttpEndpoint"/>.</typeparam>
-public interface IHttpEndpointHandler<in TRequest> : IRequestResponseHandler<TRequest, IHttpResult>
-    where TRequest : ProcessHttpEndpoint
+public interface IOpenIdEndpointHandler : IRequestResponseHandler<OpenIdEndpointRequest, IHttpResult>
 {
     // nothing
 }

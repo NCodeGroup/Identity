@@ -24,4 +24,8 @@
         <ProjectReference Include="..\NIdentity.OpenId.Core\NIdentity.OpenId.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Handlers" />
+    </ItemGroup>
+
 </Project>

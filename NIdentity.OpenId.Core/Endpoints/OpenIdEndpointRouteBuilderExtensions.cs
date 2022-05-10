@@ -17,21 +17,19 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Requests;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
-/// <summary>
-/// Defines the request contract used by request handlers that don't return a value.
-/// </summary>
-public interface IRequest
-{
-    // nothing
-}
+namespace NIdentity.OpenId.Endpoints;
 
-/// <summary>
-/// Defines the request contract used by request handlers that return a value.
-/// </summary>
-/// <typeparam name="TResponse">The type of the return value.</typeparam>
-public interface IRequest<out TResponse>
+internal static class OpenIdEndpointRouteBuilderExtensions
 {
-    // nothing
+    public static IEndpointRouteBuilder MapOpenId(this IEndpointRouteBuilder endpointRouteBuilder)
+    {
+        var serviceProvider = endpointRouteBuilder.ServiceProvider;
+        var collectionProvider = serviceProvider.GetRequiredService<IOpenIdEndpointCollectionProvider>();
+        var endpointDataSource = new DefaultEndpointDataSource(collectionProvider.OpenIdEndpoints);
+        endpointRouteBuilder.DataSources.Add(endpointDataSource);
+        return endpointRouteBuilder;
+    }
 }

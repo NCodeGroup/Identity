@@ -1,7 +1,7 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
-//    Copyright @ 2021 NCode Group
+//    Copyright @ 2022 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,21 +17,20 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Requests;
+using Microsoft.Extensions.DependencyInjection;
 
-/// <summary>
-/// Defines the request contract used by request handlers that don't return a value.
-/// </summary>
-public interface IRequest
+namespace NIdentity.OpenId.Endpoints;
+
+public interface IOpenIdEndpointHandlerProvider<TProvider>
 {
-    // nothing
+    IOpenIdEndpointHandler CreateHandler(IServiceProvider serviceProvider);
 }
 
-/// <summary>
-/// Defines the request contract used by request handlers that return a value.
-/// </summary>
-/// <typeparam name="TResponse">The type of the return value.</typeparam>
-public interface IRequest<out TResponse>
+internal class OpenIdEndpointHandlerProvider<TProvider, THandler> : IOpenIdEndpointHandlerProvider<TProvider>
+    where THandler : IOpenIdEndpointHandler
 {
-    // nothing
+    public IOpenIdEndpointHandler CreateHandler(IServiceProvider serviceProvider)
+    {
+        return serviceProvider.GetRequiredService<THandler>();
+    }
 }

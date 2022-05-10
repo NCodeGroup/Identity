@@ -21,6 +21,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.Extensions.DependencyInjection;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Requests;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -31,7 +33,7 @@ public interface IOpenIdEndpointFactory
         string name,
         string path,
         IEnumerable<string> httpMethods,
-        Func<IServiceProvider, IOpenIdEndpointHandler> handlerFactory,
+        Func<HttpContext, OpenIdEndpointRequest> requestFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default);
 }
 
@@ -41,7 +43,7 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         string name,
         string path,
         IEnumerable<string> httpMethods,
-        Func<IServiceProvider, IOpenIdEndpointHandler> handlerFactory,
+        Func<HttpContext, OpenIdEndpointRequest> requestFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default)
     {
         var conventions = new List<Action<EndpointBuilder>>();
@@ -57,8 +59,9 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 
         async Task RequestDelegate(HttpContext httpContext)
         {
-            var handler = handlerFactory(httpContext.RequestServices);
-            var result = await handler.HandleAsync(new OpenIdEndpointRequest(httpContext), httpContext.RequestAborted);
+            var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
+            var request = requestFactory(httpContext);
+            var result = await mediator.SendAsync(request, httpContext.RequestAborted);
             await result.ExecuteAsync(httpContext);
         }
 

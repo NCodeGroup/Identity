@@ -18,7 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
-using NIdentity.OpenId.Handlers;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Requests.Authorization;
 using NIdentity.OpenId.Validation;

@@ -18,18 +18,21 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection;
+using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Requests;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints;
 
 public static class OpenIdEndpointServiceCollectionExtensions
 {
-    public static IServiceCollection AddOpenIdEndpoint<TProvider, THandler>(this IServiceCollection services)
+    public static IServiceCollection AddOpenIdEndpoint<TProvider, THandler, TRequest>(this IServiceCollection services)
         where TProvider : class, IOpenIdEndpointProvider
-        where THandler : class, IOpenIdEndpointHandler
+        where THandler : class, IRequestResponseHandler<TRequest, IHttpResult>
+        where TRequest : OpenIdEndpointRequest
     {
-        services.AddTransient<IOpenIdEndpointHandlerProvider<TProvider>, OpenIdEndpointHandlerProvider<TProvider, THandler>>();
         services.AddTransient<IOpenIdEndpointProvider, TProvider>();
-        services.AddTransient<THandler>();
+        services.AddTransient<IRequestResponseHandler<TRequest, IHttpResult>, THandler>();
         return services;
     }
 }

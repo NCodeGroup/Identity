@@ -1,7 +1,7 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
-//    Copyright @ 2021 NCode Group
+//    Copyright @ 2022 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,14 +18,13 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Requests;
+namespace NIdentity.OpenId.Requests.Authorization;
 
 /// <summary>
-/// Defines an <see cref="IRequest{TResponse}"/> contract that accepts a <see cref="HttpContext"/> as an
+/// Defines a <see cref="OpenIdEndpointRequest"/> contract that accepts a <see cref="HttpContext"/> as an
 /// input argument and expects <see cref="IHttpResult"/> as a response.
 /// </summary>
 /// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
-public abstract record OpenIdEndpointRequest(HttpContext HttpContext) : IRequest<IHttpResult>;
+public record AuthorizationEndpointRequest(HttpContext HttpContext) : OpenIdEndpointRequest(HttpContext);

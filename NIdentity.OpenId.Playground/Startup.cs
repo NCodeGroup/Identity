@@ -3,9 +3,10 @@ using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization;
 using NIdentity.OpenId.Endpoints.Discovery;
 using NIdentity.OpenId.Logic;
-using NIdentity.OpenId.Playground.Extensions;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Playground.Results;
 using NIdentity.OpenId.Playground.Stores;
+using NIdentity.OpenId.Requests.Discovery;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Stores;
 
@@ -38,11 +39,12 @@ internal class Startup
         services.AddTransient<IJwtDecoder, JwtSecurityTokenDecoder>();
         services.AddTransient<IClientStore, NullClientStore>();
 
+        services.AddSingleton<IMediator, MediatorImpl>();
         services.AddSingleton<IOpenIdEndpointFactory, OpenIdEndpointFactory>();
         services.AddSingleton<IOpenIdEndpointCollectionProvider, OpenIdEndpointCollectionProvider>();
 
         services.AddAuthorizationEndpoint();
-        services.AddOpenIdEndpoint<DiscoveryEndpointProvider, DiscoveryEndpointHandler>();
+        services.AddOpenIdEndpoint<DiscoveryEndpointProvider, DiscoveryEndpointHandler, DiscoveryEndpointRequest>();
 
         services.AddControllers();
         services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "NIdentity.OpenId.Playground", Version = "v1" }); });

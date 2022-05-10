@@ -19,20 +19,17 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Requests.Discovery;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
 
 internal class DiscoveryEndpointProvider : IOpenIdEndpointProvider
 {
     private IOpenIdEndpointFactory EndpointFactory { get; }
-    private IOpenIdEndpointHandlerProvider<DiscoveryEndpointProvider> HandlerProvider { get; }
 
-    public DiscoveryEndpointProvider(
-        IOpenIdEndpointFactory endpointFactory,
-        IOpenIdEndpointHandlerProvider<DiscoveryEndpointProvider> handlerProvider)
+    public DiscoveryEndpointProvider(IOpenIdEndpointFactory endpointFactory)
     {
         EndpointFactory = endpointFactory;
-        HandlerProvider = handlerProvider;
     }
 
     public Endpoint CreateEndpoint()
@@ -51,10 +48,7 @@ internal class DiscoveryEndpointProvider : IOpenIdEndpointProvider
             OpenIdConstants.EndpointNames.Discovery,
             OpenIdConstants.EndpointPaths.Discovery,
             httpMethods,
-            HandlerFactory,
+            httpContext => new DiscoveryEndpointRequest(httpContext),
             builder => builder.WithMetadata(suppressDiscoveryMetadata));
     }
-
-    private IOpenIdEndpointHandler HandlerFactory(IServiceProvider serviceProvider) =>
-        HandlerProvider.CreateHandler(serviceProvider);
 }

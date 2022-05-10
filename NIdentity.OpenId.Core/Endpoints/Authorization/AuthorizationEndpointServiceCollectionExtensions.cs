@@ -19,7 +19,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Endpoints.Authorization.Handlers;
-using NIdentity.OpenId.Handlers;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Requests.Authorization;
 
@@ -29,7 +29,7 @@ public static class AuthorizationEndpointServiceCollectionExtensions
 {
     public static IServiceCollection AddAuthorizationEndpoint(this IServiceCollection services)
     {
-        services.AddOpenIdEndpoint<AuthorizationEndpointProvider, AuthorizationEndpointHandler>();
+        services.AddOpenIdEndpoint<AuthorizationEndpointProvider, AuthorizationEndpointHandler, AuthorizationEndpointRequest>();
 
         services.AddTransient<IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>, GetAuthorizationRequestHandler>();
         services.AddTransient<IRequestHandler<ValidateAuthorizationRequest>, ValidateAuthorizationRequestHandler>();

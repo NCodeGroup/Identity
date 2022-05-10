@@ -18,12 +18,13 @@
 #endregion
 
 using Microsoft.AspNetCore.Routing;
-using NIdentity.OpenId.Requests;
+using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Requests.Discovery;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
 
-internal class DiscoveryEndpointHandler : IOpenIdEndpointHandler
+internal class DiscoveryEndpointHandler : IRequestResponseHandler<DiscoveryEndpointRequest, IHttpResult>
 {
     private LinkGenerator LinkGenerator { get; }
     private IOpenIdEndpointCollectionProvider OpenIdEndpointCollectionProvider { get; }
@@ -39,7 +40,7 @@ internal class DiscoveryEndpointHandler : IOpenIdEndpointHandler
         HttpResultFactory = httpResultFactory;
     }
 
-    public async ValueTask<IHttpResult> HandleAsync(OpenIdEndpointRequest request, CancellationToken cancellationToken)
+    public async ValueTask<IHttpResult> HandleAsync(DiscoveryEndpointRequest request, CancellationToken cancellationToken)
     {
         var routeValues = new { };
         var httpContext = request.HttpContext;

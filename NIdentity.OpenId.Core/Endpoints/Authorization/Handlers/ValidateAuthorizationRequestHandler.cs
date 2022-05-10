@@ -18,11 +18,12 @@
 #endregion
 
 using JetBrains.Annotations;
+using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Messages.Authorization;
-using NIdentity.OpenId.Requests;
+using NIdentity.OpenId.Requests.Authorization;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Handlers.Authorization;
+namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
 internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAuthorizationRequest>
 {

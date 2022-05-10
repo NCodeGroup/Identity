@@ -21,15 +21,16 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Handlers;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Options;
-using NIdentity.OpenId.Requests;
+using NIdentity.OpenId.Requests.Authorization;
 using NIdentity.OpenId.Stores;
 using NIdentity.OpenId.Validation;
 
-namespace NIdentity.OpenId.Handlers.Authorization;
+namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
 internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>
 {
@@ -66,21 +67,15 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         var requestMessage = AuthorizationRequestMessage.Load(messageContext);
         try
         {
-            return await LoadRequestAsync(requestMessage, cancellationToken);
+            return await LoadCompositeRequestAsync(requestMessage, cancellationToken);
         }
-        catch (OpenIdException exception)
+        catch (Exception exception)
         {
-            var state = requestMessage.State;
-            if (!string.IsNullOrEmpty(state))
-            {
-                exception.WithExtensionData(OpenIdConstants.Parameters.State, state);
-            }
-
-            throw;
+            throw requestMessage.AnnotateExceptionWithState(exception);
         }
     }
 
-    private async ValueTask<IAuthorizationRequest> LoadRequestAsync(
+    private async ValueTask<IAuthorizationRequest> LoadCompositeRequestAsync(
         IAuthorizationRequestMessage requestMessage,
         CancellationToken cancellationToken)
     {

@@ -1,13 +1,11 @@
 using Microsoft.OpenApi.Models;
-using NIdentity.OpenId.Handlers;
-using NIdentity.OpenId.Handlers.Authorization;
+using NIdentity.OpenId.Endpoints;
+using NIdentity.OpenId.Endpoints.Authorization;
+using NIdentity.OpenId.Endpoints.Discovery;
 using NIdentity.OpenId.Logic;
-using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Playground.Extensions;
-using NIdentity.OpenId.Playground.Handlers;
 using NIdentity.OpenId.Playground.Results;
 using NIdentity.OpenId.Playground.Stores;
-using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Stores;
 
@@ -40,17 +38,14 @@ internal class Startup
         services.AddTransient<IJwtDecoder, JwtSecurityTokenDecoder>();
         services.AddTransient<IClientStore, NullClientStore>();
 
-        services.AddTransient<IHttpEndpointHandler<ProcessTestEndpoint>, ProcessTestEndpointHandler>();
-        services.AddTransient<IHttpEndpointHandler<ProcessAuthorizationEndpoint>, ProcessAuthorizationEndpointHandler>();
+        services.AddSingleton<IOpenIdEndpointFactory, OpenIdEndpointFactory>();
+        services.AddSingleton<IOpenIdEndpointCollectionProvider, OpenIdEndpointCollectionProvider>();
 
-        services.AddTransient<IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>, GetAuthorizationRequestHandler>();
-        services.AddTransient<IRequestHandler<ValidateAuthorizationRequest>, ValidateAuthorizationRequestHandler>();
+        services.AddAuthorizationEndpoint();
+        services.AddOpenIdEndpoint<DiscoveryEndpointProvider, DiscoveryEndpointHandler>();
 
         services.AddControllers();
-        services.AddSwaggerGen(c =>
-        {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "NIdentity.OpenId.Playground", Version = "v1" });
-        });
+        services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "NIdentity.OpenId.Playground", Version = "v1" }); });
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -70,8 +65,7 @@ internal class Startup
 
         app.UseEndpoints(endpoints =>
         {
-            endpoints.MapGet("/test", httpContext => new ProcessTestEndpoint(httpContext));
-            endpoints.MapMethods("/authorize", HttpVerbs.GetAndPost, httpContext => new ProcessAuthorizationEndpoint(httpContext));
+            endpoints.MapOpenId();
             endpoints.MapControllers();
         });
     }

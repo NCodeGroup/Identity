@@ -127,9 +127,6 @@ internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAut
         if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
             throw OpenIdException.Factory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.");
 
-        if (request.Client.IsDisabled)
-            throw OpenIdException.Factory.UnauthorizedClient("The client is disabled.");
-
         if (!redirectUris.Contains(request.RedirectUri) && !(request.Client.AllowLoopback && request.RedirectUri.IsLoopback))
             throw OpenIdException.Factory.InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.");
 

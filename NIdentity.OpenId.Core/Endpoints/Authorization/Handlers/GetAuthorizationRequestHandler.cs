@@ -67,7 +67,11 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         var requestMessage = AuthorizationRequestMessage.Load(messageContext);
         try
         {
-            return await LoadCompositeRequestAsync(requestMessage, cancellationToken);
+            var client = await LoadEnabledClientAsync(requestMessage, cancellationToken);
+
+            var requestObject = await LoadRequestObjectAsync(requestMessage, client, cancellationToken);
+
+            return new AuthorizationRequest(requestMessage, requestObject, client);
         }
         catch (Exception exception)
         {
@@ -75,7 +79,7 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
         }
     }
 
-    private async ValueTask<IAuthorizationRequest> LoadCompositeRequestAsync(
+    private async Task<Client> LoadEnabledClientAsync(
         IAuthorizationRequestMessage requestMessage,
         CancellationToken cancellationToken)
     {
@@ -85,11 +89,12 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
 
         var client = await ClientStore.GetByClientIdAsync(clientId, cancellationToken);
         if (client == null)
-            throw OpenIdException.Factory.InvalidRequest("TODO: GetByClientIdAsync returned null");
+            throw OpenIdException.Factory.InvalidRequest("The 'client_id' parameter is invalid.");
 
-        var requestObject = await LoadRequestObjectAsync(requestMessage, client, cancellationToken);
+        if (client.IsDisabled)
+            throw OpenIdException.Factory.UnauthorizedClient("The client is disabled.");
 
-        return new AuthorizationRequest(requestMessage, requestObject, client);
+        return client;
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(

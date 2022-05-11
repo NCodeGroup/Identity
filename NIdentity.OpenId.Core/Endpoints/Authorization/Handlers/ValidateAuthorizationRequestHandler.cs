@@ -141,10 +141,14 @@ internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAut
         if (hasCodeChallenge && codeChallengeMethodIsPlain && !request.Client.AllowPlainCodeChallengeMethod)
             throw OpenIdException.Factory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.");
 
-        // TODO: should we have an assertion for grant types?
+        // TODO: check allowed grant types from client configuration
 
-        // TODO: check IdP
-        // https://github.com/IdentityServer/IdentityServer4/blob/main/src/IdentityServer4/src/Validation/Default/AuthorizeRequestValidator.cs#L784
+        // TODO: check allowed scopes from client configuration
+
+        // TODO: check allowed IdP from client configuration
+
+        // TODO: add support for Resource Indicators
+        // https://datatracker.ietf.org/doc/html/rfc8707
 
         // TODO: check session cookie
         // https://github.com/IdentityServer/IdentityServer4/blob/main/src/IdentityServer4/src/Validation/Default/AuthorizeRequestValidator.cs#L801

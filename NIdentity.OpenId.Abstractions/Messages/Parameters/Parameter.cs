@@ -37,7 +37,7 @@ public abstract class Parameter
     public StringValues StringValues { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Parameter"/> struct.
+    /// Initializes a new instance of the <see cref="Parameter"/> class.
     /// </summary>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes this parameter.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> that this parameter was loaded with.</param>

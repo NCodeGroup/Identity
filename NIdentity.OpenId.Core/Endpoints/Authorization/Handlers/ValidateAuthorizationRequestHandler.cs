@@ -25,10 +25,10 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAuthorizationRequest>
+internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAuthorizationRequestRequest>
 {
     /// <inheritdoc />
-    public ValueTask HandleAsync(ValidateAuthorizationRequest request, CancellationToken cancellationToken)
+    public ValueTask HandleAsync(ValidateAuthorizationRequestRequest request, CancellationToken cancellationToken)
     {
         var authorizationRequest = request.AuthorizationRequest;
 

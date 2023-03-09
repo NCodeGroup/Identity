@@ -17,8 +17,10 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Endpoints.Authorization.Handlers;
+using NIdentity.OpenId.Endpoints.Authorization.Requests;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages.Authorization;
 using NIdentity.OpenId.Requests.Authorization;
@@ -31,8 +33,9 @@ public static class AuthorizationEndpointServiceCollectionExtensions
     {
         services.AddOpenIdEndpoint<AuthorizationEndpointProvider, AuthorizationEndpointHandler, AuthorizationEndpointRequest>();
 
-        services.AddTransient<IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>, GetAuthorizationRequestHandler>();
-        services.AddTransient<IRequestHandler<ValidateAuthorizationRequest>, ValidateAuthorizationRequestHandler>();
+        services.AddTransient<IRequestResponseHandler<GetAuthorizationRequestRequest, IAuthorizationRequest>, GetAuthorizationRequestHandler>();
+        services.AddTransient<IRequestHandler<ValidateAuthorizationRequestRequest>, ValidateAuthorizationRequestHandler>();
+        services.AddTransient<IRequestResponseHandler<AuthenticateRequest, AuthenticateResult>, AuthenticateHandler>();
 
         return services;
     }

@@ -33,4 +33,4 @@ namespace NIdentity.OpenId.Requests.Authorization;
 /// input argument and expects <see cref="IAuthorizationRequest"/> as a response.
 /// </summary>
 /// <param name="HttpContext">The <see cref="HttpContext"/> input argument for the request contract.</param>
-public record GetAuthorizationRequest(HttpContext HttpContext) : IRequest<IAuthorizationRequest>;
+public record GetAuthorizationRequestRequest(HttpContext HttpContext) : IRequest<IAuthorizationRequest>;

@@ -32,7 +32,6 @@ internal interface IExceptionService
 internal class ExceptionService : IExceptionService
 {
     private const string DefaultErrorCode = OpenIdConstants.ErrorCodes.ServerError;
-    private const int DefaultStatusCode = StatusCodes.Status500InternalServerError;
 
     private ILogger<ExceptionService> Logger { get; }
     private IHttpResultFactory HttpResultFactory { get; }
@@ -60,8 +59,7 @@ internal class ExceptionService : IExceptionService
             openIdException = OpenIdException.Factory.Create(DefaultErrorCode, exception);
         }
 
-        var statusCode = openIdException.ErrorDetails.StatusCode ?? DefaultStatusCode;
-
+        var statusCode = openIdException.ErrorDetails.StatusCode;
         var httpResult = statusCode switch
         {
             StatusCodes.Status400BadRequest => HttpResultFactory.BadRequest(openIdException.ErrorDetails),

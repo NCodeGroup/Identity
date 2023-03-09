@@ -25,7 +25,7 @@ public class StatusCodeResult : IHttpResult
     public int StatusCode { get; }
 
     /// <inheritdoc />
-    public virtual Task ExecuteAsync(HttpContext httpContext)
+    public virtual ValueTask ExecuteAsync(HttpContext httpContext)
     {
         if (httpContext == null)
             throw new ArgumentNullException(nameof(httpContext));
@@ -34,6 +34,6 @@ public class StatusCodeResult : IHttpResult
 
         httpContext.Response.StatusCode = StatusCode;
 
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

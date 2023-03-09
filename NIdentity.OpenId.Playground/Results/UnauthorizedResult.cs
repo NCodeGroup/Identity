@@ -40,7 +40,7 @@ public class UnauthorizedResult : StatusCodeResult
     public IErrorDetails? ErrorDetails { get; set; }
 
     /// <inheritdoc />
-    public override Task ExecuteAsync(HttpContext httpContext)
+    public override ValueTask ExecuteAsync(HttpContext httpContext)
     {
         if (httpContext == null)
             throw new ArgumentNullException(nameof(httpContext));
@@ -68,6 +68,6 @@ public class UnauthorizedResult : StatusCodeResult
         httpContext.Response.StatusCode = StatusCode;
         httpContext.Response.Headers.Add(HeaderNames.WWWAuthenticate, new StringValues(values.ToArray()));
 
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

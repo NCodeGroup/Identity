@@ -24,7 +24,7 @@ public class NotFoundObjectResult<T> : ObjectResult<T>
     }
 
     /// <inheritdoc />
-    public override Task ExecuteAsync(HttpContext httpContext)
+    public override ValueTask ExecuteAsync(HttpContext httpContext)
     {
         if (httpContext == null)
             throw new ArgumentNullException(nameof(httpContext));

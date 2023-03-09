@@ -47,7 +47,7 @@ public class ObjectResult<T> : IHttpResult
     public int? StatusCode { get; set; }
 
     /// <inheritdoc />
-    public virtual async Task ExecuteAsync(HttpContext httpContext)
+    public virtual async ValueTask ExecuteAsync(HttpContext httpContext)
     {
         if (httpContext == null)
             throw new ArgumentNullException(nameof(httpContext));

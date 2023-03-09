@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Validation;
 
@@ -42,6 +43,8 @@ internal class AuthorizationRequest : IAuthorizationRequest
         grantType == GrantType.AuthorizationCode ?
             ResponseMode.Query :
             ResponseMode.Fragment;
+
+    public HttpContext HttpContext => OriginalRequestMessage.Context.HttpContext;
 
     public IAuthorizationRequestMessage OriginalRequestMessage { get; }
 

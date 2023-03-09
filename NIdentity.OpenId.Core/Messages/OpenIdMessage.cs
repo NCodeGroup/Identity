@@ -136,9 +136,10 @@ internal abstract class OpenIdMessage<T> : OpenIdMessage
         return Load(context, parameters);
     }
 
-    public static T Load(IOpenIdMessageContext messageContext)
+    public static async ValueTask<T> LoadAsync(IOpenIdMessageContext messageContext, CancellationToken cancellationToken)
     {
         var httpRequest = messageContext.HttpContext.Request;
+
         IEnumerable<KeyValuePair<string, StringValues>> parameterStringValues;
         if (HttpMethods.IsGet(httpRequest.Method))
         {
@@ -146,13 +147,21 @@ internal abstract class OpenIdMessage<T> : OpenIdMessage
         }
         else if (HttpMethods.IsPost(httpRequest.Method))
         {
-            parameterStringValues = httpRequest.Form;
+            const string expectedContentType = "application/x-www-form-urlencoded";
+            if (!httpRequest.ContentType?.StartsWith(expectedContentType, StringComparison.OrdinalIgnoreCase) ?? false)
+            {
+                throw OpenIdException.Factory
+                    .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
+                    .WithErrorDescription($"The content type of the request must be '{expectedContentType}'. Received '{httpRequest.ContentType}'.")
+                    .WithStatusCode(StatusCodes.Status415UnsupportedMediaType);
+            }
+
+            parameterStringValues = await httpRequest.ReadFormAsync(cancellationToken);
         }
         else
         {
             throw OpenIdException.Factory
                 .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
-                .WithErrorDescription("TODO: errorDescription")
                 .WithStatusCode(StatusCodes.Status405MethodNotAllowed);
         }
 

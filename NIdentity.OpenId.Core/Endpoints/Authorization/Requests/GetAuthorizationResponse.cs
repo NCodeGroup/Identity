@@ -17,25 +17,14 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Authentication;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages.Authorization;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Endpoints.Authorization;
+namespace NIdentity.OpenId.Endpoints.Authorization.Requests;
 
-public static class SupportStateExtensions
-{
-    public static OpenIdException AnnotateExceptionWithState(this ISupportState supportState, Exception exception)
-    {
-        if (exception is not OpenIdException openIdException)
-        {
-            openIdException = OpenIdException.Factory.Create(OpenIdConstants.ErrorCodes.ServerError, exception);
-        }
-
-        if (!string.IsNullOrEmpty(supportState.State))
-        {
-            openIdException.WithExtensionData(OpenIdConstants.Parameters.State, supportState.State);
-        }
-
-        return openIdException;
-    }
-}
+public record GetAuthorizationResponse(
+        IAuthorizationRequest AuthorizationRequest,
+        AuthenticationTicket? AuthenticationTicket)
+    : IRequest<IHttpResult>;

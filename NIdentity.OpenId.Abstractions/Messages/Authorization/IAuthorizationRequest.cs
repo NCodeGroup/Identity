@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Messages.Authorization;
@@ -25,8 +26,13 @@ namespace NIdentity.OpenId.Messages.Authorization;
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request after combining
 /// values from the request message and request object.
 /// </summary>
-public interface IAuthorizationRequest : ISupportState
+public interface IAuthorizationRequest
 {
+    /// <summary>
+    /// Gets the <see cref="HttpContext"/> that is associated with the current request.
+    /// </summary>
+    HttpContext HttpContext { get; }
+
     /// <summary>
     /// Gets the <see cref="IAuthorizationRequestMessage"/> which represents the OAuth request message.
     /// </summary>
@@ -133,6 +139,11 @@ public interface IAuthorizationRequest : ISupportState
     /// Gets the <c>scope</c> parameter.
     /// </summary>
     IReadOnlyCollection<string> Scopes { get; }
+
+    /// <summary>
+    /// Gets the <c>state</c> parameter.
+    /// </summary>
+    string? State { get; }
 
     /// <summary>
     /// Gets the <c>ui_locales</c> parameter.

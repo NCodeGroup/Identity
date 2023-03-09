@@ -32,10 +32,10 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
     /// <inheritdoc/>
     public override StringValues Serialize(IOpenIdMessageContext context, PromptTypes? value)
     {
-        if (value is null || value == PromptTypes.Unspecified)
+        if (value is null or PromptTypes.Unspecified)
             return StringValues.Empty;
 
-        const int capacity = 4;
+        const int capacity = 5;
         var list = new List<string>(capacity);
         var promptType = value.Value;
 
@@ -50,6 +50,9 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
 
         if (promptType.HasFlag(PromptTypes.SelectAccount))
             list.Add(OpenIdConstants.PromptTypes.SelectAccount);
+
+        if (promptType.HasFlag(PromptTypes.CreateAccount))
+            list.Add(OpenIdConstants.PromptTypes.CreateAccount);
 
         return string.Join(Separator, list);
     }
@@ -91,6 +94,10 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
             else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.SelectAccount, StringComparison))
             {
                 promptType |= PromptTypes.SelectAccount;
+            }
+            else if (string.Equals(stringValue, OpenIdConstants.PromptTypes.CreateAccount, StringComparison))
+            {
+                promptType |= PromptTypes.CreateAccount;
             }
             else
             {

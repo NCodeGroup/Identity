@@ -45,5 +45,10 @@ public static partial class OpenIdConstants
         /// Contains the <c>prompt</c> parameter value for <c>select_account</c>.
         /// </summary>
         public const string SelectAccount = "select_account";
+
+        /// <summary>
+        /// Contains the <c>prompt</c> parameter value for <c>create</c>.
+        /// </summary>
+        public const string CreateAccount = "create";
     }
 }

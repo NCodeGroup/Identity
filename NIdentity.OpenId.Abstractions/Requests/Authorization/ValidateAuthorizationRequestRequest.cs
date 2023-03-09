@@ -32,4 +32,4 @@ namespace NIdentity.OpenId.Requests.Authorization;
 /// input argument and doesn't return a value.
 /// </summary>
 /// <param name="AuthorizationRequest">The <see cref="IAuthorizationRequest"/> input argument for the request contract.</param>
-public record ValidateAuthorizationRequest(IAuthorizationRequest AuthorizationRequest) : IRequest;
+public record ValidateAuthorizationRequestRequest(IAuthorizationRequest AuthorizationRequest) : IRequest;

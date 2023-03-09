@@ -23,4 +23,9 @@ public static partial class OpenIdConstants
         public const string Discovery = ".well-known/openid-configuration";
         public const string Authorization = $"{Prefix}/authorize";
     }
+
+    public static class JwtClaimTypes
+    {
+        public const string AuthenticationTime = "auth_time";
+    }
 }

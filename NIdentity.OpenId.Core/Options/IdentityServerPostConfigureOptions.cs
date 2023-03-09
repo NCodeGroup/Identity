@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2022 NCode Group
@@ -18,13 +18,21 @@
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
-using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Messages.Authorization;
-using NIdentity.OpenId.Results;
+using Microsoft.Extensions.Options;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Requests;
+namespace NIdentity.OpenId.Options;
 
-public record GetAuthorizationResponse(
-        IAuthorizationRequest AuthorizationRequest,
-        AuthenticationTicket? AuthenticationTicket)
-    : IRequest<IHttpResult>;
+internal class IdentityServerPostConfigureOptions : IPostConfigureOptions<IdentityServerOptions>
+{
+    private AuthenticationOptions AuthenticationOptions { get; }
+
+    public IdentityServerPostConfigureOptions(IOptions<AuthenticationOptions> authenticationOptionsAccessor)
+    {
+        AuthenticationOptions = authenticationOptionsAccessor.Value;
+    }
+
+    public void PostConfigure(string name, IdentityServerOptions options)
+    {
+        options.SignInScheme ??= AuthenticationOptions.DefaultSignInScheme ?? AuthenticationOptions.DefaultScheme;
+    }
+}

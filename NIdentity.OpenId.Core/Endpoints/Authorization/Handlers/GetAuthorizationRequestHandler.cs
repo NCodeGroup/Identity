@@ -33,7 +33,7 @@ using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAuthorizationRequest, IAuthorizationRequest>
+internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAuthorizationRequestRequest, IAuthorizationRequest>
 {
     private ILogger<GetAuthorizationRequestHandler> Logger { get; }
     private AuthorizationOptions Options { get; }
@@ -60,7 +60,7 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
 
     /// <inheritdoc />
     public async ValueTask<IAuthorizationRequest> HandleAsync(
-        GetAuthorizationRequest request,
+        GetAuthorizationRequestRequest request,
         CancellationToken cancellationToken)
     {
         var httpContext = request.HttpContext;

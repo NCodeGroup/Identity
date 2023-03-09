@@ -59,5 +59,10 @@ public enum PromptTypes
     /// have current sessions for. If it cannot obtain an account selection choice made by the End-User, it MUST
     /// return an error, typically <c>account_selection_required</c>.
     /// </summary>
-    SelectAccount = 8
+    SelectAccount = 8,
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    CreateAccount = 16,
 }

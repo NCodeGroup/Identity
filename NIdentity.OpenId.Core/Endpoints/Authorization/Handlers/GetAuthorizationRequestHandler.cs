@@ -25,6 +25,7 @@ using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Authorization;
+using NIdentity.OpenId.Middleware;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Requests.Authorization;
 using NIdentity.OpenId.Stores;
@@ -64,22 +65,17 @@ internal class GetAuthorizationRequestHandler : IRequestResponseHandler<GetAutho
     {
         var httpContext = request.HttpContext;
         var messageContext = new OpenIdMessageContext(httpContext);
-        var requestMessage = AuthorizationRequestMessage.Load(messageContext);
-        try
-        {
-            var client = await LoadEnabledClientAsync(requestMessage, cancellationToken);
+        var requestMessage = await AuthorizationRequestMessage.LoadAsync(messageContext, cancellationToken);
+        httpContext.Features.Set<IOpenIdMessageStateFeature>(new OpenIdMessageStateFeature { State = requestMessage.State });
 
-            var requestObject = await LoadRequestObjectAsync(requestMessage, client, cancellationToken);
+        var client = await GetEnabledClientAsync(requestMessage, cancellationToken);
 
-            return new AuthorizationRequest(requestMessage, requestObject, client);
-        }
-        catch (Exception exception)
-        {
-            throw requestMessage.AnnotateExceptionWithState(exception);
-        }
+        var requestObject = await LoadRequestObjectAsync(requestMessage, client, cancellationToken);
+
+        return new AuthorizationRequest(requestMessage, requestObject, client);
     }
 
-    private async Task<Client> LoadEnabledClientAsync(
+    private async ValueTask<Client> GetEnabledClientAsync(
         IAuthorizationRequestMessage requestMessage,
         CancellationToken cancellationToken)
     {

@@ -22,7 +22,7 @@ namespace NIdentity.OpenId.Messages.Authorization;
 /// <summary>
 /// Contains the common values used in an <c>OAuth</c> or <c>OpenID Connect</c> authorization request.
 /// </summary>
-public interface IAuthorizationRequestValues : ISupportState
+public interface IAuthorizationRequestValues
 {
     /// <summary>
     /// Gets the <c>acr_values</c> parameter.
@@ -108,6 +108,11 @@ public interface IAuthorizationRequestValues : ISupportState
     /// Gets the <c>scope</c> parameter.
     /// </summary>
     IReadOnlyCollection<string>? Scopes { get; }
+
+    /// <summary>
+    /// Gets the <c>state</c> parameter.
+    /// </summary>
+    string? State { get; }
 
     /// <summary>
     /// Gets the <c>ui_locales</c> parameter.

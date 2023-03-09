@@ -18,6 +18,7 @@
 #endregion
 
 using System.Runtime.Serialization;
+using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Validation;
 
@@ -44,10 +45,11 @@ public class OpenIdException : Exception
     /// </summary>
     /// <param name="message">The message that describes the error.</param>
     /// <param name="errorCode">The value that identifies the error.</param>
-    public OpenIdException(string message, string errorCode)
+    /// <param name="statusCode">The value for the HTTP status code.</param>
+    public OpenIdException(string message, string errorCode, int statusCode)
         : base(message)
     {
-        ErrorDetails = new ErrorDetails(errorCode);
+        ErrorDetails = new ErrorDetails(errorCode, statusCode);
     }
 
     /// <summary>
@@ -56,12 +58,13 @@ public class OpenIdException : Exception
     /// </summary>
     /// <param name="message">The message that describes the error.</param>
     /// <param name="errorCode">The value that identifies the error.</param>
+    /// <param name="statusCode">The value for the HTTP status code.</param>
     /// <param name="innerException">The exception that is the cause of the current exception, or a <c>null</c>
     /// reference if no inner exception is specified.</param>
-    public OpenIdException(string message, string errorCode, Exception? innerException)
+    public OpenIdException(string message, string errorCode, int statusCode, Exception? innerException)
         : base(message, innerException)
     {
-        ErrorDetails = new ErrorDetails(errorCode);
+        ErrorDetails = new ErrorDetails(errorCode, statusCode);
     }
 
     /// <summary>
@@ -74,7 +77,7 @@ public class OpenIdException : Exception
     protected OpenIdException(SerializationInfo info, StreamingContext context)
         : base(info, context)
     {
-        ErrorDetails = (ErrorDetails)(info.GetValue(nameof(ErrorDetails), typeof(ErrorDetails)) ?? new ErrorDetails(OpenIdConstants.ErrorCodes.ServerError));
+        ErrorDetails = (ErrorDetails)(info.GetValue(nameof(ErrorDetails), typeof(ErrorDetails)) ?? new ErrorDetails(OpenIdConstants.ErrorCodes.ServerError, StatusCodes.Status500InternalServerError));
     }
 
     /// <inheritdoc />

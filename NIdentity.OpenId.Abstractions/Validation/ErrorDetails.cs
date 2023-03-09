@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Validation;
 
@@ -10,7 +11,7 @@ public interface IErrorDetails
     /// <summary>
     /// Gets or sets the HTTP status code to be used when returning a response.
     /// </summary>
-    int? StatusCode { get; set; }
+    int StatusCode { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>error</c> parameter.
@@ -43,14 +44,16 @@ public class ErrorDetails : IErrorDetails
     /// Initializes a new instance of the <see cref="ErrorDetails"/> class.
     /// </summary>
     /// <param name="code">The value for the <c>error</c> parameter.</param>
-    public ErrorDetails(string code)
+    /// <param name="statusCode">The value for the <c>StatusCode</c> parameter.</param>
+    public ErrorDetails(string code, int statusCode)
     {
         Code = code;
+        StatusCode = statusCode;
     }
 
     /// <inheritdoc />
     [JsonIgnore]
-    public int? StatusCode { get; set; }
+    public int StatusCode { get; set; }
 
     /// <inheritdoc />
     [JsonPropertyName("error")]

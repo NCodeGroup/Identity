@@ -17,6 +17,8 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+
 namespace NIdentity.OpenId.Validation;
 
 /// <summary>
@@ -40,11 +42,19 @@ internal class OpenIdExceptionFactory : IOpenIdExceptionFactory
     /// <inheritdoc />
     public OpenIdException Create(string errorCode, Exception? innerException = null)
     {
-        var message = GetMessageForErrorCode(errorCode);
-        return new OpenIdException(message, errorCode, innerException);
+        var message = GetMessageFromErrorCode(errorCode);
+        var statusCode = GetStatusCodeFromErrorCode(errorCode);
+        return new OpenIdException(message, errorCode, statusCode, innerException);
     }
 
-    private static string GetMessageForErrorCode(string errorCode) => errorCode switch
+    private static int GetStatusCodeFromErrorCode(string errorCode) => errorCode switch
+    {
+        // TODO: translate other error codes
+        OpenIdConstants.ErrorCodes.ServerError => StatusCodes.Status500InternalServerError,
+        _ => StatusCodes.Status400BadRequest
+    };
+
+    private static string GetMessageFromErrorCode(string errorCode) => errorCode switch
     {
         OpenIdConstants.ErrorCodes.AccessDenied => "The resource owner or authorization server denied the request.",
         OpenIdConstants.ErrorCodes.AccountSelectionRequired => "The End-User is REQUIRED to select a session at the Authorization Server.",

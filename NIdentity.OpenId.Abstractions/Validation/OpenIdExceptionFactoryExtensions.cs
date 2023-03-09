@@ -17,8 +17,6 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-
 namespace NIdentity.OpenId.Validation;
 
 /// <summary>
@@ -29,12 +27,12 @@ public static class OpenIdExceptionFactoryExtensions
 {
     private static OpenIdException Create(IOpenIdExceptionFactory factory, string errorCode)
     {
-        return factory.Create(errorCode).WithStatusCode(StatusCodes.Status400BadRequest);
+        return factory.Create(errorCode);
     }
 
     private static OpenIdException Create(IOpenIdExceptionFactory factory, string errorCode, Exception? innerException)
     {
-        return factory.Create(errorCode, innerException).WithStatusCode(StatusCodes.Status400BadRequest);
+        return factory.Create(errorCode, innerException);
     }
 
     /// <summary>

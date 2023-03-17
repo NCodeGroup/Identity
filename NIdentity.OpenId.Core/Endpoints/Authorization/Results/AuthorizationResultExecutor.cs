@@ -27,62 +27,62 @@ using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
-internal class AuthorizationResultExecutor : IOpenIdResultExecutor<IAuthorizationResult>
+internal class AuthorizationResultExecutor : IOpenIdResultExecutor<AuthorizationResult>
 {
-    public async ValueTask ExecuteResultAsync(OpenIdEndpointContext context, IAuthorizationResult result)
+    public async ValueTask ExecuteResultAsync(OpenIdEndpointContext context, AuthorizationResult result)
     {
         var httpContext = context.HttpContext;
         var httpResponse = httpContext.Response;
+
+        IOpenIdMessage? error = result.Error;
+        IOpenIdMessage? ticket = result.Ticket;
+        var message = error ?? ticket ?? throw new InvalidOperationException("TODO");
 
         // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (result.ResponseMode)
         {
             case ResponseMode.Query:
             case ResponseMode.Fragment:
-                var finalRedirectUri = GetFinalRedirectUri(result);
+                var finalRedirectUri = GetFinalRedirectUri(result.RedirectUri, result.ResponseMode, message);
                 ExecuteUsingRedirect(httpResponse, finalRedirectUri);
                 break;
 
             case ResponseMode.FormPost:
-                IOpenIdMessage? error = result.Error;
-                await ExecuteUsingFormPostAsync(httpResponse, result.RedirectUri, error ?? result, httpContext.RequestAborted);
+                await ExecuteUsingFormPostAsync(httpResponse, result.RedirectUri, message, httpContext.RequestAborted);
                 break;
 
             default:
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("TODO");
         }
     }
 
-    private static Uri GetFinalRedirectUri(IAuthorizationResult result)
+    private static Uri GetFinalRedirectUri(Uri redirectUri, ResponseMode responseMode, IOpenIdMessage message)
     {
-        if (result.ResponseMode == ResponseMode.FormPost)
+        if (responseMode == ResponseMode.FormPost)
         {
-            return result.RedirectUri;
+            return redirectUri;
         }
 
-        IOpenIdMessage? error = result.Error;
-        var parameterSource = error ?? result;
-
-        var useQuery = result.ResponseMode == ResponseMode.Query;
+        var useQuery = responseMode == ResponseMode.Query;
         var existingParameters = useQuery ?
             QueryHelpers
-                .ParseQuery(result.RedirectUri.Query)
+                .ParseQuery(redirectUri.Query)
                 .ExceptBy(
-                    parameterSource.Keys,
+                    message.Keys,
                     kvp => kvp.Key,
                     StringComparer.OrdinalIgnoreCase) :
             Enumerable.Empty<KeyValuePair<string, StringValues>>();
 
-        var parameters = existingParameters.Union(parameterSource);
+        var parameters = existingParameters.Union(message);
         var serializedParameters = SerializeParameters(parameters);
 
-        var uriBuilder = new UriBuilder(result.RedirectUri);
+        var uriBuilder = new UriBuilder(redirectUri);
         if (useQuery)
         {
             uriBuilder.Query = serializedParameters;
             uriBuilder.Fragment = "_=_";
         }
-        else if (result.ResponseMode == ResponseMode.Fragment)
+        else if (responseMode == ResponseMode.Fragment)
         {
             uriBuilder.Fragment = serializedParameters;
         }

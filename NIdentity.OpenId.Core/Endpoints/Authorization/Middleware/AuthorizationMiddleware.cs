@@ -109,11 +109,7 @@ internal class AuthorizationMiddleware : IOpenIdEndpointMiddleware
                 return GetErrorObjectResult(exception);
             }
 
-            return new AuthorizationResult(redirectUri, responseMode)
-            {
-                State = state,
-                Error = error
-            };
+            return new AuthorizationResult(redirectUri, responseMode, error);
         }
         else
         {
@@ -148,11 +144,7 @@ internal class AuthorizationMiddleware : IOpenIdEndpointMiddleware
                 return GetErrorObjectResult(exception);
             }
 
-            return new AuthorizationResult(redirectUri, responseMode)
-            {
-                State = state,
-                Error = error
-            };
+            return new AuthorizationResult(redirectUri, responseMode, error);
         }
     }
 }

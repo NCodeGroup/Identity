@@ -1,14 +1,14 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
+// 
 //    Copyright @ 2023 NCode Group
-//
+// 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-//
+// 
 //        http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,30 +18,14 @@
 #endregion
 
 using NIdentity.OpenId.Messages;
-using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
 /// <summary>
-/// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
+/// Contains the parameters for a successful <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
 /// </summary>
-public interface IAuthorizationResult : IOpenIdResult, IOpenIdMessage
+public interface IAuthorizationTicket : IOpenIdMessage
 {
-    /// <summary>
-    /// Gets or sets the <see cref="Uri"/> where the authorization response should be sent to.
-    /// </summary>
-    Uri RedirectUri { get; set; }
-
-    /// <summary>
-    /// Gets or sets the mechanism that should be used for sending the authorization response.
-    /// </summary>
-    ResponseMode ResponseMode { get; set; }
-
-    /// <summary>
-    /// Gets or sets an <see cref="IOpenIdError"/> that contains information about the failure of the operation.
-    /// </summary>
-    IOpenIdError? Error { get; set; }
-
     /// <summary>
     /// Gets or sets the <c>state</c> parameter.
     /// </summary>

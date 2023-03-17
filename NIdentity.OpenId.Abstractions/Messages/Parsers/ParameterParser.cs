@@ -41,28 +41,28 @@ public abstract class ParameterParser<T> : ParameterLoader
     /// <summary>
     /// Returns the specified <paramref name="value"/> formatted as <see cref="StringValues"/>.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when serializing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdContext"/> to use when serializing the value.</param>
     /// <param name="value">The value to serialize.</param>
     /// <returns>The value formatted as <see cref="StringValues"/>.</returns>
-    public abstract StringValues Serialize(IOpenIdMessageContext context, T value);
+    public abstract StringValues Serialize(IOpenIdContext context, T value);
 
     /// <summary>
     /// Parses the specified string values into a type-specific value.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when parsing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <returns>The parsed type-specific value.</returns>
-    public abstract T Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues);
+    public abstract T Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues);
 
     /// <summary>
     /// Parses and loads a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when parsing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public override Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override Parameter Load(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
         var parsedValue = Parse(context, descriptor, stringValues);
         return new Parameter<T>(descriptor, stringValues, parsedValue);

@@ -19,7 +19,6 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Requests.Discovery;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
 
@@ -48,7 +47,7 @@ internal class DiscoveryEndpointProvider : IOpenIdEndpointProvider
             OpenIdConstants.EndpointNames.Discovery,
             OpenIdConstants.EndpointPaths.Discovery,
             httpMethods,
-            httpContext => new DiscoveryEndpointRequest(httpContext),
+            endpointContext => new DiscoveryEndpointRequest(endpointContext),
             builder => builder.WithMetadata(suppressDiscoveryMetadata));
     }
 }

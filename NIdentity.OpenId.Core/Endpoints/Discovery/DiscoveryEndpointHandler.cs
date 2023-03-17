@@ -18,33 +18,32 @@
 #endregion
 
 using Microsoft.AspNetCore.Routing;
+using NIdentity.OpenId.Endpoints.Discovery.Results;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Requests.Discovery;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
 
-internal class DiscoveryEndpointHandler : IRequestResponseHandler<DiscoveryEndpointRequest, IHttpResult>
+internal class DiscoveryEndpointHandler : IRequestResponseHandler<DiscoveryEndpointRequest, IOpenIdResult>
 {
     private LinkGenerator LinkGenerator { get; }
     private IOpenIdEndpointCollectionProvider OpenIdEndpointCollectionProvider { get; }
-    private IHttpResultFactory HttpResultFactory { get; }
 
     public DiscoveryEndpointHandler(
         LinkGenerator linkGenerator,
-        IOpenIdEndpointCollectionProvider openIdEndpointCollectionProvider,
-        IHttpResultFactory httpResultFactory)
+        IOpenIdEndpointCollectionProvider openIdEndpointCollectionProvider)
     {
         LinkGenerator = linkGenerator;
         OpenIdEndpointCollectionProvider = openIdEndpointCollectionProvider;
-        HttpResultFactory = httpResultFactory;
     }
 
-    public async ValueTask<IHttpResult> HandleAsync(DiscoveryEndpointRequest request, CancellationToken cancellationToken)
+    public ValueTask<IOpenIdResult> HandleAsync(DiscoveryEndpointRequest request, CancellationToken cancellationToken)
     {
         var routeValues = new { };
-        var httpContext = request.HttpContext;
-        var discoveryResponse = new Dictionary<string, object>();
+        var httpContext = request.EndpointContext.HttpContext;
+
+        var result = new DiscoveryResult();
+        var metadata = result.Metadata;
 
         foreach (var endpoint in OpenIdEndpointCollectionProvider.OpenIdEndpoints)
         {
@@ -62,11 +61,11 @@ internal class DiscoveryEndpointHandler : IRequestResponseHandler<DiscoveryEndpo
             if (string.IsNullOrEmpty(endpointUrl))
                 continue;
 
-            discoveryResponse[endpointName] = endpointUrl;
+            metadata[endpointName] = endpointUrl;
         }
 
-        await ValueTask.CompletedTask;
+        // TODO: add other metadata
 
-        return HttpResultFactory.Ok(discoveryResponse);
+        return ValueTask.FromResult<IOpenIdResult>(result);
     }
 }

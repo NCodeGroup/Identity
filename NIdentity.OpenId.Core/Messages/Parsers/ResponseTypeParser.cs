@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -30,9 +30,9 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class ResponseTypeParser : ParameterParser<ResponseTypes?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdMessageContext context, ResponseTypes? value)
+    public override StringValues Serialize(IOpenIdContext context, ResponseTypes? value)
     {
-        if (value is null || value == ResponseTypes.Unspecified)
+        if (value is null or ResponseTypes.Unspecified)
             return StringValues.Empty;
 
         const int capacity = 4;
@@ -55,7 +55,7 @@ public class ResponseTypeParser : ParameterParser<ResponseTypes?>
     }
 
     /// <inheritdoc/>
-    public override ResponseTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override ResponseTypes? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -65,10 +65,10 @@ public class ResponseTypeParser : ParameterParser<ResponseTypes?>
                 return null;
 
             case 0:
-                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+                throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
             case > 1:
-                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
+                throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
         stringValues = stringValues[0].Split(Separator);
@@ -94,7 +94,7 @@ public class ResponseTypeParser : ParameterParser<ResponseTypes?>
             }
             else
             {
-                throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
+                throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
             }
         }
 

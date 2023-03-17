@@ -21,7 +21,7 @@ using Microsoft.Extensions.Primitives;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 using Xunit;
 using UriParser = NIdentity.OpenId.Messages.Parsers.UriParser;
 

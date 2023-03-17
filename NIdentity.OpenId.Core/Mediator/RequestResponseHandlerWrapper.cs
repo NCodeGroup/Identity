@@ -1,7 +1,7 @@
 #region Copyright Preamble
 
 //
-//    Copyright @ 2022 NCode Group
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,18 +19,25 @@
 
 namespace NIdentity.OpenId.Mediator;
 
-internal interface IRequestResponseHandlerWrapper<TResponse>
+internal class RequestResponseHandlerWrapper<TRequest, TResponse> : IResponseHandlerWrapper<TResponse>
+    where TRequest : IRequest, IRequest<TResponse>
 {
-    ValueTask<TResponse> HandleAsync(IRequest<TResponse> request, CancellationToken cancellationToken);
-}
+    private IEnumerable<IRequestHandler<TRequest>> RequestHandlers { get; }
+    private IRequestResponseHandler<TRequest, TResponse> ResponseHandler { get; }
 
-internal class RequestResponseHandlerWrapper<TRequest, TResponse> : IRequestResponseHandlerWrapper<TResponse>
-    where TRequest : IRequest<TResponse>
-{
-    private IRequestResponseHandler<TRequest, TResponse> Handler { get; }
+    public RequestResponseHandlerWrapper(IEnumerable<IRequestHandler<TRequest>> requestHandlers, IRequestResponseHandler<TRequest, TResponse> responseHandler)
+    {
+        RequestHandlers = requestHandlers;
+        ResponseHandler = responseHandler;
+    }
 
-    public RequestResponseHandlerWrapper(IRequestResponseHandler<TRequest, TResponse> handler) => Handler = handler;
+    public async ValueTask<TResponse> HandleAsync(IRequest<TResponse> request, CancellationToken cancellationToken)
+    {
+        foreach (var handler in RequestHandlers)
+        {
+            await handler.HandleAsync((TRequest)request, cancellationToken);
+        }
 
-    public async ValueTask<TResponse> HandleAsync(IRequest<TResponse> request, CancellationToken cancellationToken) =>
-        await Handler.HandleAsync((TRequest)request, cancellationToken);
+        return await ResponseHandler.HandleAsync((TRequest)request, cancellationToken);
+    }
 }

@@ -29,9 +29,9 @@ namespace NIdentity.OpenId.Messages;
 internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
     where T : OpenIdMessage<T>, new()
 {
-    private IOpenIdMessageContext Context { get; }
+    private IOpenIdContext Context { get; }
 
-    public OpenIdMessageJsonConverter(IOpenIdMessageContext context)
+    public OpenIdMessageJsonConverter(IOpenIdContext context)
     {
         Context = context;
     }

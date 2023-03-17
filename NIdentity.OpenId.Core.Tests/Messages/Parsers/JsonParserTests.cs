@@ -4,7 +4,7 @@ using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;

@@ -45,9 +45,13 @@ internal class MediatorImpl : IMediator
 
     public async ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
     {
-        var typeOfWrapper = typeof(RequestResponseHandlerWrapper<,>).MakeGenericType(request.GetType(), typeof(TResponse));
+        var requestType = request.GetType();
+        var isRequestResponse = typeof(IRequest).IsAssignableFrom(requestType);
+        var typeOfWrapper = isRequestResponse ?
+            typeof(RequestResponseHandlerWrapper<,>).MakeGenericType(requestType, typeof(TResponse)) :
+            typeof(ResponseHandlerWrapper<,>).MakeGenericType(requestType, typeof(TResponse));
         var factory = GetFactory(typeOfWrapper);
-        var wrapper = (IRequestResponseHandlerWrapper<TResponse>)factory(ServiceProvider, Array.Empty<object>());
+        var wrapper = (IResponseHandlerWrapper<TResponse>)factory(ServiceProvider, Array.Empty<object>());
         return await wrapper.HandleAsync(request, cancellationToken);
     }
 }

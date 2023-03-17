@@ -29,7 +29,8 @@ internal class RequestHandlerWrapper<TRequest> : IRequestHandlerWrapper
 {
     private IEnumerable<IRequestHandler<TRequest>> Handlers { get; }
 
-    public RequestHandlerWrapper(IEnumerable<IRequestHandler<TRequest>> handlers) => Handlers = handlers;
+    public RequestHandlerWrapper(IEnumerable<IRequestHandler<TRequest>> handlers) =>
+        Handlers = handlers;
 
     public async ValueTask HandleAsync(IRequest request, CancellationToken cancellationToken)
     {

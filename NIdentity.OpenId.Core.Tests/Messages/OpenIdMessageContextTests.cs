@@ -2,8 +2,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using Moq;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
-using NIdentity.OpenId.Messages.Authorization;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
@@ -27,7 +27,7 @@ public class OpenIdMessageContextTests : IDisposable
     [Fact]
     public void Constructor_ThenValid()
     {
-        var context = new OpenIdMessageContext(MockHttpContext.Object);
+        var context = new OpenIdContext(MockHttpContext.Object);
 
         Assert.Same(MockHttpContext.Object, context.HttpContext);
 

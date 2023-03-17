@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class DisplayTypeParser : ParameterParser<DisplayType?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdMessageContext context, DisplayType? value)
+    public override StringValues Serialize(IOpenIdContext context, DisplayType? value)
     {
         return value switch
         {
@@ -43,7 +43,7 @@ public class DisplayTypeParser : ParameterParser<DisplayType?>
     }
 
     /// <inheritdoc/>
-    public override DisplayType? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override DisplayType? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -53,10 +53,10 @@ public class DisplayTypeParser : ParameterParser<DisplayType?>
                 return null;
 
             case 0:
-                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+                throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
             case > 1:
-                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
+                throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
         var stringValue = stringValues[0];
@@ -81,6 +81,6 @@ public class DisplayTypeParser : ParameterParser<DisplayType?>
             return DisplayType.Wap;
         }
 
-        throw OpenIdException.Factory.InvalidRequest(descriptor.ParameterName);
+        throw context.ErrorFactory.InvalidRequest(descriptor.ParameterName).AsException();
     }
 }

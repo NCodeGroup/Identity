@@ -37,7 +37,7 @@ internal class ClientStore : IClientStore
     }
 
     /// <inheritdoc />
-    public async ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken)
+    public async ValueTask<Client?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
     {
         var clientEntity = await Context.Clients.FirstOrDefaultAsync(_ => _.Id == id, cancellationToken);
         var client = Mapper.Map<Client>(clientEntity);
@@ -45,7 +45,7 @@ internal class ClientStore : IClientStore
     }
 
     /// <inheritdoc />
-    public async ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken)
+    public async ValueTask<Client?> TryGetByClientIdAsync(string clientId, CancellationToken cancellationToken)
     {
         var normalizedClientId = clientId.ToUpperInvariant();
         var clientEntity = await Context.Clients.FirstOrDefaultAsync(_ => _.NormalizedClientId == normalizedClientId, cancellationToken);

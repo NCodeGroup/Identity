@@ -18,7 +18,6 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using NIdentity.OpenId.Validation;
 
 namespace NIdentity.OpenId.Results;
 
@@ -29,7 +28,7 @@ public abstract class BaseResult
     [MemberNotNullWhen(true, nameof(ErrorDetails))]
     public bool IsError => ErrorDetails is not null;
 
-    public IErrorDetails? ErrorDetails { get; protected set; }
+    public IOpenIdError? ErrorDetails { get; protected set; }
 }
 
 public abstract class BaseResult<T> : BaseResult
@@ -37,5 +36,5 @@ public abstract class BaseResult<T> : BaseResult
 {
     public static T NoResult() => new() { IsNoResult = true };
 
-    public static T Error(IErrorDetails errorDetails) => new() { ErrorDetails = errorDetails };
+    public static T Error(IOpenIdError errorDetails) => new() { ErrorDetails = errorDetails };
 }

@@ -24,10 +24,10 @@ namespace NIdentity.OpenId.Messages;
 
 internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
 {
-    private IOpenIdMessageContext Context { get; }
+    private IOpenIdContext Context { get; }
 
     /// <inheritdoc />
-    public OpenIdMessageJsonConverterFactory(IOpenIdMessageContext context)
+    public OpenIdMessageJsonConverterFactory(IOpenIdContext context)
     {
         Context = context;
     }

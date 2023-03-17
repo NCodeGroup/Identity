@@ -23,14 +23,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NIdentity.OpenId.Contexts;
 using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Endpoints.Authorization.Requests;
+using NIdentity.OpenId.Endpoints.Authorization.Mediator;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class GetAuthorizationResponseHandler : IRequestResponseHandler<GetAuthorizationResponseRequest, IHttpResult>
+internal class GetAuthorizationResponseHandler : IRequestResponseHandler<GetAuthorizationResponseRequest, IOpenIdResult>
 {
     private IdentityServerOptions Options { get; }
     private ISystemClock SystemClock { get; }
@@ -41,7 +41,7 @@ internal class GetAuthorizationResponseHandler : IRequestResponseHandler<GetAuth
         Options = optionsAccessor.Value;
     }
 
-    public async ValueTask<IHttpResult> HandleAsync(GetAuthorizationResponseRequest request, CancellationToken cancellationToken)
+    public async ValueTask<IOpenIdResult> HandleAsync(GetAuthorizationResponseRequest request, CancellationToken cancellationToken)
     {
         var promptResult = await ProcessPromptAsync(request, cancellationToken);
 
@@ -89,7 +89,7 @@ internal class GetAuthorizationResponseHandler : IRequestResponseHandler<GetAuth
             return PromptResult.LoginRequired("User not authenticated.");
         }
 
-        var httpContext = request.AuthorizationRequest.HttpContext;
+        var httpContext = request.EndpointContext.HttpContext;
         var ticket = request.AuthenticateResult.Ticket;
         var client = request.AuthorizationRequest.Client;
 

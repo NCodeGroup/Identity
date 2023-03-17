@@ -33,7 +33,7 @@ public class OpenIdMessageTests : IDisposable
         message.Initialize(context, Array.Empty<Parameter>());
 
         Assert.Empty(message.Parameters);
-        Assert.Same(context, message.Context);
+        Assert.Same(context, message.MessageContext);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class OpenIdMessageTests : IDisposable
     {
         var message = new TestOpenIdMessage();
 
-        Assert.Throws<InvalidOperationException>(() => message.Context);
+        Assert.Throws<InvalidOperationException>(() => message.MessageContext);
     }
 
     [Fact]

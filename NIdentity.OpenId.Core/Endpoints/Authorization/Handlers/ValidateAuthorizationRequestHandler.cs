@@ -18,15 +18,22 @@
 #endregion
 
 using JetBrains.Annotations;
+using NIdentity.OpenId.Endpoints.Authorization.Mediator;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Messages.Authorization;
-using NIdentity.OpenId.Requests.Authorization;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
 internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAuthorizationRequestRequest>
 {
+    private IOpenIdErrorFactory ErrorFactory { get; }
+
+    public ValidateAuthorizationRequestHandler(IOpenIdErrorFactory errorFactory)
+    {
+        ErrorFactory = errorFactory;
+    }
+
     /// <inheritdoc />
     public ValueTask HandleAsync(ValidateAuthorizationRequestRequest request, CancellationToken cancellationToken)
     {
@@ -43,24 +50,24 @@ internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAut
     }
 
     [AssertionMethod]
-    private static void ValidateRequestMessage(IAuthorizationRequestMessage requestMessage)
+    private void ValidateRequestMessage(IAuthorizationRequestMessage requestMessage)
     {
         var responseType = requestMessage.ResponseType ?? ResponseTypes.Unspecified;
         if (responseType == ResponseTypes.Unspecified)
-            throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
 
         if (responseType.HasFlag(ResponseTypes.None) && responseType != ResponseTypes.None)
-            throw OpenIdException.Factory.InvalidRequest("The 'none' response_type must not be combined with other values.");
+            throw ErrorFactory.InvalidRequest("The 'none' response_type must not be combined with other values.").AsException();
 
         var redirectUri = requestMessage.RedirectUri;
         if (redirectUri is null)
-            throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.RedirectUri);
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri).AsException();
     }
 
     [AssertionMethod]
-    private static void ValidateRequestObject(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject requestObject)
+    private void ValidateRequestObject(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject requestObject)
     {
-        var errorCode = requestObject.Source == RequestObjectSource.RequestUri ?
+        var errorCode = requestObject.RequestObjectSource == RequestObjectSource.Remote ?
             OpenIdConstants.ErrorCodes.InvalidRequestUri :
             OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
@@ -69,10 +76,10 @@ internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAut
          */
 
         if (requestObject.ContainsKey(OpenIdConstants.Parameters.Request))
-            throw OpenIdException.Factory.InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode);
+            throw ErrorFactory.InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode).AsException();
 
         if (requestObject.ContainsKey(OpenIdConstants.Parameters.RequestUri))
-            throw OpenIdException.Factory.InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode);
+            throw ErrorFactory.InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode).AsException();
 
         /*
          * So that the request is a valid OAuth 2.0 Authorization Request, values for the response_type and client_id parameters MUST
@@ -81,21 +88,21 @@ internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAut
          */
 
         if (requestObject.ResponseType != null && requestObject.ResponseType != requestMessage.ResponseType)
-            throw OpenIdException.Factory.InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode);
+            throw ErrorFactory.InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode).AsException();
 
         /*
          * The Client ID values in the "client_id" request parameter and in the Request Object "client_id" claim MUST be identical.
          */
 
         if (string.IsNullOrEmpty(requestObject.ClientId))
-            throw OpenIdException.Factory.MissingParameter("The 'client_id' parameter in the JWT request object is missing.", errorCode);
+            throw ErrorFactory.MissingParameter("The 'client_id' parameter in the JWT request object is missing.", errorCode).AsException();
 
         if (!string.Equals(requestObject.ClientId, requestMessage.ClientId, StringComparison.Ordinal))
-            throw OpenIdException.Factory.InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode);
+            throw ErrorFactory.InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode).AsException();
     }
 
     [AssertionMethod]
-    private static void ValidateRequest(IAuthorizationRequest request)
+    private void ValidateRequest(IAuthorizationRequestUnion request)
     {
         var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
         var isImplicit = request.GrantType == GrantType.Implicit;
@@ -105,41 +112,45 @@ internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAut
         var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
 
         var redirectUris = request.Client.RedirectUris;
+        if (!redirectUris.Contains(request.RedirectUri) && !(request.Client.AllowLoopback && request.RedirectUri.IsLoopback))
+            throw ErrorFactory.InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.").AsException();
+
+        // TODO: error messages must now use redirection
+
+        if (request.Client.IsDisabled)
+            throw ErrorFactory.UnauthorizedClient("The client is disabled.").AsException();
 
         if (request.Scopes.Count == 0)
-            throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Scope);
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
 
         if (request.ResponseType == ResponseTypes.Unspecified)
-            throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.ResponseType);
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
 
         if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(request.Nonce))
-            throw OpenIdException.Factory.MissingParameter(OpenIdConstants.Parameters.Nonce);
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Nonce).AsException();
 
         if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && !hasOpenIdScope)
-            throw OpenIdException.Factory.InvalidRequest("The openid scope is required when requesting id tokens.");
+            throw ErrorFactory.InvalidRequest("The openid scope is required when requesting id tokens.").AsException();
 
         if (request.ResponseMode == ResponseMode.Query && request.GrantType != GrantType.AuthorizationCode)
-            throw OpenIdException.Factory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.");
+            throw ErrorFactory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.").AsException();
 
         if (request.PromptType.HasFlag(PromptTypes.None) && request.PromptType != PromptTypes.None)
-            throw OpenIdException.Factory.InvalidRequest("The 'none' prompt must not be combined with other values.");
+            throw ErrorFactory.InvalidRequest("The 'none' prompt must not be combined with other values.").AsException();
 
         if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
-            throw OpenIdException.Factory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.");
-
-        if (!redirectUris.Contains(request.RedirectUri) && !(request.Client.AllowLoopback && request.RedirectUri.IsLoopback))
-            throw OpenIdException.Factory.InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.");
+            throw ErrorFactory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.").AsException();
 
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
         if (request.ResponseType.HasFlag(ResponseTypes.Token) && !request.Client.AllowUnsafeTokenResponse)
-            throw OpenIdException.Factory.UnauthorizedClient("The client configuration prohibits the use of unsafe token responses.");
+            throw ErrorFactory.UnauthorizedClient("The client configuration prohibits the use of unsafe token responses.").AsException();
 
         // ReSharper disable once ConvertIfStatementToSwitchStatement
         if (!hasCodeChallenge && request.Client.RequirePkce)
-            throw OpenIdException.Factory.UnauthorizedClient("The client configuration requires the use of PKCE parameters.");
+            throw ErrorFactory.UnauthorizedClient("The client configuration requires the use of PKCE parameters.").AsException();
 
         if (hasCodeChallenge && codeChallengeMethodIsPlain && !request.Client.AllowPlainCodeChallengeMethod)
-            throw OpenIdException.Factory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.");
+            throw ErrorFactory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.").AsException();
 
         // TODO: check allowed grant types from client configuration
 

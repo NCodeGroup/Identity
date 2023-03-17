@@ -19,7 +19,7 @@
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
-using NIdentity.OpenId.Endpoints.Authorization.Requests;
+using NIdentity.OpenId.Endpoints.Authorization.Mediator;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 
@@ -33,5 +33,5 @@ internal class AuthenticateHandler : IRequestResponseHandler<AuthenticateRequest
         Options = optionsAccessor.Value;
 
     public async ValueTask<AuthenticateResult> HandleAsync(AuthenticateRequest request, CancellationToken cancellationToken) =>
-        await request.HttpContext.AuthenticateAsync(Options.SignInScheme);
+        await request.EndpointContext.HttpContext.AuthenticateAsync(Options.SignInScheme);
 }

@@ -18,16 +18,16 @@
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Endpoints.Authorization.Requests;
+using NIdentity.OpenId.Endpoints.Authorization.Mediator;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Endpoints.Authorization.Middleware;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Messages.Authorization;
-using NIdentity.OpenId.Requests.Authorization;
+using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization;
 
-internal class AuthorizationEndpointHandler : IRequestResponseHandler<AuthorizationEndpointRequest, IHttpResult>
+internal class AuthorizationEndpointHandler : IRequestResponseHandler<AuthorizationEndpointRequest, IOpenIdResult>
 {
     private IMediator Mediator { get; }
 
@@ -37,37 +37,65 @@ internal class AuthorizationEndpointHandler : IRequestResponseHandler<Authorizat
     }
 
     /// <inheritdoc />
-    public async ValueTask<IHttpResult> HandleAsync(AuthorizationEndpointRequest request, CancellationToken cancellationToken)
+    public async ValueTask<IOpenIdResult> HandleAsync(AuthorizationEndpointRequest request, CancellationToken cancellationToken)
     {
-        var authorizationRequest = await GetAuthorizationRequestAsync(request.HttpContext, cancellationToken);
+        var endpointContext = request.EndpointContext;
+        var httpContext = endpointContext.HttpContext;
 
-        await ValidateAuthorizationRequestAsync(authorizationRequest, cancellationToken);
+        var authorizationRequestStringValues = await GetAuthorizationRequestStringValues(endpointContext, cancellationToken);
+        httpContext.Features.Set<IOpenIdMessageFeature>(new OpenIdMessageFeature { OpenIdMessage = authorizationRequestStringValues });
 
-        var authenticateResult = await AuthenticateAsync(request.HttpContext, cancellationToken);
+        var authorizationRequestUnion = await GetAuthorizationRequestUnionAsync(authorizationRequestStringValues, cancellationToken);
+        httpContext.Features.Set<IOpenIdMessageFeature>(new OpenIdMessageFeature { OpenIdMessage = authorizationRequestUnion });
 
-        return await GetAuthorizationResponseAsync(authorizationRequest, authenticateResult, cancellationToken);
+        await ValidateAuthorizationRequestAsync(authorizationRequestUnion, cancellationToken);
+
+        var authenticateResult = await AuthenticateAsync(endpointContext, cancellationToken);
+
+        return await GetAuthorizationResponseAsync(
+            endpointContext,
+            authorizationRequestUnion,
+            authenticateResult,
+            cancellationToken);
     }
 
-    private async ValueTask<IAuthorizationRequest> GetAuthorizationRequestAsync(HttpContext httpContext, CancellationToken cancellationToken) =>
+    private async ValueTask<IAuthorizationRequestStringValues> GetAuthorizationRequestStringValues(
+        OpenIdEndpointContext endpointContext,
+        CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
-            new GetAuthorizationRequestRequest(httpContext),
+            new GetAuthorizationRequestStringValuesRequest(endpointContext),
             cancellationToken);
 
-    private async ValueTask ValidateAuthorizationRequestAsync(IAuthorizationRequest authorizationRequest, CancellationToken cancellationToken) =>
+    private async ValueTask<IAuthorizationRequestUnion> GetAuthorizationRequestUnionAsync(
+        IAuthorizationRequestStringValues message,
+        CancellationToken cancellationToken) =>
+        await Mediator.SendAsync(
+            new GetAuthorizationRequestUnionRequest(message),
+            cancellationToken);
+
+    private async ValueTask ValidateAuthorizationRequestAsync(
+        IAuthorizationRequestUnion authorizationRequest,
+        CancellationToken cancellationToken) =>
         await Mediator.PublishAsync(
             new ValidateAuthorizationRequestRequest(authorizationRequest),
             cancellationToken);
 
-    private async ValueTask<AuthenticateResult> AuthenticateAsync(HttpContext httpContext, CancellationToken cancellationToken) =>
+    private async ValueTask<AuthenticateResult> AuthenticateAsync(
+        OpenIdEndpointContext endpointContext,
+        CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
-            new AuthenticateRequest(httpContext),
+            new AuthenticateRequest(endpointContext),
             cancellationToken);
 
-    private async ValueTask<IHttpResult> GetAuthorizationResponseAsync(
-        IAuthorizationRequest authorizationRequest,
+    private async ValueTask<IOpenIdResult> GetAuthorizationResponseAsync(
+        OpenIdEndpointContext endpointContext,
+        IAuthorizationRequestUnion authorizationRequest,
         AuthenticateResult authenticateResult,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
-            new GetAuthorizationResponseRequest(authorizationRequest, authenticateResult),
+            new GetAuthorizationResponseRequest(
+                endpointContext,
+                authorizationRequest,
+                authenticateResult),
             cancellationToken);
 }

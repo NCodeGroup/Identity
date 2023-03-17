@@ -27,9 +27,34 @@ public static partial class OpenIdConstants
     public static class Parameters
     {
         /// <summary>
+        /// Contains the name of <c>error</c> parameter.
+        /// </summary>
+        public const string ErrorCode = "error";
+
+        /// <summary>
+        /// Contains the name of <c>error_description</c> parameter.
+        /// </summary>
+        public const string ErrorDescription = "error_description";
+
+        /// <summary>
+        /// Contains the name of <c>error_uri</c> parameter.
+        /// </summary>
+        public const string ErrorUri = "error_uri";
+
+        /// <summary>
         /// Contains the name of <c>access_token</c> parameter.
         /// </summary>
         public const string AccessToken = "access_token";
+
+        /// <summary>
+        /// Contains the name of <c>token_type</c> parameter.
+        /// </summary>
+        public const string TokenType = "token_type";
+
+        /// <summary>
+        /// Contains the name of <c>expires_in</c> parameter.
+        /// </summary>
+        public const string ExpiresIn = "expires_in";
 
         /// <summary>
         /// Contains the name of <c>acr_values</c> parameter.
@@ -255,5 +280,10 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>values</c> parameter.
         /// </summary>
         public const string Values = "values";
+
+        /// <summary>
+        /// Contains the name of <c>iss</c> parameter.
+        /// </summary>
+        public const string Issuer = "iss";
     }
 }

@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class ResponseModeParser : ParameterParser<ResponseMode?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdMessageContext context, ResponseMode? value)
+    public override StringValues Serialize(IOpenIdContext context, ResponseMode? value)
     {
         return value switch
         {
@@ -42,7 +42,7 @@ public class ResponseModeParser : ParameterParser<ResponseMode?>
     }
 
     /// <inheritdoc/>
-    public override ResponseMode? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override ResponseMode? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -52,10 +52,10 @@ public class ResponseModeParser : ParameterParser<ResponseMode?>
                 return null;
 
             case 0:
-                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+                throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
             case > 1:
-                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
+                throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
         var stringValue = stringValues[0];
@@ -69,6 +69,6 @@ public class ResponseModeParser : ParameterParser<ResponseMode?>
         if (string.Equals(stringValue, OpenIdConstants.ResponseModes.FormPost, StringComparison))
             return ResponseMode.FormPost;
 
-        throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
+        throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
     }
 }

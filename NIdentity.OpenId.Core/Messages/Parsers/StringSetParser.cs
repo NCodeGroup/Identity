@@ -19,7 +19,7 @@
 
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdMessageContext context, IReadOnlyCollection<string>? value)
+    public override StringValues Serialize(IOpenIdContext context, IReadOnlyCollection<string>? value)
     {
         if (value is null)
             return StringValues.Empty;
@@ -42,12 +42,12 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
     }
 
     /// <inheritdoc/>
-    public override IReadOnlyCollection<string>? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
+    public override IReadOnlyCollection<string>? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
     {
         0 when descriptor.Optional => null,
-        0 => throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName),
+        0 => throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
         > 1 when descriptor.AllowMultipleValues => stringValues.SelectMany(stringValue => stringValue.Split(Separator)).ToHashSet(StringComparer.Ordinal),
-        > 1 => throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName),
+        > 1 => throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
         _ => stringValues[0].Split(Separator).ToHashSet(StringComparer.Ordinal)
     };
 }

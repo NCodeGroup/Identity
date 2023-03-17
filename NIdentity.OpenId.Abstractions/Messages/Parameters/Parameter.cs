@@ -50,11 +50,11 @@ public abstract class Parameter
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use while loading the parameter.</param>
+    /// <param name="context">The <see cref="IOpenIdContext"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public static Parameter Load(IOpenIdMessageContext context, string parameterName, IEnumerable<string> stringValues)
+    public static Parameter Load(IOpenIdContext context, string parameterName, IEnumerable<string> stringValues)
     {
         return Load(context, parameterName, stringValues.ToArray());
     }
@@ -62,11 +62,11 @@ public abstract class Parameter
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use while loading the parameter.</param>
+    /// <param name="context">The <see cref="IOpenIdContext"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public static Parameter Load(IOpenIdMessageContext context, string parameterName, StringValues stringValues)
+    public static Parameter Load(IOpenIdContext context, string parameterName, StringValues stringValues)
     {
         var descriptor = context.TryGetKnownParameter(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :

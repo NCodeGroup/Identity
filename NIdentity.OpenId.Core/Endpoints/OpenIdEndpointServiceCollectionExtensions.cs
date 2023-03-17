@@ -19,7 +19,6 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Requests;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -28,11 +27,11 @@ public static class OpenIdEndpointServiceCollectionExtensions
 {
     public static IServiceCollection AddOpenIdEndpoint<TProvider, THandler, TRequest>(this IServiceCollection services)
         where TProvider : class, IOpenIdEndpointProvider
-        where THandler : class, IRequestResponseHandler<TRequest, IHttpResult>
+        where THandler : class, IRequestResponseHandler<TRequest, IOpenIdResult>
         where TRequest : OpenIdEndpointRequest
     {
         services.AddTransient<IOpenIdEndpointProvider, TProvider>();
-        services.AddTransient<IRequestResponseHandler<TRequest, IHttpResult>, THandler>();
+        services.AddTransient<IRequestResponseHandler<TRequest, IOpenIdResult>, THandler>();
         return services;
     }
 }

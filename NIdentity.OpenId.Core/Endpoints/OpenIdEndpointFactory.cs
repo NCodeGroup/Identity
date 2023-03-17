@@ -21,11 +21,16 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
-using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Requests;
 
 namespace NIdentity.OpenId.Endpoints;
+
+public delegate ValueTask OpenIdRequestDelegate(OpenIdEndpointContext context);
+
+public interface IOpenIdEndpointMiddleware
+{
+    ValueTask InvokeAsync(OpenIdEndpointContext context, OpenIdRequestDelegate next);
+}
 
 public interface IOpenIdEndpointFactory
 {
@@ -33,17 +38,24 @@ public interface IOpenIdEndpointFactory
         string name,
         string path,
         IEnumerable<string> httpMethods,
-        Func<HttpContext, OpenIdEndpointRequest> requestFactory,
+        Func<OpenIdEndpointContext, OpenIdEndpointRequest> requestFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default);
 }
 
 public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 {
+    private IMediator Mediator { get; }
+
+    public OpenIdEndpointFactory(IMediator mediator)
+    {
+        Mediator = mediator;
+    }
+
     public Endpoint CreateEndpoint(
         string name,
         string path,
         IEnumerable<string> httpMethods,
-        Func<HttpContext, OpenIdEndpointRequest> requestFactory,
+        Func<OpenIdEndpointContext, OpenIdEndpointRequest> requestFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default)
     {
         var conventions = new List<Action<EndpointBuilder>>();
@@ -59,10 +71,10 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 
         async Task RequestDelegate(HttpContext httpContext)
         {
-            var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
-            var request = requestFactory(httpContext);
-            var result = await mediator.SendAsync(request, httpContext.RequestAborted);
-            await result.ExecuteAsync(httpContext);
+            var context = new OpenIdEndpointContext(httpContext);
+            var request = requestFactory(context);
+            var result = await Mediator.SendAsync(request, httpContext.RequestAborted);
+            await result.ExecuteResultAsync(context);
         }
 
         const int defaultOrder = 0;

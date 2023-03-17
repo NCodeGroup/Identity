@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2021 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using NIdentity.OpenId.DataContracts;
@@ -32,7 +34,7 @@ public interface IClientStore
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="Client"/> matching the specified <paramref name="id"/> if it exists.</returns>
-    ValueTask<Client?> GetByIdAsync(long id, CancellationToken cancellationToken);
+    ValueTask<Client?> TryGetByIdAsync(long id, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets a <see cref="Client"/> by using its natural key.
@@ -42,5 +44,5 @@ public interface IClientStore
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="Client"/> matching the specified <paramref name="clientId"/> if it exists.</returns>
-    ValueTask<Client?> GetByClientIdAsync(string clientId, CancellationToken cancellationToken);
+    ValueTask<Client?> TryGetByClientIdAsync(string clientId, CancellationToken cancellationToken);
 }

@@ -17,7 +17,7 @@
 
 #endregion
 
-using NIdentity.OpenId.Messages.Authorization;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 

@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Validation;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class PromptTypeParser : ParameterParser<PromptTypes?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdMessageContext context, PromptTypes? value)
+    public override StringValues Serialize(IOpenIdContext context, PromptTypes? value)
     {
         if (value is null or PromptTypes.Unspecified)
             return StringValues.Empty;
@@ -58,7 +58,7 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
     }
 
     /// <inheritdoc/>
-    public override PromptTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override PromptTypes? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -68,10 +68,10 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
                 return null;
 
             case 0:
-                throw OpenIdException.Factory.MissingParameter(descriptor.ParameterName);
+                throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
             case > 1:
-                throw OpenIdException.Factory.TooManyParameterValues(descriptor.ParameterName);
+                throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
         stringValues = stringValues[0].Split(Separator);
@@ -102,7 +102,7 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
             else
             {
                 // TODO: ignore unsupported values
-                throw OpenIdException.Factory.InvalidParameterValue(descriptor.ParameterName);
+                throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
             }
         }
 

@@ -1,14 +1,14 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
+// 
 //    Copyright @ 2023 NCode Group
-//
+// 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-//
+// 
 //        http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,25 +17,13 @@
 
 #endregion
 
+using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
-internal class AuthorizationResult : OpenIdMessageResult, IAuthorizationResult
+internal class AuthorizationTicket : OpenIdMessage, IAuthorizationTicket
 {
-    public AuthorizationResult(Uri redirectUri, ResponseMode responseMode)
-    {
-        RedirectUri = redirectUri;
-        ResponseMode = responseMode;
-    }
-
-    public Uri RedirectUri { get; set; }
-
-    public ResponseMode ResponseMode { get; set; }
-
-    public IOpenIdError? Error { get; set; }
-
     public string? State
     {
         get => GetKnownParameter(KnownParameters.State);
@@ -77,7 +65,4 @@ internal class AuthorizationResult : OpenIdMessageResult, IAuthorizationResult
         get => GetKnownParameter(KnownParameters.Issuer);
         set => SetKnownParameter(KnownParameters.Issuer, value);
     }
-
-    public override async ValueTask ExecuteResultAsync(OpenIdEndpointContext context) =>
-        await GetExecutor<IAuthorizationResult>(context).ExecuteResultAsync(context, this);
 }

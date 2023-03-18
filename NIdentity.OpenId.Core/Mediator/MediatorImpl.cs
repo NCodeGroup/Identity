@@ -33,9 +33,9 @@ internal class MediatorImpl : IMediator
     }
 
     private ObjectFactory GetFactory(Type typeOfWrapper) =>
-        FactoryCache.GetOrAdd(typeOfWrapper, type => ActivatorUtilities.CreateFactory(type, Type.EmptyTypes));
+        FactoryCache.GetOrAdd(typeOfWrapper, static type => ActivatorUtilities.CreateFactory(type, Type.EmptyTypes));
 
-    public async ValueTask PublishAsync(IRequest request, CancellationToken cancellationToken)
+    public async ValueTask SendAsync(IRequest request, CancellationToken cancellationToken)
     {
         var typeOfWrapper = typeof(RequestHandlerWrapper<>).MakeGenericType(request.GetType());
         var factory = GetFactory(typeOfWrapper);

@@ -62,8 +62,10 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         var endpointConventionBuilder = new EndpointConventionBuilder(conventions);
         var httpMethodArray = httpMethods as string[] ?? httpMethods.ToArray();
 
+        var displayName = $"{path} HTTP: {string.Join(", ", httpMethodArray)}";
+
         endpointConventionBuilder.WithName(name);
-        endpointConventionBuilder.WithDisplayName($"{path} HTTP: {string.Join(", ", httpMethodArray)}");
+        endpointConventionBuilder.WithDisplayName(displayName);
         endpointConventionBuilder.WithMetadata(new HttpMethodMetadata(httpMethodArray));
 
         var routeHandlerBuilder = new RouteHandlerBuilder(new[] { endpointConventionBuilder });
@@ -71,7 +73,15 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 
         async Task RequestDelegate(HttpContext httpContext)
         {
-            var context = new OpenIdEndpointContext(httpContext);
+            var endpoint = httpContext.GetEndpoint();
+            var descriptor = new OpenIdEndpointDescriptor
+            {
+                Name = name,
+                DisplayName = displayName,
+                Metadata = endpoint?.Metadata ?? EndpointMetadataCollection.Empty
+            };
+            var context = new OpenIdEndpointContext(descriptor, httpContext);
+
             var request = requestFactory(context);
             var result = await Mediator.SendAsync(request, httpContext.RequestAborted);
             await result.ExecuteResultAsync(context);

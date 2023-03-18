@@ -21,7 +21,7 @@ namespace NIdentity.OpenId.Mediator;
 
 public interface IMediator
 {
-    ValueTask PublishAsync(IRequest request, CancellationToken cancellationToken);
+    ValueTask SendAsync(IRequest request, CancellationToken cancellationToken);
 
     ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken);
 }

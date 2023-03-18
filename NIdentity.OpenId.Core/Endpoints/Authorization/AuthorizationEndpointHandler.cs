@@ -94,7 +94,7 @@ internal class AuthorizationEndpointHandler : IRequestResponseHandler<Authorizat
     private async ValueTask ValidateAuthorizationRequestAsync(
         IAuthorizationRequestUnion authorizationRequest,
         CancellationToken cancellationToken) =>
-        await Mediator.PublishAsync(
+        await Mediator.SendAsync(
             new ValidateAuthorizationRequestRequest(authorizationRequest),
             cancellationToken);
 

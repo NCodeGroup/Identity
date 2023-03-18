@@ -25,13 +25,6 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints;
 
-public delegate ValueTask OpenIdRequestDelegate(OpenIdEndpointContext context);
-
-public interface IOpenIdEndpointMiddleware
-{
-    ValueTask InvokeAsync(OpenIdEndpointContext context, OpenIdRequestDelegate next);
-}
-
 public interface IOpenIdEndpointFactory
 {
     Endpoint CreateEndpoint(

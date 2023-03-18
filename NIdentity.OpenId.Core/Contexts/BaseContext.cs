@@ -17,7 +17,7 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Options;
 
 namespace NIdentity.OpenId.Contexts;
@@ -31,11 +31,11 @@ public abstract class BaseContext
     /// Initializes a new instance of the <see cref="BaseContext"/> class.
     /// </summary>
     /// <param name="options"><see cref="IdentityServerOptions"/></param>
-    /// <param name="httpContext"><see cref="HttpContext"/></param>
-    protected BaseContext(IdentityServerOptions options, HttpContext httpContext)
+    /// <param name="endpointContext"><see cref="OpenIdEndpointContext"/></param>
+    protected BaseContext(IdentityServerOptions options, OpenIdEndpointContext endpointContext)
     {
         Options = options;
-        HttpContext = httpContext;
+        EndpointContext = endpointContext;
     }
 
     /// <summary>
@@ -44,9 +44,9 @@ public abstract class BaseContext
     public virtual IdentityServerOptions Options { get; }
 
     /// <summary>
-    /// Gets the <see cref="HttpContext"/>.
+    /// Gets the <see cref="OpenIdEndpointContext"/>.
     /// </summary>
-    public virtual HttpContext HttpContext { get; }
+    public virtual OpenIdEndpointContext EndpointContext { get; }
 
-    public virtual CancellationToken CancellationToken => HttpContext.RequestAborted;
+    public virtual CancellationToken CancellationToken => EndpointContext.HttpContext.RequestAborted;
 }

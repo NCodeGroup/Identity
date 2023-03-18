@@ -1,7 +1,7 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
-//    Copyright @ 2022 NCode Group
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NIdentity.OpenId.Contexts;
 using NIdentity.OpenId.DataContracts;
@@ -30,50 +29,26 @@ using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class GetAuthorizationResponseHandler : IRequestResponseHandler<GetAuthorizationResponseRequest, IOpenIdResult>
+internal class AuthorizeHandler : IRequestResponseHandler<AuthorizeRequest, IOpenIdResult>
 {
     private IdentityServerOptions Options { get; }
     private ISystemClock SystemClock { get; }
 
-    public GetAuthorizationResponseHandler(IOptions<IdentityServerOptions> optionsAccessor, ISystemClock systemClock)
+    public AuthorizeHandler(IOptions<IdentityServerOptions> optionsAccessor, ISystemClock systemClock)
     {
-        SystemClock = systemClock;
         Options = optionsAccessor.Value;
+        SystemClock = systemClock;
     }
 
-    public async ValueTask<IOpenIdResult> HandleAsync(GetAuthorizationResponseRequest request, CancellationToken cancellationToken)
-    {
-        var promptResult = await ProcessPromptAsync(request, cancellationToken);
-
-        if (promptResult.IsError)
-        {
-        }
-
-        if (promptResult.IsError || (!promptResult.IsNoResult && request.AuthorizationRequest.PromptType.HasFlag(PromptTypes.None)))
-        {
-            // TODO: return error
-        }
-
-        if (promptResult.IsNoResult)
-        {
-            // TODO: check consent
-        }
-
-        if (promptResult.IsError || (!promptResult.IsNoResult && request.AuthorizationRequest.PromptType.HasFlag(PromptTypes.None)))
-        {
-            // TODO: return error
-        }
-
-        throw new NotImplementedException();
-    }
-
-    public async ValueTask<PromptResult> ProcessPromptAsync(GetAuthorizationResponseRequest request, CancellationToken cancellationToken)
+    public async ValueTask<IOpenIdResult> HandleAsync(AuthorizeRequest request, CancellationToken cancellationToken)
     {
         var promptType = request.AuthorizationRequest.PromptType;
 
+        // TODO: check if supported
         if (promptType.HasFlag(PromptTypes.CreateAccount))
         {
-            return PromptResult.CreateAccountRequired();
+            // TODO: redirect to create account page
+            throw new NotImplementedException();
         }
 
         var reAuthenticate = promptType.HasFlag(PromptTypes.Login) ||
@@ -81,25 +56,31 @@ internal class GetAuthorizationResponseHandler : IRequestResponseHandler<GetAuth
 
         if (reAuthenticate)
         {
-            return PromptResult.LoginRequired("Client requested re-authentication.");
+            // TODO: redirect to login page
+            // reason: Client requested re-authentication.
+            throw new NotImplementedException();
         }
 
         if (request.AuthenticateResult.Ticket is not { Principal.Identity.IsAuthenticated: true })
         {
-            return PromptResult.LoginRequired("User not authenticated.");
+            // TODO: redirect to login page
+            // reason: User not authenticated.
+            throw new NotImplementedException();
         }
 
-        var httpContext = request.EndpointContext.HttpContext;
-        var ticket = request.AuthenticateResult.Ticket;
+        var endpointContext = request.EndpointContext;
+        var authenticationTicket = request.AuthenticateResult.Ticket;
         var client = request.AuthorizationRequest.Client;
 
         if (!await ValidateUserIsActiveAsync(
-                httpContext,
-                ticket,
+                endpointContext,
+                authenticationTicket,
                 client,
                 cancellationToken))
         {
-            return PromptResult.LoginRequired("User not active.");
+            // TODO: redirect to login page
+            // reason: User not active.
+            throw new NotImplementedException();
         }
 
         // TODO: check tenant
@@ -107,10 +88,12 @@ internal class GetAuthorizationResponseHandler : IRequestResponseHandler<GetAuth
         // TODO: check IdP
 
         // check MaxAge
-        var identity = ticket.Principal.Identity as ClaimsIdentity ?? throw new InvalidOperationException();
+        var identity = authenticationTicket.Principal.Identity as ClaimsIdentity ?? throw new InvalidOperationException();
         if (!ValidateMaxAge(identity, request.AuthorizationRequest.MaxAge))
         {
-            return PromptResult.LoginRequired("MaxAge exceeded.");
+            // TODO: redirect to login page
+            // reason: MaxAge exceeded.
+            throw new NotImplementedException();
         }
 
         // TODO: check local idp restrictions
@@ -119,19 +102,20 @@ internal class GetAuthorizationResponseHandler : IRequestResponseHandler<GetAuth
 
         // TODO: check client's user SSO timeout
 
-        return PromptResult.NoResult();
+        throw new NotImplementedException();
     }
 
     private async ValueTask<bool> ValidateUserIsActiveAsync(
-        HttpContext httpContext,
-        AuthenticationTicket ticket,
+        OpenIdEndpointContext endpointContext,
+        AuthenticationTicket authenticationTicket,
         Client client,
         CancellationToken cancellationToken)
     {
+        if (client == null) throw new ArgumentNullException(nameof(client));
         var validateUserIsActiveContext = new ValidateUserIsActiveContext(
             Options,
-            httpContext,
-            ticket,
+            endpointContext,
+            authenticationTicket,
             client);
 
         await Options.Events.ValidateUserIsActive(validateUserIsActiveContext, cancellationToken);

@@ -59,7 +59,7 @@ internal class AuthorizationEndpointHandler : IRequestResponseHandler<Authorizat
 
             var authenticateResult = await AuthenticateAsync(endpointContext, cancellationToken);
 
-            return await GetAuthorizationResponseAsync(
+            return await AuthorizeAsync(
                 endpointContext,
                 authorizationRequestUnion,
                 authenticateResult,
@@ -68,8 +68,11 @@ internal class AuthorizationEndpointHandler : IRequestResponseHandler<Authorizat
         catch (Exception exception)
         {
             var result = await DetermineErrorResultAsync(endpointContext, openIdMessage, exception);
-            if (result != null) return result;
-            // let the top-level middleware handle the exception
+            if (result != null)
+            {
+                return result;
+            }
+
             throw;
         }
     }
@@ -102,13 +105,13 @@ internal class AuthorizationEndpointHandler : IRequestResponseHandler<Authorizat
             new AuthenticateRequest(endpointContext),
             cancellationToken);
 
-    private async ValueTask<IOpenIdResult> GetAuthorizationResponseAsync(
+    private async ValueTask<IOpenIdResult> AuthorizeAsync(
         OpenIdEndpointContext endpointContext,
         IAuthorizationRequestUnion authorizationRequest,
         AuthenticateResult authenticateResult,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
-            new GetAuthorizationResponseRequest(
+            new AuthorizeRequest(
                 endpointContext,
                 authorizationRequest,
                 authenticateResult),
@@ -128,12 +131,12 @@ internal class AuthorizationEndpointHandler : IRequestResponseHandler<Authorizat
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithException(exception);
 
-        if (message is IAuthorizationRequestUnion authorizationRequestUnion)
+        if (message is IAuthorizationRequestUnion authorizationRequest)
         {
-            var state = authorizationRequestUnion.State;
-            var client = authorizationRequestUnion.Client;
-            var redirectUri = authorizationRequestUnion.RedirectUri;
-            var responseMode = authorizationRequestUnion.ResponseMode;
+            var state = authorizationRequest.State;
+            var client = authorizationRequest.Client;
+            var redirectUri = authorizationRequest.RedirectUri;
+            var responseMode = authorizationRequest.ResponseMode;
 
             if (!string.IsNullOrEmpty(state))
             {

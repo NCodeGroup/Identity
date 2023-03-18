@@ -18,8 +18,8 @@
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Options;
 
 namespace NIdentity.OpenId.Contexts;
@@ -30,11 +30,11 @@ public class ValidateUserIsActiveContext : AuthenticationTicketContext
     /// Initializes a new instance of the <see cref="ValidateUserIsActiveContext"/> class.
     /// </summary>
     /// <param name="options"><see cref="IdentityServerOptions"/></param>
-    /// <param name="httpContext"><see cref="HttpContext"/></param>
-    /// <param name="ticket"><see cref="AuthenticationTicket"/></param>
+    /// <param name="endpointContext"><see cref="OpenIdEndpointContext"/></param>
+    /// <param name="authenticationTicket"><see cref="AuthenticationTicket"/></param>
     /// <param name="client"><see cref="Client"/></param>
-    public ValidateUserIsActiveContext(IdentityServerOptions options, HttpContext httpContext, AuthenticationTicket ticket, Client client)
-        : base(options, httpContext, ticket)
+    public ValidateUserIsActiveContext(IdentityServerOptions options, OpenIdEndpointContext endpointContext, AuthenticationTicket authenticationTicket, Client client)
+        : base(options, endpointContext, authenticationTicket)
     {
         Client = client;
     }

@@ -21,7 +21,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Endpoints.Authorization.Mediator;
+using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Mediator;
@@ -31,7 +31,7 @@ using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class GetAuthorizationRequestUnionHandler : IRequestResponseHandler<GetAuthorizationRequestUnionRequest, IAuthorizationRequestUnion>
+internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<GetAuthorizationCommandUnionCommand, IAuthorizationRequestUnion>
 {
     private ILogger<GetAuthorizationRequestUnionHandler> Logger { get; }
     private AuthorizationOptions Options { get; }
@@ -61,12 +61,12 @@ internal class GetAuthorizationRequestUnionHandler : IRequestResponseHandler<Get
 
     /// <inheritdoc />
     public async ValueTask<IAuthorizationRequestUnion> HandleAsync(
-        GetAuthorizationRequestUnionRequest request,
+        GetAuthorizationCommandUnionCommand command,
         CancellationToken cancellationToken)
     {
-        var requestMessage = AuthorizationRequestMessage.Load(request.AuthorizationRequestStringValues);
+        var requestMessage = AuthorizationRequestMessage.Load(command.AuthorizationRequestStringValues);
 
-        requestMessage.AuthorizationSource = request.AuthorizationRequestStringValues.AuthorizationSource;
+        requestMessage.AuthorizationSource = command.AuthorizationRequestStringValues.AuthorizationSource;
 
         var client = await GetClientAsync(requestMessage, cancellationToken);
 

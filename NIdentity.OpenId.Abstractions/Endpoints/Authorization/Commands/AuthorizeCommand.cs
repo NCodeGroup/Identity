@@ -1,7 +1,7 @@
 ﻿#region Copyright Preamble
 
 //
-//    Copyright @ 2021 NCode Group
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,16 +17,15 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Authentication;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Endpoints;
+namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
-/// <summary>
-/// Defines an <see cref="IRequest{TResponse}"/> contract that accepts a <see cref="OpenIdEndpointContext"/> as an
-/// input argument and expects <see cref="IOpenIdResult"/> as a response.
-/// </summary>
-/// <param name="EndpointContext">The <see cref="OpenIdEndpointContext"/> input argument for the request contract.</param>
-public abstract record OpenIdEndpointRequest(
-    OpenIdEndpointContext EndpointContext
-) : IRequest<IOpenIdResult>;
+public record AuthorizeCommand(
+    OpenIdEndpointContext EndpointContext,
+    IAuthorizationRequestUnion AuthorizationRequest,
+    AuthenticateResult AuthenticateResult
+) : ICommand<IOpenIdResult>;

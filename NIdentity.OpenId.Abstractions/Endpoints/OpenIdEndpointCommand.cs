@@ -1,7 +1,7 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
-//    Copyright @ 2022 NCode Group
+//    Copyright @ 2021 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,15 +17,16 @@
 
 #endregion
 
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Endpoints.Authorization;
+namespace NIdentity.OpenId.Endpoints;
 
 /// <summary>
-/// Defines a <see cref="OpenIdEndpointRequest"/> contract that accepts a <see cref="OpenIdEndpointContext"/> as an
+/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts a <see cref="OpenIdEndpointContext"/> as an
 /// input argument and expects <see cref="IOpenIdResult"/> as a response.
 /// </summary>
-/// <param name="EndpointContext">The <see cref="OpenIdEndpointContext"/> input argument for the request contract.</param>
-public record AuthorizationEndpointRequest(
+/// <param name="EndpointContext">The <see cref="OpenIdEndpointContext"/> input argument for the command contract.</param>
+public abstract record OpenIdEndpointCommand(
     OpenIdEndpointContext EndpointContext
-) : OpenIdEndpointRequest(EndpointContext);
+) : ICommand<IOpenIdResult>;

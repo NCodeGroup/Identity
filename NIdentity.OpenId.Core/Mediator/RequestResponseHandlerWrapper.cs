@@ -19,30 +19,30 @@
 
 namespace NIdentity.OpenId.Mediator;
 
-internal interface IRequestResponseHandlerWrapper<TResponse>
+internal interface ICommandResponseHandlerWrapper<TResponse>
 {
-    ValueTask<TResponse> HandleAsync(IRequest<TResponse> request, CancellationToken cancellationToken);
+    ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken);
 }
 
-internal class RequestResponseHandlerWrapper<TRequest, TResponse> : IRequestResponseHandlerWrapper<TResponse>
-    where TRequest : IRequest<TResponse>
+internal class CommandResponseHandlerWrapper<TCommand, TResponse> : ICommandResponseHandlerWrapper<TResponse>
+    where TCommand : ICommand<TResponse>
 {
     private MiddlewareChainDelegate MiddlewareChain { get; }
 
-    private delegate ValueTask<TResponse> MiddlewareChainDelegate(TRequest request, CancellationToken cancellationToken);
+    private delegate ValueTask<TResponse> MiddlewareChainDelegate(TCommand command, CancellationToken cancellationToken);
 
-    public RequestResponseHandlerWrapper(
-        IRequestResponseHandler<TRequest, TResponse> handler,
-        IEnumerable<IRequestResponseMiddleware<TRequest, TResponse>> middlewares)
+    public CommandResponseHandlerWrapper(
+        ICommandResponseHandler<TCommand, TResponse> handler,
+        IEnumerable<ICommandResponseMiddleware<TCommand, TResponse>> middlewares)
     {
-        ValueTask<TResponse> RootHandler(TRequest request, CancellationToken token) =>
-            handler.HandleAsync(request, token);
+        ValueTask<TResponse> RootHandler(TCommand command, CancellationToken token) =>
+            handler.HandleAsync(command, token);
 
-        static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> CreateFactory(IRequestResponseMiddleware<TRequest, TResponse> middleware) =>
-            next => (request, token) =>
+        static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> CreateFactory(ICommandResponseMiddleware<TCommand, TResponse> middleware) =>
+            next => (command, token) =>
             {
-                ValueTask<TResponse> SimpleNext() => next(request, token);
-                return middleware.HandleAsync(request, SimpleNext, token);
+                ValueTask<TResponse> SimpleNext() => next(command, token);
+                return middleware.HandleAsync(command, SimpleNext, token);
             };
 
         MiddlewareChain = middlewares.Select(CreateFactory).Aggregate(
@@ -50,6 +50,6 @@ internal class RequestResponseHandlerWrapper<TRequest, TResponse> : IRequestResp
             (next, factory) => factory(next));
     }
 
-    public ValueTask<TResponse> HandleAsync(IRequest<TResponse> request, CancellationToken cancellationToken) =>
-        MiddlewareChain((TRequest)request, cancellationToken);
+    public ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken) =>
+        MiddlewareChain((TCommand)command, cancellationToken);
 }

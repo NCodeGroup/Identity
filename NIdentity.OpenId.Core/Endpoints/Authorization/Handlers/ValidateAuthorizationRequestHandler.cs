@@ -18,14 +18,14 @@
 #endregion
 
 using JetBrains.Annotations;
-using NIdentity.OpenId.Endpoints.Authorization.Mediator;
+using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAuthorizationRequestRequest>
+internal class ValidateAuthorizationRequestHandler : ICommandHandler<ValidateAuthorizationRequestCommand>
 {
     private IOpenIdErrorFactory ErrorFactory { get; }
 
@@ -35,9 +35,9 @@ internal class ValidateAuthorizationRequestHandler : IRequestHandler<ValidateAut
     }
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(ValidateAuthorizationRequestRequest request, CancellationToken cancellationToken)
+    public ValueTask HandleAsync(ValidateAuthorizationRequestCommand command, CancellationToken cancellationToken)
     {
-        var authorizationRequest = request.AuthorizationRequest;
+        var authorizationRequest = command.AuthorizationRequest;
 
         ValidateRequestMessage(authorizationRequest.OriginalRequestMessage);
 

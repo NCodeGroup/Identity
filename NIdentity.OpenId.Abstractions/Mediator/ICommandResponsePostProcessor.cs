@@ -1,7 +1,7 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
-//    Copyright @ 2021 NCode Group
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,20 +20,20 @@
 namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Defines a handler that accepts an input argument and returns a value.
+/// Defines a method for post-processing a command-response pipeline.
 /// </summary>
-/// <typeparam name="TRequest">The type of the input value.</typeparam>
+/// <typeparam name="TCommand">The type of the input value.</typeparam>
 /// <typeparam name="TResponse">The type of the return value.</typeparam>
-public interface IRequestResponseHandler<in TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+public interface ICommandResponsePostProcessor<in TCommand, in TResponse>
+    where TCommand : ICommand<TResponse>
 {
     /// <summary>
-    /// Handles a request given an input argument and returns a value.
+    /// Method for processing the command and response after the handler.
     /// </summary>
-    /// <param name="request">The input value to handle.</param>
+    /// <param name="command">The input value to the handler.</param>
+    /// <param name="response">The return value from the handler.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resulting
-    /// value from the handler.</returns>
-    ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask PostProcessAsync(TCommand command, TResponse response, CancellationToken cancellationToken);
 }

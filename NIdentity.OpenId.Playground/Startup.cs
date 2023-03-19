@@ -39,7 +39,7 @@ internal class Startup
         services.AddSingleton<IOpenIdEndpointCollectionProvider, OpenIdEndpointCollectionProvider>();
 
         services.AddAuthorizationEndpoint();
-        services.AddOpenIdEndpoint<DiscoveryEndpointProvider, DiscoveryEndpointHandler, DiscoveryEndpointRequest>();
+        services.AddOpenIdEndpoint<DiscoveryEndpointProvider, DiscoveryEndpointHandler, DiscoveryEndpointCommand>();
 
         services.AddControllers();
         services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "NIdentity.OpenId.Playground", Version = "v1" }); });

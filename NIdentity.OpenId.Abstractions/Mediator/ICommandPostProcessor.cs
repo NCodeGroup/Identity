@@ -20,18 +20,18 @@
 namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Defines a method for post-processing a request pipeline.
+/// Defines a method for post-processing a command-only or command-response pipeline.
 /// </summary>
-/// <typeparam name="TRequest">The type of the input value.</typeparam>
-public interface IRequestPostProcessor<in TRequest>
-    where TRequest : notnull
+/// <typeparam name="TCommand">The type of the input value.</typeparam>
+public interface ICommandPostProcessor<in TCommand>
+    where TCommand : notnull
 {
     /// <summary>
-    /// Method for processing the request after the handler.
+    /// Method for processing the command after the handler.
     /// </summary>
-    /// <param name="request">The input value to the handler.</param>
+    /// <param name="command">The input value to the handler.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask PostProcessAsync(TRequest request, CancellationToken cancellationToken);
+    ValueTask PostProcessAsync(TCommand command, CancellationToken cancellationToken);
 }

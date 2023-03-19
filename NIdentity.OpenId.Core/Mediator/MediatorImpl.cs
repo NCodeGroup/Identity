@@ -32,23 +32,23 @@ internal class MediatorImpl : IMediator
         ServiceProvider = serviceProvider;
     }
 
-    public ValueTask SendAsync(IRequest request, CancellationToken cancellationToken)
+    public ValueTask SendAsync(ICommand command, CancellationToken cancellationToken)
     {
-        var handler = (IRequestHandlerWrapper)HandlerCache.GetOrAdd(request.GetType(), typeOfRequest =>
+        var handler = (ICommandHandlerWrapper)HandlerCache.GetOrAdd(command.GetType(), typeOfRequest =>
         {
-            var typeOfWrapper = typeof(RequestHandlerWrapper<>).MakeGenericType(typeOfRequest);
+            var typeOfWrapper = typeof(CommandHandlerWrapper<>).MakeGenericType(typeOfRequest);
             return ActivatorUtilities.CreateInstance(ServiceProvider, typeOfWrapper);
         });
-        return handler.HandleAsync(request, cancellationToken);
+        return handler.HandleAsync(command, cancellationToken);
     }
 
-    public ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
+    public ValueTask<TResponse> SendAsync<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken)
     {
-        var handler = (IRequestResponseHandlerWrapper<TResponse>)HandlerCache.GetOrAdd(request.GetType(), typeOfRequest =>
+        var handler = (ICommandResponseHandlerWrapper<TResponse>)HandlerCache.GetOrAdd(command.GetType(), typeOfRequest =>
         {
-            var typeOfWrapper = typeof(RequestResponseHandlerWrapper<,>).MakeGenericType(typeOfRequest, typeof(TResponse));
+            var typeOfWrapper = typeof(CommandResponseHandlerWrapper<,>).MakeGenericType(typeOfRequest, typeof(TResponse));
             return ActivatorUtilities.CreateInstance(ServiceProvider, typeOfWrapper);
         });
-        return handler.HandleAsync(request, cancellationToken);
+        return handler.HandleAsync(command, cancellationToken);
     }
 }

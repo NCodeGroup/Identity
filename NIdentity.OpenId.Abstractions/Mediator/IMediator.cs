@@ -20,27 +20,27 @@
 namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Provides the ability to dispatch a request and optionally receive a response.
+/// Provides the ability to dispatch a command and optionally receive a response.
 /// </summary>
 public interface IMediator
 {
     /// <summary>
-    /// Asynchronously send a request to a handler that doesn't return a value.
+    /// Asynchronously send a command to a handler that doesn't return a value.
     /// </summary>
-    /// <param name="request">The input value to handle.</param>
+    /// <param name="command">The input value to handle.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask SendAsync(IRequest request, CancellationToken cancellationToken);
+    ValueTask SendAsync(ICommand command, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Asynchronously send a request to a handler that returns a value.
+    /// Asynchronously send a command to a handler that returns a value.
     /// </summary>
-    /// <param name="request">The input value to handle.</param>
+    /// <param name="command">The input value to handle.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <typeparam name="TResponse">The type of the return value.</typeparam>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resulting
     /// value from the handler.</returns>
-    ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken);
+    ValueTask<TResponse> SendAsync<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken);
 }

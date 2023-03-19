@@ -47,7 +47,7 @@ internal class DiscoveryEndpointProvider : IOpenIdEndpointProvider
             OpenIdConstants.EndpointNames.Discovery,
             OpenIdConstants.EndpointPaths.Discovery,
             httpMethods,
-            endpointContext => new DiscoveryEndpointRequest(endpointContext),
+            endpointContext => new DiscoveryEndpointCommand(endpointContext),
             builder => builder.WithMetadata(suppressDiscoveryMetadata));
     }
 }

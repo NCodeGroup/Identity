@@ -1,7 +1,7 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
-//    Copyright @ 2021 NCode Group
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,21 +17,11 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Mediator;
 
-/// <summary>
-/// Defines the request contract used by handlers that don't return a value.
-/// </summary>
-public interface IRequest
-{
-    // nothing
-}
+namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
-/// <summary>
-/// Defines the request contract used by handlers that return a value.
-/// </summary>
-/// <typeparam name="TResponse">The type of the output value.</typeparam>
-public interface IRequest<out TResponse>
-{
-    // nothing
-}
+public record struct GetAuthorizationCommandStringValuesCommand(
+    OpenIdEndpointContext EndpointContext
+) : ICommand<IAuthorizationRequestStringValues>;

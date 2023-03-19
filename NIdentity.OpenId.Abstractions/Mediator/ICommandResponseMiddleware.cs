@@ -20,29 +20,29 @@
 namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Represents a function that can process the remaining middleware in the request-response pipeline.
+/// Represents a function that can process the remaining middleware in the command-response pipeline.
 /// </summary>
-/// <typeparam name="TResponse">The type of the return value.</typeparam>
+/// <typeparam name="TCommand">The type of the return value.</typeparam>
 /// <remarks>
-/// Declared without arguments so that <see cref="IRequestResponseMiddleware{TRequest,TResponse}"/> can be contravariant in DI.
+/// Declared without arguments so that <see cref="ICommandResponseMiddleware{TCommand,TResponse}"/> can be contravariant in DI.
 /// </remarks>
-public delegate ValueTask<TResponse> RequestResponseMiddlewareDelegate<TResponse>();
+public delegate ValueTask<TCommand> CommandResponseMiddlewareDelegate<TCommand>();
 
 /// <summary>
-/// Defines a middleware component that can be added to the request-response pipeline.
+/// Defines a middleware component that can be added to a command-response pipeline.
 /// </summary>
-/// <typeparam name="TRequest">The type of the input value.</typeparam>
+/// <typeparam name="TCommand">The type of the input value.</typeparam>
 /// <typeparam name="TResponse">The type of the return value.</typeparam>
-public interface IRequestResponseMiddleware<in TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+public interface ICommandResponseMiddleware<in TCommand, TResponse>
+    where TCommand : ICommand<TResponse>
 {
     /// <summary>
     /// Middleware method handler.
     /// </summary>
-    /// <param name="request">The input value to handle.</param>
+    /// <param name="command">The input value to handle.</param>
     /// <param name="next">The delegate representing the remaining middleware in the request-response pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resulting
     /// value from the handler.</returns>
-    ValueTask<TResponse> HandleAsync(TRequest request, RequestResponseMiddlewareDelegate<TResponse> next, CancellationToken cancellationToken);
+    ValueTask<TResponse> HandleAsync(TCommand command, CommandResponseMiddlewareDelegate<TResponse> next, CancellationToken cancellationToken);
 }

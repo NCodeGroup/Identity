@@ -19,19 +19,19 @@
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
-using NIdentity.OpenId.Endpoints.Authorization.Mediator;
+using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class AuthenticateHandler : IRequestResponseHandler<AuthenticateRequest, AuthenticateResult>
+internal class AuthenticateHandler : ICommandResponseHandler<AuthenticateCommand, AuthenticateResult>
 {
     private IdentityServerOptions Options { get; }
 
     public AuthenticateHandler(IOptions<IdentityServerOptions> optionsAccessor) =>
         Options = optionsAccessor.Value;
 
-    public async ValueTask<AuthenticateResult> HandleAsync(AuthenticateRequest request, CancellationToken cancellationToken) =>
-        await request.EndpointContext.HttpContext.AuthenticateAsync(Options.SignInScheme);
+    public async ValueTask<AuthenticateResult> HandleAsync(AuthenticateCommand command, CancellationToken cancellationToken) =>
+        await command.EndpointContext.HttpContext.AuthenticateAsync(Options.SignInScheme);
 }

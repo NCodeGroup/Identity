@@ -31,7 +31,7 @@ public interface IOpenIdEndpointFactory
         string name,
         string path,
         IEnumerable<string> httpMethods,
-        Func<OpenIdEndpointContext, OpenIdEndpointRequest> requestFactory,
+        Func<OpenIdEndpointContext, OpenIdEndpointCommand> commandFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default);
 }
 
@@ -48,7 +48,7 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         string name,
         string path,
         IEnumerable<string> httpMethods,
-        Func<OpenIdEndpointContext, OpenIdEndpointRequest> requestFactory,
+        Func<OpenIdEndpointContext, OpenIdEndpointCommand> commandFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default)
     {
         var conventions = new List<Action<EndpointBuilder>>();
@@ -75,8 +75,8 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
             };
             var context = new OpenIdEndpointContext(descriptor, httpContext);
 
-            var request = requestFactory(context);
-            var result = await Mediator.SendAsync(request, httpContext.RequestAborted);
+            var command = commandFactory(context);
+            var result = await Mediator.SendAsync(command, httpContext.RequestAborted);
             await result.ExecuteResultAsync(context);
         }
 

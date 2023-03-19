@@ -30,9 +30,9 @@ internal class AuthorizationEndpointProvider : IOpenIdEndpointProvider
         EndpointFactory = endpointFactory;
     }
 
-    private static AuthorizationEndpointRequest CreateAuthorizationEndpointRequest(OpenIdEndpointContext context)
+    private static AuthorizationEndpointCommand CreateAuthorizationEndpointCommand(OpenIdEndpointContext context)
     {
-        return new AuthorizationEndpointRequest(context);
+        return new AuthorizationEndpointCommand(context);
     }
 
     public Endpoint CreateEndpoint()
@@ -47,6 +47,6 @@ internal class AuthorizationEndpointProvider : IOpenIdEndpointProvider
             OpenIdConstants.EndpointNames.Authorization,
             OpenIdConstants.EndpointPaths.Authorization,
             httpMethods,
-            CreateAuthorizationEndpointRequest);
+            CreateAuthorizationEndpointCommand);
     }
 }

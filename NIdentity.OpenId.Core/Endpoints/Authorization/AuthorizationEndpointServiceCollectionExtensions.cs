@@ -19,8 +19,8 @@
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
+using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Handlers;
-using NIdentity.OpenId.Endpoints.Authorization.Mediator;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
 
@@ -30,11 +30,11 @@ public static class AuthorizationEndpointServiceCollectionExtensions
 {
     public static IServiceCollection AddAuthorizationEndpoint(this IServiceCollection services)
     {
-        services.AddOpenIdEndpoint<AuthorizationEndpointProvider, AuthorizationEndpointHandler, AuthorizationEndpointRequest>();
+        services.AddOpenIdEndpoint<AuthorizationEndpointProvider, AuthorizationEndpointHandler, AuthorizationEndpointCommand>();
 
-        services.AddTransient<IRequestResponseHandler<GetAuthorizationRequestUnionRequest, IAuthorizationRequestUnion>, GetAuthorizationRequestUnionHandler>();
-        services.AddTransient<IRequestHandler<ValidateAuthorizationRequestRequest>, ValidateAuthorizationRequestHandler>();
-        services.AddTransient<IRequestResponseHandler<AuthenticateRequest, AuthenticateResult>, AuthenticateHandler>();
+        services.AddTransient<ICommandResponseHandler<GetAuthorizationCommandUnionCommand, IAuthorizationRequestUnion>, GetAuthorizationRequestUnionHandler>();
+        services.AddTransient<ICommandHandler<ValidateAuthorizationRequestCommand>, ValidateAuthorizationRequestHandler>();
+        services.AddTransient<ICommandResponseHandler<AuthenticateCommand, AuthenticateResult>, AuthenticateHandler>();
 
         return services;
     }

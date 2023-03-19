@@ -25,13 +25,13 @@ namespace NIdentity.OpenId.Endpoints;
 
 public static class OpenIdEndpointServiceCollectionExtensions
 {
-    public static IServiceCollection AddOpenIdEndpoint<TProvider, THandler, TRequest>(this IServiceCollection services)
+    public static IServiceCollection AddOpenIdEndpoint<TProvider, THandler, TCommand>(this IServiceCollection services)
         where TProvider : class, IOpenIdEndpointProvider
-        where THandler : class, IRequestResponseHandler<TRequest, IOpenIdResult>
-        where TRequest : OpenIdEndpointRequest
+        where THandler : class, ICommandResponseHandler<TCommand, IOpenIdResult>
+        where TCommand : OpenIdEndpointCommand
     {
         services.AddTransient<IOpenIdEndpointProvider, TProvider>();
-        services.AddTransient<IRequestResponseHandler<TRequest, IOpenIdResult>, THandler>();
+        services.AddTransient<ICommandResponseHandler<TCommand, IOpenIdResult>, THandler>();
         return services;
     }
 }

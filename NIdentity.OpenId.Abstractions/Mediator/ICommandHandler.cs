@@ -1,7 +1,7 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
-//    Copyright @ 2023 NCode Group
+//    Copyright @ 2021 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,26 +20,17 @@
 namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Represents a function that can process the remaining middleware in the request pipeline.
+/// Defines a handler that accepts an input value and doesn't return anything.
 /// </summary>
-/// <remarks>
-/// Declared without arguments so that <see cref="IRequestMiddleware{TRequest}"/> can be contravariant in DI.
-/// </remarks>
-public delegate ValueTask RequestMiddlewareDelegate();
-
-/// <summary>
-/// Defines a middleware component that can be added to the request pipeline.
-/// </summary>
-/// <typeparam name="TRequest">The type of the input value.</typeparam>
-public interface IRequestMiddleware<in TRequest>
-    where TRequest : IRequest
+/// <typeparam name="TCommand">The type of the input value.</typeparam>
+public interface ICommandHandler<in TCommand>
+    where TCommand : ICommand
 {
     /// <summary>
-    /// Middleware method handler.
+    /// Handles a command given an input value.
     /// </summary>
-    /// <param name="request">The input value to handle.</param>
-    /// <param name="next">The delegate representing the remaining middleware in the request pipeline.</param>
+    /// <param name="command">The input value to handle.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask HandleAsync(TRequest request, RequestMiddlewareDelegate next, CancellationToken cancellationToken);
+    ValueTask HandleAsync(TCommand command, CancellationToken cancellationToken);
 }

@@ -19,33 +19,31 @@
 
 namespace NIdentity.OpenId.Mediator;
 
-internal class RequestResponseMiddleware<TRequest, TResponse> : IRequestResponseMiddleware<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+internal class CommandMiddleware<TCommand> : ICommandMiddleware<TCommand>
+    where TCommand : ICommand
 {
-    private IEnumerable<IRequestPreProcessor<TRequest>> PreProcessors { get; }
-    private IEnumerable<IRequestResponsePostProcessor<TRequest, TResponse>> PostProcessors { get; }
+    private IEnumerable<ICommandPreProcessor<TCommand>> PreProcessors { get; }
+    private IEnumerable<ICommandPostProcessor<TCommand>> PostProcessors { get; }
 
-    public RequestResponseMiddleware(IEnumerable<IRequestPreProcessor<TRequest>> preProcessors, IEnumerable<IRequestResponsePostProcessor<TRequest, TResponse>> postProcessors)
+    public CommandMiddleware(IEnumerable<ICommandPreProcessor<TCommand>> preProcessors, IEnumerable<ICommandPostProcessor<TCommand>> postProcessors)
     {
         PreProcessors = preProcessors;
         PostProcessors = postProcessors;
     }
 
-    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestResponseMiddlewareDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(TCommand command, CommandMiddlewareDelegate next, CancellationToken cancellationToken)
     {
         foreach (var processor in PreProcessors)
         {
-            await processor.PreProcessAsync(request, cancellationToken);
+            await processor.PreProcessAsync(command, cancellationToken);
         }
 
         // TODO: add an exception processor
-        var response = await next();
+        await next();
 
         foreach (var processor in PostProcessors)
         {
-            await processor.PostProcessAsync(request, response, cancellationToken);
+            await processor.PostProcessAsync(command, cancellationToken);
         }
-
-        return response;
     }
 }

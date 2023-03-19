@@ -17,7 +17,6 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
 
@@ -26,13 +25,13 @@ using NIdentity.OpenId.Mediator;
 #pragma warning disable 1574 // GetAuthorizationRequest.cs(28, 31): [CS1574] XML comment has cref attribute 'IRequest{TResponse}' that could not be resolved
 #pragma warning disable 1591 // GetAuthorizationRequest.cs(34, 55): [CS1591] Missing XML comment for publicly visible type or member 'GetAuthorizationRequest.HttpContext'
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Mediator;
+namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Defines an <see cref="IRequest{TResponse}"/> request contract that accepts a <see cref="IAuthorizationRequestStringValues"/> as an
+/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts a <see cref="IAuthorizationRequestStringValues"/> as an
 /// input argument and expects <see cref="IAuthorizationRequestUnion"/> as a response.
 /// </summary>
-/// <param name="AuthorizationRequestStringValues">The <see cref="IAuthorizationRequestStringValues"/> input argument for the request contract.</param>
-public record GetAuthorizationRequestUnionRequest(
+/// <param name="AuthorizationRequestStringValues">The <see cref="IAuthorizationRequestStringValues"/> input argument for the command contract.</param>
+public record GetAuthorizationCommandUnionCommand(
     IAuthorizationRequestStringValues AuthorizationRequestStringValues
-) : IRequest<IAuthorizationRequestUnion>;
+) : ICommand<IAuthorizationRequestUnion>;

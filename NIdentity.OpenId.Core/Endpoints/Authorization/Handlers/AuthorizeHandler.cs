@@ -22,14 +22,14 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using NIdentity.OpenId.Contexts;
 using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Endpoints.Authorization.Mediator;
+using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class AuthorizeHandler : IRequestResponseHandler<AuthorizeRequest, IOpenIdResult>
+internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpenIdResult>
 {
     private IdentityServerOptions Options { get; }
     private ISystemClock SystemClock { get; }
@@ -40,9 +40,9 @@ internal class AuthorizeHandler : IRequestResponseHandler<AuthorizeRequest, IOpe
         SystemClock = systemClock;
     }
 
-    public async ValueTask<IOpenIdResult> HandleAsync(AuthorizeRequest request, CancellationToken cancellationToken)
+    public async ValueTask<IOpenIdResult> HandleAsync(AuthorizeCommand command, CancellationToken cancellationToken)
     {
-        var promptType = request.AuthorizationRequest.PromptType;
+        var promptType = command.AuthorizationRequest.PromptType;
 
         // TODO: check if supported
         if (promptType.HasFlag(PromptTypes.CreateAccount))
@@ -61,16 +61,16 @@ internal class AuthorizeHandler : IRequestResponseHandler<AuthorizeRequest, IOpe
             throw new NotImplementedException();
         }
 
-        if (request.AuthenticateResult.Ticket is not { Principal.Identity.IsAuthenticated: true })
+        if (command.AuthenticateResult.Ticket is not { Principal.Identity.IsAuthenticated: true })
         {
             // TODO: redirect to login page
             // reason: User not authenticated.
             throw new NotImplementedException();
         }
 
-        var endpointContext = request.EndpointContext;
-        var authenticationTicket = request.AuthenticateResult.Ticket;
-        var client = request.AuthorizationRequest.Client;
+        var endpointContext = command.EndpointContext;
+        var authenticationTicket = command.AuthenticateResult.Ticket;
+        var client = command.AuthorizationRequest.Client;
 
         if (!await ValidateUserIsActiveAsync(
                 endpointContext,
@@ -89,7 +89,7 @@ internal class AuthorizeHandler : IRequestResponseHandler<AuthorizeRequest, IOpe
 
         // check MaxAge
         var identity = authenticationTicket.Principal.Identity as ClaimsIdentity ?? throw new InvalidOperationException();
-        if (!ValidateMaxAge(identity, request.AuthorizationRequest.MaxAge))
+        if (!ValidateMaxAge(identity, command.AuthorizationRequest.MaxAge))
         {
             // TODO: redirect to login page
             // reason: MaxAge exceeded.

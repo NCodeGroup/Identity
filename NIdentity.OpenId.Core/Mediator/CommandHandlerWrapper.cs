@@ -19,29 +19,29 @@
 
 namespace NIdentity.OpenId.Mediator;
 
-internal interface ICommandResponseHandlerWrapper<TResponse>
+internal interface ICommandHandlerWrapper
 {
-    ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken);
+    ValueTask HandleAsync(ICommand command, CancellationToken cancellationToken);
 }
 
-internal class CommandResponseHandlerWrapper<TCommand, TResponse> : ICommandResponseHandlerWrapper<TResponse>
-    where TCommand : ICommand<TResponse>
+internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper
+    where TCommand : ICommand
 {
     private MiddlewareChainDelegate MiddlewareChain { get; }
 
-    private delegate ValueTask<TResponse> MiddlewareChainDelegate(TCommand command, CancellationToken cancellationToken);
+    private delegate ValueTask MiddlewareChainDelegate(TCommand command, CancellationToken cancellationToken);
 
-    public CommandResponseHandlerWrapper(
-        ICommandResponseHandler<TCommand, TResponse> handler,
-        IEnumerable<ICommandResponseMiddleware<TCommand, TResponse>> middlewares)
+    public CommandHandlerWrapper(
+        ICommandHandler<TCommand> handler,
+        IEnumerable<ICommandMiddleware<TCommand>> middlewares)
     {
-        ValueTask<TResponse> RootHandler(TCommand command, CancellationToken token) =>
+        ValueTask RootHandler(TCommand command, CancellationToken token) =>
             handler.HandleAsync(command, token);
 
-        static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> CreateFactory(ICommandResponseMiddleware<TCommand, TResponse> middleware) =>
+        static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> CreateFactory(ICommandMiddleware<TCommand> middleware) =>
             next => (command, token) =>
             {
-                ValueTask<TResponse> SimpleNext() => next(command, token);
+                ValueTask SimpleNext() => next(command, token);
                 return middleware.HandleAsync(command, SimpleNext, token);
             };
 
@@ -50,6 +50,6 @@ internal class CommandResponseHandlerWrapper<TCommand, TResponse> : ICommandResp
             (next, factory) => factory(next));
     }
 
-    public ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken) =>
+    public ValueTask HandleAsync(ICommand command, CancellationToken cancellationToken) =>
         MiddlewareChain((TCommand)command, cancellationToken);
 }

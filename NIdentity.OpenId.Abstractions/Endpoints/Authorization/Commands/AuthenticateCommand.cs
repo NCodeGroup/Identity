@@ -18,11 +18,10 @@
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Mediator;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Mediator;
+namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
-public record AuthenticateRequest(
+public record AuthenticateCommand(
     OpenIdEndpointContext EndpointContext
-) : IRequest<AuthenticateResult>;
+) : ICommand<AuthenticateResult>;

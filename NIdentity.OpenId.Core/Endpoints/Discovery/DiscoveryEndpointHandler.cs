@@ -24,7 +24,7 @@ using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
 
-internal class DiscoveryEndpointHandler : IRequestResponseHandler<DiscoveryEndpointRequest, IOpenIdResult>
+internal class DiscoveryEndpointHandler : ICommandResponseHandler<DiscoveryEndpointCommand, IOpenIdResult>
 {
     private LinkGenerator LinkGenerator { get; }
     private IOpenIdEndpointCollectionProvider OpenIdEndpointCollectionProvider { get; }
@@ -37,10 +37,10 @@ internal class DiscoveryEndpointHandler : IRequestResponseHandler<DiscoveryEndpo
         OpenIdEndpointCollectionProvider = openIdEndpointCollectionProvider;
     }
 
-    public ValueTask<IOpenIdResult> HandleAsync(DiscoveryEndpointRequest request, CancellationToken cancellationToken)
+    public ValueTask<IOpenIdResult> HandleAsync(DiscoveryEndpointCommand command, CancellationToken cancellationToken)
     {
         var routeValues = new { };
-        var httpContext = request.EndpointContext.HttpContext;
+        var httpContext = command.EndpointContext.HttpContext;
 
         var result = new DiscoveryResult();
         var metadata = result.Metadata;

@@ -19,7 +19,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints.Authorization.Mediator;
+using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages;
@@ -27,7 +27,7 @@ using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class GetAuthorizationRequestStringValuesHandler : IRequestResponseHandler<GetAuthorizationRequestStringValuesRequest, IAuthorizationRequestStringValues>
+internal class GetAuthorizationRequestStringValuesHandler : ICommandResponseHandler<GetAuthorizationCommandStringValuesCommand, IAuthorizationRequestStringValues>
 {
     private IOpenIdContext OpenIdContext { get; }
 
@@ -36,9 +36,9 @@ internal class GetAuthorizationRequestStringValuesHandler : IRequestResponseHand
         OpenIdContext = openIdContext;
     }
 
-    public async ValueTask<IAuthorizationRequestStringValues> HandleAsync(GetAuthorizationRequestStringValuesRequest request, CancellationToken cancellationToken)
+    public async ValueTask<IAuthorizationRequestStringValues> HandleAsync(GetAuthorizationCommandStringValuesCommand command, CancellationToken cancellationToken)
     {
-        var endpointContext = request.EndpointContext;
+        var endpointContext = command.EndpointContext;
         var httpContext = endpointContext.HttpContext;
         var httpRequest = httpContext.Request;
 

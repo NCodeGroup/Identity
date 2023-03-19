@@ -19,9 +19,28 @@
 
 namespace NIdentity.OpenId.Mediator;
 
+/// <summary>
+/// Provides the ability to dispatch a request and optionally receive a response.
+/// </summary>
 public interface IMediator
 {
+    /// <summary>
+    /// Asynchronously send a request to a handler that doesn't return a value.
+    /// </summary>
+    /// <param name="request">The input value to handle.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask SendAsync(IRequest request, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Asynchronously send a request to a handler that returns a value.
+    /// </summary>
+    /// <param name="request">The input value to handle.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <typeparam name="TResponse">The type of the return value.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resulting
+    /// value from the handler.</returns>
     ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken);
 }

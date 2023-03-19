@@ -24,34 +24,31 @@ namespace NIdentity.OpenId.Mediator;
 
 internal class MediatorImpl : IMediator
 {
-    private ConcurrentDictionary<Type, ObjectFactory> FactoryCache { get; } = new();
     private IServiceProvider ServiceProvider { get; }
+    private ConcurrentDictionary<Type, object> HandlerCache { get; } = new();
 
     public MediatorImpl(IServiceProvider serviceProvider)
     {
         ServiceProvider = serviceProvider;
     }
 
-    private ObjectFactory GetFactory(Type typeOfWrapper) =>
-        FactoryCache.GetOrAdd(typeOfWrapper, static type => ActivatorUtilities.CreateFactory(type, Type.EmptyTypes));
-
-    public async ValueTask SendAsync(IRequest request, CancellationToken cancellationToken)
+    public ValueTask SendAsync(IRequest request, CancellationToken cancellationToken)
     {
-        var typeOfWrapper = typeof(RequestHandlerWrapper<>).MakeGenericType(request.GetType());
-        var factory = GetFactory(typeOfWrapper);
-        var wrapper = (IRequestHandlerWrapper)factory(ServiceProvider, Array.Empty<object>());
-        await wrapper.HandleAsync(request, cancellationToken);
+        var handler = (IRequestHandlerWrapper)HandlerCache.GetOrAdd(request.GetType(), typeOfRequest =>
+        {
+            var typeOfWrapper = typeof(RequestHandlerWrapper<>).MakeGenericType(typeOfRequest);
+            return ActivatorUtilities.CreateInstance(ServiceProvider, typeOfWrapper);
+        });
+        return handler.HandleAsync(request, cancellationToken);
     }
 
-    public async ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
+    public ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
     {
-        var requestType = request.GetType();
-        var isRequestResponse = typeof(IRequest).IsAssignableFrom(requestType);
-        var typeOfWrapper = isRequestResponse ?
-            typeof(RequestResponseHandlerWrapper<,>).MakeGenericType(requestType, typeof(TResponse)) :
-            typeof(ResponseHandlerWrapper<,>).MakeGenericType(requestType, typeof(TResponse));
-        var factory = GetFactory(typeOfWrapper);
-        var wrapper = (IResponseHandlerWrapper<TResponse>)factory(ServiceProvider, Array.Empty<object>());
-        return await wrapper.HandleAsync(request, cancellationToken);
+        var handler = (IRequestResponseHandlerWrapper<TResponse>)HandlerCache.GetOrAdd(request.GetType(), typeOfRequest =>
+        {
+            var typeOfWrapper = typeof(RequestResponseHandlerWrapper<,>).MakeGenericType(typeOfRequest, typeof(TResponse));
+            return ActivatorUtilities.CreateInstance(ServiceProvider, typeOfWrapper);
+        });
+        return handler.HandleAsync(request, cancellationToken);
     }
 }

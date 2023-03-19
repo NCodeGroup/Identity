@@ -22,14 +22,14 @@ namespace NIdentity.OpenId.Mediator;
 /// <summary>
 /// Defines a handler that accepts an input argument and doesn't return anything.
 /// </summary>
-/// <typeparam name="TRequest">The type of the input argument.</typeparam>
+/// <typeparam name="TRequest">The type of the input value.</typeparam>
 public interface IRequestHandler<in TRequest>
     where TRequest : IRequest
 {
     /// <summary>
     /// Handles a request given an input argument.
     /// </summary>
-    /// <param name="request">The input argument to handle.</param>
+    /// <param name="request">The input value to handle.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask HandleAsync(TRequest request, CancellationToken cancellationToken);

@@ -1,7 +1,7 @@
 #region Copyright Preamble
 
 //
-//    Copyright @ 2023 NCode Group
+//    Copyright @ 2022 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,25 +19,37 @@
 
 namespace NIdentity.OpenId.Mediator;
 
-internal class RequestResponseHandlerWrapper<TRequest, TResponse> : IResponseHandlerWrapper<TResponse>
-    where TRequest : IRequest, IRequest<TResponse>
+internal interface IRequestResponseHandlerWrapper<TResponse>
 {
-    private IEnumerable<IRequestHandler<TRequest>> RequestHandlers { get; }
-    private IRequestResponseHandler<TRequest, TResponse> ResponseHandler { get; }
+    ValueTask<TResponse> HandleAsync(IRequest<TResponse> request, CancellationToken cancellationToken);
+}
 
-    public RequestResponseHandlerWrapper(IEnumerable<IRequestHandler<TRequest>> requestHandlers, IRequestResponseHandler<TRequest, TResponse> responseHandler)
+internal class RequestResponseHandlerWrapper<TRequest, TResponse> : IRequestResponseHandlerWrapper<TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    private MiddlewareChainDelegate MiddlewareChain { get; }
+
+    private delegate ValueTask<TResponse> MiddlewareChainDelegate(TRequest request, CancellationToken cancellationToken);
+
+    public RequestResponseHandlerWrapper(
+        IRequestResponseHandler<TRequest, TResponse> handler,
+        IEnumerable<IRequestResponseMiddleware<TRequest, TResponse>> middlewares)
     {
-        RequestHandlers = requestHandlers;
-        ResponseHandler = responseHandler;
+        ValueTask<TResponse> RootHandler(TRequest request, CancellationToken token) =>
+            handler.HandleAsync(request, token);
+
+        static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> CreateFactory(IRequestResponseMiddleware<TRequest, TResponse> middleware) =>
+            next => (request, token) =>
+            {
+                ValueTask<TResponse> SimpleNext() => next(request, token);
+                return middleware.HandleAsync(request, SimpleNext, token);
+            };
+
+        MiddlewareChain = middlewares.Select(CreateFactory).Aggregate(
+            (MiddlewareChainDelegate)RootHandler,
+            (next, factory) => factory(next));
     }
 
-    public async ValueTask<TResponse> HandleAsync(IRequest<TResponse> request, CancellationToken cancellationToken)
-    {
-        foreach (var handler in RequestHandlers)
-        {
-            await handler.HandleAsync((TRequest)request, cancellationToken);
-        }
-
-        return await ResponseHandler.HandleAsync((TRequest)request, cancellationToken);
-    }
+    public ValueTask<TResponse> HandleAsync(IRequest<TResponse> request, CancellationToken cancellationToken) =>
+        MiddlewareChain((TRequest)request, cancellationToken);
 }

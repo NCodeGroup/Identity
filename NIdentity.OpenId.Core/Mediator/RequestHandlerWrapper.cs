@@ -27,16 +27,29 @@ internal interface IRequestHandlerWrapper
 internal class RequestHandlerWrapper<TRequest> : IRequestHandlerWrapper
     where TRequest : IRequest
 {
-    private IEnumerable<IRequestHandler<TRequest>> Handlers { get; }
+    private MiddlewareChainDelegate MiddlewareChain { get; }
 
-    public RequestHandlerWrapper(IEnumerable<IRequestHandler<TRequest>> handlers) =>
-        Handlers = handlers;
+    private delegate ValueTask MiddlewareChainDelegate(TRequest request, CancellationToken cancellationToken);
 
-    public async ValueTask HandleAsync(IRequest request, CancellationToken cancellationToken)
+    public RequestHandlerWrapper(
+        IRequestHandler<TRequest> handler,
+        IEnumerable<IRequestMiddleware<TRequest>> middlewares)
     {
-        foreach (var handler in Handlers)
-        {
-            await handler.HandleAsync((TRequest)request, cancellationToken);
-        }
+        ValueTask RootHandler(TRequest request, CancellationToken token) =>
+            handler.HandleAsync(request, token);
+
+        static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> CreateFactory(IRequestMiddleware<TRequest> middleware) =>
+            next => (request, token) =>
+            {
+                ValueTask SimpleNext() => next(request, token);
+                return middleware.HandleAsync(request, SimpleNext, token);
+            };
+
+        MiddlewareChain = middlewares.Select(CreateFactory).Aggregate(
+            (MiddlewareChainDelegate)RootHandler,
+            (next, factory) => factory(next));
     }
+
+    public ValueTask HandleAsync(IRequest request, CancellationToken cancellationToken) =>
+        MiddlewareChain((TRequest)request, cancellationToken);
 }

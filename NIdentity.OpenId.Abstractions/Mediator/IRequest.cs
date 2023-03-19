@@ -20,7 +20,7 @@
 namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Defines the request contract used by request handlers that don't return a value.
+/// Defines the request contract used by handlers that don't return a value.
 /// </summary>
 public interface IRequest
 {
@@ -28,9 +28,9 @@ public interface IRequest
 }
 
 /// <summary>
-/// Defines the request contract used by request handlers that return a value.
+/// Defines the request contract used by handlers that return a value.
 /// </summary>
-/// <typeparam name="TResponse">The type of the return value.</typeparam>
+/// <typeparam name="TResponse">The type of the output value.</typeparam>
 public interface IRequest<out TResponse>
 {
     // nothing

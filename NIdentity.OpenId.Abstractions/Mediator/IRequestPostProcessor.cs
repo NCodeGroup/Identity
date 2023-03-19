@@ -1,7 +1,7 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
-//    Copyright @ 2021 NCode Group
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,17 +20,18 @@
 namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Defines a handler that accepts an input argument and doesn't return anything.
+/// Defines a method for post-processing a request pipeline.
 /// </summary>
 /// <typeparam name="TRequest">The type of the input value.</typeparam>
-public interface IRequestHandler<in TRequest>
-    where TRequest : IRequest
+public interface IRequestPostProcessor<in TRequest>
+    where TRequest : notnull
 {
     /// <summary>
-    /// Handles a request given an input argument.
+    /// Method for processing the request after the handler.
     /// </summary>
-    /// <param name="request">The input value to handle.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <param name="request">The input value to the handler.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask HandleAsync(TRequest request, CancellationToken cancellationToken);
+    ValueTask PostProcessAsync(TRequest request, CancellationToken cancellationToken);
 }

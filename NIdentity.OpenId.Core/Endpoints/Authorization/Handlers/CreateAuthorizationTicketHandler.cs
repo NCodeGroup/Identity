@@ -47,18 +47,28 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
 
         if (responseType.HasFlag(ResponseTypes.Code))
         {
+            // TODO
+            ticket.Code = "TODO";
             throw new NotImplementedException();
         }
 
         if (responseType.HasFlag(ResponseTypes.IdToken))
         {
+            // TODO
+            ticket.IdToken = "TODO";
             throw new NotImplementedException();
         }
 
         if (responseType.HasFlag(ResponseTypes.Token))
         {
+            // TODO
+            ticket.TokenType = "Bearer"; // TODO: use constant
+            ticket.ExpiresIn = TimeSpan.Zero;
+            ticket.AccessToken = "TODO";
             throw new NotImplementedException();
         }
+
+        ticket.Issuer = "TODO";
 
         return ticket;
     }

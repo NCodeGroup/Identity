@@ -141,4 +141,15 @@ public static class OpenIdErrorFactoryExtensions
     {
         return factory.Create(errorCode).WithDescription(errorDescription);
     }
+
+    /// <summary>
+    /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
+    /// message produces an <see cref="OpenIdConstants.ErrorCodes.LoginRequired"/> error.
+    /// </summary>
+    /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>
+    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+    public static IOpenIdError LoginRequired(this IOpenIdErrorFactory factory)
+    {
+        return factory.Create(OpenIdConstants.ErrorCodes.LoginRequired);
+    }
 }

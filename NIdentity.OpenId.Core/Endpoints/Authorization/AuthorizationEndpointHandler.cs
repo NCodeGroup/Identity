@@ -59,11 +59,25 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
 
             var authenticateResult = await AuthenticateAsync(endpointContext, cancellationToken);
 
-            return await AuthorizeAsync(
+            var result = await AuthorizeAsync(
                 endpointContext,
                 authorizationRequestUnion,
                 authenticateResult,
                 cancellationToken);
+
+            if (result != null)
+                return result;
+
+            var authorizationTicket = await CreateAuthorizationTicketAsync(
+                endpointContext,
+                authorizationRequestUnion,
+                authenticateResult,
+                cancellationToken);
+
+            return new AuthorizationResult(
+                authorizationRequestUnion.RedirectUri,
+                authorizationRequestUnion.ResponseMode,
+                authorizationTicket);
         }
         catch (Exception exception)
         {
@@ -105,13 +119,25 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
             new AuthenticateCommand(endpointContext),
             cancellationToken);
 
-    private async ValueTask<IOpenIdResult> AuthorizeAsync(
+    private async ValueTask<IOpenIdResult?> AuthorizeAsync(
         OpenIdEndpointContext endpointContext,
         IAuthorizationRequestUnion authorizationRequest,
         AuthenticateResult authenticateResult,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
             new AuthorizeCommand(
+                endpointContext,
+                authorizationRequest,
+                authenticateResult),
+            cancellationToken);
+
+    private async Task<IAuthorizationTicket> CreateAuthorizationTicketAsync(
+        OpenIdEndpointContext endpointContext,
+        IAuthorizationRequestUnion authorizationRequest,
+        AuthenticateResult authenticateResult,
+        CancellationToken cancellationToken) =>
+        await Mediator.SendAsync(
+            new CreateAuthenticationTicketCommand(
                 endpointContext,
                 authorizationRequest,
                 authenticateResult),

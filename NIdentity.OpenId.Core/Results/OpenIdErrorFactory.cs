@@ -17,10 +17,17 @@
 
 #endregion
 
+using NIdentity.OpenId.Messages;
+
 namespace NIdentity.OpenId.Results;
 
 internal class OpenIdErrorFactory : IOpenIdErrorFactory
 {
+    private IOpenIdContext OpenIdContext { get; }
+
+    public OpenIdErrorFactory(IOpenIdContext openIdContext) =>
+        OpenIdContext = openIdContext;
+
     public IOpenIdError Create(string errorCode) =>
-        new OpenIdError(errorCode);
+        new OpenIdError(OpenIdContext, errorCode);
 }

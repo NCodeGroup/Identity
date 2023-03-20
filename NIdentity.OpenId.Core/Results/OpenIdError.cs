@@ -25,9 +25,10 @@ namespace NIdentity.OpenId.Results;
 
 internal class OpenIdError : OpenIdMessage, IOpenIdError
 {
-    public OpenIdError(string code)
+    public OpenIdError(IOpenIdContext context, string errorCode)
+        : base(context)
     {
-        Code = code;
+        Code = errorCode;
     }
 
     // TODO: are these json attributes necessary?

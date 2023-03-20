@@ -138,6 +138,9 @@ internal class ValidateAuthorizationRequestHandler : ICommandHandler<ValidateAut
         if (request.PromptType.HasFlag(PromptTypes.None) && request.PromptType != PromptTypes.None)
             throw ErrorFactory.InvalidRequest("The 'none' prompt must not be combined with other values.").AsException();
 
+        if (request.PromptType.HasFlag(PromptTypes.CreateAccount) && request.PromptType != PromptTypes.CreateAccount)
+            throw ErrorFactory.InvalidRequest("The 'create' prompt must not be combined with other values.").AsException();
+
         if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
             throw ErrorFactory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.").AsException();
 

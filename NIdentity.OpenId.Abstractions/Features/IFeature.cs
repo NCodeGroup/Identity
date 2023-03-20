@@ -17,16 +17,9 @@
 
 #endregion
 
-using NIdentity.OpenId.Endpoints;
+namespace NIdentity.OpenId.Features;
 
-namespace NIdentity.OpenId.Results;
-
-internal class RedirectResultExecutor : IOpenIdResultExecutor<RedirectResult>
+public interface IFeature
 {
-    public ValueTask ExecuteResultAsync(OpenIdEndpointContext context, RedirectResult result)
-    {
-        // TODO: check for local url
-        context.HttpContext.Response.Redirect(result.Url);
-        return ValueTask.CompletedTask;
-    }
+    // nothing
 }

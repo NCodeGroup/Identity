@@ -23,26 +23,44 @@ using Microsoft.Extensions.Options;
 using NIdentity.OpenId.Contexts;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
+using NIdentity.OpenId.Endpoints.Authorization.Results;
+using NIdentity.OpenId.Features;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
+using HttpResults = Microsoft.AspNetCore.Http.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpenIdResult>
+internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpenIdResult?>
 {
     private IdentityServerOptions Options { get; }
     private ISystemClock SystemClock { get; }
+    private IOpenIdErrorFactory ErrorFactory { get; }
+    private ICallbackFeature CallbackFeature { get; }
+    private ILoginFeature LoginFeature { get; }
 
-    public AuthorizeHandler(IOptions<IdentityServerOptions> optionsAccessor, ISystemClock systemClock)
+    public AuthorizeHandler(
+        IOptions<IdentityServerOptions> optionsAccessor,
+        ISystemClock systemClock,
+        IOpenIdErrorFactory errorFactory,
+        ICallbackFeature callbackFeature,
+        ILoginFeature loginFeature)
     {
         Options = optionsAccessor.Value;
         SystemClock = systemClock;
+        ErrorFactory = errorFactory;
+        CallbackFeature = callbackFeature;
+        LoginFeature = loginFeature;
     }
 
-    public async ValueTask<IOpenIdResult> HandleAsync(AuthorizeCommand command, CancellationToken cancellationToken)
+    public async ValueTask<IOpenIdResult?> HandleAsync(AuthorizeCommand command, CancellationToken cancellationToken)
     {
-        var promptType = command.AuthorizationRequest.PromptType;
+        var endpointContext = command.EndpointContext;
+        var authorizationRequest = command.AuthorizationRequest;
+        var authenticationTicket = command.AuthenticateResult.Ticket;
+
+        var promptType = authorizationRequest.PromptType;
 
         // TODO: check if supported
         if (promptType.HasFlag(PromptTypes.CreateAccount))
@@ -56,32 +74,38 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
 
         if (reAuthenticate)
         {
-            // TODO: redirect to login page
-            // reason: Client requested re-authentication.
-            throw new NotImplementedException();
+            var returnUrl = CallbackFeature.GetRedirectUrl(authorizationRequest, "Client requested re-authentication.");
+            var redirectUrl = LoginFeature.GetRedirectUrl(returnUrl);
+            return new HttpResult(HttpResults.Redirect(redirectUrl));
         }
 
-        if (command.AuthenticateResult.Ticket is not { Principal.Identity.IsAuthenticated: true })
+        if (authenticationTicket is not { Principal.Identity.IsAuthenticated: true })
         {
-            // TODO: redirect to login page
-            // reason: User not authenticated.
-            throw new NotImplementedException();
-        }
+            if (promptType.HasFlag(PromptTypes.None))
+            {
+                var error = ErrorFactory.LoginRequired();
+                var redirectUri = authorizationRequest.RedirectUri;
+                var responseMode = authorizationRequest.ResponseMode;
+                return new AuthorizationResult(redirectUri, responseMode, error);
+            }
 
-        var endpointContext = command.EndpointContext;
-        var authenticationTicket = command.AuthenticateResult.Ticket;
-        var client = command.AuthorizationRequest.Client;
+            var returnUrl = CallbackFeature.GetRedirectUrl(authorizationRequest, "User not authenticated.");
+            var redirectUrl = LoginFeature.GetRedirectUrl(returnUrl);
+            return new HttpResult(HttpResults.Redirect(redirectUrl));
+        }
 
         if (!await ValidateUserIsActiveAsync(
                 endpointContext,
                 authenticationTicket,
-                client,
+                authorizationRequest.Client,
                 cancellationToken))
         {
-            // TODO: redirect to login page
-            // reason: User not active.
-            throw new NotImplementedException();
+            var returnUrl = CallbackFeature.GetRedirectUrl(authorizationRequest, "User not active.");
+            var redirectUrl = LoginFeature.GetRedirectUrl(returnUrl);
+            return new HttpResult(HttpResults.Redirect(redirectUrl));
         }
+
+        // TODO: check consent
 
         // TODO: check tenant
 
@@ -89,11 +113,11 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
 
         // check MaxAge
         var identity = authenticationTicket.Principal.Identity as ClaimsIdentity ?? throw new InvalidOperationException();
-        if (!ValidateMaxAge(identity, command.AuthorizationRequest.MaxAge))
+        if (!ValidateMaxAge(identity, authorizationRequest.MaxAge))
         {
-            // TODO: redirect to login page
-            // reason: MaxAge exceeded.
-            throw new NotImplementedException();
+            var returnUrl = CallbackFeature.GetRedirectUrl(authorizationRequest, "MaxAge exceeded.");
+            var redirectUrl = LoginFeature.GetRedirectUrl(returnUrl);
+            return new HttpResult(HttpResults.Redirect(redirectUrl));
         }
 
         // TODO: check local idp restrictions
@@ -102,7 +126,7 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
 
         // TODO: check client's user SSO timeout
 
-        throw new NotImplementedException();
+        return null;
     }
 
     private async ValueTask<bool> ValidateUserIsActiveAsync(

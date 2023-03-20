@@ -28,4 +28,4 @@ public record AuthorizeCommand(
     OpenIdEndpointContext EndpointContext,
     IAuthorizationRequestUnion AuthorizationRequest,
     AuthenticateResult AuthenticateResult
-) : ICommand<IOpenIdResult>;
+) : ICommand<IOpenIdResult?>;

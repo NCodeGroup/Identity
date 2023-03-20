@@ -25,6 +25,16 @@ namespace NIdentity.OpenId.Results;
 public static class OpenIdErrorExtensions
 {
     /// <summary>
+    /// Wraps the <see cref="IOpenIdError"/> in an <see cref="IOpenIdResult"/>.
+    /// </summary>
+    /// <param name="error">The <see cref="IOpenIdError"/> to wrap.</param>
+    /// <returns>The <see cref="IOpenIdResult"/> instance.</returns>
+    public static IOpenIdResult AsResult(this IOpenIdError error)
+    {
+        return new OpenIdErrorResult(error);
+    }
+
+    /// <summary>
     /// Wraps the <see cref="IOpenIdError"/> in an <see cref="OpenIdException"/>.
     /// </summary>
     /// <param name="error">The <see cref="IOpenIdError"/> to wrap.</param>

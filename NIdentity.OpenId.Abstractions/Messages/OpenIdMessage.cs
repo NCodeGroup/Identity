@@ -50,6 +50,42 @@ public abstract class OpenIdMessage : IOpenIdMessage
     public IReadOnlyDictionary<string, Parameter> Parameters => ParametersOrNull ?? throw GetNotInitializedException();
 
     /// <summary>
+    /// Creates an uninitialized new instance of the <see cref="OpenIdMessage"/> class.
+    /// </summary>
+    protected OpenIdMessage()
+    {
+        IsInitialized = false;
+        ContextOrNull = null;
+        ParametersOrNull = null;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
+    /// </summary>
+    /// <param name="context"><see cref="IOpenIdContext"/></param>
+    /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
+    protected OpenIdMessage(IOpenIdContext context, params Parameter[] parameters)
+        : this(context, parameters.AsEnumerable())
+    {
+        // nothing
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
+    /// </summary>
+    /// <param name="context"><see cref="IOpenIdContext"/></param>
+    /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
+    protected OpenIdMessage(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    {
+        IsInitialized = true;
+        ContextOrNull = context;
+        ParametersOrNull = parameters.ToDictionary(
+            parameter => parameter.Descriptor.ParameterName,
+            parameter => parameter,
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Initializes the current instance with an <see cref="IOpenIdContext"/> and collection of <see cref="Parameter"/> values.
     /// </summary>
     /// <param name="context"><see cref="IOpenIdContext"/></param>
@@ -162,7 +198,6 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     public static T Load(IOpenIdContext context, IEnumerable<Parameter> parameters)
     {
         var message = new T();
-
         message.Initialize(context, parameters);
         return message;
     }

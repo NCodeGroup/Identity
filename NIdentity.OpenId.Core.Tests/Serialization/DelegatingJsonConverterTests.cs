@@ -26,20 +26,17 @@ using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Serialization;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace NIdentity.OpenId.Core.Tests.Serialization;
 
 public class DelegatingJsonConverterTests : IDisposable
 {
-    private ITestOutputHelper TestOutputHelper { get; }
     private MockRepository MockRepository { get; }
     private Mock<IOpenIdErrorFactory> MockOpenIdErrorFactory { get; }
     private OpenIdContext OpenIdContext { get; }
 
-    public DelegatingJsonConverterTests(ITestOutputHelper testOutputHelper)
+    public DelegatingJsonConverterTests()
     {
-        TestOutputHelper = testOutputHelper;
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
         OpenIdContext = new OpenIdContext(MockOpenIdErrorFactory.Object);
@@ -103,6 +100,7 @@ public class DelegatingJsonConverterTests : IDisposable
         requestMessage.DisplayType = DisplayType.Touch;
         requestMessage.MaxAge = TimeSpan.FromMinutes(5.0);
         requestMessage.Scopes = new[] { "!scope1!", "!scope2!" };
+        requestMessage.RedirectUri = new Uri("https://localhost/test");
 
         var requestObject = AuthorizationRequestObject.Load(OpenIdContext, Array.Empty<Parameter>());
         requestObject.RequestObjectSource = RequestObjectSource.Remote;
@@ -114,7 +112,6 @@ public class DelegatingJsonConverterTests : IDisposable
         var inputMessage = new AuthorizationRequest(requestMessage, requestObject);
 
         var json = JsonSerializer.Serialize(inputMessage, jsonSerializerOptions);
-        TestOutputHelper.WriteLine(json);
 
         var outputMessage = JsonSerializer.Deserialize<IAuthorizationRequest>(json, jsonSerializerOptions);
 
@@ -125,5 +122,7 @@ public class DelegatingJsonConverterTests : IDisposable
         Assert.Equal(requestObject.DisplayType, outputMessage?.DisplayType);
         Assert.Equal(requestObject.MaxAge, outputMessage?.MaxAge);
         Assert.Equal(requestObject.Scopes, outputMessage?.Scopes);
+
+        Assert.Equal(requestMessage.RedirectUri, outputMessage?.RedirectUri);
     }
 }

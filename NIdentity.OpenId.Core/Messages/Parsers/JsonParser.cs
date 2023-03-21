@@ -27,43 +27,10 @@ using NIdentity.OpenId.Results;
 namespace NIdentity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Provides the ability to parse and load JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
-/// </summary>
-public interface IJsonParser
-{
-    /// <summary>
-    /// Parses and loads JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
-    /// </summary>
-    /// <param name="reader">The <see cref="Utf8JsonReader"/> to read from.</param>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
-    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
-    /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
-    /// <returns>The newly parsed and loaded parameter.</returns>
-    Parameter Read(
-        ref Utf8JsonReader reader,
-        IOpenIdContext context,
-        ParameterDescriptor descriptor,
-        JsonSerializerOptions options);
-
-    /// <summary>
-    /// Serializes the JSON value from a <see cref="Parameter"/> into the given <see cref="Utf8JsonWriter"/>.
-    /// </summary>
-    /// <param name="writer">The <see cref="Utf8JsonWriter"/> to write to.</param>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use when serializing the value.</param>
-    /// <param name="parameter">The <see cref="Parameter"/> to serialize as JSON.</param>
-    /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
-    void Write(
-        Utf8JsonWriter writer,
-        IOpenIdContext context,
-        Parameter parameter,
-        JsonSerializerOptions options);
-}
-
-/// <summary>
 /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse JSON payloads.
 /// </summary>
 /// <typeparam name="T">The type of object to parse from JSON.</typeparam>
-public class JsonParser<T> : ParameterParser<T?>, IJsonParser
+public class JsonParser<T> : ParameterParser<T?>
 {
     /// <summary>
     /// Gets the <see cref="JsonConverter{T}"/> that is used to (de)serialize the JSON payload.
@@ -80,7 +47,7 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
     ) => (JsonConverter<T?>)options.GetConverter(typeof(T));
 
     /// <inheritdoc/>
-    public Parameter Read(
+    public override Parameter Read(
         ref Utf8JsonReader reader,
         IOpenIdContext context,
         ParameterDescriptor descriptor,
@@ -89,13 +56,13 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
         var converter = GetJsonConverter(context, descriptor, options);
         var parsedValue = converter.Read(ref reader, typeof(T), options);
         var stringValues = JsonSerializer.Serialize(parsedValue, options);
-        return new Parameter<T>(descriptor, stringValues, parsedValue);
+        return descriptor.Loader.Load(context, descriptor, stringValues, parsedValue);
     }
 
     // TODO: unit tests for Write
 
     /// <inheritdoc/>
-    public void Write(
+    public override void Write(
         Utf8JsonWriter writer,
         IOpenIdContext context,
         Parameter parameter,

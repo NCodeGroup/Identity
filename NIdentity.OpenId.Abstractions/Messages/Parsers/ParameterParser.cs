@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 
@@ -26,7 +27,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 /// Provides the ability parse and load a <see cref="Parameter"/> given its string values.
 /// </summary>
 /// <typeparam name="T">The type of parameter to parse.</typeparam>
-public abstract class ParameterParser<T> : ParameterLoader
+public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
 {
     /// <summary>
     /// Gets the space ' ' character which is used to delimit string lists in <c>OAuth</c> and <c>OpenID Connect</c> parameters.
@@ -44,7 +45,7 @@ public abstract class ParameterParser<T> : ParameterLoader
     /// <param name="context">The <see cref="IOpenIdContext"/> to use when serializing the value.</param>
     /// <param name="value">The value to serialize.</param>
     /// <returns>The value formatted as <see cref="StringValues"/>.</returns>
-    public abstract StringValues Serialize(IOpenIdContext context, T value);
+    public abstract StringValues Serialize(IOpenIdContext context, T? value);
 
     /// <summary>
     /// Parses the specified string values into a type-specific value.
@@ -68,5 +69,21 @@ public abstract class ParameterParser<T> : ParameterLoader
     {
         var parsedValue = Parse(context, descriptor, stringValues, ignoreErrors);
         return new Parameter<T>(descriptor, stringValues, parsedValue);
+    }
+
+    /// <inheritdoc />
+    public virtual Parameter Read(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    {
+        var parsedValue = JsonSerializer.Deserialize<T?>(ref reader, options);
+        var stringValues = Serialize(context, parsedValue);
+        return descriptor.Loader.Load(context, descriptor, stringValues, parsedValue);
+    }
+
+    /// <inheritdoc />
+    public virtual void Write(Utf8JsonWriter writer, IOpenIdContext context, Parameter parameter, JsonSerializerOptions options)
+    {
+        var typedParameter = (Parameter<T?>)parameter;
+        writer.WritePropertyName(parameter.Descriptor.ParameterName);
+        JsonSerializer.Serialize(writer, typedParameter.ParsedValue, options);
     }
 }

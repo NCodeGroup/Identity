@@ -17,11 +17,9 @@
 
 #endregion
 
-using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 
@@ -42,20 +40,11 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
 
     internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
-        if (reader.TokenType != JsonTokenType.StartArray && reader.TokenType != JsonTokenType.StartObject)
-            throw new JsonException("TODO");
-
         var descriptor = OpenIdContext.TryGetKnownParameter(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
-
         var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
-        var parameter = jsonParser.Read(ref reader, OpenIdContext, descriptor, options);
-
-        if (reader.TokenType != JsonTokenType.EndArray && reader.TokenType != JsonTokenType.EndObject)
-            throw new JsonException("TODO");
-
-        return parameter;
+        return jsonParser.Read(ref reader, OpenIdContext, descriptor, options);
     }
 
     private static T CreateMessage(Type messageType)
@@ -146,36 +135,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
                 continue;
             }
 
-            Parameter parameter;
-            // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-            switch (reader.TokenType)
-            {
-                case JsonTokenType.Null:
-                    parameter = Parameter.Load(OpenIdContext, parameterName, StringValues.Empty);
-                    break;
-
-                case JsonTokenType.String:
-                    parameter = Parameter.Load(OpenIdContext, parameterName, reader.GetString()?.Split(OpenIdConstants.ParameterSeparator) ?? Array.Empty<string>());
-                    break;
-
-                case JsonTokenType.Number:
-                    parameter = Parameter.Load(OpenIdContext, parameterName, reader.GetDecimal().ToString(CultureInfo.InvariantCulture));
-                    break;
-
-                case JsonTokenType.True:
-                case JsonTokenType.False:
-                    parameter = Parameter.Load(OpenIdContext, parameterName, reader.GetBoolean().ToString(CultureInfo.InvariantCulture));
-                    break;
-
-                case JsonTokenType.StartArray:
-                case JsonTokenType.StartObject:
-                    parameter = LoadParameter(parameterName, ref reader, options);
-                    break;
-
-                default:
-                    throw new JsonException("TODO");
-            }
-
+            var parameter = LoadParameter(parameterName, ref reader, options);
             parameters.Add(parameter);
         }
 

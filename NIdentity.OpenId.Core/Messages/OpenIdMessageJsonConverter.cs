@@ -30,6 +30,8 @@ namespace NIdentity.OpenId.Messages;
 internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
     where T : OpenIdMessage
 {
+    private const string TypePropertyName = "$type";
+
     private IOpenIdContext Context { get; }
 
     public OpenIdMessageJsonConverter(IOpenIdContext context)
@@ -111,13 +113,17 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             if (!reader.Read())
                 throw new JsonException("TODO");
 
-            if (parameterName == "$type")
+            if (parameterName == TypePropertyName)
             {
                 if (reader.TokenType != JsonTokenType.String)
                     throw new JsonException("TODO");
 
+                var messageTypeName = reader.GetString();
+                if (string.IsNullOrEmpty(messageTypeName))
+                    throw new JsonException("TODO");
+
                 const bool throwOnError = false;
-                messageType = Type.GetType(parameterName, throwOnError) ?? throw new JsonException("TODO");
+                messageType = Type.GetType(messageTypeName, throwOnError) ?? throw new JsonException("TODO");
 
                 continue;
             }
@@ -168,7 +174,8 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
 
         writer.WriteStartObject();
 
-        writer.WriteString("$type", typeof(T).FullName);
+        var typeOfMessage = message.GetType();
+        writer.WriteString(TypePropertyName, typeOfMessage.AssemblyQualifiedName);
 
         foreach (var parameter in message.Parameters.Values)
         {

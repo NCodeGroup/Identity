@@ -185,6 +185,26 @@ public class OpenIdMessage : IOpenIdMessage
 public abstract class OpenIdMessage<T> : OpenIdMessage
     where T : OpenIdMessage, new()
 {
+    /// <inheritdoc />
+    protected OpenIdMessage()
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
+    protected OpenIdMessage(IOpenIdContext context, params Parameter[] parameters)
+        : base(context, parameters)
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
+    protected OpenIdMessage(IOpenIdContext context, IEnumerable<Parameter> parameters)
+        : base(context, parameters)
+    {
+        // nothing
+    }
+
     /// <summary>
     /// Create and loads an <c>OAuth</c> or <c>OpenId Connect</c> message by using a collection of <see cref="Parameter{T}"/> values.
     /// </summary>

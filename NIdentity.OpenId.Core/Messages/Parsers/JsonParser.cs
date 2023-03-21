@@ -69,8 +69,11 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
     /// <inheritdoc/>
     public void Write(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options)
     {
+        writer.WritePropertyName(parameter.Descriptor.ParameterName);
+
         var typedParameter = (Parameter<T>)parameter;
         var converter = (JsonConverter<T?>)options.GetConverter(typeof(T));
+
         converter.Write(writer, typedParameter.ParsedValue, options);
     }
 

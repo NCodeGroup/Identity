@@ -30,7 +30,8 @@ namespace NIdentity.OpenId.Messages;
 internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
     where T : OpenIdMessage
 {
-    private const string TypePropertyName = "$type";
+    private const string TypeKey = "$type";
+    private const string PropertiesKey = "$properties";
 
     private IOpenIdContext OpenIdContext { get; }
 
@@ -57,7 +58,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         return parameter;
     }
 
-    private T CreateMessage(Type messageType, IEnumerable<Parameter> parameters)
+    private static T CreateMessage(Type messageType)
     {
         if (messageType == typeof(IOpenIdMessage))
             messageType = typeof(OpenIdMessage);
@@ -74,14 +75,12 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             throw new JsonException("TODO");
 
         const bool nonPublic = true;
-        var message = (T)(Activator.CreateInstance(messageType, nonPublic) ?? throw new JsonException("TODO"));
-        message.Initialize(OpenIdContext, parameters);
-
-        return message;
+        return (T)(Activator.CreateInstance(messageType, nonPublic) ?? throw new JsonException("TODO"));
     }
 
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
+        T? messageOrNull = null;
         var messageType = typeof(T);
 
         if (reader.TokenType == JsonTokenType.Null)
@@ -100,7 +99,9 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             switch (reader.TokenType)
             {
                 case JsonTokenType.EndObject:
-                    return CreateMessage(messageType, parameters);
+                    messageOrNull ??= CreateMessage(messageType);
+                    messageOrNull.Initialize(OpenIdContext, parameters);
+                    return messageOrNull;
 
                 case JsonTokenType.PropertyName:
                     parameterName = reader.GetString() ?? throw new JsonException("TODO");
@@ -113,7 +114,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             if (!reader.Read())
                 throw new JsonException("TODO");
 
-            if (parameterName == TypePropertyName)
+            if (parameterName == TypeKey)
             {
                 if (reader.TokenType != JsonTokenType.String)
                     throw new JsonException("TODO");
@@ -124,6 +125,23 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
 
                 const bool throwOnError = false;
                 messageType = Type.GetType(messageTypeName, throwOnError) ?? throw new JsonException("TODO");
+
+                continue;
+            }
+
+            if (parameterName == PropertiesKey)
+            {
+                // TODO: unit tests
+
+                messageOrNull ??= CreateMessage(messageType);
+
+                if (messageOrNull is not ISupportProperties supportProperties)
+                {
+                    // TODO: maybe we can skip instead?
+                    throw new JsonException("TODO");
+                }
+
+                supportProperties.DeserializeProperties(ref reader, options);
 
                 continue;
             }
@@ -175,7 +193,13 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         writer.WriteStartObject();
 
         var typeOfMessage = message.GetType();
-        writer.WriteString(TypePropertyName, typeOfMessage.AssemblyQualifiedName);
+        writer.WriteString(TypeKey, typeOfMessage.AssemblyQualifiedName);
+
+        if (message is ISupportProperties supportProperties)
+        {
+            writer.WritePropertyName(PropertiesKey);
+            supportProperties.SerializeProperties(writer, options);
+        }
 
         foreach (var parameter in message.Parameters.Values)
         {

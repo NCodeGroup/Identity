@@ -8,19 +8,16 @@ using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 using NIdentity.OpenId.Results;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
 
 public class OpenIdMessageJsonConverterTests : IDisposable
 {
-    private ITestOutputHelper TestOutputHelper { get; }
     private MockRepository MockRepository { get; }
     private Mock<IOpenIdContext> MockOpenIdContext { get; }
 
-    public OpenIdMessageJsonConverterTests(ITestOutputHelper testOutputHelper)
+    public OpenIdMessageJsonConverterTests()
     {
-        TestOutputHelper = testOutputHelper;
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
     }
@@ -1186,7 +1183,6 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var testNestedObjectJson = JsonSerializer.Serialize(testNestedObject);
 
         var json = JsonSerializer.Serialize(inputMessage, jsonSerializerOptions);
-        TestOutputHelper.WriteLine(json);
         Assert.Equal($"{{\"$type\":\"{typeNameOfMessage}\",\"{propertyName}\":{testNestedObjectJson}}}", json);
     }
 

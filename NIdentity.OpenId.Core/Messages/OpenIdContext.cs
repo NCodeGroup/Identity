@@ -75,7 +75,7 @@ internal class OpenIdContext : IOpenIdContext
                 new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
 
-                new DelegatingJsonConverter<IAuthorizationRequest, AuthorizationRequest>(),
+                new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
             }

@@ -25,6 +25,14 @@ namespace NIdentity.OpenId.Serialization;
 public class DelegatingJsonConverter<TInterface, TImplementation> : JsonConverter<TInterface>
     where TImplementation : TInterface
 {
+    public bool MatchExact { get; set; } = true;
+
+    public override bool CanConvert(Type typeToConvert) =>
+        MatchExact ?
+            base.CanConvert(typeToConvert) :
+            typeToConvert != typeof(TImplementation) &&
+            typeof(TInterface).IsAssignableFrom(typeToConvert);
+
     /// <inheritdoc />
     public override TInterface? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         JsonSerializer.Deserialize<TImplementation>(ref reader, options);

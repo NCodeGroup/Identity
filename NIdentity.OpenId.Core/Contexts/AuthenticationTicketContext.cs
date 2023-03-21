@@ -29,7 +29,7 @@ namespace NIdentity.OpenId.Contexts;
 public abstract class AuthenticationTicketContext : BaseContext
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="PropertiesContext"/> class.
+    /// Initializes a new instance of the <see cref="AuthenticationTicketContext"/> class.
     /// </summary>
     /// <param name="options"><see cref="IdentityServerOptions"/></param>
     /// <param name="endpointContext"><see cref="OpenIdEndpointContext"/></param>

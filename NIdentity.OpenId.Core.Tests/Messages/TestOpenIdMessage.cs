@@ -18,6 +18,7 @@
 #endregion
 
 using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
 
@@ -28,5 +29,20 @@ internal interface ITestOpenIdMessage : IOpenIdMessage
 
 internal class TestOpenIdMessage : OpenIdMessage<TestOpenIdMessage>, ITestOpenIdMessage
 {
-    // nothing
+    public TestOpenIdMessage()
+    {
+        // nothing
+    }
+
+    public TestOpenIdMessage(IOpenIdContext context, params Parameter[] parameters)
+        : base(context, parameters)
+    {
+        // nothing
+    }
+
+    public TestOpenIdMessage(IOpenIdContext context, IEnumerable<Parameter> parameters)
+        : base(context, parameters)
+    {
+        // nothing
+    }
 }

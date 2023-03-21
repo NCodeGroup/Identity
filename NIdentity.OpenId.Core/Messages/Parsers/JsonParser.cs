@@ -35,18 +35,28 @@ public interface IJsonParser
     /// Parses and loads JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
     /// </summary>
     /// <param name="reader">The <see cref="Utf8JsonReader"/> to read from.</param>
+    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    Parameter Read(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options);
+    Parameter Read(
+        ref Utf8JsonReader reader,
+        IOpenIdContext context,
+        ParameterDescriptor descriptor,
+        JsonSerializerOptions options);
 
     /// <summary>
     /// Serializes the JSON value from a <see cref="Parameter"/> into the given <see cref="Utf8JsonWriter"/>.
     /// </summary>
     /// <param name="writer">The <see cref="Utf8JsonWriter"/> to write to.</param>
+    /// <param name="context">The <see cref="IOpenIdContext"/> to use when serializing the value.</param>
     /// <param name="parameter">The <see cref="Parameter"/> to serialize as JSON.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
-    void Write(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options);
+    void Write(
+        Utf8JsonWriter writer,
+        IOpenIdContext context,
+        Parameter parameter,
+        JsonSerializerOptions options);
 }
 
 /// <summary>
@@ -55,10 +65,28 @@ public interface IJsonParser
 /// <typeparam name="T">The type of object to parse from JSON.</typeparam>
 public class JsonParser<T> : ParameterParser<T?>, IJsonParser
 {
+    /// <summary>
+    /// Gets the <see cref="JsonConverter{T}"/> that is used to (de)serialize the JSON payload.
+    /// The default implementation retrieves the <see cref="JsonConverter{T}"/> from the <see cref="JsonSerializerOptions"/>.
+    /// </summary>
+    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
+    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to be parsed.</param>
+    /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
+    /// <returns>The <see cref="JsonConverter{T}"/> to (de)serialize the JSON payload.</returns>
+    protected virtual JsonConverter<T?> GetJsonConverter(
+        IOpenIdContext context,
+        ParameterDescriptor descriptor,
+        JsonSerializerOptions options
+    ) => (JsonConverter<T?>)options.GetConverter(typeof(T));
+
     /// <inheritdoc/>
-    public Parameter Read(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    public Parameter Read(
+        ref Utf8JsonReader reader,
+        IOpenIdContext context,
+        ParameterDescriptor descriptor,
+        JsonSerializerOptions options)
     {
-        var converter = (JsonConverter<T>)options.GetConverter(typeof(T));
+        var converter = GetJsonConverter(context, descriptor, options);
         var parsedValue = converter.Read(ref reader, typeof(T), options);
         var stringValues = JsonSerializer.Serialize(parsedValue, options);
         return new Parameter<T>(descriptor, stringValues, parsedValue);
@@ -67,12 +95,17 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
     // TODO: unit tests for Write
 
     /// <inheritdoc/>
-    public void Write(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options)
+    public void Write(
+        Utf8JsonWriter writer,
+        IOpenIdContext context,
+        Parameter parameter,
+        JsonSerializerOptions options)
     {
-        writer.WritePropertyName(parameter.Descriptor.ParameterName);
+        var descriptor = parameter.Descriptor;
+        writer.WritePropertyName(descriptor.ParameterName);
 
         var typedParameter = (Parameter<T>)parameter;
-        var converter = (JsonConverter<T?>)options.GetConverter(typeof(T));
+        var converter = GetJsonConverter(context, descriptor, options);
 
         converter.Write(writer, typedParameter.ParsedValue, options);
     }
@@ -84,7 +117,11 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
     }
 
     /// <inheritdoc/>
-    public override T? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override T? Parse(
+        IOpenIdContext context,
+        ParameterDescriptor descriptor,
+        StringValues stringValues,
+        bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
@@ -112,4 +149,21 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
             throw context.ErrorFactory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest).WithException(exception).AsException();
         }
     }
+}
+
+/// <summary>
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse JSON payloads
+/// using a custom <see cref="JsonConverter{T}"/>.
+/// </summary>
+/// <typeparam name="T">The type of object to parse from JSON.</typeparam>
+/// <typeparam name="TConverter">The custom <see cref="JsonConverter{T}"/> to use for JSON (de)serialization.</typeparam>
+public class JsonParser<T, TConverter> : JsonParser<T>
+    where TConverter : JsonConverter<T?>, new()
+{
+    /// <inheritdoc />
+    protected override JsonConverter<T?> GetJsonConverter(
+        IOpenIdContext context,
+        ParameterDescriptor descriptor,
+        JsonSerializerOptions options
+    ) => new TConverter();
 }

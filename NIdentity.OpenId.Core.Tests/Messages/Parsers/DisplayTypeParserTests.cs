@@ -8,6 +8,8 @@ using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
+// TODO: unit tests for IgnoreErrors
+
 public class DisplayTypeParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }

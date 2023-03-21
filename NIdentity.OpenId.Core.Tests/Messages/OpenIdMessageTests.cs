@@ -44,7 +44,8 @@ public class OpenIdMessageTests : IDisposable
 
         message.Initialize(context, Array.Empty<Parameter>());
 
-        Assert.Throws<InvalidOperationException>(() => { message.Initialize(context, Array.Empty<Parameter>()); });
+        Assert.Throws<InvalidOperationException>(() =>
+            message.Initialize(context, Array.Empty<Parameter>()));
     }
 
     [Fact]
@@ -52,7 +53,8 @@ public class OpenIdMessageTests : IDisposable
     {
         var message = new TestOpenIdMessage();
 
-        Assert.Throws<InvalidOperationException>(() => message.OpenIdContext);
+        Assert.Throws<InvalidOperationException>(() =>
+            message.OpenIdContext);
     }
 
     [Fact]
@@ -186,7 +188,8 @@ public class OpenIdMessageTests : IDisposable
 
         var message = new TestOpenIdMessage();
 
-        Assert.Throws<InvalidOperationException>(() => { message.SetKnownParameter(knownParameter, parsedValue); });
+        Assert.Throws<InvalidOperationException>(() =>
+            message.SetKnownParameter(knownParameter, parsedValue));
     }
 
     [Fact]

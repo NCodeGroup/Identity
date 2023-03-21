@@ -24,17 +24,18 @@ using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Serialization;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Endpoints.Authorization.Messages;
+namespace NIdentity.OpenId.Core.Tests.Serialization;
 
-public class AuthorizationRequestMessageJsonConverterTests : IDisposable
+public class DelegatingJsonConverterTests : IDisposable
 {
     private MockRepository MockRepository { get; }
     private Mock<IOpenIdErrorFactory> MockOpenIdErrorFactory { get; }
     private OpenIdContext OpenIdContext { get; }
 
-    public AuthorizationRequestMessageJsonConverterTests()
+    public DelegatingJsonConverterTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
@@ -47,7 +48,7 @@ public class AuthorizationRequestMessageJsonConverterTests : IDisposable
     }
 
     [Fact]
-    public void JsonSerializer_RoundTrip()
+    public void AuthorizationRequestMessage_RoundTrip()
     {
         var jsonSerializerOptions = new JsonSerializerOptions
         {
@@ -55,7 +56,7 @@ public class AuthorizationRequestMessageJsonConverterTests : IDisposable
             {
                 new JsonStringEnumConverter(),
                 new OpenIdMessageJsonConverterFactory(OpenIdContext),
-                new AuthorizationRequestMessageJsonConverter()
+                new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>()
             }
         };
 

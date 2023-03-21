@@ -17,14 +17,15 @@
 
 #endregion
 
+using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Provides a default implementation of <see cref="IJsonParser"/> that parses JSON into <see cref="JsonElement"/>.
+/// Provides a default implementation of <see cref="IJsonParser"/> that parses JSON parameters.
 /// </summary>
 public class DefaultJsonParser : IJsonParser
 {
@@ -40,10 +41,33 @@ public class DefaultJsonParser : IJsonParser
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
-        var converter = (JsonConverter<JsonElement>)options.GetConverter(typeof(JsonElement));
-        var jsonElement = converter.Read(ref reader, typeof(JsonElement), options);
-        var stringValues = jsonElement.GetRawText();
-        return new Parameter<JsonElement>(descriptor, stringValues, jsonElement);
+        StringValues stringValues;
+        // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Null:
+                stringValues = StringValues.Empty;
+                break;
+
+            case JsonTokenType.String:
+                stringValues = reader.GetString()?.Split(OpenIdConstants.ParameterSeparator);
+                break;
+
+            case JsonTokenType.Number:
+                stringValues = reader.GetDecimal().ToString(CultureInfo.InvariantCulture);
+                break;
+
+            case JsonTokenType.True:
+            case JsonTokenType.False:
+                stringValues = reader.GetBoolean().ToString(CultureInfo.InvariantCulture);
+                break;
+
+            default:
+                var jsonElement = JsonSerializer.Deserialize<JsonElement>(ref reader, options);
+                return descriptor.Loader.Load(context, descriptor, jsonElement.GetRawText(), jsonElement);
+        }
+
+        return descriptor.Loader.Load(context, descriptor, stringValues);
     }
 
     /// <inheritdoc/>

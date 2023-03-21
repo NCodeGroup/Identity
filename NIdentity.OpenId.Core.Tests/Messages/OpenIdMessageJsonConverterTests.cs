@@ -5,8 +5,6 @@ using Microsoft.Extensions.Primitives;
 using Moq;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Messages.Parsers;
-using NIdentity.OpenId.Results;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
@@ -25,28 +23,6 @@ public class OpenIdMessageJsonConverterTests : IDisposable
     public void Dispose()
     {
         MockRepository.Verify();
-    }
-
-    [Fact]
-    public void LoadParameter_GivenInvalidTokenType_ThenThrows()
-    {
-        var converter = new OpenIdMessageJsonConverter<OpenIdMessage>(MockOpenIdContext.Object);
-
-        var jsonSerializerOptions = new JsonSerializerOptions();
-        var bufferWriter = new ArrayBufferWriter<byte>();
-        var jsonWriter = new Utf8JsonWriter(bufferWriter);
-
-        const string parameterName = "parameterName";
-
-        jsonWriter.WriteNullValue();
-        jsonWriter.Flush();
-
-        Assert.Throws<JsonException>(() =>
-        {
-            var reader = new Utf8JsonReader(bufferWriter.WrittenSpan);
-
-            converter.LoadParameter(parameterName, ref reader, jsonSerializerOptions);
-        });
     }
 
     [Fact]
@@ -881,76 +857,6 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         Assert.Equal(nestedStringValue, typedParameter.ParsedValue?.NestedPropertyName1);
 
         Assert.Same(typedMessage.TestNestedObject, typedParameter.ParsedValue);
-    }
-
-    [Fact]
-    public void Read_GivenLoadFailure_ThenThrows()
-    {
-        var converter = new OpenIdMessageJsonConverter<OpenIdMessage>(MockOpenIdContext.Object);
-
-        var typeToConvert = typeof(OpenIdMessage);
-        var jsonSerializerOptions = new JsonSerializerOptions();
-
-        var bufferWriter = new ArrayBufferWriter<byte>();
-        var jsonWriter = new Utf8JsonWriter(bufferWriter);
-
-        const string parameterName = "parameterName";
-        const bool optional = false;
-        const bool allowMultipleValues = false;
-
-        var knownParameter = new KnownParameter<string?>(
-            parameterName,
-            optional,
-            allowMultipleValues,
-            ParameterParsers.String);
-
-        KnownParameter? knownParameterBase = knownParameter;
-        MockOpenIdContext
-            .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
-            .Returns(true)
-            .Verifiable();
-
-        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
-            .Setup(_ => _.ErrorFactory)
-            .Returns(mockOpenIdErrorFactory.Object)
-            .Verifiable();
-
-        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
-        mockOpenIdErrorFactory
-            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
-            .Returns(mockOpenIdError.Object)
-            .Verifiable();
-
-        mockOpenIdError
-            .Setup(_ => _.Code)
-            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
-            .Verifiable();
-
-        mockOpenIdError
-            .SetupSet(_ => _.Description = $"The request is missing the '{parameterName}' parameter.")
-            .Verifiable();
-
-        mockOpenIdError
-            .Setup(_ => _.Exception)
-            .Returns((Exception?)null)
-            .Verifiable();
-
-        jsonWriter.WriteStartObject();
-        jsonWriter.WritePropertyName(parameterName);
-        jsonWriter.WriteNullValue();
-        jsonWriter.WriteEndObject();
-        jsonWriter.Flush();
-
-        Assert.Throws<OpenIdException>(() =>
-        {
-            var reader = new Utf8JsonReader(bufferWriter.WrittenSpan);
-
-            Assert.True(reader.Read());
-            Assert.Equal(JsonTokenType.StartObject, reader.TokenType);
-
-            converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
-        });
     }
 
     [Fact]

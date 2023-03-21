@@ -31,12 +31,12 @@ internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, IOpenIdContext c
 
 internal interface ITestParameterParser
 {
-    StringValues Serialize(IOpenIdContext context, string value);
+    StringValues Serialize(IOpenIdContext context, string? value);
 
     string Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
 }
 
-internal class TestParameterParser : ParameterParser<string>, IJsonParser
+internal class TestParameterParser : ParameterParser<string>
 {
     private ITestParameterParser InnerParser { get; }
     private ReadJsonDelegate? ReadJsonDelegate { get; }
@@ -49,7 +49,7 @@ internal class TestParameterParser : ParameterParser<string>, IJsonParser
         WriteJsonDelegate = writeJsonDelegate;
     }
 
-    public override StringValues Serialize(IOpenIdContext context, string value)
+    public override StringValues Serialize(IOpenIdContext context, string? value)
     {
         return InnerParser.Serialize(context, value);
     }
@@ -59,12 +59,12 @@ internal class TestParameterParser : ParameterParser<string>, IJsonParser
         return InnerParser.Parse(context, descriptor, stringValues, ignoreErrors);
     }
 
-    public Parameter Read(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    public override Parameter Read(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         return ReadJsonDelegate?.Invoke(ref reader, context, descriptor, options) ?? new Parameter<string>(descriptor, string.Empty);
     }
 
-    public void Write(Utf8JsonWriter writer, IOpenIdContext context, Parameter parameter, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, IOpenIdContext context, Parameter parameter, JsonSerializerOptions options)
     {
         WriteJsonDelegate?.Invoke(writer, context, parameter, options);
     }

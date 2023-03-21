@@ -23,7 +23,7 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request from the request
 /// object only.
 /// </summary>
-public interface IAuthorizationRequestObject : IAuthorizationRequestValues
+public interface IAuthorizationRequestObject : IBaseAuthorizationRequestValues
 {
     /// <summary>
     /// Gets a value indicating where the <c>request object</c> was loaded from.

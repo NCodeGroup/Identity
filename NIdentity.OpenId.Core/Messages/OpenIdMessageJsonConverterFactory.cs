@@ -35,14 +35,13 @@ internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
     /// <inheritdoc />
     public override bool CanConvert(Type typeToConvert)
     {
-        var hasDefaultConstructor = typeToConvert.GetConstructor(Type.EmptyTypes) != null;
-        return typeof(OpenIdMessage).IsAssignableFrom(typeToConvert) && hasDefaultConstructor;
+        return typeof(OpenIdMessage).IsAssignableFrom(typeToConvert);
     }
 
     /// <inheritdoc />
     public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
-        var type = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
-        return (JsonConverter?)Activator.CreateInstance(type, Context);
+        var typeOfConverter = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
+        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, Context);
     }
 }

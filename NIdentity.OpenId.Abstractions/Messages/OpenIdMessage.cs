@@ -28,44 +28,33 @@ namespace NIdentity.OpenId.Messages;
 /// Provides a default implementation of <see cref="IOpenIdMessage"/> that uses strongly-typed <see cref="Parameter"/> and
 /// <see cref="KnownParameter"/> objects for <c>OAuth</c> or <c>OpenId Connect</c> parameters.
 /// </summary>
-public abstract class OpenIdMessage : IOpenIdMessage
+public class OpenIdMessage : IOpenIdMessage
 {
+    private static Exception NotInitializedException => new InvalidOperationException("Not initialized");
+
     [MemberNotNullWhen(true, nameof(ContextOrNull))]
-    [MemberNotNullWhen(true, nameof(ParametersOrNull))]
     private bool IsInitialized { get; set; }
 
     private IOpenIdContext? ContextOrNull { get; set; }
 
-    private Dictionary<string, Parameter>? ParametersOrNull { get; set; }
-
-    private static Exception GetNotInitializedException() => new InvalidOperationException("Not initialized");
-
-    /// <inheritdoc />
-    public IOpenIdContext OpenIdContext => ContextOrNull ?? throw GetNotInitializedException();
+    private Dictionary<string, Parameter> ParameterStore { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenId Connect</c> parameters.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
-    public IReadOnlyDictionary<string, Parameter> Parameters => ParametersOrNull ?? throw GetNotInitializedException();
+    public IReadOnlyDictionary<string, Parameter> Parameters => ParameterStore;
+
+    /// <summary>
+    /// Gets the <see cref="IOpenIdContext"/> for the current instance.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
+    public IOpenIdContext OpenIdContext => ContextOrNull ?? throw NotInitializedException;
 
     /// <summary>
     /// Creates an uninitialized new instance of the <see cref="OpenIdMessage"/> class.
     /// </summary>
-    protected OpenIdMessage()
-    {
-        IsInitialized = false;
-        ContextOrNull = null;
-        ParametersOrNull = null;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
-    /// </summary>
-    /// <param name="context"><see cref="IOpenIdContext"/></param>
-    /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
-    protected OpenIdMessage(IOpenIdContext context, params Parameter[] parameters)
-        : this(context, parameters.AsEnumerable())
+    public OpenIdMessage()
     {
         // nothing
     }
@@ -75,14 +64,19 @@ public abstract class OpenIdMessage : IOpenIdMessage
     /// </summary>
     /// <param name="context"><see cref="IOpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
-    protected OpenIdMessage(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    public OpenIdMessage(IOpenIdContext context, params Parameter[] parameters)
     {
-        IsInitialized = true;
-        ContextOrNull = context;
-        ParametersOrNull = parameters.ToDictionary(
-            parameter => parameter.Descriptor.ParameterName,
-            parameter => parameter,
-            StringComparer.OrdinalIgnoreCase);
+        Initialize(context, parameters);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
+    /// </summary>
+    /// <param name="context"><see cref="IOpenIdContext"/></param>
+    /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
+    public OpenIdMessage(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    {
+        Initialize(context, parameters);
     }
 
     /// <summary>
@@ -91,37 +85,39 @@ public abstract class OpenIdMessage : IOpenIdMessage
     /// <param name="context"><see cref="IOpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
-    protected internal void Initialize(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    public void Initialize(IOpenIdContext context, IEnumerable<Parameter> parameters)
     {
         if (IsInitialized) throw new InvalidOperationException("Already initialized");
 
         ContextOrNull = context;
-        ParametersOrNull = parameters.ToDictionary(
+        ParameterStore = parameters.ToDictionary(
             parameter => parameter.Descriptor.ParameterName,
+            parameter => parameter,
             StringComparer.OrdinalIgnoreCase);
 
         IsInitialized = true;
     }
 
     /// <inheritdoc />
-    public int Count => Parameters.Count;
+    public int Count => ParameterStore.Count;
 
     /// <inheritdoc />
-    public IEnumerable<string> Keys => Parameters.Keys;
+    public IEnumerable<string> Keys => ParameterStore.Keys;
 
     /// <inheritdoc />
-    public IEnumerable<StringValues> Values => Parameters.Values.Select(_ => _.StringValues);
+    public IEnumerable<StringValues> Values =>
+        ParameterStore.Values.Select(parameter => parameter.StringValues);
 
     /// <inheritdoc />
-    public StringValues this[string key] => Parameters[key].StringValues;
+    public StringValues this[string key] => ParameterStore[key].StringValues;
 
     /// <inheritdoc />
-    public bool ContainsKey(string key) => Parameters.ContainsKey(key);
+    public bool ContainsKey(string key) => ParameterStore.ContainsKey(key);
 
     /// <inheritdoc />
     public bool TryGetValue(string key, out StringValues value)
     {
-        if (!Parameters.TryGetValue(key, out var parameter))
+        if (!ParameterStore.TryGetValue(key, out var parameter))
         {
             value = default;
             return false;
@@ -132,7 +128,7 @@ public abstract class OpenIdMessage : IOpenIdMessage
     }
 
     /// <inheritdoc />
-    public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => Parameters
+    public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => ParameterStore
         .Select(kvp => KeyValuePair.Create(kvp.Key, kvp.Value.StringValues))
         .GetEnumerator();
 
@@ -146,7 +142,7 @@ public abstract class OpenIdMessage : IOpenIdMessage
     /// <returns>The value of the well known parameter.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
     protected internal T? GetKnownParameter<T>(KnownParameter<T> knownParameter) =>
-        Parameters.TryGetValue(knownParameter.Name, out var parameter) &&
+        ParameterStore.TryGetValue(knownParameter.Name, out var parameter) &&
         parameter is Parameter<T> typedParameter ?
             typedParameter.ParsedValue :
             default;
@@ -160,25 +156,25 @@ public abstract class OpenIdMessage : IOpenIdMessage
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
     protected internal void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
     {
-        if (!IsInitialized) throw GetNotInitializedException();
+        if (!IsInitialized) throw NotInitializedException;
 
         var parameterName = knownParameter.Name;
         if (parsedValue is null)
         {
-            ParametersOrNull.Remove(parameterName);
+            ParameterStore.Remove(parameterName);
             return;
         }
 
         var stringValues = knownParameter.Parser.Serialize(ContextOrNull, parsedValue);
         if (StringValues.IsNullOrEmpty(stringValues))
         {
-            ParametersOrNull.Remove(parameterName);
+            ParameterStore.Remove(parameterName);
             return;
         }
 
         var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = descriptor.Loader.Load(ContextOrNull, descriptor, stringValues, parsedValue);
-        ParametersOrNull[knownParameter.Name] = parameter;
+        ParameterStore[knownParameter.Name] = parameter;
     }
 }
 
@@ -190,7 +186,7 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     where T : OpenIdMessage, new()
 {
     /// <summary>
-    /// Create and initializes an <c>OAuth</c> or <c>OpenId Connect</c> message by using a collection of <see cref="Parameter{T}"/> values.
+    /// Create and loads an <c>OAuth</c> or <c>OpenId Connect</c> message by using a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
     /// <param name="context"><see cref="IOpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
@@ -208,28 +204,14 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <param name="context"><see cref="IOpenIdContext"/></param>
     /// <param name="properties">The collection of <see cref="StringValues"/> key-value pairs to be parsed into <see cref="Parameter{T}"/> values.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(IOpenIdContext context, IEnumerable<KeyValuePair<string, StringValues>> properties)
-    {
-        var parameters = properties
-            .GroupBy(
-                kvp => kvp.Key,
-                kvp => kvp.Value.AsEnumerable(),
-                StringComparer.OrdinalIgnoreCase)
-            .Select(grouping => Parameter.Load(
-                context,
-                grouping.Key,
-                grouping.SelectMany(stringValues => stringValues)));
-
-        return Load(context, parameters);
-    }
+    public static T Load(IOpenIdContext context, IEnumerable<KeyValuePair<string, StringValues>> properties) =>
+        Load(context, properties.Select(property => Parameter.Load(context, property.Key, property.Value)));
 
     /// <summary>
     /// Create and loads an <c>OAuth</c> or <c>OpenId Connect</c> message by cloning an existing message.
     /// </summary>
     /// <param name="other">The <see cref="IOpenIdMessage"/> to clone.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(IOpenIdMessage other)
-    {
-        return Load(other.OpenIdContext, other);
-    }
+    public static T Load(IOpenIdMessage other) =>
+        Load(other.OpenIdContext, other);
 }

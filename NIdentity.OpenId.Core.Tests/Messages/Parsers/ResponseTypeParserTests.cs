@@ -30,12 +30,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class ResponseTypeParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
+    private Mock<IOpenIdContext> MockOpenIdContext { get; }
 
     public ResponseTypeParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
+        MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
     }
 
     public void Dispose()
@@ -47,7 +47,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenNone_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.None);
+        var result = parser.Serialize(MockOpenIdContext.Object, ResponseTypes.None);
         Assert.Equal("none", result);
     }
 
@@ -55,7 +55,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenCode_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.Code);
+        var result = parser.Serialize(MockOpenIdContext.Object, ResponseTypes.Code);
         Assert.Equal("code", result);
     }
 
@@ -63,7 +63,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenIdToken_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.IdToken);
+        var result = parser.Serialize(MockOpenIdContext.Object, ResponseTypes.IdToken);
         Assert.Equal("id_token", result);
     }
 
@@ -71,7 +71,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenToken_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.Token);
+        var result = parser.Serialize(MockOpenIdContext.Object, ResponseTypes.Token);
         Assert.Equal("token", result);
     }
 
@@ -79,7 +79,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Serialize_GivenUnknown_ThenEmpty()
     {
         var parser = new ResponseTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, ResponseTypes.Unspecified);
+        var result = parser.Serialize(MockOpenIdContext.Object, ResponseTypes.Unspecified);
         Assert.Equal(StringValues.Empty, result);
     }
 
@@ -87,7 +87,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -108,10 +108,36 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request is missing the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<ResponseTypes?>(
             parameterName,
@@ -128,7 +154,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenMultipleValues_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "code id_token token";
@@ -150,7 +176,7 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenNoneWithValidCase_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "none";
@@ -171,10 +197,36 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenNoneWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "NONE";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<ResponseTypes?>(
             parameterName,
@@ -184,14 +236,15 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenCodeWithValidCase_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "code";
@@ -212,10 +265,36 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenCodeWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "CODE";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<ResponseTypes?>(
             parameterName,
@@ -225,14 +304,15 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenIdTokenWithValidCase_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "id_token";
@@ -253,10 +333,36 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenIdTokenWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "ID_TOKEN";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<ResponseTypes?>(
             parameterName,
@@ -266,14 +372,15 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenTokenWithValidCase_ThenValid()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "token";
@@ -294,10 +401,36 @@ public class ResponseTypeParserTests : IDisposable
     public void Parse_GivenTokenWithInvalidCase_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "TOKEN";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<ResponseTypes?>(
             parameterName,
@@ -307,17 +440,44 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new ResponseTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "invalid_value";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<ResponseTypes?>(
             parameterName,
@@ -327,6 +487,7 @@ public class ResponseTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 }

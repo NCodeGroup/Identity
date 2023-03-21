@@ -40,27 +40,35 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
     }
 
     /// <inheritdoc/>
-    public override TimeSpan? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override TimeSpan? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional:
+            case 0 when descriptor.Optional || ignoreErrors:
                 return null;
 
             case 0:
                 throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
-            case > 1 when !descriptor.AllowMultipleValues:
+            case > 1 when !descriptor.AllowMultipleValues && !ignoreErrors:
                 throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
         var value = TimeSpan.Zero;
         foreach (var stringValue in stringValues)
         {
-            if (!int.TryParse(stringValue, out var seconds))
+            if (int.TryParse(stringValue, out var seconds))
+            {
+                value += TimeSpan.FromSeconds(seconds);
+            }
+            else if (ignoreErrors)
+            {
+                return null;
+            }
+            else
+            {
                 throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
-
-            value += TimeSpan.FromSeconds(seconds);
+            }
         }
 
         return value;

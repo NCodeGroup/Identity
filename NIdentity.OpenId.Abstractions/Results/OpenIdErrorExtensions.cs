@@ -56,31 +56,6 @@ public static class OpenIdErrorExtensions
     }
 
     /// <summary>
-    /// Wraps the <see cref="IOpenIdError"/> in an <see cref="OpenIdException"/>.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to wrap.</param>
-    /// <param name="innerException">The exception that is the cause of the current exception, or a <c>null</c>
-    /// reference if no inner exception is specified.</param>
-    /// <returns>The <see cref="OpenIdException"/> instance.</returns>
-    public static OpenIdException AsException(this IOpenIdError error, Exception? innerException)
-    {
-        return new OpenIdException(error, innerException);
-    }
-
-    /// <summary>
-    /// Wraps the <see cref="IOpenIdError"/> in an <see cref="OpenIdException"/>.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to wrap.</param>
-    /// <param name="message">The error message that explains the reason for the exception.</param>
-    /// <param name="innerException">The exception that is the cause of the current exception, or a <c>null</c>
-    /// reference if no inner exception is specified.</param>
-    /// <returns>The <see cref="OpenIdException"/> instance.</returns>
-    public static OpenIdException AsException(this IOpenIdError error, string? message, Exception? innerException)
-    {
-        return new OpenIdException(error, message, innerException);
-    }
-
-    /// <summary>
     /// Sets the HTTP status code to be used when returning a response.
     /// </summary>
     /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>

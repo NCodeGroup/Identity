@@ -20,18 +20,13 @@
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
 
-#pragma warning disable 1572 // ValidateAuthorizationRequest.cs(28, 22): [CS1572] XML comment has a param tag for 'AuthorizationRequest', but there is no parameter by that name
-#pragma warning disable 1573 // ValidateAuthorizationRequest.cs(29, 70): [CS1573] Parameter 'AuthorizationRequest' has no matching param tag in the XML comment for 'ValidateAuthorizationRequest.ValidateAuthorizationRequest(IAuthorizationRequest)' (but other parameters do)
-#pragma warning disable 1574 // ValidateAuthorizationRequest.cs(25, 31): [CS1574] XML comment has cref attribute 'IRequest' that could not be resolved
-#pragma warning disable 1591 // ValidateAuthorizationRequest.cs(29, 70): [CS1591] Missing XML comment for publicly visible type or member 'ValidateAuthorizationRequest.AuthorizationRequest'
-
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Defines an <see cref="ICommand"/> contract that accepts an <see cref="IAuthorizationRequestUnion"/> as an
+/// Defines an <see cref="ICommand"/> contract that accepts an <see cref="IAuthorizationRequest"/> as an
 /// input argument and doesn't return a value.
 /// </summary>
-/// <param name="AuthorizationRequest">The <see cref="IAuthorizationRequestUnion"/> input argument for the command contract.</param>
-public record ValidateAuthorizationRequestCommand(
-    IAuthorizationRequestUnion AuthorizationRequest
+/// <param name="AuthorizationContext">The <see cref="AuthorizationContext"/> input argument for the command contract.</param>
+public record struct ValidateAuthorizationRequestCommand(
+    AuthorizationContext AuthorizationContext
 ) : ICommand;

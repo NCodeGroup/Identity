@@ -22,6 +22,6 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
-public record AuthenticateCommand(
+public record struct AuthenticateCommand(
     OpenIdEndpointContext EndpointContext
 ) : ICommand<AuthenticateResult>;

@@ -23,5 +23,5 @@ namespace NIdentity.OpenId.Features;
 
 public interface ICallbackFeature : IFeature
 {
-    string GetRedirectUrl(IAuthorizationRequestUnion authorizationRequest, string reason);
+    string GetRedirectUrl(IAuthorizationRequest authorizationRequest, string reason);
 }

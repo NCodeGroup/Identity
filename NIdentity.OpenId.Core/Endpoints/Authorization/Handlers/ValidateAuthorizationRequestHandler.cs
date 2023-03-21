@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
@@ -37,14 +38,15 @@ internal class ValidateAuthorizationRequestHandler : ICommandHandler<ValidateAut
     /// <inheritdoc />
     public ValueTask HandleAsync(ValidateAuthorizationRequestCommand command, CancellationToken cancellationToken)
     {
-        var authorizationRequest = command.AuthorizationRequest;
+        var authorizationContext = command.AuthorizationContext;
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
 
         ValidateRequestMessage(authorizationRequest.OriginalRequestMessage);
 
         if (authorizationRequest.OriginalRequestObject != null)
             ValidateRequestObject(authorizationRequest.OriginalRequestMessage, authorizationRequest.OriginalRequestObject);
 
-        ValidateRequest(authorizationRequest);
+        ValidateRequest(authorizationContext.Client, authorizationRequest);
 
         return ValueTask.CompletedTask;
     }
@@ -102,7 +104,7 @@ internal class ValidateAuthorizationRequestHandler : ICommandHandler<ValidateAut
     }
 
     [AssertionMethod]
-    private void ValidateRequest(IAuthorizationRequestUnion request)
+    private void ValidateRequest(Client client, IAuthorizationRequest request)
     {
         var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
         var isImplicit = request.GrantType == GrantType.Implicit;
@@ -111,13 +113,13 @@ internal class ValidateAuthorizationRequestHandler : ICommandHandler<ValidateAut
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
         var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
 
-        var redirectUris = request.Client.RedirectUris;
-        if (!redirectUris.Contains(request.RedirectUri) && !(request.Client.AllowLoopback && request.RedirectUri.IsLoopback))
+        var redirectUris = client.RedirectUris;
+        if (!redirectUris.Contains(request.RedirectUri) && !(client.AllowLoopback && request.RedirectUri.IsLoopback))
             throw ErrorFactory.InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.").AsException();
 
         // TODO: error messages must now use redirection
 
-        if (request.Client.IsDisabled)
+        if (client.IsDisabled)
             throw ErrorFactory.UnauthorizedClient("The client is disabled.").AsException();
 
         if (request.Scopes.Count == 0)
@@ -145,14 +147,14 @@ internal class ValidateAuthorizationRequestHandler : ICommandHandler<ValidateAut
             throw ErrorFactory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.").AsException();
 
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
-        if (request.ResponseType.HasFlag(ResponseTypes.Token) && !request.Client.AllowUnsafeTokenResponse)
+        if (request.ResponseType.HasFlag(ResponseTypes.Token) && !client.AllowUnsafeTokenResponse)
             throw ErrorFactory.UnauthorizedClient("The client configuration prohibits the use of unsafe token responses.").AsException();
 
         // ReSharper disable once ConvertIfStatementToSwitchStatement
-        if (!hasCodeChallenge && request.Client.RequirePkce)
+        if (!hasCodeChallenge && client.RequirePkce)
             throw ErrorFactory.UnauthorizedClient("The client configuration requires the use of PKCE parameters.").AsException();
 
-        if (hasCodeChallenge && codeChallengeMethodIsPlain && !request.Client.AllowPlainCodeChallengeMethod)
+        if (hasCodeChallenge && codeChallengeMethodIsPlain && !client.AllowPlainCodeChallengeMethod)
             throw ErrorFactory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.").AsException();
 
         // TODO: check allowed grant types from client configuration

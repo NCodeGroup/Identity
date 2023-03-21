@@ -29,12 +29,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class StringParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
+    private Mock<IOpenIdContext> MockOpenIdContext { get; }
 
     public StringParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
+        MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
     }
 
     public void Dispose()
@@ -46,7 +46,7 @@ public class StringParserTests : IDisposable
     public void Serialize_ThenValid()
     {
         var parser = new StringParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parsedValue = "parsedValue";
 
@@ -58,7 +58,7 @@ public class StringParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new StringParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -79,10 +79,36 @@ public class StringParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new StringParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request is missing the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<string?>(
             parameterName,
@@ -99,7 +125,7 @@ public class StringParserTests : IDisposable
     public void Parse_GivenMultipleValues_WhenAllowMultipleValues_ThenValid()
     {
         var parser = new StringParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
@@ -121,10 +147,36 @@ public class StringParserTests : IDisposable
     public void Parse_GivenMultipleValues_WhenDisallowMultipleValues_ThenThrows()
     {
         var parser = new StringParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes the '{parameterName}' parameter more than once.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<string?>(
             parameterName,
@@ -141,7 +193,7 @@ public class StringParserTests : IDisposable
     public void Parse_GivenSingleStringValue_ThenValid()
     {
         var parser = new StringParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "value1";

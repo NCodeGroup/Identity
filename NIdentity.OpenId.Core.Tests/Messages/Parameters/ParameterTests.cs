@@ -65,8 +65,9 @@ public class ParameterTests : IDisposable
     public void Load_GivenEnumerable_ThenValid()
     {
         var mockParser = MockRepository.Create<ParameterParser<string>>();
-        var mockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
+        var mockOpenIdContext = MockRepository.Create<IOpenIdContext>();
 
+        const bool ignoreErrors = false;
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
 
@@ -76,17 +77,17 @@ public class ParameterTests : IDisposable
             allowMultipleValues: false,
             mockParser.Object);
 
-        var context = mockOpenIdMessageContext.Object;
+        var context = mockOpenIdContext.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
         var expectedParameter = new Parameter<string[]>(descriptor, stringValues, stringValues);
 
         mockParser
-            .Setup(_ => _.Load(context, descriptor, stringValues))
+            .Setup(_ => _.Load(context, descriptor, stringValues, ignoreErrors))
             .Returns(expectedParameter)
             .Verifiable();
 
         KnownParameter? knownParameterBase = knownParameter;
-        mockOpenIdMessageContext
+        mockOpenIdContext
             .Setup(_ => _.TryGetKnownParameter(parameterName, out knownParameterBase))
             .Returns(true)
             .Verifiable();

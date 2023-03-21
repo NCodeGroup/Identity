@@ -81,19 +81,19 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
     }
 
     /// <inheritdoc/>
-    public override T? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override T? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional:
+            case 0 when descriptor.Optional || ignoreErrors:
                 return default;
 
             case 0:
                 throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
-            case > 1:
+            case > 1 when !ignoreErrors:
                 throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
@@ -105,7 +105,8 @@ public class JsonParser<T> : ParameterParser<T?>, IJsonParser
         }
         catch (Exception exception)
         {
-            throw context.ErrorFactory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest).AsException(exception);
+            if (ignoreErrors) return default;
+            throw context.ErrorFactory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest).WithException(exception).AsException();
         }
     }
 }

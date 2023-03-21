@@ -35,11 +35,11 @@ public class StringParser : ParameterParser<string?>
     }
 
     /// <inheritdoc/>
-    public override string? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
+    public override string? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false) => stringValues.Count switch
     {
-        0 when descriptor.Optional => null,
+        0 when descriptor.Optional || ignoreErrors => null,
         0 => throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
-        > 1 when descriptor.AllowMultipleValues => string.Join(Separator, stringValues),
+        > 1 when descriptor.AllowMultipleValues || ignoreErrors => string.Join(Separator, stringValues),
         > 1 => throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
         _ => stringValues[0]
     };

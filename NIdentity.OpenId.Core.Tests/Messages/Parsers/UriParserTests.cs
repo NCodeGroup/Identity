@@ -30,12 +30,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class UriParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
+    private Mock<IOpenIdContext> MockOpenIdContext { get; }
 
     public UriParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
+        MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
     }
 
     public void Dispose()
@@ -47,7 +47,7 @@ public class UriParserTests : IDisposable
     public void Serialize_GivenNull_ThenEmpty()
     {
         var parser = new UriParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         var stringValue = parser.Serialize(context, null);
         Assert.Equal(StringValues.Empty, stringValue);
@@ -57,7 +57,7 @@ public class UriParserTests : IDisposable
     public void Serialize_GivenValue_ThenValid()
     {
         var parser = new UriParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         var uri = new Uri("http://localhost/path1/path2?key1=value1&key2");
 
@@ -69,7 +69,7 @@ public class UriParserTests : IDisposable
     public void Parse_GivenNull_WhenOptional_ThenValid()
     {
         var parser = new UriParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -90,10 +90,36 @@ public class UriParserTests : IDisposable
     public void Parse_GivenNull_WhenRequired_ThenThrows()
     {
         var parser = new UriParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request is missing the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<Uri?>(
             parameterName,
@@ -110,10 +136,36 @@ public class UriParserTests : IDisposable
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new UriParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "123", "456" };
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes the '{parameterName}' parameter more than once.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<Uri?>(
             parameterName,
@@ -130,7 +182,7 @@ public class UriParserTests : IDisposable
     public void Parse_GivenSingleValue_ThenValid()
     {
         var parser = new UriParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string url = "http://localhost/path1/path2?key1=value1&key2";

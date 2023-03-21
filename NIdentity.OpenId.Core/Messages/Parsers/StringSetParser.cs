@@ -42,11 +42,11 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
     }
 
     /// <inheritdoc/>
-    public override IReadOnlyCollection<string>? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues) => stringValues.Count switch
+    public override IReadOnlyCollection<string>? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false) => stringValues.Count switch
     {
-        0 when descriptor.Optional => null,
+        0 when descriptor.Optional || ignoreErrors => null,
         0 => throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
-        > 1 when descriptor.AllowMultipleValues => stringValues.SelectMany(stringValue => stringValue.Split(Separator)).ToHashSet(StringComparer.Ordinal),
+        > 1 when descriptor.AllowMultipleValues || ignoreErrors => stringValues.SelectMany(stringValue => stringValue.Split(Separator)).ToHashSet(StringComparer.Ordinal),
         > 1 => throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
         _ => stringValues[0].Split(Separator).ToHashSet(StringComparer.Ordinal)
     };

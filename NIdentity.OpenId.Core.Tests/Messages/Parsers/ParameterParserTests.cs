@@ -27,13 +27,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class ParameterParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
+    private Mock<IOpenIdContext> MockOpenIdContext { get; }
     private Mock<ITestParameterParser> MockTestParameterParser { get; }
 
     public ParameterParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
+        MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
         MockTestParameterParser = MockRepository.Create<ITestParameterParser>();
     }
 
@@ -62,8 +62,9 @@ public class ParameterParserTests : IDisposable
     public void Load_ThenValid()
     {
         var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
+        const bool ignoreErrors = false;
         const string parameterName = "parameterName";
         const string stringValues = "stringValues";
         const string parsedValue = "parsedValue";
@@ -71,7 +72,7 @@ public class ParameterParserTests : IDisposable
         var descriptor = new ParameterDescriptor(parameterName);
 
         MockTestParameterParser
-            .Setup(_ => _.Parse(context, descriptor, stringValues))
+            .Setup(_ => _.Parse(context, descriptor, stringValues, ignoreErrors))
             .Returns(parsedValue)
             .Verifiable();
 

@@ -179,7 +179,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         Assert.Equal(expectedValue, JsonSerializer.Serialize(typedParameter.ParsedValue));
     }
 
-    private static Parameter ReadJsonValid(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    private static Parameter ReadJsonValid(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         Assert.True(reader.Read());
         Assert.Equal(JsonTokenType.PropertyName, reader.TokenType);
@@ -251,7 +251,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         Assert.Empty(message.Parameters);
     }
 
-    private static Parameter ReadJsonThrows(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    private static Parameter ReadJsonThrows(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         throw new InvalidOperationException();
     }
@@ -689,7 +689,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
     }
 
     [Fact]
-    public void Read_GivenNestedObject_ThenValid()
+    public void Read_GivenNestedObject_WithUnknownParameter_ThenValid()
     {
         var converter = new OpenIdMessageJsonConverter<OpenIdMessage>(MockOpenIdContext.Object);
 
@@ -737,15 +737,12 @@ public class OpenIdMessageJsonConverterTests : IDisposable
     }
 
     [Fact]
-    public void Read_GivenNestedObject_WithJsonConverter_ThenValid()
+    public void Read_GivenNestedObject_WithKnownParameter_ThenValid()
     {
         var converter = new OpenIdMessageJsonConverter<OpenIdMessage>(MockOpenIdContext.Object);
 
         var typeToConvert = typeof(OpenIdMessage);
-        var jsonSerializerOptions = new JsonSerializerOptions
-        {
-            Converters = { new TestNestedObjectJsonConverter() }
-        };
+        var jsonSerializerOptions = new JsonSerializerOptions();
 
         var bufferWriter = new ArrayBufferWriter<byte>();
         var jsonWriter = new Utf8JsonWriter(bufferWriter);
@@ -836,15 +833,12 @@ public class OpenIdMessageJsonConverterTests : IDisposable
     }
 
     [Fact]
-    public void Read_GivenTypeMetadataAndNestedObject_ThenValid()
+    public void Read_GivenTypeMetadata_WithNestedObject_ThenValid()
     {
         var converter = new OpenIdMessageJsonConverter<OpenIdMessage>(MockOpenIdContext.Object);
 
         var typeToConvert = typeof(OpenIdMessage);
-        var jsonSerializerOptions = new JsonSerializerOptions
-        {
-            Converters = { new TestNestedObjectJsonConverter() }
-        };
+        var jsonSerializerOptions = new JsonSerializerOptions();
 
         var bufferWriter = new ArrayBufferWriter<byte>();
         var jsonWriter = new Utf8JsonWriter(bufferWriter);
@@ -1131,7 +1125,10 @@ public class OpenIdMessageJsonConverterTests : IDisposable
     {
         var jsonSerializerOptions = new JsonSerializerOptions
         {
-            Converters = { new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object) }
+            Converters =
+            {
+                new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object)
+            }
         };
 
         var properties = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
@@ -1165,7 +1162,10 @@ public class OpenIdMessageJsonConverterTests : IDisposable
     {
         var jsonSerializerOptions = new JsonSerializerOptions
         {
-            Converters = { new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object) }
+            Converters =
+            {
+                new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object)
+            }
         };
 
         var propertyName = TestOpenIdMessageWithKnownParameter.KnownParameter.Name;
@@ -1195,7 +1195,10 @@ public class OpenIdMessageJsonConverterTests : IDisposable
     {
         var jsonSerializerOptions = new JsonSerializerOptions
         {
-            Converters = { new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object) }
+            Converters =
+            {
+                new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object)
+            }
         };
 
         var properties = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
@@ -1225,13 +1228,12 @@ public class OpenIdMessageJsonConverterTests : IDisposable
     }
 
     [Fact]
-    public void Deserialize_GivenNestedObject_ThenValid()
+    public void Deserialize_GivenNestedObject_WithKnownParameters_ThenValid()
     {
         var jsonSerializerOptions = new JsonSerializerOptions
         {
             Converters =
             {
-                new TestNestedObjectJsonConverter(),
                 new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object)
             }
         };
@@ -1260,7 +1262,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var testNestedObjectJson = JsonSerializer.Serialize(testNestedObject);
 
         var expectedJson = JsonSerializer.Serialize(inputMessage, jsonSerializerOptions);
-        var outputMessage = JsonSerializer.Deserialize<OpenIdMessage>(expectedJson, jsonSerializerOptions);
+        var outputMessage = JsonSerializer.Deserialize<TestOpenIdMessageWithKnownParameter>(expectedJson, jsonSerializerOptions);
         Assert.NotNull(outputMessage);
 
         var typedMessage = Assert.IsType<TestOpenIdMessageWithKnownParameter>(outputMessage);

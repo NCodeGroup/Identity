@@ -24,12 +24,12 @@ namespace NIdentity.OpenId.Messages;
 
 internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
 {
-    private IOpenIdContext Context { get; }
+    private IOpenIdContext OpenIdContext { get; }
 
     /// <inheritdoc />
     public OpenIdMessageJsonConverterFactory(IOpenIdContext context)
     {
-        Context = context;
+        OpenIdContext = context;
     }
 
     /// <inheritdoc />
@@ -42,6 +42,6 @@ internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
     public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
         var typeOfConverter = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
-        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, Context);
+        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, OpenIdContext);
     }
 }

@@ -25,9 +25,9 @@ using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
 
-internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options);
+internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options);
 
-internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options);
+internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, IOpenIdContext context, Parameter parameter, JsonSerializerOptions options);
 
 internal interface ITestParameterParser
 {
@@ -59,13 +59,13 @@ internal class TestParameterParser : ParameterParser<string>, IJsonParser
         return InnerParser.Parse(context, descriptor, stringValues, ignoreErrors);
     }
 
-    public Parameter Read(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    public Parameter Read(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
-        return ReadJsonDelegate?.Invoke(ref reader, descriptor, options) ?? new Parameter<string>(descriptor, string.Empty);
+        return ReadJsonDelegate?.Invoke(ref reader, context, descriptor, options) ?? new Parameter<string>(descriptor, string.Empty);
     }
 
-    public void Write(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options)
+    public void Write(Utf8JsonWriter writer, IOpenIdContext context, Parameter parameter, JsonSerializerOptions options)
     {
-        WriteJsonDelegate?.Invoke(writer, parameter, options);
+        WriteJsonDelegate?.Invoke(writer, context, parameter, options);
     }
 }

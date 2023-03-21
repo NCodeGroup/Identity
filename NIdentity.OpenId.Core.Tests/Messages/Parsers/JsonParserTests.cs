@@ -10,6 +10,7 @@ using Xunit;
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
 // TODO: unit tests for IgnoreErrors
+// TODO: unit tests for GetJsonConverter
 
 public class JsonParserTests : IDisposable
 {
@@ -49,7 +50,7 @@ public class JsonParserTests : IDisposable
 
         Assert.True(reader.Read());
 
-        var parameter = parser.Read(ref reader, descriptor, jsonSerializerOptions);
+        var parameter = parser.Read(ref reader, MockOpenIdContext.Object, descriptor, jsonSerializerOptions);
         var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(parameter);
 
         Assert.Equal(expectedValueAsJson, typedParameter.StringValues);

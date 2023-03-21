@@ -34,7 +34,11 @@ public class DefaultJsonParser : IJsonParser
     public static DefaultJsonParser Instance { get; } = new();
 
     /// <inheritdoc/>
-    public Parameter Read(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    public Parameter Read(
+        ref Utf8JsonReader reader,
+        IOpenIdContext context,
+        ParameterDescriptor descriptor,
+        JsonSerializerOptions options)
     {
         var converter = (JsonConverter<JsonElement>)options.GetConverter(typeof(JsonElement));
         var jsonElement = converter.Read(ref reader, typeof(JsonElement), options);
@@ -43,7 +47,11 @@ public class DefaultJsonParser : IJsonParser
     }
 
     /// <inheritdoc/>
-    public void Write(Utf8JsonWriter writer, Parameter parameter, JsonSerializerOptions options)
+    public void Write(
+        Utf8JsonWriter writer,
+        IOpenIdContext context,
+        Parameter parameter,
+        JsonSerializerOptions options)
     {
         var stringValue = string.Join(OpenIdConstants.ParameterSeparator, parameter.StringValues.AsEnumerable());
         writer.WriteString(parameter.Descriptor.ParameterName, stringValue);

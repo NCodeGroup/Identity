@@ -26,7 +26,7 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage<TestOpenIdMessageWithKnownParameter>
 {
     public static KnownParameter<ITestNestedObject?> KnownParameter { get; } =
-        new("test-nested-object", optional: true, allowMultipleValues: false, new JsonParser<ITestNestedObject?>());
+        new("test-nested-object", optional: true, allowMultipleValues: false, new JsonParser<ITestNestedObject?, TestNestedObjectJsonConverter>());
 
     public ITestNestedObject? TestNestedObject
     {

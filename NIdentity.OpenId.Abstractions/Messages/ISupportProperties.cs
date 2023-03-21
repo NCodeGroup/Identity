@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2021 NCode Group
-//
+// 
+//    Copyright @ 2023 NCode Group
+// 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-//
+// 
 //        http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,22 +17,17 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
+using System.Text.Json;
 
-internal class AuthorizationRequestMessageProperties
-{
-    public AuthorizationSourceType AuthorizationSourceType { get; set; }
-}
+namespace NIdentity.OpenId.Messages;
 
-internal class AuthorizationRequestMessage :
-    BaseAuthorizationRequestMessage<
-        AuthorizationRequestMessage,
-        AuthorizationRequestMessageProperties>,
-    IAuthorizationRequestMessage
+/// <summary>
+/// Provides the ability for an <see cref="IOpenIdMessage"/> to store additional properties that are included in JSON
+/// serialization but not persisted as <c>OAuth</c> or <c>OpenId Connect</c> parameters.
+/// </summary>
+internal interface ISupportProperties : IOpenIdMessage
 {
-    public AuthorizationSourceType AuthorizationSourceType
-    {
-        get => Properties.AuthorizationSourceType;
-        set => Properties.AuthorizationSourceType = value;
-    }
+    void SerializeProperties(Utf8JsonWriter writer, JsonSerializerOptions options);
+
+    void DeserializeProperties(ref Utf8JsonReader reader, JsonSerializerOptions options);
 }

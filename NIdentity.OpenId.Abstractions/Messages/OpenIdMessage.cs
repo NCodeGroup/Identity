@@ -19,6 +19,7 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages.Parameters;
 
@@ -234,4 +235,29 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
     public static T Load(IOpenIdMessage other) =>
         Load(other.OpenIdContext, other);
+}
+
+/// <summary>
+/// Provides a generic implementation of <see cref="OpenIdMessage"/> that has additional properties to be included in JSON serialization.
+/// </summary>
+/// <typeparam name="T">The type of <c>OAuth</c> or <c>OpenId Connect</c> message.</typeparam>
+/// <typeparam name="TProperties">The type that contains the additional properties for JSON serialization.</typeparam>
+public abstract class OpenIdMessage<T, TProperties> : OpenIdMessage<T>, ISupportProperties
+    where T : OpenIdMessage, new()
+    where TProperties : class, new()
+{
+    /// <summary>
+    /// Provides storage for any properties that are to be included in JSON serialization.
+    /// </summary>
+    protected TProperties Properties { get; private set; } = new();
+
+    void ISupportProperties.SerializeProperties(Utf8JsonWriter writer, JsonSerializerOptions options)
+    {
+        JsonSerializer.Serialize(writer, Properties, options);
+    }
+
+    void ISupportProperties.DeserializeProperties(ref Utf8JsonReader reader, JsonSerializerOptions options)
+    {
+        Properties = JsonSerializer.Deserialize<TProperties>(ref reader, options) ?? new TProperties();
+    }
 }

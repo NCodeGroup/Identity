@@ -19,6 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
@@ -67,9 +68,11 @@ internal class OpenIdContext : IOpenIdContext
 
             Converters =
             {
+                new JsonStringEnumConverter(),
                 new RequestClaimJsonConverter(),
                 new RequestClaimsJsonConverter(),
-                new OpenIdMessageJsonConverterFactory(this)
+                new OpenIdMessageJsonConverterFactory(this),
+                new AuthorizationRequestMessageJsonConverter()
             }
         };
     }

@@ -19,19 +19,17 @@
 
 using System.Collections;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
-internal class AuthorizationRequestUnion : IAuthorizationRequestUnion
+internal class AuthorizationRequest : IAuthorizationRequest
 {
-    public AuthorizationRequestUnion(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject? requestObject, Client client)
+    public AuthorizationRequest(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject? requestObject)
     {
         OriginalRequestMessage = requestMessage;
         OriginalRequestObject = requestObject;
-        Client = client;
     }
 
     private static GrantType DetermineGrantType(ResponseTypes responseType) => responseType switch
@@ -46,7 +44,7 @@ internal class AuthorizationRequestUnion : IAuthorizationRequestUnion
             ResponseMode.Query :
             ResponseMode.Fragment;
 
-    public AuthorizationSource AuthorizationSource => AuthorizationSource.Union;
+    public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 
     public IOpenIdContext OpenIdContext => OriginalRequestMessage.OpenIdContext;
 
@@ -75,8 +73,6 @@ internal class AuthorizationRequestUnion : IAuthorizationRequestUnion
         OriginalRequestObject?.ClaimsLocales ??
         OriginalRequestMessage.ClaimsLocales ??
         Array.Empty<string>();
-
-    public Client Client { get; }
 
     public string ClientId =>
         OriginalRequestObject?.ClientId ??
@@ -174,10 +170,9 @@ internal class AuthorizationRequestUnion : IAuthorizationRequestUnion
         GetUnion().Select(kvp => kvp.Value);
 
     public StringValues this[string key] =>
-        OriginalRequestObject?.TryGetValue(key, out var value) ??
-        OriginalRequestMessage.TryGetValue(key, out value) ?
+        OriginalRequestObject?.TryGetValue(key, out var value) ?? false ?
             value :
-            StringValues.Empty;
+            OriginalRequestMessage[key];
 
     public bool ContainsKey(string key) =>
         OriginalRequestObject?.ContainsKey(key) ??

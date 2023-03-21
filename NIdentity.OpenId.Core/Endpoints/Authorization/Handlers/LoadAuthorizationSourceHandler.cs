@@ -27,27 +27,27 @@ using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class GetAuthorizationRequestStringValuesHandler : ICommandResponseHandler<GetAuthorizationCommandStringValuesCommand, IAuthorizationRequestStringValues>
+internal class LoadAuthorizationSourceHandler : ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>
 {
     private IOpenIdContext OpenIdContext { get; }
 
-    public GetAuthorizationRequestStringValuesHandler(IOpenIdContext openIdContext)
+    public LoadAuthorizationSourceHandler(IOpenIdContext openIdContext)
     {
         OpenIdContext = openIdContext;
     }
 
-    public async ValueTask<IAuthorizationRequestStringValues> HandleAsync(GetAuthorizationCommandStringValuesCommand command, CancellationToken cancellationToken)
+    public async ValueTask<IAuthorizationSource> HandleAsync(LoadAuthorizationSourceCommand command, CancellationToken cancellationToken)
     {
         var endpointContext = command.EndpointContext;
         var httpContext = endpointContext.HttpContext;
         var httpRequest = httpContext.Request;
 
-        AuthorizationSource source;
+        AuthorizationSourceType sourceType;
         IEnumerable<KeyValuePair<string, StringValues>> properties;
 
         if (HttpMethods.IsGet(httpRequest.Method))
         {
-            source = AuthorizationSource.Query;
+            sourceType = AuthorizationSourceType.Query;
             properties = httpRequest.Query;
         }
         else if (HttpMethods.IsPost(httpRequest.Method))
@@ -62,7 +62,7 @@ internal class GetAuthorizationRequestStringValuesHandler : ICommandResponseHand
                     .AsException();
             }
 
-            source = AuthorizationSource.Form;
+            sourceType = AuthorizationSourceType.Form;
             properties = await httpRequest.ReadFormAsync(cancellationToken);
         }
         else
@@ -73,6 +73,8 @@ internal class GetAuthorizationRequestStringValuesHandler : ICommandResponseHand
                 .AsException();
         }
 
-        return new AuthorizationRequestStringValues(source, OpenIdContext, properties);
+        var message = AuthorizationSource.Load(OpenIdContext, properties);
+        message.AuthorizationSourceType = sourceType;
+        return message;
     }
 }

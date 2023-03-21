@@ -23,7 +23,7 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 /// Represents an <c>OAuth</c> or <c>OpenID Connect</c> authorization request loaded from query or form data that isn't parsed
 /// and only contains string-values.
 /// </summary>
-public interface IAuthorizationRequestStringValues : IAuthorizationRequest
+public interface IAuthorizationSource : IBaseAuthorizationRequest
 {
     // nothing
 }

@@ -24,8 +24,8 @@ using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
-public record AuthorizeCommand(
+public record struct AuthorizeCommand(
     OpenIdEndpointContext EndpointContext,
-    IAuthorizationRequestUnion AuthorizationRequest,
+    AuthorizationContext AuthorizationContext,
     AuthenticateResult AuthenticateResult
 ) : ICommand<IOpenIdResult?>;

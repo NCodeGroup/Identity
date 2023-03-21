@@ -52,8 +52,9 @@ public abstract class ParameterParser<T> : ParameterLoader
     /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
+    /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The parsed type-specific value.</returns>
-    public abstract T Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues);
+    public abstract T Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
 
     /// <summary>
     /// Parses and loads a <see cref="Parameter"/> given its string values.
@@ -61,10 +62,11 @@ public abstract class ParameterParser<T> : ParameterLoader
     /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
+    /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public override Parameter Load(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override Parameter Load(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
-        var parsedValue = Parse(context, descriptor, stringValues);
+        var parsedValue = Parse(context, descriptor, stringValues, ignoreErrors);
         return new Parameter<T>(descriptor, stringValues, parsedValue);
     }
 }

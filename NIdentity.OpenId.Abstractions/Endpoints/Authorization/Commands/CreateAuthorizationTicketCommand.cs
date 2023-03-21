@@ -24,8 +24,8 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
-public record CreateAuthorizationTicketCommand(
+public record struct CreateAuthorizationTicketCommand(
     OpenIdEndpointContext EndpointContext,
-    IAuthorizationRequestUnion AuthorizationRequest,
+    IAuthorizationRequest AuthorizationRequest,
     AuthenticateResult AuthenticateResult
 ) : ICommand<IAuthorizationTicket>;

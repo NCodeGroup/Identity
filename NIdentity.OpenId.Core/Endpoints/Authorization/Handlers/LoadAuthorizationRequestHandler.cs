@@ -31,9 +31,9 @@ using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
-internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<GetAuthorizationCommandUnionCommand, IAuthorizationRequestUnion>
+internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationContext>
 {
-    private ILogger<GetAuthorizationRequestUnionHandler> Logger { get; }
+    private ILogger<LoadAuthorizationRequestHandler> Logger { get; }
     private AuthorizationOptions Options { get; }
     private IOpenIdErrorFactory ErrorFactory { get; }
     private IHttpClientFactory HttpClientFactory { get; }
@@ -41,8 +41,8 @@ internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<Get
     private ISecretService SecretService { get; }
     private IJwtDecoder JwtDecoder { get; }
 
-    public GetAuthorizationRequestUnionHandler(
-        ILogger<GetAuthorizationRequestUnionHandler> logger,
+    public LoadAuthorizationRequestHandler(
+        ILogger<LoadAuthorizationRequestHandler> logger,
         IOptions<AuthorizationOptions> optionsAccessor,
         IOpenIdErrorFactory errorFactory,
         IHttpClientFactory httpClientFactory,
@@ -60,19 +60,22 @@ internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<Get
     }
 
     /// <inheritdoc />
-    public async ValueTask<IAuthorizationRequestUnion> HandleAsync(
-        GetAuthorizationCommandUnionCommand command,
+    public async ValueTask<AuthorizationContext> HandleAsync(
+        LoadAuthorizationRequestCommand command,
         CancellationToken cancellationToken)
     {
-        var requestMessage = AuthorizationRequestMessage.Load(command.AuthorizationRequestStringValues);
+        var authorizationSource = command.AuthorizationSource;
+        var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
 
-        requestMessage.AuthorizationSource = command.AuthorizationRequestStringValues.AuthorizationSource;
+        requestMessage.AuthorizationSourceType = authorizationSource.AuthorizationSourceType;
 
         var client = await GetClientAsync(requestMessage, cancellationToken);
 
         var requestObject = await LoadRequestObjectAsync(requestMessage, client, cancellationToken);
 
-        return new AuthorizationRequestUnion(requestMessage, requestObject, client);
+        var authorizationRequest = new AuthorizationRequest(requestMessage, requestObject);
+
+        return new AuthorizationContext(client, authorizationRequest);
     }
 
     private async ValueTask<Client> GetClientAsync(
@@ -108,7 +111,7 @@ internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<Get
 
             if (!string.IsNullOrEmpty(requestJwt))
                 throw ErrorFactory
-                    .InvalidRequest("Both the request and request_uri parameters cannot be present at the same time.", errorCode)
+                    .InvalidRequest("Both the 'request' and 'request_uri' parameters cannot be present at the same time.", errorCode)
                     .AsException();
 
             if (!Options.RequestObject.RequestUriEnabled)
@@ -117,7 +120,7 @@ internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<Get
             var requestUriMaxLength = Options.RequestObject.RequestUriMaxLength;
             if (requestUri.OriginalString.Length > requestUriMaxLength)
                 throw ErrorFactory
-                    .InvalidRequest($"The request_uri parameter must not exceed {requestUriMaxLength} characters.", errorCode)
+                    .InvalidRequest($"The 'request_uri' parameter must not exceed {requestUriMaxLength} characters.", errorCode)
                     .AsException();
 
             requestJwt = await FetchRequestUriAsync(client, requestUri, cancellationToken);
@@ -133,7 +136,7 @@ internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<Get
         else if (client.RequireRequestObject)
         {
             throw ErrorFactory
-                .InvalidRequest("Client configuration requires the use of request or request_uri parameters.")
+                .InvalidRequest("Client configuration requires the use of 'request' or 'request_uri' parameters.")
                 .AsException();
         }
         else
@@ -154,7 +157,7 @@ internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<Get
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to decode JWT");
-            throw ErrorFactory.FailedToDecodeJwt(errorCode).AsException(exception);
+            throw ErrorFactory.FailedToDecodeJwt(errorCode).WithException(exception).AsException();
         }
 
         try
@@ -171,7 +174,7 @@ internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<Get
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to deserialize JSON");
-            throw ErrorFactory.FailedToDeserializeJson(errorCode).AsException(exception);
+            throw ErrorFactory.FailedToDeserializeJson(errorCode).WithException(exception).AsException();
         }
     }
 
@@ -208,7 +211,8 @@ internal class GetAuthorizationRequestUnionHandler : ICommandResponseHandler<Get
             Logger.LogWarning(exception, "Failed to fetch the request URI");
             throw ErrorFactory
                 .InvalidRequestUri("Failed to fetch the request URI")
-                .AsException(exception);
+                .WithException(exception)
+                .AsException();
         }
     }
 }

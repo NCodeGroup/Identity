@@ -31,9 +31,9 @@ internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, Parameter parame
 
 internal interface ITestParameterParser
 {
-    StringValues Serialize(IOpenIdMessageContext context, string value);
+    StringValues Serialize(IOpenIdContext context, string value);
 
-    string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues);
+    string Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
 }
 
 internal class TestParameterParser : ParameterParser<string>, IJsonParser
@@ -49,14 +49,14 @@ internal class TestParameterParser : ParameterParser<string>, IJsonParser
         WriteJsonDelegate = writeJsonDelegate;
     }
 
-    public override StringValues Serialize(IOpenIdMessageContext context, string value)
+    public override StringValues Serialize(IOpenIdContext context, string value)
     {
         return InnerParser.Serialize(context, value);
     }
 
-    public override string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override string Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
-        return InnerParser.Parse(context, descriptor, stringValues);
+        return InnerParser.Parse(context, descriptor, stringValues, ignoreErrors);
     }
 
     public Parameter Read(ref Utf8JsonReader reader, ParameterDescriptor descriptor, JsonSerializerOptions options)

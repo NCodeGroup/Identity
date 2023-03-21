@@ -21,5 +21,5 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 internal class AuthorizationRequestMessage : BaseAuthorizationRequestMessage<AuthorizationRequestMessage>, IAuthorizationRequestMessage
 {
-    public AuthorizationSource AuthorizationSource { get; set; }
+    public AuthorizationSourceType AuthorizationSourceType { get; set; }
 }

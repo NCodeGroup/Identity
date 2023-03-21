@@ -30,12 +30,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class PromptTypeParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdMessageContext> MockOpenIdMessageContext { get; }
+    private Mock<IOpenIdContext> MockOpenIdContext { get; }
 
     public PromptTypeParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdMessageContext = MockRepository.Create<IOpenIdMessageContext>();
+        MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
     }
 
     public void Dispose()
@@ -47,7 +47,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenNone_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.None);
+        var result = parser.Serialize(MockOpenIdContext.Object, PromptTypes.None);
         Assert.Equal("none", result);
     }
 
@@ -55,7 +55,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenLogin_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.Login);
+        var result = parser.Serialize(MockOpenIdContext.Object, PromptTypes.Login);
         Assert.Equal("login", result);
     }
 
@@ -63,7 +63,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenConsent_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.Consent);
+        var result = parser.Serialize(MockOpenIdContext.Object, PromptTypes.Consent);
         Assert.Equal("consent", result);
     }
 
@@ -71,7 +71,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenSelectAccount_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.SelectAccount);
+        var result = parser.Serialize(MockOpenIdContext.Object, PromptTypes.SelectAccount);
         Assert.Equal("select_account", result);
     }
 
@@ -79,7 +79,7 @@ public class PromptTypeParserTests : IDisposable
     public void Serialize_GivenUnknown_ThenEmpty()
     {
         var parser = new PromptTypeParser();
-        var result = parser.Serialize(MockOpenIdMessageContext.Object, PromptTypes.Unspecified);
+        var result = parser.Serialize(MockOpenIdContext.Object, PromptTypes.Unspecified);
         Assert.Equal(StringValues.Empty, result);
     }
 
@@ -87,7 +87,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -108,10 +108,36 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request is missing the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<PromptTypes?>(
             parameterName,
@@ -121,14 +147,15 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "login select_account";
@@ -150,7 +177,7 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenNoneWithValidCase_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "none";
@@ -171,10 +198,36 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenNoneWithInvalidCase_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "NONE";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<PromptTypes?>(
             parameterName,
@@ -184,14 +237,15 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenLoginWithValidCase_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "login";
@@ -212,10 +266,36 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenLoginWithInvalidCase_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "LOGIN";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<PromptTypes?>(
             parameterName,
@@ -225,14 +305,15 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenConsentWithValidCase_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "consent";
@@ -253,10 +334,36 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenConsentWithInvalidCase_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "CONSENT";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<PromptTypes?>(
             parameterName,
@@ -266,14 +373,15 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenSelectAccountWithValidCase_ThenValid()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "select_account";
@@ -294,10 +402,36 @@ public class PromptTypeParserTests : IDisposable
     public void Parse_GivenSelectAccountWithInvalidCase_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "SELECT_ACCOUNT";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<PromptTypes?>(
             parameterName,
@@ -307,17 +441,44 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new PromptTypeParser();
-        var context = MockOpenIdMessageContext.Object;
+        var context = MockOpenIdContext.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "invalid_value";
+
+        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockOpenIdContext
+            .Setup(_ => _.ErrorFactory)
+            .Returns(mockOpenIdErrorFactory.Object)
+            .Verifiable();
+
+        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        mockOpenIdErrorFactory
+            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Returns(mockOpenIdError.Object)
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Code)
+            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Verifiable();
+
+        mockOpenIdError
+            .SetupSet(_ => _.Description = $"The request includes an invalid value for the '{parameterName}' parameter.")
+            .Verifiable();
+
+        mockOpenIdError
+            .Setup(_ => _.Exception)
+            .Returns((Exception?)null)
+            .Verifiable();
 
         var knownParameter = new KnownParameter<PromptTypes?>(
             parameterName,
@@ -327,6 +488,7 @@ public class PromptTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 }

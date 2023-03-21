@@ -43,19 +43,19 @@ public class DisplayTypeParser : ParameterParser<DisplayType?>
     }
 
     /// <inheritdoc/>
-    public override DisplayType? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override DisplayType? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional:
+            case 0 when descriptor.Optional || ignoreErrors:
                 return null;
 
             case 0:
                 throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
-            case > 1:
+            case > 1 when !ignoreErrors:
                 throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
@@ -81,6 +81,8 @@ public class DisplayTypeParser : ParameterParser<DisplayType?>
             return DisplayType.Wap;
         }
 
-        throw context.ErrorFactory.InvalidRequest(descriptor.ParameterName).AsException();
+        if (ignoreErrors) return null;
+
+        throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
     }
 }

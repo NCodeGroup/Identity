@@ -32,7 +32,7 @@ public static class AuthorizationEndpointServiceCollectionExtensions
     {
         services.AddOpenIdEndpoint<AuthorizationEndpointProvider, AuthorizationEndpointHandler, AuthorizationEndpointCommand>();
 
-        services.AddTransient<ICommandResponseHandler<GetAuthorizationCommandUnionCommand, IAuthorizationRequestUnion>, GetAuthorizationRequestUnionHandler>();
+        services.AddTransient<ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationContext>, LoadAuthorizationRequestHandler>();
         services.AddTransient<ICommandHandler<ValidateAuthorizationRequestCommand>, ValidateAuthorizationRequestHandler>();
         services.AddTransient<ICommandResponseHandler<AuthenticateCommand, AuthenticateResult>, AuthenticateHandler>();
 

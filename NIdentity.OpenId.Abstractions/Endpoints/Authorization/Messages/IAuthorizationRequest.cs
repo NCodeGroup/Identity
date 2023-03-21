@@ -1,7 +1,7 @@
 #region Copyright Preamble
 
 //
-//    Copyright @ 2023 NCode Group
+//    Copyright @ 2021 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,17 +17,123 @@
 
 #endregion
 
-using NIdentity.OpenId.Messages;
-
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
-/// The base interface for all <c>OAuth</c> or <c>OpenID Connect</c> authorization request messages.
+/// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request after combining
+/// values from the request message (query or form) and the request (JAR) object.
 /// </summary>
-public interface IAuthorizationRequest : IOpenIdMessage
+public interface IAuthorizationRequest : IBaseAuthorizationRequest
 {
     /// <summary>
-    /// Gets a value indicating where the authorization request was loaded from.
+    /// Gets the <see cref="IAuthorizationRequestMessage"/> which represents the OAuth request message.
     /// </summary>
-    AuthorizationSource AuthorizationSource { get; }
+    IAuthorizationRequestMessage OriginalRequestMessage { get; }
+
+    /// <summary>
+    /// Gets the <see cref="IAuthorizationRequestObject"/> which represents the OAuth request object. May be
+    /// <c>null</c> when the request message didn't specify the <c>request</c> or <c>request_uri</c> parameters.
+    /// </summary>
+    IAuthorizationRequestObject? OriginalRequestObject { get; }
+
+    /// <summary>
+    /// Gets the <c>acr_values</c> parameter.
+    /// </summary>
+    IReadOnlyCollection<string> AcrValues { get; }
+
+    /// <summary>
+    /// Gets the <c>claims</c> parameter.
+    /// </summary>
+    IRequestClaims? Claims { get; }
+
+    /// <summary>
+    /// Gets the <c>claims_locales</c> parameter.
+    /// </summary>
+    IReadOnlyCollection<string> ClaimsLocales { get; }
+
+    /// <summary>
+    /// Gets the <c>client_id</c> parameter.
+    /// </summary>
+    string ClientId { get; }
+
+    /// <summary>
+    /// Gets the <c>code_challenge</c> parameter.
+    /// </summary>
+    string? CodeChallenge { get; }
+
+    /// <summary>
+    /// Gets the <c>code_challenge_method</c> parameter.
+    /// </summary>
+    CodeChallengeMethod CodeChallengeMethod { get; }
+
+    /// <summary>
+    /// Gets the <c>code_verifier</c> parameter.
+    /// </summary>
+    string? CodeVerifier { get; }
+
+    /// <summary>
+    /// Gets the <c>display</c> parameter.
+    /// </summary>
+    DisplayType DisplayType { get; }
+
+    /// <summary>
+    /// Gets a value indicating the type of <c>OAuth</c> or <c>OpenId Connection</c> authorization flow that this
+    /// request represents.
+    /// </summary>
+    GrantType GrantType { get; }
+
+    /// <summary>
+    /// Gets the <c>id_token_hint</c> parameter.
+    /// </summary>
+    string? IdTokenHint { get; }
+
+    /// <summary>
+    /// Gets the <c>login_hint</c> parameter.
+    /// </summary>
+    string? LoginHint { get; }
+
+    /// <summary>
+    /// Gets the <c>max_age</c> parameter.
+    /// </summary>
+    TimeSpan? MaxAge { get; }
+
+    /// <summary>
+    /// Gets the <c>nonce</c> parameter.
+    /// </summary>
+    string? Nonce { get; }
+
+    /// <summary>
+    /// Gets the <c>prompt_type</c> parameter.
+    /// </summary>
+    PromptTypes PromptType { get; }
+
+    /// <summary>
+    /// Gets the <c>redirect_uri</c> parameter.
+    /// </summary>
+    Uri RedirectUri { get; }
+
+    /// <summary>
+    /// Gets the <c>response_mode</c> parameter.
+    /// </summary>
+    ResponseMode ResponseMode { get; }
+
+    /// <summary>
+    /// Gets the <c>response_type</c> parameter.
+    /// </summary>
+    ResponseTypes ResponseType { get; }
+
+    /// <summary>
+    /// Gets the <c>scope</c> parameter.
+    /// </summary>
+    IReadOnlyCollection<string> Scopes { get; }
+
+    /// <summary>
+    /// Gets the <c>state</c> parameter.
+    /// </summary>
+    string? State { get; }
+
+    /// <summary>
+    /// Gets the <c>ui_locales</c> parameter.
+    /// </summary>
+    IReadOnlyCollection<string> UiLocales { get; }
 }

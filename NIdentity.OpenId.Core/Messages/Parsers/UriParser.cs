@@ -39,27 +39,24 @@ public class UriParser : ParameterParser<Uri?>
     }
 
     /// <inheritdoc/>
-    public override Uri? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override Uri? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional:
+            case 0 when descriptor.Optional || ignoreErrors:
                 return null;
 
             case 0:
                 throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
-            case > 1:
+            case > 1 when !ignoreErrors:
                 throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
-        var stringValue = stringValues[0];
-
-        if (!Uri.TryCreate(stringValue, UriKind.Absolute, out var uri))
-            throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
-
-        return uri;
+        if (Uri.TryCreate(stringValues[0], UriKind.Absolute, out var uri)) return uri;
+        if (ignoreErrors) return null;
+        throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
     }
 }

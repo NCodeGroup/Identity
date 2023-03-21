@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,11 +17,11 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
-using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Messages;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
+namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
-public record struct AuthenticateCommand(
-    OpenIdEndpointContext EndpointContext
-) : ICommand<AuthenticateResult>;
+internal class AuthorizationSource : OpenIdMessage<AuthorizationSource>, IAuthorizationSource
+{
+    public AuthorizationSourceType AuthorizationSourceType { get; set; }
+}

@@ -57,7 +57,8 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
     public async ValueTask<IOpenIdResult?> HandleAsync(AuthorizeCommand command, CancellationToken cancellationToken)
     {
         var endpointContext = command.EndpointContext;
-        var authorizationRequest = command.AuthorizationRequest;
+        var authorizationContext = command.AuthorizationContext;
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
         var authenticationTicket = command.AuthenticateResult.Ticket;
 
         var promptType = authorizationRequest.PromptType;
@@ -97,7 +98,7 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
         if (!await ValidateUserIsActiveAsync(
                 endpointContext,
                 authenticationTicket,
-                authorizationRequest.Client,
+                authorizationContext.Client,
                 cancellationToken))
         {
             var returnUrl = CallbackFeature.GetRedirectUrl(authorizationRequest, "User not active.");

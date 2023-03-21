@@ -1,22 +1,22 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http;
 using Moq;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Results;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
 
-public class OpenIdMessageContextTests : IDisposable
+public class OpenIdContextTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<HttpContext> MockHttpContext { get; }
+    private Mock<IOpenIdErrorFactory> MockOpenIdErrorFactory { get; }
 
-    public OpenIdMessageContextTests()
+    public OpenIdContextTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockHttpContext = MockRepository.Create<HttpContext>();
+        MockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
     }
 
     public void Dispose()
@@ -27,9 +27,9 @@ public class OpenIdMessageContextTests : IDisposable
     [Fact]
     public void Constructor_ThenValid()
     {
-        var context = new OpenIdContext(MockHttpContext.Object);
+        var context = new OpenIdContext(MockOpenIdErrorFactory.Object);
 
-        Assert.Same(MockHttpContext.Object, context.HttpContext);
+        Assert.Same(MockOpenIdErrorFactory.Object, context.ErrorFactory);
 
         Assert.True(context.JsonSerializerOptions.PropertyNameCaseInsensitive);
         Assert.Equal(JsonNamingPolicy.CamelCase, context.JsonSerializerOptions.PropertyNamingPolicy);

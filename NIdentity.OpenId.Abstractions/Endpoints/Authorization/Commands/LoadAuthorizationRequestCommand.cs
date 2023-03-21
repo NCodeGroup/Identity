@@ -23,10 +23,10 @@ using NIdentity.OpenId.Mediator;
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Defines an <see cref="ICommand"/> contract that accepts an <see cref="IAuthorizationRequest"/> as an
-/// input argument and doesn't return a value.
+/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts a <see cref="IAuthorizationSource"/> as an
+/// input argument and expects <see cref="AuthorizationContext"/> as a response.
 /// </summary>
-/// <param name="AuthorizationContext">The <see cref="AuthorizationContext"/> input argument for the command contract.</param>
-public record struct ValidateAuthorizationRequestCommand(
-    AuthorizationContext AuthorizationContext
-) : ICommand;
+/// <param name="AuthorizationSource">The <see cref="IAuthorizationSource"/> input argument for the command contract.</param>
+public record struct LoadAuthorizationRequestCommand(
+    IAuthorizationSource AuthorizationSource
+) : ICommand<AuthorizationContext>;

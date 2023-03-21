@@ -23,7 +23,6 @@ using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Stores;
 
@@ -47,41 +46,42 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
     {
         var endpointContext = command.EndpointContext;
 
-        var authorizationRequestStringValues = await GetAuthorizationRequestStringValues(endpointContext, cancellationToken);
-        IOpenIdMessage openIdMessage = authorizationRequestStringValues;
+        var authorizationSource = await LoadAuthorizationSource(endpointContext, cancellationToken);
+        IBaseAuthorizationRequest authorizationMessage = authorizationSource;
 
         try
         {
-            var authorizationRequestUnion = await GetAuthorizationRequestUnionAsync(authorizationRequestStringValues, cancellationToken);
-            openIdMessage = authorizationRequestUnion;
+            var authorizationContext = await LoadAuthorizationRequestAsync(authorizationSource, cancellationToken);
+            var authorizationRequest = authorizationContext.AuthorizationRequest;
+            authorizationMessage = authorizationRequest;
 
-            await ValidateAuthorizationRequestAsync(authorizationRequestUnion, cancellationToken);
+            await ValidateAuthorizationRequestAsync(authorizationContext, cancellationToken);
 
             var authenticateResult = await AuthenticateAsync(endpointContext, cancellationToken);
 
-            var result = await AuthorizeAsync(
+            var authorizeResult = await AuthorizeAsync(
                 endpointContext,
-                authorizationRequestUnion,
+                authorizationContext,
                 authenticateResult,
                 cancellationToken);
 
-            if (result != null)
-                return result;
+            if (authorizeResult != null)
+                return authorizeResult;
 
             var authorizationTicket = await CreateAuthorizationTicketAsync(
                 endpointContext,
-                authorizationRequestUnion,
+                authorizationRequest,
                 authenticateResult,
                 cancellationToken);
 
             return new AuthorizationResult(
-                authorizationRequestUnion.RedirectUri,
-                authorizationRequestUnion.ResponseMode,
+                authorizationRequest.RedirectUri,
+                authorizationRequest.ResponseMode,
                 authorizationTicket);
         }
         catch (Exception exception)
         {
-            var result = await DetermineErrorResultAsync(endpointContext, openIdMessage, exception);
+            var result = await DetermineErrorResultAsync(endpointContext, authorizationMessage, exception);
             if (result != null)
             {
                 return result;
@@ -91,25 +91,25 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
         }
     }
 
-    private async ValueTask<IAuthorizationRequestStringValues> GetAuthorizationRequestStringValues(
+    private async ValueTask<IAuthorizationSource> LoadAuthorizationSource(
         OpenIdEndpointContext endpointContext,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
-            new GetAuthorizationCommandStringValuesCommand(endpointContext),
+            new LoadAuthorizationSourceCommand(endpointContext),
             cancellationToken);
 
-    private async ValueTask<IAuthorizationRequestUnion> GetAuthorizationRequestUnionAsync(
-        IAuthorizationRequestStringValues message,
+    private async ValueTask<AuthorizationContext> LoadAuthorizationRequestAsync(
+        IAuthorizationSource authorizationSource,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
-            new GetAuthorizationCommandUnionCommand(message),
+            new LoadAuthorizationRequestCommand(authorizationSource),
             cancellationToken);
 
     private async ValueTask ValidateAuthorizationRequestAsync(
-        IAuthorizationRequestUnion authorizationRequest,
+        AuthorizationContext authorizationContext,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
-            new ValidateAuthorizationRequestCommand(authorizationRequest),
+            new ValidateAuthorizationRequestCommand(authorizationContext),
             cancellationToken);
 
     private async ValueTask<AuthenticateResult> AuthenticateAsync(
@@ -121,19 +121,19 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
 
     private async ValueTask<IOpenIdResult?> AuthorizeAsync(
         OpenIdEndpointContext endpointContext,
-        IAuthorizationRequestUnion authorizationRequest,
+        AuthorizationContext authorizationContext,
         AuthenticateResult authenticateResult,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
             new AuthorizeCommand(
                 endpointContext,
-                authorizationRequest,
+                authorizationContext,
                 authenticateResult),
             cancellationToken);
 
     private async Task<IAuthorizationTicket> CreateAuthorizationTicketAsync(
         OpenIdEndpointContext endpointContext,
-        IAuthorizationRequestUnion authorizationRequest,
+        IAuthorizationRequest authorizationRequest,
         AuthenticateResult authenticateResult,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
@@ -143,7 +143,10 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
                 authenticateResult),
             cancellationToken);
 
-    private async ValueTask<IOpenIdResult?> DetermineErrorResultAsync(OpenIdEndpointContext context, IOpenIdMessage message, Exception exception)
+    private async ValueTask<IOpenIdResult?> DetermineErrorResultAsync(
+        OpenIdEndpointContext context,
+        IBaseAuthorizationRequest message,
+        Exception exception)
     {
         // before we redirect, we must validate the client_id and redirect_uri
         // otherwise we must return a failure HTTP status code
@@ -157,16 +160,26 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithException(exception);
 
-        if (message is IAuthorizationRequestUnion authorizationRequest)
+        if (message is IAuthorizationRequest authorizationRequest)
         {
             var state = authorizationRequest.State;
-            var client = authorizationRequest.Client;
             var redirectUri = authorizationRequest.RedirectUri;
             var responseMode = authorizationRequest.ResponseMode;
 
             if (!string.IsNullOrEmpty(state))
             {
                 error.State = state;
+            }
+
+            if (string.IsNullOrEmpty(authorizationRequest.ClientId))
+            {
+                return null;
+            }
+
+            var client = await ClientStore.TryGetByClientIdAsync(authorizationRequest.ClientId, cancellationToken);
+            if (client == null)
+            {
+                return null;
             }
 
             if (!client.RedirectUris.Contains(redirectUri) && !(client.AllowLoopback && redirectUri.IsLoopback))

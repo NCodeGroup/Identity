@@ -20,9 +20,9 @@
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
-/// Specifies from where an <see cref="IAuthorizationRequest"/> was loaded from.
+/// Specifies from where an <see cref="IBaseAuthorizationRequest"/> was loaded from.
 /// </summary>
-public enum AuthorizationSource
+public enum AuthorizationSourceType
 {
     /// <summary>
     /// Represents a value that hasn't been initialized yet and its value is unknown.

@@ -17,18 +17,11 @@
 
 #endregion
 
-using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Mediator;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
+namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
-internal class AuthorizationRequestStringValues : OpenIdMessageStringValues, IAuthorizationRequestStringValues
-{
-    public AuthorizationSource AuthorizationSource { get; }
-
-    public AuthorizationRequestStringValues(AuthorizationSource source, IOpenIdContext context, IEnumerable<KeyValuePair<string, StringValues>> properties)
-        : base(context, properties)
-    {
-        AuthorizationSource = source;
-    }
-}
+public record struct LoadAuthorizationSourceCommand(
+    OpenIdEndpointContext EndpointContext
+) : ICommand<IAuthorizationSource>;

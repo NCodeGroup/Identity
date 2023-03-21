@@ -17,11 +17,17 @@
 
 #endregion
 
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Messages;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
+namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
-public record struct GetAuthorizationCommandStringValuesCommand(
-    OpenIdEndpointContext EndpointContext
-) : ICommand<IAuthorizationRequestStringValues>;
+/// <summary>
+/// The base interface for all <c>OAuth</c> or <c>OpenID Connect</c> authorization request messages.
+/// </summary>
+public interface IBaseAuthorizationRequest : IOpenIdMessage
+{
+    /// <summary>
+    /// Gets a value indicating where the authorization request was loaded from.
+    /// </summary>
+    AuthorizationSourceType AuthorizationSourceType { get; }
+}

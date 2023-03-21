@@ -19,11 +19,6 @@
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
-internal class AuthorizationRequestObjectProperties
-{
-    public RequestObjectSource RequestObjectSource { get; set; }
-}
-
 internal class AuthorizationRequestObject :
     BaseAuthorizationRequestMessage<
         AuthorizationRequestObject,

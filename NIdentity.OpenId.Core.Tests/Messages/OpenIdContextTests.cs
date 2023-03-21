@@ -4,6 +4,7 @@ using Moq;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Serialization;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
@@ -38,8 +39,13 @@ public class OpenIdContextTests : IDisposable
         Assert.Equal(JsonCommentHandling.Skip, context.JsonSerializerOptions.ReadCommentHandling);
         Assert.True(context.JsonSerializerOptions.AllowTrailingCommas);
 
-        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is RequestClaimJsonConverter);
-        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is RequestClaimsJsonConverter);
         Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is OpenIdMessageJsonConverterFactory);
+
+        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IRequestClaim, RequestClaim>);
+        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IRequestClaims, RequestClaims>);
+
+        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequest, AuthorizationRequest>);
+        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>);
+        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>);
     }
 }

@@ -20,20 +20,16 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
+namespace NIdentity.OpenId.Serialization;
 
-// TODO: unit test
-
-internal class AuthorizationRequestMessageJsonConverter : JsonConverter<IAuthorizationRequestMessage?>
+public class DelegatingJsonConverter<TInterface, TImplementation> : JsonConverter<TInterface>
+    where TImplementation : TInterface
 {
-    public override IAuthorizationRequestMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        return JsonSerializer.Deserialize<AuthorizationRequestMessage>(ref reader, options);
-    }
+    /// <inheritdoc />
+    public override TInterface? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        JsonSerializer.Deserialize<TImplementation>(ref reader, options);
 
-    public override void Write(Utf8JsonWriter writer, IAuthorizationRequestMessage? value, JsonSerializerOptions options)
-    {
-        var type = value?.GetType() ?? typeof(AuthorizationRequestMessage);
-        JsonSerializer.Serialize(writer, value, type, options);
-    }
+    /// <inheritdoc />
+    public override void Write(Utf8JsonWriter writer, TInterface value, JsonSerializerOptions options) =>
+        JsonSerializer.Serialize(writer, value, typeof(TImplementation), options);
 }

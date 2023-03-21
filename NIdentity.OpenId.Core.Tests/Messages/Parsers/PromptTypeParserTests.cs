@@ -27,6 +27,8 @@ using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
+// TODO: unit tests for IgnoreErrors
+
 public class PromptTypeParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }

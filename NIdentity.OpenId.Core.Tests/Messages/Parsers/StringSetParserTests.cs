@@ -27,6 +27,8 @@ using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 
+// TODO: unit tests for IgnoreErrors
+
 public class StringSetParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
@@ -131,7 +133,8 @@ public class StringSetParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]
@@ -177,7 +180,8 @@ public class StringSetParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(context, descriptor, stringValues));
     }
 
     [Fact]

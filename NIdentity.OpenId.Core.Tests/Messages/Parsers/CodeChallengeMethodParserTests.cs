@@ -117,6 +117,28 @@ public class CodeChallengeMethodParserTests : IDisposable
     }
 
     [Fact]
+    public void Parse_GivenEmpty_WhenRequiredWithIgnoreErrors_ThenValid()
+    {
+        var parser = new CodeChallengeMethodParser();
+        var context = MockOpenIdContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = Array.Empty<string>();
+
+        var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        const bool ignoreErrors = true;
+        var result = parser.Parse(context, descriptor, stringValues, ignoreErrors);
+        Assert.Null(result);
+    }
+
+    [Fact]
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new CodeChallengeMethodParser();
@@ -161,6 +183,28 @@ public class CodeChallengeMethodParserTests : IDisposable
 
         Assert.Throws<OpenIdException>(() =>
             parser.Parse(context, descriptor, stringValues));
+    }
+
+    [Fact]
+    public void Parse_GivenMultipleValuesWithIgnoreErrors_ThenValid()
+    {
+        var parser = new CodeChallengeMethodParser();
+        var context = MockOpenIdContext.Object;
+
+        const string parameterName = "parameterName";
+        var stringValues = new[] { "value1", "value2" };
+
+        var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        const bool ignoreErrors = true;
+        var result = parser.Parse(context, descriptor, stringValues, ignoreErrors);
+        Assert.Null(result);
     }
 
     [Fact]
@@ -232,6 +276,28 @@ public class CodeChallengeMethodParserTests : IDisposable
     }
 
     [Fact]
+    public void Parse_GivenPlainWithInvalidCaseAndIgnoreErrors_ThenValid()
+    {
+        var parser = new CodeChallengeMethodParser();
+        var context = MockOpenIdContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "PLAIN";
+
+        var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        const bool ignoreErrors = true;
+        var result = parser.Parse(context, descriptor, stringValues, ignoreErrors);
+        Assert.Null(result);
+    }
+
+    [Fact]
     public void Parse_GivenS256WithValidCase_ThenValid()
     {
         var parser = new CodeChallengeMethodParser();
@@ -300,6 +366,28 @@ public class CodeChallengeMethodParserTests : IDisposable
     }
 
     [Fact]
+    public void Parse_GivenS256WithInvalidCaseAndIgnoreErrors_ThenValid()
+    {
+        var parser = new CodeChallengeMethodParser();
+        var context = MockOpenIdContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "s256";
+
+        var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        const bool ignoreErrors = true;
+        var result = parser.Parse(context, descriptor, stringValues, ignoreErrors);
+        Assert.Null(result);
+    }
+
+    [Fact]
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new CodeChallengeMethodParser();
@@ -344,5 +432,27 @@ public class CodeChallengeMethodParserTests : IDisposable
 
         Assert.Throws<OpenIdException>(() =>
             parser.Parse(context, descriptor, stringValues));
+    }
+
+    [Fact]
+    public void Parse_GivenInvalidValueWithIgnoreErrors_ThenValid()
+    {
+        var parser = new CodeChallengeMethodParser();
+        var context = MockOpenIdContext.Object;
+
+        const string parameterName = "parameterName";
+        const string stringValues = "invalid_value";
+
+        var knownParameter = new KnownParameter<CodeChallengeMethod?>(
+            parameterName,
+            optional: false,
+            allowMultipleValues: false,
+            parser);
+
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        const bool ignoreErrors = true;
+        var result = parser.Parse(context, descriptor, stringValues, ignoreErrors);
+        Assert.Null(result);
     }
 }

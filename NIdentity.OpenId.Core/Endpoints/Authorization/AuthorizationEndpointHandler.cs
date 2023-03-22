@@ -70,7 +70,7 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
 
             var authorizationTicket = await CreateAuthorizationTicketAsync(
                 endpointContext,
-                authorizationRequest,
+                authorizationContext,
                 authenticateResult,
                 cancellationToken);
 
@@ -133,13 +133,13 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
 
     private async Task<IAuthorizationTicket> CreateAuthorizationTicketAsync(
         OpenIdEndpointContext endpointContext,
-        IAuthorizationRequest authorizationRequest,
+        AuthorizationContext authorizationContext,
         AuthenticateResult authenticateResult,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
             new CreateAuthorizationTicketCommand(
                 endpointContext,
-                authorizationRequest,
+                authorizationContext,
                 authenticateResult),
             cancellationToken);
 

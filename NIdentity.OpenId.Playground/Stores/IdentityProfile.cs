@@ -1,14 +1,14 @@
 ﻿#region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2021 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,12 +28,15 @@ internal class IdentityProfile : Profile
     public IdentityProfile()
     {
         CreateMap<ClientUrlEntity, Uri>()
-            .ConstructUsing(src => new Uri(src.Url));
+            .ConstructUsing(src => new Uri(src.Url))
+            .ReverseMap();
 
-        CreateMap<SecretEntity, Secret>();
+        CreateMap<SecretEntity, Secret>()
+            .ReverseMap();
 
         CreateMap<ClientEntity, Client>()
             .ForMember(dst => dst.Secrets, cfg => cfg.MapFrom(src => src.ClientSecrets.Select(entity => entity.Secret)))
-            .ForMember(dst => dst.RedirectUris, cfg => cfg.MapFrom(src => src.Urls.Where(clientUrl => clientUrl.UrlType == "RedirectUrl")));
+            .ForMember(dst => dst.RedirectUris, cfg => cfg.MapFrom(src => src.Urls.Where(clientUrl => clientUrl.UrlType == "RedirectUrl")))
+            .ReverseMap();
     }
 }

@@ -26,6 +26,6 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
 public record struct CreateAuthorizationTicketCommand(
     OpenIdEndpointContext EndpointContext,
-    IAuthorizationRequest AuthorizationRequest,
+    AuthorizationContext AuthorizationContext,
     AuthenticateResult AuthenticateResult
 ) : ICommand<IAuthorizationTicket>;

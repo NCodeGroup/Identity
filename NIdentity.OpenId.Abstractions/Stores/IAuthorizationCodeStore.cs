@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,15 +17,13 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Endpoints.Authorization.Results;
-using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.DataContracts;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
+namespace NIdentity.OpenId.Stores;
 
-public record struct CreateAuthorizationTicketCommand(
-    OpenIdEndpointContext EndpointContext,
-    AuthorizationContext AuthorizationContext,
-    AuthenticateResult AuthenticateResult
-) : ICommand<IAuthorizationTicket>;
+public interface IAuthorizationCodeStore : IStore<AuthorizationCode>
+{
+    ValueTask RemoveByHashedKeyAsync(string hashedKey, CancellationToken cancellationToken);
+
+    ValueTask<AuthorizationCode?> TryGetByHashedKeyAsync(string hashedKey, CancellationToken cancellationToken);
+}

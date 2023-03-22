@@ -1,7 +1,7 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
-//    Copyright @ 2021 NCode Group
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,18 +21,27 @@ using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Stores;
 
-/// <summary>
-/// Provides an abstraction for a store which manages client applications.
-/// </summary>
-public interface IClientStore : IStore<Client>
+public interface IStore<T> : IStore<T, long>
+    where T : ISupportId<long>
 {
+    // nothing
+}
+
+public interface IStore<T, in TKey>
+    where T : ISupportId<TKey>
+    where TKey : IEquatable<TKey>
+{
+    ValueTask AddAsync(T item, CancellationToken cancellationToken);
+
+    ValueTask RemoveByIdAsync(TKey id, CancellationToken cancellationToken);
+
     /// <summary>
-    /// Gets a <see cref="Client"/> by using its natural key.
+    /// Gets an entity by using its surrogate key.
     /// </summary>
-    /// <param name="clientId">The natural key of the <see cref="Client"/> to retrieve.</param>
+    /// <param name="id">The surrogate key of the entity to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="Client"/> matching the specified <paramref name="clientId"/> if it exists.</returns>
-    ValueTask<Client?> TryGetByClientIdAsync(string clientId, CancellationToken cancellationToken);
+    /// entity matching the specified <paramref name="id"/> if it exists.</returns>
+    ValueTask<T?> TryGetByIdAsync(TKey id, CancellationToken cancellationToken);
 }

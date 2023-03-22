@@ -25,6 +25,18 @@ namespace NIdentity.OpenId.Playground.Stores;
 internal class NullClientStore : IClientStore
 {
     /// <inheritdoc />
+    public ValueTask AddAsync(Client client, CancellationToken cancellationToken)
+    {
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public ValueTask RemoveByIdAsync(long id, CancellationToken cancellationToken)
+    {
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
     public ValueTask<Client?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
     {
         return ValueTask.FromResult<Client?>(null);

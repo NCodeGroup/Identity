@@ -17,15 +17,9 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Endpoints.Authorization.Results;
-using NIdentity.OpenId.Mediator;
+namespace NIdentity.OpenId.Logic;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
-
-public record struct CreateAuthorizationTicketCommand(
-    OpenIdEndpointContext EndpointContext,
-    AuthorizationContext AuthorizationContext,
-    AuthenticateResult AuthenticateResult
-) : ICommand<IAuthorizationTicket>;
+internal class SystemClock : ISystemClock
+{
+    public DateTimeOffset UtcNow => DateTimeOffset.Now;
+}

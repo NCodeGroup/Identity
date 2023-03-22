@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,15 +17,20 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Endpoints.Authorization.Results;
-using NIdentity.OpenId.Mediator;
+namespace NIdentity.OpenId;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
+/// <summary>
+/// Specifies which cryptographic hash algorithm to use.
+/// </summary>
+public enum HashAlgorithmType
+{
+    /// <summary>
+    /// Represents a value that hasn't been initialized yet and its value is unknown.
+    /// </summary>
+    Unspecified = 0,
 
-public record struct CreateAuthorizationTicketCommand(
-    OpenIdEndpointContext EndpointContext,
-    AuthorizationContext AuthorizationContext,
-    AuthenticateResult AuthenticateResult
-) : ICommand<IAuthorizationTicket>;
+    /// <summary>
+    /// Specifies to use the SHA256 cryptographic hash algorithm.
+    /// </summary>
+    Sha256
+}

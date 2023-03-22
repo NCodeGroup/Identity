@@ -17,27 +17,47 @@
 
 #endregion
 
+using System.Text.Json;
+using IdGen;
+using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
+using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
 internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>
 {
+    private ISystemClock SystemClock { get; }
+    private IIdGenerator<long> IdGenerator { get; }
     private IOpenIdContext OpenIdContext { get; }
+    private ICryptoService CryptoService { get; }
+    private IAuthorizationCodeStore AuthorizationCodeStore { get; }
 
-    public CreateAuthorizationTicketHandler(IOpenIdContext openIdContext)
+    public CreateAuthorizationTicketHandler(
+        ISystemClock systemClock,
+        IIdGenerator<long> idGenerator,
+        IOpenIdContext openIdContext,
+        ICryptoService cryptoService,
+        IAuthorizationCodeStore authorizationCodeStore)
     {
+        SystemClock = systemClock;
+        IdGenerator = idGenerator;
         OpenIdContext = openIdContext;
+        CryptoService = cryptoService;
+        AuthorizationCodeStore = authorizationCodeStore;
     }
 
     public async ValueTask<IAuthorizationTicket> HandleAsync(CreateAuthorizationTicketCommand command, CancellationToken cancellationToken)
     {
         var endpointContext = command.EndpointContext;
-        var authorizationRequest = command.AuthorizationRequest;
+        var authorizationContext = command.AuthorizationContext;
         var authenticateResult = command.AuthenticateResult;
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
         var responseType = authorizationRequest.ResponseType;
 
         var ticket = new AuthorizationTicket(OpenIdContext)
@@ -47,9 +67,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
 
         if (responseType.HasFlag(ResponseTypes.Code))
         {
-            // TODO
-            ticket.Code = "TODO";
-            throw new NotImplementedException();
+            ticket.Code = await CreateAuthorizationCodeAsync(authorizationContext, cancellationToken);
         }
 
         if (responseType.HasFlag(ResponseTypes.IdToken))
@@ -71,5 +89,34 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         ticket.Issuer = "TODO";
 
         return ticket;
+    }
+
+    private async ValueTask<string> CreateAuthorizationCodeAsync(AuthorizationContext authorizationContext, CancellationToken cancellationToken)
+    {
+        const int byteLength = 32;
+        var hexKey = CryptoService.GenerateKey(byteLength, BinaryEncodingType.Hex);
+        var hashedKey = CryptoService.HashValue(hexKey, HashAlgorithmType.Sha256, BinaryEncodingType.Base64);
+
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
+        var authorizationRequestJson = JsonSerializer.Serialize(authorizationRequest, OpenIdContext.JsonSerializerOptions);
+
+        var client = authorizationContext.Client;
+        var lifetime = client.AuthorizationCodeLifetime;
+        var createdWhen = SystemClock.UtcNow;
+        var expiresWhen = createdWhen + lifetime;
+
+        var id = IdGenerator.CreateId();
+        var authorizationCode = new AuthorizationCode
+        {
+            Id = id,
+            HashedKey = hashedKey,
+            CreatedWhen = createdWhen,
+            ExpiresWhen = expiresWhen,
+            AuthorizationRequestJson = authorizationRequestJson
+        };
+
+        await AuthorizationCodeStore.AddAsync(authorizationCode, cancellationToken);
+
+        return hexKey;
     }
 }

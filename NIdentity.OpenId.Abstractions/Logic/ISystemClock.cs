@@ -1,5 +1,4 @@
 ﻿#region Copyright Preamble
-
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -14,18 +13,17 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Endpoints.Authorization.Results;
-using NIdentity.OpenId.Mediator;
+namespace NIdentity.OpenId.Logic;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
-
-public record struct CreateAuthorizationTicketCommand(
-    OpenIdEndpointContext EndpointContext,
-    AuthorizationContext AuthorizationContext,
-    AuthenticateResult AuthenticateResult
-) : ICommand<IAuthorizationTicket>;
+/// <summary>
+/// Provides an abstraction for the system clock.
+/// </summary>
+public interface ISystemClock
+{
+    /// <summary>
+    /// Retrieves the current system time in UTC.
+    /// </summary>
+    DateTimeOffset UtcNow { get; }
+}

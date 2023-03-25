@@ -1,5 +1,8 @@
 namespace NIdentity.OpenId.DataContracts;
 
+// TODO: add versioning
+// TODO: add data protection
+
 /// <summary>
 /// Contains the configuration for a cryptographic secret.
 /// </summary>
@@ -12,65 +15,38 @@ public class Secret : ISupportId
 
     /// <summary>
     /// Gets or sets the natural key for this entity.
+    /// Also known as <c>KeyId</c>.
     /// </summary>
-    public string KeyId { get; set; } = string.Empty;
+    public string SecretId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets a value that specifies how <see cref="EncodedValue"/> is encoded to/from a string. Examples values are:
-    /// <list type="bullet">
-    ///     <item>
-    ///         <term>base64</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>pem</term>
-    ///     </item>
-    /// </list>
+    /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.
     /// </summary>
-    public string EncodingType { get; set; } = string.Empty;
+    public DateTimeOffset CreatedWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets a value that specifies the cryptographic algorithm used by the secret. Examples values are:
-    /// <list type="bullet">
-    ///     <item>
-    ///         <term>none</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>aes</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>rsa</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>dsa</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>ecdsa</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>ecdh</term>
-    ///     </item>
-    /// </list>
+    /// Gets or sets a value that specifies the type of secret.
+    /// See <see cref="SecretConstants.SecretTypes"/> for possible values.
+    /// </summary>
+    public string SecretType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value that specifies the purpose of the cryptographic algorithm used by the secret.
+    /// See <see cref="AlgorithmTypes"/> for possible values.
     /// </summary>
     public string AlgorithmType { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets a value that specifies the type of secret. Examples values are:
-    /// <list type="bullet">
-    ///     <item>
-    ///         <term>shared_secret</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>symmetric_key</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>asymmetric_key</term>
-    ///     </item>
-    ///     <item>
-    ///         <term>certificate</term>
-    ///     </item>
-    /// </list>
+    /// Gets or sets a value that specifies the cryptographic algorithm used by the secret.
+    /// See <see cref="AlgorithmCodes"/> for possible values.
     /// </summary>
-    public string SecretType { get; set; } = string.Empty;
+    public string AlgorithmCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value that specifies how <see cref="EncodedValue"/> is encoded to/from a string.
+    /// See <see cref="SecretConstants.EncodingTypes"/> for possible values.
+    /// </summary>
+    public string EncodingType { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the encoded value of the secret.

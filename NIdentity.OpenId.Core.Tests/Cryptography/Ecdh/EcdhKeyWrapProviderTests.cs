@@ -133,7 +133,8 @@ public class EcdhKeyWrapProviderTests : BaseTests
         var derivedKey = provider.DeriveKey(mockAgreement.Object, party1, party2PublicKey);
 
         Assert.Equal(keyByteLength, derivedKey.Length);
-        Assert.Equal(ExpectedDerivedKey, Convert.ToBase64String(derivedKey.Span));
+        Assert.True(derivedKey.IsSingleSegment);
+        Assert.Equal(ExpectedDerivedKey, Convert.ToBase64String(derivedKey.FirstSpan));
     }
 
     [Fact]
@@ -150,7 +151,8 @@ public class EcdhKeyWrapProviderTests : BaseTests
         var derivedKey1 = provider1.WrapKey(keyWrapParameters);
 
         Assert.Equal(keyByteLength, derivedKey1.Length);
-        Assert.Equal(ExpectedDerivedKey, Convert.ToBase64String(derivedKey1.Span));
+        Assert.True(derivedKey1.IsSingleSegment);
+        Assert.Equal(ExpectedDerivedKey, Convert.ToBase64String(derivedKey1.FirstSpan));
 
         using var party1PublicKey = Party1.PublicKey;
         var provider2 = new EcdhKeyWrapProvider(new EcdhSecretKey(new Secret(), Party2), AlgorithmDescriptor);
@@ -158,6 +160,7 @@ public class EcdhKeyWrapProviderTests : BaseTests
         var derivedKey2 = provider2.UnwrapKey(keyUnwrapParameters);
 
         Assert.Equal(keyByteLength, derivedKey2.Length);
-        Assert.Equal(ExpectedDerivedKey, Convert.ToBase64String(derivedKey2.Span));
+        Assert.True(derivedKey2.IsSingleSegment);
+        Assert.Equal(ExpectedDerivedKey, Convert.ToBase64String(derivedKey2.FirstSpan));
     }
 }

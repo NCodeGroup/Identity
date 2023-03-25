@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
@@ -44,7 +45,7 @@ public abstract class KeyWrapProvider : IDisposable
         // nothing
     }
 
-    public abstract ReadOnlyMemory<byte> WrapKey(KeyWrapParameters parameters);
+    public abstract ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters);
 
-    public abstract ReadOnlyMemory<byte> UnwrapKey(KeyUnwrapParameters parameters);
+    public abstract ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters);
 }

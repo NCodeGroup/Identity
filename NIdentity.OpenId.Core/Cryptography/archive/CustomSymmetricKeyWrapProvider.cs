@@ -47,7 +47,7 @@ internal class CustomSymmetricKeyWrapProvider : SymmetricKeyWrapProvider
             return base.GetSymmetricAlgorithm(key, algorithm);
 
         var keyBytes = SymmetricSecurityKey.Key;
-        var aes = Aes.Create();
+        var aes = System.Security.Cryptography.Aes.Create();
         try
         {
             aes.Mode = CipherMode.ECB;

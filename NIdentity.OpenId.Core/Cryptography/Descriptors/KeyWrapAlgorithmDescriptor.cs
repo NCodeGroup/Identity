@@ -24,8 +24,7 @@ namespace NIdentity.OpenId.Cryptography.Descriptors;
 public record KeyWrapAlgorithmDescriptor
 (
     ICryptoFactory CryptoFactory,
-    string AlgorithmCode,
-    string KeyDerivationFunction
+    string AlgorithmCode
 ) : AlgorithmDescriptor
 (
     CryptoFactory,

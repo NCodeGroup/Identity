@@ -33,6 +33,5 @@ public record EcdhKeyWrapAlgorithmDescriptor
 ) : KeyWrapAlgorithmDescriptor
 (
     CryptoFactory,
-    AlgorithmCode,
-    KeyDerivationFunction
+    AlgorithmCode
 );

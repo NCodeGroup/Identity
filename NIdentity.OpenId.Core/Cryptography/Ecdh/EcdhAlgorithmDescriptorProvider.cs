@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,15 +17,24 @@
 
 #endregion
 
+using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.Ecdh;
 
-public interface ICryptoFactory
+internal class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
+    private ICryptoFactory CryptoFactory { get; } = new EcdhCryptoFactory();
 
-    KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
-
-    // AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(AlgorithmDescriptor algorithmDescriptor, SecretKey secretKey);
+    /// <inheritdoc />
+    public IEnumerable<AlgorithmDescriptor> Load() => new[]
+    {
+        new EcdhKeyWrapAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.KeyManagement.EcdhEs,
+            KeyDerivationFunctionTypes.SP800_56A_CONCAT,
+            HashAlgorithmName.SHA256,
+            256)
+    };
 }

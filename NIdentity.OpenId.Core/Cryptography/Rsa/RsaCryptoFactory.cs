@@ -24,6 +24,7 @@ namespace NIdentity.OpenId.Cryptography.Rsa;
 
 internal class RsaCryptoFactory : ICryptoFactory
 {
+    /// <inheritdoc />
     public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
         if (secretKey is not RsaSecretKey typedSecretKey)
@@ -37,5 +38,11 @@ internal class RsaCryptoFactory : ICryptoFactory
         }
 
         return new RsaSignatureProvider(typedSecretKey, typedDescriptor);
+    }
+
+    /// <inheritdoc />
+    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    {
+        throw new InvalidOperationException();
     }
 }

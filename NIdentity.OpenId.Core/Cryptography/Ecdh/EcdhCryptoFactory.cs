@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,31 +17,32 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.Ecdh;
 
-internal class KeyedHashAlgorithmCryptoFactory : ICryptoFactory
+internal class EcdhCryptoFactory : ICryptoFactory
 {
     /// <inheritdoc />
     public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        if (secretKey is not SharedSecretKey typedSecretKey)
-        {
-            throw new InvalidOperationException();
-        }
-
-        if (descriptor is not KeyedHashAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
-
-        return new KeyedHashAlgorithmSignatureProvider(typedSecretKey, typedDescriptor);
+        throw new InvalidOperationException();
     }
 
     /// <inheritdoc />
     public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        throw new InvalidOperationException();
+        if (secretKey is not EcdhSecretKey typedSecurityKey)
+        {
+            throw new InvalidOperationException();
+        }
+
+        if (descriptor is not EcdhKeyWrapAlgorithmDescriptor typedDescriptor)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return new EcdhKeyWrapProvider(typedSecurityKey, typedDescriptor);
     }
 }

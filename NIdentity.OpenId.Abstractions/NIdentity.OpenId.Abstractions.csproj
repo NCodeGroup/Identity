@@ -13,6 +13,15 @@
         <Compile Include="OpenIdConstants.*.cs">
             <DependentUpon>OpenIdConstants.cs</DependentUpon>
         </Compile>
+        <Compile Update="AlgorithmCodes.KeyManagement.cs">
+          <DependentUpon>AlgorithmCodes.cs</DependentUpon>
+        </Compile>
+        <Compile Update="AlgorithmCodes.DigitalSignature.cs">
+          <DependentUpon>AlgorithmCodes.cs</DependentUpon>
+        </Compile>
+        <Compile Update="AlgorithmCodes.AuthenticatedEncryption.cs">
+          <DependentUpon>AlgorithmCodes.cs</DependentUpon>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>

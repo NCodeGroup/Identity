@@ -17,21 +17,9 @@
 
 #endregion
 
-using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
-using NIdentity.OpenId.Cryptography.Descriptors;
+namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
-namespace NIdentity.OpenId.Cryptography.Ecdh;
-
-public record EcdhKeyWrapAlgorithmDescriptor
+public record ContentKeyUnwrapParameters
 (
-    ICryptoFactory CryptoFactory,
-    string AlgorithmCode,
-    string KeyDerivationFunction,
-    HashAlgorithmName HashAlgorithmName,
-    int HashBitLength
-) : KeyWrapAlgorithmDescriptor
-(
-    CryptoFactory,
-    AlgorithmCode
-);
+    ReadOnlyMemory<byte> CipherText
+) : KeyUnwrapParameters;

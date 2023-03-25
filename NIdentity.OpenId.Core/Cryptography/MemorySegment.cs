@@ -17,21 +17,26 @@
 
 #endregion
 
-using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
-using NIdentity.OpenId.Cryptography.Descriptors;
+using System.Buffers;
 
-namespace NIdentity.OpenId.Cryptography.Ecdh;
+namespace NIdentity.OpenId.Cryptography;
 
-public record EcdhKeyWrapAlgorithmDescriptor
-(
-    ICryptoFactory CryptoFactory,
-    string AlgorithmCode,
-    string KeyDerivationFunction,
-    HashAlgorithmName HashAlgorithmName,
-    int HashBitLength
-) : KeyWrapAlgorithmDescriptor
-(
-    CryptoFactory,
-    AlgorithmCode
-);
+internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
+{
+    public MemorySegment(ReadOnlyMemory<T> memory)
+    {
+        Memory = memory;
+    }
+
+    public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
+    {
+        var segment = new MemorySegment<T>(memory)
+        {
+            RunningIndex = RunningIndex + Memory.Length
+        };
+
+        Next = segment;
+
+        return segment;
+    }
+}

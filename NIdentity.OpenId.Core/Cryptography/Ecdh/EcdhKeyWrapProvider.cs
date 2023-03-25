@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
@@ -49,9 +50,9 @@ namespace NIdentity.OpenId.Cryptography.Ecdh;
 // Example implementation:
 // https://stackoverflow.com/a/10971402/2502089
 
-public class EcdhKeyWrapProvider : KeyWrapProvider
+internal class EcdhKeyWrapProvider : KeyWrapProvider
 {
-    public EcdhSecretKey EcdhSecretKey { get; }
+    private EcdhSecretKey EcdhSecretKey { get; }
 
     private EcdhKeyWrapAlgorithmDescriptor EcdhDescriptor { get; }
 
@@ -62,7 +63,7 @@ public class EcdhKeyWrapProvider : KeyWrapProvider
         EcdhDescriptor = descriptor;
     }
 
-    internal virtual ReadOnlyMemory<byte> DeriveKey(IEcdhEsAgreement agreement, ECDiffieHellman privateKeyParty1, ECDiffieHellmanPublicKey publicKeyParty2)
+    internal virtual ReadOnlySequence<byte> DeriveKey(IEcdhEsAgreement agreement, ECDiffieHellman privateKeyParty1, ECDiffieHellmanPublicKey publicKeyParty2)
     {
         var keyByteLength = agreement.KeyBitLength / 8;
         var hashByteLength = EcdhDescriptor.HashBitLength / 8;
@@ -82,8 +83,8 @@ public class EcdhKeyWrapProvider : KeyWrapProvider
             Array.Empty<byte>() :
             GC.AllocateUninitializedArray<byte>(keyByteLength);
 
-        ReadOnlyMemory<byte> TrimKey(ReadOnlyMemory<byte> key) =>
-            hashByteLength > keyByteLength ? key[..keyByteLength] : key;
+        ReadOnlySequence<byte> TrimKey(ReadOnlyMemory<byte> key) =>
+            new(hashByteLength > keyByteLength ? key[..keyByteLength] : key);
 
         for (var counter = 1; counter <= reps; ++counter)
         {
@@ -111,7 +112,7 @@ public class EcdhKeyWrapProvider : KeyWrapProvider
     }
 
     /// <inheritdoc />
-    public override ReadOnlyMemory<byte> WrapKey(KeyWrapParameters parameters)
+    public override ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters)
     {
         if (parameters is not EcdhEsKeyWrapParameters typedParameters)
         {
@@ -128,7 +129,7 @@ public class EcdhKeyWrapProvider : KeyWrapProvider
     }
 
     /// <inheritdoc />
-    public override ReadOnlyMemory<byte> UnwrapKey(KeyUnwrapParameters parameters)
+    public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
     {
         if (parameters is not EcdhEsKeyUnwrapParameters typedParameters)
         {

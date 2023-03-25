@@ -23,6 +23,7 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
 internal class KeyedHashAlgorithmCryptoFactory : ICryptoFactory
 {
+    /// <inheritdoc />
     public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
         if (secretKey is not SharedSecretKey typedSecretKey)
@@ -36,5 +37,11 @@ internal class KeyedHashAlgorithmCryptoFactory : ICryptoFactory
         }
 
         return new KeyedHashAlgorithmSignatureProvider(typedSecretKey, typedDescriptor);
+    }
+
+    /// <inheritdoc />
+    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    {
+        throw new InvalidOperationException();
     }
 }

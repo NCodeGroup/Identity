@@ -24,6 +24,7 @@ namespace NIdentity.OpenId.Cryptography.Ecdsa;
 
 internal class EcdsaCryptoFactory : ICryptoFactory
 {
+    /// <inheritdoc />
     public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
         if (secretKey is not EcdsaSecretKey typedSecretKey)
@@ -37,5 +38,11 @@ internal class EcdsaCryptoFactory : ICryptoFactory
         }
 
         return new EcdsaSignatureProvider(typedSecretKey, typedDescriptor);
+    }
+
+    /// <inheritdoc />
+    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    {
+        throw new InvalidOperationException();
     }
 }

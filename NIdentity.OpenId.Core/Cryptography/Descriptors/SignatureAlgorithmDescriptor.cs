@@ -31,4 +31,7 @@ public record SignatureAlgorithmDescriptor
     CryptoFactory,
     AlgorithmTypes.DigitalSignature,
     AlgorithmCode
-);
+)
+{
+    public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
+}

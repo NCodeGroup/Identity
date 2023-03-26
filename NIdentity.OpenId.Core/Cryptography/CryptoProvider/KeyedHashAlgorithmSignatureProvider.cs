@@ -35,14 +35,39 @@ internal class KeyedHashAlgorithmSignatureProvider : SignatureProvider
 
     public override bool TrySign(ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
     {
-        if (signature.Length < HashByteLength)
+        var hashByteLength = AlgorithmDescriptor.HashBitLength;
+        if (signature.Length < hashByteLength)
         {
             bytesWritten = 0;
             return false;
         }
 
-        var key = SharedSecretKey.GetKeyBytes();
-        using var keyedHashAlgorithm = Descriptor.KeyedHashAlgorithmFactory(key);
-        return keyedHashAlgorithm.TryComputeHash(input, signature, out bytesWritten);
+        /*
+           A key of the same size as the hash output (for instance, 256 bits for
+           "HS256") or larger MUST be used with this algorithm.  (This
+           requirement is based on Section 5.3.4 (Security Effect of the HMAC
+           Key) of NIST SP 800-117 [NIST.800-107], which states that the
+           effective security strength is the minimum of the security strength
+           of the key and two times the size of the internal hash value.)
+        */
+
+        // TODO: can this be validated earlier?
+        var keyByteLength = SharedSecretKey.GetKeyByteLength();
+        if (keyByteLength < hashByteLength)
+        {
+            throw new InvalidOperationException();
+        }
+
+        var key = keyByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[keyByteLength] :
+            new byte[keyByteLength];
+
+        var keyBytesWritten = SharedSecretKey.GetKeyBytes(key);
+        if (keyBytesWritten != keyByteLength)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return Descriptor.KeyedHashFunction(key, input, signature, out bytesWritten);
     }
 }

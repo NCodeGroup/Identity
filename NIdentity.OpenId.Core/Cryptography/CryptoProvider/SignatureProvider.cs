@@ -23,13 +23,9 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
 public abstract class SignatureProvider : IDisposable
 {
-    public SecretKey SecretKey { get; }
+    private SecretKey SecretKey { get; }
 
-    public SignatureAlgorithmDescriptor AlgorithmDescriptor { get; }
-
-    protected int HashBitLength => AlgorithmDescriptor.HashBitLength;
-
-    protected int HashByteLength => HashBitLength / 8;
+    protected SignatureAlgorithmDescriptor AlgorithmDescriptor { get; }
 
     protected SignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
     {
@@ -52,14 +48,18 @@ public abstract class SignatureProvider : IDisposable
 
     public virtual bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
     {
-        if (signature.Length != HashByteLength)
+        var hashByteLength = AlgorithmDescriptor.HashBitLength;
+        if (signature.Length != hashByteLength)
             return false;
 
-        var expected = GC.AllocateUninitializedArray<byte>(HashByteLength);
-        if (!TrySign(input, expected.AsSpan(), out var bytesWritten))
+        var expected = hashByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[hashByteLength] :
+            new byte[hashByteLength];
+
+        if (!TrySign(input, expected, out var bytesWritten))
             return false;
 
-        if (bytesWritten != HashByteLength)
+        if (bytesWritten != hashByteLength)
             return false;
 
         return signature.SequenceEqual(expected);

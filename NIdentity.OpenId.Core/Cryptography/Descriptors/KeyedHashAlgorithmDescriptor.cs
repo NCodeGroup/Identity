@@ -17,14 +17,19 @@
 
 #endregion
 
-using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 
 namespace NIdentity.OpenId.Cryptography.Descriptors;
 
+public delegate bool KeyedHashFunctionDelegate(
+    ReadOnlySpan<byte> key,
+    ReadOnlySpan<byte> source,
+    Span<byte> destination,
+    out int bytesWritten);
+
 public record KeyedHashAlgorithmDescriptor
 (
-    Func<byte[], KeyedHashAlgorithm> KeyedHashAlgorithmFactory,
+    KeyedHashFunctionDelegate KeyedHashFunction,
     ICryptoFactory CryptoFactory,
     string AlgorithmCode,
     int HashBitLength

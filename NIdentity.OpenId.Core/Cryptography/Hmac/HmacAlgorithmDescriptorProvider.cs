@@ -30,19 +30,19 @@ internal class HmacAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new KeyedHashAlgorithmDescriptor(
-            key => new HMACSHA256(key),
+            HMACSHA256.TryHashData,
             CryptoFactory,
             AlgorithmCodes.DigitalSignature.HmacSha256,
             HashBitLength: 256),
 
         new KeyedHashAlgorithmDescriptor(
-            key => new HMACSHA384(key),
+            HMACSHA384.TryHashData,
             CryptoFactory,
             AlgorithmCodes.DigitalSignature.HmacSha384,
             HashBitLength: 384),
 
         new KeyedHashAlgorithmDescriptor(
-            key => new HMACSHA512(key),
+            HMACSHA512.TryHashData,
             CryptoFactory,
             AlgorithmCodes.DigitalSignature.HmacSha512,
             HashBitLength: 512),

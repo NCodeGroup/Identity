@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
@@ -41,6 +42,14 @@ internal class EcdhCryptoFactory : ICryptoFactory
         if (descriptor is not EcdhKeyWrapAlgorithmDescriptor typedDescriptor)
         {
             throw new InvalidOperationException();
+        }
+
+        if (typedDescriptor is EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor withAesDescriptor)
+        {
+            return new EcdhKeyWrapWithAesKeyWrapProvider(
+                AesKeyWrap.Default,
+                typedSecurityKey,
+                withAesDescriptor);
         }
 
         return new EcdhKeyWrapProvider(typedSecurityKey, typedDescriptor);

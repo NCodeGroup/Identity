@@ -25,6 +25,7 @@ namespace NIdentity.OpenId.Cryptography;
 internal static class BinaryUtility
 {
     public const int BitsPerByte = 8;
+    public const int StackAllocMax = 512;
 
     public static void Xor(ReadOnlySpan<byte> xBuffer, long y, Span<byte> destination)
     {

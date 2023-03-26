@@ -32,6 +32,17 @@ public class SharedSecretKey : SecretKey
         // nothing
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        var key = KeysBytesOrNull;
+        if (disposing && key != null)
+        {
+            Array.Clear(key);
+        }
+
+        base.Dispose(disposing);
+    }
+
     private byte[] DecodeKeyBytes()
     {
         var encodingType = Secret.EncodingType;

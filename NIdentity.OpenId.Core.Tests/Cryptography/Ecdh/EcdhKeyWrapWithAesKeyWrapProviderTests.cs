@@ -20,7 +20,7 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using Moq;
-using NIdentity.OpenId.Cryptography;
+using NIdentity.OpenId.Cryptography.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Ecdh;
 using NIdentity.OpenId.DataContracts;
@@ -28,11 +28,16 @@ using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Cryptography.Ecdh;
 
-public class EcdhKeyWrapProviderTests : BaseTests
+public class EcdhKeyWrapWithAesKeyWrapProviderTests : BaseTests
 {
     // the following test parameters where generated externally with a known working ECDH implementation (jose-jwt)
 
-    private const string ExpectedKeyAgreement = "rpNx7qw/1M36dnIH/OiHXMA/i+D2NHYjqU1XnSex6xE=";
+    private const string PlainTextKey = "P+PKDLXjVZBOYAWImddUxJFip8VqqwjSxMAAICQ3YYQ=";
+    private const string ExpectedDerivedKey = "/TJ28nmufX1uHt+DvdQbaWfCoMexX8k40ERbho48cbcWptDZ6b2Iqg==";
+
+    private const int KeyBitLength = 256; // the intermediate AES key length, must match algorithm
+    private const string AlgorithmCode = AlgorithmCodes.KeyManagement.EcdhEsAes256;
+
     private static ECCurve Curve { get; } = ECCurve.NamedCurves.nistP256;
     private ECParameters Party1Parameters { get; } = LoadParty1Parameters();
     private ECParameters Party2Parameters { get; } = LoadParty2Parameters();
@@ -63,23 +68,24 @@ public class EcdhKeyWrapProviderTests : BaseTests
 
     private ECDiffieHellman Party1 { get; }
     private ECDiffieHellman Party2 { get; }
-    private EcdhKeyWrapAlgorithmDescriptor AlgorithmDescriptor { get; }
+    private EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor AlgorithmDescriptor { get; }
 
     private Mock<ICryptoFactory> MockCryptoFactory { get; }
 
-    public EcdhKeyWrapProviderTests()
+    public EcdhKeyWrapWithAesKeyWrapProviderTests()
     {
         MockCryptoFactory = CreateStrictMock<ICryptoFactory>();
 
         Party1 = ECDiffieHellman.Create(Party1Parameters);
         Party2 = ECDiffieHellman.Create(Party2Parameters);
 
-        AlgorithmDescriptor = new EcdhKeyWrapAlgorithmDescriptor(
+        AlgorithmDescriptor = new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
             MockCryptoFactory.Object,
-            AlgorithmCodes.KeyManagement.EcdhEs,
+            AlgorithmCode,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
-            HashBitLength: 256);
+            HashBitLength: 256,
+            KeyBitLength);
     }
 
     protected override void Dispose(bool disposing)
@@ -94,75 +100,59 @@ public class EcdhKeyWrapProviderTests : BaseTests
     }
 
     [Fact]
-    public void DeriveKey_WhenParty1ToParty2_ThenValid()
+    public void WrapKey_WhenParty1ToParty2_ThenValid()
     {
-        DeriveKey(Party1, Party2);
+        WrapKey(Party1, Party2);
     }
 
     [Fact]
-    public void DeriveKey_WhenParty2ToParty1_ThenValid()
+    public void WrapKey_WhenParty2ToParty1_ThenValid()
     {
-        DeriveKey(Party2, Party1);
+        WrapKey(Party2, Party1);
     }
 
-    private void DeriveKey(ECDiffieHellman party1, ECDiffieHellman party2)
+    private void WrapKey(ECDiffieHellman party1, ECDiffieHellman party2)
     {
-        var mockAgreement = CreateStrictMock<IEcdhEsAgreement>();
+        const string partyUInfo = nameof(partyUInfo);
+        const string partyVInfo = nameof(partyVInfo);
 
-        // valid values are 128, 192, or 256
-        const int keyBitLength = 256;
-        const int keyByteLength = keyBitLength / BinaryUtility.BitsPerByte;
+        var provider = new EcdhKeyWrapWithAesKeyWrapProvider(
+            AesKeyWrap.Default,
+            new EcdhSecretKey(new Secret(), party1),
+            AlgorithmDescriptor);
+
+        var plainTextKey = Convert.FromBase64String(PlainTextKey);
+        var parameters = new EcdhEsKeyWrapWithAesKeyWrapParameters(
+            plainTextKey,
+            party2,
+            KeyBitLength,
+            partyUInfo,
+            partyVInfo);
+        var derivedKey = provider.WrapKey(parameters);
+
+        Assert.Equal(ExpectedDerivedKey, Convert.ToBase64String(derivedKey.ToArray()));
+    }
+
+    [Fact]
+    public void RoundTrip_Valid()
+    {
+        const int anyKeySize = 312;
+        var expectedPlainTextKey = GC.AllocateUninitializedArray<byte>(anyKeySize);
+        Random.Shared.NextBytes(expectedPlainTextKey);
 
         const string partyUInfo = nameof(partyUInfo);
         const string partyVInfo = nameof(partyVInfo);
 
-        mockAgreement
-            .Setup(_ => _.KeyBitLength)
-            .Returns(keyBitLength)
-            .Verifiable();
-
-        mockAgreement
-            .Setup(_ => _.PartyUInfo)
-            .Returns(partyUInfo)
-            .Verifiable();
-
-        mockAgreement
-            .Setup(_ => _.PartyVInfo)
-            .Returns(partyVInfo)
-            .Verifiable();
-
-        using var party2PublicKey = party2.PublicKey;
-        var provider = new EcdhKeyWrapProvider(new EcdhSecretKey(new Secret(), party1), AlgorithmDescriptor);
-        var keyAgreement = provider.DeriveKey(mockAgreement.Object, party1, party2PublicKey);
-
-        Assert.Equal(keyByteLength, keyAgreement.Length);
-        Assert.True(keyAgreement.IsSingleSegment);
-        Assert.Equal(ExpectedKeyAgreement, Convert.ToBase64String(keyAgreement.FirstSpan));
-    }
-
-    [Theory]
-    [InlineData(128)]
-    [InlineData(192)]
-    [InlineData(256)]
-    public void RoundTrip_Valid(int keyBitLength)
-    {
-        var keyByteLength = keyBitLength / BinaryUtility.BitsPerByte;
-
-        const string partyUInfo = nameof(partyUInfo);
-        const string partyVInfo = nameof(partyVInfo);
-
-        var keyWrapProvider = new EcdhKeyWrapProvider(new EcdhSecretKey(new Secret(), Party1), AlgorithmDescriptor);
-        var keyWrapParameters = new EcdhEsKeyWrapParameters(Party2, keyBitLength, partyUInfo, partyVInfo);
-        var expectedKeyAgreement = keyWrapProvider.WrapKey(keyWrapParameters).ToArray().AsSpan();
-        Assert.Equal(keyByteLength, expectedKeyAgreement.Length);
+        var keyWrapProvider = new EcdhKeyWrapWithAesKeyWrapProvider(AesKeyWrap.Default, new EcdhSecretKey(new Secret(), Party1), AlgorithmDescriptor);
+        var keyWrapParameters = new EcdhEsKeyWrapWithAesKeyWrapParameters(expectedPlainTextKey, Party2, KeyBitLength, partyUInfo, partyVInfo);
+        var encryptedKey = keyWrapProvider.WrapKey(keyWrapParameters).ToArray().AsMemory();
 
         using var party1PublicKey = Party1.PublicKey;
-        var keyUnwrapProvider = new EcdhKeyWrapProvider(new EcdhSecretKey(new Secret(), Party2), AlgorithmDescriptor);
-        var keyUnwrapParameters = new EcdhEsKeyUnwrapParameters(party1PublicKey, keyBitLength, partyUInfo, partyVInfo);
-        var actualKeyAgreement = keyUnwrapProvider.UnwrapKey(keyUnwrapParameters).ToArray().AsSpan();
-        Assert.Equal(keyByteLength, actualKeyAgreement.Length);
+        var keyUnwrapProvider = new EcdhKeyWrapWithAesKeyWrapProvider(AesKeyWrap.Default, new EcdhSecretKey(new Secret(), Party2), AlgorithmDescriptor);
+        var keyUnwrapParameters = new EcdhEsKeyUnwrapWithAesKeyUnwrapParameters(encryptedKey, party1PublicKey, KeyBitLength, partyUInfo, partyVInfo);
+        var actualPlainTextKey = keyUnwrapProvider.UnwrapKey(keyUnwrapParameters).ToArray();
 
-        var areKeysEqual = expectedKeyAgreement.SequenceEqual(actualKeyAgreement);
+        var areKeysEqual = expectedPlainTextKey.SequenceEqual(actualPlainTextKey);
         Assert.True(areKeysEqual);
     }
 }

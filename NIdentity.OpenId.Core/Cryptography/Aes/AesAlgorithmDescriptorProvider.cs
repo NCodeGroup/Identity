@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -22,25 +22,25 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 
-internal class AesCryptoFactory : ICryptoFactory
+internal class AesAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    private ICryptoFactory CryptoFactory { get; } = new AesCryptoFactory();
+
+    public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
-        throw new InvalidOperationException();
-    }
+        new AesKeyWrapAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.KeyManagement.Aes128,
+            KeyBitLength: 128),
 
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
-    {
-        if (secretKey is not AesSecretKey typedSecretKey)
-        {
-            throw new InvalidOperationException();
-        }
+        new AesKeyWrapAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.KeyManagement.Aes192,
+            KeyBitLength: 192),
 
-        if (descriptor is not AesKeyWrapAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
-
-        return new AesKeyWrapProvider(AesKeyWrap.Default, typedSecretKey, typedDescriptor);
-    }
+        new AesKeyWrapAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.KeyManagement.Aes256,
+            KeyBitLength: 256),
+    };
 }

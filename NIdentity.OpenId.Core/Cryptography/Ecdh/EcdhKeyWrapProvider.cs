@@ -52,9 +52,9 @@ namespace NIdentity.OpenId.Cryptography.Ecdh;
 
 internal class EcdhKeyWrapProvider : KeyWrapProvider
 {
-    private EcdhSecretKey EcdhSecretKey { get; }
+    protected EcdhSecretKey EcdhSecretKey { get; }
 
-    private EcdhKeyWrapAlgorithmDescriptor EcdhDescriptor { get; }
+    protected EcdhKeyWrapAlgorithmDescriptor EcdhDescriptor { get; }
 
     public EcdhKeyWrapProvider(EcdhSecretKey secretKey, EcdhKeyWrapAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
@@ -69,6 +69,7 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         var hashByteLength = EcdhDescriptor.HashBitLength / 8;
         var reps = (keyByteLength + hashByteLength - 1) / hashByteLength;
 
+        // can't use span/stackalloc because DeriveKeyFromHash doesn't
         var secretPrependBytes = GC.AllocateUninitializedArray<byte>(sizeof(int));
 
         using var secretAppendStream = new MemoryStream();
@@ -111,10 +112,10 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         return TrimKey(keyBuffer);
     }
 
-    /// <inheritdoc />
-    public override ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters)
+    protected T ValidateParameters<T>(KeyWrapParameters parameters)
+        where T : EcdhEsKeyWrapParameters
     {
-        if (parameters is not EcdhEsKeyWrapParameters typedParameters)
+        if (parameters is not T typedParameters)
         {
             throw new InvalidOperationException();
         }
@@ -123,15 +124,23 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         {
             throw new InvalidOperationException();
         }
+
+        return typedParameters;
+    }
+
+    /// <inheritdoc />
+    public override ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters)
+    {
+        var typedParameters = ValidateParameters<EcdhEsKeyWrapParameters>(parameters);
 
         using var ourPublicKey = EcdhSecretKey.Key.PublicKey;
         return DeriveKey(typedParameters, typedParameters.RecipientKey, ourPublicKey);
     }
 
-    /// <inheritdoc />
-    public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
+    protected T ValidateParameters<T>(KeyUnwrapParameters parameters)
+        where T : EcdhEsKeyUnwrapParameters
     {
-        if (parameters is not EcdhEsKeyUnwrapParameters typedParameters)
+        if (parameters is not T typedParameters)
         {
             throw new InvalidOperationException();
         }
@@ -140,6 +149,14 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         {
             throw new InvalidOperationException();
         }
+
+        return typedParameters;
+    }
+
+    /// <inheritdoc />
+    public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
+    {
+        var typedParameters = ValidateParameters<EcdhEsKeyUnwrapParameters>(parameters);
 
         return DeriveKey(typedParameters, EcdhSecretKey.Key, typedParameters.SenderPublicKey);
     }

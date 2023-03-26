@@ -35,6 +35,30 @@ internal class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
             AlgorithmCodes.KeyManagement.EcdhEs,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
-            256)
+            HashBitLength: 256),
+
+        new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.KeyManagement.EcdhEsAes128,
+            KeyDerivationFunctionTypes.SP800_56A_CONCAT,
+            HashAlgorithmName.SHA256,
+            HashBitLength: 256,
+            KeyBitLength: 128),
+
+        new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.KeyManagement.EcdhEsAes192,
+            KeyDerivationFunctionTypes.SP800_56A_CONCAT,
+            HashAlgorithmName.SHA256,
+            HashBitLength: 256,
+            KeyBitLength: 192),
+
+        new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.KeyManagement.EcdhEsAes256,
+            KeyDerivationFunctionTypes.SP800_56A_CONCAT,
+            HashAlgorithmName.SHA256,
+            HashBitLength: 256,
+            KeyBitLength: 256),
     };
 }

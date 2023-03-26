@@ -19,7 +19,7 @@
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
-public record ContentKeyWrapParameters
-(
-    ReadOnlyMemory<byte> PlainTextKey
-) : KeyWrapParameters, ISupportPlainTextKey;
+public interface ISupportPlainTextKey
+{
+    ReadOnlyMemory<byte> PlainTextKey { get; }
+}

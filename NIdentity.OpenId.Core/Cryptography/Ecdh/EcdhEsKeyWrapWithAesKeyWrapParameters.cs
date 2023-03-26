@@ -17,9 +17,22 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.CryptoProvider;
 
-public record ContentKeyWrapParameters
+namespace NIdentity.OpenId.Cryptography.Ecdh;
+
+public record EcdhEsKeyWrapWithAesKeyWrapParameters
 (
-    ReadOnlyMemory<byte> PlainTextKey
-) : KeyWrapParameters, ISupportPlainTextKey;
+    ReadOnlyMemory<byte> PlainTextKey,
+    ECDiffieHellman RecipientKey,
+    int KeyBitLength,
+    string PartyUInfo,
+    string PartyVInfo
+) : EcdhEsKeyWrapParameters
+(
+    RecipientKey,
+    KeyBitLength,
+    PartyUInfo,
+    PartyVInfo
+), ISupportPlainTextKey;

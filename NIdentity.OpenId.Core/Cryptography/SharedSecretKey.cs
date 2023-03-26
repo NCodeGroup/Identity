@@ -61,6 +61,11 @@ public class SharedSecretKey : SecretKey
         }
     }
 
+    public int GetKeyBytes(Span<byte> destination)
+    {
+        throw new NotImplementedException();
+    }
+
     public byte[] GetKeyBytes()
     {
         return KeysBytesOrNull ??= DecodeKeyBytes();

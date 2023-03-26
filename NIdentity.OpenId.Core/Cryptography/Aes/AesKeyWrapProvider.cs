@@ -25,41 +25,69 @@ namespace NIdentity.OpenId.Cryptography.Aes;
 internal class AesKeyWrapProvider : KeyWrapProvider
 {
     private IAesKeyWrap AesKeyWrap { get; }
-    private AesSecretKey AesSecretKey { get; }
+    private SharedSecretKey SharedSecretKey { get; }
     private AesKeyWrapAlgorithmDescriptor Descriptor { get; }
 
-    public AesKeyWrapProvider(IAesKeyWrap aesKeyWrap, AesSecretKey secretKey, AesKeyWrapAlgorithmDescriptor descriptor) :
+    public AesKeyWrapProvider(IAesKeyWrap aesKeyWrap, SharedSecretKey secretKey, AesKeyWrapAlgorithmDescriptor descriptor) :
         base(secretKey, descriptor)
     {
         AesKeyWrap = aesKeyWrap;
-        AesSecretKey = secretKey;
+        SharedSecretKey = secretKey;
         Descriptor = descriptor;
     }
 
     public override ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters)
     {
+        // TODO: validate shared key length early
+
         if (parameters is not ContentKeyWrapParameters typedParameters)
         {
             // TODO: unit tests
             throw new InvalidOperationException();
         }
 
+        var keyByteLength = Descriptor.KeyByteLength;
+        var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[keyByteLength] :
+            new byte[keyByteLength];
+
+        var bytesWritten = SharedSecretKey.GetKeyBytes(kek);
+        if (bytesWritten != keyByteLength)
+        {
+            // TODO: unit tests
+            throw new InvalidOperationException();
+        }
+
         return AesKeyWrap.WrapKey(
-            AesSecretKey.Key,
+            kek,
             typedParameters,
             Descriptor.KeyBitLength);
     }
 
     public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
     {
+        // TODO: validate shared key length early
+
         if (parameters is not ContentKeyUnwrapParameters typedParameters)
         {
             // TODO: unit tests
             throw new InvalidOperationException();
         }
 
+        var keyByteLength = Descriptor.KeyByteLength;
+        var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[keyByteLength] :
+            new byte[keyByteLength];
+
+        var bytesWritten = SharedSecretKey.GetKeyBytes(kek);
+        if (bytesWritten != keyByteLength)
+        {
+            // TODO: unit tests
+            throw new InvalidOperationException();
+        }
+
         return AesKeyWrap.UnwrapKey(
-            AesSecretKey.Key,
+            kek,
             typedParameters,
             Descriptor.KeyBitLength);
     }

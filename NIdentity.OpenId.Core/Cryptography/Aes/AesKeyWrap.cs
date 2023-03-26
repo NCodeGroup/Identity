@@ -32,12 +32,12 @@ namespace NIdentity.OpenId.Cryptography.Aes;
 internal interface IAesKeyWrap
 {
     ReadOnlySequence<byte> WrapKey(
-        System.Security.Cryptography.Aes aes,
+        ReadOnlySpan<byte> kek,
         ISupportPlainTextKey parameters,
         int keyBitLength);
 
     ReadOnlySequence<byte> UnwrapKey(
-        System.Security.Cryptography.Aes aes,
+        ReadOnlySpan<byte> kek,
         ISupportCipherTextKey parameters,
         int keyBitLength);
 }
@@ -58,7 +58,7 @@ internal class AesKeyWrap : IAesKeyWrap
         new byte[] { 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6 };
 
     public ReadOnlySequence<byte> WrapKey(
-        System.Security.Cryptography.Aes aes,
+        ReadOnlySpan<byte> kek,
         ISupportPlainTextKey parameters,
         int keyBitLength)
     {
@@ -68,7 +68,8 @@ internal class AesKeyWrap : IAesKeyWrap
            Outputs: Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}.
         */
 
-        if (aes.KeySize != keyBitLength)
+        // TODO: does this really need to be here?
+        if (kek.Length * BinaryUtility.BitsPerByte != keyBitLength)
         {
             // TODO: unit tests
             throw new InvalidOperationException();
@@ -88,6 +89,11 @@ internal class AesKeyWrap : IAesKeyWrap
             // 64bit chunks
             throw new InvalidOperationException();
         }
+
+        using var aes = System.Security.Cryptography.Aes.Create();
+        aes.Key = kek.ToArray();
+        aes.Mode = CipherMode.ECB;
+        aes.Padding = PaddingMode.None;
 
         /*
            1) Initialize variables.
@@ -147,7 +153,7 @@ internal class AesKeyWrap : IAesKeyWrap
     }
 
     public ReadOnlySequence<byte> UnwrapKey(
-        System.Security.Cryptography.Aes aes,
+        ReadOnlySpan<byte> kek,
         ISupportCipherTextKey parameters,
         int keyBitLength)
     {
@@ -157,7 +163,8 @@ internal class AesKeyWrap : IAesKeyWrap
            Outputs: Plaintext, n 64-bit values {P0, P1, K, Pn}.
         */
 
-        if (aes.KeySize != keyBitLength)
+        // TODO: does this really need to be here?
+        if (kek.Length * BinaryUtility.BitsPerByte != keyBitLength)
         {
             // TODO: unit tests
             throw new InvalidOperationException();
@@ -177,6 +184,11 @@ internal class AesKeyWrap : IAesKeyWrap
             // 64bit chunks
             throw new InvalidOperationException();
         }
+
+        using var aes = System.Security.Cryptography.Aes.Create();
+        aes.Key = kek.ToArray();
+        aes.Mode = CipherMode.ECB;
+        aes.Padding = PaddingMode.None;
 
         /*
            1) Initialize variables.

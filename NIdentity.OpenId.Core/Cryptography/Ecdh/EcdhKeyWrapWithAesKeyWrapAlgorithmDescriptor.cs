@@ -37,4 +37,7 @@ public record EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor
     KeyDerivationFunction,
     HashAlgorithmName,
     HashBitLength
-);
+)
+{
+    public int KeyByteLength => KeyBitLength / BinaryUtility.BitsPerByte;
+}

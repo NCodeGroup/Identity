@@ -34,4 +34,7 @@ public record EcdhKeyWrapAlgorithmDescriptor
 (
     CryptoFactory,
     AlgorithmCode
-);
+)
+{
+    public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
+}

@@ -37,26 +37,50 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
     public override ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters)
     {
+        // TODO: can be move other validations to be earlier too? (i.e. AesKeyWrap)
+
         var typedParameters = ValidateParameters<EcdhEsKeyWrapWithAesKeyWrapParameters>(parameters);
 
         using var ourPublicKey = EcdhSecretKey.Key.PublicKey;
         var keyAgreement = DeriveKey(typedParameters, typedParameters.RecipientKey, ourPublicKey);
 
-        using var aes = System.Security.Cryptography.Aes.Create();
-        aes.Key = keyAgreement.ToArray();
+        var keyByteLength = Descriptor.KeyByteLength;
+        if (keyAgreement.Length != keyByteLength)
+        {
+            // TODO: unit tests
+            throw new InvalidOperationException();
+        }
 
-        return AesKeyWrap.WrapKey(aes, typedParameters, Descriptor.KeyBitLength);
+        var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[keyByteLength] :
+            new byte[keyByteLength];
+
+        keyAgreement.CopyTo(kek);
+
+        return AesKeyWrap.WrapKey(kek, typedParameters, Descriptor.KeyBitLength);
     }
 
     public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
     {
+        // TODO: can be move other validations to be earlier too? (i.e. AesKeyWrap)
+
         var typedParameters = ValidateParameters<EcdhEsKeyUnwrapWithAesKeyUnwrapParameters>(parameters);
 
         var keyAgreement = DeriveKey(typedParameters, EcdhSecretKey.Key, typedParameters.SenderPublicKey);
 
-        using var aes = System.Security.Cryptography.Aes.Create();
-        aes.Key = keyAgreement.ToArray();
+        var keyByteLength = Descriptor.KeyByteLength;
+        if (keyAgreement.Length != keyByteLength)
+        {
+            // TODO: unit tests
+            throw new InvalidOperationException();
+        }
 
-        return AesKeyWrap.UnwrapKey(aes, typedParameters, Descriptor.KeyBitLength);
+        var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[keyByteLength] :
+            new byte[keyByteLength];
+
+        keyAgreement.CopyTo(kek);
+
+        return AesKeyWrap.UnwrapKey(kek, typedParameters, Descriptor.KeyBitLength);
     }
 }

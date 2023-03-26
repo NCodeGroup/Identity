@@ -31,7 +31,7 @@ internal class AesCryptoFactory : ICryptoFactory
 
     public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        if (secretKey is not AesSecretKey typedSecretKey)
+        if (secretKey is not SharedSecretKey typedSecretKey)
         {
             throw new InvalidOperationException();
         }

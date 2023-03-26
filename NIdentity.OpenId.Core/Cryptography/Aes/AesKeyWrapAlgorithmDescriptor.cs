@@ -30,4 +30,7 @@ public record AesKeyWrapAlgorithmDescriptor(
 (
     CryptoFactory,
     AlgorithmCode
-);
+)
+{
+    public int KeyByteLength => KeyBitLength / BinaryUtility.BitsPerByte;
+}

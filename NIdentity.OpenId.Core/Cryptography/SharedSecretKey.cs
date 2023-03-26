@@ -17,57 +17,15 @@
 
 #endregion
 
-using System.Text;
 using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Cryptography;
 
 public class SharedSecretKey : SecretKey
 {
-    private byte[]? KeysBytesOrNull { get; set; }
-
     public SharedSecretKey(Secret secret)
         : base(secret)
     {
         // nothing
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        var key = KeysBytesOrNull;
-        if (disposing && key != null)
-        {
-            Array.Clear(key);
-        }
-
-        base.Dispose(disposing);
-    }
-
-    private byte[] DecodeKeyBytes()
-    {
-        var encodingType = Secret.EncodingType;
-        switch (encodingType)
-        {
-            case SecretConstants.EncodingTypes.None:
-            case SecretConstants.EncodingTypes.Pem:
-            case SecretConstants.EncodingTypes.Json:
-                return Encoding.UTF8.GetBytes(Secret.EncodedValue);
-
-            case SecretConstants.EncodingTypes.Base64:
-                return Convert.FromBase64String(Secret.EncodedValue);
-
-            default:
-                throw new InvalidOperationException($"Unsupported encoding type: '{encodingType}'");
-        }
-    }
-
-    public int GetKeyBytes(Span<byte> destination)
-    {
-        throw new NotImplementedException();
-    }
-
-    public byte[] GetKeyBytes()
-    {
-        return KeysBytesOrNull ??= DecodeKeyBytes();
     }
 }

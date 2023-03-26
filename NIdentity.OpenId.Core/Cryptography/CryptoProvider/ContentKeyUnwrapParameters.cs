@@ -21,5 +21,5 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
 public record ContentKeyUnwrapParameters
 (
-    ReadOnlyMemory<byte> CipherText
-) : KeyUnwrapParameters;
+    ReadOnlyMemory<byte> CipherTextKey
+) : KeyUnwrapParameters, ISupportCipherTextKey;

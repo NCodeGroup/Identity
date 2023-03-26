@@ -23,14 +23,28 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Hmac;
 
-internal class HmacShaAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
+internal class HmacAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
     private KeyedHashAlgorithmCryptoFactory CryptoFactory { get; } = new();
 
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
-        new KeyedHashAlgorithmDescriptor(key => new HMACSHA256(key), CryptoFactory, AlgorithmCodes.DigitalSignature.HmacSha256, 256),
-        new KeyedHashAlgorithmDescriptor(key => new HMACSHA384(key), CryptoFactory, AlgorithmCodes.DigitalSignature.HmacSha384, 384),
-        new KeyedHashAlgorithmDescriptor(key => new HMACSHA512(key), CryptoFactory, AlgorithmCodes.DigitalSignature.HmacSha512, 512),
+        new KeyedHashAlgorithmDescriptor(
+            key => new HMACSHA256(key),
+            CryptoFactory,
+            AlgorithmCodes.DigitalSignature.HmacSha256,
+            HashBitLength: 256),
+
+        new KeyedHashAlgorithmDescriptor(
+            key => new HMACSHA384(key),
+            CryptoFactory,
+            AlgorithmCodes.DigitalSignature.HmacSha384,
+            HashBitLength: 384),
+
+        new KeyedHashAlgorithmDescriptor(
+            key => new HMACSHA512(key),
+            CryptoFactory,
+            AlgorithmCodes.DigitalSignature.HmacSha512,
+            HashBitLength: 512),
     };
 }

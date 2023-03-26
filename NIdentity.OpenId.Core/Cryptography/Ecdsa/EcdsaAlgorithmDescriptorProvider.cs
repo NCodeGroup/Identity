@@ -28,8 +28,22 @@ internal class EcdsaAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
-        new HashSignatureAlgorithmDescriptor(CryptoFactory, AlgorithmCodes.DigitalSignature.EcdsaSha256, HashAlgorithmName.SHA256, 256),
-        new HashSignatureAlgorithmDescriptor(CryptoFactory, AlgorithmCodes.DigitalSignature.EcdsaSha384, HashAlgorithmName.SHA384, 384),
-        new HashSignatureAlgorithmDescriptor(CryptoFactory, AlgorithmCodes.DigitalSignature.EcdsaSha512, HashAlgorithmName.SHA512, 512),
+        new HashSignatureAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.DigitalSignature.EcdsaSha256,
+            HashAlgorithmName.SHA256,
+            HashByteLength: 256),
+
+        new HashSignatureAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.DigitalSignature.EcdsaSha384,
+            HashAlgorithmName.SHA384,
+            HashByteLength: 384),
+
+        new HashSignatureAlgorithmDescriptor(
+            CryptoFactory,
+            AlgorithmCodes.DigitalSignature.EcdsaSha512,
+            HashAlgorithmName.SHA512,
+            HashByteLength: 512),
     };
 }

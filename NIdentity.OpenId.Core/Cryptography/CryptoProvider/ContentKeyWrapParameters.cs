@@ -21,5 +21,5 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
 public record ContentKeyWrapParameters
 (
-    ReadOnlyMemory<byte> PlainText
-) : KeyWrapParameters;
+    ReadOnlyMemory<byte> PlainTextKey
+) : KeyWrapParameters, ISupportPlainTextKey;

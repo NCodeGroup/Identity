@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,38 +17,36 @@
 
 #endregion
 
-using System.Buffers;
+using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.Noop;
 
-internal class NoopKeyWrapProvider : KeyWrapProvider
+internal class NoopCryptoFactory : ICryptoFactory
 {
-    public NoopKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
-        : base(secretKey, descriptor)
-    {
-        // nothing
-    }
+    public static ICryptoFactory Default { get; } = new NoopCryptoFactory();
 
-    public override ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters)
+    /// <inheritdoc />
+    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        if (parameters is not ContentKeyWrapParameters typedParameters)
+        if (descriptor is not SignatureAlgorithmDescriptor typedDescriptor)
         {
             // TODO: unit tests
             throw new InvalidOperationException();
         }
 
-        return new ReadOnlySequence<byte>(typedParameters.PlainTextKey);
+        return new NoopSignatureProvider(secretKey, typedDescriptor);
     }
 
-    public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
+    /// <inheritdoc />
+    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        if (parameters is not ContentKeyUnwrapParameters typedParameters)
+        if (descriptor is not KeyWrapAlgorithmDescriptor typedDescriptor)
         {
             // TODO: unit tests
             throw new InvalidOperationException();
         }
 
-        return new ReadOnlySequence<byte>(typedParameters.CipherTextKey);
+        return new NoopKeyWrapProvider(secretKey, typedDescriptor);
     }
 }

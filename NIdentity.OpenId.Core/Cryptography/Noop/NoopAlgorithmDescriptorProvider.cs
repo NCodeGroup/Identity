@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,24 +19,19 @@
 
 using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.Noop;
 
-internal class NoopSignatureProvider : SignatureProvider
+internal class NoopAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    public NoopSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
-        : base(secretKey, descriptor)
+    public IEnumerable<AlgorithmDescriptor> Load() => new AlgorithmDescriptor[]
     {
-        // nothing
-    }
+        new SignatureAlgorithmDescriptor(
+            NoopCryptoFactory.Default,
+            AlgorithmCodes.DigitalSignature.None,
+            HashBitLength: 0),
 
-    public override bool TrySign(ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
-    {
-        bytesWritten = 0;
-        return true;
-    }
-
-    public override bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
-    {
-        return true;
-    }
+        new KeyWrapAlgorithmDescriptor(
+            NoopCryptoFactory.Default,
+            AlgorithmCodes.KeyManagement.None),
+    };
 }

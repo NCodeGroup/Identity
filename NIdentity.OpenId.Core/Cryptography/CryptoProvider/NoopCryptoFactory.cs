@@ -21,19 +21,31 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
-public class NoopCryptoFactory : ICryptoFactory
+internal class NoopCryptoFactory : ICryptoFactory
 {
     public static ICryptoFactory Default { get; } = new NoopCryptoFactory();
 
     /// <inheritdoc />
     public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        throw new InvalidOperationException();
+        if (descriptor is not SignatureAlgorithmDescriptor typedDescriptor)
+        {
+            // TODO: unit tests
+            throw new InvalidOperationException();
+        }
+
+        return new NoopSignatureProvider(secretKey, typedDescriptor);
     }
 
     /// <inheritdoc />
     public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        throw new InvalidOperationException();
+        if (descriptor is not KeyWrapAlgorithmDescriptor typedDescriptor)
+        {
+            // TODO: unit tests
+            throw new InvalidOperationException();
+        }
+
+        return new NoopKeyWrapProvider(secretKey, typedDescriptor);
     }
 }

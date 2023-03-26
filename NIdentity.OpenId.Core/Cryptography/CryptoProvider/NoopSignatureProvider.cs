@@ -17,14 +17,26 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.Descriptors;
+namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
-public class NoneDigitalSignatureAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
+internal class NoopSignatureProvider : SignatureProvider
 {
-    public IEnumerable<AlgorithmDescriptor> Load()
+    public NoopSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
+        : base(secretKey, descriptor)
     {
-        return new[] { new SignatureAlgorithmDescriptor(NoopCryptoFactory.Default, AlgorithmCodes.DigitalSignature.None, 0) };
+        // nothing
+    }
+
+    public override bool TrySign(ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
+    {
+        bytesWritten = 0;
+        return true;
+    }
+
+    public override bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
+    {
+        return true;
     }
 }

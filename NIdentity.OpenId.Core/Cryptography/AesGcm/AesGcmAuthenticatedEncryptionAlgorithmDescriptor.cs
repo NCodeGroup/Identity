@@ -17,15 +17,22 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.AesGcm;
 
-public interface ICryptoFactory
+internal record AesGcmAuthenticatedEncryptionAlgorithmDescriptor
+(
+    ICryptoFactory CryptoFactory,
+    string AlgorithmCode,
+    int KeyBitLength
+) : AlgorithmDescriptor
+(
+    CryptoFactory,
+    AlgorithmTypes.AuthenticatedEncryption,
+    AlgorithmCode
+)
 {
-    SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
-
-    KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
-
-    AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
+    public int KeyByteLength => KeyBitLength / BinaryUtility.BitsPerByte;
 }

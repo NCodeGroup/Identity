@@ -43,4 +43,9 @@ internal class AesCryptoFactory : ICryptoFactory
 
         return new AesKeyWrapProvider(AesKeyWrap.Default, typedSecretKey, typedDescriptor);
     }
+
+    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    {
+        throw new InvalidOperationException();
+    }
 }

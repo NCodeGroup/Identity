@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-//
+// 
 //    Copyright @ 2023 NCode Group
-//
+// 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-//
+// 
 //        http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,35 +20,32 @@
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.Ecdsa;
+namespace NIdentity.OpenId.Cryptography.AesGcm;
 
-internal class EcdsaCryptoFactory : ICryptoFactory
+internal class AesGcmCryptoFactory : ICryptoFactory
 {
-    /// <inheritdoc />
     public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        if (secretKey is not EcdsaSecretKey typedSecretKey)
-        {
-            throw new InvalidOperationException();
-        }
-
-        if (descriptor is not HashSignatureAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
-
-        return new EcdsaSignatureProvider(typedSecretKey, typedDescriptor);
+        throw new InvalidOperationException();
     }
 
-    /// <inheritdoc />
     public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
         throw new InvalidOperationException();
     }
 
-    /// <inheritdoc />
     public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        throw new InvalidOperationException();
+        if (secretKey is not SharedSecretKey typedSecretKey)
+        {
+            throw new InvalidOperationException();
+        }
+
+        if (descriptor is not AesGcmAuthenticatedEncryptionAlgorithmDescriptor typedDescriptor)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return new AesGcmAuthenticatedEncryptionProvider(typedSecretKey, typedDescriptor);
     }
 }

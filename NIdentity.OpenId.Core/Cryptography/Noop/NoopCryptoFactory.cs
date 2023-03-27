@@ -22,25 +22,20 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Noop;
 
-internal class NoopCryptoFactory : ICryptoFactory
+/// <summary>
+/// Provides factory methods to create providers that do nothing for certain cryptographic operations.
+/// </summary>
+public class NoopCryptoFactory : CryptoFactory<NoopCryptoFactory>
 {
-    public static ICryptoFactory Default { get; } = new NoopCryptoFactory();
+    /// <inheritdoc />
+    public override SignatureProvider CreateSignatureProvider(
+        SecretKey secretKey,
+        SignatureAlgorithmDescriptor descriptor) =>
+        new NoopSignatureProvider(secretKey, descriptor);
 
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
-    {
-        return new NoopSignatureProvider(secretKey, descriptor);
-    }
-
-    /// <inheritdoc />
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
-    {
-        return new NoopKeyWrapProvider(secretKey, descriptor);
-    }
-
-    /// <inheritdoc />
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
-    }
+    public override KeyWrapProvider CreateKeyWrapProvider(
+        SecretKey secretKey,
+        KeyWrapAlgorithmDescriptor descriptor) =>
+        new NoopKeyWrapProvider(secretKey, descriptor);
 }

@@ -23,16 +23,15 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 
-internal class EcdhCryptoFactory : ICryptoFactory
+/// <summary>
+/// Provides factory methods to create providers for <c>ECDH</c> cryptographic algorithms.
+/// </summary>
+public class EcdhCryptoFactory : CryptoFactory<EcdhCryptoFactory>
 {
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
-    }
-
-    /// <inheritdoc />
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
+    public override KeyWrapProvider CreateKeyWrapProvider(
+        SecretKey secretKey,
+        KeyWrapAlgorithmDescriptor descriptor)
     {
         if (secretKey is not EcdhSecretKey typedSecurityKey)
         {
@@ -53,11 +52,5 @@ internal class EcdhCryptoFactory : ICryptoFactory
         }
 
         return new EcdhKeyWrapProvider(typedSecurityKey, typedDescriptor);
-    }
-
-    /// <inheritdoc />
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
     }
 }

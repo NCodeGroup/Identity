@@ -22,19 +22,15 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.AesGcm;
 
-internal class AesGcmCryptoFactory : ICryptoFactory
+/// <summary>
+/// Provides factory methods to create providers for <c>AES-GCM</c> cryptographic algorithms.
+/// </summary>
+public class AesGcmCryptoFactory : CryptoFactory<AesGcmCryptoFactory>
 {
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
-    }
-
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
-    }
-
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
+    /// <inheritdoc />
+    public override AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(
+        SecretKey secretKey,
+        AuthenticatedEncryptionAlgorithmDescriptor descriptor)
     {
         if (secretKey is not SharedSecretKey typedSecretKey)
         {

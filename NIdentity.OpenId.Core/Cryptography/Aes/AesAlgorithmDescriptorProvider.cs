@@ -17,29 +17,26 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 
 internal class AesAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    private ICryptoFactory CryptoFactory { get; } = new AesCryptoFactory();
-
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new AesKeyWrapAlgorithmDescriptor(
-            CryptoFactory,
+            AesCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.Aes128,
             KeyBitLength: 128),
 
         new AesKeyWrapAlgorithmDescriptor(
-            CryptoFactory,
+            AesCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.Aes192,
             KeyBitLength: 192),
 
         new AesKeyWrapAlgorithmDescriptor(
-            CryptoFactory,
+            AesCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.Aes256,
             KeyBitLength: 256),
     };

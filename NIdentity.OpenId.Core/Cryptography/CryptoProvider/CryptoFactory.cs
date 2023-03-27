@@ -62,6 +62,42 @@ public interface ICryptoFactory
 /// </summary>
 public abstract class CryptoFactory : ICryptoFactory
 {
+    /// <summary>
+    /// Validates that the specified <paramref name="secretKey"/> is an instance of <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="secretKey">The <see cref="SecretKey"/> to validate.</param>
+    /// <typeparam name="T">The expected type.</typeparam>
+    /// <returns><paramref name="secretKey"/> casted to <typeparamref name="T"/>.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when <paramref name="secretKey"/> is not a type of <typeparamref name="T"/>.</exception>
+    protected static T ValidateSecretKey<T>(SecretKey secretKey)
+        where T : SecretKey
+    {
+        if (secretKey is not T typedSecretKey)
+        {
+            throw new ArgumentException($"The security key was expected to be of type {typeof(T).FullName}", nameof(secretKey));
+        }
+
+        return typedSecretKey;
+    }
+
+    /// <summary>
+    /// Validates that the specified <paramref name="descriptor"/> is an instance of <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> to validate.</param>
+    /// <typeparam name="T">The expected type.</typeparam>
+    /// <returns><paramref name="descriptor"/> casted to <typeparamref name="T"/>.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when <paramref name="descriptor"/> is not a type of <typeparamref name="T"/>.</exception>
+    protected static T ValidateDescriptor<T>(AlgorithmDescriptor descriptor)
+        where T : AlgorithmDescriptor
+    {
+        if (descriptor is not T typedDescriptor)
+        {
+            throw new ArgumentException($"The descriptor was expected to be of type {typeof(T).FullName}", nameof(descriptor));
+        }
+
+        return typedDescriptor;
+    }
+
     /// <inheritdoc />
     public virtual SignatureProvider CreateSignatureProvider(
         SecretKey secretKey,

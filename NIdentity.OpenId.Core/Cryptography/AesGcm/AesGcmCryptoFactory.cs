@@ -32,10 +32,7 @@ public class AesGcmCryptoFactory : CryptoFactory<AesGcmCryptoFactory>
         SecretKey secretKey,
         AuthenticatedEncryptionAlgorithmDescriptor descriptor)
     {
-        if (secretKey is not SharedSecretKey typedSecretKey)
-        {
-            throw new InvalidOperationException();
-        }
+        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
 
         return new AesGcmAuthenticatedEncryptionProvider(typedSecretKey, descriptor);
     }

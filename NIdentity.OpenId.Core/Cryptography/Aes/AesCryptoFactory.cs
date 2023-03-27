@@ -32,15 +32,8 @@ public class AesCryptoFactory : CryptoFactory<AesCryptoFactory>
         SecretKey secretKey,
         KeyWrapAlgorithmDescriptor descriptor)
     {
-        if (secretKey is not SharedSecretKey typedSecretKey)
-        {
-            throw new InvalidOperationException();
-        }
-
-        if (descriptor is not AesKeyWrapAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
+        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
+        var typedDescriptor = ValidateDescriptor<AesKeyWrapAlgorithmDescriptor>(descriptor);
 
         return new AesKeyWrapProvider(AesKeyWrap.Default, typedSecretKey, typedDescriptor);
     }

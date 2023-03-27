@@ -32,15 +32,8 @@ public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory>
         SecretKey secretKey,
         SignatureAlgorithmDescriptor descriptor)
     {
-        if (secretKey is not RsaSecretKey typedSecretKey)
-        {
-            throw new InvalidOperationException();
-        }
-
-        if (descriptor is not RsaSignatureAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
+        var typedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey);
+        var typedDescriptor = ValidateDescriptor<RsaSignatureAlgorithmDescriptor>(descriptor);
 
         return new RsaSignatureProvider(typedSecretKey, typedDescriptor);
     }

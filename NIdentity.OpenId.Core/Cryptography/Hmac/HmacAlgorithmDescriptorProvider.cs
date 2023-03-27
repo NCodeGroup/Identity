@@ -25,25 +25,23 @@ namespace NIdentity.OpenId.Cryptography.Hmac;
 
 internal class HmacAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    private KeyedHashAlgorithmCryptoFactory CryptoFactory { get; } = new();
-
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new KeyedHashAlgorithmDescriptor(
             HMACSHA256.TryHashData,
-            CryptoFactory,
+            KeyedHashAlgorithmCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.HmacSha256,
             HashBitLength: 256),
 
         new KeyedHashAlgorithmDescriptor(
             HMACSHA384.TryHashData,
-            CryptoFactory,
+            KeyedHashAlgorithmCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.HmacSha384,
             HashBitLength: 384),
 
         new KeyedHashAlgorithmDescriptor(
             HMACSHA512.TryHashData,
-            CryptoFactory,
+            KeyedHashAlgorithmCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.HmacSha512,
             HashBitLength: 512),
     };

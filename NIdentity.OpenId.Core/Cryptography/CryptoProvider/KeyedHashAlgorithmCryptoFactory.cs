@@ -21,33 +21,19 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
-internal class KeyedHashAlgorithmCryptoFactory : ICryptoFactory
+/// <summary>
+/// Provides factory methods to create providers for various keyed hash cryptographic algorithms.
+/// </summary>
+public class KeyedHashAlgorithmCryptoFactory : CryptoFactory<KeyedHashAlgorithmCryptoFactory>
 {
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
+    public override SignatureProvider CreateSignatureProvider(
+        SecretKey secretKey,
+        SignatureAlgorithmDescriptor descriptor)
     {
-        if (secretKey is not SharedSecretKey typedSecretKey)
-        {
-            throw new InvalidOperationException();
-        }
-
-        if (descriptor is not KeyedHashAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
+        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
+        var typedDescriptor = ValidateDescriptor<KeyedHashAlgorithmDescriptor>(descriptor);
 
         return new KeyedHashAlgorithmSignatureProvider(typedSecretKey, typedDescriptor);
-    }
-
-    /// <inheritdoc />
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
-    }
-
-    /// <inheritdoc />
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
     }
 }

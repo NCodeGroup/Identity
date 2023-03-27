@@ -24,7 +24,7 @@ namespace NIdentity.OpenId.Cryptography.Aes;
 
 internal class AesCryptoFactory : ICryptoFactory
 {
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
     {
         throw new InvalidOperationException();
     }

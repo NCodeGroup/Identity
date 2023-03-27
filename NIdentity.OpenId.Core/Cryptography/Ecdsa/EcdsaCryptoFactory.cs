@@ -32,15 +32,8 @@ public class EcdsaCryptoFactory : CryptoFactory<EcdsaCryptoFactory>
         SecretKey secretKey,
         SignatureAlgorithmDescriptor descriptor)
     {
-        if (secretKey is not EcdsaSecretKey typedSecretKey)
-        {
-            throw new InvalidOperationException();
-        }
-
-        if (descriptor is not HashSignatureAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
+        var typedSecretKey = ValidateSecretKey<EcdsaSecretKey>(secretKey);
+        var typedDescriptor = ValidateDescriptor<HashSignatureAlgorithmDescriptor>(descriptor);
 
         return new EcdsaSignatureProvider(typedSecretKey, typedDescriptor);
     }

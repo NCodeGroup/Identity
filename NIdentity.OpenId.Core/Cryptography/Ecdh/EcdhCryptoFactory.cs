@@ -33,24 +33,17 @@ public class EcdhCryptoFactory : CryptoFactory<EcdhCryptoFactory>
         SecretKey secretKey,
         KeyWrapAlgorithmDescriptor descriptor)
     {
-        if (secretKey is not EcdhSecretKey typedSecurityKey)
-        {
-            throw new InvalidOperationException();
-        }
-
-        if (descriptor is not EcdhKeyWrapAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
+        var typedSecretKey = ValidateSecretKey<EcdhSecretKey>(secretKey);
+        var typedDescriptor = ValidateDescriptor<EcdhKeyWrapAlgorithmDescriptor>(descriptor);
 
         if (typedDescriptor is EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor withAesDescriptor)
         {
             return new EcdhKeyWrapWithAesKeyWrapProvider(
                 AesKeyWrap.Default,
-                typedSecurityKey,
+                typedSecretKey,
                 withAesDescriptor);
         }
 
-        return new EcdhKeyWrapProvider(typedSecurityKey, typedDescriptor);
+        return new EcdhKeyWrapProvider(typedSecretKey, typedDescriptor);
     }
 }

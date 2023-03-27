@@ -82,6 +82,6 @@ public abstract class SecretKey : IDisposable
     public virtual KeyWrapProvider CreateKeyWrapProvider(KeyWrapAlgorithmDescriptor descriptor) =>
         descriptor.CryptoFactory.CreateKeyWrapProvider(this, descriptor);
 
-    public virtual AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor) =>
+    public virtual AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(AuthenticatedEncryptionAlgorithmDescriptor descriptor) =>
         descriptor.CryptoFactory.CreateAuthenticatedEncryptionProvider(this, descriptor);
 }

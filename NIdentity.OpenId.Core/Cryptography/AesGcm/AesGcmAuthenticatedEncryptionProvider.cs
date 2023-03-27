@@ -18,15 +18,16 @@
 #endregion
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.AesGcm;
 
 internal class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionProvider
 {
     private SharedSecretKey SharedSecretKey { get; }
-    private AesGcmAuthenticatedEncryptionAlgorithmDescriptor Descriptor { get; }
+    private AuthenticatedEncryptionAlgorithmDescriptor Descriptor { get; }
 
-    public AesGcmAuthenticatedEncryptionProvider(SharedSecretKey secretKey, AesGcmAuthenticatedEncryptionAlgorithmDescriptor descriptor)
+    public AesGcmAuthenticatedEncryptionProvider(SharedSecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
         SharedSecretKey = secretKey;

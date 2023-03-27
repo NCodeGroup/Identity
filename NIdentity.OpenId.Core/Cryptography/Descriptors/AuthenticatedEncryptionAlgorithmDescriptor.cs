@@ -18,11 +18,10 @@
 #endregion
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
-using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.AesGcm;
+namespace NIdentity.OpenId.Cryptography.Descriptors;
 
-internal record AesGcmAuthenticatedEncryptionAlgorithmDescriptor
+public record AuthenticatedEncryptionAlgorithmDescriptor
 (
     ICryptoFactory CryptoFactory,
     string AlgorithmCode,

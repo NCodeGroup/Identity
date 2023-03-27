@@ -34,18 +34,13 @@ internal class AesGcmCryptoFactory : ICryptoFactory
         throw new InvalidOperationException();
     }
 
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
     {
         if (secretKey is not SharedSecretKey typedSecretKey)
         {
             throw new InvalidOperationException();
         }
 
-        if (descriptor is not AesGcmAuthenticatedEncryptionAlgorithmDescriptor typedDescriptor)
-        {
-            throw new InvalidOperationException();
-        }
-
-        return new AesGcmAuthenticatedEncryptionProvider(typedSecretKey, typedDescriptor);
+        return new AesGcmAuthenticatedEncryptionProvider(typedSecretKey, descriptor);
     }
 }

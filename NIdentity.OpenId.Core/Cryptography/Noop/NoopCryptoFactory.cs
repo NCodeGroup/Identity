@@ -33,15 +33,9 @@ internal class NoopCryptoFactory : ICryptoFactory
     }
 
     /// <inheritdoc />
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
     {
-        if (descriptor is not KeyWrapAlgorithmDescriptor typedDescriptor)
-        {
-            // TODO: unit tests
-            throw new InvalidOperationException();
-        }
-
-        return new NoopKeyWrapProvider(secretKey, typedDescriptor);
+        return new NoopKeyWrapProvider(secretKey, descriptor);
     }
 
     /// <inheritdoc />

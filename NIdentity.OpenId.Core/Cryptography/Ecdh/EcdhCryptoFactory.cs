@@ -32,7 +32,7 @@ internal class EcdhCryptoFactory : ICryptoFactory
     }
 
     /// <inheritdoc />
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
     {
         if (secretKey is not EcdhSecretKey typedSecurityKey)
         {

@@ -29,7 +29,7 @@ internal class AesGcmCryptoFactory : ICryptoFactory
         throw new InvalidOperationException();
     }
 
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
     {
         throw new InvalidOperationException();
     }

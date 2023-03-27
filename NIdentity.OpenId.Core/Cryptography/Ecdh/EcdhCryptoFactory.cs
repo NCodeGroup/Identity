@@ -26,7 +26,7 @@ namespace NIdentity.OpenId.Cryptography.Ecdh;
 internal class EcdhCryptoFactory : ICryptoFactory
 {
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
     {
         throw new InvalidOperationException();
     }

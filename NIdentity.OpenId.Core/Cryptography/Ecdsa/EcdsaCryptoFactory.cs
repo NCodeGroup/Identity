@@ -25,7 +25,7 @@ namespace NIdentity.OpenId.Cryptography.Ecdsa;
 internal class EcdsaCryptoFactory : ICryptoFactory
 {
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
     {
         if (secretKey is not EcdsaSecretKey typedSecretKey)
         {

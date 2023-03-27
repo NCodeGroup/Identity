@@ -27,15 +27,9 @@ internal class NoopCryptoFactory : ICryptoFactory
     public static ICryptoFactory Default { get; } = new NoopCryptoFactory();
 
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
     {
-        if (descriptor is not SignatureAlgorithmDescriptor typedDescriptor)
-        {
-            // TODO: unit tests
-            throw new InvalidOperationException();
-        }
-
-        return new NoopSignatureProvider(secretKey, typedDescriptor);
+        return new NoopSignatureProvider(secretKey, descriptor);
     }
 
     /// <inheritdoc />

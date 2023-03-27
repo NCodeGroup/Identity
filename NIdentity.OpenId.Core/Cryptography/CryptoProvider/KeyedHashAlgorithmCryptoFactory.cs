@@ -24,7 +24,7 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 internal class KeyedHashAlgorithmCryptoFactory : ICryptoFactory
 {
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
     {
         if (secretKey is not SharedSecretKey typedSecretKey)
         {

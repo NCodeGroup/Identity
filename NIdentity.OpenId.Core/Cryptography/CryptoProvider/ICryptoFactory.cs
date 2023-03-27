@@ -23,7 +23,7 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
 public interface ICryptoFactory
 {
-    SignatureProvider CreateSignatureProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
+    SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor);
 
     KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
 

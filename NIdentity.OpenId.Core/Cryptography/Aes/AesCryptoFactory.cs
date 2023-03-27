@@ -29,7 +29,7 @@ internal class AesCryptoFactory : ICryptoFactory
         throw new InvalidOperationException();
     }
 
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
     {
         if (secretKey is not SharedSecretKey typedSecretKey)
         {

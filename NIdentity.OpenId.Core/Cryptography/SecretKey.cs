@@ -79,6 +79,6 @@ public abstract class SecretKey : IDisposable
     public virtual SignatureProvider CreateSignatureProvider(SignatureAlgorithmDescriptor descriptor) =>
         descriptor.CryptoFactory.CreateSignatureProvider(this, descriptor);
 
-    public virtual KeyWrapProvider CreateKeyWrapProvider(AlgorithmDescriptor descriptor) =>
+    public virtual KeyWrapProvider CreateKeyWrapProvider(KeyWrapAlgorithmDescriptor descriptor) =>
         descriptor.CryptoFactory.CreateKeyWrapProvider(this, descriptor);
 }

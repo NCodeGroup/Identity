@@ -23,9 +23,15 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
 public interface ICryptoFactory
 {
-    SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor);
+    SignatureProvider CreateSignatureProvider(
+        SecretKey secretKey,
+        SignatureAlgorithmDescriptor descriptor);
 
-    KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor);
+    KeyWrapProvider CreateKeyWrapProvider(
+        SecretKey secretKey,
+        KeyWrapAlgorithmDescriptor descriptor);
 
-    AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
+    AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(
+        SecretKey secretKey,
+        AuthenticatedEncryptionAlgorithmDescriptor descriptor);
 }

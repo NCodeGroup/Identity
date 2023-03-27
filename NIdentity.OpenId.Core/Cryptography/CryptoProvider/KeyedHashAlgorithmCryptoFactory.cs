@@ -46,7 +46,7 @@ internal class KeyedHashAlgorithmCryptoFactory : ICryptoFactory
     }
 
     /// <inheritdoc />
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
     {
         throw new InvalidOperationException();
     }

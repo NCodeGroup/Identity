@@ -22,14 +22,15 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 
-internal class AesCryptoFactory : ICryptoFactory
+/// <summary>
+/// Provides factory methods to create providers for <c>AES</c> cryptographic algorithms.
+/// </summary>
+public class AesCryptoFactory : CryptoFactory<AesCryptoFactory>
 {
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
-    }
-
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
+    /// <inheritdoc />
+    public override KeyWrapProvider CreateKeyWrapProvider(
+        SecretKey secretKey,
+        KeyWrapAlgorithmDescriptor descriptor)
     {
         if (secretKey is not SharedSecretKey typedSecretKey)
         {
@@ -42,10 +43,5 @@ internal class AesCryptoFactory : ICryptoFactory
         }
 
         return new AesKeyWrapProvider(AesKeyWrap.Default, typedSecretKey, typedDescriptor);
-    }
-
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
     }
 }

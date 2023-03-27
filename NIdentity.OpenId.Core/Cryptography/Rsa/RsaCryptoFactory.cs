@@ -22,10 +22,15 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Rsa;
 
-internal class RsaCryptoFactory : ICryptoFactory
+/// <summary>
+/// Provides factory methods to create providers for <c>RSA</c> cryptographic algorithms.
+/// </summary>
+public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory>
 {
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
+    public override SignatureProvider CreateSignatureProvider(
+        SecretKey secretKey,
+        SignatureAlgorithmDescriptor descriptor)
     {
         if (secretKey is not RsaSecretKey typedSecretKey)
         {
@@ -38,17 +43,5 @@ internal class RsaCryptoFactory : ICryptoFactory
         }
 
         return new RsaSignatureProvider(typedSecretKey, typedDescriptor);
-    }
-
-    /// <inheritdoc />
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
-    }
-
-    /// <inheritdoc />
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
     }
 }

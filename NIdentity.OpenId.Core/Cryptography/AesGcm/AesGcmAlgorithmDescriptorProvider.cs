@@ -17,29 +17,26 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.AesGcm;
 
 internal class AesGcmAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    private ICryptoFactory CryptoFactory { get; } = new AesGcmCryptoFactory();
-
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new AuthenticatedEncryptionAlgorithmDescriptor(
-            CryptoFactory,
+            AesGcmCryptoFactory.Default,
             AlgorithmCodes.AuthenticatedEncryption.Aes128Gcm,
             KeyBitLength: 128),
 
         new AuthenticatedEncryptionAlgorithmDescriptor(
-            CryptoFactory,
+            AesGcmCryptoFactory.Default,
             AlgorithmCodes.AuthenticatedEncryption.Aes192Gcm,
             KeyBitLength: 192),
 
         new AuthenticatedEncryptionAlgorithmDescriptor(
-            CryptoFactory,
+            AesGcmCryptoFactory.Default,
             AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm,
             KeyBitLength: 256),
     };

@@ -24,47 +24,45 @@ namespace NIdentity.OpenId.Cryptography.Rsa;
 
 internal class RsaAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    private RsaCryptoFactory CryptoFactory { get; } = new();
-
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new RsaSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            RsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.RsaSha256,
             HashAlgorithmName.SHA256,
             HashByteLength: 256,
             RSASignaturePadding.Pkcs1),
 
         new RsaSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            RsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.RsaSha384,
             HashAlgorithmName.SHA384,
             HashByteLength: 384,
             RSASignaturePadding.Pkcs1),
 
         new RsaSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            RsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.RsaSha512,
             HashAlgorithmName.SHA512,
             HashByteLength: 512,
             RSASignaturePadding.Pkcs1),
 
         new RsaSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            RsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
             HashAlgorithmName.SHA256,
             HashByteLength: 256,
             RSASignaturePadding.Pss),
 
         new RsaSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            RsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha384,
             HashAlgorithmName.SHA384,
             HashByteLength: 384,
             RSASignaturePadding.Pss),
 
         new RsaSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            RsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha512,
             HashAlgorithmName.SHA512,
             HashByteLength: 512,

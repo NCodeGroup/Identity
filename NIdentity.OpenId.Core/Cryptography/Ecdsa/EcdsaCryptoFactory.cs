@@ -22,10 +22,15 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Ecdsa;
 
-internal class EcdsaCryptoFactory : ICryptoFactory
+/// <summary>
+/// Provides factory methods to create providers for <c>ECDSA</c> cryptographic algorithms.
+/// </summary>
+public class EcdsaCryptoFactory : CryptoFactory<EcdsaCryptoFactory>
 {
     /// <inheritdoc />
-    public SignatureProvider CreateSignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
+    public override SignatureProvider CreateSignatureProvider(
+        SecretKey secretKey,
+        SignatureAlgorithmDescriptor descriptor)
     {
         if (secretKey is not EcdsaSecretKey typedSecretKey)
         {
@@ -38,17 +43,5 @@ internal class EcdsaCryptoFactory : ICryptoFactory
         }
 
         return new EcdsaSignatureProvider(typedSecretKey, typedDescriptor);
-    }
-
-    /// <inheritdoc />
-    public KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
-    }
-
-    /// <inheritdoc />
-    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
-    {
-        throw new InvalidOperationException();
     }
 }

@@ -49,4 +49,10 @@ internal class NoopCryptoFactory : ICryptoFactory
 
         return new NoopKeyWrapProvider(secretKey, typedDescriptor);
     }
+
+    /// <inheritdoc />
+    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    {
+        throw new InvalidOperationException();
+    }
 }

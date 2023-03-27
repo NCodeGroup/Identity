@@ -54,4 +54,10 @@ internal class EcdhCryptoFactory : ICryptoFactory
 
         return new EcdhKeyWrapProvider(typedSecurityKey, typedDescriptor);
     }
+
+    /// <inheritdoc />
+    public AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    {
+        throw new InvalidOperationException();
+    }
 }

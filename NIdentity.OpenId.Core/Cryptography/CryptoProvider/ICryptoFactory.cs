@@ -27,5 +27,5 @@ public interface ICryptoFactory
 
     KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
 
-    // AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(AlgorithmDescriptor algorithmDescriptor, SecretKey secretKey);
+    AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor descriptor);
 }

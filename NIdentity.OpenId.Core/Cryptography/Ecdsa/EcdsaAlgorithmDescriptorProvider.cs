@@ -24,26 +24,24 @@ namespace NIdentity.OpenId.Cryptography.Ecdsa;
 
 internal class EcdsaAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    private EcdsaCryptoFactory CryptoFactory { get; } = new();
-
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new HashSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            EcdsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.EcdsaSha256,
             HashAlgorithmName.SHA256,
-            HashByteLength: 256),
+            HashBitLength: 256),
 
         new HashSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            EcdsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.EcdsaSha384,
             HashAlgorithmName.SHA384,
-            HashByteLength: 384),
+            HashBitLength: 384),
 
         new HashSignatureAlgorithmDescriptor(
-            CryptoFactory,
+            EcdsaCryptoFactory.Default,
             AlgorithmCodes.DigitalSignature.EcdsaSha512,
             HashAlgorithmName.SHA512,
-            HashByteLength: 512),
+            HashBitLength: 512),
     };
 }

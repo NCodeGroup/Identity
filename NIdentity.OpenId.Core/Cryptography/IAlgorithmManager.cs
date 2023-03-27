@@ -27,5 +27,13 @@ public interface IAlgorithmManager
     // IEnumerable<string> GetSupportedAlgorithmCodes(string algorithmType);
     // IAlgorithmSpecification GetAlgorithm(string algorithmType, string algorithmCode);
 
-    bool TryGetAlgorithm(string algorithmType, string algorithmCode, [MaybeNullWhen(false)] out AlgorithmDescriptor descriptor);
+    bool TryGetAlgorithm(
+        string algorithmType,
+        string algorithmCode,
+        [MaybeNullWhen(false)] out AlgorithmDescriptor descriptor);
+
+    bool TryGetAlgorithm<T>(
+        string algorithmCode,
+        [MaybeNullWhen(false)] out T descriptor)
+        where T : AlgorithmDescriptor;
 }

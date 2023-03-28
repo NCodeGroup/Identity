@@ -18,28 +18,38 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.DataContracts;
 
-namespace NIdentity.OpenId.Cryptography.Ecdh;
+namespace NIdentity.OpenId.Cryptography.Ecc;
 
-public class EcdhSecretKey : SecretKey
+public class EccSecretKey : SecretKey
 {
-    public ECDiffieHellman Key { get; }
+    private ECParameters? ECParametersOrNull { get; set; }
 
-    public EcdhSecretKey(Secret secret, ECDiffieHellman key)
-        : base(secret)
+    private ECParameters ECParameters => ECParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
+
+    public EccSecretKey(ECParameters ecParameters)
     {
-        Key = key;
+        ECParametersOrNull = ecParameters;
     }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
+        if (disposing && ECParametersOrNull.HasValue)
         {
-            Key.Dispose();
+            ZeroPrivateMemory(ECParametersOrNull.Value);
+            ECParametersOrNull = null;
         }
 
         base.Dispose(disposing);
     }
+
+    private static void ZeroPrivateMemory(ECParameters ecParameters)
+    {
+        CryptographicOperations.ZeroMemory(ecParameters.D);
+    }
+
+    public ECDsa CreateECDsa() => ECDsa.Create(ECParameters);
+
+    public ECDiffieHellman CreateECDiffieHellman() => ECDiffieHellman.Create(ECParameters);
 }

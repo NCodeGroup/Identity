@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
@@ -26,19 +27,26 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 /// </summary>
 public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
 {
-    private SharedSecretKey SharedSecretKey { get; }
-    private KeyedHashAlgorithmDescriptor Descriptor { get; }
+    /// <summary>
+    /// Gets the <see cref="SharedSecretKey"/> containing the key material used by the cryptographic digital signature algorithm.
+    /// </summary>
+    public SharedSecretKey SharedSecretKey { get; }
+
+    /// <summary>
+    /// Gets an <see cref="KeyedHashAlgorithmDescriptor"/> that describes the cryptographic digital signature algorithm.
+    /// </summary>
+    private KeyedHashAlgorithmDescriptor KeyedHashAlgorithmDescriptor { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="KeyedHashAlgorithmSignatureProvider"/> class.
     /// </summary>
     /// <param name="secretKey">Contains the key material used by the keyed hash algorithm.</param>
-    /// <param name="descriptor">Contains the <see cref="KeyedHashAlgorithmDescriptor"/> that describes the keyed hash algorithm.</param>
+    /// <param name="descriptor">Contains the <see cref="Descriptors.KeyedHashAlgorithmDescriptor"/> that describes the keyed hash algorithm.</param>
     public KeyedHashAlgorithmSignatureProvider(SharedSecretKey secretKey, KeyedHashAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
         SharedSecretKey = secretKey;
-        Descriptor = descriptor;
+        KeyedHashAlgorithmDescriptor = descriptor;
     }
 
     /// <inheritdoc />
@@ -61,7 +69,7 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
         */
 
         // TODO: can this be validated earlier?
-        var keyByteLength = SharedSecretKey.GetKeyByteLength();
+        var keyByteLength = SharedSecretKey.KeyByteLength;
         if (keyByteLength < hashByteLength)
         {
             throw new InvalidOperationException();
@@ -69,14 +77,17 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
 
         var key = keyByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[keyByteLength] :
-            new byte[keyByteLength];
+            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
 
-        var keyBytesWritten = SharedSecretKey.GetKeyBytes(key);
-        if (keyBytesWritten != keyByteLength)
+        SharedSecretKey.GetKeyBytes(key);
+
+        try
         {
-            throw new InvalidOperationException();
+            return KeyedHashAlgorithmDescriptor.KeyedHashFunction(key, input, signature, out bytesWritten);
         }
-
-        return Descriptor.KeyedHashFunction(key, input, signature, out bytesWritten);
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+        }
     }
 }

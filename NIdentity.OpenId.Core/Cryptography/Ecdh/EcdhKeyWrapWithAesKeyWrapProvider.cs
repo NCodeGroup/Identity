@@ -18,8 +18,10 @@
 #endregion
 
 using System.Buffers;
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Ecc;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 
@@ -28,7 +30,7 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
     private IAesKeyWrap AesKeyWrap { get; }
     private EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor Descriptor { get; }
 
-    public EcdhKeyWrapWithAesKeyWrapProvider(IAesKeyWrap aesKeyWrap, EcdhSecretKey secretKey, EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor descriptor)
+    public EcdhKeyWrapWithAesKeyWrapProvider(IAesKeyWrap aesKeyWrap, EccSecretKey secretKey, EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
         AesKeyWrap = aesKeyWrap;
@@ -41,7 +43,8 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         var typedParameters = ValidateParameters<EcdhEsKeyWrapWithAesKeyWrapParameters>(parameters);
 
-        using var ourPublicKey = EcdhSecretKey.Key.PublicKey;
+        using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
+        using var ourPublicKey = ourPrivateKey.PublicKey;
         var keyAgreement = DeriveKey(typedParameters, typedParameters.RecipientKey, ourPublicKey);
 
         var keyByteLength = Descriptor.KeyByteLength;
@@ -53,11 +56,18 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[keyByteLength] :
-            new byte[keyByteLength];
+            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
 
         keyAgreement.CopyTo(kek);
 
-        return AesKeyWrap.WrapKey(kek, typedParameters, Descriptor.KeyBitLength);
+        try
+        {
+            return AesKeyWrap.WrapKey(kek, typedParameters, Descriptor.KeyBitLength);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(kek);
+        }
     }
 
     public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
@@ -66,7 +76,8 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         var typedParameters = ValidateParameters<EcdhEsKeyUnwrapWithAesKeyUnwrapParameters>(parameters);
 
-        var keyAgreement = DeriveKey(typedParameters, EcdhSecretKey.Key, typedParameters.SenderPublicKey);
+        using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
+        var keyAgreement = DeriveKey(typedParameters, ourPrivateKey, typedParameters.SenderPublicKey);
 
         var keyByteLength = Descriptor.KeyByteLength;
         if (keyAgreement.Length != keyByteLength)
@@ -77,10 +88,17 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[keyByteLength] :
-            new byte[keyByteLength];
+            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
 
         keyAgreement.CopyTo(kek);
 
-        return AesKeyWrap.UnwrapKey(kek, typedParameters, Descriptor.KeyBitLength);
+        try
+        {
+            return AesKeyWrap.UnwrapKey(kek, typedParameters, Descriptor.KeyBitLength);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(kek);
+        }
     }
 }

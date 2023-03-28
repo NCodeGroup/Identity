@@ -19,6 +19,7 @@
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Ecc;
 
 namespace NIdentity.OpenId.Cryptography.Ecdsa;
 
@@ -32,7 +33,7 @@ public class EcdsaCryptoFactory : CryptoFactory<EcdsaCryptoFactory>
         SecretKey secretKey,
         SignatureAlgorithmDescriptor descriptor)
     {
-        var typedSecretKey = ValidateSecretKey<EcdsaSecretKey>(secretKey);
+        var typedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<HashSignatureAlgorithmDescriptor>(descriptor);
 
         return new EcdsaSignatureProvider(typedSecretKey, typedDescriptor);

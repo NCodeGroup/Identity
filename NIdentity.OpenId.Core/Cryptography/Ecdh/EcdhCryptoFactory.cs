@@ -20,6 +20,7 @@
 using NIdentity.OpenId.Cryptography.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Ecc;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 
@@ -33,7 +34,7 @@ public class EcdhCryptoFactory : CryptoFactory<EcdhCryptoFactory>
         SecretKey secretKey,
         KeyWrapAlgorithmDescriptor descriptor)
     {
-        var typedSecretKey = ValidateSecretKey<EcdhSecretKey>(secretKey);
+        var typedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<EcdhKeyWrapAlgorithmDescriptor>(descriptor);
 
         if (typedDescriptor is EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor withAesDescriptor)

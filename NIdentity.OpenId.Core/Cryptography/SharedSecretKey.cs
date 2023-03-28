@@ -17,15 +17,33 @@
 
 #endregion
 
-using NIdentity.OpenId.DataContracts;
+using System.Buffers;
 
 namespace NIdentity.OpenId.Cryptography;
 
 public class SharedSecretKey : SecretKey
 {
-    public SharedSecretKey(Secret secret)
-        : base(secret)
+    private IMemoryOwner<byte> MemoryOwner { get; }
+
+    public int KeyByteLength => MemoryOwner.Memory.Length;
+
+    public SharedSecretKey(IMemoryOwner<byte> memoryOwner)
     {
-        // nothing
+        MemoryOwner = memoryOwner;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            MemoryOwner.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    public virtual void GetKeyBytes(Span<byte> destination)
+    {
+        MemoryOwner.Memory.Span.CopyTo(destination);
     }
 }

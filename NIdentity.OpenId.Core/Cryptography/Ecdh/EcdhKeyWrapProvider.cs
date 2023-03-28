@@ -21,6 +21,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Ecc;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 
@@ -52,14 +53,14 @@ namespace NIdentity.OpenId.Cryptography.Ecdh;
 
 internal class EcdhKeyWrapProvider : KeyWrapProvider
 {
-    protected EcdhSecretKey EcdhSecretKey { get; }
+    protected EccSecretKey EccSecretKey { get; }
 
     protected EcdhKeyWrapAlgorithmDescriptor EcdhDescriptor { get; }
 
-    public EcdhKeyWrapProvider(EcdhSecretKey secretKey, EcdhKeyWrapAlgorithmDescriptor descriptor)
+    public EcdhKeyWrapProvider(EccSecretKey secretKey, EcdhKeyWrapAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
-        EcdhSecretKey = secretKey;
+        EccSecretKey = secretKey;
         EcdhDescriptor = descriptor;
     }
 
@@ -133,7 +134,8 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
     {
         var typedParameters = ValidateParameters<EcdhEsKeyWrapParameters>(parameters);
 
-        using var ourPublicKey = EcdhSecretKey.Key.PublicKey;
+        using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
+        using var ourPublicKey = ourPrivateKey.PublicKey;
         return DeriveKey(typedParameters, typedParameters.RecipientKey, ourPublicKey);
     }
 
@@ -158,6 +160,8 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
     {
         var typedParameters = ValidateParameters<EcdhEsKeyUnwrapParameters>(parameters);
 
-        return DeriveKey(typedParameters, EcdhSecretKey.Key, typedParameters.SenderPublicKey);
+        using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
+
+        return DeriveKey(typedParameters, ourPrivateKey, typedParameters.SenderPublicKey);
     }
 }

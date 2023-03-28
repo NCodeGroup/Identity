@@ -22,21 +22,27 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.AesGcm;
 
-internal class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionProvider
+/// <summary>
+/// Provides an implementation of <see cref="AuthenticatedEncryptionProvider"/> using the <c>AES GCM</c> algorithm.
+/// </summary>
+public class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionProvider
 {
     private SharedSecretKey SharedSecretKey { get; }
-    private AuthenticatedEncryptionAlgorithmDescriptor Descriptor { get; }
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="AesGcmAuthenticatedEncryptionProvider"/> class.
+    /// </summary>
+    /// <param name="secretKey">Contains key material for the <c>AES GCM</c> algorithm.</param>
+    /// <param name="descriptor">Contains an <see cref="AuthenticatedEncryptionAlgorithmDescriptor"/> that describes the <c>AES GCM</c> algorithm.</param>
     public AesGcmAuthenticatedEncryptionProvider(SharedSecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
         SharedSecretKey = secretKey;
-        Descriptor = descriptor;
     }
 
     private System.Security.Cryptography.AesGcm CreateAesGcm()
     {
-        var keyByteLength = Descriptor.KeyByteLength;
+        var keyByteLength = AlgorithmDescriptor.KeyByteLength;
         var key = keyByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[keyByteLength] :
             new byte[keyByteLength];
@@ -50,6 +56,7 @@ internal class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionPr
         return new System.Security.Cryptography.AesGcm(key);
     }
 
+    /// <inheritdoc />
     public override void Encrypt(
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plainText,
@@ -61,6 +68,7 @@ internal class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionPr
         aesGcm.Encrypt(nonce, plainText, cipherText, authenticationTag, associatedData);
     }
 
+    /// <inheritdoc />
     public override void Decrypt(
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> cipherText,

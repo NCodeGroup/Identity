@@ -33,5 +33,8 @@ public record SignatureAlgorithmDescriptor
     AlgorithmCode
 )
 {
+    /// <summary>
+    /// Gets the number of bytes for the <c>digital signature hash</c>.
+    /// </summary>
     public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
 }

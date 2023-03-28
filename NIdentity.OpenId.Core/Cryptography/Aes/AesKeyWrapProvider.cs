@@ -22,12 +22,22 @@ using NIdentity.OpenId.Cryptography.CryptoProvider;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 
-internal class AesKeyWrapProvider : KeyWrapProvider
+/// <summary>
+/// Provides an implementation of <see cref="KeyWrapProvider"/> using the <c>Advanced Encryption Standard (AES) Key Wrap Algorithm</c>.
+/// https://datatracker.ietf.org/doc/html/rfc3394
+/// </summary>
+public class AesKeyWrapProvider : KeyWrapProvider
 {
     private IAesKeyWrap AesKeyWrap { get; }
     private SharedSecretKey SharedSecretKey { get; }
     private AesKeyWrapAlgorithmDescriptor Descriptor { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AesKeyWrapProvider"/> class.
+    /// </summary>
+    /// <param name="aesKeyWrap">Contains the <see cref="IAesKeyWrap"/> instance that implements the actual AES key wrap algorithm.</param>
+    /// <param name="secretKey">Contains the <c>key encryption key (kek)</c> for the AES key wrap algorithm.</param>
+    /// <param name="descriptor">Contains the <see cref="AesKeyWrapAlgorithmDescriptor"/> the describes the AES key wrap algorithm.</param>
     public AesKeyWrapProvider(IAesKeyWrap aesKeyWrap, SharedSecretKey secretKey, AesKeyWrapAlgorithmDescriptor descriptor) :
         base(secretKey, descriptor)
     {
@@ -36,6 +46,7 @@ internal class AesKeyWrapProvider : KeyWrapProvider
         Descriptor = descriptor;
     }
 
+    /// <inheritdoc />
     public override ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters)
     {
         // TODO: validate shared key length early
@@ -64,6 +75,7 @@ internal class AesKeyWrapProvider : KeyWrapProvider
             Descriptor.KeyBitLength);
     }
 
+    /// <inheritdoc />
     public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
     {
         // TODO: validate shared key length early

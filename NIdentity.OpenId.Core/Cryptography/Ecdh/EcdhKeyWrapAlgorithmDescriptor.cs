@@ -36,5 +36,8 @@ public record EcdhKeyWrapAlgorithmDescriptor
     AlgorithmCode
 )
 {
+    /// <summary>
+    /// Gets the number of bytes for hash of the key agreement.
+    /// </summary>
     public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
 }

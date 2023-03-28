@@ -21,11 +21,19 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
-internal class KeyedHashAlgorithmSignatureProvider : SignatureProvider
+/// <summary>
+/// Provides an implementation of <see cref="SignatureProvider"/> that uses a keyed hash digital signature algorithm.
+/// </summary>
+public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
 {
     private SharedSecretKey SharedSecretKey { get; }
     private KeyedHashAlgorithmDescriptor Descriptor { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KeyedHashAlgorithmSignatureProvider"/> class.
+    /// </summary>
+    /// <param name="secretKey">Contains the key material used by the keyed hash algorithm.</param>
+    /// <param name="descriptor">Contains the <see cref="KeyedHashAlgorithmDescriptor"/> that describes the keyed hash algorithm.</param>
     public KeyedHashAlgorithmSignatureProvider(SharedSecretKey secretKey, KeyedHashAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
@@ -33,6 +41,7 @@ internal class KeyedHashAlgorithmSignatureProvider : SignatureProvider
         Descriptor = descriptor;
     }
 
+    /// <inheritdoc />
     public override bool TrySign(ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
     {
         var hashByteLength = AlgorithmDescriptor.HashBitLength;

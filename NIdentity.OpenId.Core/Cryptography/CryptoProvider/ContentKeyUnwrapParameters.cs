@@ -19,6 +19,10 @@
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
+/// <summary>
+/// Contains the parameters required for cryptographic key unwrap operations using a cipher text key.
+/// </summary>
+/// <param name="CipherTextKey">The key to decrypt.</param>
 public record ContentKeyUnwrapParameters
 (
     ReadOnlyMemory<byte> CipherTextKey

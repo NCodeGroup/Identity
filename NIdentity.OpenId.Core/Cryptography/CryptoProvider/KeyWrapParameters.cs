@@ -19,4 +19,8 @@
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
+/// <summary>
+/// Represents the parameters for all cryptographic key unwrap operations.
+/// Derived classes will contain the actual algorithm specific arguments.
+/// </summary>
 public record KeyWrapParameters;

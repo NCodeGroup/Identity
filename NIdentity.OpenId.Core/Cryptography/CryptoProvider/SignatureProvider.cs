@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
@@ -88,14 +89,9 @@ public abstract class SignatureProvider : IDisposable
 
         var expected = hashByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[hashByteLength] :
-            new byte[hashByteLength];
+            GC.AllocateUninitializedArray<byte>(hashByteLength, pinned: false);
 
-        if (!TrySign(input, expected, out var bytesWritten))
-            return false;
-
-        if (bytesWritten != hashByteLength)
-            return false;
-
-        return signature.SequenceEqual(expected);
+        return TrySign(input, expected, out _) &&
+               CryptographicOperations.FixedTimeEquals(expected, signature);
     }
 }

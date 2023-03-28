@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
@@ -27,7 +28,10 @@ namespace NIdentity.OpenId.Cryptography.AesGcm;
 /// </summary>
 public class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionProvider
 {
-    private SharedSecretKey SharedSecretKey { get; }
+    /// <summary>
+    /// Gets the <see cref="SharedSecretKey"/> containing the key material used by the <c>AES GCM</c> algorithm.
+    /// </summary>
+    public SharedSecretKey SharedSecretKey { get; }
 
     /// <summary>
     /// Initializes a new instance of <see cref="AesGcmAuthenticatedEncryptionProvider"/> class.
@@ -45,15 +49,18 @@ public class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionProv
         var keyByteLength = AlgorithmDescriptor.KeyByteLength;
         var key = keyByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[keyByteLength] :
-            new byte[keyByteLength];
+            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
 
-        var bytesWritten = SharedSecretKey.GetKeyBytes(key);
-        if (bytesWritten != keyByteLength)
+        SharedSecretKey.GetKeyBytes(key);
+
+        try
         {
-            throw new InvalidOperationException();
+            return new System.Security.Cryptography.AesGcm(key);
         }
-
-        return new System.Security.Cryptography.AesGcm(key);
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+        }
     }
 
     /// <inheritdoc />

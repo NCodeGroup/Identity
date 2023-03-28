@@ -19,18 +19,19 @@
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Ecc;
 
 namespace NIdentity.OpenId.Cryptography.Ecdsa;
 
 internal class EcdsaSignatureProvider : SignatureProvider
 {
-    private EcdsaSecretKey EcdsaSecretKey { get; }
+    private EccSecretKey EccSecretKey { get; }
     private HashSignatureAlgorithmDescriptor Descriptor { get; }
 
-    public EcdsaSignatureProvider(EcdsaSecretKey secretKey, HashSignatureAlgorithmDescriptor descriptor)
+    public EcdsaSignatureProvider(EccSecretKey secretKey, HashSignatureAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
-        EcdsaSecretKey = secretKey;
+        EccSecretKey = secretKey;
         Descriptor = descriptor;
     }
 
@@ -42,7 +43,9 @@ internal class EcdsaSignatureProvider : SignatureProvider
             return false;
         }
 
-        return EcdsaSecretKey.Key.TrySignData(input, signature, Descriptor.HashAlgorithmName, out bytesWritten);
+        using var ecdsa = EccSecretKey.CreateECDsa();
+
+        return ecdsa.TrySignData(input, signature, Descriptor.HashAlgorithmName, out bytesWritten);
     }
 
     public override bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
@@ -50,6 +53,8 @@ internal class EcdsaSignatureProvider : SignatureProvider
         if (signature.Length != Descriptor.HashByteLength)
             return false;
 
-        return EcdsaSecretKey.Key.VerifyData(input, signature, Descriptor.HashAlgorithmName);
+        using var ecdsa = EccSecretKey.CreateECDsa();
+
+        return ecdsa.VerifyData(input, signature, Descriptor.HashAlgorithmName);
     }
 }

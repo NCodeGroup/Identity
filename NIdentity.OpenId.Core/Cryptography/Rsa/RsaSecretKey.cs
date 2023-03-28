@@ -18,27 +18,36 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Cryptography.Rsa;
 
 public class RsaSecretKey : SecretKey
 {
-    public RSA Key { get; }
+    private RSAParameters? RSAParametersOrNull { get; set; }
 
-    public RsaSecretKey(Secret secret, RSA key)
-        : base(secret)
+    private RSAParameters RSAParameters => RSAParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
+
+    public RsaSecretKey(RSAParameters rsaParameters)
     {
-        Key = key;
+        RSAParametersOrNull = rsaParameters;
     }
 
+    /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
+        if (disposing && RSAParametersOrNull.HasValue)
         {
-            Key.Dispose();
+            ZeroPrivateMemory(RSAParametersOrNull.Value);
+            RSAParametersOrNull = null;
         }
 
         base.Dispose(disposing);
     }
+
+    private static void ZeroPrivateMemory(RSAParameters rsaParameters)
+    {
+        CryptographicOperations.ZeroMemory(rsaParameters.D);
+    }
+
+    public RSA CreateRSA() => RSA.Create(RSAParameters);
 }

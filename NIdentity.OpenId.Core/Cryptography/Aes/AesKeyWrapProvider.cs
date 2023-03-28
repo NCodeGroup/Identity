@@ -18,6 +18,7 @@
 #endregion
 
 using System.Buffers;
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
@@ -29,7 +30,12 @@ namespace NIdentity.OpenId.Cryptography.Aes;
 public class AesKeyWrapProvider : KeyWrapProvider
 {
     private IAesKeyWrap AesKeyWrap { get; }
-    private SharedSecretKey SharedSecretKey { get; }
+
+    /// <summary>
+    /// Gets the <see cref="SharedSecretKey"/> containing the key material used by the <c>AES</c> algorithm.
+    /// </summary>
+    public SharedSecretKey SharedSecretKey { get; }
+
     private AesKeyWrapAlgorithmDescriptor Descriptor { get; }
 
     /// <summary>
@@ -60,19 +66,21 @@ public class AesKeyWrapProvider : KeyWrapProvider
         var keyByteLength = Descriptor.KeyByteLength;
         var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[keyByteLength] :
-            new byte[keyByteLength];
+            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
 
-        var bytesWritten = SharedSecretKey.GetKeyBytes(kek);
-        if (bytesWritten != keyByteLength)
+        SharedSecretKey.GetKeyBytes(kek);
+
+        try
         {
-            // TODO: unit tests
-            throw new InvalidOperationException();
+            return AesKeyWrap.WrapKey(
+                kek,
+                typedParameters,
+                Descriptor.KeyBitLength);
         }
-
-        return AesKeyWrap.WrapKey(
-            kek,
-            typedParameters,
-            Descriptor.KeyBitLength);
+        finally
+        {
+            CryptographicOperations.ZeroMemory(kek);
+        }
     }
 
     /// <inheritdoc />
@@ -89,18 +97,20 @@ public class AesKeyWrapProvider : KeyWrapProvider
         var keyByteLength = Descriptor.KeyByteLength;
         var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[keyByteLength] :
-            new byte[keyByteLength];
+            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
 
-        var bytesWritten = SharedSecretKey.GetKeyBytes(kek);
-        if (bytesWritten != keyByteLength)
+        SharedSecretKey.GetKeyBytes(kek);
+
+        try
         {
-            // TODO: unit tests
-            throw new InvalidOperationException();
+            return AesKeyWrap.UnwrapKey(
+                kek,
+                typedParameters,
+                Descriptor.KeyBitLength);
         }
-
-        return AesKeyWrap.UnwrapKey(
-            kek,
-            typedParameters,
-            Descriptor.KeyBitLength);
+        finally
+        {
+            CryptographicOperations.ZeroMemory(kek);
+        }
     }
 }

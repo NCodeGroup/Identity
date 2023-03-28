@@ -125,7 +125,7 @@ public abstract class CryptoFactory<T> : CryptoFactory
     where T : CryptoFactory<T>, new()
 {
     /// <summary>
-    /// Provides a default singleton instance for <see cref="T"/>.
+    /// Provides a default singleton instance for <typeparamref name="T"/>.
     /// </summary>
     public static ICryptoFactory Default { get; } = new T();
 }

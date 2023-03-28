@@ -33,5 +33,8 @@ public record AuthenticatedEncryptionAlgorithmDescriptor
     AlgorithmCode
 )
 {
+    /// <summary>
+    /// Gets the number of bytes for the <c>key encryption key (kek)</c>.
+    /// </summary>
     public int KeyByteLength => KeyBitLength / BinaryUtility.BitsPerByte;
 }

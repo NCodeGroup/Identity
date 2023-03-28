@@ -19,7 +19,13 @@
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
+/// <summary>
+/// Specifies that the current instance supports plain text key material.
+/// </summary>
 public interface ISupportPlainTextKey
 {
+    /// <summary>
+    /// Gets the plain text key material for the current instance.
+    /// </summary>
     ReadOnlyMemory<byte> PlainTextKey { get; }
 }

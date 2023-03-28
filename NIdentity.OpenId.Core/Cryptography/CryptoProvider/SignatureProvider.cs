@@ -21,31 +21,65 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
+/// <summary>
+/// Base implementation for all cryptographic digital signature algorithms.
+/// </summary>
 public abstract class SignatureProvider : IDisposable
 {
-    private SecretKey SecretKey { get; }
+    /// <summary>
+    /// Gets the <see cref="SecretKey"/> containing the key material used by the cryptographic digital signature algorithm.
+    /// </summary>
+    public SecretKey SecretKey { get; }
 
-    protected SignatureAlgorithmDescriptor AlgorithmDescriptor { get; }
+    /// <summary>
+    /// Gets an <see cref="SignatureAlgorithmDescriptor"/> that describes the cryptographic digital signature algorithm.
+    /// </summary>
+    public SignatureAlgorithmDescriptor AlgorithmDescriptor { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SignatureProvider"/> class.
+    /// </summary>
+    /// <param name="secretKey">Contains the key material used by the cryptographic digital signature algorithm.</param>
+    /// <param name="descriptor">Contains an <see cref="SignatureAlgorithmDescriptor"/> that describes the cryptographic digital signature algorithm.</param>
     protected SignatureProvider(SecretKey secretKey, SignatureAlgorithmDescriptor descriptor)
     {
         SecretKey = secretKey;
         AlgorithmDescriptor = descriptor;
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// When overridden in a derived class, releases the unmanaged resources used by the
+    /// <see cref="SignatureProvider"/>, and optionally releases the managed resources.
+    /// </summary>
+    /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
+    /// to release only unmanaged resources.</param>
     protected virtual void Dispose(bool disposing)
     {
         // nothing
     }
 
+    /// <summary>
+    /// When overridden in a derived class, computes a digital signature.
+    /// </summary>
+    /// <param name="input">Contains the data to sign.</param>
+    /// <param name="signature">Destination for the calculated signature.</param>
+    /// <param name="bytesWritten">The number of bytes written to <paramref name="signature"/>.</param>
+    /// <returns><c>true></c> if there was enough room in <paramref name="signature"/> to copy all computed bytes; otherwise, <c>false</c>.</returns>
     public abstract bool TrySign(ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten);
 
+    /// <summary>
+    /// When overridden in a derived class, verifies a digital signature.
+    /// </summary>
+    /// <param name="input">Contains the data what was signed.</param>
+    /// <param name="signature">Contains the digital signature to compare.</param>
+    /// <returns><c>true</c> if the computed signature matches the <paramref name="signature"/> parameter; otherwise, <c>false</c>.</returns>
     public virtual bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
     {
         var hashByteLength = AlgorithmDescriptor.HashBitLength;

@@ -18,27 +18,28 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 
-internal class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
+/// <summary>
+/// Provides an implementation of <see cref="IAlgorithmDescriptorProvider"/> that returns a collection of
+/// descriptors for the <c>ECDH</c> algorithm.
+/// </summary>
+public class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
-    private ICryptoFactory CryptoFactory { get; } = new EcdhCryptoFactory();
-
     /// <inheritdoc />
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new EcdhKeyWrapAlgorithmDescriptor(
-            CryptoFactory,
+            EcdhCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.EcdhEs,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
             HashBitLength: 256),
 
         new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
-            CryptoFactory,
+            EcdhCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.EcdhEsAes128,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
@@ -46,7 +47,7 @@ internal class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
             KeyBitLength: 128),
 
         new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
-            CryptoFactory,
+            EcdhCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.EcdhEsAes192,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
@@ -54,7 +55,7 @@ internal class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
             KeyBitLength: 192),
 
         new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
-            CryptoFactory,
+            EcdhCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.EcdhEsAes256,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,

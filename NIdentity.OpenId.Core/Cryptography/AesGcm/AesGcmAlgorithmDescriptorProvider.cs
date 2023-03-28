@@ -21,8 +21,13 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.AesGcm;
 
-internal class AesGcmAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
+/// <summary>
+/// Provides an implementation of <see cref="IAlgorithmDescriptorProvider"/> that returns a collection of
+/// descriptors for the <c>AES GCM</c> algorithm.
+/// </summary>
+public class AesGcmAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
+    /// <inheritdoc />
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new AuthenticatedEncryptionAlgorithmDescriptor(

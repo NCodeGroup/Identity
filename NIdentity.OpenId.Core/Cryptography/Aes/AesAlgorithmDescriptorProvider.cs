@@ -21,8 +21,13 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 
-internal class AesAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
+/// <summary>
+/// Provides an implementation of <see cref="IAlgorithmDescriptorProvider"/> that returns a collection of
+/// descriptors for the <c>AES Key Wrap</c> algorithm.
+/// </summary>
+public class AesAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
+    /// <inheritdoc />
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new AesKeyWrapAlgorithmDescriptor(

@@ -23,27 +23,49 @@ using NIdentity.OpenId.Cryptography.CryptoProvider;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 
-// Advanced Encryption Standard (AES) Key Wrap Algorithm
-// https://datatracker.ietf.org/doc/html/rfc3394
-
-// These variables are identical to RFC so that code can be easily compared
-// https://datatracker.ietf.org/doc/html/rfc3394#section-2.2.1
-
-internal interface IAesKeyWrap
+/// <summary>
+/// Defines cryptographic operations for the <c>Advanced Encryption Standard (AES) Key Wrap Algorithm</c>.
+/// https://datatracker.ietf.org/doc/html/rfc3394
+/// </summary>
+public interface IAesKeyWrap
 {
+    /// <summary>
+    /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.
+    /// </summary>
+    /// <param name="kek">Contains the key encryption key.</param>
+    /// <param name="parameters">Contains the plain text to be encrypted.</param>
+    /// <param name="keyBitLength">The expected length of <paramref name="kek"/> in bits.</param>
+    /// <returns>The result of encrypting the plain text to cipher text.</returns>
     ReadOnlySequence<byte> WrapKey(
         ReadOnlySpan<byte> kek,
         ISupportPlainTextKey parameters,
         int keyBitLength);
 
+    /// <summary>
+    /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
+    /// </summary>
+    /// <param name="kek">Contains the key encryption key.</param>
+    /// <param name="parameters">Contains the cipher text to be decrypted.</param>
+    /// <param name="keyBitLength">The expected length of <paramref name="kek"/> in bits.</param>
+    /// <returns>The result of decrypting the cipher text to plain text.</returns>
     ReadOnlySequence<byte> UnwrapKey(
         ReadOnlySpan<byte> kek,
         ISupportCipherTextKey parameters,
         int keyBitLength);
 }
 
-internal class AesKeyWrap : IAesKeyWrap
+/// <summary>
+/// Provides the default implementation for <see cref="IAesKeyWrap"/>.
+/// </summary>
+/// <remarks>
+/// The variables in the implementation are identical to the following RFC so that code can be easily compared.
+/// https://datatracker.ietf.org/doc/html/rfc3394#section-2.2.1
+/// </remarks>
+public class AesKeyWrap : IAesKeyWrap
 {
+    /// <summary>
+    /// Provides a default singleton instance for <see cref="AesKeyWrap"/>.
+    /// </summary>
     public static IAesKeyWrap Default { get; } = new AesKeyWrap();
 
     private const int ChunkBitCount = 64;
@@ -57,6 +79,7 @@ internal class AesKeyWrap : IAesKeyWrap
     private static readonly ReadOnlyMemory<byte> DefaultIV =
         new byte[] { 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6 };
 
+    /// <inheritdoc />
     public ReadOnlySequence<byte> WrapKey(
         ReadOnlySpan<byte> kek,
         ISupportPlainTextKey parameters,
@@ -152,6 +175,7 @@ internal class AesKeyWrap : IAesKeyWrap
         return BinaryUtility.Concat(a, r);
     }
 
+    /// <inheritdoc />
     public ReadOnlySequence<byte> UnwrapKey(
         ReadOnlySpan<byte> kek,
         ISupportCipherTextKey parameters,

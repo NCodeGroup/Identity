@@ -21,29 +21,59 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
+/// <summary>
+/// Base implementation for all cryptographic authenticated encryption <c>AEAD</c> algorithms.
+/// </summary>
 public abstract class AuthenticatedEncryptionProvider : IDisposable
 {
+    /// <summary>
+    /// Gets the <see cref="SecretKey"/> containing the key material used by the cryptographic <c>AEAD</c> algorithm.
+    /// </summary>
     public SecretKey SecretKey { get; }
 
-    public AlgorithmDescriptor AlgorithmDescriptor { get; }
+    /// <summary>
+    /// Gets an <see cref="AuthenticatedEncryptionAlgorithmDescriptor"/> that describes the cryptographic <c>AEAD</c> algorithm.
+    /// </summary>
+    public AuthenticatedEncryptionAlgorithmDescriptor AlgorithmDescriptor { get; }
 
-    protected AuthenticatedEncryptionProvider(SecretKey secretKey, AlgorithmDescriptor algorithmDescriptor)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthenticatedEncryptionProvider"/> class.
+    /// </summary>
+    /// <param name="secretKey">Contains the key material used by the cryptographic <c>AEAD</c> algorithm.</param>
+    /// <param name="descriptor">Contains an <see cref="AuthenticatedEncryptionAlgorithmDescriptor"/> that describes the cryptographic <c>AEAD</c> algorithm.</param>
+    protected AuthenticatedEncryptionProvider(SecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
     {
         SecretKey = secretKey;
-        AlgorithmDescriptor = algorithmDescriptor;
+        AlgorithmDescriptor = descriptor;
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// When overridden in a derived class, releases the unmanaged resources used by the
+    /// <see cref="AuthenticatedEncryptionProvider"/>, and optionally releases the managed resources.
+    /// </summary>
+    /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
+    /// to release only unmanaged resources.</param>
     protected virtual void Dispose(bool disposing)
     {
         // nothing
     }
 
+    /// <summary>
+    /// When overridden in a derived class, encrypts the plaintext into the ciphertext destination buffer
+    /// and generates the authentication tag into a separate buffer.
+    /// </summary>
+    /// <param name="nonce">The nonce associated with this message, which should be a unique value for every operation with the same key.</param>
+    /// <param name="plainText">The content to encrypt.</param>
+    /// <param name="associatedData">Extra data associated with this message, which must also be provided during decryption.</param>
+    /// <param name="cipherText">The byte array to receive the encrypted contents.</param>
+    /// <param name="authenticationTag">The byte array to receive the generated authentication tag.</param>
     public abstract void Encrypt(
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plainText,
@@ -51,6 +81,14 @@ public abstract class AuthenticatedEncryptionProvider : IDisposable
         Span<byte> cipherText,
         Span<byte> authenticationTag);
 
+    /// <summary>
+    /// When overridden in a derived class, decrypts the ciphertext into the provided destination buffer if the authentication tag can be validated.
+    /// </summary>
+    /// <param name="nonce">The nonce associated with this message, which must match the value provided during encryption.</param>
+    /// <param name="cipherText">The encrypted content to decrypt.</param>
+    /// <param name="associatedData">Extra data associated with this message, which must match the value provided during encryption.</param>
+    /// <param name="authenticationTag">The authentication tag produced for this message during encryption.</param>
+    /// <param name="plainText">The byte array to receive the decrypted contents.</param>
     public abstract void Decrypt(
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> cipherText,

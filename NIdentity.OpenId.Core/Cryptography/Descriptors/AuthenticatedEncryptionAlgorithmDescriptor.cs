@@ -21,7 +21,7 @@ using NIdentity.OpenId.Cryptography.CryptoProvider;
 
 namespace NIdentity.OpenId.Cryptography.Descriptors;
 
-public record AuthenticatedEncryptionAlgorithmDescriptor
+public abstract record AuthenticatedEncryptionAlgorithmDescriptor
 (
     ICryptoFactory CryptoFactory,
     string AlgorithmCode,
@@ -37,4 +37,11 @@ public record AuthenticatedEncryptionAlgorithmDescriptor
     /// Gets the number of bytes for the <c>key encryption key (kek)</c>.
     /// </summary>
     public int KeyByteLength => KeyBitLength / BinaryUtility.BitsPerByte;
+
+    /// <summary>
+    /// Gets the length of a ciphertext with a given plaintext length.
+    /// </summary>
+    /// <param name="plainTextSizeBytes">The plaintext length, in bytes.</param>
+    /// <returns>The length, in bytes, of the ciphertext.</returns>
+    public abstract int GetCipherTextLength(int plainTextSizeBytes);
 }

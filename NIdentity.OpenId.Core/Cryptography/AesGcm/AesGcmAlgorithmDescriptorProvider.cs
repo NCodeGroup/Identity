@@ -30,17 +30,17 @@ public class AesGcmAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
     /// <inheritdoc />
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
-        new AuthenticatedEncryptionAlgorithmDescriptor(
+        new AesGcmAuthenticatedEncryptionAlgorithmDescriptor(
             AesGcmCryptoFactory.Default,
             AlgorithmCodes.AuthenticatedEncryption.Aes128Gcm,
             KeyBitLength: 128),
 
-        new AuthenticatedEncryptionAlgorithmDescriptor(
+        new AesGcmAuthenticatedEncryptionAlgorithmDescriptor(
             AesGcmCryptoFactory.Default,
             AlgorithmCodes.AuthenticatedEncryption.Aes192Gcm,
             KeyBitLength: 192),
 
-        new AuthenticatedEncryptionAlgorithmDescriptor(
+        new AesGcmAuthenticatedEncryptionAlgorithmDescriptor(
             AesGcmCryptoFactory.Default,
             AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm,
             KeyBitLength: 256),

@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
@@ -75,19 +74,10 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
             throw new InvalidOperationException();
         }
 
-        var key = keyByteLength <= BinaryUtility.StackAllocMax ?
-            stackalloc byte[keyByteLength] :
-            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
-
-        SharedSecretKey.GetKeyBytes(key);
-
-        try
-        {
-            return KeyedHashAlgorithmDescriptor.KeyedHashFunction(key, input, signature, out bytesWritten);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(key);
-        }
+        return KeyedHashAlgorithmDescriptor.KeyedHashFunction(
+            SharedSecretKey.KeyBytes,
+            input,
+            signature,
+            out bytesWritten);
     }
 }

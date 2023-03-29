@@ -64,7 +64,7 @@ public class HeapMemoryManager : MemoryManager<byte>
 
     /// <inheritdoc />
     public override unsafe MemoryHandle Pin(int elementIndex = 0) =>
-        new((byte*)BufferPtr + elementIndex, default, this);
+        new((byte*)BufferPtr + elementIndex);
 
     /// <inheritdoc />
     public override void Unpin()

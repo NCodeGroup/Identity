@@ -27,6 +27,8 @@ public class SharedSecretKey : SecretKey
 
     public int KeyByteLength => MemoryOwner.Memory.Length;
 
+    public ReadOnlySpan<byte> KeyBytes => MemoryOwner.Memory.Span;
+
     public SharedSecretKey(IMemoryOwner<byte> memoryOwner)
     {
         MemoryOwner = memoryOwner;
@@ -40,10 +42,5 @@ public class SharedSecretKey : SecretKey
         }
 
         base.Dispose(disposing);
-    }
-
-    public virtual void GetKeyBytes(Span<byte> destination)
-    {
-        MemoryOwner.Memory.Span.CopyTo(destination);
     }
 }

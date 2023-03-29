@@ -89,10 +89,13 @@ public abstract class AuthenticatedEncryptionProvider : IDisposable
     /// <param name="associatedData">Extra data associated with this message, which must match the value provided during encryption.</param>
     /// <param name="authenticationTag">The authentication tag produced for this message during encryption.</param>
     /// <param name="plainText">The byte array to receive the decrypted contents.</param>
-    public abstract void Decrypt(
+    /// <param name="bytesWritten">The number of bytes written to <paramref name="plainText"/>.</param>
+    /// <returns><c>true</c> if <paramref name="plainText"/> was large enough to receive the decrypted data; otherwise, <c>false</c>.</returns>
+    public abstract bool TryDecrypt(
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> cipherText,
         ReadOnlySpan<byte> associatedData,
         ReadOnlySpan<byte> authenticationTag,
-        Span<byte> plainText);
+        Span<byte> plainText,
+        out int bytesWritten);
 }

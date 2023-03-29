@@ -97,4 +97,23 @@ internal static class BinaryUtility
         a.CopyTo(destination);
         b.CopyTo(destination[a.Length..]);
     }
+
+    public static void Concat(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b, ReadOnlySpan<byte> c, long e, Span<byte> destination)
+    {
+        if (a.Length + b.Length + c.Length + sizeof(long) > destination.Length)
+            throw new InvalidOperationException();
+
+        var pos = destination;
+
+        a.CopyTo(pos);
+        pos = pos[a.Length..];
+
+        b.CopyTo(pos);
+        pos = pos[b.Length..];
+
+        c.CopyTo(pos);
+        pos = pos[c.Length..];
+
+        BinaryPrimitives.WriteInt64BigEndian(pos, e);
+    }
 }

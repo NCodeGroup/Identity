@@ -54,19 +54,32 @@ public class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionProv
         Span<byte> cipherText,
         Span<byte> authenticationTag)
     {
+        if (plainText.Length != cipherText.Length)
+            throw new InvalidOperationException();
+
         using var aesGcm = CreateAesGcm();
         aesGcm.Encrypt(nonce, plainText, cipherText, authenticationTag, associatedData);
     }
 
     /// <inheritdoc />
-    public override void Decrypt(
+    public override bool TryDecrypt(
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> cipherText,
         ReadOnlySpan<byte> associatedData,
         ReadOnlySpan<byte> authenticationTag,
-        Span<byte> plainText)
+        Span<byte> plainText,
+        out int bytesWritten)
     {
+        if (plainText.Length != cipherText.Length)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
         using var aesGcm = CreateAesGcm();
         aesGcm.Decrypt(nonce, cipherText, authenticationTag, plainText, associatedData);
+
+        bytesWritten = cipherText.Length;
+        return true;
     }
 }

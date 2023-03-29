@@ -235,4 +235,63 @@ public class BinaryUtilityTests
         Span<byte> destination = stackalloc byte[a.Length + b.Length + 1];
         BinaryUtility.Concat(a, b, destination);
     }
+
+    [Fact]
+    public void Concat_GivenThreeSpansAndInt64_ThenValid()
+    {
+        Span<byte> a = stackalloc byte[3];
+        Random.Shared.NextBytes(a);
+
+        Span<byte> b = stackalloc byte[5];
+        Random.Shared.NextBytes(b);
+
+        Span<byte> c = stackalloc byte[8];
+        Random.Shared.NextBytes(c);
+
+        const long d = 0b101000001010;
+
+        Span<byte> destination = stackalloc byte[a.Length + b.Length + c.Length + sizeof(long)];
+        BinaryUtility.Concat(a, b, c, d, destination);
+
+        var pos = destination;
+
+        var isAEqual = pos[..a.Length].SequenceEqual(a);
+        Assert.True(isAEqual);
+        pos = pos[a.Length..];
+
+        var isBEqual = pos[..b.Length].SequenceEqual(b);
+        Assert.True(isBEqual);
+        pos = pos[b.Length..];
+
+        var isCEqual = pos[..c.Length].SequenceEqual(c);
+        Assert.True(isCEqual);
+        pos = pos[c.Length..];
+
+        Assert.Equal(d, BinaryPrimitives.ReadInt64BigEndian(pos));
+    }
+
+    [Fact]
+    public void Concat_GivenThreeSpansAndInt64_WhenTooSmallDestination_ThenThrows()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            Span<byte> a = stackalloc byte[3];
+            Span<byte> b = stackalloc byte[5];
+            Span<byte> c = stackalloc byte[8];
+            const long d = 0b101000001010;
+            Span<byte> destination = stackalloc byte[a.Length + b.Length + c.Length + sizeof(long) - 1];
+            BinaryUtility.Concat(a, b, c, d, destination);
+        });
+    }
+
+    [Fact]
+    public void Concat_GivenThreeSpansAndInt64_WhenLargerDestination_ThenValid()
+    {
+        Span<byte> a = stackalloc byte[3];
+        Span<byte> b = stackalloc byte[5];
+        Span<byte> c = stackalloc byte[8];
+        const long d = 0b101000001010;
+        Span<byte> destination = stackalloc byte[a.Length + b.Length + c.Length + sizeof(long) + 1];
+        BinaryUtility.Concat(a, b, c, d, destination);
+    }
 }

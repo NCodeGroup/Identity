@@ -18,7 +18,6 @@
 #endregion
 
 using System.Buffers;
-using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
@@ -63,24 +62,10 @@ public class AesKeyWrapProvider : KeyWrapProvider
             throw new InvalidOperationException();
         }
 
-        var keyByteLength = Descriptor.KeyByteLength;
-        var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
-            stackalloc byte[keyByteLength] :
-            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
-
-        SharedSecretKey.GetKeyBytes(kek);
-
-        try
-        {
-            return AesKeyWrap.WrapKey(
-                kek,
-                typedParameters,
-                Descriptor.KeyBitLength);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(kek);
-        }
+        return AesKeyWrap.WrapKey(
+            SharedSecretKey.KeyBytes,
+            typedParameters,
+            Descriptor.KeyBitLength);
     }
 
     /// <inheritdoc />
@@ -94,23 +79,9 @@ public class AesKeyWrapProvider : KeyWrapProvider
             throw new InvalidOperationException();
         }
 
-        var keyByteLength = Descriptor.KeyByteLength;
-        var kek = keyByteLength <= BinaryUtility.StackAllocMax ?
-            stackalloc byte[keyByteLength] :
-            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
-
-        SharedSecretKey.GetKeyBytes(kek);
-
-        try
-        {
-            return AesKeyWrap.UnwrapKey(
-                kek,
-                typedParameters,
-                Descriptor.KeyBitLength);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(kek);
-        }
+        return AesKeyWrap.UnwrapKey(
+            SharedSecretKey.KeyBytes,
+            typedParameters,
+            Descriptor.KeyBitLength);
     }
 }

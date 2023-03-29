@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
@@ -44,24 +43,8 @@ public class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionProv
         SharedSecretKey = secretKey;
     }
 
-    private System.Security.Cryptography.AesGcm CreateAesGcm()
-    {
-        var keyByteLength = AlgorithmDescriptor.KeyByteLength;
-        var key = keyByteLength <= BinaryUtility.StackAllocMax ?
-            stackalloc byte[keyByteLength] :
-            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
-
-        SharedSecretKey.GetKeyBytes(key);
-
-        try
-        {
-            return new System.Security.Cryptography.AesGcm(key);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(key);
-        }
-    }
+    private System.Security.Cryptography.AesGcm CreateAesGcm() =>
+        new(SharedSecretKey.KeyBytes);
 
     /// <inheritdoc />
     public override void Encrypt(

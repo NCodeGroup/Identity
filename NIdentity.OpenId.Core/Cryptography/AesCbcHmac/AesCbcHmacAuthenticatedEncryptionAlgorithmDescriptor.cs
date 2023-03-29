@@ -32,7 +32,20 @@ public record AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor
 ) : AuthenticatedEncryptionAlgorithmDescriptor(CryptoFactory, AlgorithmCode, KeyBitLength)
 {
     /// <summary>
+    /// Contains the block size, in bits, of the cryptographic operation.
+    /// </summary>
+    public const int BlockSizeBits = 128;
+
+    /// <summary>
     /// Gets the number of bytes for the <c>HMAC</c> hash.
     /// </summary>
     public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
+
+    /// <inheritdoc />
+    public override int GetCipherTextLength(int plainTextSizeBytes)
+    {
+        const int blockSizeBytes = BlockSizeBits / BinaryUtility.BitsPerByte;
+        var wholeBlocks = blockSizeBytes * plainTextSizeBytes / blockSizeBytes;
+        return wholeBlocks + blockSizeBytes;
+    }
 }

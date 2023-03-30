@@ -17,23 +17,28 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography;
 
-public interface IAlgorithmManager
+public interface IAlgorithmCollection
 {
-    // IEnumerable<string> GetSupportedAlgorithmCodes(string algorithmType);
-    // IAlgorithmSpecification GetAlgorithm(string algorithmType, string algorithmCode);
+    IEnumerable<AlgorithmDescriptor> Descriptors { get; }
+}
 
-    bool TryGetAlgorithm(
-        string algorithmType,
-        string algorithmCode,
-        [MaybeNullWhen(false)] out AlgorithmDescriptor descriptor);
+public class AlgorithmCollection : IAlgorithmCollection
+{
+    /// <inheritdoc />
+    public IEnumerable<AlgorithmDescriptor> Descriptors { get; }
 
-    bool TryGetAlgorithm<T>(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out T descriptor)
-        where T : AlgorithmDescriptor;
+    public AlgorithmCollection(
+        IEnumerable<IAlgorithmDescriptorFilter> filters,
+        IEnumerable<IAlgorithmDescriptorProvider> providers)
+    {
+        var filtersList = filters.ToList();
+        Descriptors = providers
+            .SelectMany(provider => provider.Load())
+            .Where(descriptor => filtersList.All(filter => !filter.Exclude(descriptor)))
+            .ToArray();
+    }
 }

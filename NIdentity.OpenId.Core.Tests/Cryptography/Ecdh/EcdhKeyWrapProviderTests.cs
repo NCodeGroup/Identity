@@ -19,9 +19,7 @@
 
 using System.Buffers;
 using System.Security.Cryptography;
-using Moq;
 using NIdentity.OpenId.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Ecc;
 using NIdentity.OpenId.Cryptography.Ecdh;
 using Xunit;
@@ -63,14 +61,9 @@ public class EcdhKeyWrapProviderTests : BaseTests
 
     private EcdhKeyWrapAlgorithmDescriptor AlgorithmDescriptor { get; }
 
-    private Mock<ICryptoFactory> MockCryptoFactory { get; }
-
     public EcdhKeyWrapProviderTests()
     {
-        MockCryptoFactory = CreateStrictMock<ICryptoFactory>();
-
         AlgorithmDescriptor = new EcdhKeyWrapAlgorithmDescriptor(
-            MockCryptoFactory.Object,
             AlgorithmCodes.KeyManagement.EcdhEs,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,

@@ -18,21 +18,21 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Ecc;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 
 public record EcdhKeyWrapAlgorithmDescriptor
 (
-    ICryptoFactory CryptoFactory,
     string AlgorithmCode,
     string KeyDerivationFunction,
     HashAlgorithmName HashAlgorithmName,
     int HashBitLength
 ) : KeyWrapAlgorithmDescriptor
 (
-    CryptoFactory,
+    EcdhCryptoFactory.Default,
+    typeof(EccSecretKey),
     AlgorithmCode
 )
 {

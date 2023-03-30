@@ -24,6 +24,7 @@ namespace NIdentity.OpenId.Cryptography.Descriptors;
 public abstract record AlgorithmDescriptor
 (
     ICryptoFactory CryptoFactory,
+    Type SecretKeyType,
     string AlgorithmType,
     string AlgorithmCode
 );

@@ -18,13 +18,11 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 
 public record EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor
 (
-    ICryptoFactory CryptoFactory,
     string AlgorithmCode,
     string KeyDerivationFunction,
     HashAlgorithmName HashAlgorithmName,
@@ -32,7 +30,6 @@ public record EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor
     int KeyBitLength
 ) : EcdhKeyWrapAlgorithmDescriptor
 (
-    CryptoFactory,
     AlgorithmCode,
     KeyDerivationFunction,
     HashAlgorithmName,

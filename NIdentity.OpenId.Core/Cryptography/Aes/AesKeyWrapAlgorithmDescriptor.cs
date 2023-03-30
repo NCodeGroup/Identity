@@ -23,12 +23,12 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 namespace NIdentity.OpenId.Cryptography.Aes;
 
 public record AesKeyWrapAlgorithmDescriptor(
-    ICryptoFactory CryptoFactory,
     string AlgorithmCode,
     int KeyBitLength
 ) : KeyWrapAlgorithmDescriptor
 (
-    CryptoFactory,
+    AesCryptoFactory.Default,
+    typeof(SharedSecretKey),
     AlgorithmCode
 )
 {

@@ -27,11 +27,13 @@ internal class NoopAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
     {
         new SignatureAlgorithmDescriptor(
             NoopCryptoFactory.Default,
+            typeof(SecretKey),
             AlgorithmCodes.DigitalSignature.None,
             HashBitLength: 0),
 
         new KeyWrapAlgorithmDescriptor(
             NoopCryptoFactory.Default,
+            typeof(SecretKey),
             AlgorithmCodes.KeyManagement.None),
     };
 }

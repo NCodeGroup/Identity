@@ -32,14 +32,12 @@ public class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new EcdhKeyWrapAlgorithmDescriptor(
-            EcdhCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.EcdhEs,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
             HashBitLength: 256),
 
         new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
-            EcdhCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.EcdhEsAes128,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
@@ -47,7 +45,6 @@ public class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
             KeyBitLength: 128),
 
         new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
-            EcdhCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.EcdhEsAes192,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
@@ -55,7 +52,6 @@ public class EcdhAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
             KeyBitLength: 192),
 
         new EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor(
-            EcdhCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.EcdhEsAes256,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,

@@ -30,18 +30,21 @@ internal class HmacAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
         new KeyedHashAlgorithmDescriptor(
             HMACSHA256.TryHashData,
             KeyedHashAlgorithmCryptoFactory.Default,
+            typeof(SharedSecretKey),
             AlgorithmCodes.DigitalSignature.HmacSha256,
             HashBitLength: 256),
 
         new KeyedHashAlgorithmDescriptor(
             HMACSHA384.TryHashData,
             KeyedHashAlgorithmCryptoFactory.Default,
+            typeof(SharedSecretKey),
             AlgorithmCodes.DigitalSignature.HmacSha384,
             HashBitLength: 384),
 
         new KeyedHashAlgorithmDescriptor(
             HMACSHA512.TryHashData,
             KeyedHashAlgorithmCryptoFactory.Default,
+            typeof(SharedSecretKey),
             AlgorithmCodes.DigitalSignature.HmacSha512,
             HashBitLength: 512),
     };

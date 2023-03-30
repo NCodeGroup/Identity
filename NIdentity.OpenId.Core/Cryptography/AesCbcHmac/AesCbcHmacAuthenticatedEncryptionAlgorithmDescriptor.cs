@@ -17,7 +17,6 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.AesCbcHmac;
@@ -25,11 +24,16 @@ namespace NIdentity.OpenId.Cryptography.AesCbcHmac;
 public record AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor
 (
     KeyedHashFunctionDelegate KeyedHashFunction,
-    ICryptoFactory CryptoFactory,
     string AlgorithmCode,
     int KeyBitLength,
     int HashBitLength
-) : AuthenticatedEncryptionAlgorithmDescriptor(CryptoFactory, AlgorithmCode, KeyBitLength)
+) : AuthenticatedEncryptionAlgorithmDescriptor
+(
+    AesCbcHmacCryptoFactory.Default,
+    typeof(SharedSecretKey),
+    AlgorithmCode,
+    KeyBitLength
+)
 {
     /// <summary>
     /// Contains the block size, in bits, of the cryptographic operation.

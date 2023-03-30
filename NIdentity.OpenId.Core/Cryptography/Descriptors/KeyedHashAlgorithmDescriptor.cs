@@ -31,11 +31,13 @@ public record KeyedHashAlgorithmDescriptor
 (
     KeyedHashFunctionDelegate KeyedHashFunction,
     ICryptoFactory CryptoFactory,
+    Type SecretKeyType,
     string AlgorithmCode,
     int HashBitLength
 ) : SignatureAlgorithmDescriptor
 (
     CryptoFactory,
+    SecretKeyType,
     AlgorithmCode,
     HashBitLength
 );

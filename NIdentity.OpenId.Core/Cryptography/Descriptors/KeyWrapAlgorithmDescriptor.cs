@@ -24,10 +24,12 @@ namespace NIdentity.OpenId.Cryptography.Descriptors;
 public record KeyWrapAlgorithmDescriptor
 (
     ICryptoFactory CryptoFactory,
+    Type SecretKeyType,
     string AlgorithmCode
 ) : AlgorithmDescriptor
 (
     CryptoFactory,
+    SecretKeyType,
     AlgorithmTypes.KeyManagement,
     AlgorithmCode
 );

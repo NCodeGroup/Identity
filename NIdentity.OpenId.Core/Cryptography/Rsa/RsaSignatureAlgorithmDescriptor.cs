@@ -18,21 +18,20 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Rsa;
 
 public record RsaSignatureAlgorithmDescriptor
 (
-    ICryptoFactory CryptoFactory,
     string AlgorithmCode,
     HashAlgorithmName HashAlgorithmName,
     int HashByteLength,
     RSASignaturePadding Padding
 ) : HashSignatureAlgorithmDescriptor
 (
-    CryptoFactory,
+    RsaCryptoFactory.Default,
+    typeof(RsaSecretKey),
     AlgorithmCode,
     HashAlgorithmName,
     HashByteLength

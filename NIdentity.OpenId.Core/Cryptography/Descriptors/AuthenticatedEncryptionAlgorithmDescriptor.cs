@@ -24,11 +24,13 @@ namespace NIdentity.OpenId.Cryptography.Descriptors;
 public abstract record AuthenticatedEncryptionAlgorithmDescriptor
 (
     ICryptoFactory CryptoFactory,
+    Type SecretKeyType,
     string AlgorithmCode,
     int KeyBitLength
 ) : AlgorithmDescriptor
 (
     CryptoFactory,
+    SecretKeyType,
     AlgorithmTypes.AuthenticatedEncryption,
     AlgorithmCode
 )

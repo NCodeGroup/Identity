@@ -31,17 +31,14 @@ public class AesAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new AesKeyWrapAlgorithmDescriptor(
-            AesCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.Aes128,
             KeyBitLength: 128),
 
         new AesKeyWrapAlgorithmDescriptor(
-            AesCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.Aes192,
             KeyBitLength: 192),
 
         new AesKeyWrapAlgorithmDescriptor(
-            AesCryptoFactory.Default,
             AlgorithmCodes.KeyManagement.Aes256,
             KeyBitLength: 256),
     };

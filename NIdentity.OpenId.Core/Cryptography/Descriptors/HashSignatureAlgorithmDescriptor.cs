@@ -25,12 +25,14 @@ namespace NIdentity.OpenId.Cryptography.Descriptors;
 public record HashSignatureAlgorithmDescriptor
 (
     ICryptoFactory CryptoFactory,
+    Type SecretKeyType,
     string AlgorithmCode,
     HashAlgorithmName HashAlgorithmName,
     int HashBitLength
 ) : SignatureAlgorithmDescriptor
 (
     CryptoFactory,
+    SecretKeyType,
     AlgorithmCode,
     HashBitLength
 );

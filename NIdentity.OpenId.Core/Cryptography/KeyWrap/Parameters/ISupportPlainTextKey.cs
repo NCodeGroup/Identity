@@ -17,22 +17,15 @@
 
 #endregion
 
-using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.Signature;
+namespace NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-namespace NIdentity.OpenId.Cryptography.Rsa;
-
-public record RsaSignatureAlgorithmDescriptor
-(
-    string AlgorithmCode,
-    HashAlgorithmName HashAlgorithmName,
-    int HashByteLength,
-    RSASignaturePadding Padding
-) : HashSignatureAlgorithmDescriptor
-(
-    RsaCryptoFactory.Default,
-    typeof(RsaSecretKey),
-    AlgorithmCode,
-    HashAlgorithmName,
-    HashByteLength
-);
+/// <summary>
+/// Specifies that the current instance supports plain text key material.
+/// </summary>
+public interface ISupportPlainTextKey
+{
+    /// <summary>
+    /// Gets the plain text key material for the current instance.
+    /// </summary>
+    ReadOnlyMemory<byte> PlainTextKey { get; }
+}

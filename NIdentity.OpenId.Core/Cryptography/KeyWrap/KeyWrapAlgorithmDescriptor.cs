@@ -17,26 +17,20 @@
 
 #endregion
 
-using System.Buffers;
+using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography;
+namespace NIdentity.OpenId.Cryptography.KeyWrap;
 
-internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
-{
-    public MemorySegment(ReadOnlyMemory<T> memory)
-    {
-        Memory = memory;
-    }
-
-    public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
-    {
-        var segment = new MemorySegment<T>(memory)
-        {
-            RunningIndex = RunningIndex + Memory.Length
-        };
-
-        Next = segment;
-
-        return segment;
-    }
-}
+public record KeyWrapAlgorithmDescriptor
+(
+    ICryptoFactory CryptoFactory,
+    Type SecretKeyType,
+    string AlgorithmCode
+) : AlgorithmDescriptor
+(
+    CryptoFactory,
+    SecretKeyType,
+    AlgorithmTypes.KeyManagement,
+    AlgorithmCode
+);

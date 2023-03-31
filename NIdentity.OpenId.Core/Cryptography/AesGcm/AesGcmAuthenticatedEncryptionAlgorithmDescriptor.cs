@@ -17,7 +17,7 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Aead;
 
 namespace NIdentity.OpenId.Cryptography.AesGcm;
 

@@ -17,15 +17,10 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
 /// <summary>
-/// Specifies that the current instance supports cipher text key material.
+/// Represents the parameters for all cryptographic key unwrap operations.
+/// Derived classes will contain the actual algorithm specific arguments.
 /// </summary>
-public interface ISupportCipherTextKey
-{
-    /// <summary>
-    /// Gets the cipher text key material for the current instance.
-    /// </summary>
-    ReadOnlyMemory<byte> CipherTextKey { get; }
-}
+public record KeyWrapParameters;

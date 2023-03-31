@@ -20,7 +20,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 
-namespace NIdentity.OpenId.Cryptography;
+namespace NIdentity.OpenId.Cryptography.Binary;
 
 internal static class BinaryUtility
 {

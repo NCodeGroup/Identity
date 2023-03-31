@@ -19,7 +19,8 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Aead;
+using NIdentity.OpenId.Cryptography.Binary;
 
 namespace NIdentity.OpenId.Cryptography.AesCbcHmac;
 

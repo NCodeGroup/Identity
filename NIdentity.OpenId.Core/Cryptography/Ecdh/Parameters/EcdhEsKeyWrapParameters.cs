@@ -17,15 +17,15 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-/// <summary>
-/// Specifies that the current instance supports plain text key material.
-/// </summary>
-public interface ISupportPlainTextKey
-{
-    /// <summary>
-    /// Gets the plain text key material for the current instance.
-    /// </summary>
-    ReadOnlyMemory<byte> PlainTextKey { get; }
-}
+namespace NIdentity.OpenId.Cryptography.Ecdh.Parameters;
+
+public record EcdhEsKeyWrapParameters
+(
+    ECDiffieHellman RecipientKey,
+    int KeyBitLength,
+    string PartyUInfo,
+    string PartyVInfo
+) : KeyWrapParameters, IEcdhEsAgreement;

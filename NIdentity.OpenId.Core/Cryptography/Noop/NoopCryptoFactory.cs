@@ -18,7 +18,8 @@
 #endregion
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
-using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.KeyWrap;
+using NIdentity.OpenId.Cryptography.Signature;
 
 namespace NIdentity.OpenId.Cryptography.Noop;
 

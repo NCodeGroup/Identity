@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Aes;
 using NIdentity.OpenId.Cryptography.Ecc;
 using NIdentity.OpenId.Cryptography.Ecdh;
+using NIdentity.OpenId.Cryptography.Ecdh.Parameters;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Cryptography.Ecdh;

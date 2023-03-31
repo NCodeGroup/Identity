@@ -17,10 +17,22 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-/// <summary>
-/// Represents the parameters for all cryptographic key unwrap operations.
-/// Derived classes will contain the actual algorithm specific arguments.
-/// </summary>
-public record KeyWrapParameters;
+namespace NIdentity.OpenId.Cryptography.Ecdh.Parameters;
+
+public record EcdhEsKeyUnwrapWithAesKeyUnwrapParameters
+(
+    ReadOnlyMemory<byte> CipherTextKey,
+    ECDiffieHellmanPublicKey SenderPublicKey,
+    int KeyBitLength,
+    string PartyUInfo,
+    string PartyVInfo
+) : EcdhEsKeyUnwrapParameters
+(
+    SenderPublicKey,
+    KeyBitLength,
+    PartyUInfo,
+    PartyVInfo
+), ISupportCipherTextKey;

@@ -17,15 +17,13 @@
 
 #endregion
 
-using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-namespace NIdentity.OpenId.Cryptography.Ecdh;
-
-public record EcdhEsKeyUnwrapParameters
+/// <summary>
+/// Contains the parameters required for cryptographic key unwrap operations using a cipher text key.
+/// </summary>
+/// <param name="CipherTextKey">The key to decrypt.</param>
+public record ContentKeyUnwrapParameters
 (
-    ECDiffieHellmanPublicKey SenderPublicKey,
-    int KeyBitLength,
-    string PartyUInfo,
-    string PartyVInfo
-) : KeyUnwrapParameters, IEcdhEsAgreement;
+    ReadOnlyMemory<byte> CipherTextKey
+) : KeyUnwrapParameters, ISupportCipherTextKey;

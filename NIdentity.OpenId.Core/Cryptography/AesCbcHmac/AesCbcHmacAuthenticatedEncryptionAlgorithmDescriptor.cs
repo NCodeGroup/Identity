@@ -17,7 +17,9 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Aead;
+using NIdentity.OpenId.Cryptography.Binary;
+using NIdentity.OpenId.Cryptography.Signature;
 
 namespace NIdentity.OpenId.Cryptography.AesCbcHmac;
 

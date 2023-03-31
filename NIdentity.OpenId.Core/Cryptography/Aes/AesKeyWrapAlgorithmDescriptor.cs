@@ -17,8 +17,8 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.CryptoProvider;
-using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Binary;
+using NIdentity.OpenId.Cryptography.KeyWrap;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 

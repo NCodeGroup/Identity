@@ -17,19 +17,22 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 
-namespace NIdentity.OpenId.Cryptography.Descriptors;
+namespace NIdentity.OpenId.Cryptography.Signature;
 
-public record KeyWrapAlgorithmDescriptor
+public record HashSignatureAlgorithmDescriptor
 (
     ICryptoFactory CryptoFactory,
     Type SecretKeyType,
-    string AlgorithmCode
-) : AlgorithmDescriptor
+    string AlgorithmCode,
+    HashAlgorithmName HashAlgorithmName,
+    int HashBitLength
+) : SignatureAlgorithmDescriptor
 (
     CryptoFactory,
     SecretKeyType,
-    AlgorithmTypes.KeyManagement,
-    AlgorithmCode
+    AlgorithmCode,
+    HashBitLength
 );

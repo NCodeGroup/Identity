@@ -19,8 +19,8 @@
 
 using NIdentity.OpenId.Cryptography.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
-using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Ecc;
+using NIdentity.OpenId.Cryptography.KeyWrap;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 

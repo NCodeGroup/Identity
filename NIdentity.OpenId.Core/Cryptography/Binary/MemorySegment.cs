@@ -17,13 +17,26 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+using System.Buffers;
 
-/// <summary>
-/// Contains the parameters required for cryptographic key unwrap operations using a cipher text key.
-/// </summary>
-/// <param name="CipherTextKey">The key to decrypt.</param>
-public record ContentKeyUnwrapParameters
-(
-    ReadOnlyMemory<byte> CipherTextKey
-) : KeyUnwrapParameters, ISupportCipherTextKey;
+namespace NIdentity.OpenId.Cryptography.Binary;
+
+internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
+{
+    public MemorySegment(ReadOnlyMemory<T> memory)
+    {
+        Memory = memory;
+    }
+
+    public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
+    {
+        var segment = new MemorySegment<T>(memory)
+        {
+            RunningIndex = RunningIndex + Memory.Length
+        };
+
+        Next = segment;
+
+        return segment;
+    }
+}

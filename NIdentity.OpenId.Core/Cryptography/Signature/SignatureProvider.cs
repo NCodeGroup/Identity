@@ -18,9 +18,9 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Binary;
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.Signature;
 
 /// <summary>
 /// Base implementation for all cryptographic digital signature algorithms.

@@ -20,8 +20,11 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.Ecc;
+using NIdentity.OpenId.Cryptography.Ecdh.Parameters;
+using NIdentity.OpenId.Cryptography.KeyWrap;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 

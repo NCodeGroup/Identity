@@ -17,10 +17,27 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.CryptoProvider;
 
-/// <summary>
-/// Represents the parameters for all cryptographic key wrap operations.
-/// Derived classes will contain the actual algorithm specific arguments.
-/// </summary>
-public record KeyUnwrapParameters;
+namespace NIdentity.OpenId.Cryptography.Signature;
+
+public delegate bool KeyedHashFunctionDelegate(
+    ReadOnlySpan<byte> key,
+    ReadOnlySpan<byte> source,
+    Span<byte> destination,
+    out int bytesWritten);
+
+public record KeyedHashAlgorithmDescriptor
+(
+    KeyedHashFunctionDelegate KeyedHashFunction,
+    ICryptoFactory CryptoFactory,
+    Type SecretKeyType,
+    string AlgorithmCode,
+    int HashBitLength
+) : SignatureAlgorithmDescriptor
+(
+    CryptoFactory,
+    SecretKeyType,
+    AlgorithmCode,
+    HashBitLength
+);

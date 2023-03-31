@@ -17,9 +17,7 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.Descriptors;
-
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.Signature;
 
 /// <summary>
 /// Provides an implementation of <see cref="SignatureProvider"/> that uses a keyed hash digital signature algorithm.
@@ -40,7 +38,7 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
     /// Initializes a new instance of the <see cref="KeyedHashAlgorithmSignatureProvider"/> class.
     /// </summary>
     /// <param name="secretKey">Contains the key material used by the keyed hash algorithm.</param>
-    /// <param name="descriptor">Contains the <see cref="Descriptors.KeyedHashAlgorithmDescriptor"/> that describes the keyed hash algorithm.</param>
+    /// <param name="descriptor">Contains the <see cref="Signature.KeyedHashAlgorithmDescriptor"/> that describes the keyed hash algorithm.</param>
     public KeyedHashAlgorithmSignatureProvider(SharedSecretKey secretKey, KeyedHashAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {

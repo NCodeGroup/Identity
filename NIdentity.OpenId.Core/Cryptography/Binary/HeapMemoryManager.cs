@@ -21,7 +21,7 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
-namespace NIdentity.OpenId.Cryptography;
+namespace NIdentity.OpenId.Cryptography.Binary;
 
 /// <summary>
 /// Provides an implementation of <see cref="MemoryManager{T}"/> that allocates a byte buffer from the heap.

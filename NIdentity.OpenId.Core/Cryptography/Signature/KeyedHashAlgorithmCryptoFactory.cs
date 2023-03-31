@@ -19,25 +19,21 @@
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 
-namespace NIdentity.OpenId.Cryptography.Descriptors;
+namespace NIdentity.OpenId.Cryptography.Signature;
 
-public delegate bool KeyedHashFunctionDelegate(
-    ReadOnlySpan<byte> key,
-    ReadOnlySpan<byte> source,
-    Span<byte> destination,
-    out int bytesWritten);
+/// <summary>
+/// Provides factory methods to create providers for various keyed hash cryptographic algorithms.
+/// </summary>
+public class KeyedHashAlgorithmCryptoFactory : CryptoFactory<KeyedHashAlgorithmCryptoFactory>
+{
+    /// <inheritdoc />
+    public override SignatureProvider CreateSignatureProvider(
+        SecretKey secretKey,
+        SignatureAlgorithmDescriptor descriptor)
+    {
+        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
+        var typedDescriptor = ValidateDescriptor<KeyedHashAlgorithmDescriptor>(descriptor);
 
-public record KeyedHashAlgorithmDescriptor
-(
-    KeyedHashFunctionDelegate KeyedHashFunction,
-    ICryptoFactory CryptoFactory,
-    Type SecretKeyType,
-    string AlgorithmCode,
-    int HashBitLength
-) : SignatureAlgorithmDescriptor
-(
-    CryptoFactory,
-    SecretKeyType,
-    AlgorithmCode,
-    HashBitLength
-);
+        return new KeyedHashAlgorithmSignatureProvider(typedSecretKey, typedDescriptor);
+    }
+}

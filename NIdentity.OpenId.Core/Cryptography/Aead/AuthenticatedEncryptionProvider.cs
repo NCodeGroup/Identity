@@ -17,9 +17,7 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.Descriptors;
-
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.Aead;
 
 /// <summary>
 /// Base implementation for all cryptographic authenticated encryption <c>AEAD</c> algorithms.

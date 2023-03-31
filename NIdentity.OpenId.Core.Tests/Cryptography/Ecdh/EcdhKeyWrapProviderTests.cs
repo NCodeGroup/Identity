@@ -20,8 +20,10 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.Ecc;
 using NIdentity.OpenId.Cryptography.Ecdh;
+using NIdentity.OpenId.Cryptography.Ecdh.Parameters;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Cryptography.Ecdh;

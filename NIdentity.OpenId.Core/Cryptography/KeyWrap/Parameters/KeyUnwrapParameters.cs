@@ -17,26 +17,10 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-namespace NIdentity.OpenId.Cryptography.Descriptors;
-
-public record SignatureAlgorithmDescriptor
-(
-    ICryptoFactory CryptoFactory,
-    Type SecretKeyType,
-    string AlgorithmCode,
-    int HashBitLength
-) : AlgorithmDescriptor
-(
-    CryptoFactory,
-    SecretKeyType,
-    AlgorithmTypes.DigitalSignature,
-    AlgorithmCode
-)
-{
-    /// <summary>
-    /// Gets the number of bytes for the <c>digital signature hash</c>.
-    /// </summary>
-    public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
-}
+/// <summary>
+/// Represents the parameters for all cryptographic key wrap operations.
+/// Derived classes will contain the actual algorithm specific arguments.
+/// </summary>
+public record KeyUnwrapParameters;

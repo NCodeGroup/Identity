@@ -17,10 +17,20 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.CryptoProvider;
-using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Aead;
+using NIdentity.OpenId.Cryptography.KeyWrap;
+using NIdentity.OpenId.Cryptography.Signature;
 
 namespace NIdentity.OpenId.Cryptography;
+
+public interface ISecretKeyFactory
+{
+    Type SecretKeyType { get; }
+
+    // SharedSecretKey: random key length or specific key length
+
+    SecretKey GenerateNewKey();
+}
 
 public abstract class SecretKey : IDisposable
 {

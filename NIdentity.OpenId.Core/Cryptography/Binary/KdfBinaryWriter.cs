@@ -21,7 +21,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
 
-namespace NIdentity.OpenId.Cryptography;
+namespace NIdentity.OpenId.Cryptography.Binary;
 
 internal class KdfBinaryWriter : BinaryWriter
 {

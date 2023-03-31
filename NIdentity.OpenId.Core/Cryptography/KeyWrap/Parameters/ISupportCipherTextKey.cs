@@ -17,22 +17,15 @@
 
 #endregion
 
-using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-namespace NIdentity.OpenId.Cryptography.Ecdh;
-
-public record EcdhEsKeyUnwrapWithAesKeyUnwrapParameters
-(
-    ReadOnlyMemory<byte> CipherTextKey,
-    ECDiffieHellmanPublicKey SenderPublicKey,
-    int KeyBitLength,
-    string PartyUInfo,
-    string PartyVInfo
-) : EcdhEsKeyUnwrapParameters
-(
-    SenderPublicKey,
-    KeyBitLength,
-    PartyUInfo,
-    PartyVInfo
-), ISupportCipherTextKey;
+/// <summary>
+/// Specifies that the current instance supports cipher text key material.
+/// </summary>
+public interface ISupportCipherTextKey
+{
+    /// <summary>
+    /// Gets the cipher text key material for the current instance.
+    /// </summary>
+    ReadOnlyMemory<byte> CipherTextKey { get; }
+}

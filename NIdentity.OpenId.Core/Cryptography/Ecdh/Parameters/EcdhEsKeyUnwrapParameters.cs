@@ -18,14 +18,14 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-namespace NIdentity.OpenId.Cryptography.Ecdh;
+namespace NIdentity.OpenId.Cryptography.Ecdh.Parameters;
 
-public record EcdhEsKeyWrapParameters
+public record EcdhEsKeyUnwrapParameters
 (
-    ECDiffieHellman RecipientKey,
+    ECDiffieHellmanPublicKey SenderPublicKey,
     int KeyBitLength,
     string PartyUInfo,
     string PartyVInfo
-) : KeyWrapParameters, IEcdhEsAgreement;
+) : KeyUnwrapParameters, IEcdhEsAgreement;

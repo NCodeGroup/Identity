@@ -18,7 +18,8 @@
 #endregion
 
 using System.Buffers;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.KeyWrap;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 

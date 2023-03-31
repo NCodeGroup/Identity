@@ -18,9 +18,9 @@
 #endregion
 
 using System.Buffers;
-using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+namespace NIdentity.OpenId.Cryptography.KeyWrap;
 
 /// <summary>
 /// Base implementation for all cryptographic key wrap algorithms.

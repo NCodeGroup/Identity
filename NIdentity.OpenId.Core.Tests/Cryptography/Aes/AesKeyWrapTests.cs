@@ -20,6 +20,7 @@
 using System.Buffers;
 using NIdentity.OpenId.Cryptography.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Cryptography.Aes;

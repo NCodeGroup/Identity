@@ -17,13 +17,22 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider;
+using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
-/// <summary>
-/// Contains the parameters required for cryptographic key wrap operations using a plain text key.
-/// </summary>
-/// <param name="PlainTextKey">The key to encrypt.</param>
-public record ContentKeyWrapParameters
+namespace NIdentity.OpenId.Cryptography.Ecdh.Parameters;
+
+public record EcdhEsKeyWrapWithAesKeyWrapParameters
 (
-    ReadOnlyMemory<byte> PlainTextKey
-) : KeyWrapParameters, ISupportPlainTextKey;
+    ReadOnlyMemory<byte> PlainTextKey,
+    ECDiffieHellman RecipientKey,
+    int KeyBitLength,
+    string PartyUInfo,
+    string PartyVInfo
+) : EcdhEsKeyWrapParameters
+(
+    RecipientKey,
+    KeyBitLength,
+    PartyUInfo,
+    PartyVInfo
+), ISupportPlainTextKey;

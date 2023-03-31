@@ -17,22 +17,26 @@
 
 #endregion
 
-using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
-
 namespace NIdentity.OpenId.Cryptography.Descriptors;
 
-public record HashSignatureAlgorithmDescriptor
-(
-    ICryptoFactory CryptoFactory,
-    Type SecretKeyType,
-    string AlgorithmCode,
-    HashAlgorithmName HashAlgorithmName,
-    int HashBitLength
-) : SignatureAlgorithmDescriptor
-(
-    CryptoFactory,
-    SecretKeyType,
-    AlgorithmCode,
-    HashBitLength
-);
+public interface IAlgorithmCollection
+{
+    IEnumerable<AlgorithmDescriptor> Descriptors { get; }
+}
+
+public class AlgorithmCollection : IAlgorithmCollection
+{
+    /// <inheritdoc />
+    public IEnumerable<AlgorithmDescriptor> Descriptors { get; }
+
+    public AlgorithmCollection(
+        IEnumerable<IAlgorithmDescriptorFilter> filters,
+        IEnumerable<IAlgorithmDescriptorProvider> providers)
+    {
+        var filtersList = filters.ToList();
+        Descriptors = providers
+            .SelectMany(provider => provider.Load())
+            .Where(descriptor => filtersList.All(filter => !filter.Exclude(descriptor)))
+            .ToArray();
+    }
+}

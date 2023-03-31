@@ -17,9 +17,11 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.Descriptors;
+namespace NIdentity.OpenId.Cryptography.Aead;
 
 public abstract record AuthenticatedEncryptionAlgorithmDescriptor
 (

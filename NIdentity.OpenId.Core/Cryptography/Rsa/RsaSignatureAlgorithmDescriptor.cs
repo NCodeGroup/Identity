@@ -18,7 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Signature;
 
 namespace NIdentity.OpenId.Cryptography.Rsa;
 

@@ -20,6 +20,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using NIdentity.OpenId.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Cryptography;

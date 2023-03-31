@@ -17,28 +17,28 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Binary;
+using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography;
+namespace NIdentity.OpenId.Cryptography.Signature;
 
-public interface IAlgorithmCollection
+public record SignatureAlgorithmDescriptor
+(
+    ICryptoFactory CryptoFactory,
+    Type SecretKeyType,
+    string AlgorithmCode,
+    int HashBitLength
+) : AlgorithmDescriptor
+(
+    CryptoFactory,
+    SecretKeyType,
+    AlgorithmTypes.DigitalSignature,
+    AlgorithmCode
+)
 {
-    IEnumerable<AlgorithmDescriptor> Descriptors { get; }
-}
-
-public class AlgorithmCollection : IAlgorithmCollection
-{
-    /// <inheritdoc />
-    public IEnumerable<AlgorithmDescriptor> Descriptors { get; }
-
-    public AlgorithmCollection(
-        IEnumerable<IAlgorithmDescriptorFilter> filters,
-        IEnumerable<IAlgorithmDescriptorProvider> providers)
-    {
-        var filtersList = filters.ToList();
-        Descriptors = providers
-            .SelectMany(provider => provider.Load())
-            .Where(descriptor => filtersList.All(filter => !filter.Exclude(descriptor)))
-            .ToArray();
-    }
+    /// <summary>
+    /// Gets the number of bytes for the <c>digital signature hash</c>.
+    /// </summary>
+    public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
 }

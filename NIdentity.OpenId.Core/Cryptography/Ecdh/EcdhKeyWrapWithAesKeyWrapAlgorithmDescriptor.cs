@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
 
 namespace NIdentity.OpenId.Cryptography.Ecdh;
 

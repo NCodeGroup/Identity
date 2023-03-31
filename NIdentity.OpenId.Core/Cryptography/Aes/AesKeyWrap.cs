@@ -19,7 +19,8 @@
 
 using System.Buffers;
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Binary;
+using NIdentity.OpenId.Cryptography.KeyWrap.Parameters;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
 

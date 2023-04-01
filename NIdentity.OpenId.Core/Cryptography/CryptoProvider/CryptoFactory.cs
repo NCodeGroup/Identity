@@ -17,10 +17,14 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.Aead;
+using NIdentity.OpenId.Cryptography.CryptoProvider.Aead;
+using NIdentity.OpenId.Cryptography.CryptoProvider.Aead.Descriptors;
+using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
+using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Descriptors;
+using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
+using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
 using NIdentity.OpenId.Cryptography.Descriptors;
-using NIdentity.OpenId.Cryptography.KeyWrap;
-using NIdentity.OpenId.Cryptography.Signature;
+using NIdentity.OpenId.Cryptography.Keys;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
@@ -29,8 +33,19 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 /// </summary>
 public interface ICryptoFactory
 {
+    /// <summary>
+    /// Gets the <see cref="Type"/> of the <see cref="SecretKey"/> used by this <see cref="ICryptoFactory"/>.
+    /// </summary>
     Type SecretKeyType { get; }
 
+    /// <summary>
+    /// Generates a new <see cref="SecretKey"/> for the specified algorithm <paramref name="descriptor"/> with a key size hint.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
+    /// <param name="keyBitLengthHint">A hint for the new key size in bites.
+    /// This value is verified against the legal key sizes for the algorithm.
+    /// If omitted, the first legal key size is used.</param>
+    /// <returns></returns>
     SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
 
     /// <summary>
@@ -134,6 +149,7 @@ public abstract class CryptoFactory : ICryptoFactory
 /// Provides a default implementation of <see cref="ICryptoFactory"/> where all the methods throw unless overriden.
 /// </summary>
 /// <typeparam name="TFactory">The concrete <see cref="ICryptoFactory"/> type.</typeparam>
+/// <typeparam name="TKey">The type of <see cref="SecretKey"/> that this <see cref="ICryptoFactory"/> uses.</typeparam>
 public abstract class CryptoFactory<TFactory, TKey> : CryptoFactory
     where TFactory : CryptoFactory<TFactory, TKey>, new()
     where TKey : SecretKey
@@ -150,5 +166,13 @@ public abstract class CryptoFactory<TFactory, TKey> : CryptoFactory
     public override SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
         CoreGenerateNewKey(descriptor, keyBitLengthHint);
 
+    /// <summary>
+    /// Generates a new <see cref="SecretKey"/> for the specified algorithm <paramref name="descriptor"/> with a key size hint.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
+    /// <param name="keyBitLengthHint">A hint for the new key size in bites.
+    /// This value is verified against the legal key sizes for the algorithm.
+    /// If omitted, the first legal key size is used.</param>
+    /// <returns></returns>
     protected abstract TKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
 }

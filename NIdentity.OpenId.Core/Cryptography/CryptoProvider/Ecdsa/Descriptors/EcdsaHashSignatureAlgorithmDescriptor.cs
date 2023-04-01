@@ -36,10 +36,10 @@ public record EcdsaHashSignatureAlgorithmDescriptor
     AlgorithmCode,
     HashAlgorithmName,
     HashBitLength
-), ISupportKeySizes
+), ISupportLegalSizes
 {
     /// <inheritdoc />
-    public IEnumerable<KeySizes> KeySizes { get; } = new[]
+    public IEnumerable<KeySizes> LegalSizes { get; } = new[]
     {
         new KeySizes(HashBitLength, HashBitLength, 0)
     };

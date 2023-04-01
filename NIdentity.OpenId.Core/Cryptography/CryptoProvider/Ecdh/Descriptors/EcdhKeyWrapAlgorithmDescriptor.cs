@@ -36,16 +36,16 @@ public record EcdhKeyWrapAlgorithmDescriptor
     EcdhCryptoFactory.Default,
     typeof(EccSecretKey),
     AlgorithmCode
-), ISupportKeySizes
+), ISupportLegalSizes
 {
-    private static IEnumerable<KeySizes> StaticKeySizes { get; } = new[]
+    private static IEnumerable<KeySizes> StaticLegalSizes { get; } = new[]
     {
         new KeySizes(minSize: 256, maxSize: 384, skipSize: 128),
         new KeySizes(minSize: 521, maxSize: 521, skipSize: 0)
     };
 
     /// <inheritdoc />
-    public IEnumerable<KeySizes> KeySizes => StaticKeySizes;
+    public IEnumerable<KeySizes> LegalSizes => StaticLegalSizes;
 
     /// <summary>
     /// Gets the number of bytes for hash of the key agreement.

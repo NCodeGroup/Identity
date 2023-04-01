@@ -18,14 +18,19 @@
 #endregion
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Signature;
 
 /// <summary>
 /// Provides factory methods to create providers for various keyed hash cryptographic algorithms.
 /// </summary>
-public class KeyedHashAlgorithmCryptoFactory : CryptoFactory<KeyedHashAlgorithmCryptoFactory>
+public class KeyedHashAlgorithmCryptoFactory : CryptoFactory<KeyedHashAlgorithmCryptoFactory, SharedSecretKey>
 {
+    /// <inheritdoc />
+    protected override SharedSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        SharedSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(
         SecretKey secretKey,

@@ -19,6 +19,7 @@
 
 using NIdentity.OpenId.Cryptography.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Ecc;
 using NIdentity.OpenId.Cryptography.KeyWrap;
 
@@ -27,8 +28,12 @@ namespace NIdentity.OpenId.Cryptography.Ecdh;
 /// <summary>
 /// Provides factory methods to create providers for <c>ECDH</c> cryptographic algorithms.
 /// </summary>
-public class EcdhCryptoFactory : CryptoFactory<EcdhCryptoFactory>
+public class EcdhCryptoFactory : CryptoFactory<EcdhCryptoFactory, EccSecretKey>
 {
+    /// <inheritdoc />
+    protected override EccSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        EccSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+
     /// <inheritdoc />
     public override KeyWrapProvider CreateKeyWrapProvider(
         SecretKey secretKey,

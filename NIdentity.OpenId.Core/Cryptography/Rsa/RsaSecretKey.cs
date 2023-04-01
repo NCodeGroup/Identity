@@ -18,11 +18,25 @@
 #endregion
 
 using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Rsa;
 
 public class RsaSecretKey : SecretKey
 {
+    public static RsaSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    {
+        using var rsa = RSA.Create();
+
+        if (descriptor is ISupportKeySizes supportKeySizes)
+        {
+            rsa.KeySize = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportKeySizes.KeySizes);
+        }
+
+        return new RsaSecretKey(rsa.ExportParameters(includePrivateParameters: true));
+    }
+
     private RSAParameters? RSAParametersOrNull { get; set; }
 
     private RSAParameters RSAParameters => RSAParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);

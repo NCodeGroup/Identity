@@ -29,6 +29,10 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 /// </summary>
 public interface ICryptoFactory
 {
+    Type SecretKeyType { get; }
+
+    SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
+
     /// <summary>
     /// Creates an instance of <see cref="SignatureProvider"/> that can be used for digital signature algorithms.
     /// </summary>
@@ -65,6 +69,12 @@ public interface ICryptoFactory
 /// </summary>
 public abstract class CryptoFactory : ICryptoFactory
 {
+    /// <inheritdoc />
+    public abstract Type SecretKeyType { get; }
+
+    /// <inheritdoc />
+    public abstract SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
+
     /// <summary>
     /// Validates that the specified <paramref name="secretKey"/> is an instance of <typeparamref name="T"/>.
     /// </summary>
@@ -123,12 +133,22 @@ public abstract class CryptoFactory : ICryptoFactory
 /// <summary>
 /// Provides a default implementation of <see cref="ICryptoFactory"/> where all the methods throw unless overriden.
 /// </summary>
-/// <typeparam name="T">The concrete <see cref="ICryptoFactory"/> type.</typeparam>
-public abstract class CryptoFactory<T> : CryptoFactory
-    where T : CryptoFactory<T>, new()
+/// <typeparam name="TFactory">The concrete <see cref="ICryptoFactory"/> type.</typeparam>
+public abstract class CryptoFactory<TFactory, TKey> : CryptoFactory
+    where TFactory : CryptoFactory<TFactory, TKey>, new()
+    where TKey : SecretKey
 {
     /// <summary>
-    /// Provides a default singleton instance for <typeparamref name="T"/>.
+    /// Provides a default singleton instance for <typeparamref name="TFactory"/>.
     /// </summary>
-    public static ICryptoFactory Default { get; } = new T();
+    public static ICryptoFactory Default { get; } = new TFactory();
+
+    /// <inheritdoc />
+    public override Type SecretKeyType => typeof(TKey);
+
+    /// <inheritdoc />
+    public override SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        CoreGenerateNewKey(descriptor, keyBitLengthHint);
+
+    protected abstract TKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
 }

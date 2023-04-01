@@ -19,14 +19,19 @@
 
 using NIdentity.OpenId.Cryptography.Aead;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.AesCbcHmac;
 
 /// <summary>
 /// Provides factory methods to create providers for <c>AES CBC HMAC SHA2</c> cryptographic algorithms.
 /// </summary>
-public class AesCbcHmacCryptoFactory : CryptoFactory<AesCbcHmacCryptoFactory>
+public class AesCbcHmacCryptoFactory : CryptoFactory<AesCbcHmacCryptoFactory, SharedSecretKey>
 {
+    /// <inheritdoc />
+    protected override SharedSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        SharedSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+
     /// <inheritdoc />
     public override AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(
         SecretKey secretKey,

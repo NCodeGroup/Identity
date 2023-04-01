@@ -19,14 +19,19 @@
 
 using NIdentity.OpenId.Cryptography.Aead;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.AesGcm;
 
 /// <summary>
 /// Provides factory methods to create providers for <c>AES-GCM</c> cryptographic algorithms.
 /// </summary>
-public class AesGcmCryptoFactory : CryptoFactory<AesGcmCryptoFactory>
+public class AesGcmCryptoFactory : CryptoFactory<AesGcmCryptoFactory, SharedSecretKey>
 {
+    /// <inheritdoc />
+    protected override SharedSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        SharedSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+
     /// <inheritdoc />
     public override AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(
         SecretKey secretKey,

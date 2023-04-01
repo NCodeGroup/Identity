@@ -18,11 +18,49 @@
 #endregion
 
 using System.Buffers;
+using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography;
 
 public class SharedSecretKey : SecretKey
 {
+    public static RandomNumberGenerator RandomNumberGenerator { get; } = RandomNumberGenerator.Create();
+
+    public static SharedSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    {
+        var keySizeBytes = GetKeySizeBytes(descriptor, keyBitLengthHint);
+
+        IMemoryOwner<byte> memoryOwner = new HeapMemoryManager(keySizeBytes);
+        try
+        {
+            RandomNumberGenerator.GetBytes(memoryOwner.Memory.Span);
+            return new SharedSecretKey(memoryOwner);
+        }
+        catch
+        {
+            memoryOwner.Dispose();
+            throw;
+        }
+    }
+
+    private static int GetKeySizeBytes(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    {
+        int keySizeBits;
+        if (descriptor is ISupportKeySizes supportKeySizes)
+        {
+            keySizeBits = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportKeySizes.KeySizes);
+        }
+        else
+        {
+            const int defaultSizeBits = 128;
+            keySizeBits = keyBitLengthHint ?? defaultSizeBits;
+        }
+
+        return keySizeBits / BinaryUtility.BitsPerByte;
+    }
+
     private IMemoryOwner<byte> MemoryOwner { get; }
 
     public int KeyByteLength => MemoryOwner.Memory.Length;

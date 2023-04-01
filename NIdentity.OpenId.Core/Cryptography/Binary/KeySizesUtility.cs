@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -18,22 +18,28 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.Rsa;
+namespace NIdentity.OpenId.Cryptography.Binary;
 
-public class RsaSecretKeyFactory : SecretKeyFactory<RsaSecretKey, RsaSecretKeyFactory>
+public static class KeySizesUtility
 {
-    /// <inheritdoc />
-    protected override RsaSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    public static int GetLegalSize(int? hint, IEnumerable<KeySizes> legalSizes)
     {
-        using var rsa = RSA.Create();
-
-        if (descriptor is ISupportKeySizes supportKeySizes)
+        foreach (var legalSize in legalSizes)
         {
-            rsa.KeySize = GetLegalSize(keyBitLengthHint, supportKeySizes.KeySizes);
+            if (hint.HasValue && IsLegalSize(hint.Value, legalSize))
+            {
+                return hint.Value;
+            }
+
+            return legalSize.MinSize;
         }
 
-        return new RsaSecretKey(rsa.ExportParameters(includePrivateParameters: true));
+        throw new InvalidOperationException();
     }
+
+    public static bool IsLegalSize(int size, KeySizes legalSize) =>
+        size >= legalSize.MinSize &&
+        size <= legalSize.MaxSize &&
+        (size - legalSize.MinSize) % legalSize.SkipSize == 0;
 }

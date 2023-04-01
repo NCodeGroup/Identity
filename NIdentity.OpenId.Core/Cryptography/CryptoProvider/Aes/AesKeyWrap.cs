@@ -35,24 +35,20 @@ public interface IAesKeyWrap
     /// </summary>
     /// <param name="kek">Contains the key encryption key.</param>
     /// <param name="parameters">Contains the plain text to be encrypted.</param>
-    /// <param name="keyBitLength">The expected length of <paramref name="kek"/> in bits.</param>
     /// <returns>The result of encrypting the plain text to cipher text.</returns>
     ReadOnlySequence<byte> WrapKey(
         ReadOnlySpan<byte> kek,
-        ISupportPlainTextKey parameters,
-        int keyBitLength);
+        ISupportPlainTextKey parameters);
 
     /// <summary>
     /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
     /// </summary>
     /// <param name="kek">Contains the key encryption key.</param>
     /// <param name="parameters">Contains the cipher text to be decrypted.</param>
-    /// <param name="keyBitLength">The expected length of <paramref name="kek"/> in bits.</param>
     /// <returns>The result of decrypting the cipher text to plain text.</returns>
     ReadOnlySequence<byte> UnwrapKey(
         ReadOnlySpan<byte> kek,
-        ISupportCipherTextKey parameters,
-        int keyBitLength);
+        ISupportCipherTextKey parameters);
 }
 
 /// <summary>
@@ -83,21 +79,13 @@ public class AesKeyWrap : IAesKeyWrap
     /// <inheritdoc />
     public ReadOnlySequence<byte> WrapKey(
         ReadOnlySpan<byte> kek,
-        ISupportPlainTextKey parameters,
-        int keyBitLength)
+        ISupportPlainTextKey parameters)
     {
         /*
            Inputs:  Plaintext, n 64-bit values {P1, P2, ..., Pn}, and
                     Key, K (the KEK).
            Outputs: Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}.
         */
-
-        // TODO: does this really need to be here?
-        if (kek.Length * BinaryUtility.BitsPerByte != keyBitLength)
-        {
-            // TODO: unit tests
-            throw new InvalidOperationException();
-        }
 
         var plainTextKey = parameters.PlainTextKey;
         if (plainTextKey.Length < IntermediateByteCount)
@@ -179,21 +167,13 @@ public class AesKeyWrap : IAesKeyWrap
     /// <inheritdoc />
     public ReadOnlySequence<byte> UnwrapKey(
         ReadOnlySpan<byte> kek,
-        ISupportCipherTextKey parameters,
-        int keyBitLength)
+        ISupportCipherTextKey parameters)
     {
         /*
            Inputs:  Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}, and
                     Key, K (the KEK).
            Outputs: Plaintext, n 64-bit values {P0, P1, K, Pn}.
         */
-
-        // TODO: does this really need to be here?
-        if (kek.Length * BinaryUtility.BitsPerByte != keyBitLength)
-        {
-            // TODO: unit tests
-            throw new InvalidOperationException();
-        }
 
         var cipherTextKey = parameters.CipherTextKey;
         if (cipherTextKey.Length < IntermediateByteCount)

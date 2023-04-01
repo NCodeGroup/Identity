@@ -31,7 +31,6 @@ public class AesKeyWrapTests : BaseTests
     // https://asecuritysite.com/symmetric/kek
 
     // 0x000102030405060708090A0B0C0D0E0F
-    private const int KeyBitLength = 128;
     private const string AesKeyB64 = "AAECAwQFBgcICQoLDA0ODw==";
 
     // 0x00112233445566778899AABBCCDDEEFF
@@ -54,7 +53,7 @@ public class AesKeyWrapTests : BaseTests
         var plainText = Convert.FromBase64String(ExpectedPlainText);
 
         var parameters = new ContentKeyWrapParameters(plainText);
-        var cipherText = AesKeyWrap.WrapKey(AesKey.Span, parameters, KeyBitLength);
+        var cipherText = AesKeyWrap.WrapKey(AesKey.Span, parameters);
 
         Assert.Equal(sizeof(long), cipherText.Length - plainText.Length);
         Assert.Equal(ExpectedCipherText, Convert.ToBase64String(cipherText.ToArray()));
@@ -66,7 +65,7 @@ public class AesKeyWrapTests : BaseTests
         var cipherText = Convert.FromBase64String(ExpectedCipherText);
 
         var parameters = new ContentKeyUnwrapParameters(cipherText);
-        var plainText = AesKeyWrap.UnwrapKey(AesKey.Span, parameters, KeyBitLength);
+        var plainText = AesKeyWrap.UnwrapKey(AesKey.Span, parameters);
 
         Assert.Equal(sizeof(long), cipherText.Length - plainText.Length);
         Assert.Equal(ExpectedPlainText, Convert.ToBase64String(plainText.ToArray()));
@@ -80,10 +79,10 @@ public class AesKeyWrapTests : BaseTests
         Random.Shared.NextBytes(expectedPlainText);
 
         var wrapParameters = new ContentKeyWrapParameters(expectedPlainText);
-        var cipherText = AesKeyWrap.WrapKey(AesKey.Span, wrapParameters, KeyBitLength);
+        var cipherText = AesKeyWrap.WrapKey(AesKey.Span, wrapParameters);
 
         var unWrapParameters = new ContentKeyUnwrapParameters(cipherText.ToArray());
-        var actualPlainText = AesKeyWrap.UnwrapKey(AesKey.Span, unWrapParameters, KeyBitLength);
+        var actualPlainText = AesKeyWrap.UnwrapKey(AesKey.Span, unWrapParameters);
 
         Assert.Equal(
             Convert.ToBase64String(expectedPlainText),

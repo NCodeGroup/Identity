@@ -18,8 +18,8 @@
 #endregion
 
 using System.Buffers;
-using NIdentity.OpenId.Cryptography.CryptoProvider.Aes.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
+using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
 using NIdentity.OpenId.Cryptography.Keys;
 
@@ -32,33 +32,24 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
 public class AesKeyWrapProvider : KeyWrapProvider
 {
     private IAesKeyWrap AesKeyWrap { get; }
-
-    /// <summary>
-    /// Gets the <see cref="SharedSecretKey"/> containing the key material used by the <c>AES</c> algorithm.
-    /// </summary>
-    public SharedSecretKey SharedSecretKey { get; }
-
-    private AesKeyWrapAlgorithmDescriptor Descriptor { get; }
+    private SharedSecretKey SharedSecretKey { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AesKeyWrapProvider"/> class.
     /// </summary>
     /// <param name="aesKeyWrap">Contains the <see cref="IAesKeyWrap"/> instance that implements the actual AES key wrap algorithm.</param>
     /// <param name="secretKey">Contains the <c>key encryption key (kek)</c> for the AES key wrap algorithm.</param>
-    /// <param name="descriptor">Contains the <see cref="AesKeyWrapAlgorithmDescriptor"/> the describes the AES key wrap algorithm.</param>
-    public AesKeyWrapProvider(IAesKeyWrap aesKeyWrap, SharedSecretKey secretKey, AesKeyWrapAlgorithmDescriptor descriptor) :
+    /// <param name="descriptor">Contains the <see cref="KeyWrapAlgorithmDescriptor"/> the describes the AES key wrap algorithm.</param>
+    public AesKeyWrapProvider(IAesKeyWrap aesKeyWrap, SharedSecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor) :
         base(secretKey, descriptor)
     {
         AesKeyWrap = aesKeyWrap;
         SharedSecretKey = secretKey;
-        Descriptor = descriptor;
     }
 
     /// <inheritdoc />
     public override ReadOnlySequence<byte> WrapKey(KeyWrapParameters parameters)
     {
-        // TODO: validate shared key length early
-
         if (parameters is not ContentKeyWrapParameters typedParameters)
         {
             // TODO: unit tests
@@ -67,15 +58,12 @@ public class AesKeyWrapProvider : KeyWrapProvider
 
         return AesKeyWrap.WrapKey(
             SharedSecretKey.KeyBytes,
-            typedParameters,
-            Descriptor.KeyBitLength);
+            typedParameters);
     }
 
     /// <inheritdoc />
     public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
     {
-        // TODO: validate shared key length early
-
         if (parameters is not ContentKeyUnwrapParameters typedParameters)
         {
             // TODO: unit tests
@@ -84,7 +72,6 @@ public class AesKeyWrapProvider : KeyWrapProvider
 
         return AesKeyWrap.UnwrapKey(
             SharedSecretKey.KeyBytes,
-            typedParameters,
-            Descriptor.KeyBitLength);
+            typedParameters);
     }
 }

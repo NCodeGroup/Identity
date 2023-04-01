@@ -18,6 +18,7 @@
 #endregion
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.KeyWrap;
 
 namespace NIdentity.OpenId.Cryptography.Aes;
@@ -25,8 +26,12 @@ namespace NIdentity.OpenId.Cryptography.Aes;
 /// <summary>
 /// Provides factory methods to create providers for <c>AES</c> cryptographic algorithms.
 /// </summary>
-public class AesCryptoFactory : CryptoFactory<AesCryptoFactory>
+public class AesCryptoFactory : CryptoFactory<AesCryptoFactory, SharedSecretKey>
 {
+    /// <inheritdoc />
+    protected override SharedSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        SharedSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+
     /// <inheritdoc />
     public override KeyWrapProvider CreateKeyWrapProvider(
         SecretKey secretKey,

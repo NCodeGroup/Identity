@@ -18,6 +18,7 @@
 #endregion
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Signature;
 
 namespace NIdentity.OpenId.Cryptography.Rsa;
@@ -25,8 +26,12 @@ namespace NIdentity.OpenId.Cryptography.Rsa;
 /// <summary>
 /// Provides factory methods to create providers for <c>RSA</c> cryptographic algorithms.
 /// </summary>
-public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory>
+public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory, RsaSecretKey>
 {
+    /// <inheritdoc />
+    protected override RsaSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        RsaSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(
         SecretKey secretKey,

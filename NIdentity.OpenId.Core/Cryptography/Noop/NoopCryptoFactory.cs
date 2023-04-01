@@ -18,6 +18,7 @@
 #endregion
 
 using NIdentity.OpenId.Cryptography.CryptoProvider;
+using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.KeyWrap;
 using NIdentity.OpenId.Cryptography.Signature;
 
@@ -26,8 +27,12 @@ namespace NIdentity.OpenId.Cryptography.Noop;
 /// <summary>
 /// Provides factory methods to create providers that do nothing for certain cryptographic operations.
 /// </summary>
-public class NoopCryptoFactory : CryptoFactory<NoopCryptoFactory>
+public class NoopCryptoFactory : CryptoFactory<NoopCryptoFactory, SecretKey>
 {
+    /// <inheritdoc />
+    protected override SecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        throw new InvalidOperationException();
+
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(
         SecretKey secretKey,

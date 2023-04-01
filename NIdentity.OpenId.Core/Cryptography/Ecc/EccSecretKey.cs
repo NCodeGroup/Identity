@@ -18,11 +18,44 @@
 #endregion
 
 using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
+using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Ecc;
 
 public class EccSecretKey : SecretKey
 {
+    public static EccSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) => descriptor.AlgorithmType switch
+    {
+        AlgorithmTypes.KeyManagement => EcdhGenerateNewKey(descriptor, keyBitLengthHint),
+        AlgorithmTypes.DigitalSignature => EcdsaGenerateNewKey(descriptor, keyBitLengthHint),
+        _ => throw new InvalidOperationException()
+    };
+
+    private static EccSecretKey EcdsaGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    {
+        using var ecc = ECDsa.Create();
+
+        if (descriptor is ISupportKeySizes supportKeySizes)
+        {
+            ecc.KeySize = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportKeySizes.KeySizes);
+        }
+
+        return new EccSecretKey(ecc.ExportParameters(includePrivateParameters: true));
+    }
+
+    private static EccSecretKey EcdhGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    {
+        using var ecc = ECDiffieHellman.Create();
+
+        if (descriptor is ISupportKeySizes supportKeySizes)
+        {
+            ecc.KeySize = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportKeySizes.KeySizes);
+        }
+
+        return new EccSecretKey(ecc.ExportParameters(includePrivateParameters: true));
+    }
+
     private ECParameters? ECParametersOrNull { get; set; }
 
     private ECParameters ECParameters => ECParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);

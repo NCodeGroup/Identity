@@ -19,10 +19,11 @@
 
 using System.Buffers;
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.Aes;
-using NIdentity.OpenId.Cryptography.Ecc;
-using NIdentity.OpenId.Cryptography.Ecdh;
-using NIdentity.OpenId.Cryptography.Ecdh.Parameters;
+using NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
+using NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh;
+using NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh.Descriptors;
+using NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh.Parameters;
+using NIdentity.OpenId.Cryptography.Keys;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Cryptography.Ecdh;

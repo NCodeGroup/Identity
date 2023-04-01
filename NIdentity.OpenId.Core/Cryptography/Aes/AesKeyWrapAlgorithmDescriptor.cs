@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.KeyWrap;
 
@@ -30,8 +31,14 @@ public record AesKeyWrapAlgorithmDescriptor(
     AesCryptoFactory.Default,
     typeof(SharedSecretKey),
     AlgorithmCode
-)
+), ISupportKeySizes
 {
+    /// <inheritdoc />
+    public IEnumerable<KeySizes> KeySizes { get; } = new[]
+    {
+        new KeySizes(minSize: KeyBitLength, maxSize: KeyBitLength, skipSize: 0)
+    };
+
     /// <summary>
     /// Gets the number of bytes for the <c>key encryption key (kek)</c>.
     /// </summary>

@@ -18,36 +18,28 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.Ecc;
-using NIdentity.OpenId.Cryptography.KeyWrap;
+using NIdentity.OpenId.Cryptography.Signature;
 
-namespace NIdentity.OpenId.Cryptography.Ecdh;
+namespace NIdentity.OpenId.Cryptography.Ecdsa;
 
-public record EcdhKeyWrapAlgorithmDescriptor
+public record EcdsaHashSignatureAlgorithmDescriptor
 (
     string AlgorithmCode,
-    string KeyDerivationFunction,
     HashAlgorithmName HashAlgorithmName,
     int HashBitLength
-) : KeyWrapAlgorithmDescriptor
+) : HashSignatureAlgorithmDescriptor
 (
-    EcdhCryptoFactory.Default,
+    EcdsaCryptoFactory.Default,
     typeof(EccSecretKey),
-    AlgorithmCode
+    AlgorithmCode,
+    HashAlgorithmName,
+    HashBitLength
 ), ISupportKeySizes
 {
-    private static IEnumerable<KeySizes> StaticKeySizes { get; } = new[]
-    {
-        new KeySizes(minSize: 256, maxSize: 384, skipSize: 128),
-        new KeySizes(minSize: 521, maxSize: 521, skipSize: 0)
-    };
-
     /// <inheritdoc />
-    public IEnumerable<KeySizes> KeySizes => StaticKeySizes;
-
-    /// <summary>
-    /// Gets the number of bytes for hash of the key agreement.
-    /// </summary>
-    public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
+    public IEnumerable<KeySizes> KeySizes { get; } = new[]
+    {
+        new KeySizes(HashBitLength, HashBitLength, 0)
+    };
 }

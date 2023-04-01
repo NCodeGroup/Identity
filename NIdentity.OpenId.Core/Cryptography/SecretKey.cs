@@ -23,15 +23,6 @@ using NIdentity.OpenId.Cryptography.Signature;
 
 namespace NIdentity.OpenId.Cryptography;
 
-public interface ISecretKeyFactory
-{
-    Type SecretKeyType { get; }
-
-    // SharedSecretKey: random key length or specific key length
-
-    SecretKey GenerateNewKey();
-}
-
 public abstract class SecretKey : IDisposable
 {
     public void Dispose()

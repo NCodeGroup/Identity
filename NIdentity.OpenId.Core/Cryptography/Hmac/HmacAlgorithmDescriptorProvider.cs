@@ -25,6 +25,8 @@ namespace NIdentity.OpenId.Cryptography.Hmac;
 
 internal class HmacAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
+    // NOTE: key size can be any length
+
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
         new KeyedHashAlgorithmDescriptor(

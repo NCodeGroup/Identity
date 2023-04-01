@@ -34,6 +34,7 @@ public class SharedSecretKey : SecretKey
         MemoryOwner = memoryOwner;
     }
 
+    /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
         if (disposing)

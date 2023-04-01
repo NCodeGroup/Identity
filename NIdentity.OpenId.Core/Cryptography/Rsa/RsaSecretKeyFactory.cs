@@ -20,25 +20,20 @@
 using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Descriptors;
 
-namespace NIdentity.OpenId.Cryptography.Ecdsa;
+namespace NIdentity.OpenId.Cryptography.Rsa;
 
-internal class EcdsaAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
+public class RsaSecretKeyFactory : SecretKeyFactory<RsaSecretKey, RsaSecretKeyFactory>
 {
-    public IEnumerable<AlgorithmDescriptor> Load() => new[]
+    /// <inheritdoc />
+    protected override RsaSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
-        new EcdsaHashSignatureAlgorithmDescriptor(
-            AlgorithmCodes.DigitalSignature.EcdsaSha256,
-            HashAlgorithmName.SHA256,
-            HashBitLength: 256),
+        using var rsa = RSA.Create();
 
-        new EcdsaHashSignatureAlgorithmDescriptor(
-            AlgorithmCodes.DigitalSignature.EcdsaSha384,
-            HashAlgorithmName.SHA384,
-            HashBitLength: 384),
+        if (descriptor is ISupportKeySizes supportKeySizes)
+        {
+            rsa.KeySize = GetLegalSize(keyBitLengthHint, supportKeySizes.KeySizes);
+        }
 
-        new EcdsaHashSignatureAlgorithmDescriptor(
-            AlgorithmCodes.DigitalSignature.EcdsaSha512,
-            HashAlgorithmName.SHA512,
-            HashBitLength: 512),
-    };
+        return new RsaSecretKey(rsa.ExportParameters(includePrivateParameters: true));
+    }
 }

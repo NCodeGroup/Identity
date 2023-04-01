@@ -32,19 +32,19 @@ public class AesCbcHmacAlgorithmDescriptorProvider : IAlgorithmDescriptorProvide
         new AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor(
             HMACSHA256.TryHashData,
             AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
-            KeyBitLength: 128,
+            KeyBitLength: 256,
             HashBitLength: 256),
 
         new AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor(
             HMACSHA384.TryHashData,
             AlgorithmCodes.AuthenticatedEncryption.Aes192CbcHmacSha384,
-            KeyBitLength: 192,
+            KeyBitLength: 384,
             HashBitLength: 384),
 
         new AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor(
             HMACSHA512.TryHashData,
             AlgorithmCodes.AuthenticatedEncryption.Aes256CbcHmacSha512,
-            KeyBitLength: 256,
+            KeyBitLength: 512,
             HashBitLength: 512),
     };
 }

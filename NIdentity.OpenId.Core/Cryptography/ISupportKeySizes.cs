@@ -18,30 +18,10 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.Signature;
 
-namespace NIdentity.OpenId.Cryptography.Rsa;
+namespace NIdentity.OpenId.Cryptography;
 
-public record RsaSignatureAlgorithmDescriptor
-(
-    string AlgorithmCode,
-    HashAlgorithmName HashAlgorithmName,
-    int HashByteLength,
-    RSASignaturePadding Padding
-) : HashSignatureAlgorithmDescriptor
-(
-    RsaCryptoFactory.Default,
-    typeof(RsaSecretKey),
-    AlgorithmCode,
-    HashAlgorithmName,
-    HashByteLength
-), ISupportKeySizes
+public interface ISupportKeySizes
 {
-    private static IEnumerable<KeySizes> StaticKeySizes { get; } = new[]
-    {
-        new KeySizes(minSize: 2048, maxSize: 16384, skipSize: 64)
-    };
-
-    /// <inheritdoc />
-    public IEnumerable<KeySizes> KeySizes => StaticKeySizes;
+    IEnumerable<KeySizes> KeySizes { get; }
 }

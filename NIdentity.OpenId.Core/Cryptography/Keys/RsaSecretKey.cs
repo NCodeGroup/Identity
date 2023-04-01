@@ -23,7 +23,7 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
-public class RsaSecretKey : SecretKey
+public class RsaSecretKey : SecretKey, ISupportKeySize
 {
     public static RsaSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
@@ -40,6 +40,9 @@ public class RsaSecretKey : SecretKey
     private RSAParameters? RSAParametersOrNull { get; set; }
 
     private RSAParameters RSAParameters => RSAParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
+
+    /// <inheritdoc />
+    public int KeyBitLength => (RSAParameters.Modulus?.Length ?? 0) * BinaryUtility.BitsPerByte;
 
     public RsaSecretKey(RSAParameters rsaParameters)
     {

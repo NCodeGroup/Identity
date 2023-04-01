@@ -23,7 +23,7 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
-public class EccSecretKey : SecretKey
+public class EccSecretKey : SecretKey, ISupportKeySize
 {
     public static EccSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) => descriptor.AlgorithmType switch
     {
@@ -59,6 +59,9 @@ public class EccSecretKey : SecretKey
     private ECParameters? ECParametersOrNull { get; set; }
 
     private ECParameters ECParameters => ECParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
+
+    /// <inheritdoc />
+    public int KeyBitLength => (ECParameters.D?.Length ?? ECParameters.Q.X?.Length ?? ECParameters.Q.Y?.Length ?? 0) * BinaryUtility.BitsPerByte;
 
     public EccSecretKey(ECParameters ecParameters)
     {

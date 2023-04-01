@@ -48,7 +48,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
     }
 
     private void ComputeAuthenticationTag(
-        int keyByteLength,
+        int componentByteLength,
         ReadOnlySpan<byte> hmacKey,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> associatedData,
@@ -83,7 +83,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
                 if (!hmacResult || hmacBytesWritten != hmacOutputByteLength)
                     throw new InvalidOperationException();
 
-                hmacOutput[..keyByteLength].CopyTo(authenticationTag);
+                hmacOutput[..componentByteLength].CopyTo(authenticationTag);
             }
             finally
             {
@@ -110,15 +110,15 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             throw new InvalidOperationException();
 
         var keyByteLength = AlgorithmDescriptor.KeyByteLength;
-        var keyByteLengthPair = SharedSecretKey.KeyByteLength;
-        if (keyByteLength * 2 != keyByteLengthPair)
+        if (keyByteLength != SharedSecretKey.KeyByteLength)
             throw new InvalidOperationException();
 
-        if (authenticationTag.Length < keyByteLength)
+        var componentByteLength = keyByteLength / 2;
+        if (authenticationTag.Length < componentByteLength)
             throw new InvalidOperationException();
 
-        var hmacKey = SharedSecretKey.KeyBytes[..keyByteLength];
-        var aesKey = SharedSecretKey.KeyBytes[keyByteLength..];
+        var hmacKey = SharedSecretKey.KeyBytes[..componentByteLength];
+        var aesKey = SharedSecretKey.KeyBytes[componentByteLength..];
 
         // TODO: pin and zero memory for key since aes clones the property value
         using var aes = System.Security.Cryptography.Aes.Create();
@@ -133,7 +133,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             throw new InvalidOperationException();
 
         ComputeAuthenticationTag(
-            keyByteLength,
+            componentByteLength,
             hmacKey,
             nonce,
             associatedData,
@@ -156,11 +156,11 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             throw new InvalidOperationException();
 
         var keyByteLength = AlgorithmDescriptor.KeyByteLength;
-        var keyByteLengthPair = SharedSecretKey.KeyByteLength;
-        if (keyByteLength * 2 != keyByteLengthPair)
+        if (keyByteLength != SharedSecretKey.KeyByteLength)
             throw new InvalidOperationException();
 
-        if (authenticationTag.Length != keyByteLength)
+        var componentByteLength = keyByteLength / 2;
+        if (authenticationTag.Length != componentByteLength)
             throw new InvalidOperationException();
 
         const int blockBitLength = 128;
@@ -171,17 +171,17 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             return false;
         }
 
-        var hmacKey = SharedSecretKey.KeyBytes[..keyByteLength];
-        var aesKey = SharedSecretKey.KeyBytes[keyByteLength..];
+        var hmacKey = SharedSecretKey.KeyBytes[..componentByteLength];
+        var aesKey = SharedSecretKey.KeyBytes[componentByteLength..];
 
-        var expectedAuthenticationTag = keyByteLength <= BinaryUtility.StackAllocMax ?
-            stackalloc byte[keyByteLength] :
-            GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
+        var expectedAuthenticationTag = componentByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[componentByteLength] :
+            GC.AllocateUninitializedArray<byte>(componentByteLength, pinned: true);
 
         try
         {
             ComputeAuthenticationTag(
-                keyByteLength,
+                componentByteLength,
                 hmacKey,
                 nonce,
                 associatedData,

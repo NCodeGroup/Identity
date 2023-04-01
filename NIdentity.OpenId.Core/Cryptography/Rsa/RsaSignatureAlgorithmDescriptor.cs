@@ -35,4 +35,13 @@ public record RsaSignatureAlgorithmDescriptor
     AlgorithmCode,
     HashAlgorithmName,
     HashByteLength
-);
+), ISupportKeySizes
+{
+    private static IEnumerable<KeySizes> StaticKeySizes { get; } = new[]
+    {
+        new KeySizes(minSize: 2048, maxSize: 16384, skipSize: 64)
+    };
+
+    /// <inheritdoc />
+    public IEnumerable<KeySizes> KeySizes => StaticKeySizes;
+}

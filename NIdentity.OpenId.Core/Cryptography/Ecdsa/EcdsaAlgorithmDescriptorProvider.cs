@@ -19,8 +19,6 @@
 
 using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Descriptors;
-using NIdentity.OpenId.Cryptography.Ecc;
-using NIdentity.OpenId.Cryptography.Signature;
 
 namespace NIdentity.OpenId.Cryptography.Ecdsa;
 
@@ -28,23 +26,17 @@ internal class EcdsaAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
 {
     public IEnumerable<AlgorithmDescriptor> Load() => new[]
     {
-        new HashSignatureAlgorithmDescriptor(
-            EcdsaCryptoFactory.Default,
-            typeof(EccSecretKey),
+        new EcdsaHashSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.EcdsaSha256,
             HashAlgorithmName.SHA256,
             HashBitLength: 256),
 
-        new HashSignatureAlgorithmDescriptor(
-            EcdsaCryptoFactory.Default,
-            typeof(EccSecretKey),
+        new EcdsaHashSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.EcdsaSha384,
             HashAlgorithmName.SHA384,
             HashBitLength: 384),
 
-        new HashSignatureAlgorithmDescriptor(
-            EcdsaCryptoFactory.Default,
-            typeof(EccSecretKey),
+        new EcdsaHashSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.EcdsaSha512,
             HashAlgorithmName.SHA512,
             HashBitLength: 512),

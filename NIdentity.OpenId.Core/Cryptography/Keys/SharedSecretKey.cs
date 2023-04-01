@@ -24,7 +24,7 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
-public class SharedSecretKey : SecretKey
+public class SharedSecretKey : SecretKey, ISupportKeySize
 {
     public static RandomNumberGenerator RandomNumberGenerator { get; } = RandomNumberGenerator.Create();
 
@@ -62,6 +62,9 @@ public class SharedSecretKey : SecretKey
     }
 
     private IMemoryOwner<byte> MemoryOwner { get; }
+
+    /// <inheritdoc />
+    public int KeyBitLength => KeyByteLength * BinaryUtility.BitsPerByte;
 
     public int KeyByteLength => MemoryOwner.Memory.Length;
 

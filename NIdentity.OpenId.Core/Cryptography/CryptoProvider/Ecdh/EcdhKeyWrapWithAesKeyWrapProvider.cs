@@ -65,7 +65,7 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         try
         {
-            return AesKeyWrap.WrapKey(kek, typedParameters, Descriptor.KeyBitLength);
+            return AesKeyWrap.WrapKey(kek, typedParameters);
         }
         finally
         {
@@ -97,7 +97,7 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         try
         {
-            return AesKeyWrap.UnwrapKey(kek, typedParameters, Descriptor.KeyBitLength);
+            return AesKeyWrap.UnwrapKey(kek, typedParameters);
         }
         finally
         {

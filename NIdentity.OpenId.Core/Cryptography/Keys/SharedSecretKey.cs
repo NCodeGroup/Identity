@@ -48,9 +48,9 @@ public class SharedSecretKey : SecretKey
     private static int GetKeySizeBytes(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
         int keySizeBits;
-        if (descriptor is ISupportKeySizes supportKeySizes)
+        if (descriptor is ISupportLegalSizes supportLegalSizes)
         {
-            keySizeBits = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportKeySizes.KeySizes);
+            keySizeBits = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportLegalSizes.LegalSizes);
         }
         else
         {

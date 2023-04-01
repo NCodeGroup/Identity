@@ -21,7 +21,7 @@ using System.Security.Cryptography;
 
 namespace NIdentity.OpenId.Cryptography.Descriptors;
 
-public interface ISupportKeySizes
+public interface ISupportLegalSizes
 {
-    IEnumerable<KeySizes> KeySizes { get; }
+    IEnumerable<KeySizes> LegalSizes { get; }
 }

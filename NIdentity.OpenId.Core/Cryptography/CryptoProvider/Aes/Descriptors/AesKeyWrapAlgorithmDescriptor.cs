@@ -33,10 +33,10 @@ public record AesKeyWrapAlgorithmDescriptor(
     AesCryptoFactory.Default,
     typeof(SharedSecretKey),
     AlgorithmCode
-), ISupportKeySizes
+), ISupportLegalSizes
 {
     /// <inheritdoc />
-    public IEnumerable<KeySizes> KeySizes { get; } = new[]
+    public IEnumerable<KeySizes> LegalSizes { get; } = new[]
     {
         new KeySizes(minSize: KeyBitLength, maxSize: KeyBitLength, skipSize: 0)
     };

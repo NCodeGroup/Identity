@@ -38,6 +38,9 @@ public static class KeySizesUtility
         throw new InvalidOperationException();
     }
 
+    public static bool IsLegalSize(int size, IEnumerable<KeySizes> legalSizes) =>
+        legalSizes.Any(legalSize => IsLegalSize(size, legalSize));
+
     public static bool IsLegalSize(int size, KeySizes legalSize) =>
         size >= legalSize.MinSize &&
         size <= legalSize.MaxSize &&

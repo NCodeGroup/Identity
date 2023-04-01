@@ -29,9 +29,9 @@ public class RsaSecretKey : SecretKey
     {
         using var rsa = RSA.Create();
 
-        if (descriptor is ISupportKeySizes supportKeySizes)
+        if (descriptor is ISupportLegalSizes supportLegalSizes)
         {
-            rsa.KeySize = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportKeySizes.KeySizes);
+            rsa.KeySize = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportLegalSizes.LegalSizes);
         }
 
         return new RsaSecretKey(rsa.ExportParameters(includePrivateParameters: true));

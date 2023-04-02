@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.AesCbcHmac.Descriptors;
@@ -39,6 +40,8 @@ public class AesCbcHmacCryptoFactory : CryptoFactory<AesCbcHmacCryptoFactory, Sh
         SecretKey secretKey,
         AuthenticatedEncryptionAlgorithmDescriptor descriptor)
     {
+        KeySizesUtility.AssertLegalSize(secretKey, descriptor);
+
         var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor>(descriptor);
 

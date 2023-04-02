@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
@@ -40,6 +41,8 @@ public class EcdhCryptoFactory : CryptoFactory<EcdhCryptoFactory, EccSecretKey>
         SecretKey secretKey,
         KeyWrapAlgorithmDescriptor descriptor)
     {
+        KeySizesUtility.AssertLegalSize(secretKey, descriptor);
+
         var typedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<EcdhKeyWrapAlgorithmDescriptor>(descriptor);
 

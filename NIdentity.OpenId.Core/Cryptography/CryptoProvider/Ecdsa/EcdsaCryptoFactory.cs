@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
 using NIdentity.OpenId.Cryptography.Descriptors;
@@ -38,6 +39,8 @@ public class EcdsaCryptoFactory : CryptoFactory<EcdsaCryptoFactory, EccSecretKey
         SecretKey secretKey,
         SignatureAlgorithmDescriptor descriptor)
     {
+        KeySizesUtility.AssertLegalSize(secretKey, descriptor);
+
         var typedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<HashSignatureAlgorithmDescriptor>(descriptor);
 

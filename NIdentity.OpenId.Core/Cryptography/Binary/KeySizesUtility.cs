@@ -18,24 +18,38 @@
 #endregion
 
 using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Descriptors;
+using NIdentity.OpenId.Cryptography.Keys;
 
 namespace NIdentity.OpenId.Cryptography.Binary;
 
 public static class KeySizesUtility
 {
+    public static void AssertLegalSize(SecretKey secretKey, AlgorithmDescriptor descriptor)
+    {
+        if (secretKey is ISupportKeySize supportKeySize &&
+            descriptor is ISupportLegalSizes supportLegalSizes &&
+            !IsLegalSize(supportKeySize.KeyBitLength, supportLegalSizes.LegalSizes))
+        {
+            throw new InvalidOperationException();
+        }
+    }
+
     public static int GetLegalSize(int? hint, IEnumerable<KeySizes> legalSizes)
     {
+        KeySizes? first = null;
+
         foreach (var legalSize in legalSizes)
         {
+            first ??= legalSize;
+
             if (hint.HasValue && IsLegalSize(hint.Value, legalSize))
             {
                 return hint.Value;
             }
-
-            return legalSize.MinSize;
         }
 
-        throw new InvalidOperationException();
+        return first?.MinSize ?? throw new InvalidOperationException();
     }
 
     public static bool IsLegalSize(int size, IEnumerable<KeySizes> legalSizes) =>

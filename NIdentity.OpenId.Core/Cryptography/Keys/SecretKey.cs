@@ -17,14 +17,12 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
-using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
@@ -41,31 +39,12 @@ public abstract class SecretKey : IDisposable
         // nothing
     }
 
-    protected virtual void AssertKeySize(AlgorithmDescriptor descriptor)
-    {
-        if (this is ISupportKeySize supportKeySize &&
-            descriptor is ISupportLegalSizes supportLegalSizes &&
-            !KeySizesUtility.IsLegalSize(supportKeySize.KeyBitLength, supportLegalSizes.LegalSizes))
-        {
-            throw new InvalidOperationException();
-        }
-    }
+    public virtual SignatureProvider CreateSignatureProvider(SignatureAlgorithmDescriptor descriptor) =>
+        descriptor.CryptoFactory.CreateSignatureProvider(this, descriptor);
 
-    public virtual SignatureProvider CreateSignatureProvider(SignatureAlgorithmDescriptor descriptor)
-    {
-        AssertKeySize(descriptor);
-        return descriptor.CryptoFactory.CreateSignatureProvider(this, descriptor);
-    }
+    public virtual KeyWrapProvider CreateKeyWrapProvider(KeyWrapAlgorithmDescriptor descriptor) =>
+        descriptor.CryptoFactory.CreateKeyWrapProvider(this, descriptor);
 
-    public virtual KeyWrapProvider CreateKeyWrapProvider(KeyWrapAlgorithmDescriptor descriptor)
-    {
-        AssertKeySize(descriptor);
-        return descriptor.CryptoFactory.CreateKeyWrapProvider(this, descriptor);
-    }
-
-    public virtual AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(AuthenticatedEncryptionAlgorithmDescriptor descriptor)
-    {
-        AssertKeySize(descriptor);
-        return descriptor.CryptoFactory.CreateAuthenticatedEncryptionProvider(this, descriptor);
-    }
+    public virtual AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(AuthenticatedEncryptionAlgorithmDescriptor descriptor) =>
+        descriptor.CryptoFactory.CreateAuthenticatedEncryptionProvider(this, descriptor);
 }

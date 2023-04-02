@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Rsa.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
@@ -39,6 +40,8 @@ public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory, RsaSecretKey>
         SecretKey secretKey,
         SignatureAlgorithmDescriptor descriptor)
     {
+        KeySizesUtility.AssertLegalSize(secretKey, descriptor);
+
         var typedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<RsaSignatureAlgorithmDescriptor>(descriptor);
 

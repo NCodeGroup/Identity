@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aes.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Descriptors;
@@ -39,6 +40,8 @@ public class AesCryptoFactory : CryptoFactory<AesCryptoFactory, SharedSecretKey>
         SecretKey secretKey,
         KeyWrapAlgorithmDescriptor descriptor)
     {
+        KeySizesUtility.AssertLegalSize(secretKey, descriptor);
+
         var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<AesKeyWrapAlgorithmDescriptor>(descriptor);
 

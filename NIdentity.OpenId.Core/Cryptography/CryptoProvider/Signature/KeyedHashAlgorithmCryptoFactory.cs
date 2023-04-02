@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
 using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
@@ -37,6 +38,8 @@ public class KeyedHashAlgorithmCryptoFactory : CryptoFactory<KeyedHashAlgorithmC
         SecretKey secretKey,
         SignatureAlgorithmDescriptor descriptor)
     {
+        KeySizesUtility.AssertLegalSize(secretKey, descriptor);
+
         var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<KeyedHashAlgorithmDescriptor>(descriptor);
 

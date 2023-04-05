@@ -38,7 +38,9 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
     /// Generates and returns a new <see cref="SharedSecretKey"/> with random key material for the specified algorithm and optional hint for the key size.
     /// </summary>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes for what algorithm to generate a new cryptographic key.</param>
-    /// <param name="keyBitLengthHint">An optional value that specifies the size of key to generate.</param>
+    /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
+    /// This value is verified against the legal key sizes for the algorithm.
+    /// If omitted, the first legal key size is used.</param>
     /// <returns>The newly generated <see cref="SharedSecretKey"/>.</returns>
     public static SharedSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {

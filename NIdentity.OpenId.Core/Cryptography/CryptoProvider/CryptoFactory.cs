@@ -42,10 +42,10 @@ public interface ICryptoFactory
     /// Generates a new <see cref="SecretKey"/> for the specified algorithm <paramref name="descriptor"/> with a key size hint.
     /// </summary>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
-    /// <param name="keyBitLengthHint">A hint for the new key size in bites.
+    /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
     /// If omitted, the first legal key size is used.</param>
-    /// <returns></returns>
+    /// <returns>The newly generated <see cref="SecretKey"/>.</returns>
     SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
 
     /// <summary>
@@ -170,9 +170,9 @@ public abstract class CryptoFactory<TFactory, TKey> : CryptoFactory
     /// Generates a new <see cref="SecretKey"/> for the specified algorithm <paramref name="descriptor"/> with a key size hint.
     /// </summary>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
-    /// <param name="keyBitLengthHint">A hint for the new key size in bites.
+    /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
     /// If omitted, the first legal key size is used.</param>
-    /// <returns></returns>
+    /// <returns>The newly generated key.</returns>
     protected abstract TKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
 }

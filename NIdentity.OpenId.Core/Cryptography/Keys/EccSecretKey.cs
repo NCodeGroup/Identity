@@ -67,48 +67,48 @@ public class EccSecretKey : SecretKey, ISupportKeySize
         return new EccSecretKey(ecc.ExportParameters(includePrivateParameters: true));
     }
 
-    private ECParameters? EcParametersOrNull { get; set; }
+    private ECParameters? ParametersOrNull { get; set; }
 
-    private ECParameters EcParameters => EcParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
+    private ECParameters Parameters => ParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
 
     /// <inheritdoc />
-    public int KeyBitLength => (EcParameters.D?.Length ?? EcParameters.Q.X?.Length ?? EcParameters.Q.Y?.Length ?? 0) * BinaryUtility.BitsPerByte;
+    public int KeyBitLength => (Parameters.D?.Length ?? Parameters.Q.X?.Length ?? Parameters.Q.Y?.Length ?? 0) * BinaryUtility.BitsPerByte;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EccSecretKey"/> class with the specified <see cref="ECParameters"/> containing the key material.
     /// </summary>
-    /// <param name="ecParameters">The cryptographic material for the secret key.</param>
-    public EccSecretKey(ECParameters ecParameters)
+    /// <param name="parameters">The cryptographic material for the secret key.</param>
+    public EccSecretKey(ECParameters parameters)
     {
-        EcParametersOrNull = ecParameters;
+        ParametersOrNull = parameters;
     }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (disposing && EcParametersOrNull.HasValue)
+        if (disposing && ParametersOrNull.HasValue)
         {
-            ZeroPrivateMemory(EcParametersOrNull.Value);
-            EcParametersOrNull = null;
+            ZeroPrivateMemory(ParametersOrNull.Value);
+            ParametersOrNull = null;
         }
 
         base.Dispose(disposing);
     }
 
-    private static void ZeroPrivateMemory(ECParameters ecParameters)
+    private static void ZeroPrivateMemory(ECParameters parameters)
     {
-        CryptographicOperations.ZeroMemory(ecParameters.D);
+        CryptographicOperations.ZeroMemory(parameters.D);
     }
 
     /// <summary>
     /// Factory method to create an <see cref="ECDsa"/> instance from the <see cref="ECParameters"/>.
     /// </summary>
     /// <returns>The newly created <see cref="ECDsa"/> instance</returns>
-    public ECDsa CreateEcdsa() => ECDsa.Create(EcParameters);
+    public ECDsa CreateEcdsa() => ECDsa.Create(Parameters);
 
     /// <summary>
     /// Factory method to create an <see cref="ECDiffieHellman"/> instance from the <see cref="ECParameters"/>.
     /// </summary>
     /// <returns>The newly created <see cref="ECDiffieHellman"/> instance</returns>
-    public ECDiffieHellman CreateEcDiffieHellman() => ECDiffieHellman.Create(EcParameters);
+    public ECDiffieHellman CreateEcDiffieHellman() => ECDiffieHellman.Create(Parameters);
 }

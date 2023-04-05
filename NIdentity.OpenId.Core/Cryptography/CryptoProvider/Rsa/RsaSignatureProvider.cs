@@ -39,7 +39,7 @@ internal class RsaSignatureProvider : SignatureProvider
     /// <inheritdoc />
     public override bool TrySign(ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
     {
-        using var rsa = RsaSecretKey.CreateRSA();
+        using var rsa = RsaSecretKey.CreateRsa();
         return rsa.TrySignData(
             input,
             signature,
@@ -51,7 +51,7 @@ internal class RsaSignatureProvider : SignatureProvider
     /// <inheritdoc />
     public override bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
     {
-        using var rsa = RsaSecretKey.CreateRSA();
+        using var rsa = RsaSecretKey.CreateRsa();
         return rsa.VerifyData(
             input,
             signature,

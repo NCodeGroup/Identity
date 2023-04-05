@@ -26,25 +26,50 @@ using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
+/// <summary>
+/// Base class for all cryptographic key material.
+/// </summary>
 public abstract class SecretKey : IDisposable
 {
+    /// <inheritdoc />
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// When overridden in a derived class, releases the unmanaged resources used by the
+    /// <see cref="SecretKey"/>, and optionally releases the managed resources.
+    /// </summary>
+    /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
+    /// to release only unmanaged resources.</param>
     protected virtual void Dispose(bool disposing)
     {
         // nothing
     }
 
+    /// <summary>
+    /// Creates an instance of <see cref="SignatureProvider"/> that can be used for digital signature algorithms.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="SignatureAlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
+    /// <returns>A new instance of <see cref="SignatureProvider"/>.</returns>
     public virtual SignatureProvider CreateSignatureProvider(SignatureAlgorithmDescriptor descriptor) =>
         descriptor.CryptoFactory.CreateSignatureProvider(this, descriptor);
 
+    /// <summary>
+    /// Creates an instance of <see cref="KeyWrapProvider"/> that can be used for key management algorithms.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="KeyWrapAlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
+    /// <returns>A new instance of <see cref="KeyWrapProvider"/>.</returns>
     public virtual KeyWrapProvider CreateKeyWrapProvider(KeyWrapAlgorithmDescriptor descriptor) =>
         descriptor.CryptoFactory.CreateKeyWrapProvider(this, descriptor);
 
+    /// <summary>
+    /// Creates an instance of <see cref="AuthenticatedEncryptionProvider"/> that can be used for authenticated encryption (i.e. AEAD) algorithms.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="AuthenticatedEncryptionAlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
+    /// <returns>A new instance of <see cref="AuthenticatedEncryptionProvider"/>.</returns>
     public virtual AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(AuthenticatedEncryptionAlgorithmDescriptor descriptor) =>
         descriptor.CryptoFactory.CreateAuthenticatedEncryptionProvider(this, descriptor);
 }

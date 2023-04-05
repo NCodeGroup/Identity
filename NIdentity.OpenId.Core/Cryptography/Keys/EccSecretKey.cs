@@ -23,8 +23,17 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
+/// <summary>
+/// Provides a <see cref="SecretKey"/> implementation for the <c>Elliptic-Curve</c> cryptographic keys.
+/// </summary>
 public class EccSecretKey : SecretKey, ISupportKeySize
 {
+    /// <summary>
+    /// Generates and returns a new <see cref="EccSecretKey"/> with random key material for the specified algorithm and optional hint for the key size.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes for what algorithm to generate a new cryptographic key.</param>
+    /// <param name="keyBitLengthHint">An optional value that specifies the size of key to generate.</param>
+    /// <returns>The newly generated <see cref="EccSecretKey"/>.</returns>
     public static EccSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) => descriptor.AlgorithmType switch
     {
         AlgorithmTypes.KeyManagement => EcdhGenerateNewKey(descriptor, keyBitLengthHint),
@@ -56,25 +65,29 @@ public class EccSecretKey : SecretKey, ISupportKeySize
         return new EccSecretKey(ecc.ExportParameters(includePrivateParameters: true));
     }
 
-    private ECParameters? ECParametersOrNull { get; set; }
+    private ECParameters? EcParametersOrNull { get; set; }
 
-    private ECParameters ECParameters => ECParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
+    private ECParameters EcParameters => EcParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
 
     /// <inheritdoc />
-    public int KeyBitLength => (ECParameters.D?.Length ?? ECParameters.Q.X?.Length ?? ECParameters.Q.Y?.Length ?? 0) * BinaryUtility.BitsPerByte;
+    public int KeyBitLength => (EcParameters.D?.Length ?? EcParameters.Q.X?.Length ?? EcParameters.Q.Y?.Length ?? 0) * BinaryUtility.BitsPerByte;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EccSecretKey"/> class with the specified <see cref="ECParameters"/> containing the key material.
+    /// </summary>
+    /// <param name="ecParameters">The cryptographic material for the secret key.</param>
     public EccSecretKey(ECParameters ecParameters)
     {
-        ECParametersOrNull = ecParameters;
+        EcParametersOrNull = ecParameters;
     }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (disposing && ECParametersOrNull.HasValue)
+        if (disposing && EcParametersOrNull.HasValue)
         {
-            ZeroPrivateMemory(ECParametersOrNull.Value);
-            ECParametersOrNull = null;
+            ZeroPrivateMemory(EcParametersOrNull.Value);
+            EcParametersOrNull = null;
         }
 
         base.Dispose(disposing);
@@ -85,7 +98,15 @@ public class EccSecretKey : SecretKey, ISupportKeySize
         CryptographicOperations.ZeroMemory(ecParameters.D);
     }
 
-    public ECDsa CreateECDsa() => ECDsa.Create(ECParameters);
+    /// <summary>
+    /// Factory method to create an <see cref="ECDsa"/> instance from the <see cref="ECParameters"/>.
+    /// </summary>
+    /// <returns>The newly created <see cref="ECDsa"/> instance</returns>
+    public ECDsa CreateEcdsa() => ECDsa.Create(EcParameters);
 
-    public ECDiffieHellman CreateECDiffieHellman() => ECDiffieHellman.Create(ECParameters);
+    /// <summary>
+    /// Factory method to create an <see cref="ECDiffieHellman"/> instance from the <see cref="ECParameters"/>.
+    /// </summary>
+    /// <returns>The newly created <see cref="ECDiffieHellman"/> instance</returns>
+    public ECDiffieHellman CreateEcDiffieHellman() => ECDiffieHellman.Create(EcParameters);
 }

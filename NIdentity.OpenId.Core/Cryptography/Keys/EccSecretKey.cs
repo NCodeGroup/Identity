@@ -47,10 +47,7 @@ public class EccSecretKey : SecretKey, ISupportKeySize
     {
         using var ecc = ECDsa.Create();
 
-        if (descriptor is ISupportLegalSizes supportLegalSizes)
-        {
-            ecc.KeySize = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportLegalSizes.LegalSizes);
-        }
+        ecc.KeySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
 
         return new EccSecretKey(ecc.ExportParameters(includePrivateParameters: true));
     }
@@ -59,10 +56,7 @@ public class EccSecretKey : SecretKey, ISupportKeySize
     {
         using var ecc = ECDiffieHellman.Create();
 
-        if (descriptor is ISupportLegalSizes supportLegalSizes)
-        {
-            ecc.KeySize = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportLegalSizes.LegalSizes);
-        }
+        ecc.KeySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
 
         return new EccSecretKey(ecc.ExportParameters(includePrivateParameters: true));
     }

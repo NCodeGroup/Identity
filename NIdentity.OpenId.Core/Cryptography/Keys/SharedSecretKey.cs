@@ -40,11 +40,12 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes for what algorithm to generate a new cryptographic key.</param>
     /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
-    /// If omitted, the first legal key size is used.</param>
+    /// If omitted, the first legal key size is used or 128 bits.</param>
     /// <returns>The newly generated <see cref="SharedSecretKey"/>.</returns>
     public static SharedSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
-        var keySizeBytes = GetKeySizeBytes(descriptor, keyBitLengthHint);
+        const int keyBitLengthDefault = 128;
+        var keySizeBytes = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint, keyBitLengthDefault) / BinaryUtility.BitsPerByte;
 
         IMemoryOwner<byte> memoryOwner = new HeapMemoryManager(keySizeBytes);
         try
@@ -57,22 +58,6 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
             memoryOwner.Dispose();
             throw;
         }
-    }
-
-    private static int GetKeySizeBytes(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
-    {
-        int keySizeBits;
-        if (descriptor is ISupportLegalSizes supportLegalSizes)
-        {
-            keySizeBits = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportLegalSizes.LegalSizes);
-        }
-        else
-        {
-            const int defaultSizeBits = 128;
-            keySizeBits = keyBitLengthHint ?? defaultSizeBits;
-        }
-
-        return keySizeBits / BinaryUtility.BitsPerByte;
     }
 
     private IMemoryOwner<byte> MemoryOwner { get; }

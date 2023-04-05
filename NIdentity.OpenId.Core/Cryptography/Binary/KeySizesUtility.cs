@@ -29,13 +29,19 @@ public static class KeySizesUtility
     {
         if (secretKey is ISupportKeySize supportKeySize &&
             descriptor is ISupportLegalSizes supportLegalSizes &&
-            !IsLegalSize(supportKeySize.KeyBitLength, supportLegalSizes.LegalSizes))
+            !IsLegalSize(supportLegalSizes.LegalSizes, supportKeySize.KeyBitLength))
         {
             throw new InvalidOperationException();
         }
     }
 
-    public static int GetLegalSize(int? hint, IEnumerable<KeySizes> legalSizes)
+    public static int GetLegalSize(AlgorithmDescriptor descriptor, int? keyBitLengthHint, int? keyBitLengthDefault = null)
+    {
+        var legalSizes = descriptor is ISupportLegalSizes supportLegalSizes ? supportLegalSizes.LegalSizes : Array.Empty<KeySizes>();
+        return GetLegalSize(legalSizes, keyBitLengthHint, keyBitLengthDefault);
+    }
+
+    public static int GetLegalSize(IEnumerable<KeySizes> legalSizes, int? keyBitLengthHint, int? keyBitLengthDefault = null)
     {
         KeySizes? first = null;
 
@@ -43,19 +49,19 @@ public static class KeySizesUtility
         {
             first ??= legalSize;
 
-            if (hint.HasValue && IsLegalSize(hint.Value, legalSize))
+            if (keyBitLengthHint.HasValue && IsLegalSize(legalSize, keyBitLengthHint.Value))
             {
-                return hint.Value;
+                return keyBitLengthHint.Value;
             }
         }
 
-        return first?.MinSize ?? throw new InvalidOperationException();
+        return first?.MinSize ?? keyBitLengthDefault ?? throw new InvalidOperationException();
     }
 
-    public static bool IsLegalSize(int size, IEnumerable<KeySizes> legalSizes) =>
-        legalSizes.Any(legalSize => IsLegalSize(size, legalSize));
+    public static bool IsLegalSize(IEnumerable<KeySizes> legalSizes, int size) =>
+        legalSizes.Any(legalSize => IsLegalSize(legalSize, size));
 
-    public static bool IsLegalSize(int size, KeySizes legalSize) =>
+    public static bool IsLegalSize(KeySizes legalSize, int size) =>
         size >= legalSize.MinSize &&
         size <= legalSize.MaxSize &&
         (size - legalSize.MinSize) % legalSize.SkipSize == 0;

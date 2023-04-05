@@ -40,10 +40,7 @@ public class RsaSecretKey : SecretKey, ISupportKeySize
     {
         using var rsa = RSA.Create();
 
-        if (descriptor is ISupportLegalSizes supportLegalSizes)
-        {
-            rsa.KeySize = KeySizesUtility.GetLegalSize(keyBitLengthHint, supportLegalSizes.LegalSizes);
-        }
+        rsa.KeySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
 
         return new RsaSecretKey(rsa.ExportParameters(includePrivateParameters: true));
     }

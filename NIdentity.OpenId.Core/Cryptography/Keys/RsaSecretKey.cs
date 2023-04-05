@@ -48,42 +48,42 @@ public class RsaSecretKey : SecretKey, ISupportKeySize
         return new RsaSecretKey(rsa.ExportParameters(includePrivateParameters: true));
     }
 
-    private RSAParameters? RsaParametersOrNull { get; set; }
+    private RSAParameters? ParametersOrNull { get; set; }
 
-    private RSAParameters RsaParameters => RsaParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
+    private RSAParameters Parameters => ParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
 
     /// <inheritdoc />
-    public int KeyBitLength => (RsaParameters.Modulus?.Length ?? 0) * BinaryUtility.BitsPerByte;
+    public int KeyBitLength => (Parameters.Modulus?.Length ?? 0) * BinaryUtility.BitsPerByte;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RsaSecretKey"/> class with the specified <see cref="RSAParameters"/> containing the key material.
     /// </summary>
-    /// <param name="rsaParameters">The cryptographic material for the secret key.</param>
-    public RsaSecretKey(RSAParameters rsaParameters)
+    /// <param name="parameters">The cryptographic material for the secret key.</param>
+    public RsaSecretKey(RSAParameters parameters)
     {
-        RsaParametersOrNull = rsaParameters;
+        ParametersOrNull = parameters;
     }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (disposing && RsaParametersOrNull.HasValue)
+        if (disposing && ParametersOrNull.HasValue)
         {
-            ZeroPrivateMemory(RsaParametersOrNull.Value);
-            RsaParametersOrNull = null;
+            ZeroPrivateMemory(ParametersOrNull.Value);
+            ParametersOrNull = null;
         }
 
         base.Dispose(disposing);
     }
 
-    private static void ZeroPrivateMemory(RSAParameters rsaParameters)
+    private static void ZeroPrivateMemory(RSAParameters parameters)
     {
-        CryptographicOperations.ZeroMemory(rsaParameters.D);
+        CryptographicOperations.ZeroMemory(parameters.D);
     }
 
     /// <summary>
     /// Factory method to create an <see cref="RSA"/> instance from the <see cref="RSAParameters"/>.
     /// </summary>
     /// <returns>The newly created <see cref="RSA"/> instance</returns>
-    public RSA CreateRsa() => RSA.Create(RsaParameters);
+    public RSA CreateRsa() => RSA.Create(Parameters);
 }

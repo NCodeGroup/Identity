@@ -43,7 +43,7 @@ internal class EcdsaSignatureProvider : SignatureProvider
             return false;
         }
 
-        using var ecdsa = EccSecretKey.CreateECDsa();
+        using var ecdsa = EccSecretKey.CreateEcdsa();
 
         return ecdsa.TrySignData(input, signature, Descriptor.HashAlgorithmName, out bytesWritten);
     }
@@ -53,7 +53,7 @@ internal class EcdsaSignatureProvider : SignatureProvider
         if (signature.Length != Descriptor.HashByteLength)
             return false;
 
-        using var ecdsa = EccSecretKey.CreateECDsa();
+        using var ecdsa = EccSecretKey.CreateEcdsa();
 
         return ecdsa.VerifyData(input, signature, Descriptor.HashAlgorithmName);
     }

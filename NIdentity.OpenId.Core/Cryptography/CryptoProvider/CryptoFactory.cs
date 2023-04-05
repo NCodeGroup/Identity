@@ -69,7 +69,7 @@ public interface ICryptoFactory
         KeyWrapAlgorithmDescriptor descriptor);
 
     /// <summary>
-    /// Creates an instance of <see cref="KeyWrapProvider"/> that can be used for authenticated encryption algorithms.
+    /// Creates an instance of <see cref="AuthenticatedEncryptionProvider"/> that can be used for authenticated encryption (i.e. AEAD) algorithms.
     /// </summary>
     /// <param name="secretKey">The key material for the cryptographic algorithm.</param>
     /// <param name="descriptor">The <see cref="AuthenticatedEncryptionAlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>

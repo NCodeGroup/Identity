@@ -21,7 +21,13 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 
 // TODO: is it possible for a key to exist without a size?
 
+/// <summary>
+/// Interface for classes to indicate that they support returning the length of their key material.
+/// </summary>
 public interface ISupportKeySize
 {
+    /// <summary>
+    /// Gets the length of the key material in bits.
+    /// </summary>
     int KeyBitLength { get; }
 }

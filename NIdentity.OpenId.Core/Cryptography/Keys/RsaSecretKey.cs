@@ -23,8 +23,17 @@ using NIdentity.OpenId.Cryptography.Descriptors;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
+/// <summary>
+/// Provides a <see cref="SecretKey"/> implementation for the <c>RSA</c> cryptographic keys.
+/// </summary>
 public class RsaSecretKey : SecretKey, ISupportKeySize
 {
+    /// <summary>
+    /// Generates and returns a new <see cref="RsaSecretKey"/> with random key material for the specified algorithm and optional hint for the key size.
+    /// </summary>
+    /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes for what algorithm to generate a new cryptographic key.</param>
+    /// <param name="keyBitLengthHint">An optional value that specifies the size of key to generate.</param>
+    /// <returns>The newly generated <see cref="RsaSecretKey"/>.</returns>
     public static RsaSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
         using var rsa = RSA.Create();
@@ -37,25 +46,29 @@ public class RsaSecretKey : SecretKey, ISupportKeySize
         return new RsaSecretKey(rsa.ExportParameters(includePrivateParameters: true));
     }
 
-    private RSAParameters? RSAParametersOrNull { get; set; }
+    private RSAParameters? RsaParametersOrNull { get; set; }
 
-    private RSAParameters RSAParameters => RSAParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
+    private RSAParameters RsaParameters => RsaParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
 
     /// <inheritdoc />
-    public int KeyBitLength => (RSAParameters.Modulus?.Length ?? 0) * BinaryUtility.BitsPerByte;
+    public int KeyBitLength => (RsaParameters.Modulus?.Length ?? 0) * BinaryUtility.BitsPerByte;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RsaSecretKey"/> class with the specified <see cref="RSAParameters"/> containing the key material.
+    /// </summary>
+    /// <param name="rsaParameters">The cryptographic material for the secret key.</param>
     public RsaSecretKey(RSAParameters rsaParameters)
     {
-        RSAParametersOrNull = rsaParameters;
+        RsaParametersOrNull = rsaParameters;
     }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (disposing && RSAParametersOrNull.HasValue)
+        if (disposing && RsaParametersOrNull.HasValue)
         {
-            ZeroPrivateMemory(RSAParametersOrNull.Value);
-            RSAParametersOrNull = null;
+            ZeroPrivateMemory(RsaParametersOrNull.Value);
+            RsaParametersOrNull = null;
         }
 
         base.Dispose(disposing);
@@ -66,5 +79,9 @@ public class RsaSecretKey : SecretKey, ISupportKeySize
         CryptographicOperations.ZeroMemory(rsaParameters.D);
     }
 
-    public RSA CreateRSA() => RSA.Create(RSAParameters);
+    /// <summary>
+    /// Factory method to create an <see cref="RSA"/> instance from the <see cref="RSAParameters"/>.
+    /// </summary>
+    /// <returns>The newly created <see cref="RSA"/> instance</returns>
+    public RSA CreateRsa() => RSA.Create(RsaParameters);
 }

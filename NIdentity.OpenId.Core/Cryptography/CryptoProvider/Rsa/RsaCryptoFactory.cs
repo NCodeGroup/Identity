@@ -32,8 +32,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Rsa;
 public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory, RsaSecretKey>
 {
     /// <inheritdoc />
-    protected override RsaSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        RsaSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+    protected override RsaSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        RsaSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
 
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(

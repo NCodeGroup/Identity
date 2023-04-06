@@ -30,6 +30,8 @@ namespace NIdentity.OpenId.Core.Tests.Cryptography.Ecdh;
 
 public class EcdhKeyWrapWithAesKeyWrapProviderTests : BaseTests
 {
+    private const string KeyId = nameof(KeyId);
+
     // the following test parameters where generated externally with a known working ECDH implementation (jose-jwt)
 
     private const string PlainTextKey = "P+PKDLXjVZBOYAWImddUxJFip8VqqwjSxMAAICQ3YYQ=";
@@ -100,7 +102,7 @@ public class EcdhKeyWrapWithAesKeyWrapProviderTests : BaseTests
 
         var provider = new EcdhKeyWrapWithAesKeyWrapProvider(
             AesKeyWrap.Default,
-            new EccSecretKey(party1Parameters),
+            new EccSecretKey(KeyId, party1Parameters),
             AlgorithmDescriptor);
 
         var plainTextKey = Convert.FromBase64String(PlainTextKey);
@@ -128,12 +130,12 @@ public class EcdhKeyWrapWithAesKeyWrapProviderTests : BaseTests
         using var party1PrivateKey = ECDiffieHellman.Create(Party1Parameters);
         using var party2PrivateKey = ECDiffieHellman.Create(Party2Parameters);
 
-        var keyWrapProvider = new EcdhKeyWrapWithAesKeyWrapProvider(AesKeyWrap.Default, new EccSecretKey(Party1Parameters), AlgorithmDescriptor);
+        var keyWrapProvider = new EcdhKeyWrapWithAesKeyWrapProvider(AesKeyWrap.Default, new EccSecretKey(KeyId, Party1Parameters), AlgorithmDescriptor);
         var keyWrapParameters = new EcdhEsKeyWrapWithAesKeyWrapParameters(expectedPlainTextKey, party2PrivateKey, KeyBitLength, partyUInfo, partyVInfo);
         var encryptedKey = keyWrapProvider.WrapKey(keyWrapParameters).ToArray().AsMemory();
 
         using var party1PublicKey = party1PrivateKey.PublicKey;
-        var keyUnwrapProvider = new EcdhKeyWrapWithAesKeyWrapProvider(AesKeyWrap.Default, new EccSecretKey(Party2Parameters), AlgorithmDescriptor);
+        var keyUnwrapProvider = new EcdhKeyWrapWithAesKeyWrapProvider(AesKeyWrap.Default, new EccSecretKey(KeyId, Party2Parameters), AlgorithmDescriptor);
         var keyUnwrapParameters = new EcdhEsKeyUnwrapWithAesKeyUnwrapParameters(encryptedKey, party1PublicKey, KeyBitLength, partyUInfo, partyVInfo);
         var actualPlainTextKey = keyUnwrapProvider.UnwrapKey(keyUnwrapParameters).ToArray();
 

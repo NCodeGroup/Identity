@@ -32,8 +32,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
 public class AesCryptoFactory : CryptoFactory<AesCryptoFactory, SharedSecretKey>
 {
     /// <inheritdoc />
-    protected override SharedSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        SharedSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+    protected override SharedSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        SharedSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
 
     /// <inheritdoc />
     public override KeyWrapProvider CreateKeyWrapProvider(

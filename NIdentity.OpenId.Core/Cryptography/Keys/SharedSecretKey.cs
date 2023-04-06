@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 /// <remarks>
 /// This class stores the key material in unmanaged memory so that it is pinned (cannot be moved/copied by the GC).
 /// </remarks>
-public class SharedSecretKey : SecretKey, ISupportKeySize
+public class SharedSecretKey : SecretKey
 {
     /// <summary>
     /// Gets a singleton instance for <see cref="RandomNumberGenerator"/>.
@@ -40,12 +40,13 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
     /// <summary>
     /// Generates and returns a new <see cref="SharedSecretKey"/> with random key material for the specified algorithm and optional hint for the key size.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes for what algorithm to generate a new cryptographic key.</param>
     /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
     /// If omitted, the first legal key size is used or 128 bits.</param>
     /// <returns>The newly generated <see cref="SharedSecretKey"/>.</returns>
-    public static SharedSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    public static SharedSecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
         const int keyBitLengthDefault = 128;
         var keySizeBytes = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint, keyBitLengthDefault) / BinaryUtility.BitsPerByte;
@@ -54,7 +55,7 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
         try
         {
             RandomNumberGenerator.GetBytes(memoryOwner.Memory.Span);
-            return new SharedSecretKey(memoryOwner);
+            return new SharedSecretKey(keyId, memoryOwner);
         }
         catch
         {
@@ -66,7 +67,7 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
     private IMemoryOwner<byte> MemoryOwner { get; }
 
     /// <inheritdoc />
-    public int KeyBitLength => KeyByteLength * BinaryUtility.BitsPerByte;
+    public override int KeyBitLength => KeyByteLength * BinaryUtility.BitsPerByte;
 
     /// <summary>
     /// Gets the length in bytes of the key material.
@@ -82,8 +83,10 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
     /// Initializes a new instance of the <see cref="SharedSecretKey"/> class with the specified <see cref="IMemoryOwner{T}"/>
     /// containing the key material. This class will take ownership of the memory block.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="memoryOwner">The cryptographic material for the secret key.</param>
-    public SharedSecretKey(IMemoryOwner<byte> memoryOwner)
+    public SharedSecretKey(string keyId, IMemoryOwner<byte> memoryOwner)
+        : base(keyId)
     {
         MemoryOwner = memoryOwner;
     }
@@ -91,8 +94,10 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
     /// <summary>
     /// Initializes a new instance of the <see cref="SharedSecretKey"/> class by coping the specified key bytes.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="keyBytes">The cryptographic material for the secret key.</param>
-    public SharedSecretKey(ReadOnlySpan<byte> keyBytes)
+    public SharedSecretKey(string keyId, ReadOnlySpan<byte> keyBytes)
+        : base(keyId)
     {
         MemoryOwner = new HeapMemoryManager(keyBytes.Length);
         KeyBytes.CopyTo(MemoryOwner.Memory.Span);

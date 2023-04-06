@@ -31,8 +31,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Ecdsa;
 public class EcdsaCryptoFactory : CryptoFactory<EcdsaCryptoFactory, EccSecretKey>
 {
     /// <inheritdoc />
-    protected override EccSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        EccSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+    protected override EccSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        EccSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
 
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(

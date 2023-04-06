@@ -27,9 +27,8 @@ public static class KeySizesUtility
 {
     public static void AssertLegalSize(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
-        if (secretKey is ISupportKeySize supportKeySize &&
-            descriptor is ISupportLegalSizes supportLegalSizes &&
-            !IsLegalSize(supportLegalSizes.LegalSizes, supportKeySize.KeyBitLength))
+        if (descriptor is ISupportLegalSizes supportLegalSizes &&
+            !IsLegalSize(supportLegalSizes.LegalSizes, secretKey.KeyBitLength))
         {
             throw new InvalidOperationException();
         }

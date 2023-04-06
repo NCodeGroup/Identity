@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography;
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh.Descriptors;
@@ -31,6 +30,8 @@ namespace NIdentity.OpenId.Core.Tests.Cryptography.Ecdh;
 
 public class EcdhKeyWrapProviderTests : BaseTests
 {
+    private const string KeyId = nameof(KeyId);
+
     // the following test parameters where generated externally with a known working ECDH implementation (jose-jwt)
 
     private const string ExpectedKeyAgreement = "rpNx7qw/1M36dnIH/OiHXMA/i+D2NHYjqU1XnSex6xE=";
@@ -115,7 +116,7 @@ public class EcdhKeyWrapProviderTests : BaseTests
         using var party2PrivateKey = ECDiffieHellman.Create(party2Parameters);
         using var party2PublicKey = party2PrivateKey.PublicKey;
 
-        var provider = new EcdhKeyWrapProvider(new EccSecretKey(party1Parameters), AlgorithmDescriptor);
+        var provider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, party1Parameters), AlgorithmDescriptor);
         var keyAgreement = provider.DeriveKey(mockAgreement.Object, party1PrivateKey, party2PublicKey);
 
         Assert.Equal(keyByteLength, keyAgreement.Length);
@@ -137,13 +138,13 @@ public class EcdhKeyWrapProviderTests : BaseTests
         using var party1PrivateKey = ECDiffieHellman.Create(Party1Parameters);
         using var party2PrivateKey = ECDiffieHellman.Create(Party2Parameters);
 
-        var keyWrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(Party1Parameters), AlgorithmDescriptor);
+        var keyWrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, Party1Parameters), AlgorithmDescriptor);
         var keyWrapParameters = new EcdhEsKeyWrapParameters(party2PrivateKey, keyBitLength, partyUInfo, partyVInfo);
         var expectedKeyAgreement = keyWrapProvider.WrapKey(keyWrapParameters).ToArray().AsSpan();
         Assert.Equal(keyByteLength, expectedKeyAgreement.Length);
 
         using var party1PublicKey = party1PrivateKey.PublicKey;
-        var keyUnwrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(Party2Parameters), AlgorithmDescriptor);
+        var keyUnwrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, Party2Parameters), AlgorithmDescriptor);
         var keyUnwrapParameters = new EcdhEsKeyUnwrapParameters(party1PublicKey, keyBitLength, partyUInfo, partyVInfo);
         var actualKeyAgreement = keyUnwrapProvider.UnwrapKey(keyUnwrapParameters).ToArray().AsSpan();
         Assert.Equal(keyByteLength, actualKeyAgreement.Length);

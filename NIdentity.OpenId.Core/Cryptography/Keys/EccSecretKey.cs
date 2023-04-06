@@ -26,39 +26,40 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 /// <summary>
 /// Provides a <see cref="SecretKey"/> implementation for the <c>Elliptic-Curve</c> cryptographic keys.
 /// </summary>
-public class EccSecretKey : SecretKey, ISupportKeySize
+public class EccSecretKey : SecretKey
 {
     /// <summary>
     /// Generates and returns a new <see cref="EccSecretKey"/> with random key material for the specified algorithm and optional hint for the key size.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes for what algorithm to generate a new cryptographic key.</param>
     /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
     /// If omitted, the first legal key size is used.</param>
     /// <returns>The newly generated <see cref="EccSecretKey"/>.</returns>
-    public static EccSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) => descriptor.AlgorithmType switch
+    public static EccSecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) => descriptor.AlgorithmType switch
     {
-        AlgorithmTypes.KeyManagement => EcdhGenerateNewKey(descriptor, keyBitLengthHint),
-        AlgorithmTypes.DigitalSignature => EcdsaGenerateNewKey(descriptor, keyBitLengthHint),
+        AlgorithmTypes.KeyManagement => EcdhGenerateNewKey(keyId, descriptor, keyBitLengthHint),
+        AlgorithmTypes.DigitalSignature => EcdsaGenerateNewKey(keyId, descriptor, keyBitLengthHint),
         _ => throw new InvalidOperationException()
     };
 
-    private static EccSecretKey EcdsaGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    private static EccSecretKey EcdsaGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
         using var ecc = ECDsa.Create();
 
         ecc.KeySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
 
-        return new EccSecretKey(ecc.ExportParameters(includePrivateParameters: true));
+        return new EccSecretKey(keyId, ecc.ExportParameters(includePrivateParameters: true));
     }
 
-    private static EccSecretKey EcdhGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    private static EccSecretKey EcdhGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
         using var ecc = ECDiffieHellman.Create();
 
         ecc.KeySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
 
-        return new EccSecretKey(ecc.ExportParameters(includePrivateParameters: true));
+        return new EccSecretKey(keyId, ecc.ExportParameters(includePrivateParameters: true));
     }
 
     private ECParameters? ParametersOrNull { get; set; }
@@ -66,13 +67,15 @@ public class EccSecretKey : SecretKey, ISupportKeySize
     private ECParameters Parameters => ParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
 
     /// <inheritdoc />
-    public int KeyBitLength => (Parameters.D?.Length ?? Parameters.Q.X?.Length ?? Parameters.Q.Y?.Length ?? 0) * BinaryUtility.BitsPerByte;
+    public override int KeyBitLength => (Parameters.D?.Length ?? Parameters.Q.X?.Length ?? Parameters.Q.Y?.Length ?? 0) * BinaryUtility.BitsPerByte;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EccSecretKey"/> class with the specified <see cref="ECParameters"/> containing the key material.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="parameters">The cryptographic material for the secret key.</param>
-    public EccSecretKey(ECParameters parameters)
+    public EccSecretKey(string keyId, ECParameters parameters)
+        : base(keyId)
     {
         ParametersOrNull = parameters;
     }

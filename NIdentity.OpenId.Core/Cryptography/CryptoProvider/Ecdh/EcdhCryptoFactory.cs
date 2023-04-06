@@ -33,8 +33,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh;
 public class EcdhCryptoFactory : CryptoFactory<EcdhCryptoFactory, EccSecretKey>
 {
     /// <inheritdoc />
-    protected override EccSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        EccSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+    protected override EccSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        EccSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
 
     /// <inheritdoc />
     public override KeyWrapProvider CreateKeyWrapProvider(

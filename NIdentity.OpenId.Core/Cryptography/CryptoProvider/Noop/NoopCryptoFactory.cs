@@ -32,7 +32,7 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Noop;
 public class NoopCryptoFactory : CryptoFactory<NoopCryptoFactory, SecretKey>
 {
     /// <inheritdoc />
-    protected override SecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+    protected override SecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
         throw new InvalidOperationException();
 
     /// <inheritdoc />

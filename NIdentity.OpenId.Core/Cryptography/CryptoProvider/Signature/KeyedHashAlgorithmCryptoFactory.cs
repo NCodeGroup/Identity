@@ -30,8 +30,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 public class KeyedHashAlgorithmCryptoFactory : CryptoFactory<KeyedHashAlgorithmCryptoFactory, SharedSecretKey>
 {
     /// <inheritdoc />
-    protected override SharedSecretKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        SharedSecretKey.GenerateNewKey(descriptor, keyBitLengthHint);
+    protected override SharedSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        SharedSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
 
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(

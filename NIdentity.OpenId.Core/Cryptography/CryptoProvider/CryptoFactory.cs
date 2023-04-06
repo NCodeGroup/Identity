@@ -41,12 +41,13 @@ public interface ICryptoFactory
     /// <summary>
     /// Generates a new <see cref="SecretKey"/> for the specified algorithm <paramref name="descriptor"/> with a key size hint.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
     /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
     /// If omitted, the first legal key size is used.</param>
     /// <returns>The newly generated <see cref="SecretKey"/>.</returns>
-    SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
+    SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
 
     /// <summary>
     /// Creates an instance of <see cref="SignatureProvider"/> that can be used for digital signature algorithms.
@@ -88,7 +89,7 @@ public abstract class CryptoFactory : ICryptoFactory
     public abstract Type SecretKeyType { get; }
 
     /// <inheritdoc />
-    public abstract SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
+    public abstract SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
 
     /// <summary>
     /// Validates that the specified <paramref name="secretKey"/> is an instance of <typeparamref name="T"/>.
@@ -163,16 +164,17 @@ public abstract class CryptoFactory<TFactory, TKey> : CryptoFactory
     public override Type SecretKeyType => typeof(TKey);
 
     /// <inheritdoc />
-    public override SecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        CoreGenerateNewKey(descriptor, keyBitLengthHint);
+    public override SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+        CoreGenerateNewKey(keyId, descriptor, keyBitLengthHint);
 
     /// <summary>
     /// Generates a new <see cref="SecretKey"/> for the specified algorithm <paramref name="descriptor"/> with a key size hint.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
     /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
     /// If omitted, the first legal key size is used.</param>
     /// <returns>The newly generated key.</returns>
-    protected abstract TKey CoreGenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
+    protected abstract TKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
 }

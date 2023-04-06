@@ -31,6 +31,25 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 /// </summary>
 public abstract class SecretKey : IDisposable
 {
+    /// <summary>
+    /// Gets the <c>Key ID (KID)</c> of this <see cref="SecretKey"/>.
+    /// </summary>
+    public string KeyId { get; }
+
+    /// <summary>
+    /// Gets the length of the key material in bits.
+    /// </summary>
+    public abstract int KeyBitLength { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SecretKey"/> class with the specified <c>Key ID</c>.
+    /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    protected SecretKey(string keyId)
+    {
+        KeyId = keyId;
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

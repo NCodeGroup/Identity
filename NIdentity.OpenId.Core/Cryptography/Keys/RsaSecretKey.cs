@@ -26,23 +26,24 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 /// <summary>
 /// Provides a <see cref="SecretKey"/> implementation for the <c>RSA</c> cryptographic keys.
 /// </summary>
-public class RsaSecretKey : SecretKey, ISupportKeySize
+public class RsaSecretKey : SecretKey
 {
     /// <summary>
     /// Generates and returns a new <see cref="RsaSecretKey"/> with random key material for the specified algorithm and optional hint for the key size.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes for what algorithm to generate a new cryptographic key.</param>
     /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
     /// If omitted, the first legal key size is used.</param>
     /// <returns>The newly generated <see cref="RsaSecretKey"/>.</returns>
-    public static RsaSecretKey GenerateNewKey(AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    public static RsaSecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
         using var rsa = RSA.Create();
 
         rsa.KeySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
 
-        return new RsaSecretKey(rsa.ExportParameters(includePrivateParameters: true));
+        return new RsaSecretKey(keyId, rsa.ExportParameters(includePrivateParameters: true));
     }
 
     private RSAParameters? ParametersOrNull { get; set; }
@@ -50,13 +51,15 @@ public class RsaSecretKey : SecretKey, ISupportKeySize
     private RSAParameters Parameters => ParametersOrNull ?? throw new ObjectDisposedException(GetType().FullName);
 
     /// <inheritdoc />
-    public int KeyBitLength => (Parameters.Modulus?.Length ?? 0) * BinaryUtility.BitsPerByte;
+    public override int KeyBitLength => (Parameters.Modulus?.Length ?? 0) * BinaryUtility.BitsPerByte;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RsaSecretKey"/> class with the specified <see cref="RSAParameters"/> containing the key material.
     /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="parameters">The cryptographic material for the secret key.</param>
-    public RsaSecretKey(RSAParameters parameters)
+    public RsaSecretKey(string keyId, RSAParameters parameters)
+        : base(keyId)
     {
         ParametersOrNull = parameters;
     }

@@ -27,6 +27,9 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 /// <summary>
 /// Provides a <see cref="SecretKey"/> implementation for the <c>symmetric</c> cryptographic keys.
 /// </summary>
+/// <remarks>
+/// This class stores the key material in unmanaged memory so that it is pinned (cannot be moved/copied by the GC).
+/// </remarks>
 public class SharedSecretKey : SecretKey, ISupportKeySize
 {
     /// <summary>
@@ -76,12 +79,23 @@ public class SharedSecretKey : SecretKey, ISupportKeySize
     public ReadOnlySpan<byte> KeyBytes => MemoryOwner.Memory.Span;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SharedSecretKey"/> with the specified <see cref="IMemoryOwner{T}"/> containing the key material.
+    /// Initializes a new instance of the <see cref="SharedSecretKey"/> class with the specified <see cref="IMemoryOwner{T}"/>
+    /// containing the key material. This class will take ownership of the memory block.
     /// </summary>
-    /// <param name="memoryOwner"></param>
+    /// <param name="memoryOwner">The cryptographic material for the secret key.</param>
     public SharedSecretKey(IMemoryOwner<byte> memoryOwner)
     {
         MemoryOwner = memoryOwner;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SharedSecretKey"/> class by coping the specified key bytes.
+    /// </summary>
+    /// <param name="keyBytes">The cryptographic material for the secret key.</param>
+    public SharedSecretKey(ReadOnlySpan<byte> keyBytes)
+    {
+        MemoryOwner = new HeapMemoryManager(keyBytes.Length);
+        KeyBytes.CopyTo(MemoryOwner.Memory.Span);
     }
 
     /// <inheritdoc />

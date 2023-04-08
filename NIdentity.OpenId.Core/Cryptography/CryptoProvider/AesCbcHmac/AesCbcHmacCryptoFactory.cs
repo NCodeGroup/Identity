@@ -21,7 +21,6 @@ using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.AesCbcHmac.Descriptors;
-using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.AesCbcHmac;
@@ -29,12 +28,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.AesCbcHmac;
 /// <summary>
 /// Provides factory methods to create providers for <c>AES CBC HMAC SHA2</c> cryptographic algorithms.
 /// </summary>
-public class AesCbcHmacCryptoFactory : CryptoFactory<AesCbcHmacCryptoFactory, SharedSecretKey>
+public class AesCbcHmacCryptoFactory : SymmetricCryptoFactory<AesCbcHmacCryptoFactory>
 {
-    /// <inheritdoc />
-    protected override SharedSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        SharedSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
-
     /// <inheritdoc />
     public override AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(
         SecretKey secretKey,

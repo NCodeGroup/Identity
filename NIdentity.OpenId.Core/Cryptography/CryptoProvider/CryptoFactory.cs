@@ -17,6 +17,9 @@
 
 #endregion
 
+using System.Buffers;
+using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
@@ -25,6 +28,7 @@ using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
 using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
+using NIdentity.OpenId.Cryptography.Keys.Material;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
@@ -85,11 +89,57 @@ public interface ICryptoFactory
 /// </summary>
 public abstract class CryptoFactory : ICryptoFactory
 {
+    /// <summary>
+    /// Gets a singleton instance for <see cref="RandomNumberGenerator"/>.
+    /// </summary>
+    public static RandomNumberGenerator RandomNumberGenerator { get; } = RandomNumberGenerator.Create();
+
     /// <inheritdoc />
     public abstract Type SecretKeyType { get; }
 
     /// <inheritdoc />
-    public abstract SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
+    public virtual SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    {
+        var keySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
+
+        using var keyMaterial = GenerateKeyMaterial(keySize);
+
+        var cb = 1024;
+        while (true)
+        {
+            var lease = ArrayPool<byte>.Shared.Rent(cb);
+            try
+            {
+                var buffer = lease.AsSpan();
+                if (keyMaterial.TryExportKey(buffer, out var bytesWritten))
+                {
+                    return CreateSecretKey(keyId, keySize, buffer[..bytesWritten]);
+                }
+
+                cb *= 2;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(lease, clearArray: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Generates new cryptographic random key material.
+    /// </summary>
+    /// <param name="keyBitLength"></param>
+    /// <returns>A <see cref="KeyMaterial"/> that contains the cryptographic random key material.</returns>
+    protected abstract KeyMaterial GenerateKeyMaterial(int keyBitLength);
+
+    /// <summary>
+    /// Factory method to create a new <see cref="SecretKey"/> with the specified key material.
+    /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <param name="keyBitLength">The length of the key material in bits.</param>
+    /// <param name="keyMaterial">The key material for the secret key.</param>
+    /// <returns>The newly created <see cref="SecretKey"/>.</returns>
+    protected abstract SecretKey CreateSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> keyMaterial);
 
     /// <summary>
     /// Validates that the specified <paramref name="secretKey"/> is an instance of <typeparamref name="T"/>.
@@ -149,32 +199,12 @@ public abstract class CryptoFactory : ICryptoFactory
 /// <summary>
 /// Provides a default implementation of <see cref="ICryptoFactory"/> where all the methods throw unless overriden.
 /// </summary>
-/// <typeparam name="TFactory">The concrete <see cref="ICryptoFactory"/> type.</typeparam>
-/// <typeparam name="TKey">The type of <see cref="SecretKey"/> that this <see cref="ICryptoFactory"/> uses.</typeparam>
-public abstract class CryptoFactory<TFactory, TKey> : CryptoFactory
-    where TFactory : CryptoFactory<TFactory, TKey>, new()
-    where TKey : SecretKey
+/// <typeparam name="TCryptoFactory">The concrete <see cref="ICryptoFactory"/> type.</typeparam>
+public abstract class CryptoFactory<TCryptoFactory> : CryptoFactory
+    where TCryptoFactory : CryptoFactory<TCryptoFactory>, new()
 {
     /// <summary>
-    /// Provides a default singleton instance for <typeparamref name="TFactory"/>.
+    /// Provides a default singleton instance for <typeparamref name="TCryptoFactory"/>.
     /// </summary>
-    public static ICryptoFactory Default { get; } = new TFactory();
-
-    /// <inheritdoc />
-    public override Type SecretKeyType => typeof(TKey);
-
-    /// <inheritdoc />
-    public override SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        CoreGenerateNewKey(keyId, descriptor, keyBitLengthHint);
-
-    /// <summary>
-    /// Generates a new <see cref="SecretKey"/> for the specified algorithm <paramref name="descriptor"/> with a key size hint.
-    /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
-    /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
-    /// This value is verified against the legal key sizes for the algorithm.
-    /// If omitted, the first legal key size is used.</param>
-    /// <returns>The newly generated key.</returns>
-    protected abstract TKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
+    public static ICryptoFactory Default { get; } = new TCryptoFactory();
 }

@@ -21,18 +21,25 @@ using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
-using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
+using NIdentity.OpenId.Cryptography.Keys.Material;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Noop;
 
 /// <summary>
 /// Provides factory methods to create providers that do nothing for certain cryptographic operations.
 /// </summary>
-public class NoopCryptoFactory : CryptoFactory<NoopCryptoFactory, SecretKey>
+public class NoopCryptoFactory : CryptoFactory<NoopCryptoFactory>
 {
     /// <inheritdoc />
-    protected override SecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
+    public override Type SecretKeyType => throw new InvalidOperationException();
+
+    /// <inheritdoc />
+    protected override KeyMaterial GenerateKeyMaterial(int keyBitLength) =>
+        throw new InvalidOperationException();
+
+    /// <inheritdoc />
+    protected override SecretKey CreateSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> keyMaterial) =>
         throw new InvalidOperationException();
 
     /// <inheritdoc />

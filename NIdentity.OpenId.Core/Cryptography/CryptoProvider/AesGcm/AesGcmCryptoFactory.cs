@@ -20,7 +20,6 @@
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead.Descriptors;
-using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.AesGcm;
@@ -28,12 +27,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.AesGcm;
 /// <summary>
 /// Provides factory methods to create providers for <c>AES-GCM</c> cryptographic algorithms.
 /// </summary>
-public class AesGcmCryptoFactory : CryptoFactory<AesGcmCryptoFactory, SharedSecretKey>
+public class AesGcmCryptoFactory : SymmetricCryptoFactory<AesGcmCryptoFactory>
 {
-    /// <inheritdoc />
-    protected override SharedSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        SharedSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
-
     /// <inheritdoc />
     public override AuthenticatedEncryptionProvider CreateAuthenticatedEncryptionProvider(
         SecretKey secretKey,

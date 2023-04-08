@@ -116,7 +116,9 @@ public class EcdhKeyWrapProviderTests : BaseTests
         using var party2PrivateKey = ECDiffieHellman.Create(party2Parameters);
         using var party2PublicKey = party2PrivateKey.PublicKey;
 
-        var provider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, party1Parameters), AlgorithmDescriptor);
+        var party1Pkcs8PrivateKey = party1PrivateKey.ExportPkcs8PrivateKey();
+
+        var provider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, keyBitLength, party1Pkcs8PrivateKey), AlgorithmDescriptor);
         var keyAgreement = provider.DeriveKey(mockAgreement.Object, party1PrivateKey, party2PublicKey);
 
         Assert.Equal(keyByteLength, keyAgreement.Length);
@@ -138,13 +140,16 @@ public class EcdhKeyWrapProviderTests : BaseTests
         using var party1PrivateKey = ECDiffieHellman.Create(Party1Parameters);
         using var party2PrivateKey = ECDiffieHellman.Create(Party2Parameters);
 
-        var keyWrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, Party1Parameters), AlgorithmDescriptor);
+        var party1Pkcs8PrivateKey = party1PrivateKey.ExportPkcs8PrivateKey();
+        var party2Pkcs8PrivateKey = party2PrivateKey.ExportPkcs8PrivateKey();
+
+        var keyWrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, keyBitLength, party1Pkcs8PrivateKey), AlgorithmDescriptor);
         var keyWrapParameters = new EcdhEsKeyWrapParameters(party2PrivateKey, keyBitLength, partyUInfo, partyVInfo);
         var expectedKeyAgreement = keyWrapProvider.WrapKey(keyWrapParameters).ToArray().AsSpan();
         Assert.Equal(keyByteLength, expectedKeyAgreement.Length);
 
         using var party1PublicKey = party1PrivateKey.PublicKey;
-        var keyUnwrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, Party2Parameters), AlgorithmDescriptor);
+        var keyUnwrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, keyBitLength, party2Pkcs8PrivateKey), AlgorithmDescriptor);
         var keyUnwrapParameters = new EcdhEsKeyUnwrapParameters(party1PublicKey, keyBitLength, partyUInfo, partyVInfo);
         var actualKeyAgreement = keyUnwrapProvider.UnwrapKey(keyUnwrapParameters).ToArray().AsSpan();
         Assert.Equal(keyByteLength, actualKeyAgreement.Length);

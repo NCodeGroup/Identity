@@ -21,7 +21,6 @@ using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aes.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Descriptors;
-using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
@@ -29,12 +28,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
 /// <summary>
 /// Provides factory methods to create providers for <c>AES</c> cryptographic algorithms.
 /// </summary>
-public class AesCryptoFactory : CryptoFactory<AesCryptoFactory, SharedSecretKey>
+public class AesCryptoFactory : SymmetricCryptoFactory<AesCryptoFactory>
 {
-    /// <inheritdoc />
-    protected override SharedSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        SharedSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
-
     /// <inheritdoc />
     public override KeyWrapProvider CreateKeyWrapProvider(
         SecretKey secretKey,

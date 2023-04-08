@@ -20,7 +20,6 @@
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
-using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Ecdsa;
@@ -28,12 +27,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Ecdsa;
 /// <summary>
 /// Provides factory methods to create providers for <c>ECDSA</c> cryptographic algorithms.
 /// </summary>
-public class EcdsaCryptoFactory : CryptoFactory<EcdsaCryptoFactory, EccSecretKey>
+public class EcdsaCryptoFactory : EccCryptoFactory<EcdsaCryptoFactory>
 {
-    /// <inheritdoc />
-    protected override EccSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        EccSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
-
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(
         SecretKey secretKey,

@@ -17,23 +17,31 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Rsa.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
-using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
+using NIdentity.OpenId.Cryptography.Keys.Material;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Rsa;
 
 /// <summary>
 /// Provides factory methods to create providers for <c>RSA</c> cryptographic algorithms.
 /// </summary>
-public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory, RsaSecretKey>
+public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory>
 {
     /// <inheritdoc />
-    protected override RsaSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        RsaSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
+    public override Type SecretKeyType => typeof(RsaSecretKey);
+
+    /// <inheritdoc />
+    protected override KeyMaterial GenerateKeyMaterial(int keyBitLength) =>
+        new AsymmetricKeyMaterial(RSA.Create(keyBitLength));
+
+    /// <inheritdoc />
+    protected override RsaSecretKey CreateSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> keyMaterial) =>
+        new(keyId, keyBitLength, keyMaterial);
 
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(

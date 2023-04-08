@@ -19,7 +19,6 @@
 
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
-using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
@@ -27,12 +26,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 /// <summary>
 /// Provides factory methods to create providers for various keyed hash cryptographic algorithms.
 /// </summary>
-public class KeyedHashAlgorithmCryptoFactory : CryptoFactory<KeyedHashAlgorithmCryptoFactory, SharedSecretKey>
+public class KeyedHashAlgorithmCryptoFactory : SymmetricCryptoFactory<KeyedHashAlgorithmCryptoFactory>
 {
-    /// <inheritdoc />
-    protected override SharedSecretKey CoreGenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default) =>
-        SharedSecretKey.GenerateNewKey(keyId, descriptor, keyBitLengthHint);
-
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(
         SecretKey secretKey,

@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 
 namespace NIdentity.OpenId.Cryptography.Binary;
 
@@ -28,9 +27,6 @@ namespace NIdentity.OpenId.Cryptography.Binary;
 /// </summary>
 public class HeapMemoryManager : MemoryManager<byte>
 {
-    /// <summary>
-    /// Gets the length in bytes of the allocated memory.
-    /// </summary>
     private int Length { get; }
 
     private IntPtr BufferPtr { get; set; }
@@ -49,22 +45,27 @@ public class HeapMemoryManager : MemoryManager<byte>
     protected override void Dispose(bool disposing)
     {
         if (BufferPtr == IntPtr.Zero) return;
-        CryptographicOperations.ZeroMemory(GetSpan());
         Marshal.FreeHGlobal(BufferPtr);
         BufferPtr = IntPtr.Zero;
     }
 
     /// <inheritdoc />
     public override Memory<byte> Memory =>
-        CreateMemory(Length);
+        BufferPtr == IntPtr.Zero ?
+            throw new ObjectDisposedException(GetType().FullName) :
+            CreateMemory(Length);
 
     /// <inheritdoc />
     public override unsafe Span<byte> GetSpan() =>
-        new(BufferPtr.ToPointer(), Length);
+        BufferPtr == IntPtr.Zero ?
+            throw new ObjectDisposedException(GetType().FullName) :
+            new Span<byte>(BufferPtr.ToPointer(), Length);
 
     /// <inheritdoc />
     public override unsafe MemoryHandle Pin(int elementIndex = 0) =>
-        new((byte*)BufferPtr + elementIndex);
+        BufferPtr == IntPtr.Zero ?
+            throw new ObjectDisposedException(GetType().FullName) :
+            new MemoryHandle((byte*)BufferPtr + elementIndex);
 
     /// <inheritdoc />
     public override void Unpin()

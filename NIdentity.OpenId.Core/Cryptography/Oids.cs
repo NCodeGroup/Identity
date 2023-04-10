@@ -22,17 +22,20 @@ namespace NIdentity.OpenId.Cryptography;
 public static class Oids
 {
     /// <summary>
-    /// Digital Signature Algorithm (DSA) subject public key
+    /// Digital Signature Algorithm (DSA) subject public key.
     /// </summary>
     public const string Dsa = "1.2.840.10040.4.1";
 
     /// <summary>
-    /// RSAES-PKCS1-v1_5 encryption scheme
+    /// RSAES-PKCS1-v1_5 encryption scheme.
     /// </summary>
     public const string Rsa = "1.2.840.113549.1.1.1";
 
     /// <summary>
-    /// Elliptic curve public key cryptography
+    /// Elliptic curve public key cryptography.
     /// </summary>
+    /// <remarks>
+    /// Can be used for either <c>ECDsa</c> or <c>ECDiffieHellman</c>.
+    /// </remarks>
     public const string Ecc = "1.2.840.10045.2.1";
 }

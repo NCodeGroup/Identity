@@ -17,7 +17,9 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
@@ -32,10 +34,14 @@ public class EccSecretKey : AsymmetricSecretKey
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="keyBitLength">The length of the key material in bits.</param>
     /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as PKCS#8.</param>
-    public EccSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> pkcs8PrivateKey)
-        : base(keyId, keyBitLength, pkcs8PrivateKey)
+    /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
+    public EccSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
+        : base(keyId, keyBitLength, pkcs8PrivateKey, certificate)
     {
-        // nothing
+        if (certificate != null)
+        {
+            Debug.Assert(certificate.GetKeyAlgorithm() == Oids.Ecc);
+        }
     }
 
     /// <summary>

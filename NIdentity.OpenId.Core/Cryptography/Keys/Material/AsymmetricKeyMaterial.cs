@@ -28,6 +28,9 @@ public class AsymmetricKeyMaterial : KeyMaterial
 {
     private AsymmetricAlgorithm AsymmetricAlgorithm { get; }
 
+    /// <inheritdoc />
+    public override int KeySizeBits => AsymmetricAlgorithm.KeySize;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AsymmetricKeyMaterial"/> class with the specified <see cref="AsymmetricAlgorithm"/>.
     /// </summary>

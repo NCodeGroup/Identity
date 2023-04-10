@@ -42,12 +42,12 @@ public static class SecretConstants
         public const string Rsa = "rsa";
 
         /// <summary>
-        /// Indicates that a <see cref="Secret"/> represents an <c>ECDSA</c> key.
+        /// Indicates that a <see cref="Secret"/> represents an <c>ECDsa</c> key.
         /// </summary>
         public const string Ecdsa = "ecdsa";
 
         /// <summary>
-        /// Indicates that a <see cref="Secret"/> represents an <c>ECDH</c> key.
+        /// Indicates that a <see cref="Secret"/> represents an <c>ECDiffieHellman</c> key.
         /// </summary>
         public const string Ecdh = "ecdh";
     }
@@ -72,10 +72,5 @@ public static class SecretConstants
         /// Indicates that a <see cref="Secret"/> is encoded using the <c>PEM</c> format.
         /// </summary>
         public const string Pem = "pem";
-
-        /// <summary>
-        /// Indicates that a <see cref="Secret"/> is encoded using the <c>JSON</c> format.
-        /// </summary>
-        public const string Json = "json";
     }
 }

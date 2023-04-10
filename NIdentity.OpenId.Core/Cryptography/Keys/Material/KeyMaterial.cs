@@ -25,6 +25,11 @@ namespace NIdentity.OpenId.Cryptography.Keys.Material;
 public abstract class KeyMaterial : IDisposable
 {
     /// <summary>
+    /// Gets the size of the key material in bits.
+    /// </summary>
+    public abstract int KeySizeBits { get; }
+
+    /// <summary>
     /// When overridden in a derived class, releases the unmanaged resources used by the <see cref="KeyMaterial"/>.
     /// </summary>
     public abstract void Dispose();

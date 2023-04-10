@@ -98,29 +98,42 @@ public abstract class CryptoFactory : ICryptoFactory
     public abstract Type SecretKeyType { get; }
 
     /// <inheritdoc />
-    public virtual SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    public virtual unsafe SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
     {
         var keySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
 
         using var keyMaterial = GenerateKeyMaterial(keySize);
 
-        var cb = 1024;
+        var bufferSize = 4096;
         while (true)
         {
-            var lease = ArrayPool<byte>.Shared.Rent(cb);
+            var lease = ArrayPool<byte>.Shared.Rent(bufferSize);
             try
             {
-                var buffer = lease.AsSpan();
-                if (keyMaterial.TryExportKey(buffer, out var bytesWritten))
+                // ReSharper disable once UnusedVariable
+                fixed (byte* pinned = lease)
                 {
-                    return CreateSecretKey(keyId, keySize, buffer[..bytesWritten]);
-                }
+                    var bytesToZero = bufferSize;
+                    try
+                    {
+                        var buffer = lease.AsSpan();
+                        if (keyMaterial.TryExportKey(buffer, out var bytesWritten))
+                        {
+                            bytesToZero = bytesWritten;
+                            return CreateSecretKey(keyId, keySize, buffer[..bytesWritten]);
+                        }
+                    }
+                    finally
+                    {
+                        CryptographicOperations.ZeroMemory(lease.AsSpan(0, bytesToZero));
+                    }
 
-                cb *= 2;
+                    bufferSize = checked(bufferSize * 2);
+                }
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(lease, clearArray: true);
+                ArrayPool<byte>.Shared.Return(lease);
             }
         }
     }

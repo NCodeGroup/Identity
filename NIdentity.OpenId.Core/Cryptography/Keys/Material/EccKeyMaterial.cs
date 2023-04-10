@@ -25,11 +25,14 @@ namespace NIdentity.OpenId.Cryptography.Keys.Material;
 /// Provides an implementation of <see cref="KeyMaterial"/> that uses key material from an <c>Elliptic-Curve</c>.
 /// </summary>
 /// <remarks>
-/// Both <see cref="ECDiffieHellman"/> and <see cref="ECDsa"/> can be used interchangeable to to export <c>Elliptic-Curve</c> key material.
+/// Both <see cref="ECDiffieHellman"/> and <see cref="ECDsa"/> can be used interchangeable to to export <c>Elliptic-Curve</c> key material formatted as PKCS#8.
 /// </remarks>
 public class EccKeyMaterial : KeyMaterial
 {
     private ECDiffieHellman EcDiffieHellman { get; }
+
+    /// <inheritdoc />
+    public override int KeySizeBits => EcDiffieHellman.KeySize;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EccKeyMaterial"/> class with the specified <c>Elliptic-Curve</c> key material.

@@ -28,6 +28,9 @@ public class SymmetricKeyMaterial : KeyMaterial
 {
     private Memory<byte> KeyBytes { get; }
 
+    /// <inheritdoc />
+    public override int KeySizeBits => KeyBytes.Length;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="SymmetricKeyMaterial"/> class with the specified key material.
     /// </summary>

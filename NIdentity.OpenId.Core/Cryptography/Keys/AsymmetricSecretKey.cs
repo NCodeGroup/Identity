@@ -18,7 +18,9 @@
 #endregion
 
 using System.Buffers;
+using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using NIdentity.OpenId.Cryptography.Binary;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
@@ -38,6 +40,16 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// </summary>
     protected ReadOnlySpan<byte> Pkcs8PrivateKey => MemoryOwner.Memory.Span;
 
+    /// <summary>
+    /// Gets the optional <see cref="X509Certificate2"/> for this secret key.
+    /// </summary>
+    /// <remarks>
+    /// This certificate only contains the public portion.
+    /// To create a certificate with both the private and public portions, use <c>CopyWithPrivateKey</c>.
+    /// Doing so will create certificates with ephemeral keys and not persist keys to disk.
+    /// </remarks>
+    public X509Certificate2? Certificate { get; }
+
     /// <inheritdoc />
     public override int KeyBitLength { get; }
 
@@ -47,9 +59,16 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="keyBitLength">The length of the key material in bits.</param>
     /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as PKCS#8.</param>
-    protected AsymmetricSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> pkcs8PrivateKey)
+    /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
+    protected AsymmetricSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
         : base(keyId)
     {
+        if (certificate != null)
+        {
+            Debug.Assert(!certificate.HasPrivateKey);
+        }
+
+        Certificate = certificate;
         KeyBitLength = keyBitLength;
 
         MemoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length);
@@ -69,6 +88,7 @@ public abstract class AsymmetricSecretKey : SecretKey
     {
         if (disposing)
         {
+            Certificate?.Dispose();
             CryptographicOperations.ZeroMemory(MemoryOwner.Memory.Span);
             MemoryOwner.Dispose();
         }

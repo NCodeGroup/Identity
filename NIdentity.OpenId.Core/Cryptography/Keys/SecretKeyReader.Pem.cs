@@ -1,0 +1,138 @@
+using System.Buffers;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace NIdentity.OpenId.Cryptography.Keys;
+
+partial struct SecretKeyReader
+{
+    private delegate T ImportPemDelegate<out T>(ReadOnlySpan<char> pem);
+
+    private delegate void ImportDelegate<in T>(T key, ReadOnlySpan<byte> source, out int bytesRead)
+        where T : AsymmetricAlgorithm;
+
+    private delegate ImportDelegate<T>? GetImportDelegate<in T>(ReadOnlySpan<char> label)
+        where T : AsymmetricAlgorithm;
+
+    private unsafe T ReadPem<T>(ImportPemDelegate<T> importPem)
+    {
+        var charCount = Encoding.UTF8.GetCharCount(RawData);
+        var lease = ArrayPool<char>.Shared.Rent(charCount);
+        try
+        {
+            // ReSharper disable once UnusedVariable
+            fixed (char* pinned = lease)
+            {
+                try
+                {
+                    var pem = lease.AsSpan(0, charCount);
+                    var bytesRead = Encoding.UTF8.GetChars(RawData, pem);
+                    Debug.Assert(bytesRead == RawData.Length);
+
+                    return importPem(pem);
+                }
+                finally
+                {
+                    Array.Clear(lease);
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(lease);
+        }
+    }
+
+    private static T ImportAsymmetricKeyPem<T>(Func<T> factory, ReadOnlySpan<char> pem, GetImportDelegate<T> pemCallback)
+        where T : AsymmetricAlgorithm
+    {
+        ImportDelegate<T>? lastAction = null;
+        PemFields foundFields = default;
+        ReadOnlySpan<char> foundSlice = default;
+
+        while (PemEncoding.TryFind(pem, out var fields))
+        {
+            var label = pem[fields.Label];
+
+            if (label.SequenceEqual(PemLabels.EncryptedPkcs8PrivateKey))
+            {
+                // not supported
+                throw new InvalidOperationException();
+            }
+
+            var currentAction = pemCallback(label);
+            if (currentAction != null)
+            {
+                if (lastAction != null)
+                {
+                    // duplicate keys
+                    throw new InvalidOperationException();
+                }
+
+                lastAction = currentAction;
+                foundFields = fields;
+                foundSlice = pem;
+            }
+
+            var offset = fields.Location.End;
+            pem = pem[offset..];
+        }
+
+        if (lastAction is null)
+        {
+            // no pem found
+            throw new InvalidOperationException();
+        }
+
+        var decodedDataLength = foundFields.DecodedDataLength;
+        var base64Data = foundSlice[foundFields.Base64Data];
+
+        return ImportAsymmetricKeyPem(factory, lastAction, decodedDataLength, base64Data);
+    }
+
+    private static unsafe T ImportAsymmetricKeyPem<T>(Func<T> factory, ImportDelegate<T> importDelegate, int decodedDataLength, ReadOnlySpan<char> base64Data)
+        where T : AsymmetricAlgorithm
+    {
+        var lease = ArrayPool<byte>.Shared.Rent(decodedDataLength);
+        try
+        {
+            // ReSharper disable once UnusedVariable
+            fixed (byte* pinned = lease)
+            {
+                var keyData = lease.AsSpan(0, decodedDataLength);
+                try
+                {
+                    if (!Convert.TryFromBase64Chars(base64Data, keyData, out var bytesWritten))
+                    {
+                        throw new InvalidOperationException();
+                    }
+
+                    Debug.Assert(bytesWritten == keyData.Length);
+
+                    var key = factory();
+                    try
+                    {
+                        importDelegate(key, keyData, out var bytesRead);
+                        Debug.Assert(bytesRead == keyData.Length);
+                    }
+                    catch
+                    {
+                        key.Dispose();
+                        throw;
+                    }
+
+                    return key;
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(keyData);
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(lease);
+        }
+    }
+}

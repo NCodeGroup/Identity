@@ -29,4 +29,19 @@
         <ProjectReference Include="..\NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="Cryptography\Keys\SecretKeyReader.Cert.cs">
+        <DependentUpon>SecretKeyReader.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Cryptography\Keys\SecretKeyReader.Ecc.cs">
+        <DependentUpon>SecretKeyReader.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Cryptography\Keys\SecretKeyReader.Pem.cs">
+        <DependentUpon>SecretKeyReader.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Cryptography\Keys\SecretKeyReader.Rsa.cs">
+        <DependentUpon>SecretKeyReader.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
 </Project>

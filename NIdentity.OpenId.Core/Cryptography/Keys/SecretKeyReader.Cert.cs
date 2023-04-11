@@ -9,6 +9,9 @@ partial struct SecretKeyReader
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <returns>The <see cref="SecretKey"/> that was read.</returns>
+    /// <remarks>
+    /// The data for the certificate must be encoded using <c>PEM</c> rules.
+    /// </remarks>
     public SecretKey ReadCertificate(string keyId) =>
         ReadPem(pem => ReadCertificate(keyId, pem));
 

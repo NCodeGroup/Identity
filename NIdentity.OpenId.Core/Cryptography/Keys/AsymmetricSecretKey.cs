@@ -36,7 +36,7 @@ public abstract class AsymmetricSecretKey : SecretKey
     private IMemoryOwner<byte> MemoryOwner { get; }
 
     /// <summary>
-    /// Gets the cryptographic material for the secret key formatted as PKCS#8.
+    /// Gets the cryptographic material for the secret key formatted as <c>PKCS#8</c>.
     /// </summary>
     protected ReadOnlySpan<byte> Pkcs8PrivateKey => MemoryOwner.Memory.Span;
 
@@ -58,7 +58,7 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="keyBitLength">The length of the key material in bits.</param>
-    /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as PKCS#8.</param>
+    /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
     protected AsymmetricSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
         : base(keyId)
@@ -97,7 +97,7 @@ public abstract class AsymmetricSecretKey : SecretKey
     }
 
     /// <summary>
-    /// Factory method to create and initialize an <see cref="AsymmetricAlgorithm"/> instance using the current PKCS#8 key material.
+    /// Factory method to create and initialize an <see cref="AsymmetricAlgorithm"/> instance using the current <c>PKCS#8</c> key material.
     /// </summary>
     /// <param name="factory">The factory method to create an instance of <typeparamref name="T"/>.</param>
     /// <typeparam name="T">The newly initialized instance of <typeparamref name="T"/>.</typeparam>

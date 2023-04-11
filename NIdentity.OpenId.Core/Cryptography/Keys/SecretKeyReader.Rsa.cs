@@ -9,7 +9,7 @@ partial struct SecretKeyReader
     /// Reads a <see cref="RsaSecretKey"/> from the source buffer.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="encoding">Specifies the type of encoding to use when reading the secret key.</param>
+    /// <param name="encoding">Specifies the type of encoding to use when reading the asymmetric key.</param>
     /// <returns>The <see cref="RsaSecretKey"/> that was read.</returns>
     public RsaSecretKey ReadRsa(string keyId, AsymmetricSecretKeyEncoding encoding) =>
         ReadRsa(keyId, encoding, certificate: null);

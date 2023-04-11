@@ -23,24 +23,31 @@ using System.Security.Cryptography;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
 
-internal enum SecretKeyEncoding
-{
-    Unknown = 0,
-    Pem,
-    Pkcs8
-}
-
-internal readonly ref partial struct SecretKeyReader
+/// <summary>
+/// Provides the ability to read <see cref="SecretKey"/> instances from binary data.
+/// </summary>
+public readonly ref partial struct SecretKeyReader
 {
     private delegate T AsymmetricSecretKeyFactoryDelegate<out T>(ReadOnlySpan<byte> pkcs8PrivateKey)
         where T : AsymmetricSecretKey;
 
-    private ReadOnlySpan<byte> RawData { get; }
+    private ReadOnlySpan<byte> Source { get; }
 
-    public SecretKeyReader(ReadOnlySpan<byte> rawData)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SecretKeyReader"/> struct.
+    /// </summary>
+    /// <param name="source">The source buffer to read from.</param>
+    public SecretKeyReader(ReadOnlySpan<byte> source)
     {
-        RawData = rawData;
+        Source = source;
     }
+
+    /// <summary>
+    /// Reads a <see cref="SharedSecretKey"/> from the source buffer.
+    /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <returns>The <see cref="SharedSecretKey"/> that was read.</returns>
+    public SharedSecretKey ReadSymmetric(string keyId) => new(keyId, Source);
 
     private static unsafe T CreateAsymmetricSecretKey<T>(AsymmetricAlgorithm key, AsymmetricSecretKeyFactoryDelegate<T> factory)
         where T : AsymmetricSecretKey
@@ -80,13 +87,13 @@ internal readonly ref partial struct SecretKeyReader
         }
     }
 
-    private T ReadAsymmetricKey<T>(Func<T> factory, SecretKeyEncoding encoding, ImportPemDelegate<T> importPem)
+    private T ReadAsymmetricKey<T>(Func<T> factory, AsymmetricSecretKeyEncoding encoding, ImportPemDelegate<T> importPem)
         where T : AsymmetricAlgorithm =>
         encoding switch
         {
-            SecretKeyEncoding.Unknown => throw new InvalidOperationException(),
-            SecretKeyEncoding.Pem => ReadPem(importPem),
-            SecretKeyEncoding.Pkcs8 => ReadPkcs8(factory),
+            AsymmetricSecretKeyEncoding.Unspecified => throw new InvalidOperationException(),
+            AsymmetricSecretKeyEncoding.Pem => ReadPem(importPem),
+            AsymmetricSecretKeyEncoding.Pkcs8 => ReadPkcs8(factory),
             _ => throw new InvalidOperationException()
         };
 
@@ -96,8 +103,8 @@ internal readonly ref partial struct SecretKeyReader
         var key = factory();
         try
         {
-            key.ImportPkcs8PrivateKey(RawData, out var bytesRead);
-            Debug.Assert(bytesRead == RawData.Length);
+            key.ImportPkcs8PrivateKey(Source, out var bytesRead);
+            Debug.Assert(bytesRead == Source.Length);
         }
         catch
         {

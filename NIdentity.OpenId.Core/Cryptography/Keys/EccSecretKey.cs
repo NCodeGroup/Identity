@@ -32,11 +32,11 @@ public class EccSecretKey : AsymmetricSecretKey
     /// Initializes a new instance of the <see cref="EccSecretKey"/> class with the specified <c>PKCS#8</c> key material.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="keyBitLength">The length of the key material in bits.</param>
+    /// <param name="keySizeBits">The length of the key material in bits.</param>
     /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
-    public EccSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
-        : base(keyId, keyBitLength, pkcs8PrivateKey, certificate)
+    public EccSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
+        : base(keyId, keySizeBits, pkcs8PrivateKey, certificate)
     {
         if (certificate != null)
         {

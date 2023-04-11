@@ -34,16 +34,16 @@ public abstract class EccCryptoFactory<TCryptoFactory> : CryptoFactory<TCryptoFa
     public override Type SecretKeyType => typeof(EccSecretKey);
 
     /// <inheritdoc />
-    protected override KeyMaterial GenerateKeyMaterial(int keyBitLength) =>
-        keyBitLength switch
+    protected override KeyMaterial GenerateKeyMaterial(int keySizeBits) =>
+        keySizeBits switch
         {
-            256 => new EccKeyMaterial(ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256)),
-            384 => new EccKeyMaterial(ECDiffieHellman.Create(ECCurve.NamedCurves.nistP384)),
-            521 => new EccKeyMaterial(ECDiffieHellman.Create(ECCurve.NamedCurves.nistP521)),
+            256 => new AsymmetricKeyMaterial(ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256), owns: true),
+            384 => new AsymmetricKeyMaterial(ECDiffieHellman.Create(ECCurve.NamedCurves.nistP384), owns: true),
+            521 => new AsymmetricKeyMaterial(ECDiffieHellman.Create(ECCurve.NamedCurves.nistP521), owns: true),
             _ => throw new InvalidOperationException()
         };
 
     /// <inheritdoc />
-    protected override SecretKey CreateSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> keyMaterial) =>
-        new EccSecretKey(keyId, keyBitLength, keyMaterial);
+    protected override SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyMaterial) =>
+        new EccSecretKey(keyId, keySizeBits, keyMaterial);
 }

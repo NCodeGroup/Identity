@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 
@@ -28,9 +27,6 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 /// </summary>
 public readonly ref partial struct SecretKeyReader
 {
-    private delegate T AsymmetricSecretKeyFactoryDelegate<out T>(ReadOnlySpan<byte> pkcs8PrivateKey)
-        where T : AsymmetricSecretKey;
-
     private ReadOnlySpan<byte> Source { get; }
 
     /// <summary>
@@ -48,44 +44,6 @@ public readonly ref partial struct SecretKeyReader
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <returns>The <see cref="SharedSecretKey"/> that was read.</returns>
     public SharedSecretKey ReadSymmetric(string keyId) => new(keyId, Source);
-
-    private static unsafe T CreateAsymmetricSecretKey<T>(AsymmetricAlgorithm key, AsymmetricSecretKeyFactoryDelegate<T> factory)
-        where T : AsymmetricSecretKey
-    {
-        var bufferSize = 4096;
-        while (true)
-        {
-            var lease = ArrayPool<byte>.Shared.Rent(bufferSize);
-            try
-            {
-                // ReSharper disable once UnusedVariable
-                fixed (byte* pinned = lease)
-                {
-                    var bytesToZero = bufferSize;
-                    try
-                    {
-                        var buffer = lease.AsSpan(0, bufferSize);
-                        if (key.TryExportPkcs8PrivateKey(buffer, out var bytesWritten))
-                        {
-                            bytesToZero = bytesWritten;
-                            var pkcs8PrivateKey = buffer[..bytesWritten];
-                            return factory(pkcs8PrivateKey);
-                        }
-
-                        bufferSize = checked(bufferSize * 2);
-                    }
-                    finally
-                    {
-                        CryptographicOperations.ZeroMemory(lease.AsSpan(0, bytesToZero));
-                    }
-                }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(lease);
-            }
-        }
-    }
 
     private T ReadAsymmetricKey<T>(Func<T> factory, AsymmetricSecretKeyEncoding encoding, ImportPemDelegate<T> importPem)
         where T : AsymmetricAlgorithm =>

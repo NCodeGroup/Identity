@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Buffers;
 using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead;
@@ -47,11 +46,11 @@ public interface ICryptoFactory
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="descriptor">The <see cref="AlgorithmDescriptor"/> that describes the cryptographic algorithm.</param>
-    /// <param name="keyBitLengthHint">An optional value that specifies the key size in bits to generate.
+    /// <param name="keySizeBitsHint">An optional value that specifies the key size in bits to generate.
     /// This value is verified against the legal key sizes for the algorithm.
     /// If omitted, the first legal key size is used.</param>
     /// <returns>The newly generated <see cref="SecretKey"/>.</returns>
-    SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default);
+    SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keySizeBitsHint = default);
 
     /// <summary>
     /// Creates an instance of <see cref="SignatureProvider"/> that can be used for digital signature algorithms.
@@ -98,61 +97,30 @@ public abstract class CryptoFactory : ICryptoFactory
     public abstract Type SecretKeyType { get; }
 
     /// <inheritdoc />
-    public virtual unsafe SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keyBitLengthHint = default)
+    public virtual SecretKey GenerateNewKey(string keyId, AlgorithmDescriptor descriptor, int? keySizeBitsHint = default)
     {
-        var keySize = KeySizesUtility.GetLegalSize(descriptor, keyBitLengthHint);
+        var keySizeBits = KeySizesUtility.GetLegalSize(descriptor, keySizeBitsHint);
 
-        using var keyMaterial = GenerateKeyMaterial(keySize);
+        using var keyMaterial = GenerateKeyMaterial(keySizeBits);
 
-        var bufferSize = 4096;
-        while (true)
-        {
-            var lease = ArrayPool<byte>.Shared.Rent(bufferSize);
-            try
-            {
-                // ReSharper disable once UnusedVariable
-                fixed (byte* pinned = lease)
-                {
-                    var bytesToZero = bufferSize;
-                    try
-                    {
-                        var buffer = lease.AsSpan();
-                        if (keyMaterial.TryExportKey(buffer, out var bytesWritten))
-                        {
-                            bytesToZero = bytesWritten;
-                            return CreateSecretKey(keyId, keySize, buffer[..bytesWritten]);
-                        }
-                    }
-                    finally
-                    {
-                        CryptographicOperations.ZeroMemory(lease.AsSpan(0, bytesToZero));
-                    }
-
-                    bufferSize = checked(bufferSize * 2);
-                }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(lease);
-            }
-        }
+        return SecretKeyFactory.Create(keyMaterial, keyBytes => CreateSecretKey(keyId, keySizeBits, keyBytes));
     }
 
     /// <summary>
     /// Generates new cryptographic random key material.
     /// </summary>
-    /// <param name="keyBitLength"></param>
+    /// <param name="keySizeBits">The length of the key material in bits.</param>
     /// <returns>A <see cref="KeyMaterial"/> that contains the cryptographic random key material.</returns>
-    protected abstract KeyMaterial GenerateKeyMaterial(int keyBitLength);
+    protected abstract KeyMaterial GenerateKeyMaterial(int keySizeBits);
 
     /// <summary>
     /// Factory method to create a new <see cref="SecretKey"/> with the specified key material.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="keyBitLength">The length of the key material in bits.</param>
-    /// <param name="keyMaterial">The key material for the secret key.</param>
+    /// <param name="keySizeBits">The length of the key material in bits.</param>
+    /// <param name="keyBytes">The key material for the secret key.</param>
     /// <returns>The newly created <see cref="SecretKey"/>.</returns>
-    protected abstract SecretKey CreateSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> keyMaterial);
+    protected abstract SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyBytes);
 
     /// <summary>
     /// Validates that the specified <paramref name="secretKey"/> is an instance of <typeparamref name="T"/>.

@@ -39,7 +39,7 @@ public abstract class SecretKey : IDisposable
     /// <summary>
     /// Gets the length of the key material in bits.
     /// </summary>
-    public abstract int KeyBitLength { get; }
+    public abstract int KeySizeBits { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SecretKey"/> class with the specified <c>Key ID (KID)</c>.

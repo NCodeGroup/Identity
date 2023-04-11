@@ -34,12 +34,12 @@ public class SharedSecretKey : SecretKey
     private IMemoryOwner<byte> MemoryOwner { get; }
 
     /// <inheritdoc />
-    public override int KeyBitLength => KeyByteLength * BinaryUtility.BitsPerByte;
+    public override int KeySizeBits => KeySizeBytes * BinaryUtility.BitsPerByte;
 
     /// <summary>
     /// Gets the length in bytes of the key material.
     /// </summary>
-    public int KeyByteLength => MemoryOwner.Memory.Length;
+    public int KeySizeBytes => MemoryOwner.Memory.Length;
 
     /// <summary>
     /// Gets the key material.

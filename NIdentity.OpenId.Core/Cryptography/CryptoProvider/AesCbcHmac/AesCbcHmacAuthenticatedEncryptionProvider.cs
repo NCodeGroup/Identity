@@ -112,7 +112,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             throw new InvalidOperationException();
 
         var keyByteLength = AlgorithmDescriptor.KeyByteLength;
-        if (keyByteLength != SharedSecretKey.KeyByteLength)
+        if (keyByteLength != SharedSecretKey.KeySizeBytes)
             throw new InvalidOperationException();
 
         var componentByteLength = keyByteLength / 2;
@@ -158,7 +158,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             throw new InvalidOperationException();
 
         var keyByteLength = AlgorithmDescriptor.KeyByteLength;
-        if (keyByteLength != SharedSecretKey.KeyByteLength)
+        if (keyByteLength != SharedSecretKey.KeySizeBytes)
             throw new InvalidOperationException();
 
         var componentByteLength = keyByteLength / 2;

@@ -28,19 +28,19 @@ public static class KeySizesUtility
     public static void AssertLegalSize(SecretKey secretKey, AlgorithmDescriptor descriptor)
     {
         if (descriptor is ISupportLegalSizes supportLegalSizes &&
-            !IsLegalSize(supportLegalSizes.LegalSizes, secretKey.KeyBitLength))
+            !IsLegalSize(supportLegalSizes.LegalSizes, secretKey.KeySizeBits))
         {
             throw new InvalidOperationException();
         }
     }
 
-    public static int GetLegalSize(AlgorithmDescriptor descriptor, int? keyBitLengthHint, int? keyBitLengthDefault = null)
+    public static int GetLegalSize(AlgorithmDescriptor descriptor, int? keySizeBitsHint, int? keySizeBitsDefault = null)
     {
         var legalSizes = descriptor is ISupportLegalSizes supportLegalSizes ? supportLegalSizes.LegalSizes : Array.Empty<KeySizes>();
-        return GetLegalSize(legalSizes, keyBitLengthHint, keyBitLengthDefault);
+        return GetLegalSize(legalSizes, keySizeBitsHint, keySizeBitsDefault);
     }
 
-    public static int GetLegalSize(IEnumerable<KeySizes> legalSizes, int? keyBitLengthHint, int? keyBitLengthDefault = null)
+    public static int GetLegalSize(IEnumerable<KeySizes> legalSizes, int? keySizeBitsHint, int? keySizeBitsDefault = null)
     {
         KeySizes? first = null;
 
@@ -48,13 +48,13 @@ public static class KeySizesUtility
         {
             first ??= legalSize;
 
-            if (keyBitLengthHint.HasValue && IsLegalSize(legalSize, keyBitLengthHint.Value))
+            if (keySizeBitsHint.HasValue && IsLegalSize(legalSize, keySizeBitsHint.Value))
             {
-                return keyBitLengthHint.Value;
+                return keySizeBitsHint.Value;
             }
         }
 
-        return first?.MinSize ?? keyBitLengthDefault ?? throw new InvalidOperationException();
+        return first?.MinSize ?? keySizeBitsDefault ?? throw new InvalidOperationException();
     }
 
     public static bool IsLegalSize(IEnumerable<KeySizes> legalSizes, int size) =>

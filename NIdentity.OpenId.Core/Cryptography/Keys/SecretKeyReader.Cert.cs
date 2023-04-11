@@ -11,6 +11,7 @@ partial struct SecretKeyReader
     /// <returns>The <see cref="SecretKey"/> that was read.</returns>
     /// <remarks>
     /// The data for the certificate must be encoded using <c>PEM</c> rules.
+    /// The currently supported PKI algorithms are RSA and EcPublicKey (either ECDsa or ECDiffieHellman).
     /// </remarks>
     public SecretKey ReadCertificate(string keyId) =>
         ReadPem(pem => ReadCertificate(keyId, pem));

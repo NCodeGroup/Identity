@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
 
 namespace NIdentity.OpenId.Cryptography.Keys.Material;
 
@@ -26,29 +27,34 @@ namespace NIdentity.OpenId.Cryptography.Keys.Material;
 /// </summary>
 public class SymmetricKeyMaterial : KeyMaterial
 {
-    private Memory<byte> KeyBytes { get; }
+    private Memory<byte> MemorySource { get; }
 
     /// <inheritdoc />
-    public override int KeySizeBits => KeyBytes.Length;
+    public override int KeySizeBits => MemorySource.Length / BinaryUtility.BitsPerByte;
+
+    /// <summary>
+    /// Gets a read-only buffer of the key bytes.
+    /// </summary>
+    public ReadOnlySpan<byte> KeyBytes => MemorySource.Span;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SymmetricKeyMaterial"/> class with the specified key material.
     /// </summary>
-    /// <param name="keyBytes">An byte array containing the key material.</param>
-    public SymmetricKeyMaterial(Memory<byte> keyBytes) =>
-        KeyBytes = keyBytes;
+    /// <param name="memorySource">An byte array containing the key material.</param>
+    public SymmetricKeyMaterial(Memory<byte> memorySource) =>
+        MemorySource = memorySource;
 
     /// <inheritdoc />
     public override void Dispose()
     {
-        CryptographicOperations.ZeroMemory(KeyBytes.Span);
+        CryptographicOperations.ZeroMemory(MemorySource.Span);
         GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc />
     public override bool TryExportKey(Span<byte> destination, out int bytesWritten)
     {
-        bytesWritten = KeyBytes.Length;
-        return KeyBytes.Span.TryCopyTo(destination);
+        bytesWritten = MemorySource.Length;
+        return MemorySource.Span.TryCopyTo(destination);
     }
 }

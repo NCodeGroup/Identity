@@ -51,16 +51,16 @@ public abstract class AsymmetricSecretKey : SecretKey
     public X509Certificate2? Certificate { get; }
 
     /// <inheritdoc />
-    public override int KeyBitLength { get; }
+    public override int KeySizeBits { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AsymmetricSecretKey"/> class.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="keyBitLength">The length of the key material in bits.</param>
+    /// <param name="keySizeBits">The length of the key material in bits.</param>
     /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
-    protected AsymmetricSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
+    protected AsymmetricSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
         : base(keyId)
     {
         if (certificate != null)
@@ -69,7 +69,7 @@ public abstract class AsymmetricSecretKey : SecretKey
         }
 
         Certificate = certificate;
-        KeyBitLength = keyBitLength;
+        KeySizeBits = keySizeBits;
 
         MemoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length);
         try

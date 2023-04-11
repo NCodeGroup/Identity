@@ -26,6 +26,8 @@ namespace NIdentity.OpenId.Cryptography.Keys.Material;
 /// </summary>
 public class AsymmetricKeyMaterial : KeyMaterial
 {
+    private bool Owns { get; }
+
     private AsymmetricAlgorithm AsymmetricAlgorithm { get; }
 
     /// <inheritdoc />
@@ -35,13 +37,17 @@ public class AsymmetricKeyMaterial : KeyMaterial
     /// Initializes a new instance of the <see cref="AsymmetricKeyMaterial"/> class with the specified <see cref="AsymmetricAlgorithm"/>.
     /// </summary>
     /// <param name="asymmetricAlgorithm">The <see cref="AsymmetricAlgorithm"/> that contains the key material.</param>
-    public AsymmetricKeyMaterial(AsymmetricAlgorithm asymmetricAlgorithm) =>
+    /// <param name="owns"><c>true</c> if the current instance owns the <see cref="AsymmetricAlgorithm"/> and should dispose it when the <see cref="AsymmetricKeyMaterial"/> is disposed; otherwise, <c>false</c>.</param>
+    public AsymmetricKeyMaterial(AsymmetricAlgorithm asymmetricAlgorithm, bool owns)
+    {
+        Owns = owns;
         AsymmetricAlgorithm = asymmetricAlgorithm;
+    }
 
     /// <inheritdoc />
     public override void Dispose()
     {
-        AsymmetricAlgorithm.Dispose();
+        if (Owns) AsymmetricAlgorithm.Dispose();
         GC.SuppressFinalize(this);
     }
 

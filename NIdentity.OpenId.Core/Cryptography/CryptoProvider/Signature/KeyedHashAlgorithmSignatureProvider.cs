@@ -69,7 +69,7 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
         */
 
         // TODO: can this be validated earlier?
-        var keyByteLength = SharedSecretKey.KeyByteLength;
+        var keyByteLength = SharedSecretKey.KeySizeBytes;
         if (keyByteLength < hashByteLength)
         {
             throw new InvalidOperationException();

@@ -15,7 +15,7 @@ partial struct SecretKeyReader
         ReadECDiffieHellman(keyId, encoding, certificate: null);
 
     private static EccSecretKey CreateEccSecretKey(string keyId, AsymmetricAlgorithm key, X509Certificate2? certificate) =>
-        CreateAsymmetricSecretKey<EccSecretKey>(key, pkcs8PrivateKey =>
+        SecretKeyFactory.Create<EccSecretKey>(key, pkcs8PrivateKey =>
             new EccSecretKey(keyId, key.KeySize, pkcs8PrivateKey, certificate));
 
     private EccSecretKey ReadECDiffieHellman(string keyId, AsymmetricSecretKeyEncoding encoding, X509Certificate2? certificate)

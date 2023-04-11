@@ -20,7 +20,7 @@
 namespace NIdentity.OpenId.Cryptography.Keys.Material;
 
 /// <summary>
-/// Base class that is used to store randomly generated cryptographic key material.
+/// Base class that is used to store cryptographic key material.
 /// </summary>
 public abstract class KeyMaterial : IDisposable
 {

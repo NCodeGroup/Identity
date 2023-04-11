@@ -15,7 +15,7 @@ partial struct SecretKeyReader
         ReadRsa(keyId, encoding, certificate: null);
 
     private static RsaSecretKey CreateRsaSecretKey(string keyId, AsymmetricAlgorithm key, X509Certificate2? certificate) =>
-        CreateAsymmetricSecretKey<RsaSecretKey>(key, pkcs8PrivateKey =>
+        SecretKeyFactory.Create<RsaSecretKey>(key, pkcs8PrivateKey =>
             new RsaSecretKey(keyId, key.KeySize, pkcs8PrivateKey, certificate));
 
     private RsaSecretKey ReadRsa(string keyId, AsymmetricSecretKeyEncoding encoding, X509Certificate2? certificate)

@@ -36,12 +36,12 @@ public class RsaCryptoFactory : CryptoFactory<RsaCryptoFactory>
     public override Type SecretKeyType => typeof(RsaSecretKey);
 
     /// <inheritdoc />
-    protected override KeyMaterial GenerateKeyMaterial(int keyBitLength) =>
-        new AsymmetricKeyMaterial(RSA.Create(keyBitLength));
+    protected override KeyMaterial GenerateKeyMaterial(int keySizeBits) =>
+        new AsymmetricKeyMaterial(RSA.Create(keySizeBits), owns: true);
 
     /// <inheritdoc />
-    protected override RsaSecretKey CreateSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> keyMaterial) =>
-        new(keyId, keyBitLength, keyMaterial);
+    protected override RsaSecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyMaterial) =>
+        new(keyId, keySizeBits, keyMaterial);
 
     /// <inheritdoc />
     public override SignatureProvider CreateSignatureProvider(

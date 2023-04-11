@@ -34,15 +34,15 @@ public abstract class SymmetricCryptoFactory<TCryptoFactory> : CryptoFactory<TCr
     public override Type SecretKeyType => typeof(SharedSecretKey);
 
     /// <inheritdoc />
-    protected override KeyMaterial GenerateKeyMaterial(int keyBitLength)
+    protected override KeyMaterial GenerateKeyMaterial(int keySizeBits)
     {
-        var keyByteLength = keyBitLength / BinaryUtility.BitsPerByte;
+        var keyByteLength = keySizeBits / BinaryUtility.BitsPerByte;
         var keyBytes = GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
         RandomNumberGenerator.GetBytes(keyBytes);
         return new SymmetricKeyMaterial(keyBytes);
     }
 
     /// <inheritdoc />
-    protected override SecretKey CreateSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> keyMaterial) =>
+    protected override SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyMaterial) =>
         new SharedSecretKey(keyId, keyMaterial);
 }

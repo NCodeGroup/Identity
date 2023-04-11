@@ -35,11 +35,11 @@ public class NoopCryptoFactory : CryptoFactory<NoopCryptoFactory>
     public override Type SecretKeyType => throw new InvalidOperationException();
 
     /// <inheritdoc />
-    protected override KeyMaterial GenerateKeyMaterial(int keyBitLength) =>
+    protected override KeyMaterial GenerateKeyMaterial(int keySizeBits) =>
         throw new InvalidOperationException();
 
     /// <inheritdoc />
-    protected override SecretKey CreateSecretKey(string keyId, int keyBitLength, ReadOnlySpan<byte> keyMaterial) =>
+    protected override SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyMaterial) =>
         throw new InvalidOperationException();
 
     /// <inheritdoc />

@@ -138,7 +138,7 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
     {
         var typedParameters = ValidateParameters<EcdhEsKeyWrapParameters>(parameters);
 
-        using var ourPrivateKey = EccSecretKey.CreateEcDiffieHellman();
+        using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
         using var ourPublicKey = ourPrivateKey.PublicKey;
 
         return DeriveKey(typedParameters, typedParameters.RecipientKey, ourPublicKey);
@@ -165,7 +165,7 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
     {
         var typedParameters = ValidateParameters<EcdhEsKeyUnwrapParameters>(parameters);
 
-        using var ourPrivateKey = EccSecretKey.CreateEcDiffieHellman();
+        using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
 
         return DeriveKey(typedParameters, ourPrivateKey, typedParameters.SenderPublicKey);
     }

@@ -45,8 +45,8 @@ public class RsaSecretKey : AsymmetricSecretKey
     }
 
     /// <summary>
-    /// Factory method to create an <see cref="RSA"/> instance from the current PKCS#8 key material.
+    /// Factory method to create an <see cref="RSA"/> instance from the current <c>PKCS#8</c> key material.
     /// </summary>
     /// <returns>The newly created <see cref="RSA"/> instance</returns>
-    public RSA CreateRsa() => CreateAsymmetricAlgorithm(RSA.Create);
+    public RSA CreateRSA() => CreateAsymmetricAlgorithm(RSA.Create);
 }

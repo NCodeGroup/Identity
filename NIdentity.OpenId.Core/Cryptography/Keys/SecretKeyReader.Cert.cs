@@ -35,7 +35,6 @@ partial struct SecretKeyReader
         }
     }
 
-    // ReSharper disable once InconsistentNaming
     private static bool IsECDsa(X509Certificate2 certificate)
     {
         // the easiest implementation without copying the logic from HasECDsaKeyUsage
@@ -43,7 +42,6 @@ partial struct SecretKeyReader
         return key is not null;
     }
 
-    // ReSharper disable once InconsistentNaming
     private static bool IsECDiffieHellman(X509Certificate2 certificate)
     {
         // the easiest implementation without copying the logic from HasECDiffieHellmanKeyUsage

@@ -42,7 +42,7 @@ public abstract class SecretKey : IDisposable
     public abstract int KeyBitLength { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKey"/> class with the specified <c>Key ID</c>.
+    /// Initializes a new instance of the <see cref="SecretKey"/> class with the specified <c>Key ID (KID)</c>.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     protected SecretKey(string keyId)

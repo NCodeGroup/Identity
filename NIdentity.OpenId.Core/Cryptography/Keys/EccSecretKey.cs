@@ -48,11 +48,11 @@ public class EccSecretKey : AsymmetricSecretKey
     /// Factory method to create an <see cref="ECDsa"/> instance from the <see cref="ECParameters"/>.
     /// </summary>
     /// <returns>The newly created <see cref="ECDsa"/> instance</returns>
-    public ECDsa CreateEcdsa() => CreateAsymmetricAlgorithm(ECDsa.Create);
+    public ECDsa CreateECDsa() => CreateAsymmetricAlgorithm(ECDsa.Create);
 
     /// <summary>
     /// Factory method to create an <see cref="ECDiffieHellman"/> instance from the <see cref="ECParameters"/>.
     /// </summary>
     /// <returns>The newly created <see cref="ECDiffieHellman"/> instance</returns>
-    public ECDiffieHellman CreateEcDiffieHellman() => CreateAsymmetricAlgorithm(ECDiffieHellman.Create);
+    public ECDiffieHellman CreateECDiffieHellman() => CreateAsymmetricAlgorithm(ECDiffieHellman.Create);
 }

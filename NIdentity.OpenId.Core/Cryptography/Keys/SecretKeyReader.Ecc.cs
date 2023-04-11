@@ -1,8 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
-// ReSharper disable InconsistentNaming
-
 namespace NIdentity.OpenId.Cryptography.Keys;
 
 partial struct SecretKeyReader

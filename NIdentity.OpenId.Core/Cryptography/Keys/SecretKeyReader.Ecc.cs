@@ -7,14 +7,20 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 
 partial struct SecretKeyReader
 {
-    public EccSecretKey ReadEcc(string keyId, SecretKeyEncoding encoding) =>
+    /// <summary>
+    /// Reads an <see cref="EccSecretKey"/> from the source buffer.
+    /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <param name="encoding">Specifies the type of encoding to use when reading the secret key.</param>
+    /// <returns>The <see cref="EccSecretKey"/> that was read.</returns>
+    public EccSecretKey ReadEcc(string keyId, AsymmetricSecretKeyEncoding encoding) =>
         ReadECDiffieHellman(keyId, encoding, certificate: null);
 
     private static EccSecretKey CreateEccSecretKey(string keyId, AsymmetricAlgorithm key, X509Certificate2? certificate) =>
         CreateAsymmetricSecretKey<EccSecretKey>(key, pkcs8PrivateKey =>
             new EccSecretKey(keyId, key.KeySize, pkcs8PrivateKey, certificate));
 
-    private EccSecretKey ReadECDiffieHellman(string keyId, SecretKeyEncoding encoding, X509Certificate2? certificate)
+    private EccSecretKey ReadECDiffieHellman(string keyId, AsymmetricSecretKeyEncoding encoding, X509Certificate2? certificate)
     {
         using var key = ReadAsymmetricKey(ECDiffieHellman.Create, encoding, ImportECDiffieHellman);
         return CreateEccSecretKey(keyId, key, certificate);

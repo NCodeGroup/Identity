@@ -17,7 +17,7 @@ partial struct SecretKeyReader
 
     private unsafe T ReadPem<T>(ImportPemDelegate<T> importPem)
     {
-        var charCount = Encoding.UTF8.GetCharCount(RawData);
+        var charCount = Encoding.UTF8.GetCharCount(Source);
         var lease = ArrayPool<char>.Shared.Rent(charCount);
         try
         {
@@ -27,8 +27,8 @@ partial struct SecretKeyReader
                 try
                 {
                     var pem = lease.AsSpan(0, charCount);
-                    var bytesRead = Encoding.UTF8.GetChars(RawData, pem);
-                    Debug.Assert(bytesRead == RawData.Length);
+                    var bytesRead = Encoding.UTF8.GetChars(Source, pem);
+                    Debug.Assert(bytesRead == Source.Length);
 
                     return importPem(pem);
                 }

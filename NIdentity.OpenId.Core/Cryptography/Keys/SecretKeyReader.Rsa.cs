@@ -5,14 +5,20 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 
 partial struct SecretKeyReader
 {
-    public RsaSecretKey ReadRsa(string keyId, SecretKeyEncoding encoding) =>
+    /// <summary>
+    /// Reads a <see cref="RsaSecretKey"/> from the source buffer.
+    /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <param name="encoding">Specifies the type of encoding to use when reading the secret key.</param>
+    /// <returns>The <see cref="RsaSecretKey"/> that was read.</returns>
+    public RsaSecretKey ReadRsa(string keyId, AsymmetricSecretKeyEncoding encoding) =>
         ReadRsa(keyId, encoding, certificate: null);
 
     private static RsaSecretKey CreateRsaSecretKey(string keyId, AsymmetricAlgorithm key, X509Certificate2? certificate) =>
         CreateAsymmetricSecretKey<RsaSecretKey>(key, pkcs8PrivateKey =>
             new RsaSecretKey(keyId, key.KeySize, pkcs8PrivateKey, certificate));
 
-    private RsaSecretKey ReadRsa(string keyId, SecretKeyEncoding encoding, X509Certificate2? certificate)
+    private RsaSecretKey ReadRsa(string keyId, AsymmetricSecretKeyEncoding encoding, X509Certificate2? certificate)
     {
         using var key = ReadAsymmetricKey(RSA.Create, encoding, ImportRsa);
         return CreateRsaSecretKey(keyId, key, certificate);

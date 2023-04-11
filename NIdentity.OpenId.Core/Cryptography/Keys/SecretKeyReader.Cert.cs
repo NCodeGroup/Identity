@@ -4,6 +4,11 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 
 partial struct SecretKeyReader
 {
+    /// <summary>
+    /// Reads a <see cref="SecretKey"/> from the source buffer along with its corresponding certificate.
+    /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <returns>The <see cref="SecretKey"/> that was read.</returns>
     public SecretKey ReadCertificate(string keyId) =>
         ReadPem(pem => ReadCertificate(keyId, pem));
 

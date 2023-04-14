@@ -18,13 +18,12 @@
 #endregion
 
 using System.Security.Cryptography;
-using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh.Parameters;
 
 public record EcdhEsKeyUnwrapWithAesKeyUnwrapParameters
 (
-    ReadOnlyMemory<byte> CipherTextKey,
+    ReadOnlyMemory<byte> EncryptedContentKey,
     ECDiffieHellmanPublicKey SenderPublicKey,
     int KeyBitLength,
     string PartyUInfo,
@@ -35,4 +34,4 @@ public record EcdhEsKeyUnwrapWithAesKeyUnwrapParameters
     KeyBitLength,
     PartyUInfo,
     PartyVInfo
-), ISupportCipherTextKey;
+);

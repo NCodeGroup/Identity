@@ -76,7 +76,7 @@ public class EcdhKeyWrapWithAesKeyWrapProviderTests : BaseTests
             AlgorithmCode,
             KeyDerivationFunctionTypes.SP800_56A_CONCAT,
             HashAlgorithmName.SHA256,
-            HashBitLength: 256,
+            HashSizeBits: 256,
             KeyBitLength);
     }
 

@@ -20,12 +20,11 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Binary;
-using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
 
 /// <summary>
-/// Defines cryptographic operations for the <c>Advanced Encryption Standard (AES) Key Wrap Algorithm</c>.
+/// Defines cryptographic operations for the <c>AES</c> key wrap algorithm.
 /// https://datatracker.ietf.org/doc/html/rfc3394
 /// </summary>
 public interface IAesKeyWrap
@@ -33,22 +32,22 @@ public interface IAesKeyWrap
     /// <summary>
     /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.
     /// </summary>
-    /// <param name="kek">Contains the key encryption key.</param>
-    /// <param name="parameters">Contains the plain text to be encrypted.</param>
-    /// <returns>The result of encrypting the plain text to cipher text.</returns>
+    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
+    /// <param name="contentEncryptionKey">Contains the content encryption key (CEK) that is to be encrypted.</param>
+    /// <returns>The result of encrypting the key data.</returns>
     ReadOnlySequence<byte> WrapKey(
-        ReadOnlySpan<byte> kek,
-        ISupportPlainTextKey parameters);
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlyMemory<byte> contentEncryptionKey);
 
     /// <summary>
     /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
     /// </summary>
-    /// <param name="kek">Contains the key encryption key.</param>
-    /// <param name="parameters">Contains the cipher text to be decrypted.</param>
-    /// <returns>The result of decrypting the cipher text to plain text.</returns>
+    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
+    /// <param name="encryptedContentEncryptionKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
+    /// <returns>The result of decrypting the encrypted key data.</returns>
     ReadOnlySequence<byte> UnwrapKey(
-        ReadOnlySpan<byte> kek,
-        ISupportCipherTextKey parameters);
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlyMemory<byte> encryptedContentEncryptionKey);
 }
 
 /// <summary>
@@ -78,8 +77,8 @@ public class AesKeyWrap : IAesKeyWrap
 
     /// <inheritdoc />
     public ReadOnlySequence<byte> WrapKey(
-        ReadOnlySpan<byte> kek,
-        ISupportPlainTextKey parameters)
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlyMemory<byte> contentEncryptionKey)
     {
         /*
            Inputs:  Plaintext, n 64-bit values {P1, P2, ..., Pn}, and
@@ -87,15 +86,14 @@ public class AesKeyWrap : IAesKeyWrap
            Outputs: Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}.
         */
 
-        var plainTextKey = parameters.PlainTextKey;
-        if (plainTextKey.Length < IntermediateByteCount)
+        if (contentEncryptionKey.Length < IntermediateByteCount)
         {
             // TODO: unit tests
             // min size
             throw new InvalidOperationException();
         }
 
-        if (plainTextKey.Length % ChunkByteCount != 0)
+        if (contentEncryptionKey.Length % ChunkByteCount != 0)
         {
             // TODO: unit tests
             // 64bit chunks
@@ -103,7 +101,7 @@ public class AesKeyWrap : IAesKeyWrap
         }
 
         using var aes = System.Security.Cryptography.Aes.Create();
-        aes.Key = kek.ToArray();
+        aes.Key = keyEncryptionKey.ToArray();
         aes.Mode = CipherMode.ECB;
         aes.Padding = PaddingMode.None;
 
@@ -115,14 +113,14 @@ public class AesKeyWrap : IAesKeyWrap
                    R[i] = P[i]
         */
 
-        var n = plainTextKey.Length / ChunkByteCount;
+        var n = contentEncryptionKey.Length / ChunkByteCount;
 
         Span<byte> a = stackalloc byte[sizeof(long)];
         DefaultIV.Span.CopyTo(a);
 
         var r = Enumerable
             .Range(0, n)
-            .Select(i => plainTextKey.Slice(i * ChunkByteCount, ChunkByteCount))
+            .Select(i => contentEncryptionKey.Slice(i * ChunkByteCount, ChunkByteCount))
             .ToArray();
 
         /*
@@ -166,8 +164,8 @@ public class AesKeyWrap : IAesKeyWrap
 
     /// <inheritdoc />
     public ReadOnlySequence<byte> UnwrapKey(
-        ReadOnlySpan<byte> kek,
-        ISupportCipherTextKey parameters)
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlyMemory<byte> encryptedContentEncryptionKey)
     {
         /*
            Inputs:  Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}, and
@@ -175,15 +173,14 @@ public class AesKeyWrap : IAesKeyWrap
            Outputs: Plaintext, n 64-bit values {P0, P1, K, Pn}.
         */
 
-        var cipherTextKey = parameters.CipherTextKey;
-        if (cipherTextKey.Length < IntermediateByteCount)
+        if (encryptedContentEncryptionKey.Length < IntermediateByteCount)
         {
             // TODO: unit tests
             // min size
             throw new InvalidOperationException();
         }
 
-        if (cipherTextKey.Length % ChunkByteCount != 0)
+        if (encryptedContentEncryptionKey.Length % ChunkByteCount != 0)
         {
             // TODO: unit tests
             // 64bit chunks
@@ -191,7 +188,7 @@ public class AesKeyWrap : IAesKeyWrap
         }
 
         using var aes = System.Security.Cryptography.Aes.Create();
-        aes.Key = kek.ToArray();
+        aes.Key = keyEncryptionKey.ToArray();
         aes.Mode = CipherMode.ECB;
         aes.Padding = PaddingMode.None;
 
@@ -203,13 +200,13 @@ public class AesKeyWrap : IAesKeyWrap
                    R[i] = C[i]
         */
 
-        var n = cipherTextKey.Length / ChunkByteCount - 1;
+        var n = encryptedContentEncryptionKey.Length / ChunkByteCount - 1;
 
-        var a = cipherTextKey[..ChunkByteCount];
+        var a = encryptedContentEncryptionKey[..ChunkByteCount];
 
         var r = Enumerable
             .Range(1, n) // skip first
-            .Select(i => cipherTextKey.Slice(i * ChunkByteCount, ChunkByteCount))
+            .Select(i => encryptedContentEncryptionKey.Slice(i * ChunkByteCount, ChunkByteCount))
             .ToArray();
 
         /*

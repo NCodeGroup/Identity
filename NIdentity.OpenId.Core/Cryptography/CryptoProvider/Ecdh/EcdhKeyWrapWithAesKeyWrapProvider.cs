@@ -50,7 +50,7 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
         using var ourPublicKey = ourPrivateKey.PublicKey;
         var keyAgreement = DeriveKey(typedParameters, typedParameters.RecipientKey, ourPublicKey);
 
-        var keyByteLength = Descriptor.KeyByteLength;
+        var keyByteLength = Descriptor.KeySizeBytes;
         if (keyAgreement.Length != keyByteLength)
         {
             // TODO: unit tests
@@ -65,7 +65,7 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         try
         {
-            return AesKeyWrap.WrapKey(kek, typedParameters);
+            return AesKeyWrap.WrapKey(kek, typedParameters.ContentKey);
         }
         finally
         {
@@ -82,7 +82,7 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
         using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
         var keyAgreement = DeriveKey(typedParameters, ourPrivateKey, typedParameters.SenderPublicKey);
 
-        var keyByteLength = Descriptor.KeyByteLength;
+        var keyByteLength = Descriptor.KeySizeBytes;
         if (keyAgreement.Length != keyByteLength)
         {
             // TODO: unit tests
@@ -97,7 +97,7 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         try
         {
-            return AesKeyWrap.UnwrapKey(kek, typedParameters);
+            return AesKeyWrap.UnwrapKey(kek, typedParameters.EncryptedContentKey);
         }
         finally
         {

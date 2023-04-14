@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Buffers;
 using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Keys.Material;
 
@@ -42,7 +41,7 @@ public static class SecretKeyFactory
     /// <param name="factory">A callback method that instantiates concrete <see cref="SecretKey"/> instances.</param>
     /// <typeparam name="T">The concrete <see cref="SecretKey"/> type.</typeparam>
     /// <returns>The newly created <see cref="SecretKey"/> instance.</returns>
-    public static unsafe T Create<T>(KeyMaterial keyMaterial, SecretKeyFactoryDelegate<T> factory)
+    public static T Create<T>(KeyMaterial keyMaterial, SecretKeyFactoryDelegate<T> factory)
         where T : SecretKey
     {
         if (keyMaterial is SymmetricKeyMaterial symmetricKeyMaterial)
@@ -50,38 +49,18 @@ public static class SecretKeyFactory
             return factory(symmetricKeyMaterial.KeyBytes);
         }
 
-        var bufferSize = 4096;
+        var size = 4096;
         while (true)
         {
-            var lease = ArrayPool<byte>.Shared.Rent(bufferSize);
-            try
-            {
-                // ReSharper disable once UnusedVariable
-                fixed (byte* pinned = lease)
-                {
-                    var bytesToZero = bufferSize;
-                    try
-                    {
-                        var buffer = lease.AsSpan(0, bufferSize);
-                        if (keyMaterial.TryExportKey(buffer, out var bytesWritten))
-                        {
-                            bytesToZero = bytesWritten;
-                            var pkcs8PrivateKey = buffer[..bytesWritten];
-                            return factory(pkcs8PrivateKey);
-                        }
+            using var lease = CryptoPool.Rent(size);
 
-                        bufferSize = checked(bufferSize * 2);
-                    }
-                    finally
-                    {
-                        CryptographicOperations.ZeroMemory(lease.AsSpan(0, bytesToZero));
-                    }
-                }
-            }
-            finally
+            var buffer = lease.Memory.Span;
+            if (keyMaterial.TryExportKey(buffer, out var bytesWritten))
             {
-                ArrayPool<byte>.Shared.Return(lease);
+                return factory(buffer[..bytesWritten]);
             }
+
+            size = checked(size * 2);
         }
     }
 

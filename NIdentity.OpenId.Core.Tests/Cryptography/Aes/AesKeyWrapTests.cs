@@ -20,7 +20,6 @@
 using System.Buffers;
 using NIdentity.OpenId.Cryptography.CryptoProvider;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
-using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Cryptography.Aes;
@@ -50,24 +49,20 @@ public class AesKeyWrapTests : BaseTests
     [Fact]
     public void WrapKey_Valid()
     {
-        var plainText = Convert.FromBase64String(ExpectedPlainText);
+        var cek = Convert.FromBase64String(ExpectedPlainText);
+        var cipherText = AesKeyWrap.WrapKey(AesKey.Span, cek);
 
-        var parameters = new ContentKeyWrapParameters(plainText);
-        var cipherText = AesKeyWrap.WrapKey(AesKey.Span, parameters);
-
-        Assert.Equal(sizeof(long), cipherText.Length - plainText.Length);
+        Assert.Equal(sizeof(long), cipherText.Length - cek.Length);
         Assert.Equal(ExpectedCipherText, Convert.ToBase64String(cipherText.ToArray()));
     }
 
     [Fact]
     public void UnwrapKey_Valid()
     {
-        var cipherText = Convert.FromBase64String(ExpectedCipherText);
+        var encryptedCek = Convert.FromBase64String(ExpectedCipherText);
+        var plainText = AesKeyWrap.UnwrapKey(AesKey.Span, encryptedCek);
 
-        var parameters = new ContentKeyUnwrapParameters(cipherText);
-        var plainText = AesKeyWrap.UnwrapKey(AesKey.Span, parameters);
-
-        Assert.Equal(sizeof(long), cipherText.Length - plainText.Length);
+        Assert.Equal(sizeof(long), encryptedCek.Length - plainText.Length);
         Assert.Equal(ExpectedPlainText, Convert.ToBase64String(plainText.ToArray()));
     }
 
@@ -75,17 +70,14 @@ public class AesKeyWrapTests : BaseTests
     public void RoundTrip_Valid()
     {
         const int anyKeySize = 312;
-        var expectedPlainText = GC.AllocateUninitializedArray<byte>(anyKeySize);
-        Random.Shared.NextBytes(expectedPlainText);
+        var cek = GC.AllocateUninitializedArray<byte>(anyKeySize);
+        Random.Shared.NextBytes(cek);
 
-        var wrapParameters = new ContentKeyWrapParameters(expectedPlainText);
-        var cipherText = AesKeyWrap.WrapKey(AesKey.Span, wrapParameters);
-
-        var unWrapParameters = new ContentKeyUnwrapParameters(cipherText.ToArray());
-        var actualPlainText = AesKeyWrap.UnwrapKey(AesKey.Span, unWrapParameters);
+        var encryptedCek = AesKeyWrap.WrapKey(AesKey.Span, cek);
+        var actualPlainText = AesKeyWrap.UnwrapKey(AesKey.Span, encryptedCek.ToArray());
 
         Assert.Equal(
-            Convert.ToBase64String(expectedPlainText),
+            Convert.ToBase64String(cek),
             Convert.ToBase64String(actualPlainText.ToArray()));
     }
 }

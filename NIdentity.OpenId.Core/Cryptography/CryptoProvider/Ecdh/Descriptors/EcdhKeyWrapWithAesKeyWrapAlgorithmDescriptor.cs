@@ -27,18 +27,18 @@ public record EcdhKeyWrapWithAesKeyWrapAlgorithmDescriptor
     string AlgorithmCode,
     string KeyDerivationFunction,
     HashAlgorithmName HashAlgorithmName,
-    int HashBitLength,
-    int KeyBitLength
+    int HashSizeBits,
+    int KeySizeBits
 ) : EcdhKeyWrapAlgorithmDescriptor
 (
     AlgorithmCode,
     KeyDerivationFunction,
     HashAlgorithmName,
-    HashBitLength
+    HashSizeBits
 )
 {
     /// <summary>
     /// Gets the number of bytes for the <c>key encryption key (kek)</c>.
     /// </summary>
-    public int KeyByteLength => KeyBitLength / BinaryUtility.BitsPerByte;
+    public int KeySizeBytes => KeySizeBits / BinaryUtility.BitsPerByte;
 }

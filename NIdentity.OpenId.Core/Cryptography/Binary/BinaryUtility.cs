@@ -19,6 +19,8 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace NIdentity.OpenId.Cryptography.Binary;
 
@@ -39,6 +41,37 @@ internal static class BinaryUtility
         var result = x ^ y;
 
         BinaryPrimitives.WriteInt64BigEndian(destination, result);
+    }
+
+    public static void Xor(ReadOnlySpan<byte> xBuffer, ReadOnlySpan<byte> yBuffer, Span<byte> destination)
+    {
+        if (xBuffer.Length != yBuffer.Length)
+            throw new InvalidOperationException();
+        if (destination.Length < xBuffer.Length)
+            throw new InvalidOperationException();
+
+        var byteCount = xBuffer.Length;
+        var remainingByteOffset = 0;
+
+        if (byteCount >= Vector<byte>.Count)
+        {
+            var xVectors = MemoryMarshal.Cast<byte, Vector<byte>>(xBuffer);
+            var yVectors = MemoryMarshal.Cast<byte, Vector<byte>>(yBuffer);
+            var destinationVectors = MemoryMarshal.Cast<byte, Vector<byte>>(destination);
+
+            var vectorCount = xVectors.Length;
+            for (var i = 0; i < vectorCount; ++i)
+            {
+                destinationVectors[i] = xVectors[i] ^ yVectors[i];
+            }
+
+            remainingByteOffset = Vector<byte>.Count * vectorCount;
+        }
+
+        for (var i = remainingByteOffset; i < byteCount; ++i)
+        {
+            destination[i] = (byte)(xBuffer[i] ^ yBuffer[i]);
+        }
     }
 
     public static ReadOnlySequence<byte> Concat(IEnumerable<ReadOnlyMemory<byte>> buffers)
@@ -96,6 +129,16 @@ internal static class BinaryUtility
 
         a.CopyTo(destination);
         b.CopyTo(destination[a.Length..]);
+    }
+
+    public static void Concat(ReadOnlySpan<byte> a, int b, Span<byte> destination)
+    {
+        if (a.Length + sizeof(int) > destination.Length)
+            throw new InvalidOperationException();
+
+        a.CopyTo(destination);
+
+        BinaryPrimitives.WriteInt32BigEndian(destination[a.Length..], b);
     }
 
     public static void Concat(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b, ReadOnlySpan<byte> c, long e, Span<byte> destination)

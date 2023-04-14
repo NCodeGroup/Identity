@@ -26,7 +26,7 @@ using NIdentity.OpenId.Cryptography.Keys;
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
 
 /// <summary>
-/// Provides an implementation of <see cref="KeyWrapProvider"/> using the <c>Advanced Encryption Standard (AES) Key Wrap Algorithm</c>.
+/// Provides an implementation of <see cref="KeyWrapProvider"/> using the <c>AES</c> key wrap algorithm.
 /// https://datatracker.ietf.org/doc/html/rfc3394
 /// </summary>
 public class AesKeyWrapProvider : KeyWrapProvider
@@ -58,7 +58,7 @@ public class AesKeyWrapProvider : KeyWrapProvider
 
         return AesKeyWrap.WrapKey(
             SharedSecretKey.KeyBytes,
-            typedParameters);
+            typedParameters.ContentKey);
     }
 
     /// <inheritdoc />
@@ -72,6 +72,6 @@ public class AesKeyWrapProvider : KeyWrapProvider
 
         return AesKeyWrap.UnwrapKey(
             SharedSecretKey.KeyBytes,
-            typedParameters);
+            typedParameters.EncryptedContentKey);
     }
 }

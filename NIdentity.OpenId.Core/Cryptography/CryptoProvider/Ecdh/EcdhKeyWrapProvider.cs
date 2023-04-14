@@ -71,7 +71,7 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
     internal virtual ReadOnlySequence<byte> DeriveKey(IEcdhEsAgreement agreement, ECDiffieHellman privateKeyParty1, ECDiffieHellmanPublicKey publicKeyParty2)
     {
         var keyByteLength = agreement.KeyBitLength / 8;
-        var hashByteLength = EcdhDescriptor.HashBitLength / 8;
+        var hashByteLength = EcdhDescriptor.HashSizeBits / 8;
         var reps = (keyByteLength + hashByteLength - 1) / hashByteLength;
 
         // can't use span/stackalloc because DeriveKeyFromHash doesn't

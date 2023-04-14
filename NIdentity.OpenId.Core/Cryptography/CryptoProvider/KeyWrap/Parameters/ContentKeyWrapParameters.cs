@@ -22,8 +22,8 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
 /// <summary>
 /// Contains the parameters required for cryptographic key wrap operations using a plain text key.
 /// </summary>
-/// <param name="PlainTextKey">The key to encrypt.</param>
+/// <param name="ContentKey">The key to encrypt.</param>
 public record ContentKeyWrapParameters
 (
-    ReadOnlyMemory<byte> PlainTextKey
-) : KeyWrapParameters, ISupportPlainTextKey;
+    ReadOnlyMemory<byte> ContentKey
+) : KeyWrapParameters;

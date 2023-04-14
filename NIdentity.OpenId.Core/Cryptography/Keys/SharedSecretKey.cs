@@ -19,6 +19,7 @@
 
 using System.Buffers;
 using System.Security.Cryptography;
+using System.Text;
 using NIdentity.OpenId.Cryptography.Binary;
 
 namespace NIdentity.OpenId.Cryptography.Keys;
@@ -57,7 +58,28 @@ public class SharedSecretKey : SecretKey
         MemoryOwner = new HeapMemoryManager(keyBytes.Length);
         try
         {
-            KeyBytes.CopyTo(MemoryOwner.Memory.Span);
+            keyBytes.CopyTo(MemoryOwner.Memory.Span);
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SharedSecretKey"/> class from the specified password.
+    /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <param name="password">The cryptographic material for the secret key.</param>
+    public SharedSecretKey(string keyId, ReadOnlySpan<char> password)
+        : base(keyId)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(password);
+        MemoryOwner = new HeapMemoryManager(byteCount);
+        try
+        {
+            Encoding.UTF8.GetBytes(password, MemoryOwner.Memory.Span);
         }
         catch
         {

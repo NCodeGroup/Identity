@@ -30,7 +30,7 @@ public record EcdhKeyWrapAlgorithmDescriptor
     string AlgorithmCode,
     string KeyDerivationFunction,
     HashAlgorithmName HashAlgorithmName,
-    int HashBitLength
+    int HashSizeBits
 ) : KeyWrapAlgorithmDescriptor
 (
     EcdhCryptoFactory.Default,
@@ -50,5 +50,5 @@ public record EcdhKeyWrapAlgorithmDescriptor
     /// <summary>
     /// Gets the number of bytes for hash of the key agreement.
     /// </summary>
-    public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
+    public int HashSizeBytes => HashSizeBits / BinaryUtility.BitsPerByte;
 }

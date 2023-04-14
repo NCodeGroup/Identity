@@ -17,15 +17,13 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
+using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
 
-/// <summary>
-/// Specifies that the current instance supports cipher text key material.
-/// </summary>
-public interface ISupportCipherTextKey
-{
-    /// <summary>
-    /// Gets the cipher text key material for the current instance.
-    /// </summary>
-    ReadOnlyMemory<byte> CipherTextKey { get; }
-}
+namespace NIdentity.OpenId.Cryptography.CryptoProvider.Pbes2.Parameters;
+
+public record Pbes2KeyWrapParameters
+(
+    ReadOnlyMemory<byte> ContentKey,
+    ReadOnlyMemory<byte> Salt,
+    int? IterationCount = null
+) : ContentKeyWrapParameters(ContentKey);

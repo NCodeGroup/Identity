@@ -41,7 +41,7 @@ internal class NoopKeyWrapProvider : KeyWrapProvider
             throw new InvalidOperationException();
         }
 
-        return new ReadOnlySequence<byte>(typedParameters.PlainTextKey);
+        return new ReadOnlySequence<byte>(typedParameters.ContentKey);
     }
 
     public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
@@ -52,6 +52,6 @@ internal class NoopKeyWrapProvider : KeyWrapProvider
             throw new InvalidOperationException();
         }
 
-        return new ReadOnlySequence<byte>(typedParameters.CipherTextKey);
+        return new ReadOnlySequence<byte>(typedParameters.EncryptedContentKey);
     }
 }

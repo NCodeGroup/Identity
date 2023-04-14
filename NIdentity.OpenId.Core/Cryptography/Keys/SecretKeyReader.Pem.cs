@@ -91,48 +91,31 @@ partial struct SecretKeyReader
         return ImportAsymmetricKeyPem(factory, lastAction, decodedDataLength, base64Data);
     }
 
-    private static unsafe T ImportAsymmetricKeyPem<T>(Func<T> factory, ImportDelegate<T> importDelegate, int decodedDataLength, ReadOnlySpan<char> base64Data)
+    private static T ImportAsymmetricKeyPem<T>(Func<T> factory, ImportDelegate<T> importDelegate, int decodedDataLength, ReadOnlySpan<char> base64Data)
         where T : AsymmetricAlgorithm
     {
-        var lease = ArrayPool<byte>.Shared.Rent(decodedDataLength);
+        var lease = CryptoPool.Rent(decodedDataLength);
+        var keyData = lease.Memory.Span;
+
+        if (!Convert.TryFromBase64Chars(base64Data, keyData, out var bytesWritten))
+        {
+            throw new InvalidOperationException();
+        }
+
+        Debug.Assert(bytesWritten == keyData.Length);
+
+        var key = factory();
         try
         {
-            // ReSharper disable once UnusedVariable
-            fixed (byte* pinned = lease)
-            {
-                var keyData = lease.AsSpan(0, decodedDataLength);
-                try
-                {
-                    if (!Convert.TryFromBase64Chars(base64Data, keyData, out var bytesWritten))
-                    {
-                        throw new InvalidOperationException();
-                    }
-
-                    Debug.Assert(bytesWritten == keyData.Length);
-
-                    var key = factory();
-                    try
-                    {
-                        importDelegate(key, keyData, out var bytesRead);
-                        Debug.Assert(bytesRead == keyData.Length);
-                    }
-                    catch
-                    {
-                        key.Dispose();
-                        throw;
-                    }
-
-                    return key;
-                }
-                finally
-                {
-                    CryptographicOperations.ZeroMemory(keyData);
-                }
-            }
+            importDelegate(key, keyData, out var bytesRead);
+            Debug.Assert(bytesRead == keyData.Length);
         }
-        finally
+        catch
         {
-            ArrayPool<byte>.Shared.Return(lease);
+            key.Dispose();
+            throw;
         }
+
+        return key;
     }
 }

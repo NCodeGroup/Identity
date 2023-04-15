@@ -28,9 +28,9 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
 {
     /// <summary>
-    /// Gets the <see cref="SharedSecretKey"/> containing the key material used by the cryptographic digital signature algorithm.
+    /// Gets the <see cref="SymmetricSecretKey"/> containing the key material used by the cryptographic digital signature algorithm.
     /// </summary>
-    public SharedSecretKey SharedSecretKey { get; }
+    public SymmetricSecretKey SymmetricSecretKey { get; }
 
     /// <summary>
     /// Gets an <see cref="KeyedHashAlgorithmDescriptor"/> that describes the cryptographic digital signature algorithm.
@@ -42,10 +42,10 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
     /// </summary>
     /// <param name="secretKey">Contains the key material used by the keyed hash algorithm.</param>
     /// <param name="descriptor">Contains the <see cref="Descriptors.KeyedHashAlgorithmDescriptor"/> that describes the keyed hash algorithm.</param>
-    public KeyedHashAlgorithmSignatureProvider(SharedSecretKey secretKey, KeyedHashAlgorithmDescriptor descriptor)
+    public KeyedHashAlgorithmSignatureProvider(SymmetricSecretKey secretKey, KeyedHashAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
-        SharedSecretKey = secretKey;
+        SymmetricSecretKey = secretKey;
         KeyedHashAlgorithmDescriptor = descriptor;
     }
 
@@ -69,14 +69,14 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
         */
 
         // TODO: can this be validated earlier?
-        var keyByteLength = SharedSecretKey.KeySizeBytes;
+        var keyByteLength = SymmetricSecretKey.KeySizeBytes;
         if (keyByteLength < hashByteLength)
         {
             throw new InvalidOperationException();
         }
 
         return KeyedHashAlgorithmDescriptor.KeyedHashFunction(
-            SharedSecretKey.KeyBytes,
+            SymmetricSecretKey.KeyBytes,
             input,
             signature,
             out bytesWritten);

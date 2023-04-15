@@ -37,7 +37,7 @@ public class AesCryptoFactory : SymmetricCryptoFactory<AesCryptoFactory>
     {
         KeySizesUtility.AssertLegalSize(secretKey, descriptor);
 
-        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
+        var typedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<AesKeyWrapAlgorithmDescriptor>(descriptor);
 
         return new AesKeyWrapProvider(AesKeyWrap.Default, typedSecretKey, typedDescriptor);

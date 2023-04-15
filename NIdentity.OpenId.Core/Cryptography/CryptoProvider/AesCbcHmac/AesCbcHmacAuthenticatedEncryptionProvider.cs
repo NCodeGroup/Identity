@@ -33,7 +33,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
 {
     private const int ExpectedNonceBitLength = 128;
 
-    private SharedSecretKey SharedSecretKey { get; }
+    private SymmetricSecretKey SymmetricSecretKey { get; }
 
     private AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor Descriptor { get; }
 
@@ -42,10 +42,10 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
     /// </summary>
     /// <param name="secretKey">Contains key material for the <c>AES CBC HMAC SHA2</c> algorithm.</param>
     /// <param name="descriptor">Contains an <see cref="AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor"/> that describes the <c>AES CBC HMAC SHA2</c> algorithm.</param>
-    public AesCbcHmacAuthenticatedEncryptionProvider(SharedSecretKey secretKey, AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor descriptor)
+    public AesCbcHmacAuthenticatedEncryptionProvider(SymmetricSecretKey secretKey, AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
-        SharedSecretKey = secretKey;
+        SymmetricSecretKey = secretKey;
         Descriptor = descriptor;
     }
 
@@ -112,15 +112,15 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             throw new InvalidOperationException();
 
         var keyByteLength = AlgorithmDescriptor.KeyByteLength;
-        if (keyByteLength != SharedSecretKey.KeySizeBytes)
+        if (keyByteLength != SymmetricSecretKey.KeySizeBytes)
             throw new InvalidOperationException();
 
         var componentByteLength = keyByteLength / 2;
         if (authenticationTag.Length < componentByteLength)
             throw new InvalidOperationException();
 
-        var hmacKey = SharedSecretKey.KeyBytes[..componentByteLength];
-        var aesKey = SharedSecretKey.KeyBytes[componentByteLength..];
+        var hmacKey = SymmetricSecretKey.KeyBytes[..componentByteLength];
+        var aesKey = SymmetricSecretKey.KeyBytes[componentByteLength..];
 
         // TODO: pin and zero memory for key since aes clones the property value
         using var aes = System.Security.Cryptography.Aes.Create();
@@ -158,7 +158,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             throw new InvalidOperationException();
 
         var keyByteLength = AlgorithmDescriptor.KeyByteLength;
-        if (keyByteLength != SharedSecretKey.KeySizeBytes)
+        if (keyByteLength != SymmetricSecretKey.KeySizeBytes)
             throw new InvalidOperationException();
 
         var componentByteLength = keyByteLength / 2;
@@ -173,8 +173,8 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
             return false;
         }
 
-        var hmacKey = SharedSecretKey.KeyBytes[..componentByteLength];
-        var aesKey = SharedSecretKey.KeyBytes[componentByteLength..];
+        var hmacKey = SymmetricSecretKey.KeyBytes[..componentByteLength];
+        var aesKey = SymmetricSecretKey.KeyBytes[componentByteLength..];
 
         var expectedAuthenticationTag = componentByteLength <= BinaryUtility.StackAllocMax ?
             stackalloc byte[componentByteLength] :

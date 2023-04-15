@@ -31,7 +31,7 @@ public record AesKeyWrapAlgorithmDescriptor(
 ) : KeyWrapAlgorithmDescriptor
 (
     AesCryptoFactory.Default,
-    typeof(SharedSecretKey),
+    typeof(SymmetricSecretKey),
     AlgorithmCode
 ), ISupportLegalSizes
 {

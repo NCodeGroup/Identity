@@ -33,7 +33,7 @@ public record AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor
 ) : AuthenticatedEncryptionAlgorithmDescriptor
 (
     AesCbcHmacCryptoFactory.Default,
-    typeof(SharedSecretKey),
+    typeof(SymmetricSecretKey),
     AlgorithmCode,
     KeyBitLength
 )

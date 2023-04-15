@@ -39,11 +39,11 @@ public readonly ref partial struct SecretKeyReader
     }
 
     /// <summary>
-    /// Reads a <see cref="SharedSecretKey"/> from the source buffer.
+    /// Reads a <see cref="SymmetricSecretKey"/> from the source buffer.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <returns>The <see cref="SharedSecretKey"/> that was read.</returns>
-    public SharedSecretKey ReadSymmetric(string keyId) => new(keyId, Source);
+    /// <returns>The <see cref="SymmetricSecretKey"/> that was read.</returns>
+    public SymmetricSecretKey ReadSymmetric(string keyId) => new(keyId, Source);
 
     private T ReadAsymmetricKey<T>(Func<T> factory, AsymmetricSecretKeyEncoding encoding, ImportPemDelegate<T> importPem)
         where T : AsymmetricAlgorithm =>

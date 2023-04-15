@@ -35,7 +35,7 @@ public class KeyedHashAlgorithmCryptoFactory : SymmetricCryptoFactory<KeyedHashA
     {
         KeySizesUtility.AssertLegalSize(secretKey, descriptor);
 
-        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
+        var typedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<KeyedHashAlgorithmDescriptor>(descriptor);
 
         return new KeyedHashAlgorithmSignatureProvider(typedSecretKey, typedDescriptor);

@@ -32,7 +32,7 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
 public class AesKeyWrapProvider : KeyWrapProvider
 {
     private IAesKeyWrap AesKeyWrap { get; }
-    private SharedSecretKey SharedSecretKey { get; }
+    private SymmetricSecretKey SymmetricSecretKey { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AesKeyWrapProvider"/> class.
@@ -40,11 +40,11 @@ public class AesKeyWrapProvider : KeyWrapProvider
     /// <param name="aesKeyWrap">Contains the <see cref="IAesKeyWrap"/> instance that implements the actual AES key wrap algorithm.</param>
     /// <param name="secretKey">Contains the <c>key encryption key (kek)</c> for the AES key wrap algorithm.</param>
     /// <param name="descriptor">Contains the <see cref="KeyWrapAlgorithmDescriptor"/> the describes the AES key wrap algorithm.</param>
-    public AesKeyWrapProvider(IAesKeyWrap aesKeyWrap, SharedSecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor) :
+    public AesKeyWrapProvider(IAesKeyWrap aesKeyWrap, SymmetricSecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor) :
         base(secretKey, descriptor)
     {
         AesKeyWrap = aesKeyWrap;
-        SharedSecretKey = secretKey;
+        SymmetricSecretKey = secretKey;
     }
 
     /// <inheritdoc />
@@ -57,7 +57,7 @@ public class AesKeyWrapProvider : KeyWrapProvider
         }
 
         return AesKeyWrap.WrapKey(
-            SharedSecretKey.KeyBytes,
+            SymmetricSecretKey.KeyBytes,
             typedParameters.ContentKey);
     }
 
@@ -71,7 +71,7 @@ public class AesKeyWrapProvider : KeyWrapProvider
         }
 
         return AesKeyWrap.UnwrapKey(
-            SharedSecretKey.KeyBytes,
+            SymmetricSecretKey.KeyBytes,
             typedParameters.EncryptedContentKey);
     }
 }

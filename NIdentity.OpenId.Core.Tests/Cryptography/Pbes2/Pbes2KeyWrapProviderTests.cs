@@ -56,7 +56,7 @@ public class Pbes2KeyWrapProviderTests : BaseTests
         const string keyId = nameof(keyId);
         const int iterationCount = 8192;
 
-        using var secretKey = new SharedSecretKey(keyId, "secret_password");
+        using var secretKey = new SymmetricSecretKey(keyId, "secret_password");
 
         var descriptor = new Pbes2KeyWrapAlgorithmDescriptor(
             AlgorithmCodes.KeyManagement.Pbes2HmacSha256Aes128,
@@ -81,7 +81,7 @@ public class Pbes2KeyWrapProviderTests : BaseTests
     {
         const string keyId = nameof(keyId);
 
-        using var secretKey = new SharedSecretKey(keyId, password);
+        using var secretKey = new SymmetricSecretKey(keyId, password);
 
         var provider = new Pbes2KeyWrapProvider(AesKeyWrap.Default, secretKey, descriptor);
 

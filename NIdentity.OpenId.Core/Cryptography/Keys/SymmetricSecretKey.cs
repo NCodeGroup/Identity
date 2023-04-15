@@ -29,7 +29,7 @@ namespace NIdentity.OpenId.Cryptography.Keys;
 /// <remarks>
 /// This class stores the key material in unmanaged memory so that it is pinned (cannot be moved/copied by the GC).
 /// </remarks>
-public class SharedSecretKey : SecretKey
+public class SymmetricSecretKey : SecretKey
 {
     private IMemoryOwner<byte> MemoryOwner { get; }
 
@@ -47,11 +47,11 @@ public class SharedSecretKey : SecretKey
     public ReadOnlySpan<byte> KeyBytes => MemoryOwner.Memory.Span;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SharedSecretKey"/> class by coping the specified key bytes.
+    /// Initializes a new instance of the <see cref="SymmetricSecretKey"/> class by coping the specified key bytes.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="keyBytes">The cryptographic material for the secret key.</param>
-    public SharedSecretKey(string keyId, ReadOnlySpan<byte> keyBytes)
+    public SymmetricSecretKey(string keyId, ReadOnlySpan<byte> keyBytes)
         : base(keyId)
     {
         MemoryOwner = new HeapMemoryManager(keyBytes.Length);
@@ -67,11 +67,11 @@ public class SharedSecretKey : SecretKey
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SharedSecretKey"/> class from the specified password.
+    /// Initializes a new instance of the <see cref="SymmetricSecretKey"/> class from the specified password.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <param name="password">The password that will be decoded using UTF8 and used as the cryptographic material for the secret key.</param>
-    public SharedSecretKey(string keyId, ReadOnlySpan<char> password)
+    public SymmetricSecretKey(string keyId, ReadOnlySpan<char> password)
         : base(keyId)
     {
         var byteCount = Encoding.UTF8.GetByteCount(password);

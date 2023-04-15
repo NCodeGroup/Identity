@@ -15,7 +15,7 @@ public record Pbes2KeyWrapAlgorithmDescriptor
 ) : KeyWrapAlgorithmDescriptor
 (
     Pbes2CryptoFactory.Default,
-    typeof(SharedSecretKey),
+    typeof(SymmetricSecretKey),
     AlgorithmCode
 )
 {

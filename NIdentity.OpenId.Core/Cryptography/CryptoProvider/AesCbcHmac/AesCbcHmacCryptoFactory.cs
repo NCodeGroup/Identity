@@ -37,7 +37,7 @@ public class AesCbcHmacCryptoFactory : SymmetricCryptoFactory<AesCbcHmacCryptoFa
     {
         KeySizesUtility.AssertLegalSize(secretKey, descriptor);
 
-        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
+        var typedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor>(descriptor);
 
         return new AesCbcHmacAuthenticatedEncryptionProvider(typedSecretKey, typedDescriptor);

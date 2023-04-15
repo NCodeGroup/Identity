@@ -36,7 +36,7 @@ public class Pbes2CryptoFactory : SymmetricCryptoFactory<Pbes2CryptoFactory>
     {
         KeySizesUtility.AssertLegalSize(secretKey, descriptor);
 
-        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
+        var typedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
         var typedDescriptor = ValidateDescriptor<Pbes2KeyWrapAlgorithmDescriptor>(descriptor);
 
         return new Pbes2KeyWrapProvider(AesKeyWrap.Default, typedSecretKey, typedDescriptor);

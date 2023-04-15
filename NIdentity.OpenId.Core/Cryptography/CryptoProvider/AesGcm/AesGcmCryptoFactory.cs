@@ -36,7 +36,7 @@ public class AesGcmCryptoFactory : SymmetricCryptoFactory<AesGcmCryptoFactory>
     {
         KeySizesUtility.AssertLegalSize(secretKey, descriptor);
 
-        var typedSecretKey = ValidateSecretKey<SharedSecretKey>(secretKey);
+        var typedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
         return new AesGcmAuthenticatedEncryptionProvider(typedSecretKey, descriptor);
     }

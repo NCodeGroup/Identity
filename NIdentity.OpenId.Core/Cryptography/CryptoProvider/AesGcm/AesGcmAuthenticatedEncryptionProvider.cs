@@ -29,23 +29,23 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.AesGcm;
 public class AesGcmAuthenticatedEncryptionProvider : AuthenticatedEncryptionProvider
 {
     /// <summary>
-    /// Gets the <see cref="SharedSecretKey"/> containing the key material used by the <c>AES GCM</c> algorithm.
+    /// Gets the <see cref="SymmetricSecretKey"/> containing the key material used by the <c>AES GCM</c> algorithm.
     /// </summary>
-    public SharedSecretKey SharedSecretKey { get; }
+    public SymmetricSecretKey SymmetricSecretKey { get; }
 
     /// <summary>
     /// Initializes a new instance of <see cref="AesGcmAuthenticatedEncryptionProvider"/> class.
     /// </summary>
     /// <param name="secretKey">Contains key material for the <c>AES GCM</c> algorithm.</param>
     /// <param name="descriptor">Contains an <see cref="AuthenticatedEncryptionAlgorithmDescriptor"/> that describes the <c>AES GCM</c> algorithm.</param>
-    public AesGcmAuthenticatedEncryptionProvider(SharedSecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
+    public AesGcmAuthenticatedEncryptionProvider(SymmetricSecretKey secretKey, AuthenticatedEncryptionAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
-        SharedSecretKey = secretKey;
+        SymmetricSecretKey = secretKey;
     }
 
     private System.Security.Cryptography.AesGcm CreateAesGcm() =>
-        new(SharedSecretKey.KeyBytes);
+        new(SymmetricSecretKey.KeyBytes);
 
     /// <inheritdoc />
     public override void Encrypt(

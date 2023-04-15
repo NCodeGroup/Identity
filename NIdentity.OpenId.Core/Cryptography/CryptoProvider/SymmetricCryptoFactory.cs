@@ -24,14 +24,14 @@ using NIdentity.OpenId.Cryptography.Keys.Material;
 namespace NIdentity.OpenId.Cryptography.CryptoProvider;
 
 /// <summary>
-/// Base class for all crypto factories that use <see cref="SharedSecretKey"/> as their secret key.
+/// Base class for all crypto factories that use <see cref="SymmetricSecretKey"/> as their secret key.
 /// </summary>
 /// <typeparam name="TCryptoFactory">The concrete <see cref="ICryptoFactory"/> type.</typeparam>
 public abstract class SymmetricCryptoFactory<TCryptoFactory> : CryptoFactory<TCryptoFactory>
     where TCryptoFactory : CryptoFactory<TCryptoFactory>, new()
 {
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(SharedSecretKey);
+    public override Type SecretKeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
     protected override KeyMaterial GenerateKeyMaterial(int keySizeBits)
@@ -44,5 +44,5 @@ public abstract class SymmetricCryptoFactory<TCryptoFactory> : CryptoFactory<TCr
 
     /// <inheritdoc />
     protected override SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyMaterial) =>
-        new SharedSecretKey(keyId, keyMaterial);
+        new SymmetricSecretKey(keyId, keyMaterial);
 }

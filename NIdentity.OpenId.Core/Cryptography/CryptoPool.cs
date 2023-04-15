@@ -21,8 +21,18 @@ using System.Buffers;
 
 namespace NIdentity.OpenId.Cryptography;
 
-internal static class CryptoPool
+/// <summary>
+/// Provides a resource pool that enables reusing instances of byte arrays that are securely zeroed when returned.
+/// </summary>
+public static class CryptoPool
 {
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <param name="minimumLength">The minimum length of the array needed.</param>
+    /// <returns>
+    /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the array lease.
+    /// </returns>
     public static IMemoryOwner<byte> Rent(int minimumLength)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(minimumLength);

@@ -19,6 +19,9 @@
 
 namespace NIdentity.OpenId.Cryptography;
 
+/// <summary>
+/// Contains OID constants for various cryptographic algorithms.
+/// </summary>
 public static class Oids
 {
     /// <summary>

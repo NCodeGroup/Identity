@@ -29,7 +29,7 @@ public record AesGcmAuthenticatedEncryptionAlgorithmDescriptor
 ) : AuthenticatedEncryptionAlgorithmDescriptor
 (
     AesGcmCryptoFactory.Default,
-    typeof(SharedSecretKey),
+    typeof(SymmetricSecretKey),
     AlgorithmCode,
     KeyBitLength
 )

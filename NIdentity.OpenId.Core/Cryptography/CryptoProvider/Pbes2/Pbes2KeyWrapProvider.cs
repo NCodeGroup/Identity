@@ -37,7 +37,7 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Pbes2;
 public class Pbes2KeyWrapProvider : KeyWrapProvider
 {
     private IAesKeyWrap AesKeyWrap { get; }
-    private SharedSecretKey SharedSecretKey { get; }
+    private SymmetricSecretKey SymmetricSecretKey { get; }
     private Pbes2KeyWrapAlgorithmDescriptor Descriptor { get; }
 
     /// <summary>
@@ -46,11 +46,11 @@ public class Pbes2KeyWrapProvider : KeyWrapProvider
     /// <param name="aesKeyWrap">Contains the <see cref="IAesKeyWrap"/> instance that implements the <c>AES</c> key wrap algorithm.</param>
     /// <param name="secretKey">Contains the <c>key encryption key (kek)</c> for the <c>PBES2</c> key wrap algorithm.</param>
     /// <param name="descriptor">Contains the <see cref="Pbes2KeyWrapAlgorithmDescriptor"/> the describes the <c>PBES2</c> key wrap algorithm.</param>
-    public Pbes2KeyWrapProvider(IAesKeyWrap aesKeyWrap, SharedSecretKey secretKey, Pbes2KeyWrapAlgorithmDescriptor descriptor)
+    public Pbes2KeyWrapProvider(IAesKeyWrap aesKeyWrap, SymmetricSecretKey secretKey, Pbes2KeyWrapAlgorithmDescriptor descriptor)
         : base(secretKey, descriptor)
     {
         AesKeyWrap = aesKeyWrap;
-        SharedSecretKey = secretKey;
+        SymmetricSecretKey = secretKey;
         Descriptor = descriptor;
     }
 
@@ -83,7 +83,7 @@ public class Pbes2KeyWrapProvider : KeyWrapProvider
         try
         {
             Rfc2898DeriveBytes.Pbkdf2(
-                SharedSecretKey.KeyBytes,
+                SymmetricSecretKey.KeyBytes,
                 salt,
                 keyEncryptionKey,
                 iterationCount,
@@ -127,7 +127,7 @@ public class Pbes2KeyWrapProvider : KeyWrapProvider
         try
         {
             Rfc2898DeriveBytes.Pbkdf2(
-                SharedSecretKey.KeyBytes,
+                SymmetricSecretKey.KeyBytes,
                 salt,
                 keyEncryptionKey,
                 iterationCount,

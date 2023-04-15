@@ -19,6 +19,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 namespace NIdentity.OpenId.Cryptography.Binary;
 
@@ -45,6 +46,7 @@ public class HeapMemoryManager : MemoryManager<byte>
     protected override void Dispose(bool disposing)
     {
         if (BufferPtr == IntPtr.Zero) return;
+        CryptographicOperations.ZeroMemory(GetSpan());
         Marshal.FreeHGlobal(BufferPtr);
         BufferPtr = IntPtr.Zero;
     }

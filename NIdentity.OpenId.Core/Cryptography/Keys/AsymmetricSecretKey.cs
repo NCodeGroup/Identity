@@ -63,10 +63,7 @@ public abstract class AsymmetricSecretKey : SecretKey
     protected AsymmetricSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
         : base(keyId)
     {
-        if (certificate != null)
-        {
-            Debug.Assert(!certificate.HasPrivateKey);
-        }
+        Debug.Assert(certificate is not { HasPrivateKey: true });
 
         Certificate = certificate;
         KeySizeBits = keySizeBits;
@@ -89,7 +86,6 @@ public abstract class AsymmetricSecretKey : SecretKey
         if (disposing)
         {
             Certificate?.Dispose();
-            CryptographicOperations.ZeroMemory(MemoryOwner.Memory.Span);
             MemoryOwner.Dispose();
         }
 

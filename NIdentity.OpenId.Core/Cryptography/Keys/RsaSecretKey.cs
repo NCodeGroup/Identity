@@ -38,10 +38,7 @@ public class RsaSecretKey : AsymmetricSecretKey
     public RsaSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
         : base(keyId, keySizeBits, pkcs8PrivateKey, certificate)
     {
-        if (certificate != null)
-        {
-            Debug.Assert(certificate.GetKeyAlgorithm() == Oids.Rsa);
-        }
+        Debug.Assert(certificate == null || certificate.GetKeyAlgorithm() == Oids.Rsa);
     }
 
     /// <summary>

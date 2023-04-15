@@ -20,12 +20,12 @@
 namespace NIdentity.OpenId.Cryptography.Keys.Material;
 
 /// <summary>
-/// Base class that is used to store cryptographic key material.
+/// Base class that is used to store cryptographic key material that can be exported to a buffer.
 /// </summary>
 public abstract class KeyMaterial : IDisposable
 {
     /// <summary>
-    /// Gets the size of the key material in bits.
+    /// Gets the size of the key material in bits. Note this might not represent the size of the buffer.
     /// </summary>
     public abstract int KeySizeBits { get; }
 

@@ -54,7 +54,13 @@ public class SymmetricKeyMaterial : KeyMaterial
     /// <inheritdoc />
     public override bool TryExportKey(Span<byte> destination, out int bytesWritten)
     {
-        bytesWritten = MemorySource.Length;
-        return MemorySource.Span.TryCopyTo(destination);
+        if (MemorySource.Span.TryCopyTo(destination))
+        {
+            bytesWritten = MemorySource.Length;
+            return true;
+        }
+
+        bytesWritten = 0;
+        return false;
     }
 }

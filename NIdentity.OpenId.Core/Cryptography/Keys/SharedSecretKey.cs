@@ -18,7 +18,6 @@
 #endregion
 
 using System.Buffers;
-using System.Security.Cryptography;
 using System.Text;
 using NIdentity.OpenId.Cryptography.Binary;
 
@@ -71,7 +70,7 @@ public class SharedSecretKey : SecretKey
     /// Initializes a new instance of the <see cref="SharedSecretKey"/> class from the specified password.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="password">The cryptographic material for the secret key.</param>
+    /// <param name="password">The password that will be decoded using UTF8 and used as the cryptographic material for the secret key.</param>
     public SharedSecretKey(string keyId, ReadOnlySpan<char> password)
         : base(keyId)
     {
@@ -93,7 +92,6 @@ public class SharedSecretKey : SecretKey
     {
         if (disposing)
         {
-            CryptographicOperations.ZeroMemory(MemoryOwner.Memory.Span);
             MemoryOwner.Dispose();
         }
 

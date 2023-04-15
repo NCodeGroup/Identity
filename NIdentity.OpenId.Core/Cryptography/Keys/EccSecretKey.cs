@@ -38,10 +38,7 @@ public class EccSecretKey : AsymmetricSecretKey
     public EccSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
         : base(keyId, keySizeBits, pkcs8PrivateKey, certificate)
     {
-        if (certificate != null)
-        {
-            Debug.Assert(certificate.GetKeyAlgorithm() == Oids.Ecc);
-        }
+        Debug.Assert(certificate == null || certificate.GetKeyAlgorithm() == Oids.Ecc);
     }
 
     /// <summary>

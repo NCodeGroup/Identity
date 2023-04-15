@@ -67,7 +67,7 @@ public class Pbes2KeyWrapProvider : KeyWrapProvider
         var keyByteCount = Descriptor.KeySizeBytes;
         var keyEncryptionKey = keyByteCount <= BinaryUtility.StackAllocMax ?
             stackalloc byte[keyByteCount] :
-            GC.AllocateUninitializedArray<byte>(keyByteCount);
+            GC.AllocateUninitializedArray<byte>(keyByteCount, pinned: true);
 
         var algByteCount = Encoding.UTF8.GetByteCount(Descriptor.AlgorithmCode);
         var saltByteCount = algByteCount + 1 + typedParameters.Salt.Length;

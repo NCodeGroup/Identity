@@ -50,9 +50,35 @@ public class PasswordGeneratorTests : BaseTests
     }
 
     [Fact]
+    public void Generate_GivenSpan_WhenTooSmall_ThenThrows()
+    {
+        DefaultOptions.SetLengthRange(5, 7);
+
+        PasswordGenerator.Generate(DefaultOptions, new char[6]);
+
+        var password = new char[2];
+        Assert.Throws<InvalidOperationException>(() =>
+            PasswordGenerator.Generate(DefaultOptions, password));
+    }
+
+    [Fact]
+    public void Generate_GivenSpan_WhenTooLarge_ThenThrows()
+    {
+        DefaultOptions.SetLengthRange(5, 7);
+
+        PasswordGenerator.Generate(DefaultOptions, new char[6]);
+
+        var password = new char[9];
+        Assert.Throws<InvalidOperationException>(() =>
+            PasswordGenerator.Generate(DefaultOptions, password));
+    }
+
+    [Fact]
     public void Generate_GivenOptions_ThenValid()
     {
         const string password = nameof(password);
+
+        DefaultOptions.ExactLength = password.Length;
 
         var characterSet = DefaultOptions.CharacterSet;
         var characterSetLength = characterSet.Length;
@@ -62,13 +88,15 @@ public class PasswordGeneratorTests : BaseTests
             .Returns(0)
             .Verifiable();
 
+        var skipResult = password;
         MockPasswordGenerator
-            .Setup(_ => _.GenerateCore(DefaultOptions, characterSet))
-            .Returns(password)
+            .Setup(_ => _.SkipGenerateCore(out skipResult))
+            .Returns(true)
             .Verifiable();
 
+        bool? isValidResult = true;
         MockPasswordGenerator
-            .Setup(_ => _.IsValid(DefaultOptions, password))
+            .Setup(_ => _.SkipIsValid(out isValidResult))
             .Returns(true)
             .Verifiable();
 
@@ -90,14 +118,16 @@ public class PasswordGeneratorTests : BaseTests
             .Returns(0)
             .Verifiable();
 
+        var passwordResult = password;
         MockPasswordGenerator
-            .Setup(_ => _.GenerateCore(DefaultOptions, characterSet))
-            .Returns(password)
+            .Setup(_ => _.SkipGenerateCore(out passwordResult))
+            .Returns(true)
             .Verifiable();
 
+        bool? isValidResult = false;
         MockPasswordGenerator
-            .Setup(_ => _.IsValid(DefaultOptions, password))
-            .Returns(false)
+            .Setup(_ => _.SkipIsValid(out isValidResult))
+            .Returns(true)
             .Verifiable();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>

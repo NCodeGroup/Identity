@@ -17,7 +17,7 @@
 
 #endregion
 
-using System.Security.Cryptography;
+using System.Buffers;
 using NIdentity.OpenId.Cryptography.Binary;
 
 namespace NIdentity.OpenId.Cryptography.Keys.Material;
@@ -27,36 +27,39 @@ namespace NIdentity.OpenId.Cryptography.Keys.Material;
 /// </summary>
 public class SymmetricKeyMaterial : KeyMaterial
 {
-    private Memory<byte> MemorySource { get; }
-
-    /// <inheritdoc />
-    public override int KeySizeBits => MemorySource.Length / BinaryUtility.BitsPerByte;
+    private IMemoryOwner<byte> MemoryOwner { get; }
 
     /// <summary>
     /// Gets a read-only buffer of the key bytes.
     /// </summary>
-    public ReadOnlySpan<byte> KeyBytes => MemorySource.Span;
+    public ReadOnlySpan<byte> KeyBytes => MemoryOwner.Memory.Span;
+
+    /// <inheritdoc />
+    public override int KeySizeBits => KeyBytes.Length * BinaryUtility.BitsPerByte;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SymmetricKeyMaterial"/> class with the specified key material.
     /// </summary>
-    /// <param name="memorySource">An byte array containing the key material.</param>
-    public SymmetricKeyMaterial(Memory<byte> memorySource) =>
-        MemorySource = memorySource;
+    /// <param name="memoryOwner">An <see cref="IMemoryOwner{T}"/> that contains a byte array for the key material.
+    /// This class will take ownership of the memory.</param>
+    public SymmetricKeyMaterial(IMemoryOwner<byte> memoryOwner)
+    {
+        MemoryOwner = memoryOwner;
+    }
 
     /// <inheritdoc />
     public override void Dispose()
     {
-        CryptographicOperations.ZeroMemory(MemorySource.Span);
+        MemoryOwner.Dispose();
         GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc />
     public override bool TryExportKey(Span<byte> destination, out int bytesWritten)
     {
-        if (MemorySource.Span.TryCopyTo(destination))
+        if (KeyBytes.TryCopyTo(destination))
         {
-            bytesWritten = MemorySource.Length;
+            bytesWritten = KeyBytes.Length;
             return true;
         }
 

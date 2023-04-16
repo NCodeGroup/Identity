@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.Keys;
 using NIdentity.OpenId.Cryptography.Keys.Material;
@@ -36,13 +37,21 @@ public abstract class SymmetricCryptoFactory<TCryptoFactory> : CryptoFactory<TCr
     /// <inheritdoc />
     protected override KeyMaterial GenerateKeyMaterial(int keySizeBits)
     {
-        var keyByteLength = keySizeBits / BinaryUtility.BitsPerByte;
-        var keyBytes = GC.AllocateUninitializedArray<byte>(keyByteLength, pinned: true);
-        RandomNumberGenerator.GetBytes(keyBytes);
-        return new SymmetricKeyMaterial(keyBytes);
+        var byteLength = keySizeBits / BinaryUtility.BitsPerByte;
+        var byteLease = CryptoPool.Rent(byteLength);
+        try
+        {
+            RandomNumberGenerator.Fill(byteLease.Memory.Span);
+            return new SymmetricKeyMaterial(byteLease);
+        }
+        catch
+        {
+            byteLease.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc />
-    protected override SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyMaterial) =>
-        new SymmetricSecretKey(keyId, keyMaterial);
+    protected override SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyBytes) =>
+        new SymmetricSecretKey(keyId, keyBytes);
 }

@@ -126,7 +126,7 @@ public class PasswordGeneratorOptionsTests : BaseTests
         Assert.Equal("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", options.CharacterSet);
 
         options.IncludeSpecial = true;
-        Assert.Equal(@"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&*@\", options.CharacterSet);
+        Assert.Equal("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!;#$%&()*+,-./:;<=>?@[]^_`{|}~", options.CharacterSet);
     }
 
     [Theory]

@@ -17,80 +17,84 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using NIdentity.OpenId.Cryptography.Binary;
 
 namespace NIdentity.OpenId.Logic;
 
 public interface ICryptoService
 {
-    byte[] GenerateBytes(int byteLength);
+    void GenerateBytes(Span<byte> destination);
 
-    string EncodeBinary(byte[] bytes, BinaryEncodingType binaryEncodingType);
+    string EncodeBinary(ReadOnlySpan<byte> data, BinaryEncodingType binaryEncodingType);
 
     string GenerateKey(int byteLength, BinaryEncodingType binaryEncodingType);
 
-    string HashValue(byte[] bytes, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType);
+    string HashValue(ReadOnlySpan<byte> data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType);
 
-    string HashValue(string value, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType);
+    string HashValue(string data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType);
 }
 
-internal class CryptoService : ICryptoService, IDisposable
+internal class CryptoService : ICryptoService
 {
-    private RandomNumberGenerator RandomNumberGenerator { get; } = RandomNumberGenerator.Create();
+    public void GenerateBytes(Span<byte> destination) =>
+        RandomNumberGenerator.Fill(destination);
 
-    public void Dispose()
-    {
-        RandomNumberGenerator.Dispose();
-    }
-
-    public byte[] GenerateBytes(int byteLength)
-    {
-        var bytes = new byte[byteLength];
-        RandomNumberGenerator.GetBytes(bytes);
-        return bytes;
-    }
-
-    public string EncodeBinary(byte[] bytes, BinaryEncodingType binaryEncodingType)
-    {
-        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-        return binaryEncodingType switch
+    public string EncodeBinary(ReadOnlySpan<byte> data, BinaryEncodingType binaryEncodingType) =>
+        binaryEncodingType switch
         {
-            BinaryEncodingType.Base64Url => Base64UrlEncoder.Encode(bytes),
-            BinaryEncodingType.Base64 => Convert.ToBase64String(bytes),
-            BinaryEncodingType.Hex => Convert.ToHexString(bytes),
+            BinaryEncodingType.Base64Url => Base64UrlEncoder.Encode(data.ToArray()),
+            BinaryEncodingType.Base64 => Convert.ToBase64String(data),
+            BinaryEncodingType.Hex => Convert.ToHexString(data),
             _ => throw new ArgumentException("Unsupported encoding", nameof(binaryEncodingType))
         };
-    }
 
     public string GenerateKey(int byteLength, BinaryEncodingType binaryEncodingType)
     {
-        var bytes = GenerateBytes(byteLength);
+        var bytes = byteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[byteLength] :
+            GC.AllocateUninitializedArray<byte>(byteLength, pinned: false);
+
+        GenerateBytes(bytes);
+
         return EncodeBinary(bytes, binaryEncodingType);
     }
 
-    private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmType hashAlgorithmType)
-    {
-        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-        return hashAlgorithmType switch
+    private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmType hashAlgorithmType) =>
+        hashAlgorithmType switch
         {
             HashAlgorithmType.Sha256 => SHA256.Create(),
             _ => throw new ArgumentException("Unsupported algorithm", nameof(hashAlgorithmType))
         };
-    }
 
-    public string HashValue(byte[] bytes, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
+    public string HashValue(ReadOnlySpan<byte> data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
     {
         using var hashAlgorithm = CreateHashAlgorithm(hashAlgorithmType);
-        var hashBytes = hashAlgorithm.ComputeHash(bytes);
+
+        var hashByteLength = hashAlgorithm.HashSize / BinaryUtility.BitsPerByte;
+        var hashBytes = hashByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[hashByteLength] :
+            GC.AllocateUninitializedArray<byte>(hashByteLength, pinned: false);
+
+        var result = hashAlgorithm.TryComputeHash(data, hashBytes, out var bytesWritten);
+        Debug.Assert(result && bytesWritten == hashByteLength);
+
         return EncodeBinary(hashBytes, binaryEncodingType);
     }
 
-    public string HashValue(string value, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
+    public string HashValue(string data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
     {
-        using var hashAlgorithm = CreateHashAlgorithm(hashAlgorithmType);
-        var hashBytes = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(value));
-        return EncodeBinary(hashBytes, binaryEncodingType);
+        var dataByteLength = Encoding.UTF8.GetByteCount(data);
+        var dataBytes = dataByteLength <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[dataByteLength] :
+            GC.AllocateUninitializedArray<byte>(dataByteLength, pinned: false);
+
+        var bytesWritten = Encoding.UTF8.GetBytes(data, dataBytes);
+        Debug.Assert(bytesWritten == dataByteLength);
+
+        return HashValue(dataBytes, hashAlgorithmType, binaryEncodingType);
     }
 }

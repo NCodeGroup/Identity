@@ -75,6 +75,35 @@ public class PasswordGeneratorOptionsTests : BaseTests
     }
 
     [Fact]
+    public void SetLengthRange_Valid()
+    {
+        var options = new PasswordGeneratorOptions
+        {
+            MinLength = 5,
+            MaxLength = 10
+        };
+
+        options.SetLengthRange(1, 3);
+
+        Assert.Equal(1, options.MinLength);
+        Assert.Equal(3, options.MaxLength);
+
+        options.SetLengthRange(13, 17);
+
+        Assert.Equal(13, options.MinLength);
+        Assert.Equal(17, options.MaxLength);
+    }
+
+    [Fact]
+    public void SetLengthRange_GivenInvalid_ThenThrows()
+    {
+        var options = new PasswordGeneratorOptions();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            options.SetLengthRange(7, 5));
+    }
+
+    [Fact]
     public void CharacterSet_Valid()
     {
         var options = new PasswordGeneratorOptions

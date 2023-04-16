@@ -18,6 +18,7 @@
 #endregion
 
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 
@@ -43,6 +44,13 @@ public interface IPasswordGenerator : IEnumerable<string>
     /// <param name="options">The <see cref="PasswordGeneratorOptions"/> that defines the rules for generating passwords.</param>
     /// <returns>The newly generated random password.</returns>
     string Generate(PasswordGeneratorOptions options);
+
+    /// <summary>
+    /// Generates a random password using the rules from the specified <paramref name="options"/>.
+    /// </summary>
+    /// <param name="options">The <see cref="PasswordGeneratorOptions"/> that defines the rules for generating passwords.</param>
+    /// <param name="password">The destination buffer for the newly generated password.</param>
+    void Generate(PasswordGeneratorOptions options, Span<char> password);
 }
 
 /// <summary>
@@ -51,6 +59,15 @@ public interface IPasswordGenerator : IEnumerable<string>
 public class PasswordGenerator : IPasswordGenerator
 {
     private PasswordGeneratorOptions DefaultOptions { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PasswordGenerator"/> class with default options.
+    /// </summary>
+    public PasswordGenerator()
+        : this(new PasswordGeneratorOptions())
+    {
+        // nothing
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PasswordGenerator"/> class.
@@ -78,12 +95,29 @@ public class PasswordGenerator : IPasswordGenerator
         RandomNumberGenerator.GetInt32(fromInclusive, toExclusive);
 
     /// <inheritdoc />
-    public virtual string Generate() =>
+    public string Generate() =>
         Generate(DefaultOptions);
 
     /// <inheritdoc />
     public virtual string Generate(PasswordGeneratorOptions options)
     {
+        var length = GetLength(options);
+        var password = new char[length];
+
+        Generate(options, password);
+
+        return new string(password);
+    }
+
+    /// <inheritdoc />
+    public void Generate(PasswordGeneratorOptions options, Span<char> password)
+    {
+        if (password.Length < options.MinLength)
+            throw new InvalidOperationException();
+
+        if (password.Length > options.MaxLength)
+            throw new InvalidOperationException();
+
         var maxAttempts = options.MaxAttempts;
         var characterSetOriginal = options.CharacterSet;
         var characterSetLength = characterSetOriginal.Length;
@@ -91,30 +125,44 @@ public class PasswordGenerator : IPasswordGenerator
 
         for (var attempt = 0; attempt < maxAttempts; ++attempt)
         {
-            var password = GenerateCore(options, characterSetShuffled);
-            if (IsValid(options, password))
-            {
-                return password;
-            }
+            GenerateCore(options, characterSetShuffled, password);
+            if (IsValid(options, password)) return;
         }
 
         throw new InvalidOperationException("Too many attempts.");
     }
 
-    internal virtual int GetLength(PasswordGeneratorOptions options) =>
+    internal int GetLength(PasswordGeneratorOptions options) =>
         options.MinLength == options.MaxLength ?
             options.MinLength :
             GetRandomInt32(options.MinLength, options.MaxLength + 1);
 
-    internal virtual bool IsValid(PasswordGeneratorOptions options, string password) =>
-        options.IsValid(password);
-
-    internal virtual string GenerateCore(PasswordGeneratorOptions options, string characterSet)
+    // for unit tests
+    internal virtual bool SkipIsValid([NotNullWhen(true)] out bool? result)
     {
-        var length = GetLength(options);
-        var password = new char[length];
+        result = null;
+        return false;
+    }
 
-        for (var i = 0; i < length; ++i)
+    private bool IsValid(PasswordGeneratorOptions options, ReadOnlySpan<char> password) =>
+        SkipIsValid(out var result) ? result.Value : options.IsValid(password);
+
+    // for unit tests
+    internal virtual bool SkipGenerateCore([NotNullWhen(true)] out string? result)
+    {
+        result = null;
+        return false;
+    }
+
+    private void GenerateCore(PasswordGeneratorOptions options, string characterSet, Span<char> password)
+    {
+        if (SkipGenerateCore(out var result))
+        {
+            result.CopyTo(password);
+            return;
+        }
+
+        for (var i = 0; i < password.Length; ++i)
         {
             password[i] = characterSet[GetRandomInt32(characterSet.Length)];
 
@@ -123,8 +171,6 @@ public class PasswordGenerator : IPasswordGenerator
                 --i;
             }
         }
-
-        return new string(password);
     }
 
     /// <inheritdoc />

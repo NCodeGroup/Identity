@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Security.Cryptography;
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aead.Descriptors;
@@ -88,11 +87,6 @@ public interface ICryptoFactory
 /// </summary>
 public abstract class CryptoFactory : ICryptoFactory
 {
-    /// <summary>
-    /// Gets a singleton instance for <see cref="RandomNumberGenerator"/>.
-    /// </summary>
-    public static RandomNumberGenerator RandomNumberGenerator { get; } = RandomNumberGenerator.Create();
-
     /// <inheritdoc />
     public abstract Type SecretKeyType { get; }
 

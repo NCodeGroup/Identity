@@ -17,12 +17,16 @@
 
 #endregion
 
+using System.Buffers;
+using System.Text;
 using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Aes;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap;
 using NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Descriptors;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Pbes2.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
+using NIdentity.OpenId.Cryptography.Keys.Material;
+using NIdentity.OpenId.Cryptography.Passwords;
 
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Pbes2;
 
@@ -31,6 +35,52 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Pbes2;
 /// </summary>
 public class Pbes2CryptoFactory : SymmetricCryptoFactory<Pbes2CryptoFactory>
 {
+    private IPasswordGenerator PasswordGenerator { get; } = new PasswordGenerator();
+
+    /// <inheritdoc />
+    protected override unsafe KeyMaterial GenerateKeyMaterial(int keySizeBits)
+    {
+        var charLength = keySizeBits / BinaryUtility.BitsPerByte;
+        var charLease = ArrayPool<char>.Shared.Rent(charLength);
+        try
+        {
+            // ReSharper disable once UnusedVariable
+            fixed (char* charPinned = charLease)
+            {
+                var password = charLease.AsSpan(0, charLength);
+                try
+                {
+                    var options = new PasswordGeneratorOptions
+                    {
+                        ExactLength = charLength
+                    };
+                    PasswordGenerator.Generate(options, password);
+
+                    var byteLength = Encoding.UTF8.GetByteCount(password);
+                    var byteLease = CryptoPool.Rent(byteLength);
+                    try
+                    {
+                        Encoding.UTF8.GetBytes(password, byteLease.Memory.Span);
+                        return new SymmetricKeyMaterial(byteLease);
+                    }
+                    catch
+                    {
+                        byteLease.Dispose();
+                        throw;
+                    }
+                }
+                finally
+                {
+                    password.Clear();
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(charLease);
+        }
+    }
+
     /// <inheritdoc />
     public override KeyWrapProvider CreateKeyWrapProvider(SecretKey secretKey, KeyWrapAlgorithmDescriptor descriptor)
     {

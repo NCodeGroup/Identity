@@ -85,11 +85,21 @@ public class PasswordGeneratorOptions
     /// </summary>
     public int ExactLength
     {
-        set
-        {
-            _minLength = value;
-            _maxLength = value;
-        }
+        set => SetLengthRange(value, value);
+    }
+
+    /// <summary>
+    /// Sets the <see cref="MinLength"/> and <see cref="MaxLength"/> properties at the same time.
+    /// </summary>
+    /// <param name="minLength">The minimum length for generated passwords.</param>
+    /// <param name="maxLength">The maximum length for generated passwords.</param>
+    public void SetLengthRange(int minLength, int maxLength)
+    {
+        if (minLength > maxLength)
+            throw new InvalidOperationException();
+
+        _minLength = minLength;
+        _maxLength = maxLength;
     }
 
     /// <summary>
@@ -169,7 +179,7 @@ public class PasswordGeneratorOptions
     /// </summary>
     /// <param name="password">The password to check.</param>
     /// <returns><c>true</c> is the password is valid; otherwise, <c>false</c>.</returns>
-    public bool IsValid(string password)
+    public bool IsValid(ReadOnlySpan<char> password)
     {
         if (password.Length < MinLength) return false;
         if (password.Length > MaxLength) return false;

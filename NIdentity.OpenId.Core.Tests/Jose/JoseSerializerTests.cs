@@ -28,24 +28,24 @@ using NIdentity.OpenId.Cryptography.CryptoProvider.Signature;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
 using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
-using NIdentity.OpenId.Logic;
+using NIdentity.OpenId.Jose;
 using Xunit;
 
-namespace NIdentity.OpenId.Core.Tests.Logic;
+namespace NIdentity.OpenId.Core.Tests.Jose;
 
-public class JwtDecoderTests : BaseTests
+public class JoseSerializerTests : BaseTests
 {
     private Mock<ISecretKeyCollection> MockSecretKeyCollection { get; }
     private Mock<IAlgorithmCollection> MockAlgorithmCollection { get; }
-    private Mock<JwtDecoder> MockJwtDecoder { get; }
-    private JwtDecoder JwtDecoder { get; }
+    private Mock<JoseSerializer> MockJoseSerializer { get; }
+    private JoseSerializer JoseSerializer { get; }
 
-    public JwtDecoderTests()
+    public JoseSerializerTests()
     {
         MockSecretKeyCollection = CreateStrictMock<ISecretKeyCollection>();
         MockAlgorithmCollection = CreateStrictMock<IAlgorithmCollection>();
-        MockJwtDecoder = CreatePartialMock<JwtDecoder>(MockAlgorithmCollection.Object);
-        JwtDecoder = MockJwtDecoder.Object;
+        MockJoseSerializer = CreatePartialMock<JoseSerializer>(MockAlgorithmCollection.Object);
+        JoseSerializer = MockJoseSerializer.Object;
     }
 
     private void Decode_Valid(SignatureAlgorithmDescriptor algorithm, Func<SecretKey, object>? exportKey)
@@ -113,7 +113,7 @@ public class JwtDecoderTests : BaseTests
             }
         }
 
-        var result = JwtDecoder.Decode(jwt, MockSecretKeyCollection.Object);
+        var result = JoseSerializer.Decode(jwt, MockSecretKeyCollection.Object);
         Assert.Equal(json, result);
     }
 

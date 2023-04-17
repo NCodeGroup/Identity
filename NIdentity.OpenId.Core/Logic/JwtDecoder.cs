@@ -99,30 +99,41 @@ internal class JwtDecoder : IJwtDecoder2
             return Encoding.UTF8.GetString(payloadBytes);
         }
 
-        var encodedSignature = segments[2];
-        var expectedSignature = Base64Url.Decode(encodedSignature);
-
-        var signatureInput = GetSignatureInput(encodedHeader, encodedPayload);
-
         if (!AlgorithmCollection.TryGetSignatureAlgorithm(algorithmCode, out var algorithm))
         {
             throw new InvalidOperationException();
         }
 
-        if (TryGetValue<string>(headers, "kid", out var keyId) && secretKeys.TryGet(keyId, out var specificKey))
-        {
-            using var provider = specificKey.CreateSignatureProvider(algorithm);
+        var encodedSignature = segments[2];
+        var expectedSignature = Base64Url.Decode(encodedSignature);
+        var signatureInput = GetSignatureInput(encodedHeader, encodedPayload);
 
-            if (provider.Verify(signatureInput, expectedSignature))
-                return Encoding.UTF8.GetString(payloadBytes);
-        }
-
-        foreach (var secretKey in secretKeys)
+        bool TryVerify(SecretKey secretKey, [MaybeNullWhen(false)] out string payload)
         {
             using var provider = secretKey.CreateSignatureProvider(algorithm);
 
             if (provider.Verify(signatureInput, expectedSignature))
-                return Encoding.UTF8.GetString(payloadBytes);
+            {
+                payload = Encoding.UTF8.GetString(payloadBytes);
+                return true;
+            }
+
+            payload = null;
+            return false;
+        }
+
+        var payload = string.Empty;
+
+        if (TryGetValue<string>(headers, "kid", out var keyId) &&
+            secretKeys.TryGet(keyId, out var specificKey) &&
+            TryVerify(specificKey, out payload))
+        {
+            return payload;
+        }
+
+        if (secretKeys.Any(secretKey => TryVerify(secretKey, out payload)))
+        {
+            return payload!;
         }
 
         // no matching signing key

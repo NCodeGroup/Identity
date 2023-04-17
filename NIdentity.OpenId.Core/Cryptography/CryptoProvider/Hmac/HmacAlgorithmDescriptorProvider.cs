@@ -41,20 +41,20 @@ public class HmacAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
             KeyedHashAlgorithmCryptoFactory.Default,
             typeof(SymmetricSecretKey),
             AlgorithmCodes.DigitalSignature.HmacSha256,
-            HashBitLength: 256),
+            HashSizeBits: 256),
 
         new KeyedHashAlgorithmDescriptor(
             HMACSHA384.TryHashData,
             KeyedHashAlgorithmCryptoFactory.Default,
             typeof(SymmetricSecretKey),
             AlgorithmCodes.DigitalSignature.HmacSha384,
-            HashBitLength: 384),
+            HashSizeBits: 384),
 
         new KeyedHashAlgorithmDescriptor(
             HMACSHA512.TryHashData,
             KeyedHashAlgorithmCryptoFactory.Default,
             typeof(SymmetricSecretKey),
             AlgorithmCodes.DigitalSignature.HmacSha512,
-            HashBitLength: 512),
+            HashSizeBits: 512),
     };
 }

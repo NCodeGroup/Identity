@@ -27,11 +27,11 @@ public record HashSignatureAlgorithmDescriptor
     Type SecretKeyType,
     string AlgorithmCode,
     HashAlgorithmName HashAlgorithmName,
-    int HashBitLength
+    int HashSizeBits
 ) : SignatureAlgorithmDescriptor
 (
     CryptoFactory,
     SecretKeyType,
     AlgorithmCode,
-    HashBitLength
+    HashSizeBits
 );

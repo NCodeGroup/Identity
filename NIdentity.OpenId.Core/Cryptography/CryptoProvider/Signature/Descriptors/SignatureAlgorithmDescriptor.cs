@@ -27,7 +27,7 @@ public record SignatureAlgorithmDescriptor
     ICryptoFactory CryptoFactory,
     Type SecretKeyType,
     string AlgorithmCode,
-    int HashBitLength
+    int HashSizeBits
 ) : AlgorithmDescriptor
 (
     CryptoFactory,
@@ -39,5 +39,5 @@ public record SignatureAlgorithmDescriptor
     /// <summary>
     /// Gets the number of bytes for the <c>digital signature hash</c>.
     /// </summary>
-    public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
+    public int HashSizeBytes => HashSizeBits / BinaryUtility.BitsPerByte;
 }

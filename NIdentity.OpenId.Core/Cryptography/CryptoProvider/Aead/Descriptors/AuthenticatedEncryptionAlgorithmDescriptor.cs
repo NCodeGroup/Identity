@@ -28,7 +28,7 @@ public abstract record AuthenticatedEncryptionAlgorithmDescriptor
     ICryptoFactory CryptoFactory,
     Type SecretKeyType,
     string AlgorithmCode,
-    int KeyBitLength
+    int KeySizeBits
 ) : AlgorithmDescriptor
 (
     CryptoFactory,
@@ -40,13 +40,13 @@ public abstract record AuthenticatedEncryptionAlgorithmDescriptor
     /// <inheritdoc />
     public IEnumerable<KeySizes> LegalSizes { get; } = new[]
     {
-        new KeySizes(minSize: KeyBitLength, maxSize: KeyBitLength, skipSize: 0)
+        new KeySizes(minSize: KeySizeBits, maxSize: KeySizeBits, skipSize: 0)
     };
 
     /// <summary>
     /// Gets the number of bytes for the <c>key encryption key (kek)</c>.
     /// </summary>
-    public int KeyByteLength => KeyBitLength / BinaryUtility.BitsPerByte;
+    public int KeySizeBytes => KeySizeBits / BinaryUtility.BitsPerByte;
 
     /// <summary>
     /// Gets the length of a ciphertext with a given plaintext length.

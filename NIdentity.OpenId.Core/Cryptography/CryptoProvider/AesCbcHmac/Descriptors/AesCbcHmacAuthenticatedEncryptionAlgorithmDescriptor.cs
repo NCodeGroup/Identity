@@ -28,14 +28,14 @@ public record AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor
 (
     KeyedHashFunctionDelegate KeyedHashFunction,
     string AlgorithmCode,
-    int KeyBitLength,
-    int HashBitLength
+    int KeySizeBits,
+    int HashSizeBits
 ) : AuthenticatedEncryptionAlgorithmDescriptor
 (
     AesCbcHmacCryptoFactory.Default,
     typeof(SymmetricSecretKey),
     AlgorithmCode,
-    KeyBitLength
+    KeySizeBits
 )
 {
     /// <summary>
@@ -46,7 +46,7 @@ public record AesCbcHmacAuthenticatedEncryptionAlgorithmDescriptor
     /// <summary>
     /// Gets the number of bytes for the <c>HMAC</c> hash.
     /// </summary>
-    public int HashByteLength => HashBitLength / BinaryUtility.BitsPerByte;
+    public int HashSizeBytes => HashSizeBits / BinaryUtility.BitsPerByte;
 
     /// <inheritdoc />
     public override int GetCipherTextLength(int plainTextSizeBytes)

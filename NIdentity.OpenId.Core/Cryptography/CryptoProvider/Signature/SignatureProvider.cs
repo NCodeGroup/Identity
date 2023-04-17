@@ -85,13 +85,13 @@ public abstract class SignatureProvider : IDisposable
     /// <returns><c>true</c> if the computed signature matches the <paramref name="signature"/> parameter; otherwise, <c>false</c>.</returns>
     public virtual bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
     {
-        var hashByteLength = AlgorithmDescriptor.HashBitLength;
-        if (signature.Length != hashByteLength)
+        var hashSizeBytes = AlgorithmDescriptor.HashSizeBytes;
+        if (signature.Length != hashSizeBytes)
             return false;
 
-        var expected = hashByteLength <= BinaryUtility.StackAllocMax ?
-            stackalloc byte[hashByteLength] :
-            GC.AllocateUninitializedArray<byte>(hashByteLength, pinned: false);
+        var expected = hashSizeBytes <= BinaryUtility.StackAllocMax ?
+            stackalloc byte[hashSizeBytes] :
+            GC.AllocateUninitializedArray<byte>(hashSizeBytes, pinned: false);
 
         return TrySign(input, expected, out _) &&
                CryptographicOperations.FixedTimeEquals(expected, signature);

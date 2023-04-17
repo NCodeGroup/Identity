@@ -32,14 +32,14 @@ public class AesAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
     {
         new AesKeyWrapAlgorithmDescriptor(
             AlgorithmCodes.KeyManagement.Aes128,
-            KeyBitLength: 128),
+            KeySizeBits: 128),
 
         new AesKeyWrapAlgorithmDescriptor(
             AlgorithmCodes.KeyManagement.Aes192,
-            KeyBitLength: 192),
+            KeySizeBits: 192),
 
         new AesKeyWrapAlgorithmDescriptor(
             AlgorithmCodes.KeyManagement.Aes256,
-            KeyBitLength: 256),
+            KeySizeBits: 256),
     };
 }

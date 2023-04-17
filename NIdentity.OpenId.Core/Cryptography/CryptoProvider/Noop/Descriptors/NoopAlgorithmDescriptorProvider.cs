@@ -32,7 +32,7 @@ internal class NoopAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
             NoopCryptoFactory.Default,
             typeof(SecretKey),
             AlgorithmCodes.DigitalSignature.None,
-            HashBitLength: 0),
+            HashSizeBits: 0),
 
         new KeyWrapAlgorithmDescriptor(
             NoopCryptoFactory.Default,

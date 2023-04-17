@@ -17,6 +17,10 @@
 
 #endregion
 
+using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
+using NIdentity.OpenId.Cryptography.Descriptors;
+
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
 
 public delegate bool KeyedHashFunctionDelegate(
@@ -31,11 +35,18 @@ public record KeyedHashAlgorithmDescriptor
     ICryptoFactory CryptoFactory,
     Type SecretKeyType,
     string AlgorithmCode,
-    int HashBitLength
+    int HashSizeBits
 ) : SignatureAlgorithmDescriptor
 (
     CryptoFactory,
     SecretKeyType,
     AlgorithmCode,
-    HashBitLength
-);
+    HashSizeBits
+), ISupportLegalSizes
+{
+    /// <inheritdoc />
+    public IEnumerable<KeySizes> LegalSizes { get; } = new[]
+    {
+        new KeySizes(minSize: HashSizeBits, maxSize: int.MaxValue, skipSize: BinaryUtility.BitsPerByte)
+    };
+}

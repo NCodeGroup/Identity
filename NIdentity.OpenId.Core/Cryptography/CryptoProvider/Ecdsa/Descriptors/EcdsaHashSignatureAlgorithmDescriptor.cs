@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using NIdentity.OpenId.Cryptography.Binary;
 using NIdentity.OpenId.Cryptography.CryptoProvider.Signature.Descriptors;
 using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
@@ -28,19 +29,25 @@ public record EcdsaHashSignatureAlgorithmDescriptor
 (
     string AlgorithmCode,
     HashAlgorithmName HashAlgorithmName,
-    int HashBitLength
+    int HashSizeBits,
+    int KeySizeBits
 ) : HashSignatureAlgorithmDescriptor
 (
     EcdsaCryptoFactory.Default,
     typeof(EccSecretKey),
     AlgorithmCode,
     HashAlgorithmName,
-    HashBitLength
+    HashSizeBits
 ), ISupportLegalSizes
 {
     /// <inheritdoc />
     public IEnumerable<KeySizes> LegalSizes { get; } = new[]
     {
-        new KeySizes(HashBitLength, HashBitLength, 0)
+        new KeySizes(minSize: KeySizeBits, maxSize: KeySizeBits, skipSize: 0)
     };
+
+    /// <summary>
+    /// Gets the number of bytes for the <c>ECDsa</c> key.
+    /// </summary>
+    public int KeySizeBytes => KeySizeBits / BinaryUtility.BitsPerByte;
 }

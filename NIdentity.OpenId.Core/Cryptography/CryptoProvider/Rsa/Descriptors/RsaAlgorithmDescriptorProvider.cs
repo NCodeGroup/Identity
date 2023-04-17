@@ -29,37 +29,37 @@ internal class RsaAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
         new RsaSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.RsaSha256,
             HashAlgorithmName.SHA256,
-            HashByteLength: 256,
+            HashSizeBytes: 256,
             RSASignaturePadding.Pkcs1),
 
         new RsaSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.RsaSha384,
             HashAlgorithmName.SHA384,
-            HashByteLength: 384,
+            HashSizeBytes: 384,
             RSASignaturePadding.Pkcs1),
 
         new RsaSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.RsaSha512,
             HashAlgorithmName.SHA512,
-            HashByteLength: 512,
+            HashSizeBytes: 512,
             RSASignaturePadding.Pkcs1),
 
         new RsaSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
             HashAlgorithmName.SHA256,
-            HashByteLength: 256,
+            HashSizeBytes: 256,
             RSASignaturePadding.Pss),
 
         new RsaSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha384,
             HashAlgorithmName.SHA384,
-            HashByteLength: 384,
+            HashSizeBytes: 384,
             RSASignaturePadding.Pss),
 
         new RsaSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha512,
             HashAlgorithmName.SHA512,
-            HashByteLength: 512,
+            HashSizeBytes: 512,
             RSASignaturePadding.Pss),
     };
 }

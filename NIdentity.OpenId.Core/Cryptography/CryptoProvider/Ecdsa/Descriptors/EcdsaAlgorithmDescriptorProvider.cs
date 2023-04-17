@@ -29,16 +29,19 @@ internal class EcdsaAlgorithmDescriptorProvider : IAlgorithmDescriptorProvider
         new EcdsaHashSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.EcdsaSha256,
             HashAlgorithmName.SHA256,
-            HashBitLength: 256),
+            HashSizeBits: 256,
+            KeySizeBits: 256),
 
         new EcdsaHashSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.EcdsaSha384,
             HashAlgorithmName.SHA384,
-            HashBitLength: 384),
+            HashSizeBits: 384,
+            KeySizeBits: 384),
 
         new EcdsaHashSignatureAlgorithmDescriptor(
             AlgorithmCodes.DigitalSignature.EcdsaSha512,
             HashAlgorithmName.SHA512,
-            HashBitLength: 512),
+            HashSizeBits: 512,
+            KeySizeBits: 521),
     };
 }

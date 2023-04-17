@@ -27,7 +27,7 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Aes.Descriptors;
 
 public record AesKeyWrapAlgorithmDescriptor(
     string AlgorithmCode,
-    int KeyBitLength
+    int KeySizeBits
 ) : KeyWrapAlgorithmDescriptor
 (
     AesCryptoFactory.Default,
@@ -38,11 +38,11 @@ public record AesKeyWrapAlgorithmDescriptor(
     /// <inheritdoc />
     public IEnumerable<KeySizes> LegalSizes { get; } = new[]
     {
-        new KeySizes(minSize: KeyBitLength, maxSize: KeyBitLength, skipSize: 0)
+        new KeySizes(minSize: KeySizeBits, maxSize: KeySizeBits, skipSize: 0)
     };
 
     /// <summary>
     /// Gets the number of bytes for the <c>key encryption key (kek)</c>.
     /// </summary>
-    public int KeyByteLength => KeyBitLength / BinaryUtility.BitsPerByte;
+    public int KeySizeBytes => KeySizeBits / BinaryUtility.BitsPerByte;
 }

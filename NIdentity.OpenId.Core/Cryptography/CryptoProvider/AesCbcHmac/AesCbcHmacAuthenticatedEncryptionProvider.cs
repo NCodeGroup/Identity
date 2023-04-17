@@ -74,7 +74,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
                 associatedData.Length * BinaryUtility.BitsPerByte,
                 hmacInput);
 
-            var hmacOutputByteLength = Descriptor.HashByteLength;
+            var hmacOutputByteLength = Descriptor.HashSizeBytes;
             var hmacOutput = hmacOutputByteLength <= BinaryUtility.StackAllocMax ?
                 stackalloc byte[hmacOutputByteLength] :
                 GC.AllocateUninitializedArray<byte>(hmacOutputByteLength, pinned: true);
@@ -111,7 +111,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
         if (nonceBitLength != ExpectedNonceBitLength)
             throw new InvalidOperationException();
 
-        var keyByteLength = AlgorithmDescriptor.KeyByteLength;
+        var keyByteLength = AlgorithmDescriptor.KeySizeBytes;
         if (keyByteLength != SymmetricSecretKey.KeySizeBytes)
             throw new InvalidOperationException();
 
@@ -157,7 +157,7 @@ public class AesCbcHmacAuthenticatedEncryptionProvider : AuthenticatedEncryption
         if (nonceBitLength != ExpectedNonceBitLength)
             throw new InvalidOperationException();
 
-        var keyByteLength = AlgorithmDescriptor.KeyByteLength;
+        var keyByteLength = AlgorithmDescriptor.KeySizeBytes;
         if (keyByteLength != SymmetricSecretKey.KeySizeBytes)
             throw new InvalidOperationException();
 

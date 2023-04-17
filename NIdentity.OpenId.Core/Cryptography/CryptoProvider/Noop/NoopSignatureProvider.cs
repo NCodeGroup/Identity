@@ -39,6 +39,6 @@ internal class NoopSignatureProvider : SignatureProvider
 
     public override bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
     {
-        return true;
+        return signature.IsEmpty;
     }
 }

@@ -20,7 +20,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using NIdentity.OpenId.Cryptography.Binary;
 
 namespace NIdentity.OpenId.Logic;
@@ -46,7 +45,7 @@ internal class CryptoService : ICryptoService
     public string EncodeBinary(ReadOnlySpan<byte> data, BinaryEncodingType binaryEncodingType) =>
         binaryEncodingType switch
         {
-            BinaryEncodingType.Base64Url => Base64UrlEncoder.Encode(data.ToArray()),
+            BinaryEncodingType.Base64Url => Base64Url.Encode(data),
             BinaryEncodingType.Base64 => Convert.ToBase64String(data),
             BinaryEncodingType.Hex => Convert.ToHexString(data),
             _ => throw new ArgumentException("Unsupported encoding", nameof(binaryEncodingType))

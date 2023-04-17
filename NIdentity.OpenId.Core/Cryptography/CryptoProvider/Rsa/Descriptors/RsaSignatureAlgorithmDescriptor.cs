@@ -28,7 +28,7 @@ public record RsaSignatureAlgorithmDescriptor
 (
     string AlgorithmCode,
     HashAlgorithmName HashAlgorithmName,
-    int HashByteLength,
+    int HashSizeBytes,
     RSASignaturePadding Padding
 ) : HashSignatureAlgorithmDescriptor
 (
@@ -36,7 +36,7 @@ public record RsaSignatureAlgorithmDescriptor
     typeof(RsaSecretKey),
     AlgorithmCode,
     HashAlgorithmName,
-    HashByteLength
+    HashSizeBytes
 ), ISupportLegalSizes
 {
     private static IEnumerable<KeySizes> StaticLegalSizes { get; } = new[]

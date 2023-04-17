@@ -52,8 +52,8 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
     /// <inheritdoc />
     public override bool TrySign(ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
     {
-        var hashByteLength = AlgorithmDescriptor.HashBitLength;
-        if (signature.Length < hashByteLength)
+        var hashSizeBytes = AlgorithmDescriptor.HashSizeBytes;
+        if (signature.Length < hashSizeBytes)
         {
             bytesWritten = 0;
             return false;
@@ -69,8 +69,8 @@ public class KeyedHashAlgorithmSignatureProvider : SignatureProvider
         */
 
         // TODO: can this be validated earlier?
-        var keyByteLength = SymmetricSecretKey.KeySizeBytes;
-        if (keyByteLength < hashByteLength)
+        var keySizeBytes = SymmetricSecretKey.KeySizeBytes;
+        if (keySizeBytes < hashSizeBytes)
         {
             throw new InvalidOperationException();
         }

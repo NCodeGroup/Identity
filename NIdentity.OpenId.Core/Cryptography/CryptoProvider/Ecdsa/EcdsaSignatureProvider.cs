@@ -37,7 +37,7 @@ internal class EcdsaSignatureProvider : SignatureProvider
 
     public override bool TrySign(ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
     {
-        if (signature.Length < Descriptor.HashByteLength)
+        if (signature.Length < Descriptor.HashSizeBytes)
         {
             bytesWritten = 0;
             return false;
@@ -50,9 +50,6 @@ internal class EcdsaSignatureProvider : SignatureProvider
 
     public override bool Verify(ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
     {
-        if (signature.Length != Descriptor.HashByteLength)
-            return false;
-
         using var ecdsa = EccSecretKey.CreateECDsa();
 
         return ecdsa.VerifyData(input, signature, Descriptor.HashAlgorithmName);

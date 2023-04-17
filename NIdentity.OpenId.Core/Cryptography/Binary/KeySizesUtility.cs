@@ -54,14 +54,21 @@ public static class KeySizesUtility
             }
         }
 
-        return first?.MinSize ?? keySizeBitsDefault ?? throw new InvalidOperationException();
+        return first?.MinSize ?? keySizeBitsHint ?? keySizeBitsDefault ?? throw new InvalidOperationException();
     }
 
     public static bool IsLegalSize(IEnumerable<KeySizes> legalSizes, int size) =>
         legalSizes.Any(legalSize => IsLegalSize(legalSize, size));
 
-    public static bool IsLegalSize(KeySizes legalSize, int size) =>
-        size >= legalSize.MinSize &&
-        size <= legalSize.MaxSize &&
-        (size - legalSize.MinSize) % legalSize.SkipSize == 0;
+    public static bool IsLegalSize(KeySizes legalSize, int size)
+    {
+        if (legalSize.SkipSize == 0)
+        {
+            return size == legalSize.MinSize;
+        }
+
+        return size >= legalSize.MinSize &&
+               size <= legalSize.MaxSize &&
+               (size - legalSize.MinSize) % legalSize.SkipSize == 0;
+    }
 }

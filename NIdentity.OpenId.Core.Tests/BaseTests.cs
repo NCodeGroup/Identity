@@ -1,12 +1,9 @@
-﻿using System.Security.Cryptography;
-using Moq;
+﻿using Moq;
 
 namespace NIdentity.OpenId.Core.Tests;
 
 public class BaseTests : IDisposable
 {
-    public static RandomNumberGenerator RandomNumberGenerator { get; } = RandomNumberGenerator.Create();
-
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
     public void Dispose()

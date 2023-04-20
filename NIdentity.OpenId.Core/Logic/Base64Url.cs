@@ -18,27 +18,49 @@
 #endregion
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace NIdentity.OpenId.Logic;
 
 internal static class Base64Url
 {
-    // every 3 bytes is converted to 4 chars
+    private const int MaxPadCount = 2;
     private const int ByteBlockSize = 3;
     private const int CharBlockSize = 4;
 
-    public static int GetCharCountForEncode(int byteCount)
+    private static ReadOnlySpan<byte> EncodingMap => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"u8;
+
+    private static ReadOnlySpan<sbyte> DecodingMap
     {
-        if (byteCount == 0) return 0;
-        var (wholeBlocks, remainderBytes) = Math.DivRem((uint)byteCount, ByteBlockSize);
-        Debug.Assert(remainderBytes is 0 or 1 or 2);
-        var charCount = (wholeBlocks * CharBlockSize) + (remainderBytes > 0 ? remainderBytes + 1 : 0);
-        if (charCount > int.MaxValue)
-            throw new OutOfMemoryException();
-        return (int)charCount;
+        get
+        {
+            const sbyte __ = -1;
+
+            return new sbyte[]
+            {
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, 62, __, __,
+                52, 53, 54, 55, 56, 57, 58, 59, 60, 61, __, __, __, __, __, __,
+                __, 00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14,
+                15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, __, __, __, __, 63,
+                __, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+                41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __,
+                __, __, __, __, __, __, __, __, __, __, __, __, __, __, __, __
+            };
+        }
     }
+
+    public static int GetCharCountForEncode(int byteCount) =>
+        (byteCount * CharBlockSize + MaxPadCount) / ByteBlockSize;
 
     public static unsafe string Encode(ReadOnlySpan<byte> bytes)
     {
@@ -91,35 +113,31 @@ internal static class Base64Url
         var wholeBlockBytes = byteCount - remainderBytes;
         var charPos = 0;
 
-        // in the following, notice that:
-        // '+' has been replaced with '-'
-        // '/' has been replaced with '_'
-        // '=' has been removed
-        fixed (byte* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"u8)
+        fixed (byte* map = EncodingMap)
         {
             int bytePos;
 
             for (bytePos = 0; bytePos < wholeBlockBytes; bytePos += ByteBlockSize)
             {
-                chars[charPos] = (char)alphabet[(bytes[bytePos] & 0xFC) >> 2];
-                chars[charPos + 1] = (char)alphabet[((bytes[bytePos] & 0x03) << 4) | ((bytes[bytePos + 1] & 0xF0) >> 4)];
-                chars[charPos + 2] = (char)alphabet[((bytes[bytePos + 1] & 0x0F) << 2) | ((bytes[bytePos + 2] & 0xC0) >> 6)];
-                chars[charPos + 3] = (char)alphabet[bytes[bytePos + 2] & 0x3F];
+                chars[charPos] = (char)map[(bytes[bytePos] & 0xFC) >> 2];
+                chars[charPos + 1] = (char)map[((bytes[bytePos] & 0x03) << 4) | ((bytes[bytePos + 1] & 0xF0) >> 4)];
+                chars[charPos + 2] = (char)map[((bytes[bytePos + 1] & 0x0F) << 2) | ((bytes[bytePos + 2] & 0xC0) >> 6)];
+                chars[charPos + 3] = (char)map[bytes[bytePos + 2] & 0x3F];
                 charPos += 4;
             }
 
             switch (remainderBytes)
             {
                 case 1: // two character padding omitted
-                    chars[charPos] = (char)alphabet[(bytes[bytePos] & 0xFC) >> 2];
-                    chars[charPos + 1] = (char)alphabet[(bytes[bytePos] & 0x03) << 4];
+                    chars[charPos] = (char)map[(bytes[bytePos] & 0xFC) >> 2];
+                    chars[charPos + 1] = (char)map[(bytes[bytePos] & 0x03) << 4];
                     charPos += 2;
                     break;
 
                 case 2: // one character padding omitted
-                    chars[charPos] = (char)alphabet[(bytes[bytePos] & 0xFC) >> 2];
-                    chars[charPos + 1] = (char)alphabet[((bytes[bytePos] & 0x03) << 4) | ((bytes[bytePos + 1] & 0xF0) >> 4)];
-                    chars[charPos + 2] = (char)alphabet[(bytes[bytePos + 1] & 0x0F) << 2];
+                    chars[charPos] = (char)map[(bytes[bytePos] & 0xFC) >> 2];
+                    chars[charPos + 1] = (char)map[((bytes[bytePos] & 0x03) << 4) | ((bytes[bytePos + 1] & 0xF0) >> 4)];
+                    chars[charPos + 2] = (char)map[(bytes[bytePos + 1] & 0x0F) << 2];
                     charPos += 3;
                     break;
             }
@@ -128,73 +146,181 @@ internal static class Base64Url
         return charPos;
     }
 
-    public static byte[] Decode(string input)
+    public static int GetByteCountForDecode(int charCount) =>
+        GetByteCountForDecode(charCount, out _);
+
+    private static int GetByteCountForDecode(int charCount, out int remainder)
     {
-        if (string.IsNullOrEmpty(input))
-        {
-            return Array.Empty<byte>();
-        }
+        var (byteCount, tempRemainder) = Math.DivRem(charCount * ByteBlockSize, CharBlockSize);
+        if (tempRemainder > MaxPadCount)
+            throw new FormatException("Invalid length for a base64url char array or string.");
 
-        var padding = 0;
-        var charCount = input.Length;
+        remainder = tempRemainder;
+        return byteCount;
+    }
 
-        switch (charCount % 4)
-        {
-            case 0:
-                break;
+    public static byte[] Decode(ReadOnlySpan<char> chars)
+    {
+        var minDestLength = GetByteCountForDecode(chars.Length, out var remainder);
 
-            case 2:
-                padding = 2;
-                break;
-
-            case 3:
-                padding = 1;
-                break;
-
-            default:
-                throw new ArgumentOutOfRangeException(nameof(input), "The input value is not a valid base64url string.");
-        }
-
-        charCount += padding;
-        var byteCount = 3 * (charCount / 4) - padding;
-
-        var bytes = new byte[byteCount];
-        var result = TryDecode(input, bytes, out var bytesWritten);
-        Debug.Assert(result && bytesWritten == byteCount);
+        var bytes = new byte[minDestLength];
+        var result = TryDecode(chars, bytes, minDestLength, remainder, out var bytesWritten);
+        Debug.Assert(result && bytesWritten == minDestLength);
 
         return bytes;
     }
 
-    public static bool TryDecode(string input, Span<byte> bytes, out int bytesWritten)
+    public static bool TryDecode(ReadOnlySpan<char> chars, Span<byte> bytes, out int bytesWritten)
     {
-        if (string.IsNullOrEmpty(input))
+        var minDestLength = GetByteCountForDecode(chars.Length, out var remainder);
+        return TryDecode(chars, bytes, minDestLength, remainder, out bytesWritten);
+    }
+
+    private static bool TryDecode(ReadOnlySpan<char> chars, Span<byte> bytes, int minDestLength, int remainder, out int bytesWritten)
+    {
+        var destLength = bytes.Length;
+        if (destLength < minDestLength)
         {
             bytesWritten = 0;
-            return true;
+            return false;
         }
 
-        var builder = new StringBuilder(input);
+        var srcIndex = 0;
+        var destIndex = 0;
 
-        switch (builder.Length % 4)
+        ref var src = ref MemoryMarshal.GetReference(chars);
+        ref var dest = ref MemoryMarshal.GetReference(bytes);
+        ref var map = ref MemoryMarshal.GetReference(DecodingMap);
+
+        // only decode entire blocks
+        var srcLengthBlocks = chars.Length & ~0x03;
+        while (srcIndex < srcLengthBlocks)
         {
-            case 0:
-                break;
+            var result = DecodeFour(ref src, ref srcIndex, ref map);
+            if (result < 0)
+            {
+                throw new FormatException("The input is not a valid Base64Url string as it contains an illegal character.");
+            }
 
-            case 2:
-                builder.Append("==");
-                break;
-
-            case 3:
-                builder.Append('=');
-                break;
-
-            default:
-                throw new ArgumentOutOfRangeException(nameof(input), "The input value is not a valid base64url string.");
+            WriteThreeLowOrderBytes(ref dest, ref destIndex, result);
         }
 
-        builder.Replace('-', '+');
-        builder.Replace('_', '/');
+        // ReSharper disable once ConvertIfStatementToSwitchStatement
+        if (remainder == 1)
+        {
+            var result = DecodeThree(ref src, ref srcIndex, ref map);
+            if (result < 0)
+            {
+                throw new FormatException("The input is not a valid Base64Url string as it contains an illegal character.");
+            }
 
-        return Convert.TryFromBase64String(builder.ToString(), bytes, out bytesWritten);
+            WriteTwoLowOrderBytes(ref dest, ref destIndex, result);
+        }
+        else if (remainder == 2)
+        {
+            var result = DecodeTwo(ref src, ref srcIndex, ref map);
+            if (result < 0)
+            {
+                throw new FormatException("The input is not a valid Base64Url string as it contains an illegal character.");
+            }
+
+            WriteOneLowOrderByte(ref dest, ref destIndex, result);
+        }
+
+        bytesWritten = destIndex;
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int DecodeFour(ref char src, ref int srcIndex, ref sbyte map)
+    {
+        int i0 = Unsafe.Add(ref src, srcIndex++);
+        int i1 = Unsafe.Add(ref src, srcIndex++);
+        int i2 = Unsafe.Add(ref src, srcIndex++);
+        int i3 = Unsafe.Add(ref src, srcIndex++);
+
+        var isInvalid = ((i0 | i1 | i2 | i3) & ~0xFF) != 0;
+        if (isInvalid) return -1;
+
+        i0 = Unsafe.Add(ref map, i0);
+        i1 = Unsafe.Add(ref map, i1);
+        i2 = Unsafe.Add(ref map, i2);
+        i3 = Unsafe.Add(ref map, i3);
+
+        i0 <<= 18;
+        i1 <<= 12;
+        i2 <<= 6;
+
+        i0 |= i3;
+        i1 |= i2;
+
+        i0 |= i1;
+
+        return i0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int DecodeThree(ref char src, ref int srcIndex, ref sbyte map)
+    {
+        int i0 = Unsafe.Add(ref src, srcIndex++);
+        int i1 = Unsafe.Add(ref src, srcIndex++);
+        int i2 = Unsafe.Add(ref src, srcIndex++);
+
+        var isInvalid = ((i0 | i1 | i2) & ~0xFF) != 0;
+        if (isInvalid) return -1;
+
+        i0 = Unsafe.Add(ref map, i0);
+        i1 = Unsafe.Add(ref map, i1);
+        i2 = Unsafe.Add(ref map, i2);
+
+        i0 <<= 18;
+        i1 <<= 12;
+        i2 <<= 6;
+
+        i0 |= i2;
+        i0 |= i1;
+
+        return i0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int DecodeTwo(ref char src, ref int srcIndex, ref sbyte map)
+    {
+        int i0 = Unsafe.Add(ref src, srcIndex++);
+        int i1 = Unsafe.Add(ref src, srcIndex++);
+
+        var isInvalid = ((i0 | i1) & ~0xFF) != 0;
+        if (isInvalid) return -1;
+
+        i0 = Unsafe.Add(ref map, i0);
+        i1 = Unsafe.Add(ref map, i1);
+
+        i0 <<= 18;
+        i1 <<= 12;
+
+        i0 |= i1;
+
+        return i0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void WriteThreeLowOrderBytes(ref byte dest, ref int destIndex, int value)
+    {
+        Unsafe.Add(ref dest, destIndex++) = (byte)(value >> 16);
+        Unsafe.Add(ref dest, destIndex++) = (byte)(value >> 8);
+        Unsafe.Add(ref dest, destIndex++) = (byte)value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void WriteTwoLowOrderBytes(ref byte dest, ref int destIndex, int value)
+    {
+        Unsafe.Add(ref dest, destIndex++) = (byte)(value >> 16);
+        Unsafe.Add(ref dest, destIndex++) = (byte)(value >> 8);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void WriteOneLowOrderByte(ref byte dest, ref int destIndex, int value)
+    {
+        Unsafe.Add(ref dest, destIndex++) = (byte)(value >> 16);
     }
 }

@@ -161,6 +161,9 @@ internal static class Base64Url
 
     public static byte[] Decode(ReadOnlySpan<char> chars)
     {
+        if (chars.Length == 0)
+            return Array.Empty<byte>();
+
         var minDestLength = GetByteCountForDecode(chars.Length, out var remainder);
 
         var bytes = new byte[minDestLength];

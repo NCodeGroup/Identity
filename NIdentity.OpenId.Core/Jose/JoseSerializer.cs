@@ -17,10 +17,12 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
+using NIdentity.OpenId.Buffers;
 using NIdentity.OpenId.Cryptography.Descriptors;
 using NIdentity.OpenId.Cryptography.Keys;
 using NIdentity.OpenId.Logic;
@@ -72,7 +74,6 @@ public class JoseSerializer : IJoseSerializer
 {
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
-    private const int MaxJwtSegmentCount = 5;
 
     private static JsonSerializerOptions DeserializeOptions { get; } = new(JsonSerializerDefaults.Web)
     {
@@ -113,28 +114,52 @@ public class JoseSerializer : IJoseSerializer
         [MaybeNullWhen(false)] out string payload,
         [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers)
     {
-        var segments = jwt.Split('.', MaxJwtSegmentCount + 1);
-        return segments.Length switch
+        var segment = Split(jwt, out var count);
+        return count switch
         {
-            JwsSegmentCount => TryDecode(segments, secretKeys, out payload, out headers),
-            JweSegmentCount => TryDecrypt(segments, secretKeys, out payload, out headers),
-            _ => throw new JoseException("The given value is not a valid JWT. Too many segments.")
+            JwsSegmentCount => TryDecode(segment, secretKeys, out payload, out headers),
+            JweSegmentCount => TryDecrypt(segment, secretKeys, out payload, out headers),
+            _ => throw new InvalidOperationException()
         };
     }
+
+    internal static ReadOnlySequenceSegment<char> Split(string jwt, out int count) =>
+        StringSplitSequenceSegment.Split(jwt, '.', out count);
 
     internal virtual IReadOnlyDictionary<string, object> DeserializeHeaders(byte[] bytes) =>
         JsonSerializer.Deserialize<IReadOnlyDictionary<string, object>>(bytes, DeserializeOptions) ??
         throw new JoseException("Unable to deserialize the JWT headers.");
 
+    private static byte[] DecodePayload(bool b64, ReadOnlySpan<char> encodedPayload)
+    {
+        var charCount = encodedPayload.Length;
+        var byteCount = b64 ? Base64Url.GetByteCountForDecode(charCount) : Encoding.UTF8.GetByteCount(encodedPayload);
+        var bytes = new byte[byteCount];
+
+        if (b64)
+        {
+            var result = Base64Url.TryDecode(encodedPayload, bytes, out var bytesWritten);
+            Debug.Assert(result && bytesWritten == byteCount);
+        }
+        else
+        {
+            var bytesWritten = Encoding.UTF8.GetBytes(encodedPayload, bytes);
+            Debug.Assert(bytesWritten == byteCount);
+        }
+
+        return bytes;
+    }
+
     private bool TryDecode(
-        IReadOnlyList<string> segments,
+        ReadOnlySequenceSegment<char> segment,
         ISecretKeyCollection secretKeys,
         [MaybeNullWhen(false)] out string payload,
         [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers)
     {
-        Debug.Assert(segments.Count == JwsSegmentCount);
+        // TODO: should we use CryptoPool?
 
-        var encodedHeader = segments[0];
+        // header
+        var encodedHeader = segment.Memory.Span;
         var headerBytes = Base64Url.Decode(encodedHeader);
         var deserializedHeaders = DeserializeHeaders(headerBytes);
 
@@ -148,11 +173,17 @@ public class JoseSerializer : IJoseSerializer
             b64 = true;
         }
 
-        var encodedPayload = segments[1];
-        var payloadBytes = b64 ? Base64Url.Decode(encodedPayload) : Encoding.UTF8.GetBytes(encodedPayload);
+        // payload
+        segment = segment.Next ?? throw new InvalidOperationException();
+        var encodedPayload = segment.Memory.Span;
+        var payloadBytes = DecodePayload(b64, encodedPayload);
 
-        var encodedSignature = segments[2];
+        // signature
+        segment = segment.Next ?? throw new InvalidOperationException();
+        var encodedSignature = segment.Memory.Span;
         var expectedSignature = Base64Url.Decode(encodedSignature);
+
+        Debug.Assert(segment.Next is null);
 
         if (algorithmCode == AlgorithmCodes.DigitalSignature.None)
         {
@@ -204,7 +235,7 @@ public class JoseSerializer : IJoseSerializer
         return false;
     }
 
-    private static byte[] GetSignatureInput(string encodedHeader, string encodedPayload)
+    private static byte[] GetSignatureInput(ReadOnlySpan<char> encodedHeader, ReadOnlySpan<char> encodedPayload)
     {
         var headerByteCount = Encoding.UTF8.GetByteCount(encodedHeader);
         var payloadByteCount = Encoding.UTF8.GetByteCount(encodedPayload);
@@ -219,12 +250,34 @@ public class JoseSerializer : IJoseSerializer
     }
 
     private bool TryDecrypt(
-        IReadOnlyList<string> segments,
+        ReadOnlySequenceSegment<char> segment,
         ISecretKeyCollection secretKeys,
         [MaybeNullWhen(false)] out string payload,
         [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers)
     {
-        Debug.Assert(segments.Count == JweSegmentCount);
+        // Debug.Assert(jwt.Length > 0);
+        // Debug.Assert(indices.Count == JweSegmentCount);
+
+        // JOSE Header
+        // JWE Encrypted Key
+        // JWE Initialization Vector
+        // JWE AAD
+        // JWE Ciphertext
+        // JWE Authentication Tag
+
+        // JWE Protected Header
+        // JWE Shared Unprotected Header
+        // JWE Per-Recipient Unprotected Header
+
+        // protectedHeaderBytes
+        // encryptedCek
+        // iv
+        // ciphertext
+        // authTag
+
+        // var encodedHeader = segments[0];
+        // var headerBytes = Base64Url.Decode(encodedHeader);
+        // var deserializedHeaders = DeserializeHeaders(headerBytes);
 
         throw new NotImplementedException();
     }

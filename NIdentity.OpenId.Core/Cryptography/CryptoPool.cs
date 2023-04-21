@@ -29,13 +29,13 @@ public static class CryptoPool
     /// <summary>
     /// Retrieves a buffer that is at least the requested length.
     /// </summary>
-    /// <param name="minimumLength">The minimum length of the array needed.</param>
+    /// <param name="byteCount">The length of the buffer needed.</param>
     /// <returns>
-    /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the array lease.
+    /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
     /// </returns>
-    public static IMemoryOwner<byte> Rent(int minimumLength)
+    public static IMemoryOwner<byte> Rent(int byteCount)
     {
-        var buffer = ArrayPool<byte>.Shared.Rent(minimumLength);
-        return new CryptoLease(buffer, minimumLength);
+        var buffer = ArrayPool<byte>.Shared.Rent(byteCount);
+        return new CryptoLease(buffer, byteCount);
     }
 }

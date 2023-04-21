@@ -27,19 +27,20 @@ internal sealed class CryptoLease : IMemoryOwner<byte>
 {
     private byte[] Buffer { get; }
     private GCHandle Handle { get; }
-    public Memory<byte> Memory { get; }
+    public Memory<byte> Memory { get; private set; }
 
-    public CryptoLease(byte[] buffer, int minimumLength)
+    public CryptoLease(byte[] buffer, int byteCount)
     {
         Buffer = buffer;
         Handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-        Memory = new Memory<byte>(buffer, 0, minimumLength);
+        Memory = new Memory<byte>(buffer, 0, byteCount);
     }
 
     public void Dispose()
     {
         CryptographicOperations.ZeroMemory(Memory.Span);
         ArrayPool<byte>.Shared.Return(Buffer);
+        Memory = Memory<byte>.Empty;
         Handle.Free();
     }
 }

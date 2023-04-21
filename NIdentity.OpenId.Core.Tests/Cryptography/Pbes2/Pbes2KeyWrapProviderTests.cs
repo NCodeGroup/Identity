@@ -86,10 +86,10 @@ public class Pbes2KeyWrapProviderTests : BaseTests
         var provider = new Pbes2KeyWrapProvider(AesKeyWrap.Default, secretKey, descriptor);
 
         var expectedCek = new byte[descriptor.KeySizeBytes];
-        RandomNumberGenerator.GetBytes(expectedCek);
+        RandomNumberGenerator.Fill(expectedCek);
 
         var salt = new byte[descriptor.KeySizeBytes];
-        RandomNumberGenerator.GetBytes(salt);
+        RandomNumberGenerator.Fill(salt);
 
         var encryptedContentKey = provider.WrapKey(new Pbes2KeyWrapParameters(expectedCek, salt));
         var actualCek = provider.UnwrapKey(new Pbes2KeyUnwrapParameters(encryptedContentKey.ToArray(), salt)).ToArray();

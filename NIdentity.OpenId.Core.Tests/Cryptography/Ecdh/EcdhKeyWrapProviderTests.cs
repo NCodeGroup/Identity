@@ -98,7 +98,7 @@ public class EcdhKeyWrapProviderTests : BaseTests
         const string partyVInfo = nameof(partyVInfo);
 
         mockAgreement
-            .Setup(_ => _.KeyBitLength)
+            .Setup(_ => _.KeySizeBits)
             .Returns(keyBitLength)
             .Verifiable();
 
@@ -148,9 +148,8 @@ public class EcdhKeyWrapProviderTests : BaseTests
         var expectedKeyAgreement = keyWrapProvider.WrapKey(keyWrapParameters).ToArray().AsSpan();
         Assert.Equal(keyByteLength, expectedKeyAgreement.Length);
 
-        using var party1PublicKey = party1PrivateKey.PublicKey;
         var keyUnwrapProvider = new EcdhKeyWrapProvider(new EccSecretKey(KeyId, keyBitLength, party2Pkcs8PrivateKey), AlgorithmDescriptor);
-        var keyUnwrapParameters = new EcdhEsKeyUnwrapParameters(party1PublicKey, keyBitLength, partyUInfo, partyVInfo);
+        var keyUnwrapParameters = new EcdhEsKeyUnwrapParameters(Array.Empty<byte>(), Party1Parameters, keyBitLength, partyUInfo, partyVInfo);
         var actualKeyAgreement = keyUnwrapProvider.UnwrapKey(keyUnwrapParameters).ToArray().AsSpan();
         Assert.Equal(keyByteLength, actualKeyAgreement.Length);
 

@@ -41,8 +41,9 @@ public abstract class SymmetricCryptoFactory<TCryptoFactory> : CryptoFactory<TCr
         var byteLease = CryptoPool.Rent(byteLength);
         try
         {
-            RandomNumberGenerator.Fill(byteLease.Memory.Span);
-            return new SymmetricKeyMaterial(byteLease);
+            var span = byteLease.Memory.Span;
+            RandomNumberGenerator.Fill(span);
+            return new SymmetricKeyMaterial(span);
         }
         catch
         {

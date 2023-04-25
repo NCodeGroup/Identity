@@ -44,6 +44,6 @@ public abstract class EccCryptoFactory<TCryptoFactory> : CryptoFactory<TCryptoFa
         };
 
     /// <inheritdoc />
-    protected override SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyMaterial) =>
-        new EccSecretKey(keyId, keySizeBits, keyMaterial);
+    protected override SecretKey CreateSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> keyBytes) =>
+        new EccSecretKey(keyId, keySizeBits, keyBytes);
 }

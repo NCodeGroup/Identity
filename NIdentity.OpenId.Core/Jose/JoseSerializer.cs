@@ -38,30 +38,30 @@ public interface IJoseSerializer
     /// <summary>
     /// Validates a Json Web Token (JWT) and returns the decoded payload.
     /// </summary>
-    /// <param name="jwt">The Json Web Token (JWT) to decode and validate.</param>
+    /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for signature validation.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
-    string Decode(string jwt, ISecretKeyCollection secretKeys);
+    string Decode(string value, ISecretKeyCollection secretKeys);
 
     /// <summary>
     /// Attempts to validate a Json Web Token (JWT) and return the decoded payload.
     /// </summary>
-    /// <param name="jwt">The Json Web Token (JWT) to decode and validate.</param>
+    /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for signature validation.</param>
     /// <param name="payload">An <see cref="string"/> to receive the decoded payload if validation was successful.</param>
     /// <returns><c>true</c> if the Json Web Token (JWT) was successfully decoded and validated; otherwise, <c>false</c>.</returns>
-    bool TryDecode(string jwt, ISecretKeyCollection secretKeys, [MaybeNullWhen(false)] out string payload);
+    bool TryDecode(string value, ISecretKeyCollection secretKeys, [MaybeNullWhen(false)] out string payload);
 
     /// <summary>
     /// Attempts to validate a Json Web Token (JWT) and return the decoded payload.
     /// </summary>
-    /// <param name="jwt">The Json Web Token (JWT) to decode and validate.</param>
+    /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for signature validation.</param>
     /// <param name="payload">A  <see cref="string"/> that is to receive the decoded payload if validation was successful.</param>
     /// <param name="headers">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded headers if validation was successful.</param>
     /// <returns><c>true</c> if the Json Web Token (JWT) was successfully decoded and validated; otherwise, <c>false</c>.</returns>
     bool TryDecode(
-        string jwt,
+        string value,
         ISecretKeyCollection secretKeys,
         [MaybeNullWhen(false)] out string payload,
         [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers);
@@ -70,7 +70,7 @@ public interface IJoseSerializer
 /// <summary>
 /// Provides a default implementation for the <see cref="IJoseSerializer"/> interface.
 /// </summary>
-public class JoseSerializer : IJoseSerializer
+public partial class JoseSerializer : IJoseSerializer
 {
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
@@ -83,52 +83,27 @@ public class JoseSerializer : IJoseSerializer
         }
     };
 
-    private IAlgorithmCollection AlgorithmCollection { get; }
+    private static bool IsJson(string value) =>
+        value.StartsWith('{') && value.EndsWith('}');
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
-    /// </summary>
-    /// <param name="algorithmCollection">An <see cref="IAlgorithmCollection"/> that is used to lookup signing keys for signature validation.</param>
-    public JoseSerializer(IAlgorithmCollection algorithmCollection)
+    private static ReadOnlySequenceSegment<char> Split(string value, out int count) =>
+        StringSplitSequenceSegment.Split(value, '.', out count);
+
+    private static T Deserialize<T>(ReadOnlySpan<byte> bytes, string name) =>
+        JsonSerializer.Deserialize<T>(bytes, DeserializeOptions) ??
+        throw new JoseException($"Unable to deserialize {name}");
+
+    private static bool TryGetValue<T>(IReadOnlyDictionary<string, object> collection, string key, [MaybeNullWhen(false)] out T value)
     {
-        AlgorithmCollection = algorithmCollection;
-    }
-
-    /// <inheritdoc />
-    public string Decode(string jwt, ISecretKeyCollection secretKeys) =>
-        !TryDecode(jwt, secretKeys, out var payload, out _) ?
-            throw new IntegrityException("Signature validation failed.") :
-            payload;
-
-    /// <inheritdoc />
-    public bool TryDecode(
-        string jwt,
-        ISecretKeyCollection secretKeys,
-        [MaybeNullWhen(false)] out string payload) =>
-        TryDecode(jwt, secretKeys, out payload, out _);
-
-    /// <inheritdoc />
-    public bool TryDecode(
-        string jwt,
-        ISecretKeyCollection secretKeys,
-        [MaybeNullWhen(false)] out string payload,
-        [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers)
-    {
-        var segment = Split(jwt, out var count);
-        return count switch
+        if (collection.TryGetValue(key, out var obj) && obj is T converted)
         {
-            JwsSegmentCount => TryDecode(segment, secretKeys, out payload, out headers),
-            JweSegmentCount => TryDecrypt(segment, secretKeys, out payload, out headers),
-            _ => throw new InvalidOperationException()
-        };
+            value = converted;
+            return true;
+        }
+
+        value = default;
+        return false;
     }
-
-    internal static ReadOnlySequenceSegment<char> Split(string jwt, out int count) =>
-        StringSplitSequenceSegment.Split(jwt, '.', out count);
-
-    internal virtual IReadOnlyDictionary<string, object> DeserializeHeaders(byte[] bytes) =>
-        JsonSerializer.Deserialize<IReadOnlyDictionary<string, object>>(bytes, DeserializeOptions) ??
-        throw new JoseException("Unable to deserialize the JWT headers.");
 
     private static byte[] DecodePayload(bool b64, ReadOnlySpan<char> encodedPayload)
     {
@@ -150,7 +125,47 @@ public class JoseSerializer : IJoseSerializer
         return bytes;
     }
 
-    private bool TryDecode(
+    private IAlgorithmCollection AlgorithmCollection { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
+    /// </summary>
+    /// <param name="algorithmCollection">An <see cref="IAlgorithmCollection"/> that is used to lookup signing keys for signature validation.</param>
+    public JoseSerializer(IAlgorithmCollection algorithmCollection)
+    {
+        AlgorithmCollection = algorithmCollection;
+    }
+
+    /// <inheritdoc />
+    public string Decode(string value, ISecretKeyCollection secretKeys) =>
+        !TryDecode(value, secretKeys, out var payload, out _) ?
+            throw new IntegrityException("Signature validation failed.") :
+            payload;
+
+    /// <inheritdoc />
+    public bool TryDecode(
+        string value,
+        ISecretKeyCollection secretKeys,
+        [MaybeNullWhen(false)] out string payload) =>
+        TryDecode(value, secretKeys, out payload, out _);
+
+    /// <inheritdoc />
+    public bool TryDecode(
+        string value,
+        ISecretKeyCollection secretKeys,
+        [MaybeNullWhen(false)] out string payload,
+        [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers)
+    {
+        var segment = Split(value, out var count);
+        return count switch
+        {
+            JwsSegmentCount => TryDecodeJws(segment, secretKeys, out payload, out headers),
+            JweSegmentCount => TryDecodeJwe(segment, secretKeys, out payload, out headers),
+            _ => throw new InvalidOperationException()
+        };
+    }
+
+    private bool TryDecodeJws(
         ReadOnlySequenceSegment<char> segment,
         ISecretKeyCollection secretKeys,
         [MaybeNullWhen(false)] out string payload,
@@ -158,27 +173,33 @@ public class JoseSerializer : IJoseSerializer
     {
         // TODO: should we use CryptoPool?
 
-        // header
+        /*
+              BASE64URL(UTF8(JWS Protected Header)) || '.' ||
+              BASE64URL(JWS Payload) || '.' ||
+              BASE64URL(JWS Signature)
+        */
+
+        // JWS Protected Header
         var encodedHeader = segment.Memory.Span;
         var headerBytes = Base64Url.Decode(encodedHeader);
-        var deserializedHeaders = DeserializeHeaders(headerBytes);
+        var deserializedHeader = Deserialize<IReadOnlyDictionary<string, object>>(headerBytes, "JWS Protected Header");
 
-        if (!TryGetValue<string>(deserializedHeaders, "alg", out var algorithmCode))
+        if (!TryGetValue<string>(deserializedHeader, "alg", out var algorithmCode))
         {
-            throw new JoseException("The 'alg' header is missing.");
+            throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!TryGetValue<bool>(deserializedHeaders, "b64", out var b64))
+        if (!TryGetValue<bool>(deserializedHeader, "b64", out var b64))
         {
             b64 = true;
         }
 
-        // payload
+        // JWS Payload
         segment = segment.Next ?? throw new InvalidOperationException();
         var encodedPayload = segment.Memory.Span;
         var payloadBytes = DecodePayload(b64, encodedPayload);
 
-        // signature
+        // JWS Signature
         segment = segment.Next ?? throw new InvalidOperationException();
         var encodedSignature = segment.Memory.Span;
         var expectedSignature = Base64Url.Decode(encodedSignature);
@@ -189,7 +210,7 @@ public class JoseSerializer : IJoseSerializer
         {
             var isValid = expectedSignature.Length == 0;
             payload = isValid ? Encoding.UTF8.GetString(payloadBytes) : null;
-            headers = isValid ? deserializedHeaders : null;
+            headers = isValid ? deserializedHeader : null;
             return isValid;
         }
 
@@ -214,24 +235,24 @@ public class JoseSerializer : IJoseSerializer
             return false;
         }
 
-        if (TryGetValue<string>(deserializedHeaders, "kid", out var keyId) &&
+        if (TryGetValue<string>(deserializedHeader, "kid", out var keyId) &&
             secretKeys.TryGet(keyId, out var specificKey) &&
             TryVerify(specificKey, out payload))
         {
-            headers = deserializedHeaders;
+            headers = deserializedHeader;
             return true;
         }
 
         foreach (var secretKey in secretKeys)
         {
             if (!TryVerify(secretKey, out payload)) continue;
-            headers = deserializedHeaders;
+            headers = deserializedHeader;
             return true;
         }
 
         // no matching signing key
         payload = null;
-        headers = deserializedHeaders;
+        headers = deserializedHeader;
         return false;
     }
 
@@ -249,7 +270,7 @@ public class JoseSerializer : IJoseSerializer
         return result;
     }
 
-    private bool TryDecrypt(
+    private bool TryDecodeJwe(
         ReadOnlySequenceSegment<char> segment,
         ISecretKeyCollection secretKeys,
         [MaybeNullWhen(false)] out string payload,
@@ -258,6 +279,8 @@ public class JoseSerializer : IJoseSerializer
         // Debug.Assert(jwt.Length > 0);
         // Debug.Assert(indices.Count == JweSegmentCount);
 
+        /*
+
         // JOSE Header
         // JWE Encrypted Key
         // JWE Initialization Vector
@@ -265,9 +288,19 @@ public class JoseSerializer : IJoseSerializer
         // JWE Ciphertext
         // JWE Authentication Tag
 
+        == Compact encoding ==
+        BASE64URL(UTF8(JWE Protected Header)) || '.' ||
+        BASE64URL(JWE Encrypted Key) || '.' ||
+        BASE64URL(JWE Initialization Vector) || '.' ||
+        BASE64URL(JWE Ciphertext) || '.' ||
+        BASE64URL(JWE Authentication Tag)
+
+        // JSON encoding:
         // JWE Protected Header
         // JWE Shared Unprotected Header
         // JWE Per-Recipient Unprotected Header
+
+        */
 
         // protectedHeaderBytes
         // encryptedCek
@@ -280,17 +313,5 @@ public class JoseSerializer : IJoseSerializer
         // var deserializedHeaders = DeserializeHeaders(headerBytes);
 
         throw new NotImplementedException();
-    }
-
-    private static bool TryGetValue<T>(IReadOnlyDictionary<string, object> collection, string key, [MaybeNullWhen(false)] out T value)
-    {
-        if (collection.TryGetValue(key, out var obj) && obj is T converted)
-        {
-            value = converted;
-            return true;
-        }
-
-        value = default;
-        return false;
     }
 }

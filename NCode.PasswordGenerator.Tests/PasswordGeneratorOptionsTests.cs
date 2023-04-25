@@ -17,10 +17,7 @@
 
 #endregion
 
-using NIdentity.OpenId.Cryptography.Passwords;
-using Xunit;
-
-namespace NIdentity.OpenId.Core.Tests.Cryptography.Passwords;
+namespace NCode.PasswordGenerator.Tests;
 
 public class PasswordGeneratorOptionsTests : BaseTests
 {

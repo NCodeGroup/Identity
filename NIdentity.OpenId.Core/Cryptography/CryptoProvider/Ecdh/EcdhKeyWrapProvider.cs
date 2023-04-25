@@ -68,9 +68,19 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         EcdhDescriptor = descriptor;
     }
 
-    internal virtual ReadOnlySequence<byte> DeriveKey(IEcdhEsAgreement agreement, ECDiffieHellman privateKeyParty1, ECDiffieHellmanPublicKey publicKeyParty2)
+    internal virtual void DeriveKey(
+        string partyUInfo,
+        string partyVInfo,
+        ECDiffieHellman recipientKey,
+        ECDiffieHellmanPublicKey senderKey,
+        Span<byte> derivedKey)
     {
-        var keyByteLength = agreement.KeyBitLength / 8;
+        throw new NotImplementedException();
+    }
+
+    internal virtual ReadOnlySequence<byte> DeriveKey(IEcdhEsAgreement agreement, ECDiffieHellman recipientKey, ECDiffieHellmanPublicKey senderKey)
+    {
+        var keyByteLength = agreement.KeySizeBits / 8;
         var hashByteLength = EcdhDescriptor.HashSizeBits / 8;
         var reps = (keyByteLength + hashByteLength - 1) / hashByteLength;
 
@@ -80,9 +90,9 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         using var secretAppendStream = new MemoryStream();
         using var secretAppendWriter = new KdfBinaryWriter(secretAppendStream);
         secretAppendWriter.Write(EcdhDescriptor.AlgorithmCode);
-        secretAppendWriter.Write(agreement.PartyUInfo);
-        secretAppendWriter.Write(agreement.PartyVInfo);
-        secretAppendWriter.Write(agreement.KeyBitLength);
+        secretAppendWriter.WriteBase64Url(agreement.PartyUInfo);
+        secretAppendWriter.WriteBase64Url(agreement.PartyVInfo);
+        secretAppendWriter.Write(agreement.KeySizeBits);
         var secretAppendBytes = secretAppendStream.ToArray();
 
         var keyBuffer = reps == 1 ?
@@ -97,8 +107,8 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
             BinaryPrimitives.WriteInt32BigEndian(secretPrependBytes.AsSpan(), counter);
 
             // too bad this API doesn't support Span<T> :(
-            var partialKey = privateKeyParty1.DeriveKeyFromHash(
-                publicKeyParty2,
+            var partialKey = recipientKey.DeriveKeyFromHash(
+                senderKey,
                 EcdhDescriptor.HashAlgorithmName,
                 secretPrependBytes,
                 secretAppendBytes);
@@ -117,6 +127,22 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         return TrimKey(keyBuffer);
     }
 
+    protected T ValidateParameters<T>(WrapNewKeyParameters parameters)
+        where T : EccWrapNewKeyParameters
+    {
+        if (parameters is not T typedParameters)
+        {
+            throw new InvalidOperationException();
+        }
+
+        if (!string.Equals(EcdhDescriptor.KeyDerivationFunction, KeyDerivationFunctionTypes.SP800_56A_CONCAT, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException();
+        }
+
+        return typedParameters;
+    }
+
     protected T ValidateParameters<T>(KeyWrapParameters parameters)
         where T : EcdhEsKeyWrapParameters
     {
@@ -131,6 +157,44 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         }
 
         return typedParameters;
+    }
+
+    public SecretKey WrapNewKey(WrapNewKeyParameters parameters, Span<byte> derivedKey)
+    {
+        var typedParameters = ValidateParameters<EccWrapNewKeyParameters>(parameters);
+
+        var ephemeralKeyId = Guid.NewGuid().ToString("N");
+        var ephemeralKey = (EccSecretKey)EcdhDescriptor.CryptoFactory.GenerateNewKey(ephemeralKeyId, AlgorithmDescriptor);
+        try
+        {
+            using var recipientKey = ephemeralKey.CreateECDiffieHellman();
+            using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
+            using var ourPublicKey = ourPrivateKey.PublicKey;
+
+            DeriveKey(
+                typedParameters.PartyUInfo,
+                typedParameters.PartyVInfo,
+                recipientKey,
+                ourPublicKey,
+                derivedKey);
+
+            return ephemeralKey;
+        }
+        catch
+        {
+            ephemeralKey.Dispose();
+            throw;
+        }
+    }
+
+    public void WrapKey(WrapKeyParameters parameters, ReadOnlySpan<byte> cek, Span<byte> derivedKey)
+    {
+        throw new NotSupportedException("The ECDH-ES key management algorithm does not support using an existing CEK.");
+    }
+
+    public void UnwrapKey(UnwrapKeyParameters parameters, ReadOnlySpan<byte> derivedKey, Span<byte> cek)
+    {
+        throw new NotImplementedException();
     }
 
     /// <inheritdoc />
@@ -166,7 +230,9 @@ internal class EcdhKeyWrapProvider : KeyWrapProvider
         var typedParameters = ValidateParameters<EcdhEsKeyUnwrapParameters>(parameters);
 
         using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
+        using var senderKey = ECDiffieHellman.Create(typedParameters.SenderPublicKey);
+        using var senderPublicKey = senderKey.PublicKey;
 
-        return DeriveKey(typedParameters, ourPrivateKey, typedParameters.SenderPublicKey);
+        return DeriveKey(typedParameters, ourPrivateKey, senderPublicKey);
     }
 }

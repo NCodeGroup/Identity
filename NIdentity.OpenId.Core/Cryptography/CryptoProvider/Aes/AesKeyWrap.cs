@@ -33,21 +33,21 @@ public interface IAesKeyWrap
     /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.
     /// </summary>
     /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
-    /// <param name="contentEncryptionKey">Contains the content encryption key (CEK) that is to be encrypted.</param>
+    /// <param name="key">Contains the content encryption key (CEK) that is to be encrypted.</param>
     /// <returns>The result of encrypting the key data.</returns>
     ReadOnlySequence<byte> WrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlyMemory<byte> contentEncryptionKey);
+        ReadOnlyMemory<byte> key);
 
     /// <summary>
     /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
     /// </summary>
     /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
-    /// <param name="encryptedContentEncryptionKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
+    /// <param name="encryptedKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
     /// <returns>The result of decrypting the encrypted key data.</returns>
     ReadOnlySequence<byte> UnwrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlyMemory<byte> encryptedContentEncryptionKey);
+        ReadOnlyMemory<byte> encryptedKey);
 }
 
 /// <summary>
@@ -78,7 +78,7 @@ public class AesKeyWrap : IAesKeyWrap
     /// <inheritdoc />
     public ReadOnlySequence<byte> WrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlyMemory<byte> contentEncryptionKey)
+        ReadOnlyMemory<byte> key)
     {
         /*
            Inputs:  Plaintext, n 64-bit values {P1, P2, ..., Pn}, and
@@ -86,14 +86,14 @@ public class AesKeyWrap : IAesKeyWrap
            Outputs: Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}.
         */
 
-        if (contentEncryptionKey.Length < IntermediateByteCount)
+        if (key.Length < IntermediateByteCount)
         {
             // TODO: unit tests
             // min size
             throw new InvalidOperationException();
         }
 
-        if (contentEncryptionKey.Length % ChunkByteCount != 0)
+        if (key.Length % ChunkByteCount != 0)
         {
             // TODO: unit tests
             // 64bit chunks
@@ -113,14 +113,14 @@ public class AesKeyWrap : IAesKeyWrap
                    R[i] = P[i]
         */
 
-        var n = contentEncryptionKey.Length / ChunkByteCount;
+        var n = key.Length / ChunkByteCount;
 
         Span<byte> a = stackalloc byte[sizeof(long)];
         DefaultIV.Span.CopyTo(a);
 
         var r = Enumerable
             .Range(0, n)
-            .Select(i => contentEncryptionKey.Slice(i * ChunkByteCount, ChunkByteCount))
+            .Select(i => key.Slice(i * ChunkByteCount, ChunkByteCount))
             .ToArray();
 
         /*
@@ -165,7 +165,7 @@ public class AesKeyWrap : IAesKeyWrap
     /// <inheritdoc />
     public ReadOnlySequence<byte> UnwrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlyMemory<byte> encryptedContentEncryptionKey)
+        ReadOnlyMemory<byte> encryptedKey)
     {
         /*
            Inputs:  Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}, and
@@ -173,14 +173,14 @@ public class AesKeyWrap : IAesKeyWrap
            Outputs: Plaintext, n 64-bit values {P0, P1, K, Pn}.
         */
 
-        if (encryptedContentEncryptionKey.Length < IntermediateByteCount)
+        if (encryptedKey.Length < IntermediateByteCount)
         {
             // TODO: unit tests
             // min size
             throw new InvalidOperationException();
         }
 
-        if (encryptedContentEncryptionKey.Length % ChunkByteCount != 0)
+        if (encryptedKey.Length % ChunkByteCount != 0)
         {
             // TODO: unit tests
             // 64bit chunks
@@ -200,13 +200,13 @@ public class AesKeyWrap : IAesKeyWrap
                    R[i] = C[i]
         */
 
-        var n = encryptedContentEncryptionKey.Length / ChunkByteCount - 1;
+        var n = encryptedKey.Length / ChunkByteCount - 1;
 
-        var a = encryptedContentEncryptionKey[..ChunkByteCount];
+        var a = encryptedKey[..ChunkByteCount];
 
         var r = Enumerable
             .Range(1, n) // skip first
-            .Select(i => encryptedContentEncryptionKey.Slice(i * ChunkByteCount, ChunkByteCount))
+            .Select(i => encryptedKey.Slice(i * ChunkByteCount, ChunkByteCount))
             .ToArray();
 
         /*

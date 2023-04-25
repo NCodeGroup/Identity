@@ -139,9 +139,8 @@ public class EcdhKeyWrapWithAesKeyWrapProviderTests : BaseTests
         var keyWrapParameters = new EcdhEsKeyWrapWithAesKeyWrapParameters(expectedPlainTextKey, party2PrivateKey, KeyBitLength, partyUInfo, partyVInfo);
         var encryptedKey = keyWrapProvider.WrapKey(keyWrapParameters).ToArray().AsMemory();
 
-        using var party1PublicKey = party1PrivateKey.PublicKey;
         var keyUnwrapProvider = new EcdhKeyWrapWithAesKeyWrapProvider(AesKeyWrap.Default, new EccSecretKey(KeyId, KeyBitLength, party2Pkcs8PrivateKey), AlgorithmDescriptor);
-        var keyUnwrapParameters = new EcdhEsKeyUnwrapWithAesKeyUnwrapParameters(encryptedKey, party1PublicKey, KeyBitLength, partyUInfo, partyVInfo);
+        var keyUnwrapParameters = new EcdhEsKeyUnwrapWithAesKeyUnwrapParameters(encryptedKey, Party1Parameters, KeyBitLength, partyUInfo, partyVInfo);
         var actualPlainTextKey = keyUnwrapProvider.UnwrapKey(keyUnwrapParameters).ToArray();
 
         var areKeysEqual = expectedPlainTextKey.SequenceEqual(actualPlainTextKey);

@@ -46,12 +46,6 @@ internal class NoopKeyWrapProvider : KeyWrapProvider
 
     public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
     {
-        if (parameters is not ContentKeyUnwrapParameters typedParameters)
-        {
-            // TODO: unit tests
-            throw new InvalidOperationException();
-        }
-
-        return new ReadOnlySequence<byte>(typedParameters.EncryptedContentKey);
+        return new ReadOnlySequence<byte>(parameters.EncryptedKey);
     }
 }

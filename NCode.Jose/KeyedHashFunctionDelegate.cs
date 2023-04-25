@@ -17,13 +17,13 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
+namespace NCode.Jose;
 
 /// <summary>
-/// Contains the parameters required for cryptographic key unwrap operations using a cipher text key.
+/// Provides a delegate to perform the calculation of a <c>keyed hash (HMAC)</c> function.
 /// </summary>
-/// <param name="EncryptedContentKey">The key to decrypt.</param>
-public record ContentKeyUnwrapParameters
-(
-    ReadOnlyMemory<byte> EncryptedContentKey
-) : KeyUnwrapParameters;
+public delegate bool KeyedHashFunctionDelegate(
+    ReadOnlySpan<byte> key,
+    ReadOnlySpan<byte> source,
+    Span<byte> destination,
+    out int bytesWritten);

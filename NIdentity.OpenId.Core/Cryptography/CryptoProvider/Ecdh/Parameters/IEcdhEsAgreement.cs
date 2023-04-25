@@ -21,9 +21,21 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh.Parameters;
 
 public interface IEcdhEsAgreement
 {
-    public int KeyBitLength { get; }
+    public int KeySizeBits { get; }
 
-    public string PartyUInfo { get; }
+    public string? PartyUInfo { get; }
 
-    public string PartyVInfo { get; }
+    public string? PartyVInfo { get; }
+}
+
+public class EcdhEsAgreement : IEcdhEsAgreement
+{
+    /// <inheritdoc />
+    public int KeySizeBits { get; init; }
+
+    /// <inheritdoc />
+    public string? PartyUInfo { get; init; }
+
+    /// <inheritdoc />
+    public string? PartyVInfo { get; init; }
 }

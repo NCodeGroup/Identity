@@ -24,8 +24,9 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh.Parameters;
 
 public record EcdhEsKeyUnwrapParameters
 (
-    ECDiffieHellmanPublicKey SenderPublicKey,
-    int KeyBitLength,
-    string PartyUInfo,
-    string PartyVInfo
-) : KeyUnwrapParameters, IEcdhEsAgreement;
+    ReadOnlyMemory<byte> EncryptedKey,
+    ECParameters SenderPublicKey,
+    int KeySizeBits,
+    string? PartyUInfo,
+    string? PartyVInfo
+) : KeyUnwrapParameters(EncryptedKey), IEcdhEsAgreement;

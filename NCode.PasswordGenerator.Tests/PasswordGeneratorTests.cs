@@ -17,11 +17,7 @@
 
 #endregion
 
-using Moq;
-using NIdentity.OpenId.Cryptography.Passwords;
-using Xunit;
-
-namespace NIdentity.OpenId.Core.Tests.Cryptography.Passwords;
+namespace NCode.PasswordGenerator.Tests;
 
 public class PasswordGeneratorTests : BaseTests
 {
@@ -81,11 +77,10 @@ public class PasswordGeneratorTests : BaseTests
         DefaultOptions.ExactLength = password.Length;
 
         var characterSet = DefaultOptions.CharacterSet;
-        var characterSetLength = characterSet.Length;
 
         MockPasswordGenerator
-            .Setup(_ => _.GetRandomInt32(characterSetLength))
-            .Returns(0)
+            .Setup(_ => _.FisherYatesShuffle(characterSet))
+            .Returns(characterSet)
             .Verifiable();
 
         var skipResult = password;
@@ -110,12 +105,12 @@ public class PasswordGeneratorTests : BaseTests
         const string password = nameof(password);
 
         DefaultOptions.MaxAttempts = 10;
+
         var characterSet = DefaultOptions.CharacterSet;
-        var characterSetLength = characterSet.Length;
 
         MockPasswordGenerator
-            .Setup(_ => _.GetRandomInt32(characterSetLength))
-            .Returns(0)
+            .Setup(_ => _.FisherYatesShuffle(characterSet))
+            .Returns(characterSet)
             .Verifiable();
 
         var passwordResult = password;

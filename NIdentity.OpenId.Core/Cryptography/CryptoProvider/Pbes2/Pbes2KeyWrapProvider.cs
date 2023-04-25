@@ -133,7 +133,7 @@ public class Pbes2KeyWrapProvider : KeyWrapProvider
                 iterationCount,
                 Descriptor.HashAlgorithmName);
 
-            return AesKeyWrap.UnwrapKey(keyEncryptionKey, typedParameters.EncryptedContentKey);
+            return AesKeyWrap.UnwrapKey(keyEncryptionKey, typedParameters.EncryptedKey);
         }
         finally
         {

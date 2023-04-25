@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Buffers\NCode.Buffers.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="SecretKeyReader.Ecc.cs">
+        <DependentUpon>SecretKeyReader.cs</DependentUpon>
+      </Compile>
+      <Compile Update="SecretKeyReader.Cert.cs">
+        <DependentUpon>SecretKeyReader.cs</DependentUpon>
+      </Compile>
+      <Compile Update="SecretKeyReader.Pem.cs">
+        <DependentUpon>SecretKeyReader.cs</DependentUpon>
+      </Compile>
+      <Compile Update="SecretKeyReader.Rsa.cs">
+        <DependentUpon>SecretKeyReader.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+</Project>

@@ -19,9 +19,20 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Text;
+using NIdentity.OpenId.Logic;
 
 namespace NIdentity.OpenId.Cryptography.Binary;
+
+// TODO: move
+internal enum BinaryStringEncoding
+{
+    Ascii = 0,
+    Utf8,
+    Base64,
+    Base64Url
+}
 
 internal class KdfBinaryWriter : BinaryWriter
 {
@@ -45,8 +56,7 @@ internal class KdfBinaryWriter : BinaryWriter
       "alg" (algorithm) Header Parameter value.
      */
 
-    /// <inheritdoc />
-    public override void Write(string value)
+    public void Write(string? value, BinaryStringEncoding binaryEncoding)
     {
         if (string.IsNullOrEmpty(value))
         {
@@ -54,10 +64,60 @@ internal class KdfBinaryWriter : BinaryWriter
             return;
         }
 
-        var rented = ArrayPool<byte>.Shared.Rent(value.Length);
+        int byteCount;
+        Encoding? encoding = null;
+        switch (binaryEncoding)
+        {
+            case BinaryStringEncoding.Ascii:
+                encoding = Encoding.ASCII;
+                byteCount = encoding.GetByteCount(value);
+                break;
+
+            case BinaryStringEncoding.Utf8:
+                encoding = Encoding.UTF8;
+                byteCount = encoding.GetByteCount(value);
+                break;
+
+            case BinaryStringEncoding.Base64:
+                // TODO
+                throw new NotImplementedException();
+
+            case BinaryStringEncoding.Base64Url:
+                byteCount = Base64Url.GetByteCountForDecode(value.Length);
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(binaryEncoding), binaryEncoding, null);
+        }
+
+        var rented = ArrayPool<byte>.Shared.Rent(byteCount);
         try
         {
-            var actualByteCount = Encoding.GetBytes(value, rented);
+            var actualByteCount = 0;
+
+            // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+            switch (binaryEncoding)
+            {
+                case BinaryStringEncoding.Ascii:
+                case BinaryStringEncoding.Utf8:
+                    actualByteCount = encoding!.GetBytes(value, rented);
+                    break;
+
+                case BinaryStringEncoding.Base64:
+                {
+                    var result = Convert.TryFromBase64String(value, rented, out actualByteCount);
+                    Debug.Assert(result);
+                    break;
+                }
+
+                case BinaryStringEncoding.Base64Url:
+                {
+                    var result = Base64Url.TryDecode(value.AsSpan(), rented, out actualByteCount);
+                    Debug.Assert(result);
+                    break;
+                }
+            }
+
             Write(actualByteCount);
             Write(rented, 0, actualByteCount);
         }
@@ -66,6 +126,13 @@ internal class KdfBinaryWriter : BinaryWriter
             ArrayPool<byte>.Shared.Return(rented);
         }
     }
+
+    public void WriteBase64Url(string? value)
+        => Write(value, BinaryStringEncoding.Base64Url);
+
+    /// <inheritdoc />
+    public override void Write(string value) =>
+        Write(value, BinaryStringEncoding.Ascii);
 
     /// <inheritdoc />
     public override void Write(float value)

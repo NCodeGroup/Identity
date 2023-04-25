@@ -80,7 +80,10 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
         var typedParameters = ValidateParameters<EcdhEsKeyUnwrapWithAesKeyUnwrapParameters>(parameters);
 
         using var ourPrivateKey = EccSecretKey.CreateECDiffieHellman();
-        var keyAgreement = DeriveKey(typedParameters, ourPrivateKey, typedParameters.SenderPublicKey);
+        using var senderKey = ECDiffieHellman.Create(typedParameters.SenderPublicKey);
+        using var senderPublicKey = senderKey.PublicKey;
+
+        var keyAgreement = DeriveKey(typedParameters, ourPrivateKey, senderPublicKey);
 
         var keyByteLength = Descriptor.KeySizeBytes;
         if (keyAgreement.Length != keyByteLength)
@@ -97,7 +100,7 @@ internal class EcdhKeyWrapWithAesKeyWrapProvider : EcdhKeyWrapProvider
 
         try
         {
-            return AesKeyWrap.UnwrapKey(kek, typedParameters.EncryptedContentKey);
+            return AesKeyWrap.UnwrapKey(kek, typedParameters.EncryptedKey);
         }
         finally
         {

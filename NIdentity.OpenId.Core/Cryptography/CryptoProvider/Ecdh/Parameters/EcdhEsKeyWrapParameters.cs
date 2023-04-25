@@ -25,7 +25,27 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Ecdh.Parameters;
 public record EcdhEsKeyWrapParameters
 (
     ECDiffieHellman RecipientKey,
-    int KeyBitLength,
+    int KeySizeBits,
     string PartyUInfo,
     string PartyVInfo
 ) : KeyWrapParameters, IEcdhEsAgreement;
+
+// TODO
+
+public record EccWrapNewKeyParameters
+(
+    string PartyUInfo,
+    string PartyVInfo
+) : WrapNewKeyParameters;
+
+// Ecc
+// Wrap: output(epk(kty,x,y,d,crv)), enc/alg, apu, apv
+// Unwrap: epk(kty,x,y,crv), enc/alg, apu, apv
+
+// AesGcm
+// Wrap: output(iv, tag)
+// Unwrap: iv, tag
+
+// Pbse2
+// Wrap: alg, output(p2c, p2s)
+// Unwrap: alg, p2c, p2s

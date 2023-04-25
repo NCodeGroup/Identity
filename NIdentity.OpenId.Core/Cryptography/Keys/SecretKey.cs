@@ -58,8 +58,8 @@ public abstract class SecretKey : IDisposable
     }
 
     /// <summary>
-    /// When overridden in a derived class, releases the unmanaged resources used by the
-    /// <see cref="SecretKey"/>, and optionally releases the managed resources.
+    /// When overridden in a derived class, releases the unmanaged resources used by this instance,
+    /// and optionally releases any managed resources.
     /// </summary>
     /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
     /// to release only unmanaged resources.</param>

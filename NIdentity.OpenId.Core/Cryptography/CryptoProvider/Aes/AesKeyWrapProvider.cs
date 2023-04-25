@@ -64,14 +64,8 @@ public class AesKeyWrapProvider : KeyWrapProvider
     /// <inheritdoc />
     public override ReadOnlySequence<byte> UnwrapKey(KeyUnwrapParameters parameters)
     {
-        if (parameters is not ContentKeyUnwrapParameters typedParameters)
-        {
-            // TODO: unit tests
-            throw new InvalidOperationException();
-        }
-
         return AesKeyWrap.UnwrapKey(
             SymmetricSecretKey.KeyBytes,
-            typedParameters.EncryptedContentKey);
+            parameters.EncryptedKey);
     }
 }

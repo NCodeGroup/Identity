@@ -23,7 +23,7 @@ namespace NIdentity.OpenId.Cryptography.CryptoProvider.Pbes2.Parameters;
 
 public record Pbes2KeyUnwrapParameters
 (
-    ReadOnlyMemory<byte> EncryptedContentKey,
+    ReadOnlyMemory<byte> EncryptedKey,
     ReadOnlyMemory<byte> Salt,
     int? IterationCount = null
-) : ContentKeyUnwrapParameters(EncryptedContentKey);
+) : KeyUnwrapParameters(EncryptedKey);

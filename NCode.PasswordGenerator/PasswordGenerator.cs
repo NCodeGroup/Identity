@@ -19,10 +19,11 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 
-namespace NIdentity.OpenId.Cryptography.Passwords;
+namespace NCode.PasswordGenerator;
 
 /// <summary>
 /// Provides the ability to generate random passwords.
@@ -39,11 +40,31 @@ public interface IPasswordGenerator : IEnumerable<string>
     string Generate();
 
     /// <summary>
+    /// Generates a random password using the rules from the specified <paramref name="optionsConfigurator"/>.
+    /// </summary>
+    /// <param name="optionsConfigurator">A callback method that is invoked to configure the <see cref="PasswordGeneratorOptions"/>.</param>
+    /// <returns>The newly generated random password.</returns>
+    string Generate(Action<PasswordGeneratorOptions> optionsConfigurator);
+
+    /// <summary>
     /// Generates a random password using the rules from the specified <paramref name="options"/>.
     /// </summary>
     /// <param name="options">The <see cref="PasswordGeneratorOptions"/> that defines the rules for generating passwords.</param>
     /// <returns>The newly generated random password.</returns>
     string Generate(PasswordGeneratorOptions options);
+
+    /// <summary>
+    /// Generates a random password using the default options.
+    /// </summary>
+    /// <param name="password">The destination buffer for the newly generated password.</param>
+    void Generate(Span<char> password);
+
+    /// <summary>
+    /// Generates a random password using the rules from the specified <paramref name="optionsConfigurator"/>.
+    /// </summary>
+    /// <param name="optionsConfigurator">A callback method that is invoked to configure the <see cref="PasswordGeneratorOptions"/>.</param>
+    /// <param name="password">The destination buffer for the newly generated password.</param>
+    void Generate(Action<PasswordGeneratorOptions> optionsConfigurator, Span<char> password);
 
     /// <summary>
     /// Generates a random password using the rules from the specified <paramref name="options"/>.
@@ -54,10 +75,15 @@ public interface IPasswordGenerator : IEnumerable<string>
 }
 
 /// <summary>
-/// Provides the default implementation for <see cref="IPasswordGenerator"/>.
+/// Provides a default implementation of the <see cref="IPasswordGenerator"/> interface.
 /// </summary>
 public class PasswordGenerator : IPasswordGenerator
 {
+    /// <summary>
+    /// Gets a singleton instance for <see cref="IPasswordGenerator"/>.
+    /// </summary>
+    public static IPasswordGenerator Default { get; } = new PasswordGenerator();
+
     private PasswordGeneratorOptions DefaultOptions { get; }
 
     /// <summary>
@@ -70,7 +96,7 @@ public class PasswordGenerator : IPasswordGenerator
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PasswordGenerator"/> class.
+    /// Initializes a new instance of the <see cref="PasswordGenerator"/> class with the specified options.
     /// </summary>
     /// <param name="options">The <see cref="PasswordGeneratorOptions"/> that defines the rules for generating passwords.</param>
     public PasswordGenerator(PasswordGeneratorOptions options)
@@ -79,7 +105,7 @@ public class PasswordGenerator : IPasswordGenerator
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PasswordGenerator"/> class.
+    /// Initializes a new instance of the <see cref="PasswordGenerator"/> class with the specified options.
     /// </summary>
     /// <param name="optionsAccessor">An accessor for the <see cref="PasswordGeneratorOptions"/> that defines the rules for generating passwords.</param>
     public PasswordGenerator(IOptions<PasswordGeneratorOptions> optionsAccessor)
@@ -88,49 +114,73 @@ public class PasswordGenerator : IPasswordGenerator
         // nothing
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal virtual int GetRandomInt32(int toExclusive) =>
         RandomNumberGenerator.GetInt32(toExclusive);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal virtual int GetRandomInt32(int fromInclusive, int toExclusive) =>
         RandomNumberGenerator.GetInt32(fromInclusive, toExclusive);
+
+    private PasswordGeneratorOptions Configure(Action<PasswordGeneratorOptions> optionsConfigurator)
+    {
+        var options = DefaultOptions.Clone();
+        optionsConfigurator(options);
+        return options;
+    }
 
     /// <inheritdoc />
     public string Generate() =>
         Generate(DefaultOptions);
 
     /// <inheritdoc />
-    public virtual string Generate(PasswordGeneratorOptions options)
-    {
-        var length = GetLength(options);
-        var password = new char[length];
+    public string Generate(Action<PasswordGeneratorOptions> optionsConfigurator) =>
+        Generate(Configure(optionsConfigurator));
 
-        Generate(options, password);
+    /// <inheritdoc />
+    public virtual string Generate(PasswordGeneratorOptions options) =>
+        string.Create(GetLength(options), options, (span, localOptions) => Generate(localOptions, span));
 
-        return new string(password);
-    }
+    /// <inheritdoc />
+    public void Generate(Span<char> password) =>
+        Generate(DefaultOptions, password);
+
+    /// <inheritdoc />
+    public void Generate(Action<PasswordGeneratorOptions> optionsConfigurator, Span<char> password) =>
+        Generate(Configure(optionsConfigurator), password);
 
     /// <inheritdoc />
     public void Generate(PasswordGeneratorOptions options, Span<char> password)
     {
         if (password.Length < options.MinLength)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The requested password length is too small.");
 
         if (password.Length > options.MaxLength)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The requested password length is too large.");
 
         var maxAttempts = options.MaxAttempts;
-        var characterSetOriginal = options.CharacterSet;
-        var characterSetLength = characterSetOriginal.Length;
-        var characterSetShuffled = new string(characterSetOriginal.OrderBy(_ => GetRandomInt32(characterSetLength)).ToArray());
+        var characterSet = FisherYatesShuffle(options.CharacterSet);
 
         for (var attempt = 0; attempt < maxAttempts; ++attempt)
         {
-            GenerateCore(options, characterSetShuffled, password);
+            GenerateCore(options, characterSet, password);
             if (IsValid(options, password)) return;
         }
 
         throw new InvalidOperationException("Too many attempts.");
     }
+
+    internal virtual string FisherYatesShuffle(string value) =>
+        string.Create(value.Length, value, (dst, src) =>
+        {
+            src.AsSpan().CopyTo(dst);
+            for (var i = 0; i < dst.Length - 1; ++i)
+            {
+                var j = GetRandomInt32(i, dst.Length);
+                if (i == j) continue;
+                (dst[i], dst[j]) = (dst[j], dst[i]);
+            }
+        });
 
     internal int GetLength(PasswordGeneratorOptions options) =>
         options.MinLength == options.MaxLength ?
@@ -138,16 +188,19 @@ public class PasswordGenerator : IPasswordGenerator
             GetRandomInt32(options.MinLength, options.MaxLength + 1);
 
     // for unit tests
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal virtual bool SkipIsValid([NotNullWhen(true)] out bool? result)
     {
         result = null;
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsValid(PasswordGeneratorOptions options, ReadOnlySpan<char> password) =>
         SkipIsValid(out var result) ? result.Value : options.IsValid(password);
 
     // for unit tests
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal virtual bool SkipGenerateCore([NotNullWhen(true)] out string? result)
     {
         result = null;
@@ -158,7 +211,7 @@ public class PasswordGenerator : IPasswordGenerator
     {
         if (SkipGenerateCore(out var result))
         {
-            result.CopyTo(password);
+            result.AsSpan().CopyTo(password);
             return;
         }
 

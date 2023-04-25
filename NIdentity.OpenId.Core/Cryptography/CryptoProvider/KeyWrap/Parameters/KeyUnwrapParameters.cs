@@ -20,7 +20,18 @@
 namespace NIdentity.OpenId.Cryptography.CryptoProvider.KeyWrap.Parameters;
 
 /// <summary>
-/// Represents the parameters for all cryptographic key wrap operations.
+/// Represents the parameters for all cryptographic key wrap operations using an encrypted <c>content encryption key (CEK)</c>.
 /// Derived classes will contain the actual algorithm specific arguments.
 /// </summary>
-public record KeyUnwrapParameters;
+public abstract record KeyUnwrapParameters
+(
+    ReadOnlyMemory<byte> EncryptedKey
+);
+
+// TODO
+
+/// <summary>
+/// Represents the parameters for all cryptographic key unwrap operations.
+/// Derived classes will contain the actual algorithm specific arguments.
+/// </summary>
+public abstract record UnwrapKeyParameters;

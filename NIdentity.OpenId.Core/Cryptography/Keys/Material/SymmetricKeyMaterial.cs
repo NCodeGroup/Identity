@@ -40,11 +40,19 @@ public class SymmetricKeyMaterial : KeyMaterial
     /// <summary>
     /// Initializes a new instance of the <see cref="SymmetricKeyMaterial"/> class with the specified key material.
     /// </summary>
-    /// <param name="memoryOwner">An <see cref="IMemoryOwner{T}"/> that contains a byte array for the key material.
-    /// This class will take ownership of the memory.</param>
-    public SymmetricKeyMaterial(IMemoryOwner<byte> memoryOwner)
+    /// <param name="keyBytes">The cryptographic material for the secret key.</param>
+    public SymmetricKeyMaterial(ReadOnlySpan<byte> keyBytes)
     {
-        MemoryOwner = memoryOwner;
+        MemoryOwner = new HeapMemoryManager(keyBytes.Length);
+        try
+        {
+            keyBytes.CopyTo(MemoryOwner.Memory.Span);
+        }
+        catch
+        {
+            MemoryOwner.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc />

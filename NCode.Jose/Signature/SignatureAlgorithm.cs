@@ -58,16 +58,7 @@ public interface ISignatureAlgorithm : IAlgorithm
 public abstract class SignatureAlgorithm : Algorithm, ISignatureAlgorithm
 {
     /// <inheritdoc />
-    public AlgorithmType Type => AlgorithmType.DigitalSignature;
-
-    /// <inheritdoc />
-    public abstract string Code { get; }
-
-    /// <inheritdoc />
-    public abstract Type SecretKeyType { get; }
-
-    /// <inheritdoc />
-    public abstract IEnumerable<KeySizes> KekBitSizes { get; }
+    public override AlgorithmType Type => AlgorithmType.DigitalSignature;
 
     /// <inheritdoc />
     public abstract int SignatureSizeBits { get; }
@@ -92,6 +83,6 @@ public abstract class SignatureAlgorithm : Algorithm, ISignatureAlgorithm
             GC.AllocateUninitializedArray<byte>(byteCount, pinned: false);
 
         return TrySign(secretKey, input, expected, out _) &&
-            CryptographicOperations.FixedTimeEquals(expected, signature);
+               CryptographicOperations.FixedTimeEquals(expected, signature);
     }
 }

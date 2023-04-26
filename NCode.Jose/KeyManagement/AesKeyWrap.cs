@@ -31,6 +31,11 @@ namespace NCode.Jose.KeyManagement;
 public interface IAesKeyWrap
 {
     /// <summary>
+    /// Gets a collection of <see cref="KeySizes"/> that describe the valid sizes, in bytes, of the content encryption key (CEK).
+    /// </summary>
+    IEnumerable<KeySizes> LegalCekByteSizes { get; }
+
+    /// <summary>
     /// Gets the size, in bytes, of the resulting ciphertext for <see cref="TryWrapKey"/>.
     /// </summary>
     /// <param name="contentKeySizeBytes">The size, in bytes, of the key encryption key (KEK).</param>
@@ -43,6 +48,8 @@ public interface IAesKeyWrap
     /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
     /// <param name="contentKey">Contains the content encryption key (CEK) that is to be encrypted.</param>
     /// <param name="encryptedContentKey">Destination for result of encrypting the content key.</param>
+    /// <param name="bytesWritten">The number of bytes written to <paramref name="encryptedContentKey"/>.</param>
+    /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> was large enough to receive the encrypted data; otherwise, <c>false</c>.</returns>
     bool TryWrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> contentKey,
@@ -61,8 +68,9 @@ public interface IAesKeyWrap
     /// </summary>
     /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
     /// <param name="encryptedContentKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
-    /// <returns>The result of decrypting the encrypted key data.</returns>
     /// <param name="contentKey">Destination for result of decrypting the encrypted content key.</param>
+    /// <param name="bytesWritten">The number of bytes written to <paramref name="contentKey"/>.</param>
+    /// <returns><c>true</c> if <paramref name="contentKey"/> was large enough to receive the decrypted data; otherwise, <c>false</c>.</returns>
     bool TryUnwrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
@@ -90,10 +98,18 @@ public class AesKeyWrap : IAesKeyWrap
     private const int IntermediateBitCount = ChunkBitCount << 1; // i.e. 128
     private const int IntermediateByteCount = IntermediateBitCount >> 3;
 
+    private static IEnumerable<KeySizes> StaticLegalCekByteSizes { get; } = new[]
+    {
+        new KeySizes(minSize: IntermediateByteCount, maxSize: int.MaxValue, skipSize: ChunkByteCount)
+    };
+
     // 0xA6A6A6A6A6A6A6A6
     // ReSharper disable once InconsistentNaming
     private static ReadOnlySpan<byte> DefaultIV =>
         new byte[] { 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6 };
+
+    /// <inheritdoc />
+    public IEnumerable<KeySizes> LegalCekByteSizes => StaticLegalCekByteSizes;
 
     /// <inheritdoc />
     public int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes) =>

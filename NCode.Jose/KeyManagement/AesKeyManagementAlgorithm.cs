@@ -53,6 +53,10 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     /// <inheritdoc />
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
+        AesKeyWrap.LegalCekByteSizes;
+
+    /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(
         int kekSizeBits,
         int cekSizeBytes) =>
@@ -66,7 +70,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey, KekBitSizes);
+        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
         return AesKeyWrap.TryWrapKey(
             validatedSecretKey.KeyBytes,
@@ -83,7 +87,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey, KekBitSizes);
+        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
         return AesKeyWrap.TryUnwrapKey(
             validatedSecretKey.KeyBytes,

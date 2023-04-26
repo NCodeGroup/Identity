@@ -67,7 +67,7 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
     {
-        var validatedSecurityKey = ValidateSecretKey<SymmetricSecretKey>(secretKey, KekBitSizes);
+        var validatedSecurityKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
         return KeyedHashFunction(validatedSecurityKey.KeyBytes, input, signature, out bytesWritten);
     }

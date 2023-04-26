@@ -96,16 +96,10 @@ public interface IAuthenticatedEncryptionAlgorithm : IAlgorithm
 public abstract class AuthenticatedEncryptionAlgorithm : Algorithm, IAuthenticatedEncryptionAlgorithm
 {
     /// <inheritdoc />
-    public AlgorithmType Type => AlgorithmType.AuthenticatedEncryption;
+    public override AlgorithmType Type => AlgorithmType.AuthenticatedEncryption;
 
     /// <inheritdoc />
-    public abstract string Code { get; }
-
-    /// <inheritdoc />
-    public Type SecretKeyType => typeof(SymmetricSecretKey);
-
-    /// <inheritdoc />
-    public abstract IEnumerable<KeySizes> KekBitSizes { get; }
+    public override Type SecretKeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
     public abstract KeySizes NonceByteSizes { get; }
@@ -157,7 +151,7 @@ public abstract class AuthenticatedEncryptionAlgorithm : Algorithm, IAuthenticat
         ReadOnlySpan<byte> cipherText,
         ReadOnlySpan<byte> authenticationTag)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey, KekBitSizes);
+        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
         if (!KeySizesUtility.IsLegalSize(NonceByteSizes, nonce.Length))
             throw new ArgumentException("The specified nonce does not have a valid size for this cryptographic algorithm.", nameof(nonce));

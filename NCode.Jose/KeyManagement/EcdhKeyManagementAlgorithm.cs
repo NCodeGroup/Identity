@@ -43,6 +43,11 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         new(minSize: 521, maxSize: 521, skipSize: 0)
     };
 
+    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } = new[]
+    {
+        new KeySizes(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
+    };
+
     /// <inheritdoc />
     public override string Code { get; }
 
@@ -162,11 +167,14 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
         algorithm = localAlgorithm;
 
-        TryGetHeader<string>(header, "apu", out apu);
-        TryGetHeader<string>(header, "apv", out apv);
+        TryGetHeader(header, "apu", out apu);
+        TryGetHeader(header, "apv", out apv);
 
         return ECDiffieHellman.Create(parameters);
     }
+
+    /// <inheritdoc />
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(
@@ -179,7 +187,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         IDictionary<string, object> header,
         Span<byte> contentKey)
     {
-        var validatedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey, KekBitSizes);
+        var validatedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
 
         var curve = validatedSecretKey.GetECCurve();
         var curveSizeBits = validatedSecretKey.KeySizeBits;
@@ -226,7 +234,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
                 nameof(encryptedContentKey));
         }
 
-        var validatedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey, KekBitSizes);
+        var validatedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
 
         var curve = validatedSecretKey.GetECCurve();
         var curveSizeBits = validatedSecretKey.KeySizeBits;

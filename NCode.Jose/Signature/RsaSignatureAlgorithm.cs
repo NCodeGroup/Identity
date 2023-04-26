@@ -70,7 +70,7 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
     {
-        var validatedSecurityKey = ValidateSecretKey<RsaSecretKey>(secretKey, KekBitSizes);
+        var validatedSecurityKey = ValidateSecretKey<RsaSecretKey>(secretKey);
 
         using var key = validatedSecurityKey.ExportRSA();
 
@@ -85,7 +85,7 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
     {
-        var validatedSecurityKey = ValidateSecretKey<RsaSecretKey>(secretKey, KekBitSizes);
+        var validatedSecurityKey = ValidateSecretKey<RsaSecretKey>(secretKey);
 
         using var key = validatedSecurityKey.ExportRSA();
 

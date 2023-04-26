@@ -51,8 +51,20 @@ public interface IAlgorithm
 /// <summary>
 /// Base implementation for all <c>JOSE</c> cryptographic algorithms.
 /// </summary>
-public abstract class Algorithm
+public abstract class Algorithm : IAlgorithm
 {
+    /// <inheritdoc />
+    public abstract AlgorithmType Type { get; }
+
+    /// <inheritdoc />
+    public abstract string Code { get; }
+
+    /// <inheritdoc />
+    public abstract Type SecretKeyType { get; }
+
+    /// <inheritdoc />
+    public abstract IEnumerable<KeySizes> KekBitSizes { get; }
+
     /// <summary>
     /// Gets the hash size, in bits, from the specified <see cref="HashAlgorithmName"/>.
     /// </summary>
@@ -71,30 +83,28 @@ public abstract class Algorithm
     }
 
     /// <summary>
-    /// Validates that the specified <paramref name="secretKey"/> is an instance of <typeparamref name="T"/> and optionally
-    /// verifies the key size.
+    /// Validates that the specified <paramref name="secretKey"/> is an instance of <typeparamref name="T"/>
+    /// and verifies the key size.
     /// </summary>
     /// <param name="secretKey">The <see cref="SecretKey"/> to validate.</param>
-    /// <param name="legalBitSizes">An optional argument to validate the size of the <see cref="SecretKey"/>.</param>
     /// <typeparam name="T">The expected type.</typeparam>
     /// <returns><paramref name="secretKey"/> casted to <typeparamref name="T"/>.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="secretKey"/> is not a type of <typeparamref name="T"/>
     /// or when the key size was invalid.</exception>
-    protected static T ValidateSecretKey<T>(SecretKey secretKey, IEnumerable<KeySizes>? legalBitSizes = null)
+    protected T ValidateSecretKey<T>(SecretKey secretKey)
         where T : SecretKey
     {
         if (secretKey is not T typedSecretKey)
         {
             throw new ArgumentException(
-                $"The security key was expected to be a type of {typeof(T).FullName}, but {secretKey.GetType().FullName} was given instead.",
+                $"The security key (KEK) was expected to be a type of {typeof(T).FullName}, but {secretKey.GetType().FullName} was given instead.",
                 nameof(secretKey));
         }
 
-        var isLegalSize = legalBitSizes == null || KeySizesUtility.IsLegalSize(legalBitSizes, secretKey.KeySizeBits);
-        if (!isLegalSize)
+        if (!KeySizesUtility.IsLegalSize(KekBitSizes, secretKey.KeySizeBits))
         {
             throw new ArgumentException(
-                "The specified secret key does not have a valid size for this cryptographic algorithm.",
+                "The specified secret key (KEK) does not have a valid size for this cryptographic algorithm.",
                 nameof(secretKey));
         }
 

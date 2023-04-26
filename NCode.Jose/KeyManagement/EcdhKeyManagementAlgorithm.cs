@@ -56,7 +56,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EcdhKeyManagementAlgorithm"/> class
-    /// for usage in direct key agreement.
+    /// for usage in direct key agreement mode.
     /// </summary>
     public EcdhKeyManagementAlgorithm()
     {
@@ -66,7 +66,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EcdhKeyManagementAlgorithm"/> class
-    /// for usage in key wrap agreement.
+    /// for usage in key agreement with key wrapping mode.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     protected EcdhKeyManagementAlgorithm(string code)
@@ -208,7 +208,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        throw new NotSupportedException("The ECDH-ES key management algorithm does not support using an existing CEK.");
+        throw new NotSupportedException("The 'ECDH-ES' key management algorithm does not support using an existing CEK.");
     }
 
     /// <inheritdoc />

@@ -21,6 +21,9 @@ using NCode.Cryptography.Keys;
 
 namespace NCode.Jose.KeyManagement;
 
+/// <summary>
+/// Provides various extensions methods for the <see cref="IKeyManagementAlgorithm"/> interface.
+/// </summary>
 public static class KeyManagementAlgorithmExtensions
 {
     public static bool TryWrapNewKey(

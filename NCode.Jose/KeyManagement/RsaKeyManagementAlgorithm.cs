@@ -22,6 +22,9 @@ using NCode.Cryptography.Keys;
 
 namespace NCode.Jose.KeyManagement;
 
+/// <summary>
+/// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>RSA</c> cryptographic algorithm for key management.
+/// </summary>
 public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new[]
@@ -40,10 +43,40 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
 
     private RSAEncryptionPadding Padding { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RsaKeyManagementAlgorithm"/> class.
+    /// </summary>
+    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+    /// <param name="padding">Contains a <see cref="RSAEncryptionPadding"/> value that describes the type of RSA padding to use.</param>
     public RsaKeyManagementAlgorithm(string code, RSAEncryptionPadding padding)
     {
         Code = code;
         Padding = padding;
+    }
+
+    /// <inheritdoc />
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits)
+    {
+        const int octetSize = 1;
+
+        if (Padding.Mode == RSAEncryptionPaddingMode.Oaep)
+        {
+            // https://crypto.stackexchange.com/a/42100
+            // ceil(kLenBits/8) - 2*ceil(hLenBits/8) - 2
+            var hLenBits = HashSizeBitsFromAlgorithmName(Padding.OaepHashAlgorithm);
+            var maxSize = ((kekSizeBits + 7) >> 3) - (((hLenBits + 7) >> 3) << 1) - 2;
+            return new[] { new KeySizes(minSize: octetSize, maxSize, skipSize: octetSize) };
+        }
+
+        // ReSharper disable once InvertIf
+        if (Padding == RSAEncryptionPadding.Pkcs1)
+        {
+            // ceil(kLenBits/8) - Pkcs1Overhead
+            var maxSize = ((kekSizeBits + 7) >> 3) - 11;
+            return new[] { new KeySizes(minSize: octetSize, maxSize, skipSize: octetSize) };
+        }
+
+        throw new InvalidOperationException();
     }
 
     /// <inheritdoc />
@@ -65,7 +98,7 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
             return false;
         }
 
-        var validatedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey, KekBitSizes);
+        var validatedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey);
 
         using var key = validatedSecretKey.ExportRSA();
 
@@ -80,7 +113,7 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey, KekBitSizes);
+        var validatedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey);
 
         using var key = validatedSecretKey.ExportRSA();
 

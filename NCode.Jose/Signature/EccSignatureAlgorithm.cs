@@ -61,7 +61,7 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
     {
-        var validatedSecurityKey = ValidateSecretKey<EccSecretKey>(secretKey, KekBitSizes);
+        var validatedSecurityKey = ValidateSecretKey<EccSecretKey>(secretKey);
 
         using var key = validatedSecurityKey.ExportECDsa();
 
@@ -71,7 +71,7 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
     {
-        var validatedSecurityKey = ValidateSecretKey<EccSecretKey>(secretKey, KekBitSizes);
+        var validatedSecurityKey = ValidateSecretKey<EccSecretKey>(secretKey);
 
         using var key = validatedSecurityKey.ExportECDsa();
 

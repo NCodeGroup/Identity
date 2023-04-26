@@ -22,11 +22,19 @@ using NCode.Cryptography.Keys;
 
 namespace NCode.Jose.KeyManagement;
 
+/// <summary>
+/// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>key encryption key (KEK)</c> directly for key management.
+/// </summary>
 public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new[]
     {
         new KeySizes(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
+    };
+
+    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } = new[]
+    {
+        new KeySizes(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
     };
 
     /// <inheritdoc />
@@ -37,6 +45,9 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KekBitSizes => StaticKekBitSizes;
+
+    /// <inheritdoc />
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(
@@ -67,7 +78,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        throw new NotSupportedException("The 'none' key management algorithm does not support using an existing CEK.");
+        throw new NotSupportedException("The 'dir' key management algorithm does not support using an existing CEK.");
     }
 
     /// <inheritdoc />

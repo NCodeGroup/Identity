@@ -34,6 +34,15 @@ public class RsaSecretKey : AsymmetricSecretKey
     public const string Oid = "1.2.840.113549.1.1.1";
 
     /// <summary>
+    /// Factory method to create an <see cref="RsaSecretKey"/> from an <see cref="RSA"/> instance.
+    /// </summary>
+    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <param name="key">An <see cref="RSA"/> that contains the RSA key material.</param>
+    /// <returns>The newly created <see cref="RsaSecretKey"/> instance.</returns>
+    public static RsaSecretKey Create(string keyId, RSA key) =>
+        SecretKeyFactory.Create(key, bytes => new RsaSecretKey(keyId, key.KeySize, bytes));
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="RsaSecretKey"/> class with the specified <c>PKCS#8</c> key material
     /// and optional certificate.
     /// </summary>

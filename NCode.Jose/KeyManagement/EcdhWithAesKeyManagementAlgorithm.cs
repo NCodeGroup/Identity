@@ -31,6 +31,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
     private IAesKeyWrap AesKeyWrap { get; }
     private int CekSizeBytes { get; }
     private int EncryptedCekSizeBytes { get; }
+    private IEnumerable<KeySizes> CekByteSizes { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EcdhWithAesKeyManagementAlgorithm"/> class.
@@ -44,6 +45,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         AesKeyWrap = aesKeyWrap;
         CekSizeBytes = (cekSizeBits + 7) >> 3;
         EncryptedCekSizeBytes = aesKeyWrap.GetEncryptedContentKeySizeBytes(CekSizeBytes);
+        CekByteSizes = new[] { new KeySizes(minSize: CekSizeBytes, maxSize: CekSizeBytes, skipSize: 0) };
     }
 
     private void ValidateContentKeySize(ReadOnlySpan<byte> contentKey)
@@ -55,6 +57,9 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
                 nameof(contentKey));
         }
     }
+
+    /// <inheritdoc />
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => CekByteSizes;
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(

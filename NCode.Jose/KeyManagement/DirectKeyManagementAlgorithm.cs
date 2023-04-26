@@ -30,18 +30,13 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     };
 
     /// <inheritdoc />
-    public override string Code { get; }
+    public override string Code => "dir";
 
     /// <inheritdoc />
     public override Type SecretKeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KekBitSizes => StaticKekBitSizes;
-
-    public DirectKeyManagementAlgorithm(string code)
-    {
-        Code = code;
-    }
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(

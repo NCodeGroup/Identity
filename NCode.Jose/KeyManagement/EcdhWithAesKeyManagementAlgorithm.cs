@@ -42,7 +42,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         : base(code)
     {
         AesKeyWrap = aesKeyWrap;
-        CekSizeBytes = cekSizeBits >> 3;
+        CekSizeBytes = (cekSizeBits + 7) >> 3;
         EncryptedCekSizeBytes = aesKeyWrap.GetEncryptedContentKeySizeBytes(CekSizeBytes);
     }
 
@@ -58,7 +58,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBytes,
+        int kekSizeBits,
         int cekSizeBytes) =>
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 

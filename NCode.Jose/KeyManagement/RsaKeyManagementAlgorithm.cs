@@ -48,8 +48,8 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBytes,
-        int cekSizeBytes) => kekSizeBytes;
+        int kekSizeBits,
+        int cekSizeBytes) => (kekSizeBits + 7) >> 3;
 
     /// <inheritdoc />
     public override bool TryWrapKey(

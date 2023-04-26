@@ -170,7 +170,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBytes,
+        int kekSizeBits,
         int cekSizeBytes) => 0;
 
     /// <inheritdoc />

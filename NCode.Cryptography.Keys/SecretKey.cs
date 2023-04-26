@@ -37,7 +37,7 @@ public abstract class SecretKey : IDisposable
     /// <summary>
     /// Gets the size, in bytes, of the key material.
     /// </summary>
-    public virtual int KeySizeBytes => KeySizeBits >> 3;
+    public virtual int KeySizeBytes => (KeySizeBits + 7) >> 3;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SecretKey"/> class with the specified <c>Key ID (KID)</c>.

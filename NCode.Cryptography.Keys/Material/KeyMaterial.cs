@@ -32,7 +32,7 @@ public abstract class KeyMaterial : IDisposable
     /// <summary>
     /// Gets the size of the key material in bytes.
     /// </summary>
-    public virtual int KeySizeBytes => KeySizeBits >> 3;
+    public virtual int KeySizeBytes => (KeySizeBits + 7) >> 3;
 
     /// <inheritdoc />
     public void Dispose()

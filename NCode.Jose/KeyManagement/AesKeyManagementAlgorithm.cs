@@ -54,7 +54,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBytes,
+        int kekSizeBits,
         int cekSizeBytes) =>
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 

@@ -78,6 +78,8 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
+        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+
         if (encryptedContentKey.Length != 0)
         {
             throw new ArgumentException(
@@ -90,8 +92,6 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
             bytesWritten = 0;
             return false;
         }
-
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
         var result = validatedSecretKey.KeyBytes.TryCopyTo(contentKey);
         bytesWritten = result ? secretKey.KeySizeBytes : 0;

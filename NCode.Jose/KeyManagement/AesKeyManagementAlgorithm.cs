@@ -53,30 +53,42 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes) =>
-        AesKeyWrap.GetEncryptedContentKeySizeBytes(contentKeySizeBytes);
+    public override int GetEncryptedContentKeySizeBytes(
+        int kekSizeBytes,
+        int cekSizeBytes) =>
+        AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />
-    public override void WrapKey(
+    public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey)
+        Span<byte> encryptedContentKey,
+        out int bytesWritten)
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey, KekBitSizes);
 
-        AesKeyWrap.WrapKey(validatedSecretKey.KeyBytes, contentKey, encryptedContentKey);
+        return AesKeyWrap.TryWrapKey(
+            validatedSecretKey.KeyBytes,
+            contentKey,
+            encryptedContentKey,
+            out bytesWritten);
     }
 
     /// <inheritdoc />
-    public override void UnwrapKey(
+    public override bool TryUnwrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey)
+        Span<byte> contentKey,
+        out int bytesWritten)
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey, KekBitSizes);
 
-        AesKeyWrap.UnwrapKey(validatedSecretKey.KeyBytes, encryptedContentKey, contentKey);
+        return AesKeyWrap.TryUnwrapKey(
+            validatedSecretKey.KeyBytes,
+            encryptedContentKey,
+            contentKey,
+            out bytesWritten);
     }
 }

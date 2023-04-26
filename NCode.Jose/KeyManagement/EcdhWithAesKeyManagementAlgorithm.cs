@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using NCode.Cryptography.Keys;
 
@@ -55,21 +56,11 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         }
     }
 
-    private void ValidateKeySizes(ReadOnlySpan<byte> contentKey, ReadOnlySpan<byte> encryptedContentKey)
-    {
-        ValidateContentKeySize(contentKey);
-
-        if (encryptedContentKey.Length != EncryptedCekSizeBytes)
-        {
-            throw new ArgumentException(
-                "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
-                nameof(encryptedContentKey));
-        }
-    }
-
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes) =>
-        AesKeyWrap.GetEncryptedContentKeySizeBytes(contentKeySizeBytes);
+    public override int GetEncryptedContentKeySizeBytes(
+        int kekSizeBytes,
+        int cekSizeBytes) =>
+        AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />
     public override void NewKey(
@@ -83,13 +74,20 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override void WrapKey(
+    public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey)
+        Span<byte> encryptedContentKey,
+        out int bytesWritten)
     {
-        ValidateKeySizes(contentKey, encryptedContentKey);
+        ValidateContentKeySize(contentKey);
+
+        if (encryptedContentKey.Length < EncryptedCekSizeBytes)
+        {
+            bytesWritten = 0;
+            return false;
+        }
 
         var keyLength = contentKey.Length;
         var newKek = keyLength <= JoseConstants.MaxStackAlloc ?
@@ -100,7 +98,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         {
             base.NewKey(secretKey, header, newKek);
 
-            AesKeyWrap.WrapKey(newKek, contentKey, encryptedContentKey);
+            return AesKeyWrap.TryWrapKey(newKek, contentKey, encryptedContentKey, out bytesWritten);
         }
         finally
         {
@@ -109,13 +107,18 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override void UnwrapKey(
+    public override bool TryUnwrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey)
+        Span<byte> contentKey,
+        out int bytesWritten)
     {
-        ValidateKeySizes(contentKey, encryptedContentKey);
+        if (contentKey.Length < CekSizeBytes)
+        {
+            bytesWritten = 0;
+            return false;
+        }
 
         var keyLength = contentKey.Length;
         var newKek = keyLength <= JoseConstants.MaxStackAlloc ?
@@ -124,9 +127,10 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
 
         try
         {
-            base.UnwrapKey(secretKey, header, Array.Empty<byte>(), newKek);
+            var result = base.TryUnwrapKey(secretKey, header, Array.Empty<byte>(), newKek, out var newKekBytesWritten);
+            Debug.Assert(result && newKekBytesWritten == keyLength);
 
-            AesKeyWrap.UnwrapKey(newKek, encryptedContentKey, contentKey);
+            return AesKeyWrap.TryUnwrapKey(newKek, encryptedContentKey, contentKey, out bytesWritten);
         }
         finally
         {

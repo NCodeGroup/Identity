@@ -30,12 +30,12 @@ public abstract class SecretKey : IDisposable
     public string KeyId { get; }
 
     /// <summary>
-    /// Gets the size of the key material in bits.
+    /// Gets the size, in bits, of the key material.
     /// </summary>
     public abstract int KeySizeBits { get; }
 
     /// <summary>
-    /// Gets the size of the key material in bytes.
+    /// Gets the size, in bytes, of the key material.
     /// </summary>
     public virtual int KeySizeBytes => KeySizeBits >> 3;
 

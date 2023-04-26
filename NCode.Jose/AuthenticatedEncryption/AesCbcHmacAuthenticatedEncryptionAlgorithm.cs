@@ -63,7 +63,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
     {
         Code = code;
         KeyedHashFunction = keyedHashFunction;
-        KeySizeBytes = kekSizeBits >> 3;
+        KeySizeBytes = (kekSizeBits + 7) >> 3;
         ComponentSizeBytes = KeySizeBytes >> 1; // half of the key size
 
         KekBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };

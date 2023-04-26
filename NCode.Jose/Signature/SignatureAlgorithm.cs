@@ -73,9 +73,9 @@ public abstract class SignatureAlgorithm : Algorithm, ISignatureAlgorithm
     public abstract int SignatureSizeBits { get; }
 
     /// <summary>
-    /// Gets the number of bytes for the digital signature.
+    /// Gets the size, in bytes, of the digital signature.
     /// </summary>
-    public virtual int SignatureSizeBytes => SignatureSizeBits >> 3;
+    public virtual int SignatureSizeBytes => (SignatureSizeBits + 7) >> 3;
 
     /// <inheritdoc />
     public abstract bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten);
@@ -92,6 +92,6 @@ public abstract class SignatureAlgorithm : Algorithm, ISignatureAlgorithm
             GC.AllocateUninitializedArray<byte>(byteCount, pinned: false);
 
         return TrySign(secretKey, input, expected, out _) &&
-               CryptographicOperations.FixedTimeEquals(expected, signature);
+            CryptographicOperations.FixedTimeEquals(expected, signature);
     }
 }

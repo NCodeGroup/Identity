@@ -91,10 +91,12 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         };
 
         var cek2 = new byte[keySizeBytes];
-        algorithm.UnwrapKey(secretKey2, header2, Array.Empty<byte>(), cek2);
+        var result = algorithm.TryUnwrapKey(secretKey2, header2, Array.Empty<byte>(), cek2, out var bytesWritten);
 
         // assert
 
+        Assert.True(result);
+        Assert.Equal(keySizeBytes, bytesWritten);
         Assert.Equal(Convert.ToBase64String(cek1), Convert.ToBase64String(cek2));
     }
 }

@@ -29,7 +29,7 @@ namespace NCode.Jose.KeyManagement;
 public interface IKeyManagementAlgorithm : IAlgorithm
 {
     int GetEncryptedContentKeySizeBytes(
-        int kekSizeBytes,
+        int kekSizeBits,
         int cekSizeBytes);
 
     void NewKey(
@@ -71,7 +71,7 @@ public abstract class KeyManagementAlgorithm : Algorithm, IKeyManagementAlgorith
 
     /// <inheritdoc />
     public abstract int GetEncryptedContentKeySizeBytes(
-        int kekSizeBytes,
+        int kekSizeBits,
         int cekSizeBytes);
 
     /// <inheritdoc />

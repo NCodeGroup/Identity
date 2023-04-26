@@ -32,6 +32,12 @@ public static class KeyManagementAlgorithmExtensions
         out int bytesWritten)
     {
         algorithm.NewKey(secretKey, header, contentKey);
-        return algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out bytesWritten);
+
+        return algorithm.TryWrapKey(
+            secretKey,
+            header,
+            contentKey,
+            encryptedContentKey,
+            out bytesWritten);
     }
 }

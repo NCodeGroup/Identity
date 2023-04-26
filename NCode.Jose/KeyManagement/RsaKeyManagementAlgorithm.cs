@@ -47,38 +47,43 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes)
-    {
-        throw new NotImplementedException();
-    }
+    public override int GetEncryptedContentKeySizeBytes(
+        int kekSizeBytes,
+        int cekSizeBytes) => kekSizeBytes;
 
     /// <inheritdoc />
-    public override void WrapKey(
+    public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey)
+        Span<byte> encryptedContentKey,
+        out int bytesWritten)
     {
+        if (encryptedContentKey.Length < secretKey.KeySizeBytes)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
         var validatedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey, KekBitSizes);
 
         using var key = validatedSecretKey.ExportRSA();
 
-        var result = key.TryEncrypt(contentKey, encryptedContentKey, Padding, out var bytesWritten);
-
-        throw new NotImplementedException();
+        return key.TryEncrypt(contentKey, encryptedContentKey, Padding, out bytesWritten);
     }
 
     /// <inheritdoc />
-    public override void UnwrapKey(
+    public override bool TryUnwrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey)
+        Span<byte> contentKey,
+        out int bytesWritten)
     {
         var validatedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey, KekBitSizes);
 
         using var key = validatedSecretKey.ExportRSA();
 
-        throw new NotImplementedException();
+        return key.TryDecrypt(encryptedContentKey, contentKey, Padding, out bytesWritten);
     }
 }

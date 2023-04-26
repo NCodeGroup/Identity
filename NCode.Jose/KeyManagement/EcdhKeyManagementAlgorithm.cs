@@ -169,7 +169,9 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes) => 0;
+    public override int GetEncryptedContentKeySizeBytes(
+        int kekSizeBytes,
+        int cekSizeBytes) => 0;
 
     /// <inheritdoc />
     public override void NewKey(
@@ -199,21 +201,23 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override void WrapKey(
+    public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey)
+        Span<byte> encryptedContentKey,
+        out int bytesWritten)
     {
         throw new NotSupportedException("The ECDH-ES key management algorithm does not support using an existing CEK.");
     }
 
     /// <inheritdoc />
-    public override void UnwrapKey(
+    public override bool TryUnwrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey)
+        Span<byte> contentKey,
+        out int bytesWritten)
     {
         if (encryptedContentKey.Length != 0)
         {
@@ -232,6 +236,9 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         using var senderKey = ephemeralKey.PublicKey;
 
         DeriveKey(algorithm, apu, apv, recipientKey, senderKey, contentKey);
+
+        bytesWritten = contentKey.Length;
+        return true;
     }
 
     private static void DeriveKey(

@@ -31,10 +31,10 @@ namespace NCode.Jose.KeyManagement;
 public interface IAesKeyWrap
 {
     /// <summary>
-    /// Gets the size, in bytes, of the resulting ciphertext for <see cref="WrapKey"/>.
+    /// Gets the size, in bytes, of the resulting ciphertext for <see cref="TryWrapKey"/>.
     /// </summary>
     /// <param name="contentKeySizeBytes">The size, in bytes, of the key encryption key (KEK).</param>
-    /// <returns>The size, in bytes, of the resulting ciphertext for <see cref="WrapKey"/>.</returns>
+    /// <returns>The size, in bytes, of the resulting ciphertext for <see cref="TryWrapKey"/>.</returns>
     int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes);
 
     /// <summary>
@@ -43,16 +43,17 @@ public interface IAesKeyWrap
     /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
     /// <param name="contentKey">Contains the content encryption key (CEK) that is to be encrypted.</param>
     /// <param name="encryptedContentKey">Destination for result of encrypting the content key.</param>
-    void WrapKey(
+    bool TryWrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey);
+        Span<byte> encryptedContentKey,
+        out int bytesWritten);
 
     /// <summary>
-    /// Gets the size, in bytes, of the resulting plaintext for <see cref="UnwrapKey"/>.
+    /// Gets the size, in bytes, of the resulting plaintext for <see cref="TryUnwrapKey"/>.
     /// </summary>
     /// <param name="encryptedContentKeySizeBytes">The size, in bytes, of the encrypted key encryption key (KEK).</param>
-    /// <returns>The size, in bytes, of the resulting plaintext for <see cref="UnwrapKey"/>.</returns>
+    /// <returns>The size, in bytes, of the resulting plaintext for <see cref="TryUnwrapKey"/>.</returns>
     int GetContentKeySizeBytes(int encryptedContentKeySizeBytes);
 
     /// <summary>
@@ -62,10 +63,11 @@ public interface IAesKeyWrap
     /// <param name="encryptedContentKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
     /// <returns>The result of decrypting the encrypted key data.</returns>
     /// <param name="contentKey">Destination for result of decrypting the encrypted content key.</param>
-    void UnwrapKey(
+    bool TryUnwrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey);
+        Span<byte> contentKey,
+        out int bytesWritten);
 }
 
 /// <summary>
@@ -117,10 +119,11 @@ public class AesKeyWrap : IAesKeyWrap
     }
 
     /// <inheritdoc />
-    public void WrapKey(
+    public bool TryWrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey)
+        Span<byte> encryptedContentKey,
+        out int bytesWritten)
     {
         /*
            Inputs:  Plaintext, n 64-bit values {P1, P2, ..., Pn}, and
@@ -129,10 +132,10 @@ public class AesKeyWrap : IAesKeyWrap
         */
 
         var expectedSizeBytes = GetCipherTextSizeBytes(contentKey.Length, out var n);
-        if (encryptedContentKey.Length != expectedSizeBytes)
+        if (encryptedContentKey.Length < expectedSizeBytes)
         {
-            // TODO: unit tests
-            throw new JoseException("Destination too small.");
+            bytesWritten = 0;
+            return false;
         }
 
         using var aes = Aes.Create();
@@ -198,8 +201,10 @@ public class AesKeyWrap : IAesKeyWrap
         */
 
         Concat(a, r, encryptedContentKey);
-    }
 
+        bytesWritten = expectedSizeBytes;
+        return true;
+    }
 
     /// <inheritdoc />
     public int GetContentKeySizeBytes(int encryptedContentKeySizeBytes) =>
@@ -225,10 +230,11 @@ public class AesKeyWrap : IAesKeyWrap
     }
 
     /// <inheritdoc />
-    public void UnwrapKey(
+    public bool TryUnwrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey)
+        Span<byte> contentKey,
+        out int bytesWritten)
     {
         /*
            Inputs:  Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}, and
@@ -237,10 +243,10 @@ public class AesKeyWrap : IAesKeyWrap
         */
 
         var expectedSizeBytes = GetUnwrapKeySizeBytes(encryptedContentKey.Length, out var n);
-        if (contentKey.Length != expectedSizeBytes)
+        if (contentKey.Length < expectedSizeBytes)
         {
-            // TODO: unit tests
-            throw new JoseException("Destination too small.");
+            bytesWritten = 0;
+            return false;
         }
 
         using var aes = Aes.Create();
@@ -313,6 +319,9 @@ public class AesKeyWrap : IAesKeyWrap
             throw new InvalidOperationException();
 
         Concat(r, contentKey);
+
+        bytesWritten = expectedSizeBytes;
+        return true;
     }
 
     private static void Xor(ReadOnlySpan<byte> xBuffer, long y, Span<byte> destination)

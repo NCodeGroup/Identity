@@ -28,24 +28,28 @@ namespace NCode.Jose.KeyManagement;
 /// </summary>
 public interface IKeyManagementAlgorithm : IAlgorithm
 {
-    int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes);
+    int GetEncryptedContentKeySizeBytes(
+        int kekSizeBytes,
+        int cekSizeBytes);
 
     void NewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey);
 
-    void WrapKey(
+    bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey);
+        Span<byte> encryptedContentKey,
+        out int bytesWritten);
 
-    void UnwrapKey(
+    bool TryUnwrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey);
+        Span<byte> contentKey,
+        out int bytesWritten);
 }
 
 /// <summary>
@@ -66,7 +70,9 @@ public abstract class KeyManagementAlgorithm : Algorithm, IKeyManagementAlgorith
     public abstract IEnumerable<KeySizes> KekBitSizes { get; }
 
     /// <inheritdoc />
-    public abstract int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes);
+    public abstract int GetEncryptedContentKeySizeBytes(
+        int kekSizeBytes,
+        int cekSizeBytes);
 
     /// <inheritdoc />
     public virtual void NewKey(
@@ -78,18 +84,20 @@ public abstract class KeyManagementAlgorithm : Algorithm, IKeyManagementAlgorith
     }
 
     /// <inheritdoc />
-    public abstract void WrapKey(
+    public abstract bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey);
+        Span<byte> encryptedContentKey,
+        out int bytesWritten);
 
     /// <inheritdoc />
-    public abstract void UnwrapKey(
+    public abstract bool TryUnwrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey);
+        Span<byte> contentKey,
+        out int bytesWritten);
 
     protected bool TryGetHeader<T>(IDictionary<string, object> header, string key, [MaybeNullWhen(false)] out T value)
     {

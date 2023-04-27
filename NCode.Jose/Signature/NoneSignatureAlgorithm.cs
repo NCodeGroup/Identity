@@ -28,7 +28,7 @@ namespace NCode.Jose.Signature;
 public class NoneSignatureAlgorithm : SignatureAlgorithm
 {
     /// <inheritdoc />
-    public override string Code => "none";
+    public override string Code => AlgorithmCodes.DigitalSignature.None;
 
     /// <inheritdoc />
     public override Type SecretKeyType => typeof(SecretKey);

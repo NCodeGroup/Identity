@@ -65,7 +65,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// </summary>
     public EcdhKeyManagementAlgorithm()
     {
-        Code = "ECDH-ES";
+        Code = AlgorithmCodes.KeyManagement.EcdhEs;
         AlgorithmField = "enc";
     }
 

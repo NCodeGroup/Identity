@@ -26,6 +26,16 @@ namespace NCode.Jose.KeyManagement;
 /// </summary>
 public static class KeyManagementAlgorithmExtensions
 {
+    /// <summary>
+    /// Performs the cryptographic operation of encrypting a newly generated content encryption key (CEK) with an key encryption key (KEK).
+    /// </summary>
+    /// <param name="algorithm"></param>
+    /// <param name="secretKey">The key encryption key (KEK), for the current cryptographic algorithm.</param>
+    /// <param name="header">The JOSE header for the current cryptographic operation.</param>
+    /// <param name="contentKey">The destination for the newly generated content encryption key (CEK).</param>
+    /// <param name="encryptedContentKey">The destination for the encrypted content encryption key (CEK).</param>
+    /// <param name="bytesWritten">When this method returns, contains a value that indicates the number of bytes written to <paramref name="encryptedContentKey"/>.</param>
+    /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
     public static bool TryWrapNewKey(
         this IKeyManagementAlgorithm algorithm,
         SecretKey secretKey,

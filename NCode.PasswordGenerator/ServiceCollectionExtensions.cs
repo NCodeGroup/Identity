@@ -28,15 +28,15 @@ namespace NCode.PasswordGenerator;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds <see cref="IPasswordGenerator"/> to the specified <see cref="IServiceCollection" />.
+    /// Adds <see cref="IPasswordGenerator"/> to the specified <see cref="IServiceCollection"/>.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
+    /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddPasswordGenerator(this IServiceCollection services) =>
         AddPasswordGenerator(services, _ => { });
 
     /// <summary>
-    /// Adds <see cref="IPasswordGenerator"/> to the specified <see cref="IServiceCollection" />.
+    /// Adds <see cref="IPasswordGenerator"/> to the specified <see cref="IServiceCollection"/>.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
     /// <param name="configureOptions">The action used to configure the <see cref="PasswordGeneratorOptions"/>.</param>

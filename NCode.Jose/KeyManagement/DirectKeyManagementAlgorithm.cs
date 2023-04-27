@@ -23,7 +23,7 @@ using NCode.Cryptography.Keys;
 namespace NCode.Jose.KeyManagement;
 
 /// <summary>
-/// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>key encryption key (KEK)</c> directly for key management.
+/// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>key encryption key (KEK)</c> directly for key agreement.
 /// </summary>
 public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
 {
@@ -38,7 +38,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     };
 
     /// <inheritdoc />
-    public override string Code => "dir";
+    public override string Code => AlgorithmCodes.KeyManagement.Direct;
 
     /// <inheritdoc />
     public override Type SecretKeyType => typeof(SymmetricSecretKey);
@@ -64,7 +64,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
 
         if (contentKey.Length != secretKey.KeySizeBytes)
         {
-            throw new ArgumentException("Destination buffer too small.", nameof(contentKey));
+            throw new ArgumentException("Invalid size for destination buffer.", nameof(contentKey));
         }
 
         validatedSecretKey.KeyBytes.CopyTo(contentKey);
@@ -78,7 +78,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        throw new NotSupportedException("The 'dir' key management algorithm does not support using an existing CEK.");
+        throw new NotSupportedException("The direct key management algorithm does not support using an existing CEK.");
     }
 
     /// <inheritdoc />

@@ -104,7 +104,7 @@ public abstract class Algorithm : IAlgorithm
         if (!KeySizesUtility.IsLegalSize(KekBitSizes, secretKey.KeySizeBits))
         {
             throw new ArgumentException(
-                "The specified secret key (KEK) does not have a valid size for this cryptographic algorithm.",
+                "The secret key (KEK) does not have a valid size for this cryptographic algorithm.",
                 nameof(secretKey));
         }
 

@@ -78,9 +78,14 @@ public class AlgorithmProvider : IAlgorithmProvider
     /// <summary>
     /// Initializes a new instance of the <see cref="AlgorithmProvider"/> class.
     /// </summary>
-    public AlgorithmProvider(IEnumerable<IAlgorithm> algorithms)
+    public AlgorithmProvider(
+        IEnumerable<IAlgorithm> algorithms,
+        IEnumerable<IAlgorithmFilter> filters)
     {
-        AlgorithmLookup = algorithms.ToDictionary(algorithm => (algorithm.Type, algorithm.Code));
+        var filtersList = filters.ToList();
+        AlgorithmLookup = algorithms
+            .Where(algorithm => !filtersList.Any(filter => filter.Exclude(algorithm)))
+            .ToDictionary(algorithm => (algorithm.Type, algorithm.Code));
     }
 
     private bool TryGetAlgorithm<T>(AlgorithmType type, string code, [MaybeNullWhen(false)] out T algorithm)

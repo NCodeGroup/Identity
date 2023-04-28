@@ -105,24 +105,24 @@ public class PasswordGeneratorOptionsTests : BaseTests
     {
         var options = new PasswordGeneratorOptions
         {
-            IncludeLowercase = false,
-            IncludeUppercase = false,
-            IncludeNumeric = false,
-            IncludeSpecial = false
+            MinLowercaseCharacters = 0,
+            MinUppercaseCharacters = 0,
+            MinNumericCharacters = 0,
+            MinSpecialCharacters = 0
         };
 
         Assert.Empty(options.CharacterSet);
 
-        options.IncludeLowercase = true;
+        options.MinLowercaseCharacters = 1;
         Assert.Equal("abcdefghijklmnopqrstuvwxyz", options.CharacterSet);
 
-        options.IncludeUppercase = true;
+        options.MinUppercaseCharacters = 1;
         Assert.Equal("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", options.CharacterSet);
 
-        options.IncludeNumeric = true;
+        options.MinNumericCharacters = 1;
         Assert.Equal("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", options.CharacterSet);
 
-        options.IncludeSpecial = true;
+        options.MinSpecialCharacters = 1;
         Assert.Equal("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!;#$%&()*+,-./:;<=>?@[]^_`{|}~", options.CharacterSet);
     }
 
@@ -180,28 +180,28 @@ public class PasswordGeneratorOptionsTests : BaseTests
 
         yield return new object[]
         {
-            new PasswordGeneratorOptions { MinLength = 1, MaxLength = 10, IncludeLowercase = false },
+            new PasswordGeneratorOptions { MinLength = 1, MaxLength = 10, MinLowercaseCharacters = 0 },
             "B1%",
             true
         };
 
         yield return new object[]
         {
-            new PasswordGeneratorOptions { MinLength = 1, MaxLength = 10, IncludeUppercase = false },
+            new PasswordGeneratorOptions { MinLength = 1, MaxLength = 10, MinUppercaseCharacters = 0 },
             "a1%",
             true
         };
 
         yield return new object[]
         {
-            new PasswordGeneratorOptions { MinLength = 1, MaxLength = 10, IncludeNumeric = false },
+            new PasswordGeneratorOptions { MinLength = 1, MaxLength = 10, MinNumericCharacters = 0 },
             "aB%",
             true
         };
 
         yield return new object[]
         {
-            new PasswordGeneratorOptions { MinLength = 1, MaxLength = 10, IncludeSpecial = false },
+            new PasswordGeneratorOptions { MinLength = 1, MaxLength = 10, MinSpecialCharacters = 0 },
             "aB1",
             true
         };
@@ -226,9 +226,9 @@ public class PasswordGeneratorOptionsTests : BaseTests
             {
                 MinLength = 1,
                 MaxLength = 10,
-                IncludeUppercase = false,
-                IncludeNumeric = false,
-                IncludeSpecial = false,
+                MinUppercaseCharacters = 0,
+                MinNumericCharacters = 0,
+                MinSpecialCharacters = 0,
                 MaxConsecutiveIdenticalCharacters = 2
             },
             "aa",
@@ -241,9 +241,9 @@ public class PasswordGeneratorOptionsTests : BaseTests
             {
                 MinLength = 1,
                 MaxLength = 10,
-                IncludeUppercase = false,
-                IncludeNumeric = false,
-                IncludeSpecial = false,
+                MinUppercaseCharacters = 0,
+                MinNumericCharacters = 0,
+                MinSpecialCharacters = 0,
                 MaxConsecutiveIdenticalCharacters = 2
             },
             "aaa",

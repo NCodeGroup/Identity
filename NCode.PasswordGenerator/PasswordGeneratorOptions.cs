@@ -32,14 +32,14 @@ public class PasswordGeneratorOptions
     private const int DefaultMaxLength = 64;
     private const int DefaultMaxConsecutiveIdenticalCharacters = 2;
 
-    private const bool DefaultIncludeLowercase = true;
-    private const bool DefaultIncludeUppercase = true;
-    private const bool DefaultIncludeNumeric = true;
-    private const bool DefaultIncludeSpecial = true;
+    private const int DefaultMinSpecialCharacters = 1;
+    private const int DefaultMinNumericCharacters = 1;
+    private const int DefaultMinLowercaseCharacters = 1;
+    private const int DefaultMinUppercaseCharacters = 1;
 
-    private const string LowercaseCharacters = "abcdefghijklmnopqrstuvwxyz";
-    private const string UppercaseCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private const string NumericCharacters = "0123456789";
+    internal const string LowercaseCharacters = "abcdefghijklmnopqrstuvwxyz";
+    internal const string UppercaseCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    internal const string NumericCharacters = "0123456789";
     private const string DefaultSpecialCharacters = "!;#$%&()*+,-./:;<=>?@[]^_`{|}~";
 
     private int _minLength = DefaultMinLength;
@@ -60,10 +60,10 @@ public class PasswordGeneratorOptions
         MaxEnumerations = other.MaxEnumerations;
         MaxAttempts = other.MaxAttempts;
         MaxConsecutiveIdenticalCharacters = other.MaxConsecutiveIdenticalCharacters;
-        IncludeLowercase = other.IncludeLowercase;
-        IncludeUppercase = other.IncludeUppercase;
-        IncludeNumeric = other.IncludeNumeric;
-        IncludeSpecial = other.IncludeSpecial;
+        MinLowercaseCharacters = other.MinLowercaseCharacters;
+        MinUppercaseCharacters = other.MinUppercaseCharacters;
+        MinNumericCharacters = other.MinNumericCharacters;
+        MinSpecialCharacters = other.MinSpecialCharacters;
         SpecialOrNull = other.SpecialOrNull;
     }
 
@@ -77,10 +77,10 @@ public class PasswordGeneratorOptions
         MaxEnumerations = DefaultMaxEnumerations;
         MaxAttempts = DefaultMaxAttempts;
         MaxConsecutiveIdenticalCharacters = DefaultMaxConsecutiveIdenticalCharacters;
-        IncludeLowercase = DefaultIncludeLowercase;
-        IncludeUppercase = DefaultIncludeUppercase;
-        IncludeNumeric = DefaultIncludeNumeric;
-        IncludeSpecial = DefaultIncludeSpecial;
+        MinLowercaseCharacters = DefaultMinLowercaseCharacters;
+        MinUppercaseCharacters = DefaultMinUppercaseCharacters;
+        MinNumericCharacters = DefaultMinNumericCharacters;
+        MinSpecialCharacters = DefaultMinSpecialCharacters;
         SpecialOrNull = null;
         return this;
     }
@@ -215,58 +215,58 @@ public class PasswordGeneratorOptions
     }
 
     /// <summary>
-    /// Gets or sets a boolean indicating whether lower-case characters are to be included in the generated password.
+    /// Gets or sets the minimum amount of lower-case characters that are to be included in the generated password.
     /// </summary>
-    public bool IncludeLowercase { get; set; }
+    public int MinLowercaseCharacters { get; set; }
 
     /// <summary>
-    /// Sets a boolean indicating whether lower-case characters are to be included in the generated password.
+    /// Sets the minimum amount of lower-case characters that are to be included in the generated password.
     /// </summary>
-    public PasswordGeneratorOptions SetIncludeLowercase(bool value)
+    public PasswordGeneratorOptions SetMinLowercaseCharacters(int value)
     {
-        IncludeLowercase = value;
+        MinLowercaseCharacters = value;
         return this;
     }
 
     /// <summary>
-    /// Gets or sets a boolean indicating whether upper-case characters are to be included in the generated password.
+    /// Gets or sets the minimum amount of upper-case characters that are to be included in the generated password.
     /// </summary>
-    public bool IncludeUppercase { get; set; }
+    public int MinUppercaseCharacters { get; set; }
 
     /// <summary>
-    /// Sets a boolean indicating whether upper-case characters are to be included in the generated password.
+    /// Sets the minimum amount of upper-case characters that are to be included in the generated password.
     /// </summary>
-    public PasswordGeneratorOptions SetIncludeUppercase(bool value)
+    public PasswordGeneratorOptions SetMinUppercaseCharacters(int value)
     {
-        IncludeUppercase = value;
+        MinUppercaseCharacters = value;
         return this;
     }
 
     /// <summary>
-    /// Gets or sets a boolean indicating whether numbers are to be included in the generated password.
+    /// Gets or sets the minimum amount of numeric characters that are to be included in the generated password.
     /// </summary>
-    public bool IncludeNumeric { get; set; }
+    public int MinNumericCharacters { get; set; }
 
     /// <summary>
-    /// Sets a boolean indicating whether numbers are to be included in the generated password.
+    /// Sets the minimum amount of numeric characters that are to be included in the generated password.
     /// </summary>
-    public PasswordGeneratorOptions SetIncludeNumeric(bool value)
+    public PasswordGeneratorOptions SetMinNumericCharacters(int value)
     {
-        IncludeNumeric = value;
+        MinNumericCharacters = value;
         return this;
     }
 
     /// <summary>
-    /// Gets or sets a boolean indicating whether special characters such as punctuations and symbols are to be included in the generated password.
+    /// Gets or sets the minimum amount of special characters that are to be included in the generated password.
     /// </summary>
-    public bool IncludeSpecial { get; set; }
+    public int MinSpecialCharacters { get; set; }
 
     /// <summary>
-    /// Sets a boolean indicating whether special characters such as punctuations and symbols are to be included in the generated password.
+    /// Sets the minimum amount of special characters that are to be included in the generated password.
     /// </summary>
-    public PasswordGeneratorOptions SetIncludeSpecial(bool value)
+    public PasswordGeneratorOptions SetMinSpecialCharacters(int value)
     {
-        IncludeSpecial = value;
+        MinSpecialCharacters = value;
         return this;
     }
 
@@ -298,10 +298,10 @@ public class PasswordGeneratorOptions
         get
         {
             var builder = new StringBuilder();
-            if (IncludeLowercase) builder.Append(LowercaseCharacters);
-            if (IncludeUppercase) builder.Append(UppercaseCharacters);
-            if (IncludeNumeric) builder.Append(NumericCharacters);
-            if (IncludeSpecial) builder.Append(SpecialCharacters);
+            if (MinLowercaseCharacters > 0) builder.Append(LowercaseCharacters);
+            if (MinUppercaseCharacters > 0) builder.Append(UppercaseCharacters);
+            if (MinNumericCharacters > 0) builder.Append(NumericCharacters);
+            if (MinSpecialCharacters > 0) builder.Append(SpecialCharacters);
             return builder.ToString();
         }
     }
@@ -336,10 +336,10 @@ public class PasswordGeneratorOptions
         if (password.Length < MinLength) return false;
         if (password.Length > MaxLength) return false;
 
-        var passesLowercaseCheck = !IncludeLowercase;
-        var passesUppercaseCheck = !IncludeUppercase;
-        var passesNumericCheck = !IncludeNumeric;
-        var passesSpecialCheck = !IncludeSpecial;
+        var countSpecial = 0;
+        var countNumeric = 0;
+        var countLowercase = 0;
+        var countUppercase = 0;
 
         for (var i = 0; i < password.Length; ++i)
         {
@@ -350,12 +350,29 @@ public class PasswordGeneratorOptions
 
             var c = password[i];
 
-            passesLowercaseCheck = passesLowercaseCheck || LowercaseCharacters.Contains(c);
-            passesUppercaseCheck = passesUppercaseCheck || UppercaseCharacters.Contains(c);
-            passesNumericCheck = passesNumericCheck || NumericCharacters.Contains(c);
-            passesSpecialCheck = passesSpecialCheck || SpecialCharacters.Contains(c);
+            // FYI, special may overlap with numeric and alpha
+            if (SpecialCharacters.Contains(c))
+            {
+                ++countSpecial;
+            }
+
+            if (char.IsNumber(c))
+            {
+                ++countNumeric;
+            }
+            else if (char.IsLower(c))
+            {
+                ++countLowercase;
+            }
+            else if (char.IsUpper(c))
+            {
+                ++countUppercase;
+            }
         }
 
-        return passesLowercaseCheck && passesUppercaseCheck && passesNumericCheck && passesSpecialCheck;
+        return countSpecial >= MinSpecialCharacters &&
+               countNumeric >= MinNumericCharacters &&
+               countLowercase >= MinLowercaseCharacters &&
+               countUppercase >= MinUppercaseCharacters;
     }
 }

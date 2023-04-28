@@ -32,6 +32,22 @@ public class PasswordGeneratorTests : BaseTests
     }
 
     [Fact]
+    public void Generate_GivenMinCharacters_Valid()
+    {
+        var options = new PasswordGeneratorOptions
+        {
+            MinSpecialCharacters = 3,
+            MinNumericCharacters = 3,
+            MinLowercaseCharacters = 3,
+            MinUppercaseCharacters = 3
+        };
+        options.SetLengthRange(16, 32);
+        var password = PasswordGenerator.Generate(options);
+        var isValid = options.IsValid(password);
+        Assert.True(isValid);
+    }
+
+    [Fact]
     public void Generate_Valid()
     {
         const string password = nameof(password);
@@ -53,8 +69,10 @@ public class PasswordGeneratorTests : BaseTests
         PasswordGenerator.Generate(DefaultOptions, new char[6]);
 
         var password = new char[2];
-        Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<InvalidOperationException>(() =>
             PasswordGenerator.Generate(DefaultOptions, password));
+
+        Assert.Equal("The requested password length is too small.", exception.Message);
     }
 
     [Fact]
@@ -65,8 +83,48 @@ public class PasswordGeneratorTests : BaseTests
         PasswordGenerator.Generate(DefaultOptions, new char[6]);
 
         var password = new char[9];
-        Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<InvalidOperationException>(() =>
             PasswordGenerator.Generate(DefaultOptions, password));
+
+        Assert.Equal("The requested password length is too large.", exception.Message);
+    }
+
+    [Fact]
+    public void Generate_GivenSpan_EmptyCharacterSet_ThenThrows()
+    {
+        var options = new PasswordGeneratorOptions
+        {
+            MinSpecialCharacters = 0,
+            MinNumericCharacters = 0,
+            MinLowercaseCharacters = 0,
+            MinUppercaseCharacters = 0
+        };
+
+        var password = new char[options.MinLength];
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            PasswordGenerator.Generate(options, password));
+
+        Assert.Equal("At least one character set must have a minimum greater than zero.", exception.Message);
+    }
+
+    [Fact]
+    public void Generate_GivenSpan_LargeCharacterSet_ThenThrows()
+    {
+        var options = new PasswordGeneratorOptions
+        {
+            MinSpecialCharacters = 10,
+            MinNumericCharacters = 10,
+            MinLowercaseCharacters = 10,
+            MinUppercaseCharacters = 10
+        };
+
+        options.SetExactLength(10);
+
+        var password = new char[options.MinLength];
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            PasswordGenerator.Generate(options, password));
+
+        Assert.Equal("The provided destination buffer is too small to hold the minimum amount of required characters.", exception.Message);
     }
 
     [Fact]

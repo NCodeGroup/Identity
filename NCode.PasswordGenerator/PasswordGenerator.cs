@@ -158,6 +158,17 @@ public class PasswordGenerator : IPasswordGenerator
         if (password.Length > options.MaxLength)
             throw new InvalidOperationException("The requested password length is too large.");
 
+        var minCharacters = options.MinSpecialCharacters +
+                            options.MinNumericCharacters +
+                            options.MinLowercaseCharacters +
+                            options.MinUppercaseCharacters;
+
+        if (minCharacters == 0)
+            throw new InvalidOperationException("At least one character set must have a minimum greater than zero.");
+
+        if (minCharacters > password.Length)
+            throw new InvalidOperationException("The provided destination buffer is too small to hold the minimum amount of required characters.");
+
         var maxAttempts = options.MaxAttempts;
         var characterSet = FisherYatesShuffle(options.CharacterSet);
 
@@ -174,13 +185,18 @@ public class PasswordGenerator : IPasswordGenerator
         string.Create(value.Length, value, (dst, src) =>
         {
             src.AsSpan().CopyTo(dst);
-            for (var i = 0; i < dst.Length - 1; ++i)
-            {
-                var j = GetRandomInt32(i, dst.Length);
-                if (i == j) continue;
-                (dst[i], dst[j]) = (dst[j], dst[i]);
-            }
+            FisherYatesShuffle(dst);
         });
+
+    private void FisherYatesShuffle(Span<char> chars)
+    {
+        for (var i = 0; i < chars.Length - 1; ++i)
+        {
+            var j = GetRandomInt32(i, chars.Length);
+            if (i == j) continue;
+            (chars[i], chars[j]) = (chars[j], chars[i]);
+        }
+    }
 
     internal int GetLength(PasswordGeneratorOptions options) =>
         options.MinLength == options.MaxLength ?
@@ -215,15 +231,45 @@ public class PasswordGenerator : IPasswordGenerator
             return;
         }
 
+        var special = options.SpecialCharacters;
+        const string numeric = PasswordGeneratorOptions.NumericCharacters;
+        const string lowercase = PasswordGeneratorOptions.LowercaseCharacters;
+        const string uppercase = PasswordGeneratorOptions.UppercaseCharacters;
+
+        var remainingSpecial = options.MinSpecialCharacters;
+        var remainingNumeric = options.MinNumericCharacters;
+        var remainingLowercase = options.MinLowercaseCharacters;
+        var remainingUppercase = options.MinUppercaseCharacters;
+
         for (var i = 0; i < password.Length; ++i)
         {
-            password[i] = characterSet[GetRandomInt32(characterSet.Length)];
-
-            if (options.AreIdentical(i, password))
+            if (remainingSpecial > 0)
             {
-                --i;
+                password[i] = special[GetRandomInt32(special.Length)];
+                --remainingSpecial;
+            }
+            else if (remainingNumeric > 0)
+            {
+                password[i] = numeric[GetRandomInt32(numeric.Length)];
+                --remainingNumeric;
+            }
+            else if (remainingLowercase > 0)
+            {
+                password[i] = lowercase[GetRandomInt32(lowercase.Length)];
+                --remainingLowercase;
+            }
+            else if (remainingUppercase > 0)
+            {
+                password[i] = uppercase[GetRandomInt32(uppercase.Length)];
+                --remainingUppercase;
+            }
+            else
+            {
+                password[i] = characterSet[GetRandomInt32(characterSet.Length)];
             }
         }
+
+        FisherYatesShuffle(password);
     }
 
     /// <inheritdoc />

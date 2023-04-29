@@ -40,22 +40,12 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="cekSizeBits">Contains the legal size, in bits, of the content encryption key (CEK).</param>
     public EcdhWithAesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int cekSizeBits)
-        : base(code)
+        : base(code, isDirectAgreement: false)
     {
         AesKeyWrap = aesKeyWrap;
         CekSizeBytes = (cekSizeBits + 7) >> 3;
         EncryptedCekSizeBytes = aesKeyWrap.GetEncryptedContentKeySizeBytes(CekSizeBytes);
         CekByteSizes = new[] { new KeySizes(minSize: CekSizeBytes, maxSize: CekSizeBytes, skipSize: 0) };
-    }
-
-    private void ValidateContentKeySize(ReadOnlySpan<byte> contentKey)
-    {
-        if (contentKey.Length != CekSizeBytes)
-        {
-            throw new ArgumentException(
-                "The content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
-                nameof(contentKey));
-        }
     }
 
     /// <inheritdoc />
@@ -68,17 +58,6 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />
-    public override void NewKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        Span<byte> contentKey)
-    {
-        ValidateContentKeySize(contentKey);
-
-        RandomNumberGenerator.Fill(contentKey);
-    }
-
-    /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
@@ -86,7 +65,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        ValidateContentKeySize(contentKey);
+        ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length, nameof(contentKey));
 
         if (encryptedContentKey.Length < EncryptedCekSizeBytes)
         {
@@ -119,6 +98,13 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
+        if (encryptedContentKey.Length != EncryptedCekSizeBytes)
+        {
+            throw new ArgumentException(
+                "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
+                nameof(encryptedContentKey));
+        }
+
         if (contentKey.Length < CekSizeBytes)
         {
             bytesWritten = 0;

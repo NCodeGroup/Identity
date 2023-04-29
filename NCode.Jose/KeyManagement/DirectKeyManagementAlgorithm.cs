@@ -38,7 +38,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     };
 
     /// <inheritdoc />
-    public override string Code => AlgorithmCodes.KeyManagement.Direct;
+    public override string Code { get; }
 
     /// <inheritdoc />
     public override Type SecretKeyType => typeof(SymmetricSecretKey);
@@ -48,6 +48,15 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DirectKeyManagementAlgorithm"/> class.
+    /// </summary>
+    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+    public DirectKeyManagementAlgorithm(string code)
+    {
+        Code = code;
+    }
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(

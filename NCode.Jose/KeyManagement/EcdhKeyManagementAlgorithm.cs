@@ -61,23 +61,15 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EcdhKeyManagementAlgorithm"/> class
-    /// for usage in direct key agreement mode.
-    /// </summary>
-    public EcdhKeyManagementAlgorithm()
-    {
-        Code = AlgorithmCodes.KeyManagement.EcdhEs;
-        AlgorithmField = "enc";
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EcdhKeyManagementAlgorithm"/> class
     /// for usage in key agreement with key wrapping mode.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    protected EcdhKeyManagementAlgorithm(string code)
+    /// <param name="isDirectAgreement"><c>true</c> if the algorithm is to use direct key agreement mode;
+    /// otherwise, <c>false</c> if the algorithm is to use key agreement with key wrapping mode.</param>
+    public EcdhKeyManagementAlgorithm(string code, bool isDirectAgreement)
     {
         Code = code;
-        AlgorithmField = "alg";
+        AlgorithmField = isDirectAgreement ? "enc" : "alg";
     }
 
     private static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, IDictionary<string, object> header)

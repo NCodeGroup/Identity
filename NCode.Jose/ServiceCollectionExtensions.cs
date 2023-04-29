@@ -48,15 +48,16 @@ public static class ServiceCollectionExtensions
     {
         services.Configure(configureOptions);
 
+        services.TryAdd(ServiceDescriptor.Singleton<IAesKeyWrap, AesKeyWrap>());
         services.TryAdd(ServiceDescriptor.Singleton<IAlgorithmProvider, AlgorithmProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAlgorithmFilter, AlgorithmFilter>());
 
         // digital signature
         services
-            .AddAlgorithm(_ => new NoneSignatureAlgorithm())
-            .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha256, 256, HMACSHA256.TryHashData)
-            .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha384, 384, HMACSHA384.TryHashData)
-            .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha512, 512, HMACSHA512.TryHashData)
+            .AddAlgorithm(_ => new NoneSignatureAlgorithm(AlgorithmCodes.DigitalSignature.None))
+            .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha256, signatureSizeBits: 256, HMACSHA256.TryHashData)
+            .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha384, signatureSizeBits: 384, HMACSHA384.TryHashData)
+            .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha512, signatureSizeBits: 512, HMACSHA512.TryHashData)
             .AddRsaSignatureAlgorithm(AlgorithmCodes.DigitalSignature.RsaSha256, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
             .AddRsaSignatureAlgorithm(AlgorithmCodes.DigitalSignature.RsaSha384, HashAlgorithmName.SHA384, RSASignaturePadding.Pkcs1)
             .AddRsaSignatureAlgorithm(AlgorithmCodes.DigitalSignature.RsaSha512, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1)
@@ -67,9 +68,37 @@ public static class ServiceCollectionExtensions
             .AddEccSignatureAlgorithm(AlgorithmCodes.DigitalSignature.EcdsaSha384, HashAlgorithmName.SHA384)
             .AddEccSignatureAlgorithm(AlgorithmCodes.DigitalSignature.EcdsaSha512, HashAlgorithmName.SHA512);
 
-        // TODO: key management
+        // key management
         services
-            .AddAlgorithm(_ => new DirectKeyManagementAlgorithm());
+            .AddAlgorithm(_ => new DirectKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Direct))
+            .AddRsaKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.RsaPkcs1, RSAEncryptionPadding.Pkcs1)
+            .AddRsaKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.RsaOaep, RSAEncryptionPadding.OaepSHA1)
+            .AddRsaKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.RsaOaep256, RSAEncryptionPadding.OaepSHA256)
+            .AddAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes128, kekSizeBits: 128)
+            .AddAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes192, kekSizeBits: 192)
+            .AddAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes256, kekSizeBits: 256)
+            .AddAesGcmKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes128Gcm, cekSizeBits: 128)
+            .AddAesGcmKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes192Gcm, cekSizeBits: 192)
+            .AddAesGcmKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes256Gcm, cekSizeBits: 256)
+            .AddAlgorithm(_ => new EcdhKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEs, isDirectAgreement: true))
+            .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes128, cekSizeBits: 128)
+            .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes192, cekSizeBits: 192)
+            .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes256, cekSizeBits: 256)
+            .AddPbkdf2WithAesKeyManagementAlgorithm(
+                AlgorithmCodes.KeyManagement.Pbes2HmacSha256Aes128,
+                HashAlgorithmName.SHA256,
+                keySizeBits: 128,
+                maxIterationCount: 310000)
+            .AddPbkdf2WithAesKeyManagementAlgorithm(
+                AlgorithmCodes.KeyManagement.Pbes2HmacSha384Aes192,
+                HashAlgorithmName.SHA384,
+                keySizeBits: 192,
+                maxIterationCount: 250000)
+            .AddPbkdf2WithAesKeyManagementAlgorithm(
+                AlgorithmCodes.KeyManagement.Pbes2HmacSha512Aes256,
+                HashAlgorithmName.SHA512,
+                keySizeBits: 256,
+                maxIterationCount: 120000);
 
         // TODO: authenticated encryption
 
@@ -100,4 +129,49 @@ public static class ServiceCollectionExtensions
         string code,
         HashAlgorithmName hashAlgorithmName) =>
         services.AddAlgorithm(_ => new EccSignatureAlgorithm(code, hashAlgorithmName));
+
+    private static IServiceCollection AddRsaKeyManagementAlgorithm(
+        this IServiceCollection services,
+        string code,
+        RSAEncryptionPadding padding) =>
+        services.AddAlgorithm(_ => new RsaKeyManagementAlgorithm(code, padding));
+
+    private static IServiceCollection AddAesKeyManagementAlgorithm(
+        this IServiceCollection services,
+        string code,
+        int kekSizeBits) =>
+        services.AddAlgorithm(serviceProvider => new AesKeyManagementAlgorithm(
+            serviceProvider.GetRequiredService<IAesKeyWrap>(),
+            code,
+            kekSizeBits));
+
+    private static IServiceCollection AddEcdhWithAesKeyManagementAlgorithm(
+        this IServiceCollection services,
+        string code,
+        int cekSizeBits) =>
+        services.AddAlgorithm(serviceProvider => new EcdhWithAesKeyManagementAlgorithm(
+            serviceProvider.GetRequiredService<IAesKeyWrap>(),
+            code,
+            cekSizeBits));
+
+    private static IServiceCollection AddAesGcmKeyManagementAlgorithm(
+        this IServiceCollection services,
+        string code,
+        int cekSizeBits) =>
+        services.AddAlgorithm(_ => new AesGcmKeyManagementAlgorithm(
+            code,
+            cekSizeBits));
+
+    private static IServiceCollection AddPbkdf2WithAesKeyManagementAlgorithm(
+        this IServiceCollection services,
+        string code,
+        HashAlgorithmName hashAlgorithmName,
+        int keySizeBits,
+        int maxIterationCount) =>
+        services.AddAlgorithm(serviceProvider => new Pbkdf2WithAesKeyManagementAlgorithm(
+            serviceProvider.GetRequiredService<IAesKeyWrap>(),
+            code,
+            hashAlgorithmName,
+            keySizeBits,
+            maxIterationCount));
 }

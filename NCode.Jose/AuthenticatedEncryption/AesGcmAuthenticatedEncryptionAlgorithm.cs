@@ -60,9 +60,6 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlg
     public override int GetMaxPlainTextSizeBytes(int cipherTextSizeBytes)
         => cipherTextSizeBytes;
 
-    private static AesGcm CreateAesGcm(SymmetricSecretKey secretKey) =>
-        new(secretKey.KeyBytes);
-
     /// <inheritdoc />
     public override void Encrypt(
         SecretKey secretKey,
@@ -80,7 +77,7 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlg
             cipherText,
             authenticationTag);
 
-        using var key = CreateAesGcm(validatedSecretKey);
+        using var key = new AesGcm(validatedSecretKey.KeyBytes);
 
         key.Encrypt(nonce, plainText, cipherText, authenticationTag, associatedData);
     }
@@ -109,14 +106,14 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlg
             cipherText,
             authenticationTag);
 
-        using var key = CreateAesGcm(validatedSecretKey);
+        using var key = new AesGcm(validatedSecretKey.KeyBytes);
         try
         {
             key.Decrypt(nonce, cipherText, authenticationTag, plainText, associatedData);
         }
         catch (CryptographicException exception)
         {
-            throw new EncryptionException("Failed to decrypt ciphertext.", exception);
+            throw new EncryptionException("Failed to decrypt the ciphertext.", exception);
         }
 
         bytesWritten = cipherText.Length;

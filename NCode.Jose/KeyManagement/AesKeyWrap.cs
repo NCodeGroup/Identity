@@ -93,10 +93,10 @@ public class AesKeyWrap : IAesKeyWrap
     public static IAesKeyWrap Default { get; } = new AesKeyWrap();
 
     private const int ChunkBitCount = 64;
-    private const int ChunkByteCount = ChunkBitCount >> 3;
+    internal const int ChunkByteCount = ChunkBitCount >> 3;
 
     private const int IntermediateBitCount = ChunkBitCount << 1; // i.e. 128
-    private const int IntermediateByteCount = IntermediateBitCount >> 3;
+    internal const int IntermediateByteCount = IntermediateBitCount >> 3;
 
     private static IEnumerable<KeySizes> StaticLegalCekByteSizes { get; } = new[]
     {
@@ -330,9 +330,7 @@ public class AesKeyWrap : IAesKeyWrap
         */
 
         if (!a.Span.SequenceEqual(DefaultIV))
-            // TODO: unit tests
-            // TODO: better exception
-            throw new InvalidOperationException();
+            throw new EncryptionException("Failed to decrypt the encrypted content encryption key (CEK). DefaultIV doesn't match.");
 
         Concat(r, contentKey);
 

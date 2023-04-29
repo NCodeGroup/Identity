@@ -114,6 +114,8 @@ public abstract class KeyManagementAlgorithm : Algorithm, IKeyManagementAlgorith
         IDictionary<string, object> header,
         Span<byte> contentKey)
     {
+        ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length, nameof(contentKey));
+
         RandomNumberGenerator.Fill(contentKey);
     }
 
@@ -132,6 +134,24 @@ public abstract class KeyManagementAlgorithm : Algorithm, IKeyManagementAlgorith
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten);
+
+    /// <summary>
+    /// Asserts that the size of the content encryption key (CEK) is valid for this cryptographic algorithm.
+    /// </summary>
+    /// <param name="kekSizeBits">The size, in bits, of the key encryption key (KEK).</param>
+    /// <param name="cekSizeBytes">The size, in bytes, of the content encryption key (CEK).</param>
+    /// <param name="paramName">The name of the parameter for the content encryption key (CEK).</param>
+    /// <exception cref="ArgumentException">Thrown when the size of the content encryption key (CEK) is invalid.</exception>
+    protected void ValidateContentKeySize(int kekSizeBits, int cekSizeBytes, string paramName)
+    {
+        var legalCekByteSizes = GetLegalCekByteSizes(kekSizeBits);
+        if (!KeySizesUtility.IsLegalSize(legalCekByteSizes, cekSizeBytes))
+        {
+            throw new ArgumentException(
+                "The content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
+                paramName);
+        }
+    }
 
     /// <summary>
     /// Attempts to retrieve a typed key-value pair from a dictionary.

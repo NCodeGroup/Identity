@@ -29,7 +29,7 @@ namespace NCode.Jose.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>PBKDF2 with AES</c> cryptographic algorithm for key management.
 /// </summary>
-public class Pbkdf2WithAesKeyManagementAlgorithm : KeyManagementAlgorithm
+public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
 {
     private const int SaltInputSizeBytes = 12;
     private const int MinIterationCount = 1000;
@@ -58,14 +58,14 @@ public class Pbkdf2WithAesKeyManagementAlgorithm : KeyManagementAlgorithm
     private int MaxIterationCount { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Pbkdf2WithAesKeyManagementAlgorithm"/> class.
+    /// Initializes a new instance of the <see cref="Pbes2KeyManagementAlgorithm"/> class.
     /// </summary>
     /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function to use.</param>
     /// <param name="keySizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
     /// <param name="maxIterationCount">Contains the maximum number of iterations allowed for the PBKDF2 algorithm.</param>
-    public Pbkdf2WithAesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, HashAlgorithmName hashAlgorithmName, int keySizeBits, int maxIterationCount)
+    public Pbes2KeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, HashAlgorithmName hashAlgorithmName, int keySizeBits, int maxIterationCount)
     {
         AesKeyWrap = aesKeyWrap;
         Code = code;

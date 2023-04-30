@@ -84,17 +84,17 @@ public static class ServiceCollectionExtensions
             .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes128, cekSizeBits: 128)
             .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes192, cekSizeBits: 192)
             .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes256, cekSizeBits: 256)
-            .AddPbkdf2WithAesKeyManagementAlgorithm(
+            .AddPbes2KeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.Pbes2HmacSha256Aes128,
                 HashAlgorithmName.SHA256,
                 keySizeBits: 128,
                 maxIterationCount: 310000)
-            .AddPbkdf2WithAesKeyManagementAlgorithm(
+            .AddPbes2KeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.Pbes2HmacSha384Aes192,
                 HashAlgorithmName.SHA384,
                 keySizeBits: 192,
                 maxIterationCount: 250000)
-            .AddPbkdf2WithAesKeyManagementAlgorithm(
+            .AddPbes2KeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.Pbes2HmacSha512Aes256,
                 HashAlgorithmName.SHA512,
                 keySizeBits: 256,
@@ -162,13 +162,13 @@ public static class ServiceCollectionExtensions
             code,
             cekSizeBits));
 
-    private static IServiceCollection AddPbkdf2WithAesKeyManagementAlgorithm(
+    private static IServiceCollection AddPbes2KeyManagementAlgorithm(
         this IServiceCollection services,
         string code,
         HashAlgorithmName hashAlgorithmName,
         int keySizeBits,
         int maxIterationCount) =>
-        services.AddAlgorithm(serviceProvider => new Pbkdf2WithAesKeyManagementAlgorithm(
+        services.AddAlgorithm(serviceProvider => new Pbes2KeyManagementAlgorithm(
             serviceProvider.GetRequiredService<IAesKeyWrap>(),
             code,
             hashAlgorithmName,

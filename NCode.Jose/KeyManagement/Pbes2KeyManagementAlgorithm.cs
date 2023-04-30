@@ -31,8 +31,8 @@ namespace NCode.Jose.KeyManagement;
 /// </summary>
 public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
 {
-    private const int SaltInputSizeBytes = 12;
-    private const int MinIterationCount = 1000;
+    internal const int SaltInputSizeBytes = 12;
+    internal const int MinIterationCount = 1000;
     private const int DefaultIterationCount = 8192;
 
     private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new[]
@@ -53,7 +53,7 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
 
     private HashAlgorithmName HashAlgorithmName { get; }
 
-    private int KeySizeBytes { get; }
+    internal int KeySizeBytes { get; }
 
     private int MaxIterationCount { get; }
 

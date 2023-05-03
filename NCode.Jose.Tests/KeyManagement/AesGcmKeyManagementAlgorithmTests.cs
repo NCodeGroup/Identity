@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using NCode.Cryptography.Keys;
+using NCode.Jose.Exceptions;
 using NCode.Jose.KeyManagement;
 
 namespace NCode.Jose.Tests.KeyManagement;
@@ -96,6 +97,111 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         var algorithm = Create();
         var kekSizeBits = Random.Shared.Next();
         Assert.Same(expected, algorithm.GetLegalCekByteSizes(kekSizeBits));
+    }
+
+    [Fact]
+    public void TryWrapKey_GivenMissingAlgHeader_ThenThrows()
+    {
+        const string keyId = nameof(keyId);
+        const string password = nameof(password);
+
+        var algorithm = Create();
+
+        using var secretKey = new SymmetricSecretKey(keyId, password);
+
+        var header = new Dictionary<string, object>();
+
+        var contentKey = Array.Empty<byte>();
+        var encryptedContentKey = Array.Empty<byte>();
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out _));
+
+        Assert.Equal("The JWT header is missing the 'alg' field.", exception.Message);
+    }
+
+    [Fact]
+    public void TryWrapKey_GivenTooSmallIterationCount_ThenThrows()
+    {
+        const string keyId = nameof(keyId);
+        const string password = nameof(password);
+
+        var algorithm = Create();
+
+        using var secretKey = new SymmetricSecretKey(keyId, password);
+
+        var header = new Dictionary<string, object>
+        {
+            ["alg"] = "anything",
+            ["p2c"] = 1
+        };
+
+        var contentKey = Array.Empty<byte>();
+        var encryptedContentKey = Array.Empty<byte>();
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out _));
+
+        Assert.Equal("The 'p2c' field in the JWT header must be at least 1000", exception.Message);
+    }
+
+    [Fact]
+    public void TryWrapKey_GivenTooLargeIterationCount_ThenThrows()
+    {
+        const string keyId = nameof(keyId);
+        const string password = nameof(password);
+
+        var algorithm = Create();
+
+        using var secretKey = new SymmetricSecretKey(keyId, password);
+
+        var header = new Dictionary<string, object>
+        {
+            ["alg"] = "anything",
+            ["p2c"] = int.MaxValue
+        };
+
+        var contentKey = Array.Empty<byte>();
+        var encryptedContentKey = Array.Empty<byte>();
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out _));
+
+        Assert.Equal("The 'p2c' field in the JWT header must be at most 310000", exception.Message);
+    }
+
+
+    [Fact]
+    public void TryWrapKey_GivenDestinationTooSmall_ThenValid()
+    {
+        const string keyId = nameof(keyId);
+        const string password = nameof(password);
+
+        var algorithm = Create();
+
+        using var secretKey = new SymmetricSecretKey(keyId, password);
+
+        var header = new Dictionary<string, object>
+        {
+            ["alg"] = "anything"
+        };
+
+        var contentKey = new byte[512];
+        var encryptedContentKey = Array.Empty<byte>();
+
+        MockAesKeyWrap
+            .Setup(_ => _.LegalCekByteSizes)
+            .Returns(new[] { new KeySizes(1, int.MaxValue, 1) })
+            .Verifiable();
+
+        MockAesKeyWrap
+            .Setup(_ => _.GetEncryptedContentKeySizeBytes(contentKey.Length))
+            .Returns(1)
+            .Verifiable();
+
+        var result = algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out var bytesWritten);
+        Assert.False(result);
+        Assert.Equal(0, bytesWritten);
     }
 
     [Fact]

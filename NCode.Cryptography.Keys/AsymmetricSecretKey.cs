@@ -35,6 +35,9 @@ public abstract class AsymmetricSecretKey : SecretKey
 {
     private IMemoryOwner<byte> MemoryOwner { get; }
 
+    /// <inheritdoc />
+    public override int KeySizeBits { get; }
+
     /// <summary>
     /// Gets the cryptographic material for the secret key formatted as <c>PKCS#8</c>.
     /// </summary>
@@ -49,9 +52,6 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// Doing so will create certificates with ephemeral keys and not persist keys to disk.
     /// </remarks>
     public X509Certificate2? Certificate { get; }
-
-    /// <inheritdoc />
-    public override int KeySizeBits { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AsymmetricSecretKey"/> class.
@@ -68,8 +68,8 @@ public abstract class AsymmetricSecretKey : SecretKey
         {
             Debug.Assert(certificate is not { HasPrivateKey: true });
 
-            Certificate = certificate;
             KeySizeBits = keySizeBits;
+            Certificate = certificate;
 
             pkcs8PrivateKey.CopyTo(MemoryOwner.Memory.Span);
         }

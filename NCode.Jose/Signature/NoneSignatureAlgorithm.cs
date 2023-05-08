@@ -31,10 +31,10 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(SecretKey);
+    public override Type KeyType => typeof(SecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes => Array.Empty<KeySizes>();
+    public override IEnumerable<KeySizes> KeyBitSizes => Array.Empty<KeySizes>();
 
     /// <inheritdoc />
     public override int SignatureSizeBits => 0;

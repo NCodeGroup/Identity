@@ -6,6 +6,18 @@ partial struct SecretKeyReader
 {
     /// <summary>
     /// Reads a <see cref="SecretKey"/> from the source buffer along with its corresponding certificate.
+    /// The certificate's <see cref="X509Certificate2.Thumbprint"/> is used as the <c>Key ID (KID)</c>.
+    /// </summary>
+    /// <returns>The <see cref="SecretKey"/> that was read.</returns>
+    /// <remarks>
+    /// The data for the certificate must be encoded using <c>PEM</c> rules.
+    /// The currently supported PKI algorithms are RSA and EcPublicKey (either ECDsa or ECDiffieHellman).
+    /// </remarks>
+    public SecretKey ReadCertificate() =>
+        ReadPem(pem => ReadCertificate(keyId: null, pem));
+
+    /// <summary>
+    /// Reads a <see cref="SecretKey"/> from the source buffer along with its corresponding certificate.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
     /// <returns>The <see cref="SecretKey"/> that was read.</returns>
@@ -16,11 +28,12 @@ partial struct SecretKeyReader
     public SecretKey ReadCertificate(string keyId) =>
         ReadPem(pem => ReadCertificate(keyId, pem));
 
-    private static SecretKey ReadCertificate(string keyId, ReadOnlySpan<char> pem)
+    private static SecretKey ReadCertificate(string? keyId, ReadOnlySpan<char> pem)
     {
         var certificate = X509Certificate2.CreateFromPem(pem);
         try
         {
+            keyId ??= certificate.Thumbprint;
             return certificate.GetKeyAlgorithm() switch
             {
                 RsaSecretKey.Oid => ReadRsa(keyId, pem, certificate),

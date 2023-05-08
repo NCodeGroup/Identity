@@ -27,7 +27,7 @@ namespace NCode.Jose.KeyManagement;
 /// </summary>
 public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
 {
-    private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new[]
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
     {
         new KeySizes(minSize: 2048, maxSize: 16384, skipSize: 64)
     };
@@ -36,10 +36,10 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(RsaSecretKey);
+    public override Type KeyType => typeof(RsaSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes => StaticKekBitSizes;
+    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
     private RSAEncryptionPadding Padding { get; }
 
@@ -54,35 +54,39 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
         Padding = padding;
     }
 
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits)
+    private int GetMaxCekSizeBytes(int kekSizeBits)
     {
-        const int octetSize = 1;
-
         if (Padding.Mode == RSAEncryptionPaddingMode.Oaep)
         {
             // https://crypto.stackexchange.com/a/42100
             // ceil(kLenBits/8) - 2*ceil(hLenBits/8) - 2
             var hLenBits = HashSizeBitsFromAlgorithmName(Padding.OaepHashAlgorithm);
-            var maxSize = ((kekSizeBits + 7) >> 3) - (((hLenBits + 7) >> 3) << 1) - 2;
-            return new[] { new KeySizes(minSize: octetSize, maxSize, skipSize: octetSize) };
+            var maxSizeBytes = ((kekSizeBits + 7) >> 3) - (((hLenBits + 7) >> 3) << 1) - 2;
+            return maxSizeBytes;
         }
 
         // ReSharper disable once InvertIf
         if (Padding == RSAEncryptionPadding.Pkcs1)
         {
             // ceil(kLenBits/8) - Pkcs1Overhead
-            var maxSize = ((kekSizeBits + 7) >> 3) - 11;
-            return new[] { new KeySizes(minSize: octetSize, maxSize, skipSize: octetSize) };
+            var maxSizeBytes = ((kekSizeBits + 7) >> 3) - 11;
+            return maxSizeBytes;
         }
 
         throw new InvalidOperationException();
     }
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBits,
-        int cekSizeBytes) => (kekSizeBits + 7) >> 3;
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits)
+    {
+        const int octetSize = 1;
+        var maxCekSizeBytes = GetMaxCekSizeBytes(kekSizeBits);
+        return new[] { new KeySizes(minSize: octetSize, maxCekSizeBytes, skipSize: octetSize) };
+    }
+
+    /// <inheritdoc />
+    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
+        (kekSizeBits + 7) >> 3;
 
     /// <inheritdoc />
     public override bool TryWrapKey(

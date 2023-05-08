@@ -32,7 +32,7 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
         Digital Signature with RSASSA-PSS
         A key of size 2048 bits or larger MUST be used with these algorithms.
     */
-    private static IEnumerable<KeySizes> StaticLegalSizes { get; } = new[]
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
     {
         new KeySizes(minSize: 2048, maxSize: 16384, skipSize: 8)
     };
@@ -41,10 +41,10 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(RsaSecretKey);
+    public override Type KeyType => typeof(RsaSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes => StaticLegalSizes;
+    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
     /// <inheritdoc />
     public override int SignatureSizeBits { get; }

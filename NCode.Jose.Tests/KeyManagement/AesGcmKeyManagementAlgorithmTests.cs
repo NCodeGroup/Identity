@@ -61,7 +61,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     public void KekBitSizes_Valid()
     {
         var algorithm = Create();
-        var kekBitSizes = Assert.Single(algorithm.KekBitSizes);
+        var kekBitSizes = Assert.Single(algorithm.KeyBitSizes);
         Assert.Equal(8, kekBitSizes.MinSize);
         Assert.Equal(int.MaxValue, kekBitSizes.MaxSize);
         Assert.Equal(8, kekBitSizes.SkipSize);

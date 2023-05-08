@@ -33,7 +33,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     private const int IvSizeBytes = 96 >> 3;
     private const int TagSizeBytes = 128 >> 3;
 
-    private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new KeySizes[]
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new KeySizes[]
     {
         new(minSize: 128, maxSize: 256, skipSize: 64)
     };
@@ -42,10 +42,10 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(SymmetricSecretKey);
+    public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes => StaticKekBitSizes;
+    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
     private IEnumerable<KeySizes> CekByteSizes { get; }
 
@@ -67,7 +67,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => CekByteSizes;
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => cekSizeBytes;
+    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => CekSizeBytes;
 
     /// <inheritdoc />
     public override bool TryWrapKey(
@@ -151,7 +151,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
         }
         catch (CryptographicException exception)
         {
-            throw new EncryptionException("Failed to decrypt the encrypted content encryption key (CEK).", exception);
+            throw new EncryptionJoseException("Failed to decrypt the encrypted content encryption key (CEK).", exception);
         }
 
         bytesWritten = CekSizeBytes;

@@ -123,7 +123,7 @@ public static class Base64Url
                 chars[charPos + 1] = (char)map[((bytes[bytePos] & 0x03) << 4) | ((bytes[bytePos + 1] & 0xF0) >> 4)];
                 chars[charPos + 2] = (char)map[((bytes[bytePos + 1] & 0x0F) << 2) | ((bytes[bytePos + 2] & 0xC0) >> 6)];
                 chars[charPos + 3] = (char)map[bytes[bytePos + 2] & 0x3F];
-                charPos += 4;
+                charPos += CharBlockSize;
             }
 
             switch (remainderBytes)
@@ -159,7 +159,7 @@ public static class Base64Url
 
         var (byteCount, tempRemainder) = Math.DivRem(charCount * ByteBlockSize, CharBlockSize);
         if (tempRemainder > MaxPadCount)
-            throw new FormatException("Invalid length for a base64url char array or string.");
+            throw new FormatException("Invalid length for a Base64Url char array or string.");
 
         remainder = tempRemainder;
         return byteCount;

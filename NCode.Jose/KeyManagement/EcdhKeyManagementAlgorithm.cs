@@ -37,7 +37,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
     private static HashAlgorithmName HashAlgorithmName => HashAlgorithmName.SHA256;
 
-    private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new KeySizes[]
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new KeySizes[]
     {
         new(minSize: 256, maxSize: 384, skipSize: 128),
         new(minSize: 521, maxSize: 521, skipSize: 0)
@@ -52,10 +52,10 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(EccSecretKey);
+    public override Type KeyType => typeof(EccSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes => StaticKekBitSizes;
+    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
     private string AlgorithmField { get; }
 
@@ -169,9 +169,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBits,
-        int cekSizeBytes) => 0;
+    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => 0;
 
     /// <inheritdoc />
     public override void NewKey(

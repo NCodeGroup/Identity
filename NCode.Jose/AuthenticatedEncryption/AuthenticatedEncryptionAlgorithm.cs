@@ -28,12 +28,17 @@ namespace NCode.Jose.AuthenticatedEncryption;
 public interface IAuthenticatedEncryptionAlgorithm : IAlgorithm
 {
     /// <summary>
-    /// Gets the nonce sizes, in bytes, supported by this authenticated encryption (AEAD) algorithm.
+    /// Gets the size, in bytes, of the content encryption key (CEK) that is supported by this authenticated encryption (AEAD) algorithm.
+    /// </summary>
+    int ContentKeySizeBytes { get; }
+
+    /// <summary>
+    /// Gets the nonce sizes, in bytes, that is supported by this authenticated encryption (AEAD) algorithm.
     /// </summary>
     KeySizes NonceByteSizes { get; }
 
     /// <summary>
-    /// Gets the tag sizes, in bytes, supported by this authenticated encryption (AEAD) algorithm.
+    /// Gets the tag sizes, in bytes, that is supported by this authenticated encryption (AEAD) algorithm.
     /// </summary>
     KeySizes AuthenticationTagByteSizes { get; }
 
@@ -55,14 +60,14 @@ public interface IAuthenticatedEncryptionAlgorithm : IAlgorithm
     /// When overridden in a derived class, encrypts the plaintext into the ciphertext destination buffer
     /// and generates the authentication tag into a separate buffer.
     /// </summary>
-    /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
+    /// <param name="cek">Contains the content encryption key (CEK).</param>
     /// <param name="nonce">The nonce associated with this message, which should be a unique value for every operation with the same key.</param>
     /// <param name="plainText">The content to encrypt.</param>
     /// <param name="associatedData">Extra data associated with this message, which must also be provided during decryption.</param>
     /// <param name="cipherText">The byte array to receive the encrypted contents.</param>
     /// <param name="authenticationTag">The byte array to receive the generated authentication tag.</param>
     void Encrypt(
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plainText,
         ReadOnlySpan<byte> associatedData,
@@ -72,7 +77,7 @@ public interface IAuthenticatedEncryptionAlgorithm : IAlgorithm
     /// <summary>
     /// When overridden in a derived class, decrypts the ciphertext into the provided destination buffer if the authentication tag can be validated.
     /// </summary>
-    /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
+    /// <param name="cek">Contains the content encryption key (CEK).</param>
     /// <param name="nonce">The nonce associated with this message, which must match the value provided during encryption.</param>
     /// <param name="cipherText">The encrypted content to decrypt.</param>
     /// <param name="associatedData">Extra data associated with this message, which must match the value provided during encryption.</param>
@@ -81,7 +86,7 @@ public interface IAuthenticatedEncryptionAlgorithm : IAlgorithm
     /// <param name="bytesWritten">The number of bytes written to <paramref name="plainText"/>.</param>
     /// <returns><c>true</c> if <paramref name="plainText"/> was large enough to receive the decrypted data; otherwise, <c>false</c>.</returns>
     bool TryDecrypt(
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> cipherText,
         ReadOnlySpan<byte> associatedData,
@@ -95,11 +100,27 @@ public interface IAuthenticatedEncryptionAlgorithm : IAlgorithm
 /// </summary>
 public abstract class AuthenticatedEncryptionAlgorithm : Algorithm, IAuthenticatedEncryptionAlgorithm
 {
+    private IEnumerable<KeySizes>? KeyBitSizesOrNull { get; set; }
+
     /// <inheritdoc />
     public override AlgorithmType Type => AlgorithmType.AuthenticatedEncryption;
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(SymmetricSecretKey);
+    public override Type KeyType => typeof(ReadOnlySpan<byte>);
+
+    /// <inheritdoc />
+    public override IEnumerable<KeySizes> KeyBitSizes => KeyBitSizesOrNull ??= new[]
+    {
+        new KeySizes(minSize: ContentKeySizeBits, maxSize: ContentKeySizeBits, skipSize: 0)
+    };
+
+    /// <inheritdoc />
+    public abstract int ContentKeySizeBytes { get; }
+
+    /// <summary>
+    /// Gets the size, in bits, of the content encryption key (CEK) that is supported by this authenticated encryption (AEAD) algorithm.
+    /// </summary>
+    protected virtual int ContentKeySizeBits => ContentKeySizeBytes << 3;
 
     /// <inheritdoc />
     public abstract KeySizes NonceByteSizes { get; }
@@ -115,7 +136,7 @@ public abstract class AuthenticatedEncryptionAlgorithm : Algorithm, IAuthenticat
 
     /// <inheritdoc />
     public abstract void Encrypt(
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plainText,
         ReadOnlySpan<byte> associatedData,
@@ -124,7 +145,7 @@ public abstract class AuthenticatedEncryptionAlgorithm : Algorithm, IAuthenticat
 
     /// <inheritdoc />
     public abstract bool TryDecrypt(
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> cipherText,
         ReadOnlySpan<byte> associatedData,
@@ -135,23 +156,23 @@ public abstract class AuthenticatedEncryptionAlgorithm : Algorithm, IAuthenticat
     /// <summary>
     /// Asserts that the specified parameters are valid according to their corresponding legal sizes.
     /// </summary>
+    /// <param name="cek">Contains the content encryption key (CEK).</param>
     /// <param name="encrypt"><c>true</c> if the current operation is encryption; otherwise, <c>false</c> if the current operation is decryption.</param>
-    /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
     /// <param name="nonce">The nonce associated with this message, which should be a unique value for every operation with the same key.</param>
     /// <param name="plainText">The content to encrypt.</param>
     /// <param name="cipherText">The byte array to receive the encrypted contents.</param>
     /// <param name="authenticationTag">The byte array to receive the generated authentication tag.</param>
-    /// <returns><paramref name="secretKey"/> casted to <see cref="SymmetricSecretKey"/>.</returns>
     /// <exception cref="ArgumentException">Thrown when any of the validations fail.</exception>
-    protected SymmetricSecretKey ValidateParameters(
+    protected void ValidateParameters(
         bool encrypt,
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plainText,
         ReadOnlySpan<byte> cipherText,
         ReadOnlySpan<byte> authenticationTag)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        if (!KeySizesUtility.IsLegalSize(KeyBitSizes, cek.Length << 3))
+            throw new ArgumentException("The specified content encryption key (CEK) does not have a valid size for this cryptographic algorithm.", nameof(nonce));
 
         if (!KeySizesUtility.IsLegalSize(NonceByteSizes, nonce.Length))
             throw new ArgumentException("The specified nonce does not have a valid size for this cryptographic algorithm.", nameof(nonce));
@@ -161,7 +182,5 @@ public abstract class AuthenticatedEncryptionAlgorithm : Algorithm, IAuthenticat
 
         if (!KeySizesUtility.IsLegalSize(AuthenticationTagByteSizes, authenticationTag.Length))
             throw new ArgumentException("The specified authentication tag does not have a valid size for this cryptographic algorithm.", nameof(authenticationTag));
-
-        return validatedSecretKey;
     }
 }

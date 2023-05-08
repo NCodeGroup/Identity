@@ -38,14 +38,14 @@ public interface IAlgorithm
     string Code { get; }
 
     /// <summary>
-    /// Gets the <see cref="Type"/> of the <see cref="SecretKey"/> supported by the current cryptographic algorithm.
+    /// Gets the <see cref="Type"/> of the key material that is supported by the current cryptographic algorithm.
     /// </summary>
-    Type SecretKeyType { get; }
+    Type KeyType { get; }
 
     /// <summary>
-    /// Gets the legal key sizes, in bits, that are supported by the current cryptographic algorithm.
+    /// Gets the sizes, in bits, of the key material that is supported by the current cryptographic algorithm.
     /// </summary>
-    IEnumerable<KeySizes> KekBitSizes { get; }
+    IEnumerable<KeySizes> KeyBitSizes { get; }
 }
 
 /// <summary>
@@ -60,10 +60,10 @@ public abstract class Algorithm : IAlgorithm
     public abstract string Code { get; }
 
     /// <inheritdoc />
-    public abstract Type SecretKeyType { get; }
+    public abstract Type KeyType { get; }
 
     /// <inheritdoc />
-    public abstract IEnumerable<KeySizes> KekBitSizes { get; }
+    public abstract IEnumerable<KeySizes> KeyBitSizes { get; }
 
     /// <summary>
     /// Gets the hash size, in bits, from the specified <see cref="HashAlgorithmName"/>.
@@ -97,14 +97,14 @@ public abstract class Algorithm : IAlgorithm
         if (secretKey is not T typedSecretKey)
         {
             throw new ArgumentException(
-                $"The security key (KEK) was expected to be a type of {typeof(T).FullName}, but {secretKey.GetType().FullName} was given instead.",
+                $"The secret key was expected to be a type of {typeof(T).FullName}, but {secretKey.GetType().FullName} was given instead.",
                 nameof(secretKey));
         }
 
-        if (!KeySizesUtility.IsLegalSize(KekBitSizes, secretKey.KeySizeBits))
+        if (!KeySizesUtility.IsLegalSize(KeyBitSizes, secretKey.KeySizeBits))
         {
             throw new ArgumentException(
-                "The secret key (KEK) does not have a valid size for this cryptographic algorithm.",
+                "The secret key does not have a valid size for this cryptographic algorithm.",
                 nameof(secretKey));
         }
 

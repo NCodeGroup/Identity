@@ -31,10 +31,10 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(EccSecretKey);
+    public override Type KeyType => typeof(EccSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes { get; }
+    public override IEnumerable<KeySizes> KeyBitSizes { get; }
 
     /// <inheritdoc />
     public override int SignatureSizeBits { get; }
@@ -55,7 +55,7 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
         HashAlgorithmName = hashAlgorithmName;
 
         var kekSizeBits = hashSize == 512 ? 521 : hashSize;
-        KekBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
+        KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
     }
 
     /// <inheritdoc />

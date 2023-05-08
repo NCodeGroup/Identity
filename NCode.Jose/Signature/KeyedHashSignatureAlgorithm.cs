@@ -31,10 +31,10 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(SymmetricSecretKey);
+    public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes { get; }
+    public override IEnumerable<KeySizes> KeyBitSizes { get; }
 
     /// <inheritdoc />
     public override int SignatureSizeBits { get; }
@@ -61,7 +61,7 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
            effective security strength is the minimum of the security strength
            of the key and two times the size of the internal hash value.)
         */
-        KekBitSizes = new[] { new KeySizes(minSize: signatureSizeBits, maxSize: int.MaxValue, skipSize: 8) };
+        KeyBitSizes = new[] { new KeySizes(minSize: signatureSizeBits, maxSize: int.MaxValue, skipSize: 8) };
     }
 
     /// <inheritdoc />

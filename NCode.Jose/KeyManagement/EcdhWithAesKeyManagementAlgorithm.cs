@@ -49,12 +49,11 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => CekByteSizes;
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
+        CekByteSizes;
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBits,
-        int cekSizeBytes) =>
+    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />

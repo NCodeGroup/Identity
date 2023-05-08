@@ -34,7 +34,7 @@ public interface ISecretKeyCollection : IReadOnlyCollection<SecretKey>, IDisposa
     /// <param name="secretKey">When this method returns, the <see cref="SecretKey"/> with the specified <c>Key ID (KID)</c>,
     /// if found; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if a <see cref="SecretKey"/> was found with the specified <c>Key ID (KID)</c>; otherwise, <c>false</c>.</returns>
-    bool TryGet(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey);
+    bool TryGetByKeyId(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey);
 }
 
 /// <summary>
@@ -83,7 +83,7 @@ public class SecretKeyCollection : ISecretKeyCollection
     }
 
     /// <inheritdoc />
-    public bool TryGet(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey) =>
+    public bool TryGetByKeyId(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey) =>
         SecretKeysByKeyId.TryGetValue(keyId, out secretKey);
 
     /// <inheritdoc />

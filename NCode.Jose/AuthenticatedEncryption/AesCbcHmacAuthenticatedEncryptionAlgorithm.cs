@@ -20,7 +20,6 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
-using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
 
 namespace NCode.Jose.AuthenticatedEncryption;
@@ -39,7 +38,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes { get; }
+    public override int ContentKeySizeBytes { get; }
 
     /// <inheritdoc />
     public override KeySizes NonceByteSizes => StaticNonceByteSizes;
@@ -49,8 +48,6 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
 
     private KeyedHashFunctionDelegate KeyedHashFunction { get; }
 
-    private int KeySizeBytes { get; }
-
     private int ComponentSizeBytes { get; }
 
     /// <summary>
@@ -58,16 +55,16 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="keyedHashFunction">Contains a delegate for the <c>keyed hash (HMAC)</c> function to use.</param>
-    /// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
-    public AesCbcHmacAuthenticatedEncryptionAlgorithm(string code, KeyedHashFunctionDelegate keyedHashFunction, int kekSizeBits)
+    /// <param name="cekSizeBits">Contains the legal size, in bits, of the content encryption key (CEK).</param>
+    public AesCbcHmacAuthenticatedEncryptionAlgorithm(string code, KeyedHashFunctionDelegate keyedHashFunction, int cekSizeBits)
     {
+        var cekSizeBytes = (cekSizeBits + 7) >> 3;
+
         Code = code;
         KeyedHashFunction = keyedHashFunction;
-        KeySizeBytes = (kekSizeBits + 7) >> 3;
-        ComponentSizeBytes = KeySizeBytes >> 1; // half of the key size
-
-        KekBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
+        ContentKeySizeBytes = cekSizeBytes;
         AuthenticationTagByteSizes = new KeySizes(minSize: ComponentSizeBytes, maxSize: ComponentSizeBytes, skipSize: 0);
+        ComponentSizeBytes = cekSizeBytes >> 1; // half of the key size
     }
 
     /// <inheritdoc />
@@ -103,24 +100,23 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
 
     /// <inheritdoc />
     public override void Encrypt(
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plainText,
         ReadOnlySpan<byte> associatedData,
         Span<byte> cipherText,
         Span<byte> authenticationTag)
     {
-        var validatedSecretKey = ValidateParameters(
+        ValidateParameters(
             encrypt: true,
-            secretKey,
+            cek,
             nonce,
             plainText,
             cipherText,
             authenticationTag);
 
-        var keyBytes = validatedSecretKey.KeyBytes;
-        var hmacKey = keyBytes[..ComponentSizeBytes];
-        var aesKey = keyBytes[ComponentSizeBytes..];
+        var hmacKey = cek[..ComponentSizeBytes];
+        var aesKey = cek[ComponentSizeBytes..];
 
         using var aes = CreateAes(aesKey);
         var result = aes.TryEncryptCbc(plainText, nonce, cipherText, out var bytesWritten);
@@ -136,7 +132,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
 
     /// <inheritdoc />
     public override bool TryDecrypt(
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> cipherText,
         ReadOnlySpan<byte> associatedData,
@@ -144,17 +140,16 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
         Span<byte> plainText,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateParameters(
+        ValidateParameters(
             encrypt: false,
-            secretKey,
+            cek,
             nonce,
             plainText,
             cipherText,
             authenticationTag);
 
-        var keyBytes = validatedSecretKey.KeyBytes;
-        var hmacKey = keyBytes[..ComponentSizeBytes];
-        var aesKey = keyBytes[ComponentSizeBytes..];
+        var hmacKey = cek[..ComponentSizeBytes];
+        var aesKey = cek[ComponentSizeBytes..];
 
         var expectedAuthenticationTag = ComponentSizeBytes <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[ComponentSizeBytes] :
@@ -170,7 +165,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
                 expectedAuthenticationTag);
 
             if (!CryptographicOperations.FixedTimeEquals(expectedAuthenticationTag, authenticationTag))
-                throw new IntegrityException("Failed to verify authentication tag.");
+                throw new IntegrityJoseException("Failed to verify authentication tag.");
         }
         finally
         {
@@ -184,7 +179,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
         }
         catch (CryptographicException exception)
         {
-            throw new EncryptionException("Failed to decrypt ciphertext.", exception);
+            throw new EncryptionJoseException("Failed to decrypt ciphertext.", exception);
         }
     }
 
@@ -211,14 +206,14 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
                 cipherText,
                 hmacInput);
 
-            var hmacOutput = KeySizeBytes <= JoseConstants.MaxStackAlloc ?
-                stackalloc byte[KeySizeBytes] :
-                GC.AllocateUninitializedArray<byte>(KeySizeBytes, pinned: true);
+            var hmacOutput = ContentKeySizeBytes <= JoseConstants.MaxStackAlloc ?
+                stackalloc byte[ContentKeySizeBytes] :
+                GC.AllocateUninitializedArray<byte>(ContentKeySizeBytes, pinned: true);
 
             try
             {
                 var hmacResult = KeyedHashFunction(hmacKey, hmacInput, hmacOutput, out var hmacBytesWritten);
-                if (!hmacResult || hmacBytesWritten != KeySizeBytes)
+                if (!hmacResult || hmacBytesWritten != ContentKeySizeBytes)
                     throw new InvalidOperationException();
 
                 hmacOutput[..ComponentSizeBytes].CopyTo(authenticationTag);
@@ -246,17 +241,15 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
         if (associatedData.Length + nonce.Length + cipherText.Length + sizeof(long) != destination.Length)
             throw new InvalidOperationException();
 
-        var pos = destination;
+        associatedData.CopyTo(destination);
+        destination = destination[associatedData.Length..];
 
-        associatedData.CopyTo(pos);
-        pos = pos[associatedData.Length..];
+        nonce.CopyTo(destination);
+        destination = destination[nonce.Length..];
 
-        nonce.CopyTo(pos);
-        pos = pos[nonce.Length..];
+        cipherText.CopyTo(destination);
+        destination = destination[cipherText.Length..];
 
-        cipherText.CopyTo(pos);
-        pos = pos[cipherText.Length..];
-
-        BinaryPrimitives.WriteInt64BigEndian(pos, associatedData.Length << 3);
+        BinaryPrimitives.WriteInt64BigEndian(destination, associatedData.Length << 3);
     }
 }

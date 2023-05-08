@@ -19,20 +19,20 @@
 
 namespace NCode.Jose.Exceptions;
 
-public class InvalidAlgorithmException : JoseException
+public class IntegrityJoseException : JoseException
 {
-    public InvalidAlgorithmException()
+    public IntegrityJoseException()
     {
         // nothing
     }
 
-    public InvalidAlgorithmException(string message)
+    public IntegrityJoseException(string message)
         : base(message)
     {
         // nothing
     }
 
-    public InvalidAlgorithmException(string message, Exception inner)
+    public IntegrityJoseException(string message, Exception inner)
         : base(message, inner)
     {
         // nothing

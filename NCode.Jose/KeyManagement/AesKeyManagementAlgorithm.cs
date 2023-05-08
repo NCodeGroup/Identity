@@ -33,10 +33,10 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(SymmetricSecretKey);
+    public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes { get; }
+    public override IEnumerable<KeySizes> KeyBitSizes { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AesKeyManagementAlgorithm"/> class.
@@ -49,7 +49,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
         AesKeyWrap = aesKeyWrap;
         Code = code;
 
-        KekBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
+        KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
     }
 
     /// <inheritdoc />
@@ -57,9 +57,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
         AesKeyWrap.LegalCekByteSizes;
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBits,
-        int cekSizeBytes) =>
+    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />

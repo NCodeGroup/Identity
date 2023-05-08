@@ -330,7 +330,7 @@ public class AesKeyWrap : IAesKeyWrap
         */
 
         if (!a.Span.SequenceEqual(DefaultIV))
-            throw new EncryptionException("Failed to decrypt the encrypted content encryption key (CEK). DefaultIV doesn't match.");
+            throw new EncryptionJoseException("Failed to decrypt the encrypted content encryption key (CEK). DefaultIV doesn't match.");
 
         Concat(r, contentKey);
 

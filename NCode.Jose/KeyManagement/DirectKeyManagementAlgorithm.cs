@@ -27,7 +27,7 @@ namespace NCode.Jose.KeyManagement;
 /// </summary>
 public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
 {
-    private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new[]
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
     {
         new KeySizes(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
     };
@@ -41,10 +41,10 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(SymmetricSecretKey);
+    public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes => StaticKekBitSizes;
+    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
@@ -59,9 +59,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(
-        int kekSizeBits,
-        int cekSizeBytes) => 0;
+    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => 0;
 
     /// <inheritdoc />
     public override void NewKey(

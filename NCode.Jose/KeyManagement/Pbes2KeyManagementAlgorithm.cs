@@ -35,7 +35,7 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     internal const int MinIterationCount = 1000;
     private const int DefaultIterationCount = 8192;
 
-    private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new[]
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
     {
         new KeySizes(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
     };
@@ -46,10 +46,10 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type SecretKeyType => typeof(SymmetricSecretKey);
+    public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes => StaticKekBitSizes;
+    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
     private HashAlgorithmName HashAlgorithmName { get; }
 

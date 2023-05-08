@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
 
 namespace NCode.Jose.AuthenticatedEncryption;
@@ -32,7 +31,7 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlg
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KekBitSizes { get; }
+    public override int ContentKeySizeBytes { get; }
 
     /// <inheritdoc />
     public override KeySizes NonceByteSizes => AesGcm.NonceByteSizes;
@@ -44,12 +43,11 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlg
     /// Initializes a new instance of the <see cref="AesGcmAuthenticatedEncryptionAlgorithm"/> class.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
-    public AesGcmAuthenticatedEncryptionAlgorithm(string code, int kekSizeBits)
+    /// <param name="cekSizeBits">Contains the legal size, in bits, of the content encryption key (CEK).</param>
+    public AesGcmAuthenticatedEncryptionAlgorithm(string code, int cekSizeBits)
     {
         Code = code;
-
-        KekBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
+        ContentKeySizeBytes = (cekSizeBits + 7) >> 3;
     }
 
     /// <inheritdoc />
@@ -62,29 +60,29 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlg
 
     /// <inheritdoc />
     public override void Encrypt(
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plainText,
         ReadOnlySpan<byte> associatedData,
         Span<byte> cipherText,
         Span<byte> authenticationTag)
     {
-        var validatedSecretKey = ValidateParameters(
+        ValidateParameters(
             encrypt: true,
-            secretKey,
+            cek,
             nonce,
             plainText,
             cipherText,
             authenticationTag);
 
-        using var key = new AesGcm(validatedSecretKey.KeyBytes);
+        using var key = new AesGcm(cek);
 
         key.Encrypt(nonce, plainText, cipherText, authenticationTag, associatedData);
     }
 
     /// <inheritdoc />
     public override bool TryDecrypt(
-        SecretKey secretKey,
+        ReadOnlySpan<byte> cek,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> cipherText,
         ReadOnlySpan<byte> associatedData,
@@ -98,22 +96,22 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlg
             return false;
         }
 
-        var validatedSecretKey = ValidateParameters(
+        ValidateParameters(
             encrypt: false,
-            secretKey,
+            cek,
             nonce,
             plainText,
             cipherText,
             authenticationTag);
 
-        using var key = new AesGcm(validatedSecretKey.KeyBytes);
+        using var key = new AesGcm(cek);
         try
         {
             key.Decrypt(nonce, cipherText, authenticationTag, plainText, associatedData);
         }
         catch (CryptographicException exception)
         {
-            throw new EncryptionException("Failed to decrypt the ciphertext.", exception);
+            throw new EncryptionJoseException("Failed to decrypt the ciphertext.", exception);
         }
 
         bytesWritten = cipherText.Length;

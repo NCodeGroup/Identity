@@ -43,7 +43,7 @@ partial class JoseSerializer
 
     private delegate bool SecretKeySelectorDelegate(IReadOnlyDictionary<string, object> header, [MaybeNullWhen(false)] out SecretKey secretKey);
 
-    private static SecretKeySelectorDelegate SecretKeySelectorFactory(ISecretKeyCollection secretKeys)
+    private static SecretKeySelectorDelegate SecretKeySelectorFactory(IEnumerable<SecretKey> secretKeys)
     {
         var customLookup = new Dictionary<(string HeaderKey, string HeaderValue), SecretKey>();
         foreach (var secretKey in secretKeys)
@@ -93,14 +93,16 @@ partial class JoseSerializer
               BASE64URL(JWE Authentication Tag)
         */
 
-        // JWE Protected Header
         var segment = StringSplitSequenceSegment.Split(jwe, '.', out var count);
         if (count != JweSegmentCount) throw new ArgumentException("The input is not a valid JWE value in compact form.", nameof(jwe));
+
+        // JWE Protected Header
         var headerChars = segment.Memory.Span;
         var header = DeserializeBase64Url<Dictionary<string, object>>("JWE Protected Header", headerChars);
 
-        // JWE Encrypted Key
         segment = segment.Next ?? throw new InvalidOperationException();
+
+        // JWE Encrypted Key
         var encryptedKeyChars = segment.Memory.Span;
         using var encryptedKeyLease = DecodeBase64Url(
             "JWE Encrypted Key",
@@ -108,8 +110,9 @@ partial class JoseSerializer
             isSensitiveTrue,
             out var encryptedKeyBytes);
 
-        // JWE Initialization Vector
         segment = segment.Next ?? throw new InvalidOperationException();
+
+        // JWE Initialization Vector
         var initializationVectorChars = segment.Memory.Span;
         using var initializationVectorLease = DecodeBase64Url(
             "JWE Initialization Vector",
@@ -117,8 +120,9 @@ partial class JoseSerializer
             isSensitiveFalse,
             out var initializationVectorBytes);
 
-        // JWE Ciphertext
         segment = segment.Next ?? throw new InvalidOperationException();
+
+        // JWE Ciphertext
         var cipherTextChars = segment.Memory.Span;
         using var cipherTextLease = DecodeBase64Url(
             "JWE Ciphertext",
@@ -126,8 +130,9 @@ partial class JoseSerializer
             isSensitiveTrue,
             out var cipherTextBytes);
 
-        // JWE Authentication Tag
         segment = segment.Next ?? throw new InvalidOperationException();
+
+        // JWE Authentication Tag
         var authenticationTagChars = segment.Memory.Span;
         using var authenticationTagLease = DecodeBase64Url(
             "JWE Authentication Tag",
@@ -142,24 +147,24 @@ partial class JoseSerializer
             throw new JoseException("The JWE header is missing the 'alg' field.");
         }
 
-        if (!TryGetHeader<string>(header, "enc", out var encryptionAlgorithmCode))
-        {
-            throw new JoseException("The JWE header is missing the 'enc' field.");
-        }
-
-        if (!secretKeySelector(header, out var secretKey))
-        {
-            throw new JoseException("Unable to determine the JWE encryption key.");
-        }
-
         if (!AlgorithmProvider.TryGetKeyManagementAlgorithm(keyManagementAlgorithmCode, out var keyManagementAlgorithm))
         {
             throw new InvalidAlgorithmJoseException($"No registered JWA key agreement algorithm for `{keyManagementAlgorithmCode}` was found.");
         }
 
+        if (!TryGetHeader<string>(header, "enc", out var encryptionAlgorithmCode))
+        {
+            throw new JoseException("The JWE header is missing the 'enc' field.");
+        }
+
         if (!AlgorithmProvider.TryGetAuthenticatedEncryptionAlgorithm(encryptionAlgorithmCode, out var encryptionAlgorithm))
         {
             throw new InvalidAlgorithmJoseException($"No registered AEAD encryption algorithm for `{encryptionAlgorithmCode}` was found.");
+        }
+
+        if (!secretKeySelector(header, out var secretKey))
+        {
+            throw new JoseException("Unable to determine the JWE encryption key.");
         }
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;

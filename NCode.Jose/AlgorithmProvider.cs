@@ -89,7 +89,7 @@ public class AlgorithmProvider : IAlgorithmProvider
     }
 
     private bool TryGetAlgorithm<T>(AlgorithmType type, string code, [MaybeNullWhen(false)] out T algorithm)
-        where T : IAlgorithm
+        where T : IKeyedAlgorithm
     {
         if (AlgorithmLookup.TryGetValue((type, code), out var baseAlgorithm) && baseAlgorithm is T typedAlgorithm)
         {

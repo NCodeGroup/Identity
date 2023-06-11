@@ -25,7 +25,7 @@ namespace NCode.Jose.Signature;
 /// <summary>
 /// Provides methods for all cryptographic digital signature algorithms.
 /// </summary>
-public interface ISignatureAlgorithm : IAlgorithm
+public interface ISignatureAlgorithm : IKeyedAlgorithm
 {
     /// <summary>
     /// Gets the size, in bits, of the digital signature.
@@ -55,7 +55,7 @@ public interface ISignatureAlgorithm : IAlgorithm
 /// <summary>
 /// Base implementation for all cryptographic digital signature algorithms.
 /// </summary>
-public abstract class SignatureAlgorithm : Algorithm, ISignatureAlgorithm
+public abstract class SignatureAlgorithm : KeyedAlgorithm, ISignatureAlgorithm
 {
     /// <inheritdoc />
     public override AlgorithmType Type => AlgorithmType.DigitalSignature;

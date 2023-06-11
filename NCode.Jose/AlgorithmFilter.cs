@@ -22,13 +22,13 @@ using Microsoft.Extensions.Options;
 namespace NCode.Jose;
 
 /// <summary>
-/// Provides the ability to configure the list of support cryptographic algorithms.
+/// Provides the ability to configure the list of supported algorithms.
 /// </summary>
 public interface IAlgorithmFilter
 {
     /// <summary>
     /// Returns a boolean value whether the specified <paramref name="algorithm"/> should be excluded
-    /// from the list of supported cryptographic algorithms.
+    /// from the list of supported algorithms.
     /// </summary>
     /// <param name="algorithm">The <see cref="IAlgorithm"/> to check if it should be excluded.</param>
     /// <returns><c>true</c> if the specified <paramref name="algorithm"/> should be excluded; otherwise, <c>false</c>.</returns>

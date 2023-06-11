@@ -26,7 +26,7 @@ namespace NCode.Jose.KeyManagement;
 /// <summary>
 /// Provides methods for all cryptographic key management algorithms.
 /// </summary>
-public interface IKeyManagementAlgorithm : IAlgorithm
+public interface IKeyManagementAlgorithm : IKeyedAlgorithm
 {
     /// <summary>
     /// Gets the legal key sizes, in bytes, of the content encryption key (CEK)
@@ -95,7 +95,7 @@ public interface IKeyManagementAlgorithm : IAlgorithm
 /// <summary>
 /// Base implementation for all cryptographic key management algorithms.
 /// </summary>
-public abstract class KeyManagementAlgorithm : Algorithm, IKeyManagementAlgorithm
+public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlgorithm
 {
     /// <inheritdoc />
     public override AlgorithmType Type => AlgorithmType.KeyManagement;

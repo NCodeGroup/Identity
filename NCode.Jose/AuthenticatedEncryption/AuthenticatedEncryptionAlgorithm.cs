@@ -25,7 +25,7 @@ namespace NCode.Jose.AuthenticatedEncryption;
 /// <summary>
 /// Provides methods for all cryptographic authenticated encryption (AEAD) algorithms.
 /// </summary>
-public interface IAuthenticatedEncryptionAlgorithm : IAlgorithm
+public interface IAuthenticatedEncryptionAlgorithm : IKeyedAlgorithm
 {
     /// <summary>
     /// Gets the size, in bytes, of the content encryption key (CEK) that is supported by this authenticated encryption (AEAD) algorithm.
@@ -98,7 +98,7 @@ public interface IAuthenticatedEncryptionAlgorithm : IAlgorithm
 /// <summary>
 /// Base implementation for all cryptographic authenticated encryption (AEAD) algorithms.
 /// </summary>
-public abstract class AuthenticatedEncryptionAlgorithm : Algorithm, IAuthenticatedEncryptionAlgorithm
+public abstract class AuthenticatedEncryptionAlgorithm : KeyedAlgorithm, IAuthenticatedEncryptionAlgorithm
 {
     private IEnumerable<KeySizes>? KeyBitSizesOrNull { get; set; }
 

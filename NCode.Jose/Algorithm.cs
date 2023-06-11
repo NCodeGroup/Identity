@@ -17,6 +17,8 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace NCode.Jose;
 
 /// <summary>
@@ -45,4 +47,25 @@ public abstract class Algorithm : IAlgorithm
 
     /// <inheritdoc />
     public abstract string Code { get; }
+
+    /// <summary>
+    /// Attempts to retrieve a typed key-value pair from a dictionary.
+    /// </summary>
+    /// <param name="header">The dictionary containing the key-value pairs.</param>
+    /// <param name="key">The key of the value to retrieve.</param>
+    /// <param name="value">When this method returns, the value associated with the specified key, if the key is found;
+    /// otherwise, the default value for the type of the value parameter. This parameter is passed uninitialized.</param>
+    /// <typeparam name="T">The type of value to retrieve.</typeparam>
+    /// <returns><c>true</c> if a value with the specified key was found; otherwise, <c>false</c>.</returns>
+    protected static bool TryGetHeader<T>(IDictionary<string, object> header, string key, [MaybeNullWhen(false)] out T value)
+    {
+        if (header.TryGetValue(key, out var obj) && obj is T typedValue)
+        {
+            value = typedValue;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
 }

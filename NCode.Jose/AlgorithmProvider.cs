@@ -19,6 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using NCode.Jose.AuthenticatedEncryption;
+using NCode.Jose.Compression;
 using NCode.Jose.KeyManagement;
 using NCode.Jose.Signature;
 
@@ -63,6 +64,16 @@ public interface IAlgorithmProvider
     bool TryGetAuthenticatedEncryptionAlgorithm(
         string algorithmCode,
         [MaybeNullWhen(false)] out IAuthenticatedEncryptionAlgorithm algorithm);
+
+    /// <summary>
+    /// Gets an <see cref="ICompressionAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
+    /// </summary>
+    /// <param name="algorithmCode">The code of the <see cref="ICompressionAlgorithm"/> to get.</param>
+    /// <param name="algorithm">When this method returns, an <see cref="ICompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/>, if found; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if an <see cref="ICompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
+    bool TryGetCompressionAlgorithm(
+        string algorithmCode,
+        [MaybeNullWhen(false)] out ICompressionAlgorithm algorithm);
 }
 
 /// <summary>
@@ -89,7 +100,7 @@ public class AlgorithmProvider : IAlgorithmProvider
     }
 
     private bool TryGetAlgorithm<T>(AlgorithmType type, string code, [MaybeNullWhen(false)] out T algorithm)
-        where T : IKeyedAlgorithm
+        where T : IAlgorithm
     {
         if (AlgorithmLookup.TryGetValue((type, code), out var baseAlgorithm) && baseAlgorithm is T typedAlgorithm)
         {
@@ -118,4 +129,10 @@ public class AlgorithmProvider : IAlgorithmProvider
         string algorithmCode,
         [MaybeNullWhen(false)] out IAuthenticatedEncryptionAlgorithm algorithm) =>
         TryGetAlgorithm(AlgorithmType.AuthenticatedEncryption, algorithmCode, out algorithm);
+
+    /// <inheritdoc />
+    public bool TryGetCompressionAlgorithm(
+        string algorithmCode,
+        [MaybeNullWhen(false)] out ICompressionAlgorithm algorithm) =>
+        TryGetAlgorithm(AlgorithmType.Compression, algorithmCode, out algorithm);
 }

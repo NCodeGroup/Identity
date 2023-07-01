@@ -47,27 +47,39 @@ partial class JoseSerializer
         IReadOnlyDictionary<string, object> header,
         [MaybeNullWhen(false)] out SecretKey secretKey);
 
-    private static SecretKeySelectorDelegate SecretKeySelectorFactory(IEnumerable<SecretKey> secretKeys)
+    private static SecretKeySelectorDelegate SecretKeySelectorFactory(ISecretKeyCollection secretKeys)
     {
-        var customLookup = new Dictionary<(string HeaderKey, string HeaderValue), SecretKey>();
-        foreach (var secretKey in secretKeys)
+        var headerKeys = new[] { "x5t", "x5t#S256" };
+        IReadOnlyDictionary<(string HeaderKey, string HeaderValue), SecretKey>? customLookup = null;
+
+        IReadOnlyDictionary<(string HeaderKey, string HeaderValue), SecretKey> LoadCustomLookup()
         {
-            customLookup[("kid", secretKey.KeyId)] = secretKey;
+            var newCustomLookup = new Dictionary<(string HeaderKey, string HeaderValue), SecretKey>();
 
-            if (secretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey) continue;
+            foreach (var secretKey in secretKeys)
+            {
+                if (secretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey) continue;
 
-            var certificate = asymmetricSecretKey.Certificate;
-            var thumbprintSha1 = Base64Url.Encode(certificate.GetCertHash());
-            var thumbprintSha256 = Base64Url.Encode(certificate.GetCertHash(HashAlgorithmName.SHA256));
+                var certificate = asymmetricSecretKey.Certificate;
+                var thumbprintSha1 = Base64Url.Encode(certificate.GetCertHash());
+                var thumbprintSha256 = Base64Url.Encode(certificate.GetCertHash(HashAlgorithmName.SHA256));
 
-            customLookup[("x5t", thumbprintSha1)] = secretKey;
-            customLookup[("x5t#S256", thumbprintSha256)] = secretKey;
+                newCustomLookup[("x5t", thumbprintSha1)] = secretKey;
+                newCustomLookup[("x5t#S256", thumbprintSha256)] = secretKey;
+            }
+
+            return newCustomLookup;
         }
-
-        var headerKeys = new[] { "kid", "x5t", "x5t#S256" };
 
         bool SecretKeySelector(IReadOnlyDictionary<string, object> header, [MaybeNullWhen(false)] out SecretKey secretKey)
         {
+            if (header.TryGetValue<string>("kid", out var keyId) && secretKeys.TryGetByKeyId(keyId, out secretKey))
+            {
+                return true;
+            }
+
+            customLookup ??= LoadCustomLookup();
+
             foreach (var headerKey in headerKeys)
             {
                 if (header.TryGetValue<string>(headerKey, out var headerValue) &&
@@ -121,7 +133,7 @@ partial class JoseSerializer
         ref JweToken token,
         SecretKeySelectorDelegate secretKeySelector,
         IBufferWriter<byte> plainTextData,
-        out IReadOnlyDictionary<string, object> headers)
+        out IReadOnlyDictionary<string, object> header)
     {
         Requires.Argument(token.JweType == JweType.Compact, nameof(token), "The specified value is not a valid JWE token in compact form.");
         //Requires.Argument(plainTextStream.CanSeek, nameof(plainTextStream), "The specified stream must be seekable.");
@@ -272,6 +284,6 @@ partial class JoseSerializer
             plainTextData.Write(plainTextBytes);
         }
 
-        headers = localHeader;
+        header = localHeader;
     }
 }

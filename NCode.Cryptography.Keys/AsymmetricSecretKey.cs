@@ -63,11 +63,17 @@ public abstract class AsymmetricSecretKey : SecretKey
     protected AsymmetricSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
         : base(keyId)
     {
+        if (certificate?.HasPrivateKey ?? false)
+        {
+            var bytes = certificate.Export(X509ContentType.Cert);
+            certificate.Dispose();
+            certificate = new X509Certificate2(bytes);
+            Debug.Assert(!certificate.HasPrivateKey);
+        }
+
         MemoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length);
         try
         {
-            Debug.Assert(certificate is not { HasPrivateKey: true });
-
             KeySizeBits = keySizeBits;
             Certificate = certificate;
 

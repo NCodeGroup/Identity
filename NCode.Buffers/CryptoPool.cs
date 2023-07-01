@@ -29,16 +29,9 @@ public static class CryptoPool
     /// <summary>
     /// Retrieves a buffer that is at least the requested length.
     /// </summary>
-    /// <param name="byteCount">The length of the buffer needed.</param>
-    /// <param name="useExactSize"><c>true</c> if the returned <see cref="Memory{T}"/> must be the exact requested size;
-    /// otherwise <c>false</c>, if the <see cref="Memory{T}"/> can be the size of the actual lease from the array pool.</param>
-    /// <param name="isSensitive"><c>true</c> if the buffer should be pinned and then zeroed when the lease is returned.</param>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
     /// <returns>
     /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
     /// </returns>
-    public static IMemoryOwner<byte> Rent(int byteCount, bool useExactSize = true, bool isSensitive = true)
-    {
-        var buffer = ArrayPool<byte>.Shared.Rent(byteCount);
-        return new CryptoLease(buffer, useExactSize ? byteCount : buffer.Length, isSensitive);
-    }
+    public static IMemoryOwner<byte> Rent(int minBufferSize) => new CryptoLease(minBufferSize);
 }

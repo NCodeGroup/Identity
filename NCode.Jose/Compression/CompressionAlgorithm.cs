@@ -17,6 +17,8 @@
 
 #endregion
 
+using System.Buffers;
+
 namespace NCode.Jose.Compression;
 
 /// <summary>
@@ -27,16 +29,16 @@ public interface ICompressionAlgorithm : IAlgorithm
     /// <summary>
     /// When overridden in a derived class, compresses data.
     /// </summary>
-    /// <param name="plainText">Contains the data to compress.</param>
-    /// <param name="compressedPlainText">Destination for the compressed data.</param>
-    void Compress(ReadOnlySpan<byte> plainText, Stream compressedPlainText);
+    /// <param name="uncompressedData">Contains the data to compress.</param>
+    /// <param name="compressedData">Destination for the compressed data.</param>
+    void Compress(ReadOnlySpan<byte> uncompressedData, IBufferWriter<byte> compressedData);
 
     /// <summary>
     /// When overridden in a derived class, decompresses data.
     /// </summary>
-    /// <param name="compressedPlainText">Contains the data to decompress.</param>
-    /// <param name="plainText">Destination for the decompresses data.</param>
-    void Decompress(ReadOnlySpan<byte> compressedPlainText, Stream plainText);
+    /// <param name="compressedData">Contains the data to decompress.</param>
+    /// <param name="uncompressedData">Destination for the uncompressed data.</param>
+    void Decompress(ReadOnlySpan<byte> compressedData, IBufferWriter<byte> uncompressedData);
 }
 
 /// <summary>
@@ -48,8 +50,8 @@ public abstract class CompressionAlgorithm : Algorithm, ICompressionAlgorithm
     public override AlgorithmType Type => AlgorithmType.Compression;
 
     /// <inheritdoc />
-    public abstract void Compress(ReadOnlySpan<byte> plainText, Stream compressedPlainText);
+    public abstract void Compress(ReadOnlySpan<byte> uncompressedData, IBufferWriter<byte> compressedData);
 
     /// <inheritdoc />
-    public abstract void Decompress(ReadOnlySpan<byte> compressedPlainText, Stream plainText);
+    public abstract void Decompress(ReadOnlySpan<byte> compressedData, IBufferWriter<byte> uncompressedData);
 }

@@ -24,6 +24,7 @@ using System.Text;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Extensions;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -72,7 +73,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         AlgorithmField = isDirectAgreement ? "enc" : "alg";
     }
 
-    private static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, IDictionary<string, object> header)
+    private static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, IDictionary<string, object> headers)
     {
         var parameters = key.ExportParameters(includePrivateParameters: true);
 
@@ -82,7 +83,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         {
             try
             {
-                header["epk"] = new Dictionary<string, object>
+                headers["epk"] = new Dictionary<string, object>
                 {
                     ["kty"] = "EC",
                     ["crv"] = $"P-{curveSizeBits}",
@@ -101,22 +102,22 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     private ECDiffieHellman ValidateHeaderForUnwrap(
         ECCurve curve,
         int curveSizeBits,
-        IDictionary<string, object> header,
+        IReadOnlyDictionary<string, object> header,
         out string algorithm,
         out string? apu,
         out string? apv)
     {
-        if (!TryGetHeader<string>(header, AlgorithmField, out var localAlgorithm))
+        if (!header.TryGetValue<string>(AlgorithmField, out var localAlgorithm))
         {
             throw new JoseException($"The JWT header is missing the '{AlgorithmField}' field.");
         }
 
-        if (!TryGetHeader<IDictionary<string, object>>(header, "epk", out var epk))
+        if (!header.TryGetValue<IDictionary<string, object>>("epk", out var epk))
         {
             throw new JoseException("The JWT header is missing the 'epk' field.");
         }
 
-        if (!TryGetHeader<string>(epk, "kty", out var kty))
+        if (!epk.TryGetValue<string>("kty", out var kty))
         {
             throw new JoseException("The 'epk' header is missing the 'kty' field.");
         }
@@ -126,7 +127,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException("The 'kty' field was expected to be 'EC'.");
         }
 
-        if (!TryGetHeader<string>(epk, "crv", out var crv))
+        if (!epk.TryGetValue<string>("crv", out var crv))
         {
             throw new JoseException("The 'epk' header is missing the 'crv' field.");
         }
@@ -137,12 +138,12 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException($"The 'crv' field was expected to be '{crvExpected}'.");
         }
 
-        if (!TryGetHeader<string>(epk, "x", out var x))
+        if (!epk.TryGetValue<string>("x", out var x))
         {
             throw new JoseException("The 'epk' header is missing the 'x' field.");
         }
 
-        if (!TryGetHeader<string>(epk, "y", out var y))
+        if (!epk.TryGetValue<string>("y", out var y))
         {
             throw new JoseException("The 'epk' header is missing the 'y' field.");
         }
@@ -159,8 +160,8 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
         algorithm = localAlgorithm;
 
-        TryGetHeader(header, "apu", out apu);
-        TryGetHeader(header, "apv", out apv);
+        header.TryGetValue("apu", out apu);
+        header.TryGetValue("apv", out apv);
 
         return ECDiffieHellman.Create(parameters);
     }
@@ -186,13 +187,13 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         using var ephemeralKey = ECDiffieHellman.Create(curve);
         ExportKey(curveSizeBits, ephemeralKey, header);
 
-        if (!TryGetHeader<string>(header, AlgorithmField, out var algorithm))
+        if (!header.TryGetValue<string>(AlgorithmField, out var algorithm))
         {
             throw new JoseException($"The JWT header is missing the '{AlgorithmField}' field.");
         }
 
-        TryGetHeader<string>(header, "apu", out var apu);
-        TryGetHeader<string>(header, "apv", out var apv);
+        header.TryGetValue<string>("apu", out var apu);
+        header.TryGetValue<string>("apv", out var apv);
 
         using var senderKey = ephemeralKey.PublicKey;
         DeriveKey(algorithm, apu, apv, recipientKey, senderKey, contentKey);
@@ -212,7 +213,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        IReadOnlyDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)

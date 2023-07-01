@@ -80,7 +80,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        IReadOnlyDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)

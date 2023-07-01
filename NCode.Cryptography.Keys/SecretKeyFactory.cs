@@ -53,7 +53,7 @@ public static class SecretKeyFactory
         var size = 4096;
         while (true)
         {
-            using var lease = CryptoPool.Rent(size, useExactSize: false);
+            using var lease = CryptoPool.Rent(size);
 
             var buffer = lease.Memory.Span;
             if (keyMaterial.TryExportKey(buffer, out var bytesWritten))

@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using NCode.Buffers;
@@ -40,30 +39,21 @@ public interface IJoseSerializer
     /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for signature validation.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
-    string Decode(string value, ISecretKeyCollection secretKeys);
+    string Decode(
+        string value,
+        ISecretKeyCollection secretKeys);
 
     /// <summary>
-    /// Attempts to validate a Json Web Token (JWT) and return the decoded payload.
+    /// Validates a Json Web Token (JWT) and returns the decoded payload and header.
     /// </summary>
     /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for signature validation.</param>
-    /// <param name="payload">An <see cref="string"/> to receive the decoded payload if validation was successful.</param>
-    /// <returns><c>true</c> if the Json Web Token (JWT) was successfully decoded and validated; otherwise, <c>false</c>.</returns>
-    bool TryDecode(string value, ISecretKeyCollection secretKeys, [MaybeNullWhen(false)] out string payload);
-
-    /// <summary>
-    /// Attempts to validate a Json Web Token (JWT) and return the decoded payload.
-    /// </summary>
-    /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
-    /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for signature validation.</param>
-    /// <param name="payload">A  <see cref="string"/> that is to receive the decoded payload if validation was successful.</param>
-    /// <param name="headers">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded headers if validation was successful.</param>
-    /// <returns><c>true</c> if the Json Web Token (JWT) was successfully decoded and validated; otherwise, <c>false</c>.</returns>
-    bool TryDecode(
+    /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
+    /// <returns>The decoded payload from Json Web Token (JWT).</returns>
+    string Decode(
         string value,
         ISecretKeyCollection secretKeys,
-        [MaybeNullWhen(false)] out string payload,
-        [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers);
+        out IReadOnlyDictionary<string, object> header);
 }
 
 /// <summary>
@@ -82,24 +72,21 @@ public partial class JoseSerializer : IJoseSerializer
         }
     };
 
-    private static bool IsJson(string value) =>
-        value.StartsWith('{') && value.EndsWith('}');
+    private static ReadOnlySequenceSegment<char> Split(string value, out int count, char separator = '.') =>
+        StringSplitSequenceSegment.Split(value, separator, out count);
 
-    private static ReadOnlySequenceSegment<char> Split(string value, out int count) =>
-        StringSplitSequenceSegment.Split(value, '.', out count);
-
-    private static IMemoryOwner<byte> DecodeBase64Url(string name, ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
+    private static IMemoryOwner<byte> DecodeBase64Url(string name, ReadOnlySpan<char> chars, out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
 
-        var lease = CryptoPool.Rent(byteCount, isSensitive);
+        var lease = CryptoPool.Rent(byteCount);
         try
         {
-            bytes = lease.Memory.Span;
+            bytes = lease.Memory.Span[..byteCount];
             var decodeResult = Base64Url.TryDecode(chars, bytes, out var decodeBytesWritten);
             if (!decodeResult || decodeBytesWritten != byteCount)
             {
-                throw new JoseException($"Failed to decode {name}.");
+                throw new JoseException($"Failed to base64url decode {name}.");
             }
         }
         catch
@@ -111,27 +98,15 @@ public partial class JoseSerializer : IJoseSerializer
         return lease;
     }
 
-    private static T DeserializeBase64Url<T>(string name, ReadOnlySpan<char> chars, bool isSensitive = false)
+    private static T DeserializeUtf8JsonAfterBase64Url<T>(string name, ReadOnlySpan<char> chars)
     {
-        using var lease = DecodeBase64Url(name, chars, isSensitive, out var bytes);
-        return Deserialize<T>(name, bytes);
+        using var lease = DecodeBase64Url(name, chars, out var utf8JsonBytes);
+        return DeserializeUtf8Json<T>(name, utf8JsonBytes);
     }
 
-    private static T Deserialize<T>(string name, ReadOnlySpan<byte> bytes) =>
-        JsonSerializer.Deserialize<T>(bytes, DeserializeOptions) ??
+    private static T DeserializeUtf8Json<T>(string name, ReadOnlySpan<byte> utf8JsonBytes) =>
+        JsonSerializer.Deserialize<T>(utf8JsonBytes, DeserializeOptions) ??
         throw new JoseException($"Failed to deserialize {name}");
-
-    private static bool TryGetHeader<T>(IReadOnlyDictionary<string, object> collection, string key, [MaybeNullWhen(false)] out T value)
-    {
-        if (collection.TryGetValue(key, out var obj) && obj is T converted)
-        {
-            value = converted;
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
 
     private static byte[] DecodePayload(bool b64, ReadOnlySpan<char> encodedPayload)
     {
@@ -165,179 +140,23 @@ public partial class JoseSerializer : IJoseSerializer
     }
 
     /// <inheritdoc />
-    public string Decode(string value, ISecretKeyCollection secretKeys) =>
-        !TryDecode(value, secretKeys, out var payload, out _) ?
-            throw new IntegrityJoseException("Signature validation failed.") :
-            payload;
+    public string Decode(
+        string value,
+        ISecretKeyCollection secretKeys) =>
+        Decode(value, secretKeys, out _);
 
     /// <inheritdoc />
-    public bool TryDecode(
+    public string Decode(
         string value,
         ISecretKeyCollection secretKeys,
-        [MaybeNullWhen(false)] out string payload) =>
-        TryDecode(value, secretKeys, out payload, out _);
-
-    /// <inheritdoc />
-    public bool TryDecode(
-        string value,
-        ISecretKeyCollection secretKeys,
-        [MaybeNullWhen(false)] out string payload,
-        [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers)
+        out IReadOnlyDictionary<string, object> header)
     {
-        var segment = Split(value, out var count);
+        var iterator = Split(value, out var count);
         return count switch
         {
-            JwsSegmentCount => TryDecodeJws(segment, secretKeys, out payload, out headers),
-            JweSegmentCount => TryDecodeJwe(segment, secretKeys, out payload, out headers),
+            JwsSegmentCount => DecodeJws(iterator, secretKeys, out header),
+            JweSegmentCount => DecodeJweCompact(iterator, secretKeys, out header),
             _ => throw new InvalidOperationException()
         };
-    }
-
-    private bool TryDecodeJws(
-        ReadOnlySequenceSegment<char> segment,
-        ISecretKeyCollection secretKeys,
-        [MaybeNullWhen(false)] out string payload,
-        [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers)
-    {
-        // TODO: should we use CryptoPool?
-
-        /*
-              BASE64URL(UTF8(JWS Protected Header)) || '.' ||
-              BASE64URL(JWS Payload) || '.' ||
-              BASE64URL(JWS Signature)
-        */
-
-        // JWS Protected Header
-        var encodedHeader = segment.Memory.Span;
-        var headerBytes = Base64Url.Decode(encodedHeader);
-        var deserializedHeader = Deserialize<IReadOnlyDictionary<string, object>>("JWS Protected Header", headerBytes);
-
-        if (!TryGetHeader<string>(deserializedHeader, "alg", out var algorithmCode))
-        {
-            throw new JoseException("The JWT header is missing the 'alg' field.");
-        }
-
-        if (!TryGetHeader<bool>(deserializedHeader, "b64", out var b64))
-        {
-            b64 = true;
-        }
-
-        // JWS Payload
-        segment = segment.Next ?? throw new InvalidOperationException();
-        var encodedPayload = segment.Memory.Span;
-        var payloadBytes = DecodePayload(b64, encodedPayload);
-
-        // JWS Signature
-        segment = segment.Next ?? throw new InvalidOperationException();
-        var encodedSignature = segment.Memory.Span;
-        var expectedSignature = Base64Url.Decode(encodedSignature);
-
-        Debug.Assert(segment.Next is null);
-
-        if (algorithmCode == AlgorithmCodes.DigitalSignature.None)
-        {
-            var isValid = expectedSignature.Length == 0;
-            payload = isValid ? Encoding.UTF8.GetString(payloadBytes) : null;
-            headers = isValid ? deserializedHeader : null;
-            return isValid;
-        }
-
-        if (!AlgorithmProvider.TryGetSignatureAlgorithm(algorithmCode, out var algorithm))
-        {
-            throw new InvalidAlgorithmJoseException($"No registered signing algorithm for `{algorithmCode}` was found.");
-        }
-
-        var signatureInput = GetSignatureInput(encodedHeader, encodedPayload);
-
-        bool TryVerify(SecretKey secretKey, [MaybeNullWhen(false)] out string payload)
-        {
-            if (algorithm.Verify(secretKey, signatureInput, expectedSignature))
-            {
-                payload = Encoding.UTF8.GetString(payloadBytes);
-                return true;
-            }
-
-            payload = null;
-            return false;
-        }
-
-        if (TryGetHeader<string>(deserializedHeader, "kid", out var keyId) &&
-            secretKeys.TryGetByKeyId(keyId, out var specificKey) &&
-            TryVerify(specificKey, out payload))
-        {
-            headers = deserializedHeader;
-            return true;
-        }
-
-        foreach (var secretKey in secretKeys)
-        {
-            if (!TryVerify(secretKey, out payload)) continue;
-            headers = deserializedHeader;
-            return true;
-        }
-
-        // no matching signing key
-        payload = null;
-        headers = deserializedHeader;
-        return false;
-    }
-
-    private static byte[] GetSignatureInput(ReadOnlySpan<char> encodedHeader, ReadOnlySpan<char> encodedPayload)
-    {
-        var headerByteCount = Encoding.UTF8.GetByteCount(encodedHeader);
-        var payloadByteCount = Encoding.UTF8.GetByteCount(encodedPayload);
-
-        var result = new byte[headerByteCount + 1 + payloadByteCount];
-
-        Encoding.UTF8.GetBytes(encodedHeader, result);
-        result[headerByteCount] = (byte)'.';
-        Encoding.UTF8.GetBytes(encodedPayload, result.AsSpan(headerByteCount + 1));
-
-        return result;
-    }
-
-    private bool TryDecodeJwe(
-        ReadOnlySequenceSegment<char> segment,
-        ISecretKeyCollection secretKeys,
-        [MaybeNullWhen(false)] out string payload,
-        [MaybeNullWhen(false)] out IReadOnlyDictionary<string, object> headers)
-    {
-        // Debug.Assert(jwt.Length > 0);
-        // Debug.Assert(indices.Count == JweSegmentCount);
-
-        /*
-
-        // JOSE Header
-        // JWE Encrypted Key
-        // JWE Initialization Vector
-        // JWE AAD
-        // JWE Ciphertext
-        // JWE Authentication Tag
-
-        == Compact encoding ==
-        BASE64URL(UTF8(JWE Protected Header)) || '.' ||
-        BASE64URL(JWE Encrypted Key) || '.' ||
-        BASE64URL(JWE Initialization Vector) || '.' ||
-        BASE64URL(JWE Ciphertext) || '.' ||
-        BASE64URL(JWE Authentication Tag)
-
-        // JSON encoding:
-        // JWE Protected Header
-        // JWE Shared Unprotected Header
-        // JWE Per-Recipient Unprotected Header
-
-        */
-
-        // protectedHeaderBytes
-        // encryptedCek
-        // iv
-        // ciphertext
-        // authTag
-
-        // var encodedHeader = segments[0];
-        // var headerBytes = Base64Url.Decode(encodedHeader);
-        // var deserializedHeaders = DeserializeHeaders(headerBytes);
-
-        throw new NotImplementedException();
     }
 }

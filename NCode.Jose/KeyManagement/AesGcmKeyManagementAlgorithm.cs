@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Extensions;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -112,7 +113,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        IReadOnlyDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)
@@ -159,11 +160,11 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     private static void ValidateHeaderForUnwrap(
-        IDictionary<string, object> header,
+        IReadOnlyDictionary<string, object> header,
         Span<byte> iv,
         Span<byte> tag)
     {
-        if (!TryGetHeader<string>(header, "iv", out var ivString))
+        if (!header.TryGetValue<string>("iv", out var ivString))
         {
             throw new JoseException($"The JWT header is missing the 'iv' field.");
         }
@@ -177,7 +178,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
         var ivResult = Base64Url.TryDecode(ivString, iv, out var ivBytesWritten);
         Debug.Assert(ivResult && ivBytesWritten == IvSizeBytes);
 
-        if (!TryGetHeader<string>(header, "tag", out var tagString))
+        if (!header.TryGetValue<string>("tag", out var tagString))
         {
             throw new JoseException($"The JWT header is missing the 'tag' field.");
         }

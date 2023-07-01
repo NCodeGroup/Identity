@@ -23,6 +23,7 @@ using System.Text;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Extensions;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -92,12 +93,12 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        if (!TryGetHeader<string>(header, "alg", out var alg))
+        if (!header.TryGetValue<string>("alg", out var alg))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!TryGetHeader<int>(header, "p2c", out var iterationCount))
+        if (!header.TryGetValue<int>("p2c", out var iterationCount))
         {
             iterationCount = DefaultIterationCount;
         }
@@ -165,24 +166,24 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        IReadOnlyDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        if (!TryGetHeader<string>(header, "alg", out var alg))
+        if (!header.TryGetValue<string>("alg", out var alg))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!TryGetHeader<int>(header, "p2c", out var iterationCount))
+        if (!header.TryGetValue<int>("p2c", out var iterationCount))
         {
             throw new JoseException("The JWT header is missing the 'p2c' field.");
         }
 
-        if (!TryGetHeader<string>(header, "p2s", out var saltInputString))
+        if (!header.TryGetValue<string>("p2s", out var saltInputString))
         {
             throw new JoseException("The JWT header is missing the 'p2s' field.");
         }

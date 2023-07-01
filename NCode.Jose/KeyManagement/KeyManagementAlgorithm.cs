@@ -85,7 +85,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
     bool TryUnwrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        IReadOnlyDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten);
@@ -129,7 +129,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public abstract bool TryUnwrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        IReadOnlyDictionary<string, object> header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten);

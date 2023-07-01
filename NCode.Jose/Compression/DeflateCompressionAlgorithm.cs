@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,9 @@
 
 #endregion
 
+using System.Buffers;
 using System.IO.Compression;
+using Nerdbank.Streams;
 
 namespace NCode.Jose.Compression;
 
@@ -30,21 +32,29 @@ public class DeflateCompressionAlgorithm : CompressionAlgorithm
     public override string Code => AlgorithmCodes.Compression.Deflate;
 
     /// <inheritdoc />
-    public override void Compress(ReadOnlySpan<byte> plainText, Stream compressedPlainText)
+    public override void Compress(ReadOnlySpan<byte> uncompressedData, IBufferWriter<byte> compressedData)
     {
-        using var gzip = new DeflateStream(compressedPlainText, CompressionLevel.Optimal);
+        using var compressedStream = compressedData.AsStream();
+        using var deflateStream = new DeflateStream(compressedStream, CompressionLevel.Optimal);
 
-        gzip.Write(plainText);
+        deflateStream.Write(uncompressedData);
     }
 
     /// <inheritdoc />
-    public override unsafe void Decompress(ReadOnlySpan<byte> compressedPlainText, Stream plainText)
+    public override unsafe void Decompress(ReadOnlySpan<byte> compressedData, IBufferWriter<byte> uncompressedData)
     {
-        fixed (byte* pCompressedPlainText = &compressedPlainText[0])
+        fixed (byte* pCompressedData = &compressedData[0])
         {
-            using var stream = new UnmanagedMemoryStream(pCompressedPlainText, compressedPlainText.Length);
-            using var deflateStream = new DeflateStream(stream, CompressionMode.Decompress);
-            deflateStream.CopyTo(plainText);
+            using var compressedStream = new UnmanagedMemoryStream(pCompressedData, compressedData.Length);
+            using var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress);
+
+            int bytesRead;
+            do
+            {
+                var buffer = uncompressedData.GetSpan();
+                bytesRead = deflateStream.Read(buffer);
+                uncompressedData.Advance(bytesRead);
+            } while (bytesRead > 0);
         }
     }
 }

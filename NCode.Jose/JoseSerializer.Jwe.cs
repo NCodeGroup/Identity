@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
@@ -24,24 +25,27 @@ using System.Text;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Internal;
+using NCode.Jose.Extensions;
+using Nerdbank.Streams;
+using Validation;
 
 namespace NCode.Jose;
 
-public class JweToken
-{
-}
-
 partial class JoseSerializer
 {
-    private JweToken ParseJwe(string jwe, SecretKeySelectorDelegate secretKeySelector)
-    {
-        var trimmed = jwe.Trim();
-        var isJson = trimmed.StartsWith('{') && trimmed.EndsWith('}');
-        return isJson ? ParseJweJson(trimmed, secretKeySelector) : ParseJweCompact(trimmed, secretKeySelector);
-    }
+    // private static bool IsJson(string value) =>
+    //     value.StartsWith('{') && value.EndsWith('}');
 
-    private delegate bool SecretKeySelectorDelegate(IReadOnlyDictionary<string, object> header, [MaybeNullWhen(false)] out SecretKey secretKey);
+    // private JweToken ParseJwe(string jwe, SecretKeySelectorDelegate secretKeySelector)
+    // {
+    //     var trimmed = jwe.Trim();
+    //     var isJson = IsJson(trimmed);
+    //     return isJson ? ParseJweJson(trimmed, secretKeySelector) : ParseJweCompact(trimmed, secretKeySelector);
+    // }
+
+    private delegate bool SecretKeySelectorDelegate(
+        IReadOnlyDictionary<string, object> header,
+        [MaybeNullWhen(false)] out SecretKey secretKey);
 
     private static SecretKeySelectorDelegate SecretKeySelectorFactory(IEnumerable<SecretKey> secretKeys)
     {
@@ -66,7 +70,7 @@ partial class JoseSerializer
         {
             foreach (var headerKey in headerKeys)
             {
-                if (TryGetHeader<string>(header, headerKey, out var headerValue) &&
+                if (header.TryGetValue<string>(headerKey, out var headerValue) &&
                     customLookup.TryGetValue((headerKey, headerValue), out secretKey))
                 {
                     return true;
@@ -80,10 +84,47 @@ partial class JoseSerializer
         return SecretKeySelector;
     }
 
-    private JweToken ParseJweCompact(string jwe, SecretKeySelectorDelegate secretKeySelector)
+    private string DecodeJweCompact(
+        ReadOnlySequenceSegment<char> iterator,
+        ISecretKeyCollection secretKeys,
+        out IReadOnlyDictionary<string, object> header)
     {
-        const bool isSensitiveTrue = true;
-        const bool isSensitiveFalse = false;
+        var token = JweToken.ParseCompact(iterator);
+
+        var secretKeySelector = SecretKeySelectorFactory(secretKeys);
+
+        using var plainTextData = new Sequence<byte>(ArrayPool<byte>.Shared);
+
+        DecryptJweCompact(ref token, secretKeySelector, plainTextData, out var localHeader);
+
+        Debug.Assert(plainTextData.Length <= int.MaxValue);
+        var plainTextLength = (int)plainTextData.Length;
+
+        using var plainTextReader = new SequenceTextReader(plainTextData, Encoding.UTF8);
+
+        var payload = string.Create(plainTextLength, plainTextReader, (span, reader) =>
+        {
+            int charsRead;
+            var totalCharsRead = 0;
+            do
+            {
+                charsRead = reader.Read(span[totalCharsRead..]);
+                totalCharsRead += charsRead;
+            } while (charsRead > 0);
+        });
+
+        header = localHeader;
+        return payload;
+    }
+
+    private void DecryptJweCompact(
+        ref JweToken token,
+        SecretKeySelectorDelegate secretKeySelector,
+        IBufferWriter<byte> plainTextData,
+        out IReadOnlyDictionary<string, object> headers)
+    {
+        Requires.Argument(token.JweType == JweType.Compact, nameof(token), "The specified value is not a valid JWE token in compact form.");
+        //Requires.Argument(plainTextStream.CanSeek, nameof(plainTextStream), "The specified stream must be seekable.");
 
         /*
               BASE64URL(UTF8(JWE Protected Header)) || '.' ||
@@ -93,56 +134,36 @@ partial class JoseSerializer
               BASE64URL(JWE Authentication Tag)
         */
 
-        var segment = StringSplitSequenceSegment.Split(jwe, '.', out var count);
-        if (count != JweSegmentCount) throw new ArgumentException("The input is not a valid JWE value in compact form.", nameof(jwe));
-
         // JWE Protected Header
-        var headerChars = segment.Memory.Span;
-        var header = DeserializeBase64Url<Dictionary<string, object>>("JWE Protected Header", headerChars);
-
-        segment = segment.Next ?? throw new InvalidOperationException();
+        var localHeader = DeserializeUtf8JsonAfterBase64Url<Dictionary<string, object>>(
+            "JWE Protected Header",
+            token.EncodedProtectedHeader);
 
         // JWE Encrypted Key
-        var encryptedKeyChars = segment.Memory.Span;
         using var encryptedKeyLease = DecodeBase64Url(
             "JWE Encrypted Key",
-            encryptedKeyChars,
-            isSensitiveTrue,
+            token.EncodedEncryptedKey,
             out var encryptedKeyBytes);
 
-        segment = segment.Next ?? throw new InvalidOperationException();
-
         // JWE Initialization Vector
-        var initializationVectorChars = segment.Memory.Span;
         using var initializationVectorLease = DecodeBase64Url(
             "JWE Initialization Vector",
-            initializationVectorChars,
-            isSensitiveFalse,
+            token.EncodedInitializationVector,
             out var initializationVectorBytes);
 
-        segment = segment.Next ?? throw new InvalidOperationException();
-
         // JWE Ciphertext
-        var cipherTextChars = segment.Memory.Span;
         using var cipherTextLease = DecodeBase64Url(
             "JWE Ciphertext",
-            cipherTextChars,
-            isSensitiveTrue,
+            token.EncodedCiphertext,
             out var cipherTextBytes);
 
-        segment = segment.Next ?? throw new InvalidOperationException();
-
         // JWE Authentication Tag
-        var authenticationTagChars = segment.Memory.Span;
         using var authenticationTagLease = DecodeBase64Url(
             "JWE Authentication Tag",
-            authenticationTagChars,
-            isSensitiveTrue,
+            token.EncodedAuthenticationTag,
             out var authenticationTagBytes);
 
-        Debug.Assert(segment.Next == null);
-
-        if (!TryGetHeader<string>(header, "alg", out var keyManagementAlgorithmCode))
+        if (!localHeader.TryGetValue<string>("alg", out var keyManagementAlgorithmCode))
         {
             throw new JoseException("The JWE header is missing the 'alg' field.");
         }
@@ -152,7 +173,7 @@ partial class JoseSerializer
             throw new InvalidAlgorithmJoseException($"No registered JWA key agreement algorithm for `{keyManagementAlgorithmCode}` was found.");
         }
 
-        if (!TryGetHeader<string>(header, "enc", out var encryptionAlgorithmCode))
+        if (!localHeader.TryGetValue<string>("enc", out var encryptionAlgorithmCode))
         {
             throw new JoseException("The JWE header is missing the 'enc' field.");
         }
@@ -162,18 +183,18 @@ partial class JoseSerializer
             throw new InvalidAlgorithmJoseException($"No registered AEAD encryption algorithm for `{encryptionAlgorithmCode}` was found.");
         }
 
-        if (!secretKeySelector(header, out var secretKey))
+        if (!secretKeySelector(localHeader, out var secretKey))
         {
             throw new JoseException("Unable to determine the JWE encryption key.");
         }
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;
         using var contentKeyLease = CryptoPool.Rent(cekSizeBytes);
-        var contentKey = contentKeyLease.Memory.Span;
+        var contentKey = contentKeyLease.Memory.Span[..cekSizeBytes];
 
         var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
             secretKey,
-            header,
+            localHeader,
             encryptedKeyBytes,
             contentKey,
             out var unwrapBytesWritten);
@@ -198,14 +219,14 @@ partial class JoseSerializer
                 BASE64URL(JWE AAD)).
         */
 
-        var associatedDataByteCount = Encoding.ASCII.GetByteCount(headerChars);
+        var associatedDataByteCount = Encoding.ASCII.GetByteCount(token.EncodedProtectedHeader);
         using var associatedDataLease = CryptoPool.Rent(associatedDataByteCount);
-        var associatedDataBytes = associatedDataLease.Memory.Span;
-        Encoding.UTF8.GetBytes(headerChars, associatedDataBytes);
+        var associatedDataBytes = associatedDataLease.Memory.Span[..associatedDataByteCount];
+        Encoding.ASCII.GetBytes(token.EncodedProtectedHeader, associatedDataBytes);
 
         var plainTextSizeBytes = encryptionAlgorithm.GetMaxPlainTextSizeBytes(cipherTextBytes.Length);
         using var plainTextLease = CryptoPool.Rent(plainTextSizeBytes);
-        var plainTextBytes = plainTextLease.Memory.Span;
+        var plainTextBytes = plainTextLease.Memory.Span[..plainTextSizeBytes];
 
         /*
            16.  Decrypt the JWE Ciphertext using the CEK, the JWE Initialization
@@ -237,16 +258,20 @@ partial class JoseSerializer
                 plaintext using the specified compression algorithm.
         */
 
-        if (TryGetHeader<string>(header, "zip", out var zip))
+        if (localHeader.TryGetValue<string>("zip", out var compressionAlgorithmCode))
         {
-            throw new NotImplementedException();
+            if (!AlgorithmProvider.TryGetCompressionAlgorithm(compressionAlgorithmCode, out var compressionAlgorithm))
+            {
+                throw new InvalidAlgorithmJoseException($"No registered JWE compression algorithm for `{compressionAlgorithmCode}` was found.");
+            }
+
+            compressionAlgorithm.Decompress(plainTextBytes, plainTextData);
+        }
+        else
+        {
+            plainTextData.Write(plainTextBytes);
         }
 
-        throw new NotImplementedException();
-    }
-
-    private JweToken ParseJweJson(string jwe, SecretKeySelectorDelegate secretKeySelector)
-    {
-        throw new NotImplementedException();
+        headers = localHeader;
     }
 }

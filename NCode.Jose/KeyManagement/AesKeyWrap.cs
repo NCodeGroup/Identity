@@ -171,7 +171,7 @@ public class AesKeyWrap : IAesKeyWrap
         DefaultIV.CopyTo(a);
 
         using var lease = CryptoPool.Rent(contentKey.Length);
-        var leaseMemory = lease.Memory;
+        var leaseMemory = lease.Memory[..contentKey.Length];
         contentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> keyMemory = leaseMemory;
 
@@ -279,7 +279,7 @@ public class AesKeyWrap : IAesKeyWrap
         */
 
         using var lease = CryptoPool.Rent(encryptedContentKey.Length);
-        var leaseMemory = lease.Memory;
+        var leaseMemory = lease.Memory[..encryptedContentKey.Length];
         encryptedContentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> encryptedKeyMemory = leaseMemory;
 

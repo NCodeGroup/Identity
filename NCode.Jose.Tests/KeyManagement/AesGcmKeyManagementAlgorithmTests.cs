@@ -220,7 +220,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         var p2c = Random.Shared.Next(Pbes2KeyManagementAlgorithm.MinIterationCount, 310000);
         var saltSize = alg.Length + 1 + Pbes2KeyManagementAlgorithm.SaltInputSizeBytes;
 
-        IDictionary<string, object> header = new Dictionary<string, object>
+        var header = new Dictionary<string, object>
         {
             [nameof(alg)] = alg,
             [nameof(p2c)] = p2c
@@ -235,8 +235,8 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         var wrapResult = algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out var wrapBytesWritten);
         Assert.True(wrapResult);
         Assert.Equal(encryptedContentKey.Length, wrapBytesWritten);
-        Assert.Equal(p2c, Assert.Contains(nameof(p2c), header));
-        Assert.Equal(saltSize, Assert.IsType<string>(Assert.Contains("p2s", header)).Length);
+        Assert.Equal(p2c, Assert.Contains(nameof(p2c), (IDictionary<string, object>)header));
+        Assert.Equal(saltSize, Assert.IsType<string>(Assert.Contains("p2s", (IDictionary<string, object>)header)).Length);
 
         var unwrapResult = algorithm.TryUnwrapKey(secretKey, header, encryptedContentKey, decryptedContentKey, out var unwrapBytesWritten);
         Assert.True(unwrapResult);

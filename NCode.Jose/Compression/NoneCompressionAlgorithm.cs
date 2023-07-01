@@ -17,32 +17,24 @@
 
 #endregion
 
-namespace NCode.Jose;
+using System.Buffers;
 
-/// <summary>
-/// Common interface for all <c>JOSE</c> algorithms.
-/// </summary>
-public interface IAlgorithm
-{
-    /// <summary>
-    /// Gets an <see cref="AlgorithmType"/> value that describes the type of the current algorithm.
-    /// </summary>
-    AlgorithmType Type { get; }
+namespace NCode.Jose.Compression;
 
-    /// <summary>
-    /// Gets a <see cref="string"/> value that uniquely identifies the current algorithm.
-    /// </summary>
-    string Code { get; }
-}
-
-/// <summary>
-/// Base implementation for all <c>JOSE</c> algorithms.
-/// </summary>
-public abstract class Algorithm : IAlgorithm
+public class NoneCompressionAlgorithm : CompressionAlgorithm
 {
     /// <inheritdoc />
-    public abstract AlgorithmType Type { get; }
+    public override string Code => "None";
 
     /// <inheritdoc />
-    public abstract string Code { get; }
+    public override void Compress(ReadOnlySpan<byte> uncompressedData, IBufferWriter<byte> compressedData)
+    {
+        compressedData.Write(uncompressedData);
+    }
+
+    /// <inheritdoc />
+    public override void Decompress(ReadOnlySpan<byte> compressedData, IBufferWriter<byte> uncompressedData)
+    {
+        uncompressedData.Write(compressedData);
+    }
 }

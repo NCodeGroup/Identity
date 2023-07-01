@@ -96,7 +96,7 @@ partial struct SecretKeyReader
         where T : AsymmetricAlgorithm
     {
         using var lease = CryptoPool.Rent(decodedDataLength);
-        var keyData = lease.Memory.Span;
+        var keyData = lease.Memory.Span[..decodedDataLength];
 
         if (!Convert.TryFromBase64Chars(base64Data, keyData, out var bytesWritten))
         {

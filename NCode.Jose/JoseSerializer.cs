@@ -18,8 +18,6 @@
 #endregion
 
 using System.Buffers;
-using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
@@ -72,14 +70,19 @@ public partial class JoseSerializer : IJoseSerializer
         }
     };
 
-    private static IMemoryOwner<byte> DecodeBase64Url(string name, ReadOnlySpan<char> chars, out Span<byte> bytes)
+    private static IMemoryOwner<byte> RentBuffer(int minBufferSize, bool isSensitive, out Span<byte> bytes)
+    {
+        var lease = isSensitive ? CryptoPool.Rent(minBufferSize) : MemoryPool<byte>.Shared.Rent(minBufferSize);
+        bytes = lease.Memory.Span[..minBufferSize];
+        return lease;
+    }
+
+    private static IMemoryOwner<byte> DecodeBase64Url(string name, ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
-
-        var lease = CryptoPool.Rent(byteCount);
+        var lease = RentBuffer(byteCount, isSensitive, out bytes);
         try
         {
-            bytes = lease.Memory.Span[..byteCount];
             var decodeResult = Base64Url.TryDecode(chars, bytes, out var decodeBytesWritten);
             if (!decodeResult || decodeBytesWritten != byteCount)
             {
@@ -97,33 +100,13 @@ public partial class JoseSerializer : IJoseSerializer
 
     private static T DeserializeUtf8JsonAfterBase64Url<T>(string name, ReadOnlySpan<char> chars)
     {
-        using var lease = DecodeBase64Url(name, chars, out var utf8JsonBytes);
+        using var lease = DecodeBase64Url(name, chars, isSensitive: false, out var utf8JsonBytes);
         return DeserializeUtf8Json<T>(name, utf8JsonBytes);
     }
 
     private static T DeserializeUtf8Json<T>(string name, ReadOnlySpan<byte> utf8JsonBytes) =>
         JsonSerializer.Deserialize<T>(utf8JsonBytes, DeserializeOptions) ??
         throw new JoseException($"Failed to deserialize {name}");
-
-    private static byte[] DecodePayload(bool b64, ReadOnlySpan<char> encodedPayload)
-    {
-        var charCount = encodedPayload.Length;
-        var byteCount = b64 ? Base64Url.GetByteCountForDecode(charCount) : Encoding.UTF8.GetByteCount(encodedPayload);
-        var bytes = new byte[byteCount];
-
-        if (b64)
-        {
-            var result = Base64Url.TryDecode(encodedPayload, bytes, out var bytesWritten);
-            Debug.Assert(result && bytesWritten == byteCount);
-        }
-        else
-        {
-            var bytesWritten = Encoding.UTF8.GetBytes(encodedPayload, bytes);
-            Debug.Assert(bytesWritten == byteCount);
-        }
-
-        return bytes;
-    }
 
     private IAlgorithmProvider AlgorithmProvider { get; }
 

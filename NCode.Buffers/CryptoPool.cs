@@ -34,4 +34,34 @@ public static class CryptoPool
     /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
     /// </returns>
     public static IMemoryOwner<byte> Rent(int minBufferSize) => new CryptoLease(minBufferSize);
+
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="buffer">When this method returns, contains the buffer with the exact requested size.</param>
+    /// <returns>
+    /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
+    /// </returns>
+    public static IMemoryOwner<byte> Rent(int minBufferSize, out Span<byte> buffer)
+    {
+        var lease = new CryptoLease(minBufferSize);
+        buffer = lease.Memory.Span[..minBufferSize];
+        return lease;
+    }
+
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="buffer">When this method returns, contains the buffer with the exact requested size.</param>
+    /// <returns>
+    /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
+    /// </returns>
+    public static IMemoryOwner<byte> Rent(int minBufferSize, out Memory<byte> buffer)
+    {
+        var lease = new CryptoLease(minBufferSize);
+        buffer = lease.Memory[..minBufferSize];
+        return lease;
+    }
 }

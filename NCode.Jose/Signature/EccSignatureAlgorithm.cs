@@ -59,22 +59,22 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     }
 
     /// <inheritdoc />
-    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
+    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
     {
         var validatedSecurityKey = ValidateSecretKey<EccSecretKey>(secretKey);
 
         using var key = validatedSecurityKey.ExportECDsa();
 
-        return key.TrySignData(input, signature, HashAlgorithmName, out bytesWritten);
+        return key.TrySignData(inputData, signature, HashAlgorithmName, out bytesWritten);
     }
 
     /// <inheritdoc />
-    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
+    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
     {
         var validatedSecurityKey = ValidateSecretKey<EccSecretKey>(secretKey);
 
         using var key = validatedSecurityKey.ExportECDsa();
 
-        return key.VerifyData(input, signature, HashAlgorithmName);
+        return key.VerifyData(inputData, signature, HashAlgorithmName);
     }
 }

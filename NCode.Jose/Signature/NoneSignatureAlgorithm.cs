@@ -40,7 +40,7 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
     public override int SignatureSizeBits => 0;
 
     /// <inheritdoc />
-    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
+    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
     {
         bytesWritten = 0;
         return true;

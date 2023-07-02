@@ -17,8 +17,8 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
@@ -41,12 +41,11 @@ partial class JoseSerializer
         */
         Debug.Assert(segments.Count == JwsSegmentCount);
 
-        // TODO: should we use CryptoPool?
-
         // JWS Protected Header
         var jwsProtectedHeader = segments.First;
-        var headerBytes = Base64Url.Decode(jwsProtectedHeader.Memory.Span);
-        var localHeader = DeserializeUtf8Json<Dictionary<string, object>>("JWS Protected Header", headerBytes);
+        var localHeader = DeserializeUtf8JsonAfterBase64Url<Dictionary<string, object>>(
+            "JWS Protected Header",
+            jwsProtectedHeader.Memory.Span);
 
         if (!localHeader.TryGetValue<string>("alg", out var algorithmCode))
         {
@@ -60,21 +59,29 @@ partial class JoseSerializer
 
         // JWS Payload
         var jwsPayload = jwsProtectedHeader.Next!;
-        var payloadBytes = DecodePayload(b64, jwsPayload.Memory.Span);
+        using var payloadLease = DecodePayload(
+            b64,
+            jwsPayload.Memory.Span,
+            out var payloadBytes);
 
         // JWS Signature
         var jwsSignature = jwsPayload.Next!;
-        var expectedSignature = Base64Url.Decode(jwsSignature.Memory.Span);
+        using var signatureLease = DecodeBase64Url(
+            "JWS Signature",
+            jwsSignature.Memory.Span,
+            isSensitive: false,
+            out var signature);
 
         if (algorithmCode == AlgorithmCodes.DigitalSignature.None)
         {
-            if (expectedSignature.Length != 0)
+            if (signature.Length != 0)
             {
                 throw new IntegrityJoseException("Signature validation failed, expected no signature but was present.");
             }
 
+            var payload = Encoding.UTF8.GetString(payloadBytes);
             header = localHeader;
-            return Encoding.UTF8.GetString(payloadBytes);
+            return payload;
         }
 
         if (!AlgorithmProvider.TryGetSignatureAlgorithm(algorithmCode, out var algorithm))
@@ -82,50 +89,84 @@ partial class JoseSerializer
             throw new InvalidAlgorithmJoseException($"No registered signing algorithm for `{algorithmCode}` was found.");
         }
 
-        var signatureInput = GetSignatureInput(jwsProtectedHeader.Memory.Span, jwsPayload.Memory.Span);
+        using var signatureActualLease = GetSignatureInput(
+            jwsProtectedHeader.Memory.Span,
+            jwsPayload.Memory.Span,
+            out var signatureInput);
 
-        bool TryVerify(SecretKey secretKey, [MaybeNullWhen(false)] out string payload)
-        {
-            if (algorithm.Verify(secretKey, signatureInput, expectedSignature))
-            {
-                payload = Encoding.UTF8.GetString(payloadBytes);
-                return true;
-            }
-
-            payload = null;
-            return false;
-        }
-
-        var payload = string.Empty;
         if (localHeader.TryGetValue<string>("kid", out var keyId) &&
             secretKeys.TryGetByKeyId(keyId, out var specificKey) &&
-            TryVerify(specificKey, out payload))
+            algorithm.Verify(specificKey, signatureInput, signature))
         {
+            var payload = Encoding.UTF8.GetString(payloadBytes);
             header = localHeader;
             return payload;
         }
 
-        if (!secretKeys.Any(secretKey => TryVerify(secretKey, out payload)))
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        // Nope, we can't do that when using byref span
+        foreach (var secretKey in secretKeys)
         {
-            throw new IntegrityJoseException("Signature validation failed, no matching signing key.");
+            if (!algorithm.Verify(secretKey, signatureInput, signature)) continue;
+            var payload = Encoding.UTF8.GetString(payloadBytes);
+            header = localHeader;
+            return payload;
         }
 
-        Debug.Assert(payload != null);
-        header = localHeader;
-        return payload;
+        throw new IntegrityJoseException("Signature validation failed, no matching signing key.");
     }
 
-    private static byte[] GetSignatureInput(ReadOnlySpan<char> encodedHeader, ReadOnlySpan<char> encodedPayload)
+    private static IMemoryOwner<byte> DecodePayload(bool b64, ReadOnlySpan<char> encodedPayload, out Span<byte> payload)
+    {
+        var byteCount = b64 ? Base64Url.GetByteCountForDecode(encodedPayload.Length) : Encoding.UTF8.GetByteCount(encodedPayload);
+        var lease = RentBuffer(byteCount, isSensitive: false, out payload);
+        try
+        {
+            if (b64)
+            {
+                var result = Base64Url.TryDecode(encodedPayload, payload, out var bytesWritten);
+                Debug.Assert(result && bytesWritten == byteCount);
+            }
+            else
+            {
+                var bytesWritten = Encoding.UTF8.GetBytes(encodedPayload, payload);
+                Debug.Assert(bytesWritten == byteCount);
+            }
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+
+        return lease;
+    }
+
+    private static IMemoryOwner<byte> GetSignatureInput(
+        ReadOnlySpan<char> encodedHeader,
+        ReadOnlySpan<char> encodedPayload,
+        out Span<byte> signatureInput)
     {
         var headerByteCount = Encoding.UTF8.GetByteCount(encodedHeader);
         var payloadByteCount = Encoding.UTF8.GetByteCount(encodedPayload);
+        var totalByteCount = headerByteCount + 1 + payloadByteCount;
+        var lease = RentBuffer(totalByteCount, isSensitive: false, out signatureInput);
+        try
+        {
+            var bytesRead = Encoding.UTF8.GetBytes(encodedHeader, signatureInput);
+            Debug.Assert(bytesRead == headerByteCount);
 
-        var result = new byte[headerByteCount + 1 + payloadByteCount];
+            signatureInput[headerByteCount] = (byte)'.';
 
-        Encoding.UTF8.GetBytes(encodedHeader, result);
-        result[headerByteCount] = (byte)'.';
-        Encoding.UTF8.GetBytes(encodedPayload, result.AsSpan(headerByteCount + 1));
+            bytesRead = Encoding.UTF8.GetBytes(encodedPayload, signatureInput[(headerByteCount + 1)..]);
+            Debug.Assert(bytesRead == payloadByteCount);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
 
-        return result;
+        return lease;
     }
 }

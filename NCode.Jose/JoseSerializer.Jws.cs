@@ -43,11 +43,12 @@ partial class JoseSerializer
 
         // JWS Protected Header
         var jwsProtectedHeader = segments.First;
+        var encodedHeader = jwsProtectedHeader.Memory.Span;
         var localHeader = DeserializeUtf8JsonAfterBase64Url<Dictionary<string, object>>(
             "JWS Protected Header",
-            jwsProtectedHeader.Memory.Span);
+            encodedHeader);
 
-        if (!localHeader.TryGetValue<string>("alg", out var algorithmCode))
+        if (!localHeader.TryGetValue<string>("alg", out var signatureAlgorithmCode))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
@@ -59,61 +60,32 @@ partial class JoseSerializer
 
         // JWS Payload
         var jwsPayload = jwsProtectedHeader.Next!;
+        var encodedPayload = jwsPayload.Memory.Span;
         using var payloadLease = DecodePayload(
             b64,
-            jwsPayload.Memory.Span,
+            encodedPayload,
             out var payloadBytes);
 
         // JWS Signature
         var jwsSignature = jwsPayload.Next!;
+        var encodedSignature = jwsSignature.Memory.Span;
         using var signatureLease = DecodeBase64Url(
             "JWS Signature",
-            jwsSignature.Memory.Span,
+            encodedSignature,
             isSensitive: false,
             out var signature);
 
-        if (algorithmCode == AlgorithmCodes.DigitalSignature.None)
-        {
-            if (signature.Length != 0)
-            {
-                throw new IntegrityJoseException("Signature validation failed, expected no signature but was present.");
-            }
+        VerifySignature(
+            secretKeys,
+            encodedHeader,
+            encodedPayload,
+            signature,
+            signatureAlgorithmCode,
+            localHeader);
 
-            var payload = Encoding.UTF8.GetString(payloadBytes);
-            header = localHeader;
-            return payload;
-        }
-
-        if (!AlgorithmProvider.TryGetSignatureAlgorithm(algorithmCode, out var algorithm))
-        {
-            throw new InvalidAlgorithmJoseException($"No registered signing algorithm for `{algorithmCode}` was found.");
-        }
-
-        using var signatureActualLease = GetSignatureInput(
-            jwsProtectedHeader.Memory.Span,
-            jwsPayload.Memory.Span,
-            out var signatureInput);
-
-        if (localHeader.TryGetValue<string>("kid", out var keyId) &&
-            secretKeys.TryGetByKeyId(keyId, out var specificKey) &&
-            algorithm.Verify(specificKey, signatureInput, signature))
-        {
-            var payload = Encoding.UTF8.GetString(payloadBytes);
-            header = localHeader;
-            return payload;
-        }
-
-        // ReSharper disable once LoopCanBeConvertedToQuery
-        // Nope, we can't do that when using byref span
-        foreach (var secretKey in secretKeys)
-        {
-            if (!algorithm.Verify(secretKey, signatureInput, signature)) continue;
-            var payload = Encoding.UTF8.GetString(payloadBytes);
-            header = localHeader;
-            return payload;
-        }
-
-        throw new IntegrityJoseException("Signature validation failed, no matching signing key.");
+        var payload = Encoding.UTF8.GetString(payloadBytes);
+        header = localHeader;
+        return payload;
     }
 
     private static IMemoryOwner<byte> DecodePayload(bool b64, ReadOnlySpan<char> encodedPayload, out Span<byte> payload)
@@ -140,6 +112,51 @@ partial class JoseSerializer
         }
 
         return lease;
+    }
+
+    private void VerifySignature(
+        ISecretKeyCollection secretKeys,
+        ReadOnlySpan<char> encodedHeader,
+        ReadOnlySpan<char> encodedPayload,
+        ReadOnlySpan<byte> signature,
+        string signatureAlgorithmCode,
+        IReadOnlyDictionary<string, object> header)
+    {
+        if (signatureAlgorithmCode == AlgorithmCodes.DigitalSignature.None)
+        {
+            if (signature.Length != 0)
+            {
+                throw new IntegrityJoseException("Signature validation failed, expected no signature but was present.");
+            }
+
+            return;
+        }
+
+        if (!AlgorithmProvider.TryGetSignatureAlgorithm(signatureAlgorithmCode, out var signingAlgorithm))
+        {
+            throw new InvalidAlgorithmJoseException($"No registered signing algorithm for `{signatureAlgorithmCode}` was found.");
+        }
+
+        using var signatureInputLease = GetSignatureInput(
+            encodedHeader,
+            encodedPayload,
+            out var signatureInput);
+
+        if (header.TryGetValue<string>("kid", out var keyId) &&
+            secretKeys.TryGetByKeyId(keyId, out var specificKey) &&
+            signingAlgorithm.Verify(specificKey, signatureInput, signature))
+        {
+            return;
+        }
+
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        // Nope, we can't do that when using byref span
+        foreach (var secretKey in secretKeys)
+        {
+            if (signingAlgorithm.Verify(secretKey, signatureInput, signature)) return;
+        }
+
+        throw new IntegrityJoseException("Signature validation failed, no matching signing key.");
     }
 
     private static IMemoryOwner<byte> GetSignatureInput(

@@ -44,7 +44,7 @@ partial class JoseSerializer
         var headerKeys = new[] { "x5t", "x5t#S256" };
         IReadOnlyDictionary<(string HeaderKey, string HeaderValue), SecretKey>? customLookup = null;
 
-        IReadOnlyDictionary<(string HeaderKey, string HeaderValue), SecretKey> LoadCustomLookup()
+        IReadOnlyDictionary<(string HeaderKey, string HeaderValue), SecretKey> CreateCustomLookup()
         {
             var newCustomLookup = new Dictionary<(string HeaderKey, string HeaderValue), SecretKey>();
 
@@ -70,7 +70,7 @@ partial class JoseSerializer
                 return true;
             }
 
-            customLookup ??= LoadCustomLookup();
+            customLookup ??= CreateCustomLookup();
 
             foreach (var headerKey in headerKeys)
             {
@@ -93,11 +93,9 @@ partial class JoseSerializer
         ISecretKeyCollection secretKeys,
         out IReadOnlyDictionary<string, object> header)
     {
-        var secretKeySelector = SecretKeySelectorFactory(secretKeys);
-
         using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
 
-        DecryptJweCompact(segments, secretKeySelector, byteSequence, out var localHeader);
+        DecryptJweCompact(segments, secretKeys, byteSequence, out var localHeader);
 
         using var charSequence = new Sequence<char>(ArrayPool<char>.Shared);
         Encoding.UTF8.GetChars(byteSequence, charSequence);
@@ -109,7 +107,7 @@ partial class JoseSerializer
 
     private void DecryptJweCompact(
         StringSegments segments,
-        SecretKeySelectorDelegate secretKeySelector,
+        ISecretKeyCollection secretKeys,
         IBufferWriter<byte> plainTextBufferWriter,
         out IReadOnlyDictionary<string, object> header)
     {
@@ -124,39 +122,44 @@ partial class JoseSerializer
 
         // JWE Protected Header
         var jweProtectedHeader = segments.First;
+        var encodedHeader = jweProtectedHeader.Memory.Span;
         var localHeader = DeserializeUtf8JsonAfterBase64Url<Dictionary<string, object>>(
             "JWE Protected Header",
-            jweProtectedHeader.Memory.Span);
+            encodedHeader);
 
         // JWE Encrypted Key
         var jweEncryptedKey = jweProtectedHeader.Next!;
+        var encodedEncryptedKey = jweEncryptedKey.Memory.Span;
         using var encryptedKeyLease = DecodeBase64Url(
             "JWE Encrypted Key",
-            jweEncryptedKey.Memory.Span,
+            encodedEncryptedKey,
             isSensitive: true,
             out var encryptedKeyBytes);
 
         // JWE Initialization Vector
         var jweInitializationVector = jweEncryptedKey.Next!;
+        var encodedInitializationVector = jweInitializationVector.Memory.Span;
         using var initializationVectorLease = DecodeBase64Url(
             "JWE Initialization Vector",
-            jweInitializationVector.Memory.Span,
+            encodedInitializationVector,
             isSensitive: true,
             out var initializationVectorBytes);
 
         // JWE Ciphertext
         var jweCiphertext = jweInitializationVector.Next!;
+        var encodedCiphertext = jweCiphertext.Memory.Span;
         using var cipherTextLease = DecodeBase64Url(
             "JWE Ciphertext",
-            jweCiphertext.Memory.Span,
+            encodedCiphertext,
             isSensitive: true,
             out var cipherTextBytes);
 
         // JWE Authentication Tag
         var jweAuthenticationTag = jweCiphertext.Next!;
+        var encodedAuthenticationTag = jweAuthenticationTag.Memory.Span;
         using var authenticationTagLease = DecodeBase64Url(
             "JWE Authentication Tag",
-            jweAuthenticationTag.Memory.Span,
+            encodedAuthenticationTag,
             isSensitive: true,
             out var authenticationTagBytes);
 
@@ -180,13 +183,14 @@ partial class JoseSerializer
             throw new InvalidAlgorithmJoseException($"No registered AEAD encryption algorithm for `{encryptionAlgorithmCode}` was found.");
         }
 
+        var secretKeySelector = SecretKeySelectorFactory(secretKeys);
         if (!secretKeySelector(localHeader, out var secretKey))
         {
             throw new JoseException("Unable to determine the JWE encryption key.");
         }
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;
-        using var contentKeyLease = CryptoPool.Rent(cekSizeBytes, out Span<byte> contentKey);
+        using var contentKeyLease = RentBuffer(cekSizeBytes, isSensitive: true, out var contentKey);
 
         var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
             secretKey,
@@ -215,12 +219,12 @@ partial class JoseSerializer
                 BASE64URL(JWE AAD)).
         */
 
-        var associatedDataByteCount = Encoding.ASCII.GetByteCount(jweProtectedHeader.Memory.Span);
-        using var associatedDataLease = CryptoPool.Rent(associatedDataByteCount, out Span<byte> associatedDataBytes);
-        Encoding.ASCII.GetBytes(jweProtectedHeader.Memory.Span, associatedDataBytes);
+        var associatedDataByteCount = Encoding.ASCII.GetByteCount(encodedHeader);
+        using var associatedDataLease = RentBuffer(associatedDataByteCount, isSensitive: false, out var associatedDataBytes);
+        Encoding.ASCII.GetBytes(encodedHeader, associatedDataBytes);
 
         var plainTextSizeBytes = encryptionAlgorithm.GetMaxPlainTextSizeBytes(cipherTextBytes.Length);
-        using var plainTextLease = CryptoPool.Rent(plainTextSizeBytes, out Span<byte> plainTextBytes);
+        using var plainTextLease = RentBuffer(plainTextSizeBytes, isSensitive: false, out var plainTextBytes);
 
         /*
            16.  Decrypt the JWE Ciphertext using the CEK, the JWE Initialization

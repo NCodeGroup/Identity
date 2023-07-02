@@ -18,6 +18,7 @@
 #endregion
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
@@ -70,6 +71,7 @@ public partial class JoseSerializer : IJoseSerializer
         }
     };
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IMemoryOwner<byte> RentBuffer(int minBufferSize, bool isSensitive, out Span<byte> bytes)
     {
         var lease = isSensitive ? CryptoPool.Rent(minBufferSize) : MemoryPool<byte>.Shared.Rent(minBufferSize);

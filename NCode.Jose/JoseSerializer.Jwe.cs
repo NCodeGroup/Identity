@@ -145,6 +145,7 @@ partial class JoseSerializer
         using var encryptedKeyLease = DecodeBase64Url(
             "JWE Encrypted Key",
             jweEncryptedKey.Memory.Span,
+            isSensitive: true,
             out var encryptedKeyBytes);
 
         // JWE Initialization Vector
@@ -152,6 +153,7 @@ partial class JoseSerializer
         using var initializationVectorLease = DecodeBase64Url(
             "JWE Initialization Vector",
             jweInitializationVector.Memory.Span,
+            isSensitive: true,
             out var initializationVectorBytes);
 
         // JWE Ciphertext
@@ -159,6 +161,7 @@ partial class JoseSerializer
         using var cipherTextLease = DecodeBase64Url(
             "JWE Ciphertext",
             jweCiphertext.Memory.Span,
+            isSensitive: true,
             out var cipherTextBytes);
 
         // JWE Authentication Tag
@@ -166,6 +169,7 @@ partial class JoseSerializer
         using var authenticationTagLease = DecodeBase64Url(
             "JWE Authentication Tag",
             jweAuthenticationTag.Memory.Span,
+            isSensitive: true,
             out var authenticationTagBytes);
 
         if (!localHeader.TryGetValue<string>("alg", out var keyManagementAlgorithmCode))
@@ -194,8 +198,7 @@ partial class JoseSerializer
         }
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;
-        using var contentKeyLease = CryptoPool.Rent(cekSizeBytes);
-        var contentKey = contentKeyLease.Memory.Span[..cekSizeBytes];
+        using var contentKeyLease = CryptoPool.Rent(cekSizeBytes, out Span<byte> contentKey);
 
         var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
             secretKey,
@@ -225,13 +228,11 @@ partial class JoseSerializer
         */
 
         var associatedDataByteCount = Encoding.ASCII.GetByteCount(jweProtectedHeader.Memory.Span);
-        using var associatedDataLease = CryptoPool.Rent(associatedDataByteCount);
-        var associatedDataBytes = associatedDataLease.Memory.Span[..associatedDataByteCount];
+        using var associatedDataLease = CryptoPool.Rent(associatedDataByteCount, out Span<byte> associatedDataBytes);
         Encoding.ASCII.GetBytes(jweProtectedHeader.Memory.Span, associatedDataBytes);
 
         var plainTextSizeBytes = encryptionAlgorithm.GetMaxPlainTextSizeBytes(cipherTextBytes.Length);
-        using var plainTextLease = CryptoPool.Rent(plainTextSizeBytes);
-        var plainTextBytes = plainTextLease.Memory.Span[..plainTextSizeBytes];
+        using var plainTextLease = CryptoPool.Rent(plainTextSizeBytes, out Span<byte> plainTextBytes);
 
         /*
            16.  Decrypt the JWE Ciphertext using the CEK, the JWE Initialization

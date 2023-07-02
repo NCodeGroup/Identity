@@ -36,20 +36,20 @@ public interface ISignatureAlgorithm : IKeyedAlgorithm
     /// When overridden in a derived class, computes a digital signature.
     /// </summary>
     /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
-    /// <param name="input">Contains the data to sign.</param>
+    /// <param name="inputData">Contains the data to sign.</param>
     /// <param name="signature">Destination for the calculated signature.</param>
     /// <param name="bytesWritten">The number of bytes written to <paramref name="signature"/>.</param>
     /// <returns><c>true></c> if there was enough room in <paramref name="signature"/> to copy all computed bytes; otherwise, <c>false</c>.</returns>
-    bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten);
+    bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten);
 
     /// <summary>
     /// When overridden in a derived class, verifies a digital signature.
     /// </summary>
     /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
-    /// <param name="input">Contains the data what was signed.</param>
+    /// <param name="inputData">Contains the data what was signed.</param>
     /// <param name="signature">Contains the digital signature to compare.</param>
     /// <returns><c>true</c> if the computed signature matches the <paramref name="signature"/> parameter; otherwise, <c>false</c>.</returns>
-    bool Verify(SecretKey secretKey, ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature);
+    bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature);
 }
 
 /// <summary>
@@ -69,20 +69,20 @@ public abstract class SignatureAlgorithm : KeyedAlgorithm, ISignatureAlgorithm
     public virtual int SignatureSizeBytes => (SignatureSizeBits + 7) >> 3;
 
     /// <inheritdoc />
-    public abstract bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten);
+    public abstract bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten);
 
     /// <inheritdoc />
-    public virtual bool Verify(SecretKey secretKey, ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
+    public virtual bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
     {
         var byteCount = SignatureSizeBytes;
         if (signature.Length != byteCount)
             return false;
 
-        var expected = byteCount <= JoseConstants.MaxStackAlloc ?
+        var computed = byteCount <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[byteCount] :
             GC.AllocateUninitializedArray<byte>(byteCount, pinned: false);
 
-        return TrySign(secretKey, input, expected, out _) &&
-               CryptographicOperations.FixedTimeEquals(expected, signature);
+        return TrySign(secretKey, inputData, computed, out _) &&
+               CryptographicOperations.FixedTimeEquals(computed, signature);
     }
 }

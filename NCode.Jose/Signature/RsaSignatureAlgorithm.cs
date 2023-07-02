@@ -68,14 +68,14 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     }
 
     /// <inheritdoc />
-    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)
+    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
     {
         var validatedSecurityKey = ValidateSecretKey<RsaSecretKey>(secretKey);
 
         using var key = validatedSecurityKey.ExportRSA();
 
         return key.TrySignData(
-            input,
+            inputData,
             signature,
             HashAlgorithmName,
             Padding,
@@ -83,14 +83,14 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     }
 
     /// <inheritdoc />
-    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> input, ReadOnlySpan<byte> signature)
+    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
     {
         var validatedSecurityKey = ValidateSecretKey<RsaSecretKey>(secretKey);
 
         using var key = validatedSecurityKey.ExportRSA();
 
         return key.VerifyData(
-            input,
+            inputData,
             signature,
             HashAlgorithmName,
             Padding);

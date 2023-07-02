@@ -95,8 +95,7 @@ partial struct SecretKeyReader
     private static T ImportAsymmetricKeyPem<T>(Func<T> factory, ImportDelegate<T> importDelegate, int decodedDataLength, ReadOnlySpan<char> base64Data)
         where T : AsymmetricAlgorithm
     {
-        using var lease = CryptoPool.Rent(decodedDataLength);
-        var keyData = lease.Memory.Span[..decodedDataLength];
+        using var lease = CryptoPool.Rent(decodedDataLength, out Span<byte> keyData);
 
         if (!Convert.TryFromBase64Chars(base64Data, keyData, out var bytesWritten))
         {

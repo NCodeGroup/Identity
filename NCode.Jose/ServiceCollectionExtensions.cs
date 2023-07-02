@@ -20,6 +20,8 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Jose.AuthenticatedEncryption;
+using NCode.Jose.Compression;
 using NCode.Jose.KeyManagement;
 using NCode.Jose.Signature;
 
@@ -54,7 +56,7 @@ public static class ServiceCollectionExtensions
 
         // digital signature
         services
-            .AddAlgorithm(_ => new NoneSignatureAlgorithm(AlgorithmCodes.DigitalSignature.None))
+            .AddAlgorithm<NoneSignatureAlgorithm>()
             .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha256, signatureSizeBits: 256, HMACSHA256.TryHashData)
             .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha384, signatureSizeBits: 384, HMACSHA384.TryHashData)
             .AddKeyedHashSignatureAlgorithm(AlgorithmCodes.DigitalSignature.HmacSha512, signatureSizeBits: 512, HMACSHA512.TryHashData)
@@ -70,7 +72,7 @@ public static class ServiceCollectionExtensions
 
         // key management
         services
-            .AddAlgorithm(_ => new DirectKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Direct))
+            .AddAlgorithm<DirectKeyManagementAlgorithm>()
             .AddRsaKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.RsaPkcs1, RSAEncryptionPadding.Pkcs1)
             .AddRsaKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.RsaOaep, RSAEncryptionPadding.OaepSHA1)
             .AddRsaKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.RsaOaep256, RSAEncryptionPadding.OaepSHA256)
@@ -80,7 +82,7 @@ public static class ServiceCollectionExtensions
             .AddAesGcmKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes128Gcm, cekSizeBits: 128)
             .AddAesGcmKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes192Gcm, cekSizeBits: 192)
             .AddAesGcmKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.Aes256Gcm, cekSizeBits: 256)
-            .AddAlgorithm(_ => new EcdhKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEs, isDirectAgreement: true))
+            .AddAlgorithm<EcdhKeyManagementAlgorithm>()
             .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes128, cekSizeBits: 128)
             .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes192, cekSizeBits: 192)
             .AddEcdhWithAesKeyManagementAlgorithm(AlgorithmCodes.KeyManagement.EcdhEsAes256, cekSizeBits: 256)
@@ -100,10 +102,46 @@ public static class ServiceCollectionExtensions
                 keySizeBits: 256,
                 maxIterationCount: 120000);
 
-        // TODO: authenticated encryption
+        // authenticated encryption
+        services
+            .AddAesCbcHmacAuthenticatedEncryptionAlgorithm(
+                AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
+                HMACSHA256.TryHashData,
+                cekSizeBits: 128)
+            .AddAesCbcHmacAuthenticatedEncryptionAlgorithm(
+                AlgorithmCodes.AuthenticatedEncryption.Aes192CbcHmacSha384,
+                HMACSHA384.TryHashData,
+                cekSizeBits: 192)
+            .AddAesCbcHmacAuthenticatedEncryptionAlgorithm(
+                AlgorithmCodes.AuthenticatedEncryption.Aes256CbcHmacSha512,
+                HMACSHA512.TryHashData,
+                cekSizeBits: 256)
+            .AddAesGcmAuthenticatedEncryptionAlgorithm(
+                AlgorithmCodes.AuthenticatedEncryption.Aes128Gcm,
+                cekSizeBits: 128)
+            .AddAesGcmAuthenticatedEncryptionAlgorithm(
+                AlgorithmCodes.AuthenticatedEncryption.Aes192Gcm,
+                cekSizeBits: 192)
+            .AddAesGcmAuthenticatedEncryptionAlgorithm(
+                AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm,
+                cekSizeBits: 256);
+
+        // compression
+        services
+            .AddAlgorithm<NoneCompressionAlgorithm>()
+            .AddAlgorithm<DeflateCompressionAlgorithm>();
 
         return services;
     }
+
+    private static IServiceCollection AddAlgorithm<T>(
+        this IServiceCollection services) where T : class, new() =>
+        services.AddSingleton<T>();
+
+    private static IServiceCollection AddAlgorithm(
+        this IServiceCollection services,
+        Func<IAlgorithm> factory) =>
+        services.AddSingleton(factory);
 
     private static IServiceCollection AddAlgorithm(
         this IServiceCollection services,
@@ -115,26 +153,26 @@ public static class ServiceCollectionExtensions
         string code,
         int signatureSizeBits,
         KeyedHashFunctionDelegate keyedHashFunction) =>
-        services.AddAlgorithm(_ => new KeyedHashSignatureAlgorithm(code, signatureSizeBits, keyedHashFunction));
+        services.AddAlgorithm(() => new KeyedHashSignatureAlgorithm(code, signatureSizeBits, keyedHashFunction));
 
     private static IServiceCollection AddRsaSignatureAlgorithm(
         this IServiceCollection services,
         string code,
         HashAlgorithmName hashAlgorithmName,
         RSASignaturePadding padding) =>
-        services.AddAlgorithm(_ => new RsaSignatureAlgorithm(code, hashAlgorithmName, padding));
+        services.AddAlgorithm(() => new RsaSignatureAlgorithm(code, hashAlgorithmName, padding));
 
     private static IServiceCollection AddEccSignatureAlgorithm(
         this IServiceCollection services,
         string code,
         HashAlgorithmName hashAlgorithmName) =>
-        services.AddAlgorithm(_ => new EccSignatureAlgorithm(code, hashAlgorithmName));
+        services.AddAlgorithm(() => new EccSignatureAlgorithm(code, hashAlgorithmName));
 
     private static IServiceCollection AddRsaKeyManagementAlgorithm(
         this IServiceCollection services,
         string code,
         RSAEncryptionPadding padding) =>
-        services.AddAlgorithm(_ => new RsaKeyManagementAlgorithm(code, padding));
+        services.AddAlgorithm(() => new RsaKeyManagementAlgorithm(code, padding));
 
     private static IServiceCollection AddAesKeyManagementAlgorithm(
         this IServiceCollection services,
@@ -158,7 +196,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         string code,
         int cekSizeBits) =>
-        services.AddAlgorithm(_ => new AesGcmKeyManagementAlgorithm(
+        services.AddAlgorithm(() => new AesGcmKeyManagementAlgorithm(
             code,
             cekSizeBits));
 
@@ -174,4 +212,22 @@ public static class ServiceCollectionExtensions
             hashAlgorithmName,
             keySizeBits,
             maxIterationCount));
+
+    private static IServiceCollection AddAesCbcHmacAuthenticatedEncryptionAlgorithm(
+        this IServiceCollection services,
+        string code,
+        KeyedHashFunctionDelegate keyedHashFunction,
+        int cekSizeBits) =>
+        services.AddAlgorithm(() => new AesCbcHmacAuthenticatedEncryptionAlgorithm(
+            code,
+            keyedHashFunction,
+            cekSizeBits));
+
+    private static IServiceCollection AddAesGcmAuthenticatedEncryptionAlgorithm(
+        this IServiceCollection services,
+        string code,
+        int cekSizeBits) =>
+        services.AddAlgorithm(() => new AesGcmAuthenticatedEncryptionAlgorithm(
+            code,
+            cekSizeBits));
 }

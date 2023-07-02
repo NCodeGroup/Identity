@@ -29,15 +29,13 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void RoundTrip_Valid()
     {
-        const string code = nameof(code);
         const string keyId = nameof(keyId);
         const string enc = "dir";
         const string kty = "EC";
-        const bool isDirectAgreement = true;
         const int keySizeBytes = 33;
 
         var curve = ECCurve.NamedCurves.nistP521;
-        var algorithm = new EcdhKeyManagementAlgorithm(code, isDirectAgreement);
+        var algorithm = new EcdhKeyManagementAlgorithm();
 
         var apu = new byte[16];
         RandomNumberGenerator.Fill(apu);

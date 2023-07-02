@@ -30,13 +30,13 @@ public class MemorySegment<T> : ReadOnlySequenceSegment<T>
 
     public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
     {
-        var segment = new MemorySegment<T>(memory)
+        var next = new MemorySegment<T>(memory)
         {
             RunningIndex = RunningIndex + Memory.Length
         };
 
-        Next = segment;
+        Next = next;
 
-        return segment;
+        return next;
     }
 }

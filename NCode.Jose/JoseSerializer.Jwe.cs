@@ -102,22 +102,17 @@ partial class JoseSerializer
         var plainTextSequence = plainTextData.AsReadOnlySequence;
 
         string payload;
-        var encoding = Encoding.UTF8;
         if (plainTextSequence.IsSingleSegment)
         {
             var memory = plainTextSequence.First;
             payload = string.Create(
-                encoding.GetCharCount(memory.Span),
-                (encoding, memory),
-                static (chars, state) =>
-                {
-                    var (encoding, memory) = state;
-                    encoding.GetChars(memory.Span, chars);
-                });
+                Encoding.UTF8.GetCharCount(memory.Span),
+                memory,
+                static (chars, memory) => Encoding.UTF8.GetChars(memory.Span, chars));
         }
         else
         {
-            using var plainTextReader = new SequenceTextReader(plainTextSequence, encoding);
+            using var plainTextReader = new SequenceTextReader(plainTextSequence, Encoding.UTF8);
             payload = plainTextReader.ReadToEnd();
         }
 

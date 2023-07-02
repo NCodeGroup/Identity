@@ -25,7 +25,7 @@ using NCode.Jose.Compression;
 using NCode.Jose.KeyManagement;
 using NCode.Jose.Signature;
 
-namespace NCode.Jose;
+namespace NCode.Jose.Extensions;
 
 /// <summary>
 /// Provides extension methods for adding Jose services and algorithms to the DI container.

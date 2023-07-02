@@ -19,11 +19,13 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Internal;
+using NCode.Jose.Json;
+using Nerdbank.Streams;
 
 namespace NCode.Jose;
 
@@ -36,7 +38,7 @@ public interface IJoseSerializer
     /// Validates a Json Web Token (JWT) and returns the decoded payload.
     /// </summary>
     /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
-    /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for signature validation.</param>
+    /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for cryptographic operations.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
     string Decode(
         string value,
@@ -46,12 +48,40 @@ public interface IJoseSerializer
     /// Validates a Json Web Token (JWT) and returns the decoded payload and header.
     /// </summary>
     /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
-    /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for signature validation.</param>
+    /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for cryptographic operations.</param>
     /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
     string Decode(
         string value,
         ISecretKeyCollection secretKeys,
+        out IReadOnlyDictionary<string, object> header);
+
+    /// <summary>
+    /// Validates a Json Web Token (JWT) and returns the deserialized payload.
+    /// </summary>
+    /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
+    /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for cryptographic operations.</param>
+    /// <param name="options">The options to control JSON deserialization behavior.</param>
+    /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
+    /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
+    T? Deserialize<T>(
+        string value,
+        ISecretKeyCollection secretKeys,
+        JsonSerializerOptions options);
+
+    /// <summary>
+    /// Validates a Json Web Token (JWT) and returns the deserialized payload and header.
+    /// </summary>
+    /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
+    /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for cryptographic operations.</param>
+    /// <param name="options">The options to control JSON deserialization behavior.</param>
+    /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
+    /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
+    /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
+    T? Deserialize<T>(
+        string value,
+        ISecretKeyCollection secretKeys,
+        JsonSerializerOptions options,
         out IReadOnlyDictionary<string, object> header);
 }
 
@@ -63,7 +93,7 @@ public partial class JoseSerializer : IJoseSerializer
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
 
-    private static JsonSerializerOptions DeserializeOptions { get; } = new(JsonSerializerDefaults.Web)
+    private static JsonSerializerOptions DeserializeHeaderOptions { get; } = new(JsonSerializerDefaults.Web)
     {
         Converters =
         {
@@ -100,15 +130,12 @@ public partial class JoseSerializer : IJoseSerializer
         return lease;
     }
 
-    private static T DeserializeUtf8JsonAfterBase64Url<T>(string name, ReadOnlySpan<char> chars)
+    private static Dictionary<string, object> DeserializeHeader(string name, ReadOnlySpan<char> encodedHeader)
     {
-        using var lease = DecodeBase64Url(name, chars, isSensitive: false, out var utf8JsonBytes);
-        return DeserializeUtf8Json<T>(name, utf8JsonBytes);
+        using var lease = DecodeBase64Url(name, encodedHeader, isSensitive: false, out var utf8Json);
+        var header = JsonSerializer.Deserialize<Dictionary<string, object>>(utf8Json, DeserializeHeaderOptions);
+        return header ?? throw new JoseException($"Failed to deserialize {name}");
     }
-
-    private static T DeserializeUtf8Json<T>(string name, ReadOnlySpan<byte> utf8JsonBytes) =>
-        JsonSerializer.Deserialize<T>(utf8JsonBytes, DeserializeOptions) ??
-        throw new JoseException($"Failed to deserialize {name}");
 
     private IAlgorithmProvider AlgorithmProvider { get; }
 
@@ -140,5 +167,49 @@ public partial class JoseSerializer : IJoseSerializer
             JweSegmentCount => DecodeJweCompact(segments, secretKeys, out header),
             _ => throw new InvalidOperationException()
         };
+    }
+
+    private static string DecodeUtf8(ReadOnlySequence<byte> byteSequence)
+    {
+        using var charSequence = new Sequence<char>(ArrayPool<char>.Shared);
+        Encoding.UTF8.GetChars(byteSequence, charSequence);
+        return charSequence.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public T? Deserialize<T>(
+        string value,
+        ISecretKeyCollection secretKeys,
+        JsonSerializerOptions options) =>
+        Deserialize<T>(value, secretKeys, options, out _);
+
+    /// <inheritdoc />
+    public T? Deserialize<T>(
+        string value,
+        ISecretKeyCollection secretKeys,
+        JsonSerializerOptions options,
+        out IReadOnlyDictionary<string, object> header)
+    {
+        var segments = StringSegments.Split(value, '.');
+        return segments.Count switch
+        {
+            JwsSegmentCount => DeserializeJws<T>(segments, secretKeys, options, out header),
+            JweSegmentCount => DeserializeJweCompact<T>(segments, secretKeys, options, out header),
+            _ => throw new InvalidOperationException()
+        };
+    }
+
+    private static T? Deserialize<T>(
+        ReadOnlySequence<byte> byteSequence,
+        JsonSerializerOptions options)
+    {
+        var readerOptions = new JsonReaderOptions
+        {
+            AllowTrailingCommas = options.AllowTrailingCommas,
+            CommentHandling = options.ReadCommentHandling,
+            MaxDepth = options.MaxDepth
+        };
+        var reader = new Utf8JsonReader(byteSequence, readerOptions);
+        return JsonSerializer.Deserialize<T>(ref reader, options);
     }
 }

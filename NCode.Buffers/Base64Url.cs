@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -179,6 +180,23 @@ public static class Base64Url
         return bytes;
     }
 
+    public static int Decode(ReadOnlySpan<char> chars, IBufferWriter<byte> writer)
+    {
+        // TODO: unit tests
+        if (chars.Length == 0)
+        {
+            return 0;
+        }
+
+        var minDestLength = GetByteCountForDecode(chars.Length, out var remainder);
+        var bytes = writer.GetSpan(minDestLength);
+
+        TryDecode(chars, bytes, minDestLength, remainder, out var bytesWritten);
+        writer.Advance(bytesWritten);
+
+        return bytesWritten;
+    }
+
     public static bool TryDecode(ReadOnlySpan<char> chars, Span<byte> bytes, out int bytesWritten)
     {
         // TODO: unit tests
@@ -189,6 +207,7 @@ public static class Base64Url
         }
 
         var minDestLength = GetByteCountForDecode(chars.Length, out var remainder);
+
         return TryDecode(chars, bytes, minDestLength, remainder, out bytesWritten);
     }
 

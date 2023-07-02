@@ -20,10 +20,15 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace NCode.Jose.Internal;
+namespace NCode.Jose.Json;
 
-internal class DictionaryJsonConverter : JsonConverter<object>
+/// <summary>
+/// Provides the ability to deserialize JSON into an <see cref="IDictionary{TKey,TValue}"/>
+/// where <c>TKey</c> is <see cref="string"/> and <c>TValue</c> is <see cref="object"/>.
+/// </summary>
+public class DictionaryJsonConverter : JsonConverter<object>
 {
+    /// <inheritdoc />
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var type = typeToConvert;
@@ -63,6 +68,7 @@ internal class DictionaryJsonConverter : JsonConverter<object>
         return JsonSerializer.Deserialize(ref reader, type, options);
     }
 
+    /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options) =>
         JsonSerializer.Serialize(writer, value, value.GetType(), options);
 }

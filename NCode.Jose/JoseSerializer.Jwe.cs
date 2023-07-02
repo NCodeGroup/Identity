@@ -157,7 +157,7 @@ partial class JoseSerializer
         using var initializationVectorLease = DecodeBase64Url(
             "JWE Initialization Vector",
             encodedInitializationVector,
-            isSensitive: true,
+            isSensitive: false,
             out var initializationVectorBytes);
 
         // JWE Ciphertext
@@ -166,7 +166,7 @@ partial class JoseSerializer
         using var cipherTextLease = DecodeBase64Url(
             "JWE Ciphertext",
             encodedCiphertext,
-            isSensitive: true,
+            isSensitive: false,
             out var cipherTextBytes);
 
         // JWE Authentication Tag
@@ -175,7 +175,7 @@ partial class JoseSerializer
         using var authenticationTagLease = DecodeBase64Url(
             "JWE Authentication Tag",
             encodedAuthenticationTag,
-            isSensitive: true,
+            isSensitive: false,
             out var authenticationTagBytes);
 
         if (!localHeader.TryGetValue<string>("alg", out var keyManagementAlgorithmCode))
@@ -214,10 +214,13 @@ partial class JoseSerializer
             contentKey,
             out var unwrapBytesWritten);
 
-        if (!unwrapResult || unwrapBytesWritten != cekSizeBytes)
+        if (!unwrapResult || unwrapBytesWritten == 0)
         {
             throw new EncryptionJoseException("Failed to decrypt the encrypted content encryption key (CEK).");
         }
+
+        if (unwrapBytesWritten < cekSizeBytes)
+            contentKey = contentKey[..unwrapBytesWritten];
 
         /*
            14.  Compute the Encoded Protected Header value BASE64URL(UTF8(JWE
@@ -261,10 +264,13 @@ partial class JoseSerializer
             plainTextBytes,
             out var decryptBytesWritten);
 
-        if (!decryptResult || decryptBytesWritten != plainTextSizeBytes)
+        if (!decryptResult || decryptBytesWritten == 0)
         {
             throw new EncryptionJoseException("Failed to decrypt the JWE Ciphertext.");
         }
+
+        if (decryptBytesWritten < plainTextSizeBytes)
+            plainTextBytes = plainTextBytes[..decryptBytesWritten];
 
         /*
            17.  If a "zip" parameter was included, uncompress the decrypted

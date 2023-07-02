@@ -20,10 +20,12 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
+using Nerdbank.Streams;
 
 namespace NCode.Jose;
 
@@ -32,6 +34,38 @@ partial class JoseSerializer
     private string DecodeJws(
         StringSegments segments,
         ISecretKeyCollection secretKeys,
+        out IReadOnlyDictionary<string, object> header)
+    {
+        using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
+
+        DecodeJws(segments, secretKeys, byteSequence, out var localHeader);
+
+        var payload = DecodeUtf8(byteSequence);
+
+        header = localHeader;
+        return payload;
+    }
+
+    private T? DeserializeJws<T>(
+        StringSegments segments,
+        ISecretKeyCollection secretKeys,
+        JsonSerializerOptions options,
+        out IReadOnlyDictionary<string, object> header)
+    {
+        using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
+
+        DecodeJws(segments, secretKeys, byteSequence, out var localHeader);
+
+        var payload = Deserialize<T>(byteSequence, options);
+
+        header = localHeader;
+        return payload;
+    }
+
+    private void DecodeJws(
+        StringSegments segments,
+        ISecretKeyCollection secretKeys,
+        IBufferWriter<byte> payloadWriter,
         out IReadOnlyDictionary<string, object> header)
     {
         /*
@@ -44,7 +78,7 @@ partial class JoseSerializer
         // JWS Protected Header
         var jwsProtectedHeader = segments.First;
         var encodedHeader = jwsProtectedHeader.Memory.Span;
-        var localHeader = DeserializeUtf8JsonAfterBase64Url<Dictionary<string, object>>(
+        var localHeader = DeserializeHeader(
             "JWS Protected Header",
             encodedHeader);
 
@@ -53,18 +87,9 @@ partial class JoseSerializer
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!localHeader.TryGetValue<bool>("b64", out var b64))
-        {
-            b64 = true;
-        }
-
         // JWS Payload
         var jwsPayload = jwsProtectedHeader.Next!;
         var encodedPayload = jwsPayload.Memory.Span;
-        using var payloadLease = DecodePayload(
-            b64,
-            encodedPayload,
-            out var payloadBytes);
 
         // JWS Signature
         var jwsSignature = jwsPayload.Next!;
@@ -83,35 +108,21 @@ partial class JoseSerializer
             signatureAlgorithmCode,
             localHeader);
 
-        var payload = Encoding.UTF8.GetString(payloadBytes);
+        if (!localHeader.TryGetValue<bool>("b64", out var b64))
+        {
+            b64 = true;
+        }
+
+        if (b64)
+        {
+            Base64Url.Decode(encodedPayload, payloadWriter);
+        }
+        else
+        {
+            Encoding.UTF8.GetBytes(encodedPayload, payloadWriter);
+        }
+
         header = localHeader;
-        return payload;
-    }
-
-    private static IMemoryOwner<byte> DecodePayload(bool b64, ReadOnlySpan<char> encodedPayload, out Span<byte> payload)
-    {
-        var byteCount = b64 ? Base64Url.GetByteCountForDecode(encodedPayload.Length) : Encoding.UTF8.GetByteCount(encodedPayload);
-        var lease = RentBuffer(byteCount, isSensitive: false, out payload);
-        try
-        {
-            if (b64)
-            {
-                var result = Base64Url.TryDecode(encodedPayload, payload, out var bytesWritten);
-                Debug.Assert(result && bytesWritten == byteCount);
-            }
-            else
-            {
-                var bytesWritten = Encoding.UTF8.GetBytes(encodedPayload, payload);
-                Debug.Assert(bytesWritten == byteCount);
-            }
-        }
-        catch
-        {
-            lease.Dispose();
-            throw;
-        }
-
-        return lease;
     }
 
     private void VerifySignature(

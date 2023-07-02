@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
@@ -97,9 +98,23 @@ partial class JoseSerializer
 
         DecryptJweCompact(segments, secretKeys, byteSequence, out var localHeader);
 
-        using var charSequence = new Sequence<char>(ArrayPool<char>.Shared);
-        Encoding.UTF8.GetChars(byteSequence, charSequence);
-        var payload = charSequence.AsReadOnlySequence.ToString();
+        var payload = DecodeUtf8(byteSequence);
+
+        header = localHeader;
+        return payload;
+    }
+
+    private T? DeserializeJweCompact<T>(
+        StringSegments segments,
+        ISecretKeyCollection secretKeys,
+        JsonSerializerOptions options,
+        out IReadOnlyDictionary<string, object> header)
+    {
+        using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
+
+        DecryptJweCompact(segments, secretKeys, byteSequence, out var localHeader);
+
+        var payload = Deserialize<T>(byteSequence, options);
 
         header = localHeader;
         return payload;
@@ -108,7 +123,7 @@ partial class JoseSerializer
     private void DecryptJweCompact(
         StringSegments segments,
         ISecretKeyCollection secretKeys,
-        IBufferWriter<byte> plainTextBufferWriter,
+        IBufferWriter<byte> payloadBytes,
         out IReadOnlyDictionary<string, object> header)
     {
         /*
@@ -123,7 +138,7 @@ partial class JoseSerializer
         // JWE Protected Header
         var jweProtectedHeader = segments.First;
         var encodedHeader = jweProtectedHeader.Memory.Span;
-        var localHeader = DeserializeUtf8JsonAfterBase64Url<Dictionary<string, object>>(
+        var localHeader = DeserializeHeader(
             "JWE Protected Header",
             encodedHeader);
 
@@ -263,11 +278,11 @@ partial class JoseSerializer
                 throw new InvalidAlgorithmJoseException($"No registered JWE compression algorithm for `{compressionAlgorithmCode}` was found.");
             }
 
-            compressionAlgorithm.Decompress(plainTextBytes, plainTextBufferWriter);
+            compressionAlgorithm.Decompress(plainTextBytes, payloadBytes);
         }
         else
         {
-            plainTextBufferWriter.Write(plainTextBytes);
+            payloadBytes.Write(plainTextBytes);
         }
 
         header = localHeader;

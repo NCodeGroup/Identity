@@ -28,7 +28,7 @@ namespace NCode.Jose.Signature;
 public class NoneSignatureAlgorithm : SignatureAlgorithm
 {
     /// <inheritdoc />
-    public override string Code { get; }
+    public override string Code => AlgorithmCodes.DigitalSignature.None;
 
     /// <inheritdoc />
     public override Type KeyType => typeof(SecretKey);
@@ -38,15 +38,6 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
 
     /// <inheritdoc />
     public override int SignatureSizeBits => 0;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="NoneSignatureAlgorithm"/> class.
-    /// </summary>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    public NoneSignatureAlgorithm(string code)
-    {
-        Code = code;
-    }
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> input, Span<byte> signature, out int bytesWritten)

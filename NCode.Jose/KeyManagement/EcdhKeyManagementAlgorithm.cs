@@ -64,10 +64,20 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// Initializes a new instance of the <see cref="EcdhKeyManagementAlgorithm"/> class
     /// for usage in key agreement with key wrapping mode.
     /// </summary>
+    public EcdhKeyManagementAlgorithm()
+        : this(AlgorithmCodes.KeyManagement.EcdhEs, isDirectAgreement: true)
+    {
+        // nothing
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EcdhKeyManagementAlgorithm"/> class
+    /// for usage in key agreement with key wrapping mode.
+    /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="isDirectAgreement"><c>true</c> if the algorithm is to use direct key agreement mode;
     /// otherwise, <c>false</c> if the algorithm is to use key agreement with key wrapping mode.</param>
-    public EcdhKeyManagementAlgorithm(string code, bool isDirectAgreement)
+    protected EcdhKeyManagementAlgorithm(string code, bool isDirectAgreement)
     {
         Code = code;
         AlgorithmField = isDirectAgreement ? "enc" : "alg";

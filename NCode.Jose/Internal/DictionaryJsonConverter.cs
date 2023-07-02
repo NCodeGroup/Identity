@@ -56,7 +56,7 @@ internal class DictionaryJsonConverter : JsonConverter<object>
                 break;
 
             case JsonTokenType.StartArray:
-                type = typeof(IEnumerable<object>);
+                type = typeof(List<object>);
                 break;
         }
 

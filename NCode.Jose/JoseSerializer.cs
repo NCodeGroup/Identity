@@ -72,9 +72,6 @@ public partial class JoseSerializer : IJoseSerializer
         }
     };
 
-    private static ReadOnlySequenceSegment<char> Split(string value, out int count, char separator = '.') =>
-        StringSplitSequenceSegment.Split(value, separator, out count);
-
     private static IMemoryOwner<byte> DecodeBase64Url(string name, ReadOnlySpan<char> chars, out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
@@ -151,11 +148,11 @@ public partial class JoseSerializer : IJoseSerializer
         ISecretKeyCollection secretKeys,
         out IReadOnlyDictionary<string, object> header)
     {
-        var iterator = Split(value, out var count);
-        return count switch
+        var segments = StringSegments.Split(value, '.');
+        return segments.Count switch
         {
-            JwsSegmentCount => DecodeJws(iterator, secretKeys, out header),
-            JweSegmentCount => DecodeJweCompact(iterator, secretKeys, out header),
+            JwsSegmentCount => DecodeJws(segments, secretKeys, out header),
+            JweSegmentCount => DecodeJweCompact(segments, secretKeys, out header),
             _ => throw new InvalidOperationException()
         };
     }

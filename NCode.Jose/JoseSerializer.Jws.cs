@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -31,21 +30,22 @@ namespace NCode.Jose;
 partial class JoseSerializer
 {
     private string DecodeJws(
-        ReadOnlySequenceSegment<char> iterator,
+        StringSegments segments,
         ISecretKeyCollection secretKeys,
         out IReadOnlyDictionary<string, object> header)
     {
-        // TODO: should we use CryptoPool?
-
         /*
               BASE64URL(UTF8(JWS Protected Header)) || '.' ||
               BASE64URL(JWS Payload) || '.' ||
               BASE64URL(JWS Signature)
         */
+        Debug.Assert(segments.Count == JwsSegmentCount);
+
+        // TODO: should we use CryptoPool?
 
         // JWS Protected Header
-        var encodedHeader = iterator.Memory.Span;
-        var headerBytes = Base64Url.Decode(encodedHeader);
+        var jwsProtectedHeader = segments.First;
+        var headerBytes = Base64Url.Decode(jwsProtectedHeader.Memory.Span);
         var localHeader = DeserializeUtf8Json<Dictionary<string, object>>("JWS Protected Header", headerBytes);
 
         if (!localHeader.TryGetValue<string>("alg", out var algorithmCode))
@@ -59,16 +59,12 @@ partial class JoseSerializer
         }
 
         // JWS Payload
-        iterator = iterator.Next ?? throw new InvalidOperationException();
-        var encodedPayload = iterator.Memory.Span;
-        var payloadBytes = DecodePayload(b64, encodedPayload);
+        var jwsPayload = jwsProtectedHeader.Next!;
+        var payloadBytes = DecodePayload(b64, jwsPayload.Memory.Span);
 
         // JWS Signature
-        iterator = iterator.Next ?? throw new InvalidOperationException();
-        var encodedSignature = iterator.Memory.Span;
-        var expectedSignature = Base64Url.Decode(encodedSignature);
-
-        Debug.Assert(iterator.Next is null);
+        var jwsSignature = jwsPayload.Next!;
+        var expectedSignature = Base64Url.Decode(jwsSignature.Memory.Span);
 
         if (algorithmCode == AlgorithmCodes.DigitalSignature.None)
         {
@@ -86,7 +82,7 @@ partial class JoseSerializer
             throw new InvalidAlgorithmJoseException($"No registered signing algorithm for `{algorithmCode}` was found.");
         }
 
-        var signatureInput = GetSignatureInput(encodedHeader, encodedPayload);
+        var signatureInput = GetSignatureInput(jwsProtectedHeader.Memory.Span, jwsPayload.Memory.Span);
 
         bool TryVerify(SecretKey secretKey, [MaybeNullWhen(false)] out string payload)
         {
@@ -98,12 +94,6 @@ partial class JoseSerializer
 
             payload = null;
             return false;
-        }
-
-        SecretKeySelectorDelegate selector = null!;
-
-        if (selector(localHeader, out var specificKey2))
-        {
         }
 
         var payload = string.Empty;

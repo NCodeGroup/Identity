@@ -29,12 +29,14 @@ public class NoneCompressionAlgorithm : CompressionAlgorithm
     /// <inheritdoc />
     public override void Compress(ReadOnlySpan<byte> uncompressedData, IBufferWriter<byte> compressedData)
     {
+        if (uncompressedData.IsEmpty) return;
         compressedData.Write(uncompressedData);
     }
 
     /// <inheritdoc />
     public override void Decompress(ReadOnlySpan<byte> compressedData, IBufferWriter<byte> uncompressedData)
     {
+        if (compressedData.IsEmpty) return;
         uncompressedData.Write(compressedData);
     }
 }

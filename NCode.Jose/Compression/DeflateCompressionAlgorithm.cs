@@ -19,6 +19,7 @@
 
 using System.Buffers;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using Nerdbank.Streams;
 
 namespace NCode.Jose.Compression;
@@ -34,6 +35,8 @@ public class DeflateCompressionAlgorithm : CompressionAlgorithm
     /// <inheritdoc />
     public override void Compress(ReadOnlySpan<byte> uncompressedData, IBufferWriter<byte> compressedData)
     {
+        if (uncompressedData.IsEmpty) return;
+
         using var compressedStream = compressedData.AsStream();
         using var deflateStream = new DeflateStream(compressedStream, CompressionLevel.Optimal);
 
@@ -43,7 +46,13 @@ public class DeflateCompressionAlgorithm : CompressionAlgorithm
     /// <inheritdoc />
     public override unsafe void Decompress(ReadOnlySpan<byte> compressedData, IBufferWriter<byte> uncompressedData)
     {
-        fixed (byte* pCompressedData = &compressedData[0])
+        if (compressedData.IsEmpty) return;
+
+        // perf: use GetReference vs GetPinnableReference
+        // https://github.com/dotnet/runtime/issues/27308
+        // https://github.com/dotnet/runtime/issues/29003
+
+        fixed (byte* pCompressedData = &MemoryMarshal.GetReference(compressedData))
         {
             using var compressedStream = new UnmanagedMemoryStream(pCompressedData, compressedData.Length);
             using var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress);

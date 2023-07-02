@@ -99,21 +99,27 @@ partial class JoseSerializer
 
         DecryptJweCompact(segments, secretKeySelector, plainTextData, out var localHeader);
 
-        Debug.Assert(plainTextData.Length <= int.MaxValue);
-        var plainTextLength = (int)plainTextData.Length;
+        var plainTextSequence = plainTextData.AsReadOnlySequence;
 
-        using var plainTextReader = new SequenceTextReader(plainTextData, Encoding.UTF8);
-
-        var payload = string.Create(plainTextLength, plainTextReader, (span, reader) =>
+        string payload;
+        var encoding = Encoding.UTF8;
+        if (plainTextSequence.IsSingleSegment)
         {
-            int charsRead;
-            var totalCharsRead = 0;
-            do
-            {
-                charsRead = reader.Read(span[totalCharsRead..]);
-                totalCharsRead += charsRead;
-            } while (charsRead > 0);
-        });
+            var memory = plainTextSequence.First;
+            payload = string.Create(
+                encoding.GetCharCount(memory.Span),
+                (encoding, memory),
+                static (chars, state) =>
+                {
+                    var (encoding, memory) = state;
+                    encoding.GetChars(memory.Span, chars);
+                });
+        }
+        else
+        {
+            using var plainTextReader = new SequenceTextReader(plainTextSequence, encoding);
+            payload = plainTextReader.ReadToEnd();
+        }
 
         header = localHeader;
         return payload;

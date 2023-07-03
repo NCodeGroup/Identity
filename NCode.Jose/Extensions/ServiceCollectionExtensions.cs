@@ -135,13 +135,13 @@ public static class ServiceCollectionExtensions
     }
 
     private static IServiceCollection AddAlgorithm<T>(
-        this IServiceCollection services) where T : class, new() =>
-        services.AddSingleton<T>();
+        this IServiceCollection services) where T : class, IAlgorithm, new() =>
+        services.AddSingleton<IAlgorithm, T>();
 
     private static IServiceCollection AddAlgorithm(
         this IServiceCollection services,
         Func<IAlgorithm> factory) =>
-        services.AddSingleton(factory);
+        services.AddSingleton<IAlgorithm>(_ => factory());
 
     private static IServiceCollection AddAlgorithm(
         this IServiceCollection services,

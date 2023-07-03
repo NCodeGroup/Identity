@@ -180,7 +180,13 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
 
         if (!header.TryGetValue<int>("p2c", out var iterationCount))
         {
-            throw new JoseException("The JWT header is missing the 'p2c' field.");
+            if (!header.TryGetValue<long>("p2c", out var iterationCountLong))
+            {
+                throw new JoseException("The JWT header is missing the 'p2c' field.");
+            }
+
+            Debug.Assert(iterationCountLong < int.MaxValue);
+            iterationCount = (int)iterationCountLong;
         }
 
         if (!header.TryGetValue<string>("p2s", out var saltInputString))

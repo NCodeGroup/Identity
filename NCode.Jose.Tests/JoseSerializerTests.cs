@@ -1,0 +1,205 @@
+﻿#region Copyright Preamble
+
+//
+//    Copyright @ 2023 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Security.Cryptography;
+using System.Text.Json;
+using Jose;
+using Jose.keys;
+using Microsoft.Extensions.DependencyInjection;
+using NCode.Cryptography.Keys;
+using NCode.Jose.Extensions;
+using NCode.Jose.Json;
+
+namespace NCode.Jose.Tests;
+
+public class JoseSerializerTests : BaseTests
+{
+    private static JsonSerializerOptions JsonOptions { get; } = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new DictionaryJsonConverter() }
+    };
+
+    private ServiceProvider ServiceProvider { get; }
+    private Mock<JoseSerializer> MockJoseSerializer { get; }
+    private JoseSerializer JoseSerializer { get; }
+
+    public JoseSerializerTests()
+    {
+        var services = new ServiceCollection();
+        ConfigureServices(services);
+        ServiceProvider = services.BuildServiceProvider();
+
+        var algorithmProvider = ServiceProvider.GetRequiredService<IAlgorithmProvider>();
+        MockJoseSerializer = CreatePartialMock<JoseSerializer>(algorithmProvider);
+        JoseSerializer = MockJoseSerializer.Object;
+    }
+
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddJose();
+    }
+
+    protected override async ValueTask DisposeAsyncCore()
+    {
+        await ServiceProvider.DisposeAsync();
+    }
+
+    private static (object nativeKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
+    {
+        var nativeKey = RSA.Create();
+        var secretKey = RsaSecretKey.Create(keyId, nativeKey);
+        return (nativeKey, secretKey);
+    }
+
+    private static (object nativeKey, SecretKey secretKey) CreateRandomEccKey(string keyId)
+    {
+        using var eccKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var secretKey = EccSecretKey.Create(keyId, eccKey);
+        var parameters = eccKey.ExportParameters(true);
+        var nativeKey = EccKey.New(parameters.Q.X, parameters.Q.Y, parameters.D, CngKeyUsages.KeyAgreement);
+        return (nativeKey, secretKey);
+    }
+
+    private static (object nativeKey, SecretKey secretKey) CreateRandomSymmetricKey(string keyId, int bitCount)
+    {
+        var byteCount = bitCount >> 3;
+        var bytes = new byte[byteCount];
+        RandomNumberGenerator.Fill(bytes);
+        var secretKey = new SymmetricSecretKey(keyId, bytes);
+        return (bytes, secretKey);
+    }
+
+    private static (object nativeKey, SecretKey secretKey) CreateRandomPassword(string keyId)
+    {
+        var password = Guid.NewGuid().ToString("N");
+        var secretKey = new SymmetricSecretKey(keyId, password);
+        return (password, secretKey);
+    }
+
+    private static (object nativeKey, SecretKey secretKey) CreateRandomKey(string keyId, JweAlgorithm jweAlgorithm)
+    {
+        switch (jweAlgorithm)
+        {
+            case JweAlgorithm.DIR:
+                throw new NotSupportedException();
+
+            case JweAlgorithm.RSA1_5:
+            case JweAlgorithm.RSA_OAEP:
+            case JweAlgorithm.RSA_OAEP_256:
+                return CreateRandomRsaKey(keyId);
+
+            case JweAlgorithm.ECDH_ES:
+            case JweAlgorithm.ECDH_ES_A128KW:
+            case JweAlgorithm.ECDH_ES_A192KW:
+            case JweAlgorithm.ECDH_ES_A256KW:
+                return CreateRandomEccKey(keyId);
+
+            case JweAlgorithm.PBES2_HS256_A128KW:
+            case JweAlgorithm.PBES2_HS384_A192KW:
+            case JweAlgorithm.PBES2_HS512_A256KW:
+                return CreateRandomPassword(keyId);
+
+            case JweAlgorithm.A128KW:
+            case JweAlgorithm.A128GCMKW:
+                return CreateRandomSymmetricKey(keyId, 128);
+
+            case JweAlgorithm.A192KW:
+            case JweAlgorithm.A192GCMKW:
+                return CreateRandomSymmetricKey(keyId, 192);
+
+            case JweAlgorithm.A256KW:
+            case JweAlgorithm.A256GCMKW:
+                return CreateRandomSymmetricKey(keyId, 256);
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(jweAlgorithm), jweAlgorithm, null);
+        }
+    }
+
+    [Theory]
+    // RSA
+    [InlineData(JweAlgorithm.RSA1_5, JweEncryption.A128GCM, null)]
+    [InlineData(JweAlgorithm.RSA_OAEP, JweEncryption.A128GCM, JweCompression.DEF)]
+    [InlineData(JweAlgorithm.RSA_OAEP_256, JweEncryption.A128GCM, null)]
+    // ECDH
+    [InlineData(JweAlgorithm.ECDH_ES, JweEncryption.A128GCM, JweCompression.DEF)]
+    [InlineData(JweAlgorithm.ECDH_ES, JweEncryption.A192GCM, null)]
+    [InlineData(JweAlgorithm.ECDH_ES, JweEncryption.A256GCM, null)]
+    [InlineData(JweAlgorithm.ECDH_ES_A128KW, JweEncryption.A128GCM, null)]
+    [InlineData(JweAlgorithm.ECDH_ES_A192KW, JweEncryption.A192GCM, null)]
+    [InlineData(JweAlgorithm.ECDH_ES_A256KW, JweEncryption.A256GCM, JweCompression.DEF)]
+    // PBES2
+    [InlineData(JweAlgorithm.PBES2_HS256_A128KW, JweEncryption.A128GCM, null)]
+    [InlineData(JweAlgorithm.PBES2_HS384_A192KW, JweEncryption.A128GCM, JweCompression.DEF)]
+    [InlineData(JweAlgorithm.PBES2_HS512_A256KW, JweEncryption.A128GCM, null)]
+    // AES
+    [InlineData(JweAlgorithm.A128KW, JweEncryption.A128GCM, null)]
+    [InlineData(JweAlgorithm.A192KW, JweEncryption.A128GCM, JweCompression.DEF)]
+    [InlineData(JweAlgorithm.A256KW, JweEncryption.A128GCM, null)]
+    // AES-GCM
+    [InlineData(JweAlgorithm.A128GCMKW, JweEncryption.A128GCM, JweCompression.DEF)]
+    [InlineData(JweAlgorithm.A192GCMKW, JweEncryption.A192GCM, null)]
+    [InlineData(JweAlgorithm.A256GCMKW, JweEncryption.A256GCM, null)]
+    public void Decode_Jwe(JweAlgorithm jweAlgorithm, JweEncryption jweEncryption, JweCompression? jweCompression)
+    {
+        const string keyId = nameof(keyId);
+        var (nativeKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm);
+
+        using var disposableNativeKey = nativeKey as IDisposable ?? DummyDisposable.Singleton;
+        using var disposableSecretKey = secretKey;
+        using var secretKeys = new SecretKeyCollection(new[] { secretKey });
+
+        var originalPayload = new Dictionary<string, object>
+        {
+            ["key1"] = 1234L,
+            ["key2"] = 12.34M,
+            ["key3"] = "foo",
+            ["key4"] = true,
+            ["key5"] = DateTimeOffset.Now
+        };
+        var originalExtraHeaders = new Dictionary<string, object>
+        {
+            ["kid"] = keyId
+        };
+        var jwtSettings = new JwtSettings();
+        var originalToken = JWT.Encode(originalPayload, nativeKey, jweAlgorithm, jweEncryption, jweCompression, originalExtraHeaders, jwtSettings);
+
+        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKeys, JsonOptions, out var header);
+        Assert.Equal(originalPayload, actualPayload);
+
+        var alg = Assert.IsType<string>(Assert.Contains("alg", header));
+        Assert.Equal(jwtSettings.JwaHeaderValue(jweAlgorithm), alg);
+
+        var enc = Assert.IsType<string>(Assert.Contains("enc", header));
+        Assert.Equal(jwtSettings.JweHeaderValue(jweEncryption), enc);
+
+        if (jweCompression.HasValue)
+        {
+            var zip = Assert.IsType<string>(Assert.Contains("zip", header));
+            Assert.Equal(jwtSettings.CompressionHeader(jweCompression.Value), zip);
+        }
+        else
+        {
+            Assert.DoesNotContain("zip", header);
+        }
+
+        var kid = Assert.IsType<string>(Assert.Contains("kid", header));
+        Assert.Equal(keyId, kid);
+    }
+}

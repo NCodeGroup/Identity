@@ -1,13 +1,22 @@
-﻿namespace NCode.Jose.Tests;
+﻿using System.Diagnostics.CodeAnalysis;
 
-public class BaseTests : IDisposable
+namespace NCode.Jose.Tests;
+
+public class BaseTests : IAsyncDisposable
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
+        await DisposeAsyncCore();
         Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    [SuppressMessage("Style", "VSTHRD200:Use \"Async\" suffix for async methods", Justification = "That isn't the recommended MS pattern.")]
+    protected virtual ValueTask DisposeAsyncCore()
+    {
+        return ValueTask.CompletedTask;
     }
 
     protected virtual void Dispose(bool disposing)

@@ -208,8 +208,8 @@ public class JoseSerializerTests : BaseTests
 
         var originalPayload = new Dictionary<string, object>
         {
-            ["key1"] = 1234L,
-            ["key2"] = 12.34M,
+            ["key1"] = 1234,
+            ["key2"] = 12.34m,
             ["key3"] = "foo",
             ["key4"] = true,
             ["key5"] = DateTimeOffset.Now
@@ -264,7 +264,7 @@ public class JoseSerializerTests : BaseTests
 
         var originalPayload = new Dictionary<string, object>
         {
-            ["key1"] = 1234L,
+            ["key1"] = 1234,
             ["key2"] = 12.34M,
             ["key3"] = "foo",
             ["key4"] = true,

@@ -50,6 +50,9 @@ public class DictionaryJsonConverter : JsonConverter<object>
             case JsonTokenType.String:
                 return reader.GetString();
 
+            case JsonTokenType.Number when reader.TryGetInt32(out var value):
+                return value;
+
             case JsonTokenType.Number when reader.TryGetInt64(out var value):
                 return value;
 

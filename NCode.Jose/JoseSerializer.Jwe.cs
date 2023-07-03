@@ -239,7 +239,8 @@ partial class JoseSerializer
 
         var associatedDataByteCount = Encoding.ASCII.GetByteCount(encodedHeader);
         using var associatedDataLease = RentBuffer(associatedDataByteCount, isSensitive: false, out var associatedDataBytes);
-        Encoding.ASCII.GetBytes(encodedHeader, associatedDataBytes);
+        var addBytesWritten = Encoding.ASCII.GetBytes(encodedHeader, associatedDataBytes);
+        Debug.Assert(addBytesWritten == associatedDataByteCount);
 
         var plainTextSizeBytes = encryptionAlgorithm.GetMaxPlainTextSizeBytes(cipherTextBytes.Length);
         using var plainTextLease = RentBuffer(plainTextSizeBytes, isSensitive: false, out var plainTextBytes);

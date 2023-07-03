@@ -33,12 +33,7 @@ namespace NCode.Jose.KeyManagement;
 /// </summary>
 public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 {
-    private const int HashSizeBits = 256;
-    private const int HashSizeBytes = HashSizeBits >> 3;
-
-    private static HashAlgorithmName HashAlgorithmName => HashAlgorithmName.SHA256;
-
-    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new KeySizes[]
+    private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new KeySizes[]
     {
         new(minSize: 256, maxSize: 384, skipSize: 128),
         new(minSize: 521, maxSize: 521, skipSize: 0)
@@ -56,7 +51,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     public override Type KeyType => typeof(EccSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
+    public override IEnumerable<KeySizes> KeyBitSizes => StaticKekBitSizes;
 
     private string AlgorithmField { get; }
 
@@ -206,7 +201,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         header.TryGetValue<string>("apv", out var apv);
 
         using var senderKey = ephemeralKey.PublicKey;
-        DeriveKey(algorithm, apu, apv, recipientKey, senderKey, contentKey);
+        DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
     }
 
     /// <inheritdoc />
@@ -244,27 +239,49 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         using var ephemeralKey = ValidateHeaderForUnwrap(curve, curveSizeBits, header, out var algorithm, out var apu, out var apv);
         using var senderKey = ephemeralKey.PublicKey;
 
-        DeriveKey(algorithm, apu, apv, recipientKey, senderKey, contentKey);
+        DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
 
         bytesWritten = contentKey.Length;
         return true;
     }
 
-    private static void DeriveKey(
-        string algorithm,
+    private static void DeriveKey(string algorithm,
         string? apu,
         string? apv,
+        int curveSizeBits,
         ECDiffieHellman recipientKey,
         ECDiffieHellmanPublicKey senderKey,
         Span<byte> destination)
     {
         var keySizeBytes = destination.Length;
-        var reps = (keySizeBytes + HashSizeBytes - 1) / HashSizeBytes;
+        var keySizeBits = keySizeBytes << 3;
+
+        int hashSizeBits;
+        HashAlgorithmName hashAlgorithmName;
+
+        switch (curveSizeBits)
+        {
+            case <= 256:
+                hashSizeBits = 256;
+                hashAlgorithmName = HashAlgorithmName.SHA256;
+                break;
+
+            case <= 384:
+                hashSizeBits = 384;
+                hashAlgorithmName = HashAlgorithmName.SHA384;
+                break;
+
+            default:
+                hashSizeBits = 512;
+                hashAlgorithmName = HashAlgorithmName.SHA512;
+                break;
+        }
 
         // can't use span/stackalloc because DeriveKeyFromHash doesn't
         var secretPrependBytes = GC.AllocateUninitializedArray<byte>(sizeof(int));
-        var secretAppendBytes = GetSecretAppendBytes(algorithm, apu, apv, keySizeBytes);
+        var secretAppendBytes = GetSecretAppendBytes(algorithm, apu, apv, keySizeBits);
 
+        var reps = (keySizeBits + hashSizeBits - 1) / hashSizeBits;
         for (var rep = 1; rep <= reps; ++rep)
         {
             BinaryPrimitives.WriteInt32BigEndian(secretPrependBytes.AsSpan(), rep);
@@ -272,11 +289,9 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             // too bad this API doesn't support Span<T> :(
             var partialKey = recipientKey.DeriveKeyFromHash(
                 senderKey,
-                HashAlgorithmName,
+                hashAlgorithmName,
                 secretPrependBytes,
                 secretAppendBytes);
-
-            Debug.Assert(partialKey.Length == HashSizeBytes);
 
             var partialLength = Math.Min(partialKey.Length, destination.Length);
             var partialSpan = partialKey.AsSpan(0, partialLength);
@@ -290,7 +305,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         string algorithm,
         string? apu,
         string? apv,
-        int keySizeBytes)
+        int keySizeBits)
     {
         var algorithmByteCount = Encoding.ASCII.GetByteCount(algorithm);
         var apuByteCount = string.IsNullOrEmpty(apu) ? 0 : Base64Url.GetByteCountForDecode(apu.Length);
@@ -343,7 +358,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         pos = pos[apvByteCount..];
 
         // key size bits
-        BinaryPrimitives.WriteInt32BigEndian(pos, keySizeBytes << 3);
+        BinaryPrimitives.WriteInt32BigEndian(pos, keySizeBits);
 
         return bytes;
     }

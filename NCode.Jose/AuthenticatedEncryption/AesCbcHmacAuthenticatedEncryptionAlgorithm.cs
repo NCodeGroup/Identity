@@ -63,8 +63,8 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
         Code = code;
         KeyedHashFunction = keyedHashFunction;
         ContentKeySizeBytes = cekSizeBytes;
-        AuthenticationTagByteSizes = new KeySizes(minSize: ComponentSizeBytes, maxSize: ComponentSizeBytes, skipSize: 0);
         ComponentSizeBytes = cekSizeBytes >> 1; // half of the key size
+        AuthenticationTagByteSizes = new KeySizes(minSize: ComponentSizeBytes, maxSize: ComponentSizeBytes, skipSize: 0);
     }
 
     /// <inheritdoc />
@@ -73,7 +73,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
 
     /// <inheritdoc />
     public override int GetMaxPlainTextSizeBytes(int cipherTextSizeBytes) =>
-        cipherTextSizeBytes - BlockSizeBytes;
+        cipherTextSizeBytes;
 
     private static Aes CreateAes(ReadOnlySpan<byte> key)
     {

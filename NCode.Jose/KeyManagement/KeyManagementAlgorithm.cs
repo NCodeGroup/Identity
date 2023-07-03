@@ -143,6 +143,8 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <exception cref="ArgumentException">Thrown when the size of the content encryption key (CEK) is invalid.</exception>
     protected void ValidateContentKeySize(int kekSizeBits, int cekSizeBytes, string paramName)
     {
+        // TODO: remove?
+
         var legalCekByteSizes = GetLegalCekByteSizes(kekSizeBits);
         if (!KeySizesUtility.IsLegalSize(legalCekByteSizes, cekSizeBytes))
         {

@@ -29,28 +29,21 @@ namespace NCode.Jose.KeyManagement;
 public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
 {
     private IAesKeyWrap AesKeyWrap { get; }
-    private int CekSizeBytes { get; }
-    private int EncryptedCekSizeBytes { get; }
-    private IEnumerable<KeySizes> CekByteSizes { get; }
+
+    private int KekSizeBytes { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EcdhWithAesKeyManagementAlgorithm"/> class.
     /// </summary>
     /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="cekSizeBits">Contains the legal size, in bits, of the content encryption key (CEK).</param>
-    public EcdhWithAesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int cekSizeBits)
+    /// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
+    public EcdhWithAesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int kekSizeBits)
         : base(code, isDirectAgreement: false)
     {
         AesKeyWrap = aesKeyWrap;
-        CekSizeBytes = (cekSizeBits + 7) >> 3;
-        EncryptedCekSizeBytes = aesKeyWrap.GetEncryptedContentKeySizeBytes(CekSizeBytes);
-        CekByteSizes = new[] { new KeySizes(minSize: CekSizeBytes, maxSize: CekSizeBytes, skipSize: 0) };
+        KekSizeBytes = (kekSizeBits + 7) >> 3;
     }
-
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
-        CekByteSizes;
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
@@ -64,18 +57,15 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length, nameof(contentKey));
-
-        if (encryptedContentKey.Length < EncryptedCekSizeBytes)
+        if (encryptedContentKey.Length < AesKeyWrap.GetEncryptedContentKeySizeBytes(contentKey.Length))
         {
             bytesWritten = 0;
             return false;
         }
 
-        var keyLength = contentKey.Length;
-        var newKek = keyLength <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[keyLength] :
-            GC.AllocateUninitializedArray<byte>(keyLength, pinned: true);
+        var newKek = KekSizeBytes <= JoseConstants.MaxStackAlloc ?
+            stackalloc byte[KekSizeBytes] :
+            GC.AllocateUninitializedArray<byte>(KekSizeBytes, pinned: true);
 
         try
         {
@@ -97,28 +87,20 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
-        if (encryptedContentKey.Length != EncryptedCekSizeBytes)
-        {
-            throw new ArgumentException(
-                "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
-                nameof(encryptedContentKey));
-        }
-
-        if (contentKey.Length < CekSizeBytes)
+        if (contentKey.Length < AesKeyWrap.GetContentKeySizeBytes(encryptedContentKey.Length))
         {
             bytesWritten = 0;
             return false;
         }
 
-        var keyLength = contentKey.Length;
-        var newKek = keyLength <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[keyLength] :
-            GC.AllocateUninitializedArray<byte>(keyLength, pinned: true);
+        var newKek = KekSizeBytes <= JoseConstants.MaxStackAlloc ?
+            stackalloc byte[KekSizeBytes] :
+            GC.AllocateUninitializedArray<byte>(KekSizeBytes, pinned: true);
 
         try
         {
             var result = base.TryUnwrapKey(secretKey, header, Array.Empty<byte>(), newKek, out var newKekBytesWritten);
-            Debug.Assert(result && newKekBytesWritten == keyLength);
+            Debug.Assert(result && newKekBytesWritten == KekSizeBytes);
 
             return AesKeyWrap.TryUnwrapKey(newKek, encryptedContentKey, contentKey, out bytesWritten);
         }

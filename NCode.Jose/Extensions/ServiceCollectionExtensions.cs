@@ -107,15 +107,15 @@ public static class ServiceCollectionExtensions
             .AddAesCbcHmacAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
                 HMACSHA256.TryHashData,
-                cekSizeBits: 128)
+                cekSizeBits: 256)
             .AddAesCbcHmacAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes192CbcHmacSha384,
                 HMACSHA384.TryHashData,
-                cekSizeBits: 192)
+                cekSizeBits: 384)
             .AddAesCbcHmacAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes256CbcHmacSha512,
                 HMACSHA512.TryHashData,
-                cekSizeBits: 256)
+                cekSizeBits: 512)
             .AddAesGcmAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes128Gcm,
                 cekSizeBits: 128)

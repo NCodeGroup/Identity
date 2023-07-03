@@ -34,9 +34,9 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     private const int IvSizeBytes = 96 >> 3;
     private const int TagSizeBytes = 128 >> 3;
 
-    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new KeySizes[]
+    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } = new[]
     {
-        new(minSize: 128, maxSize: 256, skipSize: 64)
+        new KeySizes(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
     };
 
     /// <inheritdoc />
@@ -46,29 +46,25 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
-
-    private IEnumerable<KeySizes> CekByteSizes { get; }
-
-    private int CekSizeBytes { get; }
+    public override IEnumerable<KeySizes> KeyBitSizes { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AesGcmKeyManagementAlgorithm"/> class.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="cekSizeBits">Contains the legal size, in bits, of the content encryption key (CEK).</param>
-    public AesGcmKeyManagementAlgorithm(string code, int cekSizeBits)
+    /// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
+    public AesGcmKeyManagementAlgorithm(string code, int kekSizeBits)
     {
         Code = code;
-        CekSizeBytes = (cekSizeBits + 7) >> 3;
-        CekByteSizes = new[] { new KeySizes(minSize: CekSizeBytes, maxSize: CekSizeBytes, skipSize: 0) };
+
+        KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
     }
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => CekByteSizes;
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => CekSizeBytes;
+    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => cekSizeBytes;
 
     /// <inheritdoc />
     public override bool TryWrapKey(
@@ -80,17 +76,11 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length, nameof(contentKey));
-
-        if (encryptedContentKey.Length < CekSizeBytes)
+        // Output size = Input size
+        if (encryptedContentKey.Length < contentKey.Length)
         {
             bytesWritten = 0;
             return false;
-        }
-
-        if (encryptedContentKey.Length > CekSizeBytes)
-        {
-            encryptedContentKey = encryptedContentKey[..CekSizeBytes];
         }
 
         using var key = new AesGcm(validatedSecretKey.KeyBytes);
@@ -106,7 +96,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
         header["iv"] = Base64Url.Encode(iv);
         header["tag"] = Base64Url.Encode(tag);
 
-        bytesWritten = CekSizeBytes;
+        bytesWritten = contentKey.Length;
         return true;
     }
 
@@ -120,22 +110,11 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        if (encryptedContentKey.Length != CekSizeBytes)
-        {
-            throw new ArgumentException(
-                "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
-                nameof(encryptedContentKey));
-        }
-
-        if (contentKey.Length < CekSizeBytes)
+        // Output size = Input size
+        if (contentKey.Length < encryptedContentKey.Length)
         {
             bytesWritten = 0;
             return false;
-        }
-
-        if (contentKey.Length > CekSizeBytes)
-        {
-            contentKey = contentKey[..CekSizeBytes];
         }
 
         Span<byte> stack = stackalloc byte[IvSizeBytes + TagSizeBytes];
@@ -155,7 +134,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new EncryptionJoseException("Failed to decrypt the encrypted content encryption key (CEK).", exception);
         }
 
-        bytesWritten = CekSizeBytes;
+        bytesWritten = encryptedContentKey.Length;
         return true;
     }
 

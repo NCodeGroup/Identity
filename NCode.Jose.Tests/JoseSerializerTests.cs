@@ -67,9 +67,19 @@ public class JoseSerializerTests : BaseTests
         return (nativeKey, secretKey);
     }
 
-    private static (object nativeKey, SecretKey secretKey) CreateRandomEccKey(string keyId)
+    private static (object nativeKey, SecretKey secretKey) CreateRandomEccKey(string keyId, JweEncryption jweEncryption)
     {
-        using var eccKey = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var curve = jweEncryption switch
+        {
+            JweEncryption.A128GCM => ECCurve.NamedCurves.nistP256,
+            JweEncryption.A192GCM => ECCurve.NamedCurves.nistP256,
+            JweEncryption.A256GCM => ECCurve.NamedCurves.nistP256,
+            JweEncryption.A128CBC_HS256 => ECCurve.NamedCurves.nistP256,
+            JweEncryption.A192CBC_HS384 => ECCurve.NamedCurves.nistP384,
+            JweEncryption.A256CBC_HS512 => ECCurve.NamedCurves.nistP521,
+            _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null)
+        };
+        using var eccKey = ECDiffieHellman.Create(curve);
         var secretKey = EccSecretKey.Create(keyId, eccKey);
         var parameters = eccKey.ExportParameters(true);
         var nativeKey = EccKey.New(parameters.Q.X, parameters.Q.Y, parameters.D, CngKeyUsages.KeyAgreement);
@@ -92,7 +102,7 @@ public class JoseSerializerTests : BaseTests
         return (password, secretKey);
     }
 
-    private static (object nativeKey, SecretKey secretKey) CreateRandomKey(string keyId, JweAlgorithm jweAlgorithm)
+    private static (object nativeKey, SecretKey secretKey) CreateRandomKey(string keyId, JweAlgorithm jweAlgorithm, JweEncryption jweEncryption)
     {
         switch (jweAlgorithm)
         {
@@ -108,7 +118,7 @@ public class JoseSerializerTests : BaseTests
             case JweAlgorithm.ECDH_ES_A128KW:
             case JweAlgorithm.ECDH_ES_A192KW:
             case JweAlgorithm.ECDH_ES_A256KW:
-                return CreateRandomEccKey(keyId);
+                return CreateRandomEccKey(keyId, jweEncryption);
 
             case JweAlgorithm.PBES2_HS256_A128KW:
             case JweAlgorithm.PBES2_HS384_A192KW:
@@ -132,34 +142,27 @@ public class JoseSerializerTests : BaseTests
         }
     }
 
+    public static IEnumerable<object?[]> Decode_Jwe_Data
+    {
+        get
+        {
+            var algorithmTypes = Enum.GetValues<JweAlgorithm>().Except(new[] { JweAlgorithm.DIR });
+            var encryptionTypes = Enum.GetValues<JweEncryption>();
+            var compressionTypes = new JweCompression?[] { null, JweCompression.DEF };
+
+            foreach (var algorithmType in algorithmTypes)
+            foreach (var encryptionType in encryptionTypes)
+            foreach (var compressionType in compressionTypes)
+                yield return new object?[] { algorithmType, encryptionType, compressionType };
+        }
+    }
+
     [Theory]
-    // RSA
-    [InlineData(JweAlgorithm.RSA1_5, JweEncryption.A128GCM, null)]
-    [InlineData(JweAlgorithm.RSA_OAEP, JweEncryption.A128GCM, JweCompression.DEF)]
-    [InlineData(JweAlgorithm.RSA_OAEP_256, JweEncryption.A128GCM, null)]
-    // ECDH
-    [InlineData(JweAlgorithm.ECDH_ES, JweEncryption.A128GCM, JweCompression.DEF)]
-    [InlineData(JweAlgorithm.ECDH_ES, JweEncryption.A192GCM, null)]
-    [InlineData(JweAlgorithm.ECDH_ES, JweEncryption.A256GCM, null)]
-    [InlineData(JweAlgorithm.ECDH_ES_A128KW, JweEncryption.A128GCM, null)]
-    [InlineData(JweAlgorithm.ECDH_ES_A192KW, JweEncryption.A192GCM, null)]
-    [InlineData(JweAlgorithm.ECDH_ES_A256KW, JweEncryption.A256GCM, JweCompression.DEF)]
-    // PBES2
-    [InlineData(JweAlgorithm.PBES2_HS256_A128KW, JweEncryption.A128GCM, null)]
-    [InlineData(JweAlgorithm.PBES2_HS384_A192KW, JweEncryption.A128GCM, JweCompression.DEF)]
-    [InlineData(JweAlgorithm.PBES2_HS512_A256KW, JweEncryption.A128GCM, null)]
-    // AES
-    [InlineData(JweAlgorithm.A128KW, JweEncryption.A128GCM, null)]
-    [InlineData(JweAlgorithm.A192KW, JweEncryption.A128GCM, JweCompression.DEF)]
-    [InlineData(JweAlgorithm.A256KW, JweEncryption.A128GCM, null)]
-    // AES-GCM
-    [InlineData(JweAlgorithm.A128GCMKW, JweEncryption.A128GCM, JweCompression.DEF)]
-    [InlineData(JweAlgorithm.A192GCMKW, JweEncryption.A192GCM, null)]
-    [InlineData(JweAlgorithm.A256GCMKW, JweEncryption.A256GCM, null)]
+    [MemberData(nameof(Decode_Jwe_Data))]
     public void Decode_Jwe(JweAlgorithm jweAlgorithm, JweEncryption jweEncryption, JweCompression? jweCompression)
     {
         const string keyId = nameof(keyId);
-        var (nativeKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm);
+        var (nativeKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
 
         using var disposableNativeKey = nativeKey as IDisposable ?? DummyDisposable.Singleton;
         using var disposableSecretKey = secretKey;
@@ -179,6 +182,9 @@ public class JoseSerializerTests : BaseTests
         };
         var jwtSettings = new JwtSettings();
         var originalToken = JWT.Encode(originalPayload, nativeKey, jweAlgorithm, jweEncryption, jweCompression, originalExtraHeaders, jwtSettings);
+
+        var jsonPayload = JWT.Decode(originalToken, nativeKey, jwtSettings);
+        Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
         var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKeys, JsonOptions, out var header);
         Assert.Equal(originalPayload, actualPayload);

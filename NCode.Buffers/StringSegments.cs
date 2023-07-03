@@ -111,6 +111,7 @@ public class StringSegments
                 return new StringSegments(original, count, first);
             }
 
+            index += offset;
             last = last.Append(original.Slice(offset, index - offset));
             offset = index + 1;
         }

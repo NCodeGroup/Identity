@@ -102,51 +102,46 @@ public class JoseSerializerTests : BaseTests
         return (password, secretKey);
     }
 
-    private static (object nativeKey, SecretKey secretKey) CreateRandomKey(string keyId, JweAlgorithm jweAlgorithm, JweEncryption jweEncryption)
-    {
-        switch (jweAlgorithm)
+    private static (object nativeKey, SecretKey secretKey) CreateRandomKey(string keyId, JweAlgorithm jweAlgorithm, JweEncryption jweEncryption) =>
+        jweAlgorithm switch
         {
-            case JweAlgorithm.DIR:
-                throw new NotSupportedException();
+            JweAlgorithm.DIR => CreateRandomSymmetricKey(keyId, GetBitCount(jweEncryption)),
+            JweAlgorithm.RSA1_5 => CreateRandomRsaKey(keyId),
+            JweAlgorithm.RSA_OAEP => CreateRandomRsaKey(keyId),
+            JweAlgorithm.RSA_OAEP_256 => CreateRandomRsaKey(keyId),
+            JweAlgorithm.ECDH_ES => CreateRandomEccKey(keyId, jweEncryption),
+            JweAlgorithm.ECDH_ES_A128KW => CreateRandomEccKey(keyId, jweEncryption),
+            JweAlgorithm.ECDH_ES_A192KW => CreateRandomEccKey(keyId, jweEncryption),
+            JweAlgorithm.ECDH_ES_A256KW => CreateRandomEccKey(keyId, jweEncryption),
+            JweAlgorithm.PBES2_HS256_A128KW => CreateRandomPassword(keyId),
+            JweAlgorithm.PBES2_HS384_A192KW => CreateRandomPassword(keyId),
+            JweAlgorithm.PBES2_HS512_A256KW => CreateRandomPassword(keyId),
+            JweAlgorithm.A128KW => CreateRandomSymmetricKey(keyId, 128),
+            JweAlgorithm.A128GCMKW => CreateRandomSymmetricKey(keyId, 128),
+            JweAlgorithm.A192KW => CreateRandomSymmetricKey(keyId, 192),
+            JweAlgorithm.A192GCMKW => CreateRandomSymmetricKey(keyId, 192),
+            JweAlgorithm.A256KW => CreateRandomSymmetricKey(keyId, 256),
+            JweAlgorithm.A256GCMKW => CreateRandomSymmetricKey(keyId, 256),
+            _ => throw new ArgumentOutOfRangeException(nameof(jweAlgorithm), jweAlgorithm, null)
+        };
 
-            case JweAlgorithm.RSA1_5:
-            case JweAlgorithm.RSA_OAEP:
-            case JweAlgorithm.RSA_OAEP_256:
-                return CreateRandomRsaKey(keyId);
-
-            case JweAlgorithm.ECDH_ES:
-            case JweAlgorithm.ECDH_ES_A128KW:
-            case JweAlgorithm.ECDH_ES_A192KW:
-            case JweAlgorithm.ECDH_ES_A256KW:
-                return CreateRandomEccKey(keyId, jweEncryption);
-
-            case JweAlgorithm.PBES2_HS256_A128KW:
-            case JweAlgorithm.PBES2_HS384_A192KW:
-            case JweAlgorithm.PBES2_HS512_A256KW:
-                return CreateRandomPassword(keyId);
-
-            case JweAlgorithm.A128KW:
-            case JweAlgorithm.A128GCMKW:
-                return CreateRandomSymmetricKey(keyId, 128);
-
-            case JweAlgorithm.A192KW:
-            case JweAlgorithm.A192GCMKW:
-                return CreateRandomSymmetricKey(keyId, 192);
-
-            case JweAlgorithm.A256KW:
-            case JweAlgorithm.A256GCMKW:
-                return CreateRandomSymmetricKey(keyId, 256);
-
-            default:
-                throw new ArgumentOutOfRangeException(nameof(jweAlgorithm), jweAlgorithm, null);
-        }
-    }
+    private static int GetBitCount(JweEncryption jweEncryption) =>
+        jweEncryption switch
+        {
+            JweEncryption.A128GCM => 128,
+            JweEncryption.A192GCM => 192,
+            JweEncryption.A256GCM => 256,
+            JweEncryption.A128CBC_HS256 => 256,
+            JweEncryption.A192CBC_HS384 => 386,
+            JweEncryption.A256CBC_HS512 => 512,
+            _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null)
+        };
 
     public static IEnumerable<object?[]> Decode_Jwe_Data
     {
         get
         {
-            var algorithmTypes = Enum.GetValues<JweAlgorithm>().Except(new[] { JweAlgorithm.DIR });
+            var algorithmTypes = Enum.GetValues<JweAlgorithm>();
             var encryptionTypes = Enum.GetValues<JweEncryption>();
             var compressionTypes = new JweCompression?[] { null, JweCompression.DEF };
 

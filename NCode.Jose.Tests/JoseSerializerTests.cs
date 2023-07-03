@@ -67,6 +67,15 @@ public class JoseSerializerTests : BaseTests
         return (nativeKey, secretKey);
     }
 
+    private static (object nativeKey, SecretKey secretKey) CreateRandomEccKey(string keyId, ECCurve curve)
+    {
+        using var eccKey = ECDiffieHellman.Create(curve);
+        var secretKey = EccSecretKey.Create(keyId, eccKey);
+        var parameters = eccKey.ExportParameters(true);
+        var nativeKey = EccKey.New(parameters.Q.X, parameters.Q.Y, parameters.D, CngKeyUsages.KeyAgreement);
+        return (nativeKey, secretKey);
+    }
+
     private static (object nativeKey, SecretKey secretKey) CreateRandomEccKey(string keyId, JweEncryption jweEncryption)
     {
         var curve = jweEncryption switch
@@ -79,11 +88,7 @@ public class JoseSerializerTests : BaseTests
             JweEncryption.A256CBC_HS512 => ECCurve.NamedCurves.nistP521,
             _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null)
         };
-        using var eccKey = ECDiffieHellman.Create(curve);
-        var secretKey = EccSecretKey.Create(keyId, eccKey);
-        var parameters = eccKey.ExportParameters(true);
-        var nativeKey = EccKey.New(parameters.Q.X, parameters.Q.Y, parameters.D, CngKeyUsages.KeyAgreement);
-        return (nativeKey, secretKey);
+        return CreateRandomEccKey(keyId, curve);
     }
 
     private static (object nativeKey, SecretKey secretKey) CreateRandomSymmetricKey(string keyId, int bitCount)
@@ -100,6 +105,44 @@ public class JoseSerializerTests : BaseTests
         var password = Guid.NewGuid().ToString("N");
         var secretKey = new SymmetricSecretKey(keyId, password);
         return (password, secretKey);
+    }
+
+    private static (object? nativeKey, SecretKey? secretKey) CreateRandomKey(string keyId, JwsAlgorithm jwsAlgorithm)
+    {
+        switch (jwsAlgorithm)
+        {
+            case JwsAlgorithm.none:
+                return (null, null);
+
+            case JwsAlgorithm.HS256:
+                return CreateRandomSymmetricKey(keyId, 256);
+
+            case JwsAlgorithm.HS384:
+                return CreateRandomSymmetricKey(keyId, 384);
+
+            case JwsAlgorithm.HS512:
+                return CreateRandomSymmetricKey(keyId, 512);
+
+            case JwsAlgorithm.RS256:
+            case JwsAlgorithm.RS384:
+            case JwsAlgorithm.RS512:
+            case JwsAlgorithm.PS256:
+            case JwsAlgorithm.PS384:
+            case JwsAlgorithm.PS512:
+                return CreateRandomRsaKey(keyId);
+
+            case JwsAlgorithm.ES256:
+                return CreateRandomEccKey(keyId, ECCurve.NamedCurves.nistP256);
+
+            case JwsAlgorithm.ES384:
+                return CreateRandomEccKey(keyId, ECCurve.NamedCurves.nistP384);
+
+            case JwsAlgorithm.ES512:
+                return CreateRandomEccKey(keyId, ECCurve.NamedCurves.nistP521);
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(jwsAlgorithm), jwsAlgorithm, null);
+        }
     }
 
     private static (object nativeKey, SecretKey secretKey) CreateRandomKey(string keyId, JweAlgorithm jweAlgorithm, JweEncryption jweEncryption) =>
@@ -199,6 +242,49 @@ public class JoseSerializerTests : BaseTests
         {
             Assert.DoesNotContain("zip", header);
         }
+
+        var kid = Assert.IsType<string>(Assert.Contains("kid", header));
+        Assert.Equal(keyId, kid);
+    }
+
+    public static IEnumerable<object[]> Decode_Jws_Data =>
+        Enum.GetValues<JwsAlgorithm>().Select(algorithmType => new object[] { algorithmType });
+
+    [Theory]
+    [MemberData(nameof(Decode_Jws_Data))]
+    public void Decode_Jws(JwsAlgorithm jwsAlgorithm)
+    {
+        const string keyId = nameof(keyId);
+
+        var (nativeKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
+
+        using var disposableNativeKey = nativeKey as IDisposable ?? DummyDisposable.Singleton;
+        using var disposableSecretKey = secretKey;
+        using var secretKeys = new SecretKeyCollection(secretKey == null ? Enumerable.Empty<SecretKey>() : new[] { secretKey });
+
+        var originalPayload = new Dictionary<string, object>
+        {
+            ["key1"] = 1234L,
+            ["key2"] = 12.34M,
+            ["key3"] = "foo",
+            ["key4"] = true,
+            ["key5"] = DateTimeOffset.Now
+        };
+        var originalExtraHeaders = new Dictionary<string, object>
+        {
+            ["kid"] = keyId
+        };
+        var jwtSettings = new JwtSettings();
+
+        var originalToken = JWT.Encode(originalPayload, nativeKey, jwsAlgorithm, originalExtraHeaders, jwtSettings);
+        var jsonPayload = JWT.Decode(originalToken, nativeKey, jwtSettings);
+        Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
+
+        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKeys, JsonOptions, out var header);
+        Assert.Equal(originalPayload, actualPayload);
+
+        var alg = Assert.IsType<string>(Assert.Contains("alg", header));
+        Assert.Equal(jwtSettings.JwsHeaderValue(jwsAlgorithm), alg);
 
         var kid = Assert.IsType<string>(Assert.Contains("kid", header));
         Assert.Equal(keyId, kid);

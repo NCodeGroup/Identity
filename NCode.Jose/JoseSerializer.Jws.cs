@@ -178,7 +178,7 @@ partial class JoseSerializer
         var headerByteCount = Encoding.UTF8.GetByteCount(encodedHeader);
         var payloadByteCount = Encoding.UTF8.GetByteCount(encodedPayload);
         var totalByteCount = headerByteCount + 1 + payloadByteCount;
-        var lease = RentBuffer(totalByteCount, isSensitive: false, out signatureInput);
+        var lease = CryptoPool.Rent(totalByteCount, isSensitive: false, out signatureInput);
         try
         {
             var bytesRead = Encoding.UTF8.GetBytes(encodedHeader, signatureInput);

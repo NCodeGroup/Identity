@@ -18,7 +18,6 @@
 #endregion
 
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using NCode.Buffers;
@@ -101,18 +100,10 @@ public partial class JoseSerializer : IJoseSerializer
         }
     };
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IMemoryOwner<byte> RentBuffer(int minBufferSize, bool isSensitive, out Span<byte> bytes)
-    {
-        var lease = isSensitive ? CryptoPool.Rent(minBufferSize) : MemoryPool<byte>.Shared.Rent(minBufferSize);
-        bytes = lease.Memory.Span[..minBufferSize];
-        return lease;
-    }
-
     private static IMemoryOwner<byte> DecodeBase64Url(string name, ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
-        var lease = RentBuffer(byteCount, isSensitive, out bytes);
+        var lease = CryptoPool.Rent(byteCount, isSensitive, out bytes);
         try
         {
             var decodeResult = Base64Url.TryDecode(chars, bytes, out var decodeBytesWritten);

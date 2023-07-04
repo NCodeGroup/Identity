@@ -58,7 +58,7 @@ public class SymmetricKeyMaterial : KeyMaterial
     /// <param name="keyBytes">The cryptographic material for the secret key.</param>
     public SymmetricKeyMaterial(ReadOnlySpan<byte> keyBytes)
     {
-        MemoryOwner = new HeapMemoryManager(keyBytes.Length);
+        MemoryOwner = new HeapMemoryManager(keyBytes.Length, zeroOnDispose: true);
         try
         {
             keyBytes.CopyTo(MemoryOwner.Memory.Span);

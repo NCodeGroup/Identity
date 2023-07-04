@@ -29,16 +29,18 @@ namespace NCode.Buffers;
 public class HeapMemoryManager : MemoryManager<byte>
 {
     private int Length { get; }
-
+    private bool ZeroOnDispose { get; }
     private IntPtr BufferPtr { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HeapMemoryManager"/> class.
     /// </summary>
     /// <param name="length">The length in bytes of the allocated memory.</param>
-    public HeapMemoryManager(int length)
+    /// <param name="zeroOnDispose">Specifies whether the allocated memory should be zeroed when the manager is disposed.</param>
+    public HeapMemoryManager(int length, bool zeroOnDispose)
     {
         Length = length;
+        ZeroOnDispose = zeroOnDispose;
         BufferPtr = Marshal.AllocHGlobal(length);
     }
 
@@ -46,7 +48,7 @@ public class HeapMemoryManager : MemoryManager<byte>
     protected override void Dispose(bool disposing)
     {
         if (BufferPtr == IntPtr.Zero) return;
-        CryptographicOperations.ZeroMemory(GetSpan());
+        if (ZeroOnDispose) CryptographicOperations.ZeroMemory(GetSpan());
         Marshal.FreeHGlobal(BufferPtr);
         BufferPtr = IntPtr.Zero;
     }

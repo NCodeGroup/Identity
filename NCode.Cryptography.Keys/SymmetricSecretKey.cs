@@ -52,7 +52,7 @@ public class SymmetricSecretKey : SecretKey
     public SymmetricSecretKey(string keyId, ReadOnlySpan<byte> keyBytes)
         : base(keyId)
     {
-        MemoryOwner = new HeapMemoryManager(keyBytes.Length);
+        MemoryOwner = new HeapMemoryManager(keyBytes.Length, zeroOnDispose: true);
         try
         {
             keyBytes.CopyTo(MemoryOwner.Memory.Span);
@@ -73,7 +73,7 @@ public class SymmetricSecretKey : SecretKey
         : base(keyId)
     {
         var byteCount = Encoding.UTF8.GetByteCount(password);
-        MemoryOwner = new HeapMemoryManager(byteCount);
+        MemoryOwner = new HeapMemoryManager(byteCount, zeroOnDispose: true);
         try
         {
             Encoding.UTF8.GetBytes(password, MemoryOwner.Memory.Span);

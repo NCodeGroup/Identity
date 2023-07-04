@@ -71,7 +71,7 @@ public abstract class AsymmetricSecretKey : SecretKey
             Debug.Assert(!certificate.HasPrivateKey);
         }
 
-        MemoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length);
+        MemoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length, zeroOnDispose: true);
         try
         {
             KeySizeBits = keySizeBits;

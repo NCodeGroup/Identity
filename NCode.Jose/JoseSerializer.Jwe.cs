@@ -205,7 +205,7 @@ partial class JoseSerializer
         }
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;
-        using var contentKeyLease = RentBuffer(cekSizeBytes, isSensitive: true, out var contentKey);
+        using var contentKeyLease = CryptoPool.Rent(cekSizeBytes, isSensitive: true, out Span<byte> contentKey);
 
         var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
             secretKey,
@@ -238,12 +238,12 @@ partial class JoseSerializer
         */
 
         var associatedDataByteCount = Encoding.ASCII.GetByteCount(encodedHeader);
-        using var associatedDataLease = RentBuffer(associatedDataByteCount, isSensitive: false, out var associatedDataBytes);
+        using var associatedDataLease = CryptoPool.Rent(associatedDataByteCount, isSensitive: false, out Span<byte> associatedDataBytes);
         var addBytesWritten = Encoding.ASCII.GetBytes(encodedHeader, associatedDataBytes);
         Debug.Assert(addBytesWritten == associatedDataByteCount);
 
         var plainTextSizeBytes = encryptionAlgorithm.GetMaxPlainTextSizeBytes(cipherTextBytes.Length);
-        using var plainTextLease = RentBuffer(plainTextSizeBytes, isSensitive: false, out var plainTextBytes);
+        using var plainTextLease = CryptoPool.Rent(plainTextSizeBytes, isSensitive: false, out Span<byte> plainTextBytes);
 
         /*
            16.  Decrypt the JWE Ciphertext using the CEK, the JWE Initialization

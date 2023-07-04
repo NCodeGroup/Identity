@@ -22,7 +22,7 @@ using System.Buffers;
 namespace NCode.Buffers;
 
 /// <summary>
-/// Provides a resource pool that enables reusing instances of byte arrays that are securely zeroed when returned.
+/// Provides a resource pool that enables reusing instances of byte arrays that are pinned during their lifetime and securely zeroed when returned.
 /// </summary>
 public static class CryptoPool
 {
@@ -33,7 +33,21 @@ public static class CryptoPool
     /// <returns>
     /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
     /// </returns>
-    public static IMemoryOwner<byte> Rent(int minBufferSize) => new CryptoLease(minBufferSize);
+    public static IMemoryOwner<byte> Rent(int minBufferSize) =>
+        Rent(minBufferSize, isSensitive: true);
+
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <returns>
+    /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
+    /// </returns>
+    public static IMemoryOwner<byte> Rent(int minBufferSize, bool isSensitive) =>
+        isSensitive ?
+            new CryptoLease(minBufferSize) :
+            MemoryPool<byte>.Shared.Rent(minBufferSize);
 
     /// <summary>
     /// Retrieves a buffer that is at least the requested length.
@@ -45,7 +59,23 @@ public static class CryptoPool
     /// </returns>
     public static IMemoryOwner<byte> Rent(int minBufferSize, out Span<byte> buffer)
     {
-        var lease = new CryptoLease(minBufferSize);
+        var lease = Rent(minBufferSize);
+        buffer = lease.Memory.Span[..minBufferSize];
+        return lease;
+    }
+
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <param name="buffer">When this method returns, contains the buffer with the exact requested size.</param>
+    /// <returns>
+    /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
+    /// </returns>
+    public static IMemoryOwner<byte> Rent(int minBufferSize, bool isSensitive, out Span<byte> buffer)
+    {
+        var lease = Rent(minBufferSize, isSensitive);
         buffer = lease.Memory.Span[..minBufferSize];
         return lease;
     }
@@ -60,7 +90,23 @@ public static class CryptoPool
     /// </returns>
     public static IMemoryOwner<byte> Rent(int minBufferSize, out Memory<byte> buffer)
     {
-        var lease = new CryptoLease(minBufferSize);
+        var lease = Rent(minBufferSize);
+        buffer = lease.Memory[..minBufferSize];
+        return lease;
+    }
+
+    /// <summary>
+    /// Retrieves a buffer that is at least the requested length.
+    /// </summary>
+    /// <param name="minBufferSize">The minimum length of the buffer needed.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <param name="buffer">When this method returns, contains the buffer with the exact requested size.</param>
+    /// <returns>
+    /// An <see cref="IMemoryOwner{T}"/> that manages the lifetime of the lease.
+    /// </returns>
+    public static IMemoryOwner<byte> Rent(int minBufferSize, bool isSensitive, out Memory<byte> buffer)
+    {
+        var lease = Rent(minBufferSize, isSensitive);
         buffer = lease.Memory[..minBufferSize];
         return lease;
     }

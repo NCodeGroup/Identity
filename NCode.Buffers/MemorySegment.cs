@@ -21,13 +21,25 @@ using System.Buffers;
 
 namespace NCode.Buffers;
 
+/// <summary>
+/// Provides an implementation of <see cref="ReadOnlySequenceSegment{T}"/> using a linked list of <see cref="ReadOnlyMemory{T}"/> nodes.
+/// </summary>
 public class MemorySegment<T> : ReadOnlySequenceSegment<T>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MemorySegment{T}"/> class.
+    /// </summary>
+    /// <param name="memory">The block of memory for this node.</param>
     public MemorySegment(ReadOnlyMemory<T> memory)
     {
         Memory = memory;
     }
 
+    /// <summary>
+    /// Appends a block of memory to the end of the current node.
+    /// </summary>
+    /// <param name="memory">The block of memory to append to the current node.</param>
+    /// <returns>The newly added node in the linked list.</returns>
     public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
     {
         var next = new MemorySegment<T>(memory)

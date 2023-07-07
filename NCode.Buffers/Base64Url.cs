@@ -24,6 +24,9 @@ using System.Runtime.InteropServices;
 
 namespace NCode.Buffers;
 
+/// <summary>
+/// Converts between binary data and UTF-8 encoded text that is represented in base64url (RFC 4648).
+/// </summary>
 public static class Base64Url
 {
     private const int MaxPadCount = 2;
@@ -60,9 +63,19 @@ public static class Base64Url
         }
     }
 
+    /// <summary>
+    /// Calculates the number of characters produced by encoding the specified number of bytes.
+    /// </summary>
+    /// <param name="byteCount">The number of bytes to encode.</param>
+    /// <returns>The number of characters produced by encoding the specified number of bytes.</returns>
     public static int GetCharCountForEncode(int byteCount) =>
         (byteCount * CharBlockSize + MaxPadCount) / ByteBlockSize;
 
+    /// <summary>
+    /// Encodes the span of binary data into UTF-8 encoded text represented as base64url.
+    /// </summary>
+    /// <param name="bytes">The input span that contains the binary data that needs to be encoded.</param>
+    /// <returns>The string representation of the binary data in base64url format.</returns>
     public static unsafe string Encode(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length == 0)
@@ -84,6 +97,34 @@ public static class Base64Url
         }
     }
 
+    /// <summary>
+    /// Encodes the span of binary data into UTF-8 encoded text represented as base64url.
+    /// </summary>
+    /// <param name="bytes">The input span that contains the binary data that needs to be encoded.</param>
+    /// <param name="writer">The buffer to which the encoded base64url text will be written to.</param>
+    /// <returns>The number of characters written to <paramref name="writer"/>.</returns>
+    public static int Encode(ReadOnlySpan<byte> bytes, IBufferWriter<char> writer)
+    {
+        if (bytes.Length == 0)
+            return 0;
+
+        var byteCount = bytes.Length;
+        var charCount = GetCharCountForEncode(byteCount);
+
+        var chars = writer.GetSpan(charCount);
+        TryEncode(bytes, chars, out var charsWritten);
+        writer.Advance(charsWritten);
+
+        return charsWritten;
+    }
+
+    /// <summary>
+    /// Encodes the span of binary data into UTF-8 encoded text represented as base64url.
+    /// </summary>
+    /// <param name="bytes">The input span that contains the binary data that needs to be encoded.</param>
+    /// <param name="chars">Destination for the encoded base64url text.</param>
+    /// <param name="charsWritten">When this method returns, contains a value that indicates the number of characters written to <paramref name="chars"/>.</param>
+    /// <returns><c>true</c> if the operation succeeded; otherwise, <c>false</c> if the destination is too small.</returns>
     public static unsafe bool TryEncode(ReadOnlySpan<byte> bytes, Span<char> chars, out int charsWritten)
     {
         var byteCount = bytes.Length;
@@ -147,6 +188,11 @@ public static class Base64Url
         return charPos;
     }
 
+    /// <summary>
+    /// Calculates the number of bytes produced by decoding the specified number of characters.
+    /// </summary>
+    /// <param name="charCount">The number of characters to decode.</param>
+    /// <returns>The number of bytes produced by decoding the specified number of characters.</returns>
     public static int GetByteCountForDecode(int charCount) =>
         GetByteCountForDecode(charCount, out _);
 
@@ -166,6 +212,11 @@ public static class Base64Url
         return byteCount;
     }
 
+    /// <summary>
+    /// Decodes the span of UTF-8 encoded text represented as base64url into binary data.
+    /// </summary>
+    /// <param name="chars">The input span that contains UTF-8 encoded text in base64url that needs to be decoded.</param>
+    /// <returns>The decoded binary data.</returns>
     public static byte[] Decode(ReadOnlySpan<char> chars)
     {
         if (chars.Length == 0)
@@ -180,6 +231,12 @@ public static class Base64Url
         return bytes;
     }
 
+    /// <summary>
+    /// Decodes the span of UTF-8 encoded text represented as base64url into binary data.
+    /// </summary>
+    /// <param name="chars">The input span that contains UTF-8 encoded text in base64url that needs to be decoded.</param>
+    /// <param name="writer">The buffer to which the decoded binary data will be written to.</param>
+    /// <returns>The number of bytes written to <paramref name="writer"/>.</returns>
     public static int Decode(ReadOnlySpan<char> chars, IBufferWriter<byte> writer)
     {
         // TODO: unit tests
@@ -197,6 +254,13 @@ public static class Base64Url
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Decodes the span of UTF-8 encoded text represented as base64url into binary data.
+    /// </summary>
+    /// <param name="chars">The input span that contains UTF-8 encoded text in base64url that needs to be decoded.</param>
+    /// <param name="bytes">Destination for the decoded base64url binary data.</param>
+    /// <param name="bytesWritten">When this method returns, contains a value that indicates the number of bytes written to <paramref name="bytes"/>.</param>
+    /// <returns><c>true</c> if the operation succeeded; otherwise, <c>false</c> if the destination is too small.</returns>
     public static bool TryDecode(ReadOnlySpan<char> chars, Span<byte> bytes, out int bytesWritten)
     {
         // TODO: unit tests

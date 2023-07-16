@@ -21,12 +21,12 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="7.0.0" />
+        <PackageReference Include="NCode.PasswordGenerator" Version="1.0.0" />
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.29.0" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.PasswordGenerator\NCode.PasswordGenerator.csproj" />
         <ProjectReference Include="..\NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj" />
     </ItemGroup>
 

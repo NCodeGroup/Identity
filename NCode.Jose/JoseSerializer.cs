@@ -22,6 +22,7 @@ using System.Text;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
+using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
 using Nerdbank.Streams;

@@ -18,7 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Buffers;
+using Jose;
 using NCode.Cryptography.Keys;
 using NCode.Jose.KeyManagement;
 

@@ -20,8 +20,8 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using NCode.Buffers;
 using NCode.Cryptography.Keys;
+using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
 

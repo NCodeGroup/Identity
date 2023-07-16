@@ -1,18 +1,20 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Buffers;
@@ -26,7 +28,7 @@ namespace NCode.Buffers;
 public class StringSegments
 {
     /// <summary>
-    /// Gets the original string.
+    /// Gets the original string value.
     /// </summary>
     public ReadOnlyMemory<char> Original { get; }
 
@@ -63,7 +65,13 @@ public class StringSegments
         }
     }
 
-    private StringSegments(ReadOnlyMemory<char> original, int count, ReadOnlySequenceSegment<char> first)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StringSegments"/> class.
+    /// </summary>
+    /// <param name="original">The original string value.</param>
+    /// <param name="count">The number of segments.</param>
+    /// <param name="first">The first segment in the string value.</param>
+    public StringSegments(ReadOnlyMemory<char> original, int count, ReadOnlySequenceSegment<char> first)
     {
         Original = original;
         Count = count;
@@ -73,28 +81,28 @@ public class StringSegments
     /// <summary>
     /// Splits a string into substrings based on a delimiter without any additional heap allocations.
     /// </summary>
-    /// <param name="original">The string to split into substrings.</param>
+    /// <param name="value">The string to split into substrings.</param>
     /// <param name="separator">A character that delimits the substrings in the original string.</param>
     /// <returns>A <see cref="StringSegments"/> instance that contains the substrings from the string that are delimited by the separator.</returns>
-    public static StringSegments Split(string original, char separator)
-        => Split(original.AsMemory(), separator);
+    public static StringSegments Split(string value, char separator)
+        => Split(value.AsMemory(), separator);
 
     /// <summary>
     /// Splits a string into substrings based on a delimiter without any additional heap allocations.
     /// </summary>
-    /// <param name="original">The string to split into substrings.</param>
+    /// <param name="value">The string to split into substrings.</param>
     /// <param name="separator">A character that delimits the substrings in the original string.</param>
     /// <returns>A <see cref="StringSegments"/> instance that contains the substrings from the string that are delimited by the separator.</returns>
-    public static StringSegments Split(ReadOnlyMemory<char> original, char separator)
+    public static StringSegments Split(ReadOnlyMemory<char> value, char separator)
     {
         var count = 1;
-        var index = original.Span.IndexOf(separator);
+        var index = value.Span.IndexOf(separator);
         if (index == -1)
         {
-            return new StringSegments(original, count, new MemorySegment<char>(original));
+            return new StringSegments(value, count, new MemorySegment<char>(value));
         }
 
-        var first = new MemorySegment<char>(original[..index]);
+        var first = new MemorySegment<char>(value[..index]);
         var last = first;
         var offset = index + 1;
 
@@ -102,15 +110,15 @@ public class StringSegments
         {
             ++count;
 
-            index = original.Span[offset..].IndexOf(separator);
+            index = value.Span[offset..].IndexOf(separator);
             if (index == -1)
             {
-                last.Append(original[offset..]);
-                return new StringSegments(original, count, first);
+                last.Append(value[offset..]);
+                return new StringSegments(value, count, first);
             }
 
             index += offset;
-            last = last.Append(original.Slice(offset, index - offset));
+            last = last.Append(value.Slice(offset, index - offset));
             offset = index + 1;
         }
     }
@@ -118,49 +126,49 @@ public class StringSegments
     /// <summary>
     /// Splits a string into substrings based on a delimiter without any additional heap allocations.
     /// </summary>
-    /// <param name="original">The string to split into substrings.</param>
+    /// <param name="value">The string to split into substrings.</param>
     /// <param name="separator">The string that delimits the substrings in the original string.</param>
     /// <returns>A <see cref="StringSegments"/> instance that contains the substrings from the string that are delimited by the separator.</returns>
-    public static StringSegments Split(string original, ReadOnlySpan<char> separator)
-        => Split(original.AsMemory(), separator, StringComparison.Ordinal);
+    public static StringSegments Split(string value, ReadOnlySpan<char> separator)
+        => Split(value.AsMemory(), separator, StringComparison.Ordinal);
 
     /// <summary>
     /// Splits a string into substrings based on a delimiter without any additional heap allocations.
     /// </summary>
-    /// <param name="original">The string to split into substrings.</param>
+    /// <param name="value">The string to split into substrings.</param>
     /// <param name="separator">The string that delimits the substrings in the original string.</param>
     /// <param name="comparisonType">An enumeration that specifies the rules for the substring search.</param>
     /// <returns>A <see cref="StringSegments"/> instance that contains the substrings from the string that are delimited by the separator.</returns>
-    public static StringSegments Split(string original, ReadOnlySpan<char> separator, StringComparison comparisonType)
-        => Split(original.AsMemory(), separator, comparisonType);
+    public static StringSegments Split(string value, ReadOnlySpan<char> separator, StringComparison comparisonType)
+        => Split(value.AsMemory(), separator, comparisonType);
 
 
     /// <summary>
     /// Splits a string into substrings based on a delimiter without any additional heap allocations.
     /// </summary>
-    /// <param name="original">The string to split into substrings.</param>
+    /// <param name="value">The string to split into substrings.</param>
     /// <param name="separator">The string that delimits the substrings in the original string.</param>
     /// <returns>A <see cref="StringSegments"/> instance that contains the substrings from the string that are delimited by the separator.</returns>
-    public static StringSegments Split(ReadOnlyMemory<char> original, ReadOnlySpan<char> separator) =>
-        Split(original, separator, StringComparison.Ordinal);
+    public static StringSegments Split(ReadOnlyMemory<char> value, ReadOnlySpan<char> separator) =>
+        Split(value, separator, StringComparison.Ordinal);
 
     /// <summary>
     /// Splits a string into substrings based on a delimiter without any additional heap allocations.
     /// </summary>
-    /// <param name="original">The string to split into substrings.</param>
+    /// <param name="value">The string to split into substrings.</param>
     /// <param name="separator">The string that delimits the substrings in the original string.</param>
     /// <param name="comparisonType">An enumeration that specifies the rules for the substring search.</param>
     /// <returns>A <see cref="StringSegments"/> instance that contains the substrings from the string that are delimited by the separator.</returns>
-    public static StringSegments Split(ReadOnlyMemory<char> original, ReadOnlySpan<char> separator, StringComparison comparisonType)
+    public static StringSegments Split(ReadOnlyMemory<char> value, ReadOnlySpan<char> separator, StringComparison comparisonType)
     {
         var count = 1;
-        var index = original.Span.IndexOf(separator, comparisonType);
+        var index = value.Span.IndexOf(separator, comparisonType);
         if (index == -1)
         {
-            return new StringSegments(original, count, new MemorySegment<char>(original));
+            return new StringSegments(value, count, new MemorySegment<char>(value));
         }
 
-        var first = new MemorySegment<char>(original[..index]);
+        var first = new MemorySegment<char>(value[..index]);
         var last = first;
         var offset = index + separator.Length;
 
@@ -168,14 +176,14 @@ public class StringSegments
         {
             ++count;
 
-            index = original.Span[offset..].IndexOf(separator, comparisonType);
+            index = value.Span[offset..].IndexOf(separator, comparisonType);
             if (index == -1)
             {
-                last.Append(original[offset..]);
-                return new StringSegments(original, count, first);
+                last.Append(value[offset..]);
+                return new StringSegments(value, count, first);
             }
 
-            last = last.Append(original.Slice(offset, index - offset));
+            last = last.Append(value.Slice(offset, index - offset));
             offset = index + separator.Length;
         }
     }

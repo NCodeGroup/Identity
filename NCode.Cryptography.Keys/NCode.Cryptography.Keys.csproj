@@ -27,4 +27,8 @@
       </Compile>
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="NCode.CryptoMemory" Version="1.0.1" />
+    </ItemGroup>
+
 </Project>

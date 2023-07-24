@@ -9,10 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Buffers\NCode.Buffers.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Compile Update="SecretKeyReader.Ecc.cs">
         <DependentUpon>SecretKeyReader.cs</DependentUpon>
       </Compile>

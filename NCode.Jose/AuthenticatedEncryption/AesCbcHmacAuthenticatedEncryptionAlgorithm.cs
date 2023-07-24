@@ -69,9 +69,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
 
     /// <inheritdoc />
     public override int GetCipherTextSizeBytes(int plainTextSizeBytes) =>
-        plainTextSizeBytes > BlockSizeBytes ?
-            BlockSizeBytes * plainTextSizeBytes / BlockSizeBytes + BlockSizeBytes :
-            BlockSizeBytes;
+        BlockSizeBytes * (plainTextSizeBytes / BlockSizeBytes) + BlockSizeBytes;
 
     /// <inheritdoc />
     public override int GetMaxPlainTextSizeBytes(int cipherTextSizeBytes) =>

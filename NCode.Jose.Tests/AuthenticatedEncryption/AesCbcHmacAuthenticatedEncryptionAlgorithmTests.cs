@@ -37,11 +37,17 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
     [Theory]
     [InlineData(1, 16)]
     [InlineData(15, 16)]
-    [InlineData(16, 16)]
-    [InlineData(17, 17 + 16)]
-    [InlineData(32, 32 + 16)]
-    [InlineData(48, 48 + 16)]
-    [InlineData(64, 64 + 16)]
+    [InlineData(16, 32)]
+    [InlineData(17, 32)]
+    [InlineData(30, 32)]
+    [InlineData(31, 32)]
+    [InlineData(32, 48)]
+    [InlineData(33, 48)]
+    [InlineData(46, 48)]
+    [InlineData(47, 48)]
+    [InlineData(48, 64)]
+    [InlineData(63, 64)]
+    [InlineData(64, 80)]
     public void GetCipherTextSizeBytes_Valid(int plainTextSizeBytes, int expected)
     {
         const int cekSizeBits = -1; // don't care
@@ -86,87 +92,93 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
     {
         get
         {
+            var plainTextSizeBytesArray = new[] { 1, 15, 16, 17, 31, 32, 33 };
             yield return new object[]
             {
                 256,
                 (KeyedHashFunctionDelegate)HMACSHA256.TryHashData,
-                new HmacUsingSha("SHA256")
+                new HmacUsingSha("SHA256"),
+                plainTextSizeBytesArray
             };
             yield return new object[]
             {
                 384,
                 (KeyedHashFunctionDelegate)HMACSHA384.TryHashData,
-                new HmacUsingSha("SHA384")
+                new HmacUsingSha("SHA384"),
+                plainTextSizeBytesArray
             };
             yield return new object[]
             {
                 512,
                 (KeyedHashFunctionDelegate)HMACSHA512.TryHashData,
-                new HmacUsingSha("SHA512")
+                new HmacUsingSha("SHA512"),
+                plainTextSizeBytesArray
             };
         }
     }
 
     [Theory]
     [MemberData(nameof(RoundTripTestData))]
-    public void RoundTrip_Valid(int cekSizeBits, KeyedHashFunctionDelegate keyedHashFunction, IJwsAlgorithm jwsAlgorithm)
+    public void RoundTrip_Valid(int cekSizeBits, KeyedHashFunctionDelegate keyedHashFunction, IJwsAlgorithm jwsAlgorithm, int[] plainTextSizeBytesArray)
     {
-        const int blockSizeBytes = 128 >> 3;
-        //var plainTextSizeBytes = blockSizeBytes * RandomNumberGenerator.GetInt32(1, 9);
-        const int plainTextSizeBytes = blockSizeBytes - 1;
-
-        var cekSizeBytes = cekSizeBits >> 3;
-        var componentSizeBytes = cekSizeBytes >> 1;
-
-        Span<byte> cek = new byte[cekSizeBytes];
-        Span<byte> plainText = new byte[plainTextSizeBytes];
-        Span<byte> associatedData = new byte[blockSizeBytes];
-
-        RandomNumberGenerator.Fill(cek);
-        RandomNumberGenerator.Fill(plainText);
-        RandomNumberGenerator.Fill(associatedData);
-
-        var controlAlgorithm = new AesCbcHmacEncryption(jwsAlgorithm, cekSizeBits);
-        var expectedResult = controlAlgorithm.Encrypt(associatedData.ToArray(), plainText.ToArray(), cek.ToArray());
-        if (expectedResult is not [var nonce, var expectedCipherText, var expectedAuthTag])
+        foreach (var plainTextSizeBytes in plainTextSizeBytesArray)
         {
-            throw new InvalidOperationException();
+            const int blockSizeBytes = 128 >> 3;
+
+            var cekSizeBytes = cekSizeBits >> 3;
+            var componentSizeBytes = cekSizeBytes >> 1;
+
+            Span<byte> cek = new byte[cekSizeBytes];
+            Span<byte> plainText = new byte[plainTextSizeBytes];
+            Span<byte> associatedData = new byte[blockSizeBytes];
+
+            RandomNumberGenerator.Fill(cek);
+            RandomNumberGenerator.Fill(plainText);
+            RandomNumberGenerator.Fill(associatedData);
+
+            var controlAlgorithm = new AesCbcHmacEncryption(jwsAlgorithm, cekSizeBits);
+            var expectedResult = controlAlgorithm.Encrypt(associatedData.ToArray(), plainText.ToArray(), cek.ToArray());
+            if (expectedResult is not [var nonce, var expectedCipherText, var expectedAuthTag])
+            {
+                throw new InvalidOperationException();
+            }
+
+            var algorithm = new AesCbcHmacAuthenticatedEncryptionAlgorithm(
+                "code",
+                keyedHashFunction,
+                cekSizeBits);
+
+            var cipherTextSizeBytes = algorithm.GetCipherTextSizeBytes(plainTextSizeBytes);
+            Assert.Equal(expectedCipherText.Length, cipherTextSizeBytes);
+
+            Span<byte> cipherText = new byte[cipherTextSizeBytes];
+            Span<byte> authenticationTag = new byte[componentSizeBytes];
+
+            algorithm.Encrypt(
+                cek,
+                nonce.AsSpan(),
+                plainText,
+                associatedData,
+                cipherText,
+                authenticationTag);
+
+            Assert.Equal(expectedCipherText, cipherText.ToArray());
+            Assert.Equal(expectedAuthTag, authenticationTag.ToArray());
+
+            Span<byte> plainTextOutput = new byte[plainTextSizeBytes];
+
+            var decryptResult = algorithm.TryDecrypt(
+                cek,
+                nonce.AsSpan(),
+                cipherText,
+                associatedData,
+                authenticationTag,
+                plainTextOutput,
+                out var decryptBytesWritten);
+
+            Assert.True(decryptResult);
+            Assert.Equal(plainTextSizeBytes, decryptBytesWritten);
+            Assert.Equal(plainText.ToArray(), plainTextOutput.ToArray());
         }
-
-        var algorithm = new AesCbcHmacAuthenticatedEncryptionAlgorithm(
-            "code",
-            keyedHashFunction,
-            cekSizeBits);
-
-        var cipherTextSizeBytes = algorithm.GetCipherTextSizeBytes(plainTextSizeBytes);
-
-        Span<byte> cipherText = new byte[cipherTextSizeBytes];
-        Span<byte> authenticationTag = new byte[componentSizeBytes];
-
-        algorithm.Encrypt(
-            cek,
-            nonce.AsSpan(),
-            plainText,
-            associatedData,
-            cipherText,
-            authenticationTag);
-
-        Assert.Equal(expectedCipherText, cipherText.ToArray());
-        Assert.Equal(expectedAuthTag, authenticationTag.ToArray());
-
-        Span<byte> plainTextOutput = new byte[plainTextSizeBytes];
-
-        var decryptResult = algorithm.TryDecrypt(
-            cek,
-            nonce.AsSpan(),
-            cipherText,
-            associatedData,
-            authenticationTag,
-            plainTextOutput,
-            out var decryptBytesWritten);
-
-        Assert.True(decryptResult);
-        Assert.Equal(plainTextSizeBytes, decryptBytesWritten);
-        Assert.Equal(plainText.ToArray(), plainTextOutput.ToArray());
     }
 }

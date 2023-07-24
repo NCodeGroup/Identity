@@ -5,15 +5,16 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <DocumentationFile />
+        <DocumentationFile/>
+        <LangVersion>latest</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="jose-jwt" Version="4.1.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
-        <PackageReference Include="Moq" Version="4.18.4" />
-        <PackageReference Include="xunit" Version="2.5.0" />
+        <PackageReference Include="jose-jwt" Version="4.1.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3"/>
+        <PackageReference Include="Moq" Version="4.18.4"/>
+        <PackageReference Include="xunit" Version="2.5.0"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="2.5.0">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
@@ -25,7 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj" />
+        <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj"/>
     </ItemGroup>
 
 </Project>

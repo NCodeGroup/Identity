@@ -153,7 +153,7 @@ public partial class JoseSerializer : IJoseSerializer
         ISecretKeyCollection secretKeys,
         out IReadOnlyDictionary<string, object> header)
     {
-        var segments = StringSegments.Split(value, '.');
+        var segments = value.SplitSegments('.');
         return segments.Count switch
         {
             JwsSegmentCount => DecodeJws(segments, secretKeys, out header),
@@ -183,7 +183,7 @@ public partial class JoseSerializer : IJoseSerializer
         JsonSerializerOptions options,
         out IReadOnlyDictionary<string, object> header)
     {
-        var segments = StringSegments.Split(value, '.');
+        var segments = value.SplitSegments('.');
         return segments.Count switch
         {
             JwsSegmentCount => DeserializeJws<T>(segments, secretKeys, options, out header),

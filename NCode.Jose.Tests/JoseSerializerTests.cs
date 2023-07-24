@@ -1,18 +1,20 @@
 ﻿#region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Security.Cryptography;
@@ -178,7 +180,7 @@ public class JoseSerializerTests : BaseTests
             _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null)
         };
 
-    public static IEnumerable<object?[]> Decode_Jwe_Data
+    public static IEnumerable<object?[]> DecodeJweTestData
     {
         get
         {
@@ -194,7 +196,7 @@ public class JoseSerializerTests : BaseTests
     }
 
     [Theory]
-    [MemberData(nameof(Decode_Jwe_Data))]
+    [MemberData(nameof(DecodeJweTestData))]
     public void Decode_Jwe(JweAlgorithm jweAlgorithm, JweEncryption jweEncryption, JweCompression? jweCompression)
     {
         const string keyId = nameof(keyId);
@@ -245,11 +247,12 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal(keyId, kid);
     }
 
-    public static IEnumerable<object[]> Decode_Jws_Data =>
-        Enum.GetValues<JwsAlgorithm>().Select(algorithmType => new object[] { algorithmType });
+    public static IEnumerable<object[]> DecodeJwsTestData =>
+        Enum.GetValues<JwsAlgorithm>().Select(algorithmType =>
+            new object[] { algorithmType });
 
     [Theory]
-    [MemberData(nameof(Decode_Jws_Data))]
+    [MemberData(nameof(DecodeJwsTestData))]
     public void Decode_Jws(JwsAlgorithm jwsAlgorithm)
     {
         const string keyId = nameof(keyId);

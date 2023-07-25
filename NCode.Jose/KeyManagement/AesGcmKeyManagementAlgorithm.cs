@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics;
@@ -136,7 +138,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
         return true;
     }
 
-    private static void ValidateHeaderForUnwrap(
+    internal static void ValidateHeaderForUnwrap(
         IReadOnlyDictionary<string, object> header,
         Span<byte> iv,
         Span<byte> tag)
@@ -152,8 +154,15 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException("The 'iv' field in the JWT header has an invalid size.");
         }
 
-        var ivResult = Base64Url.TryDecode(ivString, iv, out var ivBytesWritten);
-        Debug.Assert(ivResult && ivBytesWritten == IvSizeBytes);
+        try
+        {
+            var ivResult = Base64Url.TryDecode(ivString, iv, out var ivBytesWritten);
+            Debug.Assert(ivResult && ivBytesWritten == IvSizeBytes);
+        }
+        catch (Exception exception)
+        {
+            throw new JoseException("Failed to deserialize the 'iv' field from the JWT header.", exception);
+        }
 
         if (!header.TryGetValue<string>("tag", out var tagString))
         {
@@ -166,7 +175,14 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException("The 'tag' field in the JWT header has an invalid size.");
         }
 
-        var tagResult = Base64Url.TryDecode(tagString, tag, out var tagBytesWritten);
-        Debug.Assert(tagResult && tagBytesWritten == TagSizeBytes);
+        try
+        {
+            var tagResult = Base64Url.TryDecode(tagString, tag, out var tagBytesWritten);
+            Debug.Assert(tagResult && tagBytesWritten == TagSizeBytes);
+        }
+        catch (Exception exception)
+        {
+            throw new JoseException("Failed to deserialize the 'tag' field from the JWT header.", exception);
+        }
     }
 }

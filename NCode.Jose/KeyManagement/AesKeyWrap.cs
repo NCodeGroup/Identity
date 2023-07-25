@@ -115,18 +115,16 @@ public class AesKeyWrap : IAesKeyWrap
     public int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes) =>
         GetCipherTextSizeBytes(contentKeySizeBytes, out _);
 
-    private static int GetCipherTextSizeBytes(int contentKeySizeBytes, out int blocks)
+    internal static int GetCipherTextSizeBytes(int contentKeySizeBytes, out int blocks)
     {
         if (contentKeySizeBytes < IntermediateByteCount)
         {
-            // TODO: unit tests
             throw new JoseException($"The CEK must be at least {IntermediateBitCount} bits.");
         }
 
         var (quotient, remainder) = Math.DivRem(contentKeySizeBytes, ChunkByteCount);
         if (remainder != 0)
         {
-            // TODO: unit tests
             throw new JoseException($"The CEK must be a multiple of {ChunkBitCount} bits.");
         }
 
@@ -225,18 +223,16 @@ public class AesKeyWrap : IAesKeyWrap
     public int GetContentKeySizeBytes(int encryptedContentKeySizeBytes) =>
         GetUnwrapKeySizeBytes(encryptedContentKeySizeBytes, out _);
 
-    private static int GetUnwrapKeySizeBytes(int encryptedContentKeySizeBytes, out int blocks)
+    internal static int GetUnwrapKeySizeBytes(int encryptedContentKeySizeBytes, out int blocks)
     {
         if (encryptedContentKeySizeBytes < IntermediateByteCount)
         {
-            // TODO: unit tests
             throw new JoseException($"Encrypted KEK must be at least {IntermediateBitCount} bits.");
         }
 
         var (quotient, remainder) = Math.DivRem(encryptedContentKeySizeBytes, ChunkByteCount);
         if (remainder != 0)
         {
-            // TODO: unit tests
             throw new JoseException($"Encrypted KEK must be a multiple of {ChunkBitCount} bits.");
         }
 

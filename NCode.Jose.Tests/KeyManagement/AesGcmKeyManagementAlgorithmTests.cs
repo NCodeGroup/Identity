@@ -121,6 +121,7 @@ public class AesGcmKeyManagementAlgorithmTests
         var unwrapResult = algorithm.TryUnwrapKey(secretKey, header, encryptedCek, cek, out var unwrapBytesWritten);
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
+        Assert.Equal(controlResult, cek.ToArray());
     }
 
     [Fact]

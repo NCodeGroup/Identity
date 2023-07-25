@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -143,13 +143,13 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     {
         if (!header.TryGetValue<string>("iv", out var ivString))
         {
-            throw new JoseException($"The JWT header is missing the 'iv' field.");
+            throw new JoseException("The JWT header is missing the 'iv' field.");
         }
 
         var ivByteCount = Base64Url.GetByteCountForDecode(ivString.Length);
         if (ivByteCount != IvSizeBytes)
         {
-            throw new JoseException($"The 'iv' field in the JWT header has an invalid size.");
+            throw new JoseException("The 'iv' field in the JWT header has an invalid size.");
         }
 
         var ivResult = Base64Url.TryDecode(ivString, iv, out var ivBytesWritten);
@@ -157,13 +157,13 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
 
         if (!header.TryGetValue<string>("tag", out var tagString))
         {
-            throw new JoseException($"The JWT header is missing the 'tag' field.");
+            throw new JoseException("The JWT header is missing the 'tag' field.");
         }
 
         var tagByteCount = Base64Url.GetByteCountForDecode(tagString.Length);
         if (tagByteCount != TagSizeBytes)
         {
-            throw new JoseException($"The 'tag' field in the JWT header has an invalid size.");
+            throw new JoseException("The 'tag' field in the JWT header has an invalid size.");
         }
 
         var tagResult = Base64Url.TryDecode(tagString, tag, out var tagBytesWritten);

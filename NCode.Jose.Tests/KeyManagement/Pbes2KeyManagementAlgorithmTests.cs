@@ -1,18 +1,20 @@
 ﻿#region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Security.Cryptography;
@@ -22,11 +24,11 @@ using NCode.Jose.KeyManagement;
 
 namespace NCode.Jose.Tests.KeyManagement;
 
-public class AesGcmKeyManagementAlgorithmTests : BaseTests
+public class Pbes2KeyManagementAlgorithmTests : BaseTests
 {
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
-    public AesGcmKeyManagementAlgorithmTests()
+    public Pbes2KeyManagementAlgorithmTests()
     {
         MockAesKeyWrap = CreateStrictMock<IAesKeyWrap>();
     }
@@ -34,21 +36,29 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     private Pbes2KeyManagementAlgorithm Create(
         IAesKeyWrap? aesKeyWrap = null,
         string? code = null,
-        HashAlgorithmName? hashAlgorithmName = null,
         int? keySizeBits = null,
-        int? maxIterationCount = null) =>
-        new(
+        int? maxIterationCount = null)
+    {
+        var actualKeySizeBits = keySizeBits ?? 128;
+        var hashAlgorithmName = actualKeySizeBits switch
+        {
+            128 => HashAlgorithmName.SHA256,
+            192 => HashAlgorithmName.SHA384,
+            256 => HashAlgorithmName.SHA512,
+            _ => throw new ArgumentOutOfRangeException(nameof(keySizeBits))
+        };
+        return new Pbes2KeyManagementAlgorithm(
             aesKeyWrap ?? MockAesKeyWrap.Object,
             code ?? "code",
-            hashAlgorithmName ?? HashAlgorithmName.SHA256,
-            keySizeBits ?? 256,
+            hashAlgorithmName,
+            actualKeySizeBits,
             maxIterationCount ?? 310000);
+    }
 
     [Theory]
-    [InlineData(1, 1)]
-    [InlineData(7, 1)]
-    [InlineData(8, 1)]
-    [InlineData(9, 2)]
+    [InlineData(128, 16)]
+    [InlineData(192, 24)]
+    [InlineData(256, 32)]
     public void KeySizeBytes_Valid(int keySizeBits, int keySizeBytes)
     {
         var algorithm = Create(keySizeBits: keySizeBits);
@@ -202,15 +212,24 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(0, bytesWritten);
     }
 
-    [Fact]
-    public void RoundTrip_Valid()
+    [Theory]
+    [InlineData(128, 384)]
+    [InlineData(128, 512)]
+    [InlineData(192, 384)]
+    [InlineData(192, 512)]
+    [InlineData(256, 384)]
+    [InlineData(256, 512)]
+    public void RoundTrip_Valid(int keySizeBits, int cekSizeBits)
     {
         const string keyId = nameof(keyId);
-        const string password = nameof(password);
         const string alg = nameof(alg);
-        const int cekSize = 512;
 
-        var algorithm = Create(aesKeyWrap: AesKeyWrap.Default);
+        var password = Guid.NewGuid().ToString("N");
+        var cekSizeBytes = cekSizeBits >> 3;
+
+        var algorithm = Create(
+            keySizeBits: keySizeBits,
+            aesKeyWrap: AesKeyWrap.Default);
 
         using var secretKey = new SymmetricSecretKey(keyId, password);
 
@@ -224,21 +243,30 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
             [nameof(p2c)] = p2c
         };
 
-        var contentKey = new byte[cekSize];
+        var contentKey = new byte[cekSizeBytes];
         RandomNumberGenerator.Fill(contentKey);
 
-        var encryptedContentKey = new byte[cekSize + 8];
-        var decryptedContentKey = new byte[cekSize];
+        var encryptedContentKey = new byte[cekSizeBytes + 8];
+        var decryptedContentKey = new byte[cekSizeBytes];
 
         var wrapResult = algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out var wrapBytesWritten);
         Assert.True(wrapResult);
         Assert.Equal(encryptedContentKey.Length, wrapBytesWritten);
         Assert.Equal(p2c, Assert.Contains(nameof(p2c), (IDictionary<string, object>)header));
-        Assert.Equal(saltSize, Assert.IsType<string>(Assert.Contains("p2s", (IDictionary<string, object>)header)).Length);
+
+        var encodedSaltInput = Assert.IsType<string>(Assert.Contains("p2s", (IDictionary<string, object>)header));
+        Assert.Equal(saltSize, encodedSaltInput.Length);
+
+        var controlAlgorithm = new global::Jose.Pbse2HmacShaKeyManagementWithAesKeyWrap(
+            keySizeBits,
+            new global::Jose.AesKeyWrapManagement(keySizeBits));
+
+        var expectedControl = controlAlgorithm.Unwrap(encryptedContentKey, password, cekSizeBits, header);
+        Assert.Equal(expectedControl, contentKey.ToArray());
 
         var unwrapResult = algorithm.TryUnwrapKey(secretKey, header, encryptedContentKey, decryptedContentKey, out var unwrapBytesWritten);
         Assert.True(unwrapResult);
         Assert.Equal(contentKey.Length, unwrapBytesWritten);
-        Assert.Equal(Convert.ToBase64String(contentKey), Convert.ToBase64String(decryptedContentKey));
+        Assert.Equal(contentKey, decryptedContentKey);
     }
 }

@@ -1,18 +1,20 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Buffers.Binary;
@@ -76,7 +78,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         AlgorithmField = isDirectAgreement ? "enc" : "alg";
     }
 
-    private static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, IDictionary<string, object> headers)
+    internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, IDictionary<string, object> headers)
     {
         var parameters = key.ExportParameters(includePrivateParameters: true);
 
@@ -102,7 +104,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         }
     }
 
-    private ECDiffieHellman ValidateHeaderForUnwrap(
+    internal ECDiffieHellman ValidateHeaderForUnwrap(
         ECCurve curve,
         int curveSizeBits,
         IReadOnlyDictionary<string, object> header,
@@ -210,7 +212,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        throw new NotSupportedException("The 'ECDH-ES' key management algorithm does not support using an existing CEK.");
+        throw new JoseException("The 'ECDH-ES' key management algorithm does not support using an existing CEK.");
     }
 
     /// <inheritdoc />

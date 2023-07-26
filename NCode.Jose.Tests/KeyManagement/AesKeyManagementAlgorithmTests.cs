@@ -117,7 +117,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         Span<byte> encryptedCek = new byte[encryptedCekSizeBytes];
 
         var header = new Dictionary<string, object>();
-        var algorithm = CreateAlgorithm(kekSizeBits, new AesKeyWrap());
+        var algorithm = CreateAlgorithm(kekSizeBits, AesKeyWrap.Default);
 
         var wrapResult = algorithm.TryWrapKey(secretKey, header, cek, encryptedCek, out var wrapBytesWritten);
         Assert.True(wrapResult);

@@ -111,7 +111,7 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException($"The 'p2c' field in the JWT header must be at most {MaxIterationCount}");
         }
 
-        ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length, nameof(contentKey));
+        ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length);
 
         var minEncryptedContentKey = AesKeyWrap.GetEncryptedContentKeySizeBytes(contentKey.Length);
         if (encryptedContentKey.Length < minEncryptedContentKey)

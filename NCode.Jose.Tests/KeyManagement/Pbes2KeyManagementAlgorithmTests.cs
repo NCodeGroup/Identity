@@ -55,14 +55,18 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
             maxIterationCount ?? 310000);
     }
 
-    [Theory]
-    [InlineData(128, 16)]
-    [InlineData(192, 24)]
-    [InlineData(256, 32)]
-    public void KeySizeBytes_Valid(int keySizeBits, int keySizeBytes)
+    [Fact]
+    public void Code_Valid()
     {
-        var algorithm = Create(keySizeBits: keySizeBits);
-        Assert.Equal(keySizeBytes, algorithm.KeySizeBytes);
+        var algorithm = Create();
+        Assert.Equal("code", algorithm.Code);
+    }
+
+    [Fact]
+    public void KeyType_Valid()
+    {
+        var algorithm = Create();
+        Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
     }
 
     [Fact]
@@ -73,6 +77,16 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         Assert.Equal(8, kekBitSizes.MinSize);
         Assert.Equal(int.MaxValue, kekBitSizes.MaxSize);
         Assert.Equal(8, kekBitSizes.SkipSize);
+    }
+
+    [Theory]
+    [InlineData(128, 16)]
+    [InlineData(192, 24)]
+    [InlineData(256, 32)]
+    public void KeySizeBytes_Valid(int keySizeBits, int keySizeBytes)
+    {
+        var algorithm = Create(keySizeBits: keySizeBits);
+        Assert.Equal(keySizeBytes, algorithm.KeySizeBytes);
     }
 
     [Fact]

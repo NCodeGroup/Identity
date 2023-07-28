@@ -62,14 +62,17 @@ public class KeyedHashSignatureAlgorithmTests
     }
 
     [Fact]
-    public void SignatureSizeBits_Valid()
+    public void GetSignatureSizeBytes_Valid()
     {
         const string code = nameof(code);
 
-        var signatureSizeBits = Random.Shared.Next();
+        var keySizeBits = Random.Shared.Next(128, 1024);
+        var signatureSizeBytes = Random.Shared.Next(128, 1024);
+        var signatureSizeBits = signatureSizeBytes * 8;
 
         var algorithm = new KeyedHashSignatureAlgorithm(code, signatureSizeBits, null!);
-        Assert.Equal(signatureSizeBits, algorithm.SignatureSizeBits);
+        var result = algorithm.GetSignatureSizeBytes(keySizeBits);
+        Assert.Equal(signatureSizeBytes, result);
     }
 
     public static IEnumerable<object[]> GetRoundTripTestData()

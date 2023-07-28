@@ -66,19 +66,22 @@ public class EccSignatureAlgorithmTests
     public static IEnumerable<object[]> GetSignatureSizeBitsTestData()
     {
         // ECDSA signatures are twice the size of the key size rounded up to the nearest byte
-        yield return new object[] { HashAlgorithmName.SHA256, 512 };
-        yield return new object[] { HashAlgorithmName.SHA384, 768 };
-        yield return new object[] { HashAlgorithmName.SHA512, 1056 };
+        yield return new object[] { HashAlgorithmName.SHA256, 64 };
+        yield return new object[] { HashAlgorithmName.SHA384, 96 };
+        yield return new object[] { HashAlgorithmName.SHA512, 132 };
     }
 
     [Theory]
     [MemberData(nameof(GetSignatureSizeBitsTestData))]
-    public void SignatureSizeBits_Valid(HashAlgorithmName hashAlgorithmName, int expected)
+    public void GetSignatureSizeBytes_Valid(HashAlgorithmName hashAlgorithmName, int expected)
     {
         const string code = nameof(code);
 
+        var keySizeBits = Random.Shared.Next();
+
         var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
-        Assert.Equal(expected, algorithm.SignatureSizeBits);
+        var result = algorithm.GetSignatureSizeBytes(keySizeBits);
+        Assert.Equal(expected, result);
     }
 
     public static IEnumerable<object[]> GetRoundTripTestData()
@@ -99,7 +102,7 @@ public class EccSignatureAlgorithmTests
         using var secretKey = EccSecretKey.Create(keyId, key);
 
         var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
-        var hashSizeBytes = algorithm.SignatureSizeBytes;
+        var hashSizeBytes = algorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
 
         var dataSizeBytes = Random.Shared.Next(128, 1024);
         Span<byte> inputData = stackalloc byte[dataSizeBytes];

@@ -75,13 +75,13 @@ public abstract class KeyedAlgorithm : Algorithm, IKeyedAlgorithm
     /// <returns><paramref name="secretKey"/> casted to <typeparamref name="T"/>.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="secretKey"/> is not a type of <typeparamref name="T"/>
     /// or when the key size was invalid.</exception>
-    protected T ValidateSecretKey<T>(SecretKey secretKey)
+    protected internal T ValidateSecretKey<T>(SecretKey secretKey)
         where T : SecretKey
     {
         if (secretKey is not T typedSecretKey)
         {
             throw new ArgumentException(
-                $"The secret key was expected to be a type of {typeof(T).FullName}, but {secretKey.GetType().FullName} was given instead.",
+                $"The secret key was expected to be a type of '{typeof(T).FullName}', but '{secretKey.GetType().FullName}' was given instead.",
                 nameof(secretKey));
         }
 

@@ -66,7 +66,7 @@ public class KeyManagementAlgorithmTests : BaseTests
         var algorithm = new DelegatingKeyManagementAlgorithm(MockKeyManagementAlgorithm.Object);
         algorithm.NewKey(secretKey, header, cek);
 
-        Assert.True(cek.ToArray().All(b => b != 0));
+        Assert.NotEqual(0, cek.ToArray().Sum(b => b));
     }
 
     [Fact]

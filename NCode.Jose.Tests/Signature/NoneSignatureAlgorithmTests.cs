@@ -47,7 +47,9 @@ public class NoneSignatureAlgorithmTests
     [Fact]
     public void SignatureSizeBits_Valid()
     {
-        Assert.Equal(0, Algorithm.SignatureSizeBits);
+        var keySizeBits = Random.Shared.Next();
+        var result = Algorithm.GetSignatureSizeBytes(keySizeBits);
+        Assert.Equal(0, result);
     }
 
     [Fact]

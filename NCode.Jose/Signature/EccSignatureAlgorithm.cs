@@ -36,8 +36,7 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes { get; }
 
-    /// <inheritdoc />
-    public override int SignatureSizeBits { get; }
+    private int SignatureSizeBytes { get; }
 
     private HashAlgorithmName HashAlgorithmName { get; }
 
@@ -53,13 +52,16 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
 
         // ECDSA signatures are twice the size of the key size rounded up to the nearest byte
         var (quotient, remainder) = Math.DivRem(kekSizeBits * 2, 8);
-        SignatureSizeBits = (quotient + remainder) * 8;
+        SignatureSizeBytes = quotient + remainder;
 
         Code = code;
         HashAlgorithmName = hashAlgorithmName;
 
         KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
     }
+
+    /// <inheritdoc />
+    public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)

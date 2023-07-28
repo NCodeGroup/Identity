@@ -69,15 +69,15 @@ public abstract class SignatureAlgorithm : KeyedAlgorithm, ISignatureAlgorithm
     /// <inheritdoc />
     public virtual bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
     {
-        var byteCount = GetSignatureSizeBytes(secretKey.KeySizeBits);
-        if (signature.Length != byteCount)
+        var signatureSizeBytes = GetSignatureSizeBytes(secretKey.KeySizeBits);
+        if (signature.Length != signatureSizeBytes)
             return false;
 
-        var computed = byteCount <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[byteCount] :
-            GC.AllocateUninitializedArray<byte>(byteCount, pinned: false);
+        var computedSignature = signatureSizeBytes <= JoseConstants.MaxStackAlloc ?
+            stackalloc byte[signatureSizeBytes] :
+            GC.AllocateUninitializedArray<byte>(signatureSizeBytes, pinned: false);
 
-        return TrySign(secretKey, inputData, computed, out _) &&
-               CryptographicOperations.FixedTimeEquals(computed, signature);
+        return TrySign(secretKey, inputData, computedSignature, out _) &&
+               CryptographicOperations.FixedTimeEquals(computedSignature, signature);
     }
 }

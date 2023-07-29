@@ -47,7 +47,7 @@ public interface ISignatureAlgorithm : IKeyedAlgorithm
     /// </summary>
     /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
     /// <param name="inputData">Contains the data what was signed.</param>
-    /// <param name="signature">Contains the digital signature to compare.</param>
+    /// <param name="signature">Contains the digital signature to verify.</param>
     /// <returns><c>true</c> if the computed signature matches the <paramref name="signature"/> parameter; otherwise, <c>false</c>.</returns>
     bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature);
 }

@@ -223,7 +223,6 @@ public class JoseSerializerTests : BaseTests
 
         using var disposableNativeKey = controlKey as IDisposable ?? DummyDisposable.Singleton;
         using var disposableSecretKey = secretKey;
-        using var secretKeys = new SecretKeyCollection(new[] { secretKey });
 
         var originalPayload = new Dictionary<string, object>
         {
@@ -243,7 +242,7 @@ public class JoseSerializerTests : BaseTests
         var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings);
         Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
-        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKeys, out var header);
+        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKey, out var header);
         Assert.Equal(originalPayload, actualPayload);
 
         var alg = Assert.IsType<string>(Assert.Contains("alg", header));
@@ -280,7 +279,6 @@ public class JoseSerializerTests : BaseTests
 
         using var disposableNativeKey = controlKey as IDisposable ?? DummyDisposable.Singleton;
         using var disposableSecretKey = secretKey;
-        using var secretKeys = new SecretKeyCollection(new[] { secretKey });
 
         var originalPayload = new Dictionary<string, object>
         {
@@ -300,7 +298,7 @@ public class JoseSerializerTests : BaseTests
         var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings);
         Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
-        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKeys, out var header);
+        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKey, out var header);
         Assert.Equal(originalPayload, actualPayload);
 
         var alg = Assert.IsType<string>(Assert.Contains("alg", header));
@@ -329,16 +327,13 @@ public class JoseSerializerTests : BaseTests
         };
 
         var token = JoseSerializer.EncodeJws(payload, secretKey, algorithm, extraHeaders);
-
-        var isKeyEmpty = secretKey.KeySizeBits == 0;
-        using var secretKeys = new SecretKeyCollection(isKeyEmpty ? Array.Empty<SecretKey>() : new[] { secretKey });
-        var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token, secretKeys, out var deserializedHeaders);
+        var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token, secretKey, out var deserializedHeaders);
         Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized));
 
         extraHeaders["typ"] = deserializedHeaders["typ"];
         extraHeaders["alg"] = deserializedHeaders["alg"];
 
-        if (!isKeyEmpty)
+        if (secretKey.KeySizeBits != 0)
             extraHeaders["kid"] = deserializedHeaders["kid"];
 
         Assert.Equal(JsonSerializer.Serialize(extraHeaders), JsonSerializer.Serialize(deserializedHeaders));

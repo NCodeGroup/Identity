@@ -64,12 +64,11 @@ partial class JoseSerializer
 
         var signatureByteCount = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
         var isEmptySignature = signatureByteCount == 0;
-        var keyId = isEmptySignature ? string.Empty : secretKey.KeyId;
 
         // BASE64URL(UTF8(JWS Protected Header)) || '.'
         EncodeJwsHeader(
             signatureAlgorithm.Code,
-            keyId,
+            secretKey.KeyId,
             tokenWriter,
             extraHeaders,
             out var encodedHeaderPart);
@@ -118,12 +117,11 @@ partial class JoseSerializer
 
         var signatureByteCount = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
         var isEmptySignature = signatureByteCount == 0;
-        var keyId = isEmptySignature ? string.Empty : secretKey.KeyId;
 
         // BASE64URL(UTF8(JWS Protected Header)) || '.'
         EncodeJwsHeader(
             signatureAlgorithm.Code,
-            keyId,
+            secretKey.KeyId,
             tokenWriter,
             extraHeaders,
             out var encodedHeaderPart);

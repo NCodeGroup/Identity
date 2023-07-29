@@ -22,7 +22,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
@@ -109,14 +108,13 @@ partial class JoseSerializer
     private T? DeserializeJweCompact<T>(
         StringSegments segments,
         ISecretKeyCollection secretKeys,
-        JsonSerializerOptions options,
         out IReadOnlyDictionary<string, object> header)
     {
         using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
 
         DecryptJweCompact(segments, secretKeys, byteSequence, out var localHeader);
 
-        var payload = Deserialize<T>(byteSequence, options);
+        var payload = Deserialize<T>(byteSequence);
 
         header = localHeader;
         return payload;

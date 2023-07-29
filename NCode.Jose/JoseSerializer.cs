@@ -20,12 +20,12 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Json;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;
@@ -62,27 +62,23 @@ public interface IJoseSerializer
     /// </summary>
     /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for cryptographic operations.</param>
-    /// <param name="options">The options to control JSON deserialization behavior.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
     T? Deserialize<T>(
         string value,
-        ISecretKeyCollection secretKeys,
-        JsonSerializerOptions options);
+        ISecretKeyCollection secretKeys);
 
     /// <summary>
     /// Validates a Json Web Token (JWT) and returns the deserialized payload and header.
     /// </summary>
     /// <param name="value">The Json Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKeys">An <see cref="ISecretKeyCollection"/> with <see cref="SecretKey"/> instances used for cryptographic operations.</param>
-    /// <param name="options">The options to control JSON deserialization behavior.</param>
     /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
     T? Deserialize<T>(
         string value,
         ISecretKeyCollection secretKeys,
-        JsonSerializerOptions options,
         out IReadOnlyDictionary<string, object> header);
 }
 
@@ -93,14 +89,6 @@ public partial class JoseSerializer : IJoseSerializer
 {
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
-
-    private static JsonSerializerOptions DeserializeHeaderOptions { get; } = new(JsonSerializerDefaults.Web)
-    {
-        Converters =
-        {
-            new DictionaryJsonConverter()
-        }
-    };
 
     private static IMemoryOwner<byte> DecodeBase64Url(string name, ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
     {
@@ -123,21 +111,25 @@ public partial class JoseSerializer : IJoseSerializer
         return lease;
     }
 
-    private static Dictionary<string, object> DeserializeHeader(string name, ReadOnlySpan<char> encodedHeader)
+    private Dictionary<string, object> DeserializeHeader(string name, ReadOnlySpan<char> encodedHeader)
     {
         using var lease = DecodeBase64Url(name, encodedHeader, isSensitive: false, out var utf8Json);
-        var header = JsonSerializer.Deserialize<Dictionary<string, object>>(utf8Json, DeserializeHeaderOptions);
+        var header = JsonSerializer.Deserialize<Dictionary<string, object>>(utf8Json, JoseOptions.JsonSerializerOptions);
         return header ?? throw new JoseException($"Failed to deserialize {name}");
     }
+
+    private JoseOptions JoseOptions { get; }
 
     private IAlgorithmProvider AlgorithmProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
     /// </summary>
+    /// <param name="optionsAccessor">An accessor that provides <see cref="JoseOptions"/>.</param>
     /// <param name="algorithmProvider">An <see cref="IAlgorithmProvider"/> that is used to lookup signing keys for signature validation.</param>
-    public JoseSerializer(IAlgorithmProvider algorithmProvider)
+    public JoseSerializer(IOptions<JoseOptions> optionsAccessor, IAlgorithmProvider algorithmProvider)
     {
+        JoseOptions = optionsAccessor.Value;
         AlgorithmProvider = algorithmProvider;
     }
 
@@ -172,37 +164,34 @@ public partial class JoseSerializer : IJoseSerializer
     /// <inheritdoc />
     public T? Deserialize<T>(
         string value,
-        ISecretKeyCollection secretKeys,
-        JsonSerializerOptions options) =>
-        Deserialize<T>(value, secretKeys, options, out _);
+        ISecretKeyCollection secretKeys) =>
+        Deserialize<T>(value, secretKeys, out _);
 
     /// <inheritdoc />
     public T? Deserialize<T>(
         string value,
         ISecretKeyCollection secretKeys,
-        JsonSerializerOptions options,
         out IReadOnlyDictionary<string, object> header)
     {
         var segments = value.SplitSegments('.');
         return segments.Count switch
         {
-            JwsSegmentCount => DeserializeJws<T>(segments, secretKeys, options, out header),
-            JweSegmentCount => DeserializeJweCompact<T>(segments, secretKeys, options, out header),
+            JwsSegmentCount => DeserializeJws<T>(segments, secretKeys, out header),
+            JweSegmentCount => DeserializeJweCompact<T>(segments, secretKeys, out header),
             _ => throw new InvalidOperationException()
         };
     }
 
-    private static T? Deserialize<T>(
-        ReadOnlySequence<byte> byteSequence,
-        JsonSerializerOptions options)
+    private T? Deserialize<T>(ReadOnlySequence<byte> byteSequence)
     {
+        var jsonOptions = JoseOptions.JsonSerializerOptions;
         var readerOptions = new JsonReaderOptions
         {
-            AllowTrailingCommas = options.AllowTrailingCommas,
-            CommentHandling = options.ReadCommentHandling,
-            MaxDepth = options.MaxDepth
+            AllowTrailingCommas = jsonOptions.AllowTrailingCommas,
+            CommentHandling = jsonOptions.ReadCommentHandling,
+            MaxDepth = jsonOptions.MaxDepth
         };
         var reader = new Utf8JsonReader(byteSequence, readerOptions);
-        return JsonSerializer.Deserialize<T>(ref reader, options);
+        return JsonSerializer.Deserialize<T>(ref reader, jsonOptions);
     }
 }

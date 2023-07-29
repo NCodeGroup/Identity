@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,26 +17,27 @@
 
 #endregion
 
-using System.Text.Json;
-using NCode.Jose.Json;
-
-namespace NCode.Jose;
+namespace NCode.Cryptography.Keys;
 
 /// <summary>
-/// Contains options for Jose services and algorithms.
+/// Provides a <see cref="SecretKey"/> implementation that is empty.
 /// </summary>
-public class JoseOptions
+public sealed class EmptySecretKey : SecretKey
 {
     /// <summary>
-    /// Gets or sets a list containing the codes of all the disabled algorithms.
+    /// Gets a singleton instance of <see cref="EmptySecretKey"/>.
     /// </summary>
-    public List<string> DisabledAlgorithms { get; set; } = new();
+    public static EmptySecretKey Singleton { get; } = new();
 
-    /// <summary>
-    /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.
-    /// </summary>
-    public JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
+    private EmptySecretKey()
+        : base(string.Empty)
     {
-        Converters = { new DictionaryJsonConverter() }
-    };
+        // nothing
+    }
+
+    /// <inheritdoc />
+    public override int KeySizeBits => 0;
+
+    /// <inheritdoc />
+    public override int KeySizeBytes => 0;
 }

@@ -27,12 +27,204 @@ using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
+using NCode.Jose.Signature;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;
 
 partial class JoseSerializer
 {
+    internal string EncodeJws<T>(
+        T payload,
+        SecretKey secretKey,
+        ISignatureAlgorithm signatureAlgorithm,
+        IReadOnlyDictionary<string, object>? extraHeaders = null)
+    {
+        using var payloadBytes = new Sequence<byte>(ArrayPool<byte>.Shared);
+        using var jsonWriter = new Utf8JsonWriter(payloadBytes);
+        JsonSerializer.Serialize(jsonWriter, payload, JoseOptions.JsonSerializerOptions);
+
+        using var tokenWriter = new Sequence<char>(ArrayPool<char>.Shared);
+        EncodeJws(payloadBytes, secretKey, signatureAlgorithm, tokenWriter, extraHeaders);
+
+        return tokenWriter.AsReadOnlySequence.ToString();
+    }
+
+    internal void EncodeJws(
+        ReadOnlySpan<byte> payload,
+        SecretKey secretKey,
+        ISignatureAlgorithm signatureAlgorithm,
+        IBufferWriter<char> tokenWriter,
+        IReadOnlyDictionary<string, object>? extraHeaders = null)
+    {
+        /*
+              BASE64URL(UTF8(JWS Protected Header)) || '.' ||
+              BASE64URL(JWS Payload) || '.' ||
+              BASE64URL(JWS Signature)
+        */
+
+        var signatureByteCount = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
+        var isEmptySignature = signatureByteCount == 0;
+        var keyId = isEmptySignature ? string.Empty : secretKey.KeyId;
+
+        // BASE64URL(UTF8(JWS Protected Header)) || '.'
+        EncodeJwsHeader(
+            signatureAlgorithm.Code,
+            keyId,
+            tokenWriter,
+            extraHeaders,
+            out var encodedHeaderPart);
+
+        // BASE64URL(JWS Payload) || '.'
+        var payloadByteCount = payload.Length;
+        var payloadCharCount = Base64Url.GetCharCountForEncode(payloadByteCount);
+        var encodedPayload = tokenWriter.GetSpan(payloadCharCount + 1);
+        var encodePayloadResult = Base64Url.TryEncode(payload, encodedPayload, out var payloadCharsWritten);
+        Debug.Assert(encodePayloadResult && payloadCharsWritten == payloadCharCount);
+        encodedPayload[payloadCharsWritten] = '.';
+        tokenWriter.Advance(payloadCharsWritten + 1);
+
+        if (isEmptySignature)
+            return;
+
+        var encodedPayloadPart = encodedPayload[..payloadCharsWritten]; // without dot
+
+        // BASE64URL(JWS Signature)
+        EncodeJwsSignature(
+            encodedHeaderPart,
+            encodedPayloadPart,
+            secretKey,
+            signatureAlgorithm,
+            tokenWriter);
+    }
+
+    internal void EncodeJws(
+        ReadOnlySequence<byte> payload,
+        SecretKey secretKey,
+        ISignatureAlgorithm signatureAlgorithm,
+        IBufferWriter<char> tokenWriter,
+        IReadOnlyDictionary<string, object>? extraHeaders = null)
+    {
+        if (payload.IsSingleSegment)
+        {
+            EncodeJws(payload.FirstSpan, secretKey, signatureAlgorithm, tokenWriter, extraHeaders);
+            return;
+        }
+
+        /*
+              BASE64URL(UTF8(JWS Protected Header)) || '.' ||
+              BASE64URL(JWS Payload) || '.' ||
+              BASE64URL(JWS Signature)
+        */
+
+        var signatureByteCount = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
+        var isEmptySignature = signatureByteCount == 0;
+        var keyId = isEmptySignature ? string.Empty : secretKey.KeyId;
+
+        // BASE64URL(UTF8(JWS Protected Header)) || '.'
+        EncodeJwsHeader(
+            signatureAlgorithm.Code,
+            keyId,
+            tokenWriter,
+            extraHeaders,
+            out var encodedHeaderPart);
+
+        // BASE64URL(JWS Payload) || '.'
+        var payloadByteCount = (int)payload.Length;
+        var payloadCharCount = Base64Url.GetCharCountForEncode(payloadByteCount);
+        var encodedPayload = tokenWriter.GetSpan(payloadCharCount + 1);
+        var encodePayloadResult = Base64Url.TryEncode(payload, encodedPayload, out var payloadCharsWritten);
+        Debug.Assert(encodePayloadResult && payloadCharsWritten == payloadCharCount);
+        encodedPayload[payloadCharsWritten] = '.';
+        tokenWriter.Advance(payloadCharsWritten + 1);
+
+        if (isEmptySignature)
+            return;
+
+        var encodedPayloadPart = encodedPayload[..payloadCharsWritten]; // without dot
+
+        // BASE64URL(JWS Signature)
+        EncodeJwsSignature(
+            encodedHeaderPart,
+            encodedPayloadPart,
+            secretKey,
+            signatureAlgorithm,
+            tokenWriter);
+    }
+
+    private void EncodeJwsHeader(
+        string algorithmCode,
+        string keyId,
+        IBufferWriter<char> tokenWriter,
+        IReadOnlyDictionary<string, object>? extraHeaders,
+        out Span<char> encodedHeaderPart)
+    {
+        var header = extraHeaders != null ?
+            new Dictionary<string, object>(extraHeaders) :
+            new Dictionary<string, object>();
+
+        header.TryAdd("typ", "JWT");
+
+        if (!string.IsNullOrEmpty(algorithmCode))
+            header["alg"] = algorithmCode;
+
+        if (!string.IsNullOrEmpty(keyId))
+            header["kid"] = keyId;
+
+        using var headerSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
+        using var headerWriter = new Utf8JsonWriter(headerSequence);
+        JsonSerializer.Serialize(headerWriter, header, JoseOptions.JsonSerializerOptions);
+
+        var headerByteCount = (int)headerSequence.Length;
+        var headerCharCount = Base64Url.GetCharCountForEncode(headerByteCount);
+        var encodedHeader = tokenWriter.GetSpan(headerCharCount + 1);
+
+        var encodeHeaderResult = Base64Url.TryEncode(headerSequence, encodedHeader, out var headerCharsWritten);
+        Debug.Assert(encodeHeaderResult && headerCharsWritten == headerCharCount);
+
+        encodedHeader[headerCharsWritten] = '.';
+        tokenWriter.Advance(headerCharsWritten + 1);
+
+        encodedHeaderPart = encodedHeader[..(headerCharsWritten + 1)]; // with dot
+    }
+
+    private static void EncodeJwsSignature(
+        ReadOnlySpan<char> encodedHeaderPart,
+        ReadOnlySpan<char> encodedPayloadPart,
+        SecretKey secretKey,
+        ISignatureAlgorithm signatureAlgorithm,
+        IBufferWriter<char> tokenWriter)
+    {
+        // Input Data for Signature
+        // UTF8( BASE64URL(UTF8(JWS Protected Header)) || '.' || BASE64URL(JWS Payload) )
+
+        var headerByteCount = Encoding.UTF8.GetByteCount(encodedHeaderPart);
+        var payloadByteCount = Encoding.UTF8.GetByteCount(encodedPayloadPart);
+
+        var inputByteCount = headerByteCount + payloadByteCount;
+        using var inputLease = CryptoPool.Rent(inputByteCount, isSensitive: false, out Span<byte> inputData);
+
+        var headerWritten = Encoding.UTF8.GetBytes(encodedHeaderPart, inputData);
+        Debug.Assert(headerWritten == headerByteCount);
+
+        var payloadWritten = Encoding.UTF8.GetBytes(encodedPayloadPart, inputData[headerByteCount..]);
+        Debug.Assert(payloadWritten == payloadByteCount);
+
+        var signatureByteCount = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
+        using var signatureLease = CryptoPool.Rent(signatureByteCount, isSensitive: false, out Span<byte> signatureBytes);
+
+        var signResult = signatureAlgorithm.TrySign(secretKey, inputData, signatureBytes, out var signatureBytesWritten);
+        Debug.Assert(signResult && signatureBytesWritten == signatureByteCount);
+
+        var signatureCharCount = Base64Url.GetCharCountForEncode(signatureByteCount);
+        var encodedSignature = tokenWriter.GetSpan(signatureCharCount);
+
+        var encodeResult = Base64Url.TryEncode(signatureBytes, encodedSignature, out var signatureCharsWritten);
+        Debug.Assert(encodeResult && signatureCharsWritten == signatureCharCount);
+
+        tokenWriter.Advance(signatureCharsWritten);
+    }
+
     private string DecodeJws(
         StringSegments segments,
         ISecretKeyCollection secretKeys,
@@ -51,14 +243,13 @@ partial class JoseSerializer
     private T? DeserializeJws<T>(
         StringSegments segments,
         ISecretKeyCollection secretKeys,
-        JsonSerializerOptions options,
         out IReadOnlyDictionary<string, object> header)
     {
         using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
 
         DecodeJws(segments, secretKeys, byteSequence, out var localHeader);
 
-        var payload = Deserialize<T>(byteSequence, options);
+        var payload = Deserialize<T>(byteSequence);
 
         header = localHeader;
         return payload;

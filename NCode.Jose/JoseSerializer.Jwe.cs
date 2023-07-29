@@ -19,13 +19,9 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 using System.Text;
-using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
-using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
 using Nerdbank.Streams;
@@ -37,94 +33,25 @@ partial class JoseSerializer
     // private static bool IsJson(string value) =>
     //     value.StartsWith('{') && value.EndsWith('}');
 
-    private delegate bool SecretKeySelectorDelegate(
-        IReadOnlyDictionary<string, object> header,
-        [MaybeNullWhen(false)] out SecretKey secretKey);
-
-    private static SecretKeySelectorDelegate SecretKeySelectorFactory(ISecretKeyCollection secretKeys)
-    {
-        var headerKeys = new[] { "x5t", "x5t#S256" };
-        IReadOnlyDictionary<(string HeaderKey, string HeaderValue), SecretKey>? customLookup = null;
-
-        IReadOnlyDictionary<(string HeaderKey, string HeaderValue), SecretKey> CreateCustomLookup()
-        {
-            var newCustomLookup = new Dictionary<(string HeaderKey, string HeaderValue), SecretKey>();
-
-            foreach (var secretKey in secretKeys)
-            {
-                if (secretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey) continue;
-
-                var certificate = asymmetricSecretKey.Certificate;
-                var thumbprintSha1 = Base64Url.Encode(certificate.GetCertHash());
-                var thumbprintSha256 = Base64Url.Encode(certificate.GetCertHash(HashAlgorithmName.SHA256));
-
-                newCustomLookup[("x5t", thumbprintSha1)] = secretKey;
-                newCustomLookup[("x5t#S256", thumbprintSha256)] = secretKey;
-            }
-
-            return newCustomLookup;
-        }
-
-        bool SecretKeySelector(IReadOnlyDictionary<string, object> header, [MaybeNullWhen(false)] out SecretKey secretKey)
-        {
-            if (header.TryGetValue<string>("kid", out var keyId) && secretKeys.TryGetByKeyId(keyId, out secretKey))
-            {
-                return true;
-            }
-
-            customLookup ??= CreateCustomLookup();
-
-            foreach (var headerKey in headerKeys)
-            {
-                if (header.TryGetValue<string>(headerKey, out var headerValue) &&
-                    customLookup.TryGetValue((headerKey, headerValue), out secretKey))
-                {
-                    return true;
-                }
-            }
-
-            secretKey = null;
-            return false;
-        }
-
-        return SecretKeySelector;
-    }
-
-    private string DecodeJweCompact(
-        StringSegments segments,
-        ISecretKeyCollection secretKeys,
-        out IReadOnlyDictionary<string, object> header)
+    private string DecodeJwe(CompactToken compactToken, SecretKey secretKey)
     {
         using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
 
-        DecryptJweCompact(segments, secretKeys, byteSequence, out var localHeader);
+        DecryptJwe(compactToken, secretKey, byteSequence);
 
-        var payload = DecodeUtf8(byteSequence);
-
-        header = localHeader;
-        return payload;
+        return DecodeUtf8(byteSequence);
     }
 
-    private T? DeserializeJweCompact<T>(
-        StringSegments segments,
-        ISecretKeyCollection secretKeys,
-        out IReadOnlyDictionary<string, object> header)
+    private T? DeserializeJwe<T>(CompactToken compactToken, SecretKey secretKey)
     {
         using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
 
-        DecryptJweCompact(segments, secretKeys, byteSequence, out var localHeader);
+        DecryptJwe(compactToken, secretKey, byteSequence);
 
-        var payload = Deserialize<T>(byteSequence);
-
-        header = localHeader;
-        return payload;
+        return Deserialize<T>(byteSequence);
     }
 
-    private void DecryptJweCompact(
-        StringSegments segments,
-        ISecretKeyCollection secretKeys,
-        IBufferWriter<byte> payloadBytes,
-        out IReadOnlyDictionary<string, object> header)
+    private void DecryptJwe(CompactToken compactToken, SecretKey secretKey, IBufferWriter<byte> payloadBytes)
     {
         /*
               BASE64URL(UTF8(JWE Protected Header)) || '.' ||
@@ -133,14 +60,11 @@ partial class JoseSerializer
               BASE64URL(JWE Ciphertext) || '.' ||
               BASE64URL(JWE Authentication Tag)
         */
-        Debug.Assert(segments.Count == JweSegmentCount);
+        Debug.Assert(compactToken.ProtectionType == JoseConstants.JWE);
 
         // JWE Protected Header
-        var jweProtectedHeader = segments.First;
-        var encodedHeader = jweProtectedHeader.Memory.Span;
-        var localHeader = DeserializeHeader(
-            "JWE Protected Header",
-            encodedHeader);
+        var jweProtectedHeader = compactToken.Segments.First;
+        var header = compactToken.DeserializedHeader;
 
         // JWE Encrypted Key
         var jweEncryptedKey = jweProtectedHeader.Next!;
@@ -178,7 +102,7 @@ partial class JoseSerializer
             isSensitive: false,
             out var authenticationTagBytes);
 
-        if (!localHeader.TryGetValue<string>("alg", out var keyManagementAlgorithmCode))
+        if (!header.TryGetValue<string>("alg", out var keyManagementAlgorithmCode))
         {
             throw new JoseException("The JWE header is missing the 'alg' field.");
         }
@@ -188,7 +112,7 @@ partial class JoseSerializer
             throw new InvalidAlgorithmJoseException($"No registered JWA key agreement algorithm for `{keyManagementAlgorithmCode}` was found.");
         }
 
-        if (!localHeader.TryGetValue<string>("enc", out var encryptionAlgorithmCode))
+        if (!header.TryGetValue<string>("enc", out var encryptionAlgorithmCode))
         {
             throw new JoseException("The JWE header is missing the 'enc' field.");
         }
@@ -198,18 +122,12 @@ partial class JoseSerializer
             throw new InvalidAlgorithmJoseException($"No registered AEAD encryption algorithm for `{encryptionAlgorithmCode}` was found.");
         }
 
-        var secretKeySelector = SecretKeySelectorFactory(secretKeys);
-        if (!secretKeySelector(localHeader, out var secretKey))
-        {
-            throw new JoseException("Unable to determine the JWE encryption key.");
-        }
-
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;
         using var contentKeyLease = CryptoPool.Rent(cekSizeBytes, isSensitive: true, out Span<byte> contentKey);
 
         var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
             secretKey,
-            localHeader,
+            header,
             encryptedKeyBytes,
             contentKey,
             out var unwrapBytesWritten);
@@ -237,6 +155,7 @@ partial class JoseSerializer
                 BASE64URL(JWE AAD)).
         */
 
+        var encodedHeader = compactToken.EncodedHeader;
         var associatedDataByteCount = Encoding.ASCII.GetByteCount(encodedHeader);
         using var associatedDataLease = CryptoPool.Rent(associatedDataByteCount, isSensitive: false, out Span<byte> associatedDataBytes);
         var addBytesWritten = Encoding.ASCII.GetBytes(encodedHeader, associatedDataBytes);
@@ -278,7 +197,7 @@ partial class JoseSerializer
                 plaintext using the specified compression algorithm.
         */
 
-        if (localHeader.TryGetValue<string>("zip", out var compressionAlgorithmCode))
+        if (header.TryGetValue<string>("zip", out var compressionAlgorithmCode))
         {
             if (!AlgorithmProvider.TryGetCompressionAlgorithm(compressionAlgorithmCode, out var compressionAlgorithm))
             {
@@ -291,7 +210,5 @@ partial class JoseSerializer
         {
             payloadBytes.Write(plainTextBytes);
         }
-
-        header = localHeader;
     }
 }

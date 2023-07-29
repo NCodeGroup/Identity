@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
@@ -225,59 +224,45 @@ partial class JoseSerializer
         tokenWriter.Advance(signatureCharsWritten);
     }
 
-    private string DecodeJws(
-        StringSegments segments,
-        ISecretKeyCollection secretKeys,
-        out IReadOnlyDictionary<string, object> header)
+    private string DecodeJws(CompactToken compactToken, SecretKey secretKey)
     {
         using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
 
-        DecodeJws(segments, secretKeys, byteSequence, out var localHeader);
+        DecodeJws(compactToken, secretKey, byteSequence);
 
-        var payload = DecodeUtf8(byteSequence);
-
-        header = localHeader;
-        return payload;
+        return DecodeUtf8(byteSequence);
     }
 
-    private T? DeserializeJws<T>(
-        StringSegments segments,
-        ISecretKeyCollection secretKeys,
-        out IReadOnlyDictionary<string, object> header)
+    private T? DeserializeJws<T>(CompactToken compactToken, SecretKey secretKey)
     {
         using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
 
-        DecodeJws(segments, secretKeys, byteSequence, out var localHeader);
+        DecodeJws(compactToken, secretKey, byteSequence);
 
-        var payload = Deserialize<T>(byteSequence);
-
-        header = localHeader;
-        return payload;
+        return Deserialize<T>(byteSequence);
     }
 
-    private void DecodeJws(
-        StringSegments segments,
-        ISecretKeyCollection secretKeys,
-        IBufferWriter<byte> payloadWriter,
-        out IReadOnlyDictionary<string, object> header)
+    private void DecodeJws(CompactToken compactToken, SecretKey secretKey, IBufferWriter<byte> payloadWriter)
     {
         /*
               BASE64URL(UTF8(JWS Protected Header)) || '.' ||
               BASE64URL(JWS Payload) || '.' ||
               BASE64URL(JWS Signature)
         */
-        Debug.Assert(segments.Count == JwsSegmentCount);
+        Debug.Assert(compactToken.ProtectionType == JoseConstants.JWS);
 
         // JWS Protected Header
-        var jwsProtectedHeader = segments.First;
-        var encodedHeader = jwsProtectedHeader.Memory.Span;
-        var localHeader = DeserializeHeader(
-            "JWS Protected Header",
-            encodedHeader);
+        var jwsProtectedHeader = compactToken.Segments.First;
+        var header = compactToken.DeserializedHeader;
 
-        if (!localHeader.TryGetValue<string>("alg", out var signatureAlgorithmCode))
+        if (!header.TryGetValue<string>("alg", out var signatureAlgorithmCode))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
+        }
+
+        if (!AlgorithmProvider.TryGetSignatureAlgorithm(signatureAlgorithmCode, out var signatureAlgorithm))
+        {
+            throw new InvalidAlgorithmJoseException($"No registered signature algorithm for `{signatureAlgorithmCode}` was found.");
         }
 
         // JWS Payload
@@ -293,15 +278,19 @@ partial class JoseSerializer
             isSensitive: false,
             out var signature);
 
-        VerifySignature(
-            secretKeys,
-            encodedHeader,
-            encodedPayload,
-            signature,
-            signatureAlgorithmCode,
-            localHeader);
+        var expectedSignatureSizeBytes = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
+        if (signature.Length != expectedSignatureSizeBytes)
+            throw new IntegrityJoseException($"Invalid signature size, expected {expectedSignatureSizeBytes} bytes but was {signature.Length} bytes.");
 
-        if (!localHeader.TryGetValue<bool>("b64", out var b64))
+        using var signatureInputLease = GetSignatureInput(
+            compactToken.EncodedHeader,
+            encodedPayload,
+            out var signatureInput);
+
+        if (!signatureAlgorithm.Verify(secretKey, signatureInput, signature))
+            throw new IntegrityJoseException("Invalid signature, verification failed.");
+
+        if (!header.TryGetValue<bool>("b64", out var b64))
         {
             b64 = true;
         }
@@ -314,55 +303,15 @@ partial class JoseSerializer
         {
             Encoding.UTF8.GetBytes(encodedPayload, payloadWriter);
         }
-
-        header = localHeader;
     }
 
-    private void VerifySignature(
-        ISecretKeyCollection secretKeys,
-        ReadOnlySpan<char> encodedHeader,
-        ReadOnlySpan<char> encodedPayload,
-        ReadOnlySpan<byte> signature,
-        string signatureAlgorithmCode,
-        IReadOnlyDictionary<string, object> header)
-    {
-        if (signatureAlgorithmCode == AlgorithmCodes.DigitalSignature.None)
-        {
-            if (signature.Length != 0)
-            {
-                throw new IntegrityJoseException("Signature validation failed, expected no signature but was present.");
-            }
-
-            return;
-        }
-
-        if (!AlgorithmProvider.TryGetSignatureAlgorithm(signatureAlgorithmCode, out var signingAlgorithm))
-        {
-            throw new InvalidAlgorithmJoseException($"No registered signing algorithm for `{signatureAlgorithmCode}` was found.");
-        }
-
-        using var signatureInputLease = GetSignatureInput(
-            encodedHeader,
-            encodedPayload,
-            out var signatureInput);
-
-        if (header.TryGetValue<string>("kid", out var keyId) &&
-            secretKeys.TryGetByKeyId(keyId, out var specificKey) &&
-            signingAlgorithm.Verify(specificKey, signatureInput, signature))
-        {
-            return;
-        }
-
-        // ReSharper disable once LoopCanBeConvertedToQuery
-        // Nope, we can't do that when using byref span
-        foreach (var secretKey in secretKeys)
-        {
-            if (signingAlgorithm.Verify(secretKey, signatureInput, signature)) return;
-        }
-
-        throw new IntegrityJoseException("Signature validation failed, no matching signing key.");
-    }
-
+    /// <summary>
+    /// Get the JWT input data that is used to sign and verify digital signatures.
+    /// </summary>
+    /// <param name="encodedHeader">Contains the encoded header that was signed in the JWT.</param>
+    /// <param name="encodedPayload">Contains the encoded payload that was signed in the JWT.</param>
+    /// <param name="signatureInput">The byte array to receive the JWT input data for digital signatures.</param>
+    /// <returns></returns>
     private static IMemoryOwner<byte> GetSignatureInput(
         ReadOnlySpan<char> encodedHeader,
         ReadOnlySpan<char> encodedPayload,

@@ -151,6 +151,8 @@ partial interface IJoseSerializer
 
 partial class JoseSerializer
 {
+    private static JwsOptions DefaultJwsOptions { get; } = new();
+
     /// <inheritdoc />
     public string EncodeJws<T>(
         T payload,
@@ -249,7 +251,7 @@ partial class JoseSerializer
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
         JwsOptions? options = null)
     {
-        var nonNullOptions = options ?? JwsOptions.Default;
+        var nonNullOptions = options ?? DefaultJwsOptions;
 
         /*
               BASE64URL(UTF8(JWS Protected Header)) || '.' ||
@@ -304,7 +306,7 @@ partial class JoseSerializer
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
         JwsOptions? options = null)
     {
-        var nonNullOptions = options ?? JwsOptions.Default;
+        var nonNullOptions = options ?? DefaultJwsOptions;
 
         /*
               BASE64URL(UTF8(JWS Protected Header)) || '.' ||

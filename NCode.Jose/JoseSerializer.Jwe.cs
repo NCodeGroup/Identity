@@ -22,8 +22,11 @@ using System.Diagnostics;
 using System.Text;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
+using NCode.Jose.AuthenticatedEncryption;
+using NCode.Jose.Compression;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
+using NCode.Jose.KeyManagement;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;
@@ -33,25 +36,37 @@ partial class JoseSerializer
     // private static bool IsJson(string value) =>
     //     value.StartsWith('{') && value.EndsWith('}');
 
-    private string DecodeJwe(CompactToken compactToken, SecretKey secretKey)
+    internal void EncodeJwe(
+        ReadOnlySpan<byte> payload,
+        SecretKey secretKey,
+        IKeyManagementAlgorithm keyManagementAlgorithm,
+        IAuthenticatedEncryptionAlgorithm encryptionAlgorithm,
+        ICompressionAlgorithm compressionAlgorithm,
+        IBufferWriter<char> tokenWriter,
+        IReadOnlyDictionary<string, object>? extraHeaders = null)
     {
-        using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
-
-        DecryptJwe(compactToken, secretKey, byteSequence);
-
-        return DecodeUtf8(byteSequence);
+        throw new NotImplementedException();
     }
 
-    private T? DeserializeJwe<T>(CompactToken compactToken, SecretKey secretKey)
+    private string DecodeJwe(CompactToken compact, SecretKey secretKey)
     {
-        using var byteSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
+        using var byteBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
 
-        DecryptJwe(compactToken, secretKey, byteSequence);
+        DecryptJwe(compact, secretKey, byteBuffer);
 
-        return Deserialize<T>(byteSequence);
+        return DecodeUtf8(byteBuffer);
     }
 
-    private void DecryptJwe(CompactToken compactToken, SecretKey secretKey, IBufferWriter<byte> payloadBytes)
+    private T? DeserializeJwe<T>(CompactToken compact, SecretKey secretKey)
+    {
+        using var byteBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+
+        DecryptJwe(compact, secretKey, byteBuffer);
+
+        return Deserialize<T>(byteBuffer);
+    }
+
+    private void DecryptJwe(CompactToken compact, SecretKey secretKey, IBufferWriter<byte> payloadBytes)
     {
         /*
               BASE64URL(UTF8(JWE Protected Header)) || '.' ||
@@ -60,11 +75,11 @@ partial class JoseSerializer
               BASE64URL(JWE Ciphertext) || '.' ||
               BASE64URL(JWE Authentication Tag)
         */
-        Debug.Assert(compactToken.ProtectionType == JoseConstants.JWE);
+        Debug.Assert(compact.ProtectionType == JoseConstants.JWE);
 
         // JWE Protected Header
-        var jweProtectedHeader = compactToken.Segments.First;
-        var header = compactToken.DeserializedHeader;
+        var jweProtectedHeader = compact.Segments.First;
+        var header = compact.DeserializedHeader;
 
         // JWE Encrypted Key
         var jweEncryptedKey = jweProtectedHeader.Next!;
@@ -155,7 +170,7 @@ partial class JoseSerializer
                 BASE64URL(JWE AAD)).
         */
 
-        var encodedHeader = compactToken.EncodedHeader;
+        var encodedHeader = compact.EncodedHeader;
         var associatedDataByteCount = Encoding.ASCII.GetByteCount(encodedHeader);
         using var associatedDataLease = CryptoPool.Rent(associatedDataByteCount, isSensitive: false, out Span<byte> associatedDataBytes);
         var addBytesWritten = Encoding.ASCII.GetBytes(encodedHeader, associatedDataBytes);

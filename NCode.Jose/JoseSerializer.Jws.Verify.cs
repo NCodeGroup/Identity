@@ -156,6 +156,7 @@ partial class JoseSerializer
 
         using var payloadBuffer = new Sequence<byte>
         {
+            // increase our chances of getting a single-segment buffer
             MinimumSpanLength = 1024
         };
 

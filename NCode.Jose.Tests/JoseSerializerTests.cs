@@ -345,20 +345,30 @@ public class JoseSerializerTests : BaseTests
 
         var token = JoseSerializer.EncodeJws(payload, secretKey, algorithm, extraHeaders, options);
 
+        var json = JsonSerializer.Serialize(payload, JoseOptions.JsonSerializerOptions);
+        var token2 = JoseSerializer.EncodeJws(json, secretKey, algorithm, extraHeaders, options);
+
         IReadOnlyDictionary<string, object> deserializedHeaders;
         if (detachPayload)
         {
             JoseSerializer.VerifyJws(token, secretKey, payload, out deserializedHeaders);
-
-            var json = JsonSerializer.Serialize(payload, JoseOptions.JsonSerializerOptions);
             JoseSerializer.VerifyJws(token, secretKey, json, out var deserializedHeaders2);
 
+            JoseSerializer.VerifyJws(token2, secretKey, payload, out var deserializedHeaders3);
+            JoseSerializer.VerifyJws(token2, secretKey, json, out var deserializedHeaders4);
+
             Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders2));
+            Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders3));
+            Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders4));
         }
         else
         {
             var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token, secretKey, out deserializedHeaders);
             Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized));
+
+            var deserialized2 = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token2, secretKey, out var deserializedHeaders2);
+            Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized2));
+            Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders2));
 
             var controlPayload = JWT.Decode<Dictionary<string, object>>(token, controlKey);
             Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(controlPayload));

@@ -348,7 +348,12 @@ public class JoseSerializerTests : BaseTests
         IReadOnlyDictionary<string, object> deserializedHeaders;
         if (detachPayload)
         {
-            JoseSerializer.VerifyJws(payload, token, secretKey, out deserializedHeaders);
+            JoseSerializer.VerifyJws(token, secretKey, payload, out deserializedHeaders);
+
+            var json = JsonSerializer.Serialize(payload, JoseOptions.JsonSerializerOptions);
+            JoseSerializer.VerifyJws(token, secretKey, json, out var deserializedHeaders2);
+
+            Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders2));
         }
         else
         {
@@ -365,7 +370,12 @@ public class JoseSerializerTests : BaseTests
             Assert.Equal(secretKey.KeyId, kidHeader);
         }
 
-        if (!encodePayload)
+        if (encodePayload)
+        {
+            Assert.DoesNotContain("b64", deserializedHeaders);
+            Assert.DoesNotContain("crit", deserializedHeaders);
+        }
+        else
         {
             var b64Header = Assert.Contains("b64", deserializedHeaders);
             Assert.Equal(false, b64Header);

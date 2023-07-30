@@ -25,14 +25,6 @@ namespace NCode.Jose;
 public class JwsOptions
 {
     /// <summary>
-    /// Gets the default options for JWS token encoding.
-    /// </summary>
-    /// <remarks>
-    /// Access is internal so that consumers cannot change the values of these default options.
-    /// </remarks>
-    internal static JwsOptions Default { get; } = new();
-
-    /// <summary>
     /// Gets or sets a value indicating whether the payload should be base64url encoded (default).
     /// Note that unencoded and non-detached payloads may cause issues with JWS compact serialization.
     /// See RFC 7797 Section 5 for more information.

@@ -33,7 +33,7 @@ namespace NCode.Jose;
 /// <summary>
 /// Provides the ability to encode and decode JWT values using JSON Object Signing and Encryption (JOSE).
 /// </summary>
-public interface IJoseSerializer
+public partial interface IJoseSerializer
 {
     // Encode, Serialize, etc...
 
@@ -152,13 +152,13 @@ public partial class JoseSerializer : IJoseSerializer
     public CompactToken ParseCompact(string token)
     {
         var segments = token.SplitSegments('.');
-        var tokenType = segments.Count switch
+        var protectionType = segments.Count switch
         {
             JwsSegmentCount => JoseConstants.JWS,
             JweSegmentCount => JoseConstants.JWE,
             _ => throw new ArgumentException("The specified value does not represent a valid JOSE token in compact form.", nameof(token))
         };
-        return new CompactToken(tokenType, segments, JoseOptions);
+        return new CompactToken(protectionType, segments, JoseOptions);
     }
 
     /// <inheritdoc />

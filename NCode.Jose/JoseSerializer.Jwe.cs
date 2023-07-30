@@ -33,9 +33,6 @@ namespace NCode.Jose;
 
 partial class JoseSerializer
 {
-    // private static bool IsJson(string value) =>
-    //     value.StartsWith('{') && value.EndsWith('}');
-
     internal void EncodeJwe(
         ReadOnlySpan<byte> payload,
         SecretKey secretKey,
@@ -51,18 +48,14 @@ partial class JoseSerializer
     private string DecodeJwe(CompactToken compact, SecretKey secretKey)
     {
         using var byteBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-
         DecryptJwe(compact, secretKey, byteBuffer);
-
         return DecodeUtf8(byteBuffer);
     }
 
     private T? DeserializeJwe<T>(CompactToken compact, SecretKey secretKey)
     {
         using var byteBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-
         DecryptJwe(compact, secretKey, byteBuffer);
-
         return Deserialize<T>(byteBuffer);
     }
 

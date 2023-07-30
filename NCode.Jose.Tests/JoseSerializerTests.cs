@@ -265,13 +265,20 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal(keyId, kid);
     }
 
-    public static IEnumerable<object[]> DecodeJwsTestData =>
-        Enum.GetValues<JwsAlgorithm>().Select(algorithmType =>
-            new object[] { algorithmType });
+    public static IEnumerable<object[]> GetEncodeDecodeJwsTestData()
+    {
+        var jwsAlgorithms = Enum.GetValues<JwsAlgorithm>();
+        foreach (var jwsAlgorithm in jwsAlgorithms)
+        {
+            yield return new object[] { jwsAlgorithm, true, false };
+            yield return new object[] { jwsAlgorithm, true, true };
+            yield return new object[] { jwsAlgorithm, false, true };
+        }
+    }
 
     [Theory]
-    [MemberData(nameof(DecodeJwsTestData))]
-    public void Decode_Jws(JwsAlgorithm jwsAlgorithm)
+    [MemberData(nameof(GetEncodeDecodeJwsTestData))]
+    public void Decode_Jws(JwsAlgorithm jwsAlgorithm, bool encodePayload, bool detachPayload)
     {
         const string keyId = nameof(keyId);
 
@@ -288,18 +295,37 @@ public class JoseSerializerTests : BaseTests
             ["key4"] = true,
             ["key5"] = DateTimeOffset.Now
         };
+
         var originalExtraHeaders = new Dictionary<string, object>
         {
             ["kid"] = keyId
         };
-        var jwtSettings = new JwtSettings();
 
-        var originalToken = JWT.Encode(originalPayload, controlKey, jwsAlgorithm, originalExtraHeaders, jwtSettings);
-        var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings);
+        var jwtSettings = new JwtSettings();
+        var jwtOptions = new JwtOptions
+        {
+            EncodePayload = encodePayload,
+            DetachPayload = detachPayload
+        };
+
+        var originalToken = JWT.Encode(originalPayload, controlKey, jwsAlgorithm, originalExtraHeaders, jwtSettings, jwtOptions);
+
+        var originalPayloadJson = JsonSerializer.Serialize(originalPayload, JoseOptions.JsonSerializerOptions);
+        var detachedPayload = detachPayload ? originalPayloadJson : null;
+
+        var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings, detachedPayload);
         Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
-        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKey, out var header);
-        Assert.Equal(originalPayload, actualPayload);
+        IReadOnlyDictionary<string, object> header;
+        if (detachPayload)
+        {
+            JoseSerializer.VerifyJws(originalToken, secretKey, originalPayload, out header);
+        }
+        else
+        {
+            var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKey, out header);
+            Assert.Equal(originalPayload, actualPayload);
+        }
 
         var alg = Assert.IsType<string>(Assert.Contains("alg", header));
         Assert.Equal(jwtSettings.JwsHeaderValue(jwsAlgorithm), alg);
@@ -308,19 +334,8 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal(keyId, kid);
     }
 
-    public static IEnumerable<object[]> GetEncodeJwsTestData()
-    {
-        var jwsAlgorithms = Enum.GetValues<JwsAlgorithm>();
-        foreach (var jwsAlgorithm in jwsAlgorithms)
-        {
-            yield return new object[] { jwsAlgorithm, true, false };
-            yield return new object[] { jwsAlgorithm, true, true };
-            yield return new object[] { jwsAlgorithm, false, true };
-        }
-    }
-
     [Theory]
-    [MemberData(nameof(GetEncodeJwsTestData))]
+    [MemberData(nameof(GetEncodeDecodeJwsTestData))]
     public void Encode_Jws(JwsAlgorithm jwsAlgorithm, bool encodePayload, bool detachPayload)
     {
         const string keyId = nameof(keyId);

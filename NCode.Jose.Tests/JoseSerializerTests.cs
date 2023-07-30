@@ -265,12 +265,12 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal(keyId, kid);
     }
 
-    public static IEnumerable<object[]> EncodeOrDecodeJwsTestData =>
+    public static IEnumerable<object[]> DecodeJwsTestData =>
         Enum.GetValues<JwsAlgorithm>().Select(algorithmType =>
             new object[] { algorithmType });
 
     [Theory]
-    [MemberData(nameof(EncodeOrDecodeJwsTestData))]
+    [MemberData(nameof(DecodeJwsTestData))]
     public void Decode_Jws(JwsAlgorithm jwsAlgorithm)
     {
         const string keyId = nameof(keyId);
@@ -308,9 +308,20 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal(keyId, kid);
     }
 
+    public static IEnumerable<object[]> GetEncodeJwsTestData()
+    {
+        var jwsAlgorithms = Enum.GetValues<JwsAlgorithm>();
+        foreach (var jwsAlgorithm in jwsAlgorithms)
+        {
+            yield return new object[] { jwsAlgorithm, true, false };
+            yield return new object[] { jwsAlgorithm, true, true };
+            yield return new object[] { jwsAlgorithm, false, true };
+        }
+    }
+
     [Theory]
-    [MemberData(nameof(EncodeOrDecodeJwsTestData))]
-    public void Encode_Jws(JwsAlgorithm jwsAlgorithm)
+    [MemberData(nameof(GetEncodeJwsTestData))]
+    public void Encode_Jws(JwsAlgorithm jwsAlgorithm, bool encodePayload, bool detachPayload)
     {
         const string keyId = nameof(keyId);
 
@@ -326,19 +337,47 @@ public class JoseSerializerTests : BaseTests
             ["header1"] = "h-value"
         };
 
-        var token = JoseSerializer.EncodeJws(payload, secretKey, algorithm, extraHeaders);
-        var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token, secretKey, out var deserializedHeaders);
-        Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized));
+        var options = new JwsOptions
+        {
+            EncodePayload = encodePayload,
+            DetachPayload = detachPayload
+        };
 
-        extraHeaders["typ"] = deserializedHeaders["typ"];
-        extraHeaders["alg"] = deserializedHeaders["alg"];
+        var token = JoseSerializer.EncodeJws(payload, secretKey, algorithm, extraHeaders, options);
 
-        if (secretKey.KeySizeBits != 0)
-            extraHeaders["kid"] = deserializedHeaders["kid"];
+        IReadOnlyDictionary<string, object> deserializedHeaders;
+        if (detachPayload)
+        {
+            JoseSerializer.VerifyJws(payload, token, secretKey, out deserializedHeaders);
+        }
+        else
+        {
+            var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token, secretKey, out deserializedHeaders);
+            Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized));
 
-        Assert.Equal(JsonSerializer.Serialize(extraHeaders), JsonSerializer.Serialize(deserializedHeaders));
+            var controlPayload = JWT.Decode<Dictionary<string, object>>(token, controlKey);
+            Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(controlPayload));
+        }
 
-        var controlPayload = JWT.Decode<Dictionary<string, object>>(token, controlKey);
-        Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(controlPayload));
+        if (secretKey.KeySizeBits > 0)
+        {
+            var kidHeader = Assert.Contains("kid", deserializedHeaders);
+            Assert.Equal(secretKey.KeyId, kidHeader);
+        }
+
+        if (!encodePayload)
+        {
+            var b64Header = Assert.Contains("b64", deserializedHeaders);
+            Assert.Equal(false, b64Header);
+
+            var critHeader = Assert.Contains("crit", deserializedHeaders);
+            Assert.Equal(new[] { "b64" }, critHeader);
+        }
+
+        var typHeader = Assert.Contains("typ", deserializedHeaders);
+        Assert.Equal("JWT", typHeader);
+
+        var algHeader = Assert.Contains("alg", deserializedHeaders);
+        Assert.Equal(algorithm.Code, algHeader);
     }
 }

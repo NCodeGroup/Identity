@@ -24,10 +24,7 @@
       <Compile Update="AlgorithmCodes.*.cs">
         <DependentUpon>AlgorithmCodes.cs</DependentUpon>
       </Compile>
-      <Compile Update="JoseSerializer.Jwe.cs">
-        <DependentUpon>JoseSerializer.cs</DependentUpon>
-      </Compile>
-      <Compile Update="JoseSerializer.Jws.cs">
+      <Compile Update="JoseSerializer.*.cs">
         <DependentUpon>JoseSerializer.cs</DependentUpon>
       </Compile>
     </ItemGroup>

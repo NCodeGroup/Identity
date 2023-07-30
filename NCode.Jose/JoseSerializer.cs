@@ -35,12 +35,6 @@ namespace NCode.Jose;
 /// </summary>
 public partial interface IJoseSerializer
 {
-    // Encode, Serialize, etc...
-
-    // TODO
-
-    // Parse, Decode, Deserialize, etc...
-
     /// <summary>
     /// Parses a Json Web Token (JWT) and returns the parsed JWT in compact form.
     /// This method supports both JWS and JWE (i.e. encrypted) tokens in compact form.

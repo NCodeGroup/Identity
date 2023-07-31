@@ -107,7 +107,7 @@ public partial class JoseSerializer : IJoseSerializer
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
 
-    internal static IMemoryOwner<byte> DecodeBase64Url(string name, ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
+    internal static IDisposable DecodeBase64Url(string name, ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
         var lease = CryptoPool.Rent(byteCount, isSensitive, out bytes);

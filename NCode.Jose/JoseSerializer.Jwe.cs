@@ -381,7 +381,8 @@ partial class JoseSerializer
         // compression must be done before associated data because compression modifies the header
         // and the header is used to derive the associated data
         using var plainTextLease = compressionAlgorithm.Compress(header, payload, out var plainText);
-        using var headerLease = EncodeJose(b64: true, header, Encoding.ASCII, out var encodedHeader, out var aad);
+        using var headerLease = EncodeJose(b64: true, header, out var encodedHeader);
+        using var aadLease = Encode(Encoding.ASCII, encodedHeader, out var aad);
 
         var cipherTextSizeBytes = encryptionAlgorithm.GetCipherTextSizeBytes(plainText.Length);
         using var cipherTextLease = CryptoPool.Rent(cipherTextSizeBytes, isSensitive: false, out Span<byte> cipherText);

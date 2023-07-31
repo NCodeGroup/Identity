@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Buffers;
@@ -25,7 +27,6 @@ using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Internal;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;
@@ -265,21 +266,6 @@ public partial class JoseSerializer : IJoseSerializer
     {
         using var bytesLease = Serialize(value, out var bytes);
         return EncodeJose(b64, bytes, out chars);
-    }
-
-    private IDisposable EncodeJose<T>(bool b64, T value, Encoding encoding, out ReadOnlySpan<char> chars, out ReadOnlySpan<byte> bytes)
-    {
-        var charLease = EncodeJose(b64, value, out chars);
-        try
-        {
-            var byteLease = Encode(encoding, chars, out bytes);
-            return new CompositeDisposable(charLease, byteLease);
-        }
-        catch
-        {
-            charLease.Dispose();
-            throw;
-        }
     }
 
     private static bool TryEncodeJose(bool b64, ReadOnlySpan<byte> bytes, Span<char> chars, out int charsWritten)

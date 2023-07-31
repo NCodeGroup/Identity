@@ -23,7 +23,6 @@ using System.Text;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
-using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
 using NCode.Jose.Signature;
@@ -276,10 +275,7 @@ partial class JoseSerializer
     {
         var nonNullOptions = options ?? DefaultJwsOptions;
 
-        if (!AlgorithmProvider.TryGetSignatureAlgorithm(signatureAlgorithmCode, out var signatureAlgorithm))
-        {
-            throw new InvalidAlgorithmJoseException("TODO");
-        }
+        var signatureAlgorithm = GetSignatureAlgorithm(signatureAlgorithmCode);
 
         /*
               BASE64URL(UTF8(JWS Protected Header)) || '.' ||
@@ -289,7 +285,7 @@ partial class JoseSerializer
 
         // BASE64URL(UTF8(JWS Protected Header)) || '.'
         EncodeJwsHeader(
-            signatureAlgorithmCode,
+            signatureAlgorithm.Code,
             secretKey.KeyId,
             tokenWriter,
             extraHeaders,

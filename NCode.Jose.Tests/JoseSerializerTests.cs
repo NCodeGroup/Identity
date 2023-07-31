@@ -1,18 +1,20 @@
 ﻿#region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Security.Cryptography;
@@ -26,7 +28,6 @@ using NCode.Jose.AuthenticatedEncryption;
 using NCode.Jose.Compression;
 using NCode.Jose.Extensions;
 using NCode.Jose.KeyManagement;
-using NCode.Jose.Signature;
 using AesKeyWrap = NCode.Jose.KeyManagement.AesKeyWrap;
 
 namespace NCode.Jose.Tests;
@@ -58,25 +59,6 @@ public class JoseSerializerTests : BaseTests
     {
         await ServiceProvider.DisposeAsync();
     }
-
-    private static ISignatureAlgorithm CreateSignatureAlgorithm(JwsAlgorithm jwsAlgorithm) =>
-        jwsAlgorithm switch
-        {
-            JwsAlgorithm.none => new NoneSignatureAlgorithm(),
-            JwsAlgorithm.HS256 => new KeyedHashSignatureAlgorithm("HS256", 256, HMACSHA256.TryHashData),
-            JwsAlgorithm.HS384 => new KeyedHashSignatureAlgorithm("HS384", 384, HMACSHA384.TryHashData),
-            JwsAlgorithm.HS512 => new KeyedHashSignatureAlgorithm("HS512", 512, HMACSHA512.TryHashData),
-            JwsAlgorithm.RS256 => new RsaSignatureAlgorithm("RS256", HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1),
-            JwsAlgorithm.RS384 => new RsaSignatureAlgorithm("RS384", HashAlgorithmName.SHA384, RSASignaturePadding.Pkcs1),
-            JwsAlgorithm.RS512 => new RsaSignatureAlgorithm("RS512", HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1),
-            JwsAlgorithm.PS256 => new RsaSignatureAlgorithm("PS256", HashAlgorithmName.SHA256, RSASignaturePadding.Pss),
-            JwsAlgorithm.PS384 => new RsaSignatureAlgorithm("PS384", HashAlgorithmName.SHA384, RSASignaturePadding.Pss),
-            JwsAlgorithm.PS512 => new RsaSignatureAlgorithm("PS512", HashAlgorithmName.SHA512, RSASignaturePadding.Pss),
-            JwsAlgorithm.ES256 => new EccSignatureAlgorithm("ES256", HashAlgorithmName.SHA256),
-            JwsAlgorithm.ES384 => new EccSignatureAlgorithm("ES384", HashAlgorithmName.SHA384),
-            JwsAlgorithm.ES512 => new EccSignatureAlgorithm("ES512", HashAlgorithmName.SHA512),
-            _ => throw new ArgumentOutOfRangeException(nameof(jwsAlgorithm), jwsAlgorithm, null)
-        };
 
     private static IKeyManagementAlgorithm CreateKeyManagementAlgorithm(JweAlgorithm jweAlgorithm) =>
         jweAlgorithm switch
@@ -464,8 +446,9 @@ public class JoseSerializerTests : BaseTests
     {
         const string keyId = nameof(keyId);
 
+        var controlSettings = new JwtSettings();
         var (controlKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
-        var algorithm = CreateSignatureAlgorithm(jwsAlgorithm);
+        var signatureAlgorithmCode = controlSettings.JwsHeaderValue(jwsAlgorithm);
 
         var payload = new Dictionary<string, object>
         {
@@ -482,10 +465,10 @@ public class JoseSerializerTests : BaseTests
             DetachPayload = detachPayload
         };
 
-        var token = JoseSerializer.EncodeJws(payload, secretKey, algorithm, extraHeaders, options);
+        var token = JoseSerializer.EncodeJws(payload, secretKey, signatureAlgorithmCode, extraHeaders, options);
 
         var json = JsonSerializer.Serialize(payload, JoseOptions.JsonSerializerOptions);
-        var token2 = JoseSerializer.EncodeJws(json, secretKey, algorithm, extraHeaders, options);
+        var token2 = JoseSerializer.EncodeJws(json, secretKey, signatureAlgorithmCode, extraHeaders, options);
 
         IReadOnlyDictionary<string, object> deserializedHeaders;
         if (detachPayload)
@@ -537,6 +520,6 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal("JWT", typHeader);
 
         var algHeader = Assert.Contains("alg", deserializedHeaders);
-        Assert.Equal(algorithm.Code, algHeader);
+        Assert.Equal(signatureAlgorithmCode, algHeader);
     }
 }

@@ -18,6 +18,7 @@
 #endregion
 
 using System.Buffers;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -26,6 +27,7 @@ using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Internal;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;
@@ -217,5 +219,162 @@ public partial class JoseSerializer : IJoseSerializer
         };
         var reader = new Utf8JsonReader(byteSequence, readerOptions);
         return JsonSerializer.Deserialize<T>(ref reader, jsonOptions);
+    }
+
+    private IDisposable Serialize<T>(T value, out ReadOnlySpan<byte> bytes)
+    {
+        var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
+        {
+            // increase our chances of getting a single-segment buffer
+            MinimumSpanLength = 1024
+        };
+        try
+        {
+            using var writer = new Utf8JsonWriter(buffer);
+            JsonSerializer.Serialize(writer, value, JoseOptions.JsonSerializerOptions);
+
+            var sequence = buffer.AsReadOnlySequence;
+            if (sequence.IsSingleSegment)
+            {
+                bytes = sequence.FirstSpan;
+                return buffer;
+            }
+
+            var byteCount = (int)sequence.Length;
+            var lease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> span);
+            try
+            {
+                sequence.CopyTo(span);
+                buffer.Dispose();
+                bytes = span;
+            }
+            catch
+            {
+                lease.Dispose();
+                throw;
+            }
+
+            return lease;
+        }
+        catch
+        {
+            buffer.Dispose();
+            throw;
+        }
+    }
+
+    private IDisposable EncodeJose<T>(bool b64, T value, out ReadOnlySpan<char> chars)
+    {
+        using var bytesLease = Serialize(value, out var bytes);
+        return EncodeJose(b64, bytes, out chars);
+    }
+
+    private IDisposable EncodeJose<T>(bool b64, T value, Encoding encoding, out ReadOnlySpan<char> chars, out ReadOnlySpan<byte> bytes)
+    {
+        var charLease = EncodeJose(b64, value, out chars);
+        try
+        {
+            var byteLease = Encode(encoding, chars, out bytes);
+            return new CompositeDisposable(charLease, byteLease);
+        }
+        catch
+        {
+            charLease.Dispose();
+            throw;
+        }
+    }
+
+    private static bool TryEncodeJose(bool b64, ReadOnlySpan<byte> bytes, Span<char> chars, out int charsWritten)
+    {
+        if (b64)
+        {
+            return Base64Url.TryEncode(bytes, chars, out charsWritten);
+        }
+
+        charsWritten = Encoding.UTF8.GetChars(bytes, chars);
+        return charsWritten > 0;
+    }
+
+    private static IDisposable EncodeJose(bool b64, ReadOnlySpan<byte> bytes, out ReadOnlySpan<char> chars)
+    {
+        var charCount = b64 ?
+            Base64Url.GetCharCountForEncode(bytes.Length) :
+            Encoding.UTF8.GetCharCount(bytes);
+
+        var charLease = MemoryPool<char>.Shared.Rent(charCount);
+        try
+        {
+            var span = charLease.Memory.Span[..charCount];
+            var encodeResult = TryEncodeJose(b64, bytes, span, out var charsWritten);
+            Debug.Assert(encodeResult && charsWritten == charCount);
+
+            chars = span;
+        }
+        catch
+        {
+            charLease.Dispose();
+            throw;
+        }
+
+        return charLease;
+    }
+
+    private static IDisposable Encode(Encoding encoding, ReadOnlySpan<char> chars, out ReadOnlySpan<byte> bytes)
+    {
+        var byteCount = encoding.GetByteCount(chars);
+        var byteLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> span);
+        try
+        {
+            var bytesWritten = encoding.GetBytes(chars, span);
+            Debug.Assert(bytesWritten == byteCount);
+
+            bytes = span;
+        }
+        catch
+        {
+            byteLease.Dispose();
+            throw;
+        }
+
+        return byteLease;
+    }
+
+    private static void WriteCompactSegment(ReadOnlySpan<char> chars, IBufferWriter<char> writer, bool addDot = true)
+    {
+        var charCount = chars.Length;
+        var dotLength = addDot ? 1 : 0;
+
+        var span = writer.GetSpan(charCount + dotLength);
+        chars.CopyTo(span);
+
+        if (addDot)
+        {
+            span[charCount] = '.';
+        }
+
+        writer.Advance(charCount + dotLength);
+    }
+
+    private static ReadOnlySpan<char> WriteCompactSegment(ReadOnlySpan<byte> bytes, IBufferWriter<char> writer, bool addDot = true, bool b64 = true)
+    {
+        var charCount = b64 ?
+            Base64Url.GetCharCountForEncode(bytes.Length) :
+            Encoding.UTF8.GetCharCount(bytes);
+
+        var dotLength = addDot ? 1 : 0;
+        var totalLength = charCount + dotLength;
+
+        var span = writer.GetSpan(totalLength);
+        var encodeResult = TryEncodeJose(b64, bytes, span, out var charsWritten);
+        Debug.Assert(encodeResult && charsWritten == charCount);
+
+        if (addDot)
+        {
+            span[charsWritten] = '.';
+        }
+
+        writer.Advance(totalLength);
+
+        return span[..totalLength];
     }
 }

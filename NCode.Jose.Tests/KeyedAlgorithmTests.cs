@@ -36,7 +36,7 @@ public class KeyedAlgorithmTests : BaseTests
     public static IEnumerable<object?[]> GetHashSizeBitsFromAlgorithmNameTestData()
     {
         yield return new object?[] { HashAlgorithmName.MD5, null };
-        yield return new object?[] { HashAlgorithmName.SHA1, null };
+        yield return new object?[] { HashAlgorithmName.SHA1, 160 };
         yield return new object?[] { HashAlgorithmName.SHA256, 256 };
         yield return new object?[] { HashAlgorithmName.SHA384, 384 };
         yield return new object?[] { HashAlgorithmName.SHA512, 512 };

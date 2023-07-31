@@ -33,14 +33,14 @@ public interface IAuthenticatedEncryptionAlgorithm : IKeyedAlgorithm
     int ContentKeySizeBytes { get; }
 
     /// <summary>
-    /// Gets the nonce sizes, in bytes, that is supported by this authenticated encryption (AEAD) algorithm.
+    /// Gets the size, in bytes, of the nonce (aka IV) that is supported by this authenticated encryption (AEAD) algorithm.
     /// </summary>
-    KeySizes NonceByteSizes { get; }
+    int NonceSizeBytes { get; }
 
     /// <summary>
-    /// Gets the tag sizes, in bytes, that is supported by this authenticated encryption (AEAD) algorithm.
+    /// Gets the size, in bytes, of the authentication tag that is supported by this authenticated encryption (AEAD) algorithm.
     /// </summary>
-    KeySizes AuthenticationTagByteSizes { get; }
+    int AuthenticationTagSizeBytes { get; }
 
     /// <summary>
     /// Gets the size, in bytes, of a ciphertext with a given plaintext size.
@@ -123,10 +123,10 @@ public abstract class AuthenticatedEncryptionAlgorithm : KeyedAlgorithm, IAuthen
     protected internal virtual int ContentKeySizeBits => ContentKeySizeBytes << 3;
 
     /// <inheritdoc />
-    public abstract KeySizes NonceByteSizes { get; }
+    public abstract int NonceSizeBytes { get; }
 
     /// <inheritdoc />
-    public abstract KeySizes AuthenticationTagByteSizes { get; }
+    public abstract int AuthenticationTagSizeBytes { get; }
 
     /// <inheritdoc />
     public abstract int GetCipherTextSizeBytes(int plainTextSizeBytes);
@@ -174,13 +174,13 @@ public abstract class AuthenticatedEncryptionAlgorithm : KeyedAlgorithm, IAuthen
         if (!KeySizesUtility.IsLegalSize(KeyBitSizes, cek.Length << 3))
             throw new ArgumentException("The specified content encryption key (CEK) does not have a valid size for this cryptographic algorithm.", nameof(cek));
 
-        if (!KeySizesUtility.IsLegalSize(NonceByteSizes, nonce.Length))
+        if (nonce.Length != NonceSizeBytes)
             throw new ArgumentException("The specified nonce does not have a valid size for this cryptographic algorithm.", nameof(nonce));
 
         if (encrypt && cipherText.Length != GetCipherTextSizeBytes(plainText.Length))
             throw new ArgumentException("The specified plain text and cipher text do not have a valid size for this cryptographic algorithm.", nameof(cipherText));
 
-        if (!KeySizesUtility.IsLegalSize(AuthenticationTagByteSizes, authenticationTag.Length))
+        if (authenticationTag.Length != AuthenticationTagSizeBytes)
             throw new ArgumentException("The specified authentication tag does not have a valid size for this cryptographic algorithm.", nameof(authenticationTag));
     }
 }

@@ -32,8 +32,6 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
     private const int BlockSizeBits = 128;
     private const int BlockSizeBytes = BlockSizeBits >> 3;
 
-    private static KeySizes StaticNonceByteSizes { get; } = new(minSize: BlockSizeBytes, maxSize: BlockSizeBytes, skipSize: 0);
-
     /// <inheritdoc />
     public override string Code { get; }
 
@@ -41,10 +39,10 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
     public override int ContentKeySizeBytes { get; }
 
     /// <inheritdoc />
-    public override KeySizes NonceByteSizes => StaticNonceByteSizes;
+    public override int NonceSizeBytes => BlockSizeBytes;
 
     /// <inheritdoc />
-    public override KeySizes AuthenticationTagByteSizes { get; }
+    public override int AuthenticationTagSizeBytes { get; }
 
     private KeyedHashFunctionDelegate KeyedHashFunction { get; }
 
@@ -64,7 +62,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
         KeyedHashFunction = keyedHashFunction;
         ContentKeySizeBytes = cekSizeBytes;
         ComponentSizeBytes = cekSizeBytes >> 1; // half of the key size
-        AuthenticationTagByteSizes = new KeySizes(minSize: ComponentSizeBytes, maxSize: ComponentSizeBytes, skipSize: 0);
+        AuthenticationTagSizeBytes = ComponentSizeBytes;
     }
 
     /// <inheritdoc />

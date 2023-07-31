@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
@@ -175,29 +174,8 @@ partial class JoseSerializer
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
         JwsOptions? options = null)
     {
-        using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared)
-        {
-            // increase our chances of getting a single-segment buffer
-            MinimumSpanLength = 1024
-        };
-
-        using var jsonWriter = new Utf8JsonWriter(payloadBuffer);
-        JsonSerializer.Serialize(jsonWriter, payload, JoseOptions.JsonSerializerOptions);
-
-        var payloadSequence = payloadBuffer.AsReadOnlySequence;
-        if (payloadSequence.IsSingleSegment)
-        {
-            var span = payloadSequence.FirstSpan;
-            EncodeJws(span, secretKey, signatureAlgorithm, tokenWriter, extraHeaders, options);
-        }
-        else
-        {
-            var payloadByteCount = (int)payloadSequence.Length;
-            using var lease = CryptoPool.Rent(payloadByteCount, isSensitive: false, out Span<byte> span);
-            payloadSequence.CopyTo(span);
-
-            EncodeJws(span, secretKey, signatureAlgorithm, tokenWriter, extraHeaders, options);
-        }
+        using var _ = Serialize(payload, out var bytes);
+        EncodeJws(bytes, secretKey, signatureAlgorithm, tokenWriter, extraHeaders, options);
     }
 
     /// <inheritdoc />
@@ -251,37 +229,11 @@ partial class JoseSerializer
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
         JwsOptions? options = null)
     {
-        var nonNullOptions = options ?? DefaultJwsOptions;
-
-        /*
-              BASE64URL(UTF8(JWS Protected Header)) || '.' ||
-              BASE64URL(JWS Payload) || '.' ||
-              BASE64URL(JWS Signature)
-        */
-
-        // BASE64URL(UTF8(JWS Protected Header)) || '.'
-        EncodeJwsHeader(
-            signatureAlgorithm.Code,
-            secretKey.KeyId,
-            tokenWriter,
-            extraHeaders,
-            nonNullOptions,
-            out var encodedHeaderPart);
-
-        // BASE64URL(JWS Payload) || '.'
-        using var _ = EncodeJwsPayload(
-            payload,
-            tokenWriter,
-            nonNullOptions,
-            out var encodedPayloadPart);
-
-        // BASE64URL(JWS Signature)
-        EncodeJwsSignature(
-            secretKey,
-            signatureAlgorithm,
-            encodedHeaderPart,
-            encodedPayloadPart,
-            tokenWriter);
+        var byteCount = Encoding.UTF8.GetByteCount(payload);
+        using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
+        Debug.Assert(bytesWritten == byteCount);
+        EncodeJws(payloadBytes, secretKey, signatureAlgorithm, tokenWriter, extraHeaders, options);
     }
 
     /// <inheritdoc />
@@ -345,7 +297,7 @@ partial class JoseSerializer
         IBufferWriter<char> tokenWriter,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders,
         JwsOptions options,
-        out Span<char> encodedHeaderPart)
+        out ReadOnlySpan<char> encodedHeaderPart)
     {
         var header = extraHeaders != null ?
             new Dictionary<string, object>(extraHeaders) :
@@ -371,21 +323,8 @@ partial class JoseSerializer
             header["crit"] = crit;
         }
 
-        using var headerSequence = new Sequence<byte>(ArrayPool<byte>.Shared);
-        using var headerWriter = new Utf8JsonWriter(headerSequence);
-        JsonSerializer.Serialize(headerWriter, header, JoseOptions.JsonSerializerOptions);
-
-        var headerByteCount = (int)headerSequence.Length;
-        var headerCharCount = Base64Url.GetCharCountForEncode(headerByteCount);
-        var encodedHeader = tokenWriter.GetSpan(headerCharCount + 1);
-
-        var encodeHeaderResult = Base64Url.TryEncode(headerSequence, encodedHeader, out var headerCharsWritten);
-        Debug.Assert(encodeHeaderResult && headerCharsWritten == headerCharCount);
-
-        encodedHeader[headerCharsWritten] = '.';
-        tokenWriter.Advance(headerCharsWritten + 1);
-
-        encodedHeaderPart = encodedHeader[..(headerCharsWritten + 1)]; // with dot
+        using var headerLease = Serialize(header, out var headerBytes);
+        encodedHeaderPart = WriteCompactSegment(headerBytes, tokenWriter);
     }
 
     private static IDisposable EncodeJwsPayload(
@@ -415,17 +354,8 @@ partial class JoseSerializer
 
         try
         {
-            int payloadCharsWritten;
-            if (options.EncodePayload)
-            {
-                var encodeResult = Base64Url.TryEncode(payload, encodedPayload, out payloadCharsWritten);
-                Debug.Assert(encodeResult && payloadCharsWritten == payloadCharCount);
-            }
-            else
-            {
-                payloadCharsWritten = Encoding.UTF8.GetChars(payload, encodedPayload);
-                Debug.Assert(payloadCharsWritten == payloadCharCount);
-            }
+            var encodeResult = TryEncodeJose(options.EncodePayload, payload, encodedPayload, out var payloadCharsWritten);
+            Debug.Assert(encodeResult && payloadCharsWritten == payloadCharCount);
 
             if (options.DetachPayload)
             {
@@ -444,63 +374,6 @@ partial class JoseSerializer
         catch
         {
             lease.Dispose();
-            throw;
-        }
-
-        return lease;
-    }
-
-    private static IDisposable EncodeJwsPayload(
-        ReadOnlySpan<char> payload,
-        IBufferWriter<char> tokenWriter,
-        JwsOptions options,
-        out ReadOnlySpan<char> encodedPayloadPart)
-    {
-        IDisposable? lease = null;
-        try
-        {
-            if (options.EncodePayload)
-            {
-                var payloadByteCount = Encoding.UTF8.GetByteCount(payload);
-                using var payloadByteLease = CryptoPool.Rent(payloadByteCount, isSensitive: false, out Span<byte> payloadBytes);
-
-                var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
-                Debug.Assert(bytesWritten == payloadByteCount);
-
-                var payloadCharCount = Base64Url.GetCharCountForEncode(payloadByteCount);
-                var payloadCharLease = MemoryPool<char>.Shared.Rent(payloadCharCount);
-                lease = payloadCharLease;
-
-                var payloadChars = payloadCharLease.Memory.Span[..payloadCharCount];
-                var encodeResult = Base64Url.TryEncode(payloadBytes, payloadChars, out var charsWritten);
-                Debug.Assert(encodeResult && charsWritten == payloadCharCount);
-
-                encodedPayloadPart = payloadChars;
-            }
-            else
-            {
-                encodedPayloadPart = payload;
-                lease = EmptyDisposable.Singleton;
-            }
-
-            if (options.DetachPayload)
-            {
-                var span = tokenWriter.GetSpan(1);
-                span[0] = '.';
-                tokenWriter.Advance(1);
-            }
-            else
-            {
-                var payloadCharCount = encodedPayloadPart.Length;
-                var span = tokenWriter.GetSpan(payloadCharCount + 1);
-                encodedPayloadPart.CopyTo(span);
-                span[payloadCharCount] = '.';
-                tokenWriter.Advance(payloadCharCount + 1);
-            }
-        }
-        catch
-        {
-            lease?.Dispose();
             throw;
         }
 

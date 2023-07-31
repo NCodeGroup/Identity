@@ -308,7 +308,7 @@ partial class JoseSerializer
         if (!string.IsNullOrEmpty(algorithmCode))
             header["alg"] = algorithmCode;
 
-        if (!string.IsNullOrEmpty(keyId))
+        if (!string.IsNullOrEmpty(keyId) && JoseOptions.AddKeyIdHeaderDuringEncode)
             header["kid"] = keyId;
 
         if (!options.EncodePayload)

@@ -352,7 +352,7 @@ partial class JoseSerializer
         header["enc"] = encryptionAlgorithm.Code;
 
         var keyId = secretKey.KeyId;
-        if (!string.IsNullOrEmpty(keyId))
+        if (!string.IsNullOrEmpty(keyId) && JoseOptions.AddKeyIdHeaderDuringEncode)
             header["kid"] = keyId;
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;

@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics;
@@ -21,6 +23,7 @@ using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
+using NCode.Jose.Signature;
 
 namespace NCode.Jose;
 
@@ -150,6 +153,11 @@ partial class JoseSerializer
             throw new InvalidOperationException("Only JWS tokens can be validated with a detached payload.");
     }
 
+    private ISignatureAlgorithm GetSignatureAlgorithm(string code) =>
+        !AlgorithmProvider.TryGetSignatureAlgorithm(code, out var algorithm) ?
+            throw new InvalidAlgorithmJoseException($"No registered JWS signature algorithm for `{code}` was found.") :
+            algorithm;
+
     /// <inheritdoc />
     public void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload) =>
         VerifyJws(ParseCompact(token), secretKey, detachedPayload);
@@ -277,14 +285,9 @@ partial class JoseSerializer
         ReadOnlySpan<char> encodedSignature)
     {
         if (!header.TryGetValue<string>("alg", out var signatureAlgorithmCode))
-        {
             throw new JoseException("The JWT header is missing the 'alg' field.");
-        }
 
-        if (!AlgorithmProvider.TryGetSignatureAlgorithm(signatureAlgorithmCode, out var signatureAlgorithm))
-        {
-            throw new InvalidAlgorithmJoseException($"No registered signature algorithm for `{signatureAlgorithmCode}` was found.");
-        }
+        var signatureAlgorithm = GetSignatureAlgorithm(signatureAlgorithmCode);
 
         using var signatureLease = DecodeBase64Url(
             "JWS Signature",

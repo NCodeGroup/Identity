@@ -49,7 +49,7 @@ public partial interface IJoseSerializer
     /// Validates a Json Web Token (JWT) and returns the decoded payload.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to decode and validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation/decryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
     string Decode(string token, SecretKey secretKey);
 
@@ -57,7 +57,7 @@ public partial interface IJoseSerializer
     /// Validates a Json Web Token (JWT) and returns the decoded payload and header.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to decode and validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation/decryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
     string Decode(string token, SecretKey secretKey, out IReadOnlyDictionary<string, object> header);
@@ -66,7 +66,7 @@ public partial interface IJoseSerializer
     /// Validates a Json Web Token (JWT) and returns the decoded payload.
     /// </summary>
     /// <param name="compact">The parsed JWT in compact form to decode and validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation/decryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
     string Decode(CompactToken compact, SecretKey secretKey);
 
@@ -74,7 +74,7 @@ public partial interface IJoseSerializer
     /// Validates a Json Web Token (JWT) and returns the deserialized payload.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to deserialize and validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation/decryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
     T? Deserialize<T>(string token, SecretKey secretKey);
@@ -83,7 +83,7 @@ public partial interface IJoseSerializer
     /// Validates a Json Web Token (JWT) and returns the deserialized payload and header.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to deserialize and validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation/decryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
@@ -93,7 +93,7 @@ public partial interface IJoseSerializer
     /// Validates a Json Web Token (JWT) and returns the deserialized payload.
     /// </summary>
     /// <param name="compact">The parsed JWT in compact form to deserialize and validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation/decryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
     T? Deserialize<T>(CompactToken compact, SecretKey secretKey);

@@ -36,7 +36,7 @@ partial interface IJoseSerializer
     /// Encodes a JWS token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for signing.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <param name="options">Options that specify how the JWS token is encoded.</param>
@@ -54,7 +54,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for signing.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <param name="options">Options that specify how the JWS token is encoded.</param>
@@ -71,7 +71,7 @@ partial interface IJoseSerializer
     /// Encodes a JWS token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for signing.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <param name="options">Options that specify how the JWS token is encoded.</param>
@@ -88,7 +88,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for signing.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <param name="options">Options that specify how the JWS token is encoded.</param>
@@ -104,7 +104,7 @@ partial interface IJoseSerializer
     /// Encodes a JWS token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for signing.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <param name="options">Options that specify how the JWS token is encoded.</param>
@@ -121,7 +121,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for signing.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <param name="options">Options that specify how the JWS token is encoded.</param>
@@ -137,7 +137,7 @@ partial interface IJoseSerializer
     /// Encodes a JWS token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for signing.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <param name="options">Options that specify how the JWS token is encoded.</param>
@@ -154,7 +154,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for signing.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <param name="options">Options that specify how the JWS token is encoded.</param>

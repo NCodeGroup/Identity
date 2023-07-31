@@ -38,7 +38,7 @@ partial interface IJoseSerializer
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for encryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
     /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
     /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
     /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
@@ -58,7 +58,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for encryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
     /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
     /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
     /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
@@ -78,7 +78,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for encryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
     /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
     /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
     /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
@@ -96,7 +96,7 @@ partial interface IJoseSerializer
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for encryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
     /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
     /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
     /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
@@ -115,7 +115,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for encryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
     /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
     /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
     /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
@@ -133,7 +133,7 @@ partial interface IJoseSerializer
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for encryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
     /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
     /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
     /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
@@ -151,7 +151,7 @@ partial interface IJoseSerializer
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for encryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
     /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
     /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
     /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
@@ -170,7 +170,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for encryption.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
     /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
     /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
     /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>

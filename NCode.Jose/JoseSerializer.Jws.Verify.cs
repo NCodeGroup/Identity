@@ -34,7 +34,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload);
 
@@ -43,7 +43,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
     void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload, out IReadOnlyDictionary<string, object> header);
@@ -53,7 +53,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="compact">The parsed JWT in compact form to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     void VerifyJws(CompactToken compact, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload);
 
@@ -62,7 +62,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     void VerifyJws(string token, SecretKey secretKey, string detachedPayload);
 
@@ -71,7 +71,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
     void VerifyJws(string token, SecretKey secretKey, string detachedPayload, out IReadOnlyDictionary<string, object> header);
@@ -81,7 +81,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="compact">The parsed JWT in compact form to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     void VerifyJws(CompactToken compact, SecretKey secretKey, string detachedPayload);
 
@@ -90,7 +90,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload);
 
@@ -99,7 +99,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
     void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload, out IReadOnlyDictionary<string, object> header);
@@ -109,7 +109,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="compact">The parsed JWT in compact form to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     void VerifyJws(CompactToken compact, SecretKey secretKey, ReadOnlySpan<char> detachedPayload);
 
@@ -118,7 +118,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <typeparam name="T">The type of the payload to validate.</typeparam>
     void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload);
@@ -128,7 +128,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <typeparam name="T">The type of the payload to validate.</typeparam>
@@ -139,7 +139,7 @@ partial interface IJoseSerializer
     /// This method does not support JWE (i.e. encrypted) tokens.
     /// </summary>
     /// <param name="compact">The parsed JWT in compact form to validate.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to use for validation.</param>
+    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <typeparam name="T">The type of the payload to validate.</typeparam>
     void VerifyJws<T>(CompactToken compact, SecretKey secretKey, T detachedPayload);

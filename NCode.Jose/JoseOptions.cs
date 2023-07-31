@@ -33,6 +33,11 @@ public class JoseOptions
     public List<string> DisabledAlgorithms { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets a boolean indicating whether to add the <c>kid</c> header during JOSE encoding.
+    /// </summary>
+    public bool AddKeyIdHeaderDuringEncode { get; set; } = true;
+
+    /// <summary>
     /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.
     /// </summary>
     public JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)

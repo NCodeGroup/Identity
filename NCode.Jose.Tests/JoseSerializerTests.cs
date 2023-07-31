@@ -25,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Extensions;
+using NCode.Jose.Internal;
 
 namespace NCode.Jose.Tests;
 
@@ -202,7 +203,7 @@ public class JoseSerializerTests : BaseTests
 
         var controlSettings = new JwtSettings();
         var (controlKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
-        using var disposableNativeKey = controlKey as IDisposable ?? DummyDisposable.Singleton;
+        using var disposableNativeKey = controlKey as IDisposable ?? EmptyDisposable.Singleton;
         using var disposableSecretKey = secretKey;
 
         var keyManagementAlgorithmCode = controlSettings.JwaHeaderValue(jweAlgorithm);
@@ -281,7 +282,7 @@ public class JoseSerializerTests : BaseTests
         const string keyId = nameof(keyId);
         var (controlKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
 
-        using var disposableNativeKey = controlKey as IDisposable ?? DummyDisposable.Singleton;
+        using var disposableNativeKey = controlKey as IDisposable ?? EmptyDisposable.Singleton;
         using var disposableSecretKey = secretKey;
 
         var originalPayload = new Dictionary<string, object>
@@ -344,7 +345,7 @@ public class JoseSerializerTests : BaseTests
 
         var (controlKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
 
-        using var disposableNativeKey = controlKey as IDisposable ?? DummyDisposable.Singleton;
+        using var disposableNativeKey = controlKey as IDisposable ?? EmptyDisposable.Singleton;
         using var disposableSecretKey = secretKey;
 
         var originalPayload = new Dictionary<string, object>

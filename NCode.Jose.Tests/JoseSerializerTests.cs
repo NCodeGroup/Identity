@@ -24,8 +24,12 @@ using Jose.keys;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Cryptography.Keys;
+using NCode.Jose.AuthenticatedEncryption;
+using NCode.Jose.Compression;
 using NCode.Jose.Extensions;
+using NCode.Jose.KeyManagement;
 using NCode.Jose.Signature;
+using AesKeyWrap = NCode.Jose.KeyManagement.AesKeyWrap;
 
 namespace NCode.Jose.Tests;
 
@@ -74,6 +78,49 @@ public class JoseSerializerTests : BaseTests
             JwsAlgorithm.ES384 => new EccSignatureAlgorithm("ES384", HashAlgorithmName.SHA384),
             JwsAlgorithm.ES512 => new EccSignatureAlgorithm("ES512", HashAlgorithmName.SHA512),
             _ => throw new ArgumentOutOfRangeException(nameof(jwsAlgorithm), jwsAlgorithm, null)
+        };
+
+    private static IKeyManagementAlgorithm CreateKeyManagementAlgorithm(JweAlgorithm jweAlgorithm) =>
+        jweAlgorithm switch
+        {
+            JweAlgorithm.DIR => new DirectKeyManagementAlgorithm(),
+            JweAlgorithm.RSA1_5 => new RsaKeyManagementAlgorithm("RSA1_5", RSAEncryptionPadding.Pkcs1),
+            JweAlgorithm.RSA_OAEP => new RsaKeyManagementAlgorithm("RSA-OAEP", RSAEncryptionPadding.OaepSHA1),
+            JweAlgorithm.RSA_OAEP_256 => new RsaKeyManagementAlgorithm("RSA-OAEP-256", RSAEncryptionPadding.OaepSHA256),
+            JweAlgorithm.A128KW => new AesKeyManagementAlgorithm(AesKeyWrap.Default, "A128KW", 128),
+            JweAlgorithm.A192KW => new AesKeyManagementAlgorithm(AesKeyWrap.Default, "A192KW", 192),
+            JweAlgorithm.A256KW => new AesKeyManagementAlgorithm(AesKeyWrap.Default, "A256KW", 256),
+            JweAlgorithm.ECDH_ES => new EcdhKeyManagementAlgorithm(),
+            JweAlgorithm.ECDH_ES_A128KW => new EcdhWithAesKeyManagementAlgorithm(AesKeyWrap.Default, "ECDH-ES+A128KW", 128),
+            JweAlgorithm.ECDH_ES_A192KW => new EcdhWithAesKeyManagementAlgorithm(AesKeyWrap.Default, "ECDH-ES+A192KW", 192),
+            JweAlgorithm.ECDH_ES_A256KW => new EcdhWithAesKeyManagementAlgorithm(AesKeyWrap.Default, "ECDH-ES+A256KW", 256),
+            JweAlgorithm.PBES2_HS256_A128KW => new Pbes2KeyManagementAlgorithm(AesKeyWrap.Default, "PBES2-HS256+A128KW", HashAlgorithmName.SHA256, 128, 310000),
+            JweAlgorithm.PBES2_HS384_A192KW => new Pbes2KeyManagementAlgorithm(AesKeyWrap.Default, "PBES2-HS384+A192KW", HashAlgorithmName.SHA384, 192, 250000),
+            JweAlgorithm.PBES2_HS512_A256KW => new Pbes2KeyManagementAlgorithm(AesKeyWrap.Default, "PBES2-HS512+A256KW", HashAlgorithmName.SHA512, 256, 120000),
+            JweAlgorithm.A128GCMKW => new AesGcmKeyManagementAlgorithm("A128GCMKW", 128),
+            JweAlgorithm.A192GCMKW => new AesGcmKeyManagementAlgorithm("A192GCMKW", 192),
+            JweAlgorithm.A256GCMKW => new AesGcmKeyManagementAlgorithm("A256GCMKW", 256),
+            _ => throw new ArgumentOutOfRangeException(nameof(jweAlgorithm), jweAlgorithm, null)
+        };
+
+    private static IAuthenticatedEncryptionAlgorithm CreateAuthenticatedEncryptionAlgorithm(JweEncryption jweEncryption) =>
+        jweEncryption switch
+        {
+            JweEncryption.A128CBC_HS256 => new AesCbcHmacAuthenticatedEncryptionAlgorithm("A128CBC-HS256", HMACSHA256.TryHashData, 256),
+            JweEncryption.A192CBC_HS384 => new AesCbcHmacAuthenticatedEncryptionAlgorithm("A192CBC-HS384", HMACSHA384.TryHashData, 384),
+            JweEncryption.A256CBC_HS512 => new AesCbcHmacAuthenticatedEncryptionAlgorithm("A256CBC-HS512", HMACSHA512.TryHashData, 512),
+            JweEncryption.A128GCM => new AesGcmAuthenticatedEncryptionAlgorithm("A128GCM", 128),
+            JweEncryption.A192GCM => new AesGcmAuthenticatedEncryptionAlgorithm("A192GCM", 192),
+            JweEncryption.A256GCM => new AesGcmAuthenticatedEncryptionAlgorithm("A256GCM", 256),
+            _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null)
+        };
+
+    private static ICompressionAlgorithm CreateCompressionAlgorithm(JweCompression? jweCompression) =>
+        jweCompression switch
+        {
+            null => new NoneCompressionAlgorithm(),
+            JweCompression.DEF => new DeflateCompressionAlgorithm(),
+            _ => throw new ArgumentOutOfRangeException(nameof(jweCompression), jweCompression, null)
         };
 
     private static (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
@@ -199,7 +246,7 @@ public class JoseSerializerTests : BaseTests
             _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null)
         };
 
-    public static IEnumerable<object?[]> DecodeJweTestData
+    public static IEnumerable<object?[]> EncodeDecodeJweTestData
     {
         get
         {
@@ -215,7 +262,86 @@ public class JoseSerializerTests : BaseTests
     }
 
     [Theory]
-    [MemberData(nameof(DecodeJweTestData))]
+    [MemberData(nameof(EncodeDecodeJweTestData))]
+    public void Encode_Jwe(JweAlgorithm jweAlgorithm, JweEncryption jweEncryption, JweCompression? jweCompression)
+    {
+        const string keyId = nameof(keyId);
+
+        var (controlKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
+        using var disposableNativeKey = controlKey as IDisposable ?? DummyDisposable.Singleton;
+        using var disposableSecretKey = secretKey;
+
+        var keyManagementAlgorithm = CreateKeyManagementAlgorithm(jweAlgorithm);
+        var encryptionAlgorithm = CreateAuthenticatedEncryptionAlgorithm(jweEncryption);
+        var compressionAlgorithm = CreateCompressionAlgorithm(jweCompression);
+
+        var originalPayload = new Dictionary<string, object>
+        {
+            ["key1"] = 1234,
+            ["key2"] = 12.34m,
+            ["key3"] = "foo",
+            ["key4"] = true,
+            ["key5"] = DateTimeOffset.Now
+        };
+
+        var originalExtraHeaders = new Dictionary<string, object>
+        {
+            ["customHeader"] = "customValue"
+        };
+
+        var token = JoseSerializer.EncodeJwe(
+            originalPayload,
+            secretKey,
+            keyManagementAlgorithm,
+            encryptionAlgorithm,
+            compressionAlgorithm,
+            originalExtraHeaders);
+
+        var originalJson = JsonSerializer.Serialize(originalPayload, JoseOptions.JsonSerializerOptions);
+        var deserializedJson = JWT.Decode(token, controlKey);
+        var deserializedHeaders = JWT.Headers(token);
+        Assert.Equal(originalJson, deserializedJson);
+
+        var customHeader = Assert.Contains("customHeader", deserializedHeaders);
+        Assert.Equal("customValue", customHeader);
+
+        var algHeader = Assert.Contains("alg", deserializedHeaders);
+        Assert.Equal(keyManagementAlgorithm.Code, algHeader);
+
+        var encHeader = Assert.Contains("enc", deserializedHeaders);
+        Assert.Equal(encryptionAlgorithm.Code, encHeader);
+
+        if (jweCompression is null)
+        {
+            Assert.DoesNotContain("zip", deserializedHeaders);
+        }
+        else
+        {
+            var zipHeader = Assert.Contains("zip", deserializedHeaders);
+            Assert.Equal(compressionAlgorithm.Code, zipHeader);
+        }
+
+        if (secretKey.KeySizeBits > 0)
+        {
+            var kidHeader = Assert.Contains("kid", deserializedHeaders);
+            Assert.Equal(secretKey.KeyId, kidHeader);
+        }
+        else
+        {
+            Assert.DoesNotContain("kid", deserializedHeaders);
+        }
+
+        var decodedPayload = JoseSerializer.Decode(token, secretKey, out var decodedHeaders);
+        Assert.Equal(JsonSerializer.Serialize(originalPayload), decodedPayload);
+        Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(decodedHeaders));
+
+        var deserializedPayload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token, secretKey, out var deserializedHeaders2);
+        Assert.Equal(JsonSerializer.Serialize(originalPayload), JsonSerializer.Serialize(deserializedPayload));
+        Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders2));
+    }
+
+    [Theory]
+    [MemberData(nameof(EncodeDecodeJweTestData))]
     public void Decode_Jwe(JweAlgorithm jweAlgorithm, JweEncryption jweEncryption, JweCompression? jweCompression)
     {
         const string keyId = nameof(keyId);

@@ -91,9 +91,6 @@ public class AuthenticatedEncryptionAlgorithmTests : BaseTests
         const int cipherTextSizeBytes = 10;
         const int authenticationTagSizeBytes = 11;
 
-        var nonceByteSizes = new KeySizes(nonceSizeBytes, nonceSizeBytes, 0);
-        var authenticationTagByteSizes = new KeySizes(authenticationTagSizeBytes, authenticationTagSizeBytes, 0);
-
         Span<byte> cek = new byte[contentKeySizeBytes];
         Span<byte> nonce = new byte[nonceSizeBytes];
         Span<byte> plainText = new byte[plainTextSizeBytes];
@@ -112,8 +109,8 @@ public class AuthenticatedEncryptionAlgorithmTests : BaseTests
             .Verifiable();
 
         MockAuthenticatedEncryptionAlgorithm
-            .Setup(_ => _.NonceByteSizes)
-            .Returns(nonceByteSizes)
+            .Setup(_ => _.NonceSizeBytes)
+            .Returns(nonceSizeBytes)
             .Verifiable();
 
         if (encrypt)
@@ -125,8 +122,8 @@ public class AuthenticatedEncryptionAlgorithmTests : BaseTests
         }
 
         MockAuthenticatedEncryptionAlgorithm
-            .Setup(_ => _.AuthenticationTagByteSizes)
-            .Returns(authenticationTagByteSizes)
+            .Setup(_ => _.AuthenticationTagSizeBytes)
+            .Returns(authenticationTagSizeBytes)
             .Verifiable();
 
         AuthenticatedEncryptionAlgorithm.ValidateParameters(
@@ -191,16 +188,14 @@ public class AuthenticatedEncryptionAlgorithmTests : BaseTests
         const int cipherTextSizeBytes = 10;
         const int authenticationTagSizeBytes = 11;
 
-        var nonceByteSizes = new KeySizes(nonceSizeBytes, nonceSizeBytes, 0);
-
         MockAuthenticatedEncryptionAlgorithm
             .Setup(_ => _.ContentKeySizeBytes)
             .Returns(contentKeySizeBytes)
             .Verifiable();
 
         MockAuthenticatedEncryptionAlgorithm
-            .Setup(_ => _.NonceByteSizes)
-            .Returns(nonceByteSizes)
+            .Setup(_ => _.NonceSizeBytes)
+            .Returns(nonceSizeBytes)
             .Verifiable();
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -240,17 +235,14 @@ public class AuthenticatedEncryptionAlgorithmTests : BaseTests
         const int cipherTextSizeBytes = 10;
         const int authenticationTagSizeBytes = 11;
 
-        var nonceByteSizes = new KeySizes(nonceSizeBytes, nonceSizeBytes, 0);
-        var authenticationTagByteSizes = new KeySizes(authenticationTagSizeBytes, authenticationTagSizeBytes, 0);
-
         MockAuthenticatedEncryptionAlgorithm
             .Setup(_ => _.ContentKeySizeBytes)
             .Returns(contentKeySizeBytes)
             .Verifiable();
 
         MockAuthenticatedEncryptionAlgorithm
-            .Setup(_ => _.NonceByteSizes)
-            .Returns(nonceByteSizes)
+            .Setup(_ => _.NonceSizeBytes)
+            .Returns(nonceSizeBytes)
             .Verifiable();
 
         if (encrypt)
@@ -263,8 +255,8 @@ public class AuthenticatedEncryptionAlgorithmTests : BaseTests
         else
         {
             MockAuthenticatedEncryptionAlgorithm
-                .Setup(_ => _.AuthenticationTagByteSizes)
-                .Returns(authenticationTagByteSizes)
+                .Setup(_ => _.AuthenticationTagSizeBytes)
+                .Returns(authenticationTagSizeBytes)
                 .Verifiable();
         }
 
@@ -330,17 +322,14 @@ public class AuthenticatedEncryptionAlgorithmTests : BaseTests
         const int cipherTextSizeBytes = 10;
         const int authenticationTagSizeBytes = 11;
 
-        var nonceByteSizes = new KeySizes(nonceSizeBytes, nonceSizeBytes, 0);
-        var authenticationTagByteSizes = new KeySizes(authenticationTagSizeBytes, authenticationTagSizeBytes, 0);
-
         MockAuthenticatedEncryptionAlgorithm
             .Setup(_ => _.ContentKeySizeBytes)
             .Returns(contentKeySizeBytes)
             .Verifiable();
 
         MockAuthenticatedEncryptionAlgorithm
-            .Setup(_ => _.NonceByteSizes)
-            .Returns(nonceByteSizes)
+            .Setup(_ => _.NonceSizeBytes)
+            .Returns(nonceSizeBytes)
             .Verifiable();
 
         if (encrypt)
@@ -352,8 +341,8 @@ public class AuthenticatedEncryptionAlgorithmTests : BaseTests
         }
 
         MockAuthenticatedEncryptionAlgorithm
-            .Setup(_ => _.AuthenticationTagByteSizes)
-            .Returns(authenticationTagByteSizes)
+            .Setup(_ => _.AuthenticationTagSizeBytes)
+            .Returns(authenticationTagSizeBytes)
             .Verifiable();
 
         var exception = Assert.Throws<ArgumentException>(() =>

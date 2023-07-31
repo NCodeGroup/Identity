@@ -57,6 +57,8 @@ public abstract class KeyedAlgorithm : Algorithm, IKeyedAlgorithm
     /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
     protected internal static int HashSizeBitsFromAlgorithmName(HashAlgorithmName hashAlgorithmName)
     {
+        if (hashAlgorithmName == HashAlgorithmName.SHA1)
+            return 160;
         if (hashAlgorithmName == HashAlgorithmName.SHA256)
             return 256;
         if (hashAlgorithmName == HashAlgorithmName.SHA384)

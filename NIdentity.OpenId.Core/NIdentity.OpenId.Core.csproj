@@ -22,7 +22,7 @@
         <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="7.0.0" />
         <PackageReference Include="NCode.PasswordGenerator" Version="1.0.1" />
-        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.32.0" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.32.1" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
     </ItemGroup>
 

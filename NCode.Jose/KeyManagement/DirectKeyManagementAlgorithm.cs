@@ -81,6 +81,19 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     /// <inheritdoc />
+    public override bool TryWrapNewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey,
+        Span<byte> encryptedContentKey,
+        out int bytesWritten)
+    {
+        NewKey(secretKey, header, contentKey);
+        bytesWritten = 0;
+        return true;
+    }
+
+    /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
         IReadOnlyDictionary<string, object> header,

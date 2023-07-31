@@ -1,13 +1,9 @@
-using System.Buffers;
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
-using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
-using Nerdbank.Streams;
 
 namespace NCode.Jose;
 
@@ -153,31 +149,8 @@ partial class JoseSerializer
     public void VerifyJws<T>(CompactToken compact, SecretKey secretKey, T detachedPayload)
     {
         AssertJwsDetached(compact);
-
-        using var payloadBuffer = new Sequence<byte>
-        {
-            // increase our chances of getting a single-segment buffer
-            MinimumSpanLength = 1024
-        };
-
-        using var jsonWriter = new Utf8JsonWriter(payloadBuffer);
-        JsonSerializer.Serialize(jsonWriter, detachedPayload, JoseOptions.JsonSerializerOptions);
-
-        var payloadSequence = payloadBuffer.AsReadOnlySequence;
-        if (payloadSequence.IsSingleSegment)
-        {
-            var span = payloadSequence.FirstSpan;
-
-            VerifyJws(compact, secretKey, span);
-        }
-        else
-        {
-            var payloadByteCount = (int)payloadSequence.Length;
-            using var lease = CryptoPool.Rent(payloadByteCount, isSensitive: false, out Span<byte> span);
-            payloadSequence.CopyTo(span);
-
-            VerifyJws(compact, secretKey, span);
-        }
+        using var _ = Serialize(detachedPayload, out var bytes);
+        VerifyJws(compact, secretKey, bytes);
     }
 
     /// <inheritdoc />
@@ -270,49 +243,13 @@ partial class JoseSerializer
 
         // JWS Payload
         var jwsPayload = jwsProtectedHeader.Next!;
-        using var _ = EncodeDetachedPayload(b64, detachedPayload, out var encodedPayload);
+        using var payloadLease = EncodeJose(b64, detachedPayload, out var encodedPayload);
 
         // JWS Signature
         var jwsSignature = jwsPayload.Next!;
         var encodedSignature = jwsSignature.Memory.Span;
 
         VerifyJws(secretKey, header, encodedHeader, encodedPayload, encodedSignature);
-    }
-
-    private static IDisposable EncodeDetachedPayload(
-        bool b64,
-        ReadOnlySpan<byte> payload,
-        out ReadOnlySpan<char> encodedPayload)
-    {
-        var charCount = b64 ?
-            Base64Url.GetCharCountForEncode(payload.Length) :
-            Encoding.UTF8.GetCharCount(payload);
-
-        var lease = MemoryPool<char>.Shared.Rent(charCount);
-        try
-        {
-            var span = lease.Memory.Span[..charCount];
-
-            if (b64)
-            {
-                var encodeResult = Base64Url.TryEncode(payload, span, out var charsWritten);
-                Debug.Assert(encodeResult && charsWritten == charCount);
-            }
-            else
-            {
-                var charsWritten = Encoding.UTF8.GetChars(payload, span);
-                Debug.Assert(charsWritten == charCount);
-            }
-
-            encodedPayload = span;
-        }
-        catch
-        {
-            lease.Dispose();
-            throw;
-        }
-
-        return lease;
     }
 
     private void VerifyJws(
@@ -351,30 +288,23 @@ partial class JoseSerializer
             throw new IntegrityJoseException("Invalid signature, verification failed.");
     }
 
-    /// <summary>
-    /// Get the JWT input data that is used to sign and verify digital signatures.
-    /// </summary>
-    /// <param name="encodedHeader">Contains the encoded header that was signed in the JWT.</param>
-    /// <param name="encodedPayload">Contains the encoded payload that was signed in the JWT.</param>
-    /// <param name="signatureInput">The byte array to receive the JWT input data for digital signatures.</param>
-    /// <returns></returns>
-    private static IMemoryOwner<byte> GetSignatureInput(
+    private static IDisposable GetSignatureInput(
         ReadOnlySpan<char> encodedHeader,
         ReadOnlySpan<char> encodedPayload,
-        out Span<byte> signatureInput)
+        out ReadOnlySpan<byte> signatureInput)
     {
         var headerByteCount = Encoding.UTF8.GetByteCount(encodedHeader);
         var payloadByteCount = Encoding.UTF8.GetByteCount(encodedPayload);
         var totalByteCount = headerByteCount + 1 + payloadByteCount;
-        var lease = CryptoPool.Rent(totalByteCount, isSensitive: false, out signatureInput);
+        var lease = CryptoPool.Rent(totalByteCount, isSensitive: false, out Span<byte> span);
         try
         {
-            var bytesRead = Encoding.UTF8.GetBytes(encodedHeader, signatureInput);
+            var bytesRead = Encoding.UTF8.GetBytes(encodedHeader, span);
             Debug.Assert(bytesRead == headerByteCount);
 
-            signatureInput[headerByteCount] = (byte)'.';
+            span[headerByteCount] = (byte)'.';
 
-            bytesRead = Encoding.UTF8.GetBytes(encodedPayload, signatureInput[(headerByteCount + 1)..]);
+            bytesRead = Encoding.UTF8.GetBytes(encodedPayload, span[(headerByteCount + 1)..]);
             Debug.Assert(bytesRead == payloadByteCount);
         }
         catch
@@ -383,6 +313,7 @@ partial class JoseSerializer
             throw;
         }
 
+        signatureInput = span;
         return lease;
     }
 }

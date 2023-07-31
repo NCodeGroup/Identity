@@ -21,6 +21,7 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="7.0.0" />
+        <PackageReference Include="NCode.Base64Url" Version="1.1.2" />
         <PackageReference Include="NCode.PasswordGenerator" Version="1.0.1" />
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.32.1" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
@@ -28,21 +29,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Update="Cryptography\Keys\SecretKeyReader.Cert.cs">
-        <DependentUpon>SecretKeyReader.cs</DependentUpon>
-      </Compile>
-      <Compile Update="Cryptography\Keys\SecretKeyReader.Ecc.cs">
-        <DependentUpon>SecretKeyReader.cs</DependentUpon>
-      </Compile>
-      <Compile Update="Cryptography\Keys\SecretKeyReader.Pem.cs">
-        <DependentUpon>SecretKeyReader.cs</DependentUpon>
-      </Compile>
-      <Compile Update="Cryptography\Keys\SecretKeyReader.Rsa.cs">
-        <DependentUpon>SecretKeyReader.cs</DependentUpon>
-      </Compile>
     </ItemGroup>
 
 </Project>

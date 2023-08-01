@@ -414,16 +414,16 @@ public class JoseSerializerTests : BaseTests
             ["header1"] = "h-value"
         };
 
-        var options = new JwsOptions
+        var parameters = new EncodeJwsParameters
         {
             EncodePayload = encodePayload,
             DetachPayload = detachPayload
         };
 
-        var token = JoseSerializer.EncodeJws(payload, secretKey, signatureAlgorithmCode, extraHeaders, options);
+        var token = JoseSerializer.EncodeJws(payload, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
 
         var json = JsonSerializer.Serialize(payload, JoseOptions.JsonSerializerOptions);
-        var token2 = JoseSerializer.EncodeJws(json, secretKey, signatureAlgorithmCode, extraHeaders, options);
+        var token2 = JoseSerializer.EncodeJws(json, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
 
         IReadOnlyDictionary<string, object> deserializedHeaders;
         if (detachPayload)

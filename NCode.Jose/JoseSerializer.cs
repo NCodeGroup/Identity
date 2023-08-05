@@ -43,7 +43,7 @@ public partial interface IJoseSerializer
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to parse.</param>
     /// <returns>The parsed JWT in compact form.</returns>
-    CompactToken ParseCompact(string token);
+    CompactJwt ParseCompactJwt(string token);
 
     /// <summary>
     /// Validates a Json Web Token (JWT) and returns the decoded payload.
@@ -65,10 +65,10 @@ public partial interface IJoseSerializer
     /// <summary>
     /// Validates a Json Web Token (JWT) and returns the decoded payload.
     /// </summary>
-    /// <param name="compact">The parsed JWT in compact form to decode and validate.</param>
+    /// <param name="compactJwt">The parsed JWT in compact form to decode and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
-    string Decode(CompactToken compact, SecretKey secretKey);
+    string Decode(CompactJwt compactJwt, SecretKey secretKey);
 
     /// <summary>
     /// Validates a Json Web Token (JWT) and returns the deserialized payload.
@@ -92,11 +92,11 @@ public partial interface IJoseSerializer
     /// <summary>
     /// Validates a Json Web Token (JWT) and returns the deserialized payload.
     /// </summary>
-    /// <param name="compact">The parsed JWT in compact form to deserialize and validate.</param>
+    /// <param name="compactJwt">The parsed JWT in compact form to deserialize and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
-    T? Deserialize<T>(CompactToken compact, SecretKey secretKey);
+    T? Deserialize<T>(CompactJwt compactJwt, SecretKey secretKey);
 }
 
 /// <summary>
@@ -144,7 +144,7 @@ public partial class JoseSerializer : IJoseSerializer
     }
 
     /// <inheritdoc />
-    public CompactToken ParseCompact(string token)
+    public CompactJwt ParseCompactJwt(string token)
     {
         var segments = token.SplitSegments('.');
         var protectionType = segments.Count switch
@@ -153,28 +153,28 @@ public partial class JoseSerializer : IJoseSerializer
             JweSegmentCount => JoseConstants.JWE,
             _ => throw new ArgumentException("The specified value does not represent a valid JOSE token in compact form.", nameof(token))
         };
-        return new CompactToken(protectionType, segments, JoseOptions);
+        return new CompactJwt(protectionType, segments, JoseOptions.JsonSerializerOptions);
     }
 
     /// <inheritdoc />
     public string Decode(string token, SecretKey secretKey) =>
-        Decode(ParseCompact(token), secretKey);
+        Decode(ParseCompactJwt(token), secretKey);
 
     /// <inheritdoc />
     public string Decode(string token, SecretKey secretKey, out IReadOnlyDictionary<string, object> header)
     {
-        var compact = ParseCompact(token);
+        var compact = ParseCompactJwt(token);
         var payload = Decode(compact, secretKey);
         header = compact.DeserializedHeader;
         return payload;
     }
 
     /// <inheritdoc />
-    public string Decode(CompactToken compact, SecretKey secretKey) =>
-        compact.ProtectionType switch
+    public string Decode(CompactJwt compactJwt, SecretKey secretKey) =>
+        compactJwt.ProtectionType switch
         {
-            JoseConstants.JWS => DecodeJws(compact, secretKey),
-            JoseConstants.JWE => DecodeJwe(compact, secretKey),
+            JoseConstants.JWS => DecodeJws(compactJwt, secretKey),
+            JoseConstants.JWE => DecodeJwe(compactJwt, secretKey),
             _ => throw new InvalidOperationException()
         };
 
@@ -187,23 +187,23 @@ public partial class JoseSerializer : IJoseSerializer
 
     /// <inheritdoc />
     public T? Deserialize<T>(string token, SecretKey secretKey) =>
-        Deserialize<T>(ParseCompact(token), secretKey);
+        Deserialize<T>(ParseCompactJwt(token), secretKey);
 
     /// <inheritdoc />
     public T? Deserialize<T>(string token, SecretKey secretKey, out IReadOnlyDictionary<string, object> header)
     {
-        var compact = ParseCompact(token);
+        var compact = ParseCompactJwt(token);
         var payload = Deserialize<T>(compact, secretKey);
         header = compact.DeserializedHeader;
         return payload;
     }
 
     /// <inheritdoc />
-    public T? Deserialize<T>(CompactToken compact, SecretKey secretKey) =>
-        compact.ProtectionType switch
+    public T? Deserialize<T>(CompactJwt compactJwt, SecretKey secretKey) =>
+        compactJwt.ProtectionType switch
         {
-            JoseConstants.JWS => DeserializeJws<T>(compact, secretKey),
-            JoseConstants.JWE => DeserializeJwe<T>(compact, secretKey),
+            JoseConstants.JWS => DeserializeJws<T>(compactJwt, secretKey),
+            JoseConstants.JWE => DeserializeJwe<T>(compactJwt, secretKey),
             _ => throw new InvalidOperationException()
         };
 

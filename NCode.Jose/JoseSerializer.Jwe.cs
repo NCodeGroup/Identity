@@ -427,21 +427,21 @@ partial class JoseSerializer
         WriteCompactSegment(tag, tokenWriter, addDot: false);
     }
 
-    private string DecodeJwe(CompactToken compact, SecretKey secretKey)
+    private string DecodeJwe(CompactJwt compactJwt, SecretKey secretKey)
     {
         using var byteBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-        DecryptJwe(compact, secretKey, byteBuffer);
+        DecryptJwe(compactJwt, secretKey, byteBuffer);
         return DecodeUtf8(byteBuffer);
     }
 
-    private T? DeserializeJwe<T>(CompactToken compact, SecretKey secretKey)
+    private T? DeserializeJwe<T>(CompactJwt compactJwt, SecretKey secretKey)
     {
         using var byteBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-        DecryptJwe(compact, secretKey, byteBuffer);
+        DecryptJwe(compactJwt, secretKey, byteBuffer);
         return Deserialize<T>(byteBuffer);
     }
 
-    private void DecryptJwe(CompactToken compact, SecretKey secretKey, IBufferWriter<byte> payloadBytes)
+    private void DecryptJwe(CompactJwt compactJwt, SecretKey secretKey, IBufferWriter<byte> payloadBytes)
     {
         /*
               BASE64URL(UTF8(JWE Protected Header)) || '.' ||
@@ -450,11 +450,11 @@ partial class JoseSerializer
               BASE64URL(JWE Ciphertext) || '.' ||
               BASE64URL(JWE Authentication Tag)
         */
-        Debug.Assert(compact.ProtectionType == JoseConstants.JWE);
+        Debug.Assert(compactJwt.ProtectionType == JoseConstants.JWE);
 
         // JWE Protected Header
-        var jweProtectedHeader = compact.Segments.First;
-        var header = compact.DeserializedHeader;
+        var jweProtectedHeader = compactJwt.Segments.First;
+        var header = compactJwt.DeserializedHeader;
 
         // JWE Encrypted Key
         var jweEncryptedKey = jweProtectedHeader.Next!;
@@ -532,7 +532,7 @@ partial class JoseSerializer
                 BASE64URL(JWE AAD)).
         */
 
-        using var associatedDataLease = Encode(Encoding.ASCII, compact.EncodedHeader, out var associatedDataBytes);
+        using var associatedDataLease = Encode(Encoding.ASCII, compactJwt.EncodedHeader, out var associatedDataBytes);
 
         var plainTextSizeBytes = encryptionAlgorithm.GetMaxPlainTextSizeBytes(cipherTextBytes.Length);
         using var plainTextLease = CryptoPool.Rent(plainTextSizeBytes, isSensitive: false, out Span<byte> plainTextBytes);

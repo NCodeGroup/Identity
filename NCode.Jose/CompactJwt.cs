@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,9 +24,9 @@ namespace NCode.Jose;
 /// <summary>
 /// Represents a Json Web Token (JWT) in compact form with support for either JWS or JWE protection.
 /// </summary>
-public class CompactToken
+public class CompactJwt
 {
-    private JoseOptions JoseOptions { get; }
+    private JsonSerializerOptions JsonSerializerOptions { get; }
     private IReadOnlyDictionary<string, object>? DeserializedHeaderOrNull { get; set; }
 
     /// <summary>
@@ -50,23 +50,23 @@ public class CompactToken
     public IReadOnlyDictionary<string, object> DeserializedHeader => DeserializedHeaderOrNull ??= DeserializeHeader();
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CompactToken"/> class.
+    /// Initializes a new instance of the <see cref="CompactJwt"/> class.
     /// </summary>
     /// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
     /// <param name="segments">Contains the substrings from the JWT seperated by '.' (aka dot).</param>
-    /// <param name="joseOptions">Contains the options for JOSE serialization.</param>
-    public CompactToken(string protectionType, StringSegments segments, JoseOptions joseOptions)
+    /// <param name="jsonSerializerOptions">Contains the options for JSON serialization.</param>
+    public CompactJwt(string protectionType, StringSegments segments, JsonSerializerOptions jsonSerializerOptions)
     {
         ProtectionType = protectionType;
         Segments = segments;
-        JoseOptions = joseOptions;
+        JsonSerializerOptions = jsonSerializerOptions;
     }
 
     private IReadOnlyDictionary<string, object> DeserializeHeader()
     {
         var name = $"{ProtectionType} Protected Header";
         using var lease = JoseSerializer.DecodeBase64Url(name, EncodedHeader, isSensitive: false, out var utf8Json);
-        var header = JsonSerializer.Deserialize<Dictionary<string, object>>(utf8Json, JoseOptions.JsonSerializerOptions);
+        var header = JsonSerializer.Deserialize<Dictionary<string, object>>(utf8Json, JsonSerializerOptions);
         return header ?? throw new JoseException($"Failed to deserialize {name}");
     }
 }

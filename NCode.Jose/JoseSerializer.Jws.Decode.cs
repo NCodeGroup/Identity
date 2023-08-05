@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,22 +27,22 @@ namespace NCode.Jose;
 
 partial class JoseSerializer
 {
-    private string DecodeJws(CompactToken compact, SecretKey secretKey)
+    private string DecodeJws(CompactJwt compactJwt, SecretKey secretKey)
     {
         using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-        DecodeJws(compact, secretKey, payloadBuffer);
+        DecodeJws(compactJwt, secretKey, payloadBuffer);
         return DecodeUtf8(payloadBuffer);
     }
 
-    private T? DeserializeJws<T>(CompactToken compact, SecretKey secretKey)
+    private T? DeserializeJws<T>(CompactJwt compactJwt, SecretKey secretKey)
     {
         using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-        DecodeJws(compact, secretKey, payloadBuffer);
+        DecodeJws(compactJwt, secretKey, payloadBuffer);
         return Deserialize<T>(payloadBuffer);
     }
 
     private void DecodeJws(
-        CompactToken compact,
+        CompactJwt compactJwt,
         SecretKey secretKey,
         IBufferWriter<byte> payloadWriter)
     {
@@ -51,12 +51,12 @@ partial class JoseSerializer
               BASE64URL(JWS Payload) || '.' ||
               BASE64URL(JWS Signature)
         */
-        Debug.Assert(compact.ProtectionType == JoseConstants.JWS);
+        Debug.Assert(compactJwt.ProtectionType == JoseConstants.JWS);
 
         // JWS Protected Header
-        var jwsProtectedHeader = compact.Segments.First;
-        var encodedHeader = compact.EncodedHeader;
-        var header = compact.DeserializedHeader;
+        var jwsProtectedHeader = compactJwt.Segments.First;
+        var encodedHeader = compactJwt.EncodedHeader;
+        var header = compactJwt.DeserializedHeader;
 
         // JWS Payload
         var jwsPayload = jwsProtectedHeader.Next!;

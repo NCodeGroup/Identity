@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 // 
 //    Copyright @ 2023 NCode Group
 // 
@@ -13,14 +14,28 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-namespace NIdentity.OpenId;
+namespace NCode.Identity.Jwt;
 
 /// <summary>
-/// Contains constants for the possible value of various cryptographic algorithms.
+/// Represents a strongly typed key in a <see cref="PropertyBag"/>.
 /// </summary>
-public static partial class AlgorithmCodes
+/// <typeparam name="T">The type of the value in the property bag.</typeparam>
+public struct PropertyBagKey<T>
 {
-    // see nested files
+    /// <summary>
+    /// Gets the <see cref="string"/> name for the key in a property bag.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PropertyBagKey{T}"/> struct with the supplied <paramref name="name"/> value.
+    /// </summary>
+    /// <param name="name">The <see cref="string"/> name for the key in a property bag.</param>
+    public PropertyBagKey(string name)
+    {
+        Name = name;
+    }
 }

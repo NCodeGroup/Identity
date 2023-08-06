@@ -22,30 +22,18 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace NCode.Identity.Jwt;
 
-public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<string, object?>
+public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDictionary<IPropertyBagKey, object?>
 {
-    private StringComparer Comparer { get; }
+    private IDictionary<IPropertyBagKey, object?>? ItemsOrNull { get; set; }
 
-    private IDictionary<string, object?>? ItemsOrNull { get; set; }
-
-    private IDictionary<string, object?> Items => ItemsOrNull ??= new Dictionary<string, object?>(Comparer);
+    private IDictionary<IPropertyBagKey, object?> Items => ItemsOrNull ??= new Dictionary<IPropertyBagKey, object?>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyBag"/> class.
     /// </summary>
     public PropertyBag()
-        : this(StringComparer.Ordinal)
     {
         // nothing
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PropertyBag"/> class with the specified <see cref="StringComparer"/>.
-    /// </summary>
-    /// <param name="comparer">The <see cref="StringComparer"/> to use for comparing keys.</param>
-    public PropertyBag(StringComparer comparer)
-    {
-        Comparer = comparer;
     }
 
     /// <summary>
@@ -53,12 +41,12 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
     /// </summary>
     public PropertyBag Clone()
     {
-        var newBag = new PropertyBag(Comparer);
+        var newBag = new PropertyBag();
 
         var items = ItemsOrNull;
         if (items is { Count: > 0 })
         {
-            newBag.ItemsOrNull = new Dictionary<string, object?>(items, Comparer);
+            newBag.ItemsOrNull = new Dictionary<IPropertyBagKey, object?>(items);
         }
 
         return newBag;
@@ -72,7 +60,7 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
     /// <typeparam name="T">The type of the value to set in the property bag.</typeparam>
     public void Set<T>(PropertyBagKey<T> key, T value)
     {
-        Items[key.Name] = value;
+        Items[key] = value;
     }
 
     /// <summary>
@@ -87,7 +75,7 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
     /// <c>false</c>.</returns>
     public bool TryGetValue<T>(PropertyBagKey<T> key, [MaybeNullWhen(false)] out T value)
     {
-        if ((ItemsOrNull?.TryGetValue(key.Name, out var baseValue) ?? false) && baseValue is T typedValue)
+        if ((ItemsOrNull?.TryGetValue(key, out var baseValue) ?? false) && baseValue is T typedValue)
         {
             value = typedValue;
             return true;
@@ -100,36 +88,36 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
     //
 
     IEnumerator IEnumerable.GetEnumerator() =>
-        (ItemsOrNull ?? Enumerable.Empty<KeyValuePair<string, object?>>()).GetEnumerator();
+        (ItemsOrNull ?? Enumerable.Empty<KeyValuePair<IPropertyBagKey, object?>>()).GetEnumerator();
 
-    IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator() =>
-        (ItemsOrNull ?? Enumerable.Empty<KeyValuePair<string, object?>>()).GetEnumerator();
+    IEnumerator<KeyValuePair<IPropertyBagKey, object?>> IEnumerable<KeyValuePair<IPropertyBagKey, object?>>.GetEnumerator() =>
+        (ItemsOrNull ?? Enumerable.Empty<KeyValuePair<IPropertyBagKey, object?>>()).GetEnumerator();
 
     //
 
-    bool ICollection<KeyValuePair<string, object?>>.IsReadOnly =>
+    bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.IsReadOnly =>
         ItemsOrNull?.IsReadOnly ?? false;
 
-    int ICollection<KeyValuePair<string, object?>>.Count =>
+    int ICollection<KeyValuePair<IPropertyBagKey, object?>>.Count =>
         ItemsOrNull?.Count ?? 0;
 
-    bool ICollection<KeyValuePair<string, object?>>.Contains(KeyValuePair<string, object?> item) =>
+    bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.Contains(KeyValuePair<IPropertyBagKey, object?> item) =>
         ItemsOrNull?.Contains(item) ?? false;
 
-    void ICollection<KeyValuePair<string, object?>>.CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex) =>
+    void ICollection<KeyValuePair<IPropertyBagKey, object?>>.CopyTo(KeyValuePair<IPropertyBagKey, object?>[] array, int arrayIndex) =>
         ItemsOrNull?.CopyTo(array, arrayIndex);
 
-    void ICollection<KeyValuePair<string, object?>>.Clear()
+    void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Clear()
     {
         var items = ItemsOrNull;
         if (items is { Count: > 0 })
             items.Clear();
     }
 
-    void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item) =>
+    void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Add(KeyValuePair<IPropertyBagKey, object?> item) =>
         Items.Add(item);
 
-    bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item)
+    bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.Remove(KeyValuePair<IPropertyBagKey, object?> item)
     {
         var items = ItemsOrNull;
         return items is { Count: > 0 } && items.Remove(item);
@@ -137,13 +125,13 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
 
     //
 
-    ICollection<string> IDictionary<string, object?>.Keys =>
-        ItemsOrNull?.Keys ?? Array.Empty<string>();
+    ICollection<IPropertyBagKey> IDictionary<IPropertyBagKey, object?>.Keys =>
+        ItemsOrNull?.Keys ?? Array.Empty<IPropertyBagKey>();
 
-    ICollection<object?> IDictionary<string, object?>.Values =>
+    ICollection<object?> IDictionary<IPropertyBagKey, object?>.Values =>
         ItemsOrNull?.Values ?? Array.Empty<object?>();
 
-    object? IDictionary<string, object?>.this[string key]
+    object? IDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key]
     {
         get
         {
@@ -153,10 +141,10 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
         set => Items[key] = value;
     }
 
-    bool IDictionary<string, object?>.ContainsKey(string key) =>
+    bool IDictionary<IPropertyBagKey, object?>.ContainsKey(IPropertyBagKey key) =>
         ItemsOrNull?.ContainsKey(key) ?? false;
 
-    bool IDictionary<string, object?>.TryGetValue(string key, out object? value)
+    bool IDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value)
     {
         var items = ItemsOrNull;
         if (items is { Count: > 0 })
@@ -165,10 +153,10 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
         return false;
     }
 
-    void IDictionary<string, object?>.Add(string key, object? value) =>
+    void IDictionary<IPropertyBagKey, object?>.Add(IPropertyBagKey key, object? value) =>
         Items.Add(key, value);
 
-    bool IDictionary<string, object?>.Remove(string key)
+    bool IDictionary<IPropertyBagKey, object?>.Remove(IPropertyBagKey key)
     {
         var items = ItemsOrNull;
         return items is { Count: > 0 } && Items.Remove(key);
@@ -176,16 +164,16 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
 
     //
 
-    int IReadOnlyCollection<KeyValuePair<string, object?>>.Count =>
+    int IReadOnlyCollection<KeyValuePair<IPropertyBagKey, object?>>.Count =>
         ItemsOrNull?.Count ?? 0;
 
-    IEnumerable<string> IReadOnlyDictionary<string, object?>.Keys =>
-        ItemsOrNull?.Keys ?? Array.Empty<string>();
+    IEnumerable<IPropertyBagKey> IReadOnlyDictionary<IPropertyBagKey, object?>.Keys =>
+        ItemsOrNull?.Keys ?? Array.Empty<IPropertyBagKey>();
 
-    IEnumerable<object?> IReadOnlyDictionary<string, object?>.Values =>
+    IEnumerable<object?> IReadOnlyDictionary<IPropertyBagKey, object?>.Values =>
         ItemsOrNull?.Values ?? Array.Empty<object?>();
 
-    object? IReadOnlyDictionary<string, object?>.this[string key]
+    object? IReadOnlyDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key]
     {
         get
         {
@@ -194,10 +182,10 @@ public class PropertyBag : IDictionary<string, object?>, IReadOnlyDictionary<str
         }
     }
 
-    bool IReadOnlyDictionary<string, object?>.ContainsKey(string key) =>
+    bool IReadOnlyDictionary<IPropertyBagKey, object?>.ContainsKey(IPropertyBagKey key) =>
         ItemsOrNull?.ContainsKey(key) ?? false;
 
-    bool IReadOnlyDictionary<string, object?>.TryGetValue(string key, out object? value)
+    bool IReadOnlyDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value)
     {
         var items = ItemsOrNull;
         if (items is { Count: > 0 })

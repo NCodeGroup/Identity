@@ -62,7 +62,7 @@ internal class JsonWebTokenService
         }
     }
 
-    private static async ValueTask<IEnumerable<SecretKey>> ResolveSecretKeysAsync(
+    private static async ValueTask<IReadOnlyCollection<SecretKey>> ResolveSecretKeysAsync(
         CompactJwt compactJwt,
         ValidateJwtParameters parameters,
         PropertyBag propertyBag,

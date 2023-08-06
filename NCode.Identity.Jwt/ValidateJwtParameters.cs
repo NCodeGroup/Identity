@@ -43,18 +43,17 @@ public class ValidateJwtParameters
 
     public ISecretKeyCollection SecretKeys { get; }
 
-    public ResolveSecretKeysAsync ResolveSecretKeysAsync { get; set; }
+    public ResolveSecretKeysAsync ResolveSecretKeysAsync { get; set; } = DefaultResolveSecretKeysAsync;
 
     public ICollection<IValidateJwtHandler> Handlers { get; }
 
     public ValidateJwtParameters(ISecretKeyCollection secretKeys)
     {
         SecretKeys = secretKeys;
-        ResolveSecretKeysAsync = DefaultResolveSecretKeysAsync;
         Handlers = new List<IValidateJwtHandler>();
     }
 
-    private ValueTask<IEnumerable<SecretKey>> DefaultResolveSecretKeysAsync(
+    private static ValueTask<IEnumerable<SecretKey>> DefaultResolveSecretKeysAsync(
         CompactJwt compactJwt,
         ValidateJwtParameters parameters,
         PropertyBag propertyBag,
@@ -65,15 +64,16 @@ public class ValidateJwtParameters
                 parameters,
                 propertyBag));
 
-    private IEnumerable<SecretKey> DefaultResolveSecretKeys(
+    private static IEnumerable<SecretKey> DefaultResolveSecretKeys(
         CompactJwt compactJwt,
         ValidateJwtParameters parameters,
         PropertyBag propertyBag)
     {
+        var secretKeys = parameters.SecretKeys;
         var header = compactJwt.DeserializedHeader;
 
         // attempt to lookup by 'kid'
-        if (header.TryGetValue<string>("kid", out var keyId) && SecretKeys.TryGetByKeyId(keyId, out var specificKey))
+        if (header.TryGetValue<string>("kid", out var keyId) && secretKeys.TryGetByKeyId(keyId, out var specificKey))
         {
             return new[] { specificKey };
         }
@@ -82,12 +82,12 @@ public class ValidateJwtParameters
         var hasThumbprintSha1 = header.TryGetValue<string>("x5t", out var thumbprintSha1);
         var hasThumbprintSha256 = header.TryGetValue<string>("x5t#S256", out var thumbprintSha256);
 
-        if (hasThumbprintSha1 && SecretKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
+        if (hasThumbprintSha1 && secretKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
         {
             return new[] { specificKey };
         }
 
-        if (hasThumbprintSha256 && SecretKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
+        if (hasThumbprintSha256 && secretKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
         {
             return new[] { specificKey };
         }
@@ -113,7 +113,7 @@ public class ValidateJwtParameters
 
             Span<byte> actualHash = stackalloc byte[sha256HashSize];
 
-            foreach (var secretKey in SecretKeys)
+            foreach (var secretKey in secretKeys)
             {
                 if (secretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey) continue;
                 var certificate = asymmetricSecretKey.Certificate;
@@ -131,7 +131,7 @@ public class ValidateJwtParameters
         }
 
         // otherwise, the degenerate case will attempt to use all the keys
-        return parameters.SecretKeys;
+        return secretKeys;
     }
 
     private static bool VerifyCertificateHash(

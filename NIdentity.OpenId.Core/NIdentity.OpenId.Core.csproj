@@ -28,6 +28,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Cryptography.Keys\NCode.Cryptography.Keys.csproj" />
+        <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj" />
         <ProjectReference Include="..\NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj" />
     </ItemGroup>
 

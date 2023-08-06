@@ -56,7 +56,7 @@ public class SecretKeyCollection : ISecretKeyCollection
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
     public SecretKeyCollection(IEnumerable<SecretKey> secretKeys)
     {
-        var list = new List<SecretKey>();
+        var other = new List<SecretKey>();
         var dictionary = new Dictionary<string, SecretKey>(StringComparer.Ordinal);
 
         foreach (var secretKey in secretKeys)
@@ -64,11 +64,11 @@ public class SecretKeyCollection : ISecretKeyCollection
             var keyId = secretKey.KeyId;
             if (string.IsNullOrEmpty(keyId) || !dictionary.TryAdd(keyId, secretKey))
             {
-                list.Add(secretKey);
+                other.Add(secretKey);
             }
         }
 
-        OtherSecretKeys = list;
+        OtherSecretKeys = other;
         SecretKeysByKeyId = dictionary;
     }
 

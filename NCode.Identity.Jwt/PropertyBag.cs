@@ -85,6 +85,26 @@ public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDicti
         return false;
     }
 
+    private bool TryGetValue(IPropertyBagKey key, out object? value)
+    {
+        if (ItemsOrNull?.TryGetValue(key, out var baseValue) ?? false)
+        {
+            value = baseValue;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private object? GetValue(IPropertyBagKey key)
+    {
+        if (!TryGetValue(key, out var value))
+            throw new KeyNotFoundException();
+
+        return value;
+    }
+
     //
 
     IEnumerator IEnumerable.GetEnumerator() =>
@@ -107,21 +127,14 @@ public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDicti
     void ICollection<KeyValuePair<IPropertyBagKey, object?>>.CopyTo(KeyValuePair<IPropertyBagKey, object?>[] array, int arrayIndex) =>
         ItemsOrNull?.CopyTo(array, arrayIndex);
 
-    void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Clear()
-    {
-        var items = ItemsOrNull;
-        if (items is { Count: > 0 })
-            items.Clear();
-    }
+    void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Clear() =>
+        ItemsOrNull = null;
 
     void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Add(KeyValuePair<IPropertyBagKey, object?> item) =>
         Items.Add(item);
 
-    bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.Remove(KeyValuePair<IPropertyBagKey, object?> item)
-    {
-        var items = ItemsOrNull;
-        return items is { Count: > 0 } && items.Remove(item);
-    }
+    bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.Remove(KeyValuePair<IPropertyBagKey, object?> item) =>
+        ItemsOrNull?.Remove(item) ?? false;
 
     //
 
@@ -133,34 +146,21 @@ public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDicti
 
     object? IDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key]
     {
-        get
-        {
-            var items = ItemsOrNull;
-            return items is { Count: > 0 } ? items[key] : throw new KeyNotFoundException();
-        }
+        get => GetValue(key);
         set => Items[key] = value;
     }
 
     bool IDictionary<IPropertyBagKey, object?>.ContainsKey(IPropertyBagKey key) =>
         ItemsOrNull?.ContainsKey(key) ?? false;
 
-    bool IDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value)
-    {
-        var items = ItemsOrNull;
-        if (items is { Count: > 0 })
-            return items.TryGetValue(key, out value);
-        value = default;
-        return false;
-    }
+    bool IDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value) =>
+        TryGetValue(key, out value);
 
     void IDictionary<IPropertyBagKey, object?>.Add(IPropertyBagKey key, object? value) =>
         Items.Add(key, value);
 
-    bool IDictionary<IPropertyBagKey, object?>.Remove(IPropertyBagKey key)
-    {
-        var items = ItemsOrNull;
-        return items is { Count: > 0 } && Items.Remove(key);
-    }
+    bool IDictionary<IPropertyBagKey, object?>.Remove(IPropertyBagKey key) =>
+        ItemsOrNull?.Remove(key) ?? false;
 
     //
 
@@ -173,24 +173,12 @@ public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDicti
     IEnumerable<object?> IReadOnlyDictionary<IPropertyBagKey, object?>.Values =>
         ItemsOrNull?.Values ?? Array.Empty<object?>();
 
-    object? IReadOnlyDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key]
-    {
-        get
-        {
-            var items = ItemsOrNull;
-            return items is { Count: > 0 } ? items[key] : throw new KeyNotFoundException();
-        }
-    }
+    object? IReadOnlyDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key] =>
+        GetValue(key);
 
     bool IReadOnlyDictionary<IPropertyBagKey, object?>.ContainsKey(IPropertyBagKey key) =>
         ItemsOrNull?.ContainsKey(key) ?? false;
 
-    bool IReadOnlyDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value)
-    {
-        var items = ItemsOrNull;
-        if (items is { Count: > 0 })
-            return items.TryGetValue(key, out value);
-        value = default;
-        return false;
-    }
+    bool IReadOnlyDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value) =>
+        TryGetValue(key, out value);
 }

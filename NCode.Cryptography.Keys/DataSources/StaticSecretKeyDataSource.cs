@@ -20,33 +20,33 @@
 using Microsoft.Extensions.Primitives;
 using NCode.Cryptography.Keys.Internal;
 
-namespace NCode.Cryptography.Keys.Providers;
+namespace NCode.Cryptography.Keys.DataSources;
 
 /// <summary>
-/// Provides an implementation of <see cref="ISecretKeyProvider"/> that returns a static collection of <see cref="SecretKey"/> instances.
+/// Provides an implementation of <see cref="ISecretKeyDataSource"/> that returns a static collection of <see cref="SecretKey"/> instances.
 /// </summary>
-public class StaticSecretKeyProvider : SecretKeyProvider
+public class StaticSecretKeyDataSource : SecretKeyDataSource
 {
-    private readonly ISecretKeyCollection _secretKeys;
+    private readonly IReadOnlyCollection<SecretKey> _secretKeys;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="StaticSecretKeyProvider"/> class with the specified collection of <see cref="SecretKey"/> instances.
+    /// Initializes a new instance of the <see cref="StaticSecretKeyDataSource"/> class with the specified collection of <see cref="SecretKey"/> instances.
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    public StaticSecretKeyProvider(ISecretKeyCollection secretKeys)
+    public StaticSecretKeyDataSource(IEnumerable<SecretKey> secretKeys)
     {
-        _secretKeys = secretKeys;
+        _secretKeys = secretKeys.ToList();
     }
 
     /// <inheritdoc />
-    public override ISecretKeyCollection SecretKeys => GetOrThrowObjectDisposed(_secretKeys);
+    public override IReadOnlyCollection<SecretKey> SecretKeys => GetOrThrowObjectDisposed(_secretKeys);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
         if (!disposing || IsDisposed) return;
         IsDisposed = true;
-        SecretKeys.Dispose();
+        _secretKeys.DisposeAll();
     }
 
     /// <inheritdoc />

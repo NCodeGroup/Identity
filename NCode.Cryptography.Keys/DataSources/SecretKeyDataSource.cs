@@ -20,17 +20,17 @@
 using Microsoft.Extensions.Primitives;
 using NCode.Cryptography.Keys.Internal;
 
-namespace NCode.Cryptography.Keys.Providers;
+namespace NCode.Cryptography.Keys.DataSources;
 
 /// <summary>
 /// Provides a collection of <see cref="SecretKey"/> instances and notifications when changes occur.
 /// </summary>
-public interface ISecretKeyProvider : IDisposable
+public interface ISecretKeyDataSource : IDisposable
 {
     /// <summary>
     /// Gets a read-only collection of <see cref="SecretKey"/> instances.
     /// </summary>
-    ISecretKeyCollection SecretKeys { get; }
+    IReadOnlyCollection<SecretKey> SecretKeys { get; }
 
     /// <summary>
     /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
@@ -39,12 +39,12 @@ public interface ISecretKeyProvider : IDisposable
 }
 
 /// <summary>
-/// Base class for all <see cref="ISecretKeyProvider"/> implementations.
+/// Base class for all <see cref="ISecretKeyDataSource"/> implementations.
 /// </summary>
-public abstract class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
+public abstract class SecretKeyDataSource : BaseDisposable, ISecretKeyDataSource
 {
     /// <inheritdoc />
-    public abstract ISecretKeyCollection SecretKeys { get; }
+    public abstract IReadOnlyCollection<SecretKey> SecretKeys { get; }
 
     /// <inheritdoc />
     public abstract IChangeToken GetChangeToken();

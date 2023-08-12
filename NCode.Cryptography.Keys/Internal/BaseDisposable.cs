@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace NCode.Cryptography.Keys.Internal;
@@ -40,6 +41,7 @@ public abstract class BaseDisposable : IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
+        Debug.Assert(IsDisposed);
     }
 
     /// <summary>

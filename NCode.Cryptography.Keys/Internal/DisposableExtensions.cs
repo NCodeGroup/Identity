@@ -23,7 +23,7 @@ namespace NCode.Cryptography.Keys.Internal;
 
 internal static class DisposableExtensions
 {
-    public static void DisposeAll(this IEnumerable<IDisposable?> collection)
+    public static void DisposeAll(this IEnumerable<IDisposable?> collection, bool ignoreExceptions = false)
     {
         List<Exception>? exceptions = null;
 
@@ -35,6 +35,7 @@ internal static class DisposableExtensions
             }
             catch (Exception exception)
             {
+                if (ignoreExceptions) continue;
                 exceptions ??= new List<Exception>();
                 exceptions.Add(exception);
             }

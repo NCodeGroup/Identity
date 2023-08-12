@@ -21,31 +21,35 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
 using NCode.Cryptography.Keys.Internal;
 
-namespace NCode.Cryptography.Keys.Providers;
+namespace NCode.Cryptography.Keys.DataSources;
 
 /// <summary>
-/// Provides an implementation of <see cref="ISecretKeyProvider"/> that aggregates multiple <see cref="ISecretKeyProvider"/> instances.
+/// Provides an implementation of <see cref="ISecretKeyDataSource"/> that aggregates multiple <see cref="ISecretKeyDataSource"/> instances.
 /// </summary>
-public class CompositeSecretKeyProvider : SecretKeyProvider
+/// <remarks>
+/// Because this class is intended to be used with DI, it does not own the <see cref="ISecretKeyDataSource"/> instances.
+/// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
+/// </remarks>
+public class CompositeSecretKeyDataSource : SecretKeyDataSource
 {
     private object SyncObj { get; } = new();
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
     private List<IDisposable>? ChangeTokenRegistrations { get; set; }
-    private IReadOnlyList<ISecretKeyProvider> Providers { get; }
-    private ISecretKeyCollection? Collection { get; set; }
+    private IReadOnlyList<ISecretKeyDataSource> DataSources { get; }
+    private IReadOnlyCollection<SecretKey>? Collection { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CompositeSecretKeyProvider"/> class with the specified collection of <see cref="ISecretKeyProvider"/> instances.
+    /// Initializes a new instance of the <see cref="CompositeSecretKeyDataSource"/> class with the specified collection of <see cref="ISecretKeyDataSource"/> instances.
     /// </summary>
-    /// <param name="providers">A collection of <see cref="ISecretKeyProvider"/> instances to aggregate.</param>
-    public CompositeSecretKeyProvider(IEnumerable<ISecretKeyProvider> providers)
+    /// <param name="dataSources">A collection of <see cref="ISecretKeyDataSource"/> instances to aggregate.</param>
+    public CompositeSecretKeyDataSource(IEnumerable<ISecretKeyDataSource> dataSources)
     {
-        Providers = providers.ToList();
+        DataSources = dataSources.ToList();
     }
 
     /// <inheritdoc />
-    public override ISecretKeyCollection SecretKeys
+    public override IReadOnlyCollection<SecretKey> SecretKeys
     {
         get
         {
@@ -67,15 +71,11 @@ public class CompositeSecretKeyProvider : SecretKeyProvider
             if (IsDisposed) return;
             IsDisposed = true;
 
-            disposables.AddRange(Providers);
-
             if (ChangeTokenRegistrations is { Count: > 0 })
                 disposables.AddRange(ChangeTokenRegistrations);
 
             if (ChangeTokenSource is not null)
                 disposables.Add(ChangeTokenSource);
-
-            // we don't dispose the collection because the secret keys are managed by the composite providers
         }
 
         disposables.DisposeAll();
@@ -98,7 +98,7 @@ public class CompositeSecretKeyProvider : SecretKeyProvider
             if (Collection is not null) return;
 
             EnsureChangeTokenInitialized();
-            CreateCollection();
+            RefreshCollection();
         }
     }
 
@@ -111,7 +111,7 @@ public class CompositeSecretKeyProvider : SecretKeyProvider
             if (ConsumerChangeToken is not null) return;
 
             SubscribeChangeTokenProducers();
-            CreateConsumerChangeToken();
+            RefreshConsumerChangeToken();
         }
     }
 
@@ -129,13 +129,13 @@ public class CompositeSecretKeyProvider : SecretKeyProvider
             // refresh the cached change token
             if (oldTokenSource is not null)
             {
-                CreateConsumerChangeToken();
+                RefreshConsumerChangeToken();
             }
 
             // refresh the cached collection
             if (Collection is not null)
             {
-                CreateCollection();
+                RefreshCollection();
             }
         }
 
@@ -147,28 +147,22 @@ public class CompositeSecretKeyProvider : SecretKeyProvider
     {
         if (IsDisposed) return;
         ChangeTokenRegistrations ??= new List<IDisposable>();
-        ChangeTokenRegistrations.AddRange(Providers.Select(provider =>
-            ChangeToken.OnChange(
-                provider.GetChangeToken,
-                HandleChange)));
+        ChangeTokenRegistrations.AddRange(DataSources.Select(dataSource =>
+            ChangeToken.OnChange(dataSource.GetChangeToken, HandleChange)));
     }
 
     [MemberNotNull(nameof(ConsumerChangeToken))]
-    private void CreateConsumerChangeToken()
+    private void RefreshConsumerChangeToken()
     {
-        var tokenSource = new CancellationTokenSource();
-        ChangeTokenSource = tokenSource;
-        ConsumerChangeToken = new CancellationChangeToken(tokenSource.Token);
+        ChangeTokenSource = new CancellationTokenSource();
+        ConsumerChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
     }
 
     [MemberNotNull(nameof(Collection))]
-    private void CreateCollection()
+    private void RefreshCollection()
     {
-        Collection = Providers.Count == 1 ?
-            Providers[0].SecretKeys :
-            new SecretKeyCollection(
-                Providers.SelectMany(provider =>
-                    provider.SecretKeys),
-                owns: false);
+        Collection = DataSources.Count == 1 ?
+            DataSources[0].SecretKeys :
+            DataSources.SelectMany(dataSource => dataSource.SecretKeys).ToList();
     }
 }

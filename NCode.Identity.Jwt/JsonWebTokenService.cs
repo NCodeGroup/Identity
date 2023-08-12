@@ -20,12 +20,21 @@
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using NCode.Cryptography.Keys;
-using NCode.Cryptography.Keys.DataSources;
 using NCode.Jose;
 
 namespace NCode.Identity.Jwt;
 
-internal class JsonWebTokenService
+// https://datatracker.ietf.org/doc/html/rfc7519
+
+public interface IJsonWebTokenService
+{
+    ValueTask<ValidateJwtResult> ValidateJwtAsync(
+        string token,
+        ValidateJwtParameters parameters,
+        CancellationToken cancellationToken);
+}
+
+public class JsonWebTokenService : IJsonWebTokenService
 {
     private IJoseSerializer JoseSerializer { get; }
     private ISecretKeyProvider SecretKeyProvider { get; }
@@ -36,8 +45,8 @@ internal class JsonWebTokenService
         SecretKeyProvider = secretKeyProvider;
     }
 
-    // https://datatracker.ietf.org/doc/html/rfc7519
-    public async ValueTask<ValidateJwtResult> ValidateAsync(
+    /// <inheritdoc />
+    public async ValueTask<ValidateJwtResult> ValidateJwtAsync(
         string token,
         ValidateJwtParameters parameters,
         CancellationToken cancellationToken)

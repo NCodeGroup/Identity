@@ -30,7 +30,7 @@ public interface ISecretKeyDataSource : IDisposable
     /// <summary>
     /// Gets a read-only collection of <see cref="SecretKey"/> instances.
     /// </summary>
-    IReadOnlyCollection<SecretKey> SecretKeys { get; }
+    ISecretKeyCollection SecretKeys { get; }
 
     /// <summary>
     /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
@@ -44,7 +44,7 @@ public interface ISecretKeyDataSource : IDisposable
 public abstract class SecretKeyDataSource : BaseDisposable, ISecretKeyDataSource
 {
     /// <inheritdoc />
-    public abstract IReadOnlyCollection<SecretKey> SecretKeys { get; }
+    public abstract ISecretKeyCollection SecretKeys { get; }
 
     /// <inheritdoc />
     public abstract IChangeToken GetChangeToken();

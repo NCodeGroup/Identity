@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,11 +14,13 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Jwt;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
@@ -37,7 +40,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
     private IHttpClientFactory HttpClientFactory { get; }
     private IClientStore ClientStore { get; }
     private ISecretService SecretService { get; }
-    private IJwtDecoder JwtDecoder { get; }
+    private IJsonWebTokenService JsonWebTokenService { get; }
 
     public LoadAuthorizationRequestHandler(
         ILogger<LoadAuthorizationRequestHandler> logger,
@@ -46,7 +49,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         IHttpClientFactory httpClientFactory,
         IClientStore clientStore,
         ISecretService secretService,
-        IJwtDecoder jwtDecoder)
+        IJsonWebTokenService jsonWebTokenService)
     {
         Logger = logger;
         Options = optionsAccessor.Value;
@@ -54,7 +57,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         HttpClientFactory = httpClientFactory;
         ClientStore = clientStore;
         SecretService = secretService;
-        JwtDecoder = jwtDecoder;
+        JsonWebTokenService = jsonWebTokenService;
     }
 
     /// <inheritdoc />
@@ -147,10 +150,19 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         {
             using var secretKeys = SecretService.LoadSecretKeys(client.Secrets);
 
-            var issuer = client.ClientId;
-            var audience = Options.RequestObject.Audience;
+            // TODO: add support for specific keys
+            var parameters = new ValidateJwtParameters()
+                .ValidateIssuer(client.ClientId)
+                .ValidateAudience(Options.RequestObject.Audience);
 
-            json = JwtDecoder.DecodeJwt(requestJwt, issuer, audience, secretKeys);
+            var result = await JsonWebTokenService.ValidateJwtAsync(
+                requestJwt,
+                parameters,
+                cancellationToken);
+
+            // TODO: get string json
+            // json = result.DecodedJwt.
+            throw new NotImplementedException();
         }
         catch (Exception exception)
         {

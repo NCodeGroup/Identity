@@ -37,7 +37,7 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
     private IChangeToken? ConsumerChangeToken { get; set; }
     private List<IDisposable>? ChangeTokenRegistrations { get; set; }
     private IReadOnlyList<ISecretKeyDataSource> DataSources { get; }
-    private IReadOnlyCollection<SecretKey>? Collection { get; set; }
+    private ISecretKeyCollection? Collection { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CompositeSecretKeyDataSource"/> class with the specified collection of <see cref="ISecretKeyDataSource"/> instances.
@@ -49,7 +49,7 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
     }
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<SecretKey> SecretKeys
+    public override ISecretKeyCollection SecretKeys
     {
         get
         {
@@ -163,6 +163,6 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
     {
         Collection = DataSources.Count == 1 ?
             DataSources[0].SecretKeys :
-            DataSources.SelectMany(dataSource => dataSource.SecretKeys).ToList();
+            new CompositeSecretKeyCollection(DataSources.Select(dataSource => dataSource.SecretKeys));
     }
 }

@@ -57,7 +57,7 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
     /// <param name="owns">Indicates whether the new collection will own the <see cref="SecretKey"/> instances
-    /// and dispose them when done.</param>
+    /// and dispose them when done. The default is <c>true</c>.</param>
     public SecretKeyCollection(IEnumerable<SecretKey> secretKeys, bool owns = true)
     {
         Owns = owns;
@@ -70,7 +70,7 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
     /// <param name="owns">Indicates whether the new collection will own the <see cref="SecretKey"/> instances
-    /// and dispose them when done.</param>
+    /// and dispose them when done. The default is <c>true</c>.</param>
     public SecretKeyCollection(IReadOnlyCollection<SecretKey> secretKeys, bool owns = true)
     {
         Owns = owns;

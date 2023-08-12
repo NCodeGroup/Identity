@@ -20,7 +20,7 @@
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using NCode.Cryptography.Keys;
-using NCode.Cryptography.Keys.Providers;
+using NCode.Cryptography.Keys.DataSources;
 using NCode.Jose;
 
 namespace NCode.Identity.Jwt;
@@ -28,12 +28,12 @@ namespace NCode.Identity.Jwt;
 internal class JsonWebTokenService
 {
     private IJoseSerializer JoseSerializer { get; }
-    private IRootSecretKeyProvider RootSecretKeyProvider { get; }
+    private ISecretKeyProvider SecretKeyProvider { get; }
 
-    public JsonWebTokenService(IJoseSerializer joseSerializer, IRootSecretKeyProvider rootSecretKeyProvider)
+    public JsonWebTokenService(IJoseSerializer joseSerializer, ISecretKeyProvider secretKeyProvider)
     {
         JoseSerializer = joseSerializer;
-        RootSecretKeyProvider = rootSecretKeyProvider;
+        SecretKeyProvider = secretKeyProvider;
     }
 
     // https://datatracker.ietf.org/doc/html/rfc7519
@@ -50,7 +50,7 @@ internal class JsonWebTokenService
             // TODO: add support for OpenID Connect Discovery/Metadata
             var secretKeys = await parameters.ResolveSecretKeysAsync(
                 compactJwt,
-                RootSecretKeyProvider.SecretKeys,
+                SecretKeyProvider.SecretKeys,
                 parameters,
                 propertyBag,
                 cancellationToken);

@@ -24,7 +24,7 @@ using NCode.Cryptography.Keys.Internal;
 namespace NCode.Cryptography.Keys;
 
 /// <summary>
-/// Provides a collection of <see cref="SecretKey"/> instances that are disposed when the collection itself is disposed.
+/// Provides a read-only collection of <see cref="SecretKey"/> instances that can be accessed by <c>Key ID (KID)</c>.
 /// </summary>
 public interface ISecretKeyCollection : IReadOnlyCollection<SecretKey>, IDisposable
 {
@@ -65,6 +65,19 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of
+    /// <see cref="SecretKey"/> instances.
+    /// </summary>
+    /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
+    /// <param name="owns">Indicates whether the new collection will own the <see cref="SecretKey"/> instances
+    /// and dispose them when done.</param>
+    public SecretKeyCollection(IReadOnlyCollection<SecretKey> secretKeys, bool owns = true)
+    {
+        Owns = owns;
+        SecretKeys = secretKeys;
+    }
+
+    /// <summary>
     /// When overridden in a derived class, releases the unmanaged resources used by this instance,
     /// and optionally releases any managed resources.
     /// </summary>
@@ -76,7 +89,7 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
         IsDisposed = true;
 
         if (!Owns) return;
-        this.DisposeAll();
+        SecretKeys.DisposeAll();
     }
 
     private IReadOnlyDictionary<string, SecretKey> LoadSecretKeysByKeyId()

@@ -1,4 +1,5 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,21 +14,28 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-namespace NIdentity.OpenId.Playground;
+using Microsoft.Extensions.Primitives;
 
-internal static class Program
+namespace NCode.Cryptography.Keys.Internal;
+
+internal class NullChangeToken : IChangeToken
 {
-    public static void Main(string[] args)
+    public static NullChangeToken Singleton { get; } = new();
+
+    private NullChangeToken()
     {
-        CreateHostBuilder(args).Build().Run();
+        // nothing
     }
 
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host
-        .CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder =>
-        {
-            webBuilder.UseStartup<Startup>();
-        });
+    /// <inheritdoc />
+    public bool HasChanged => false;
+
+    /// <inheritdoc />
+    public bool ActiveChangeCallbacks => false;
+
+    /// <inheritdoc />
+    public IDisposable RegisterChangeCallback(Action<object> callback, object? state) => EmptyDisposable.Instance;
 }

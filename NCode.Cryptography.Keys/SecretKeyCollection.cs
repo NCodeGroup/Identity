@@ -19,7 +19,7 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.ExceptionServices;
+using NCode.Cryptography.Keys.Internal;
 
 namespace NCode.Cryptography.Keys;
 
@@ -41,53 +41,27 @@ public interface ISecretKeyCollection : IReadOnlyCollection<SecretKey>, IDisposa
 /// <summary>
 /// Provides a default implementation for <see cref="ISecretKeyCollection"/>.
 /// </summary>
-public class SecretKeyCollection : ISecretKeyCollection
+public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
 {
-    private bool IsDisposed { get; set; }
-    private ICollection<SecretKey> OtherSecretKeys { get; }
-    private IReadOnlyDictionary<string, SecretKey> SecretKeysByKeyId { get; }
+    private bool Owns { get; }
+    private IReadOnlyCollection<SecretKey> SecretKeys { get; }
+    private IReadOnlyDictionary<string, SecretKey>? SecretKeysByKeyIdOrNull { get; set; }
+    private IReadOnlyDictionary<string, SecretKey> SecretKeysByKeyId => SecretKeysByKeyIdOrNull ??= LoadSecretKeysByKeyId();
 
     /// <inheritdoc />
-    public int Count => OtherSecretKeys.Count + SecretKeysByKeyId.Count;
+    public int Count => GetOrThrowObjectDisposed(SecretKeys).Count;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class.
+    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of
+    /// <see cref="SecretKey"/> instances.
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    public SecretKeyCollection(IEnumerable<SecretKey> secretKeys)
+    /// <param name="owns">Indicates whether the new collection will own the <see cref="SecretKey"/> instances
+    /// and dispose them when done.</param>
+    public SecretKeyCollection(IEnumerable<SecretKey> secretKeys, bool owns = true)
     {
-        var other = new List<SecretKey>();
-        var dictionary = new Dictionary<string, SecretKey>(StringComparer.Ordinal);
-
-        foreach (var secretKey in secretKeys)
-        {
-            var keyId = secretKey.KeyId;
-            if (string.IsNullOrEmpty(keyId) || !dictionary.TryAdd(keyId, secretKey))
-            {
-                other.Add(secretKey);
-            }
-        }
-
-        OtherSecretKeys = other;
-        SecretKeysByKeyId = dictionary;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class.
-    /// </summary>
-    /// <param name="otherSecretKeys">A collection of <see cref="SecretKey"/> instances with an empty, null, or duplicate <c>kid></c>.</param>
-    /// <param name="secretKeysByKeyId">A dictionary of <see cref="SecretKey"/> instances by <c>kid></c>.</param>
-    public SecretKeyCollection(ICollection<SecretKey> otherSecretKeys, IReadOnlyDictionary<string, SecretKey> secretKeysByKeyId)
-    {
-        OtherSecretKeys = otherSecretKeys;
-        SecretKeysByKeyId = secretKeysByKeyId;
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        Owns = owns;
+        SecretKeys = secretKeys.ToList();
     }
 
     /// <summary>
@@ -96,45 +70,36 @@ public class SecretKeyCollection : ISecretKeyCollection
     /// </summary>
     /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
     /// to release only unmanaged resources.</param>
-    protected virtual void Dispose(bool disposing)
+    protected override void Dispose(bool disposing)
     {
         if (!disposing || IsDisposed) return;
         IsDisposed = true;
 
-        List<Exception>? exceptions = null;
+        if (!Owns) return;
+        this.DisposeAll();
+    }
 
-        foreach (var secretKey in this)
+    private IReadOnlyDictionary<string, SecretKey> LoadSecretKeysByKeyId()
+    {
+        var dictionary = new Dictionary<string, SecretKey>(StringComparer.Ordinal);
+
+        foreach (var secretKey in SecretKeys)
         {
-            try
-            {
-                secretKey.Dispose();
-            }
-            catch (Exception exception)
-            {
-                exceptions ??= new List<Exception>();
-                exceptions.Add(exception);
-            }
+            var keyId = secretKey.KeyId;
+            if (string.IsNullOrEmpty(keyId)) continue;
+            dictionary.TryAdd(keyId, secretKey);
         }
 
-        if (exceptions == null) return;
-
-        if (exceptions.Count > 1)
-        {
-            ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
-        }
-        else
-        {
-            throw new AggregateException(exceptions);
-        }
+        return dictionary;
     }
 
     /// <inheritdoc />
     public bool TryGetByKeyId(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey) =>
-        SecretKeysByKeyId.TryGetValue(keyId, out secretKey);
+        GetOrThrowObjectDisposed(SecretKeysByKeyId).TryGetValue(keyId, out secretKey);
 
     /// <inheritdoc />
     public IEnumerator<SecretKey> GetEnumerator() =>
-        OtherSecretKeys.Union(SecretKeysByKeyId.Values).GetEnumerator();
+        GetOrThrowObjectDisposed(SecretKeys).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() =>
         GetEnumerator();

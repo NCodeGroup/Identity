@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Buffers;
@@ -31,10 +33,14 @@ namespace NCode.Cryptography.Keys;
 /// </remarks>
 public abstract class AsymmetricSecretKey : SecretKey
 {
-    private IMemoryOwner<byte> MemoryOwner { get; }
+    private readonly int _keySizeBits;
+    private readonly X509Certificate2? _certificate;
+    private readonly IMemoryOwner<byte> _memoryOwner;
+
+    private IMemoryOwner<byte> MemoryOwner => GetOrThrowObjectDisposed(_memoryOwner);
 
     /// <inheritdoc />
-    public override int KeySizeBits { get; }
+    public override int KeySizeBits => GetOrThrowObjectDisposed(_keySizeBits);
 
     /// <summary>
     /// Gets the cryptographic material for the secret key formatted as <c>PKCS#8</c>.
@@ -49,7 +55,7 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// To create a certificate with both the private and public portions, use <c>CopyWithPrivateKey</c>.
     /// Doing so will create certificates with ephemeral keys and not persist keys to disk.
     /// </remarks>
-    public X509Certificate2? Certificate { get; }
+    public X509Certificate2? Certificate => GetOrThrowObjectDisposed(_certificate);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AsymmetricSecretKey"/> class.
@@ -69,13 +75,13 @@ public abstract class AsymmetricSecretKey : SecretKey
             Debug.Assert(!certificate.HasPrivateKey);
         }
 
-        MemoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length, zeroOnDispose: true);
+        _memoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length, zeroOnDispose: true);
         try
         {
-            KeySizeBits = keySizeBits;
-            Certificate = certificate;
+            _keySizeBits = keySizeBits;
+            _certificate = certificate;
 
-            pkcs8PrivateKey.CopyTo(MemoryOwner.Memory.Span);
+            pkcs8PrivateKey.CopyTo(_memoryOwner.Memory.Span);
         }
         catch
         {
@@ -87,13 +93,11 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            Certificate?.Dispose();
-            MemoryOwner.Dispose();
-        }
+        if (disposing || IsDisposed) return;
+        IsDisposed = true;
 
-        base.Dispose(disposing);
+        _certificate?.Dispose();
+        _memoryOwner.Dispose();
     }
 
     /// <summary>
@@ -105,8 +109,9 @@ public abstract class AsymmetricSecretKey : SecretKey
     protected T ExportAsymmetricAlgorithm<T>(Func<T> factory)
         where T : AsymmetricAlgorithm
     {
-        var algorithm = factory();
+        ThrowIfDisposed();
 
+        var algorithm = factory();
         try
         {
             algorithm.ImportPkcs8PrivateKey(Pkcs8PrivateKey, out _);

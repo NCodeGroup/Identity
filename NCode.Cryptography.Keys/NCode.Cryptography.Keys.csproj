@@ -24,6 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Primitives" Version="7.0.0" />
       <PackageReference Include="NCode.CryptoMemory" Version="1.0.1" />
     </ItemGroup>
 

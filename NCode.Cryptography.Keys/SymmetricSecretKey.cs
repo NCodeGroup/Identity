@@ -1,18 +1,20 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Buffers;
@@ -29,7 +31,9 @@ namespace NCode.Cryptography.Keys;
 /// </remarks>
 public class SymmetricSecretKey : SecretKey
 {
-    private IMemoryOwner<byte> MemoryOwner { get; }
+    private readonly IMemoryOwner<byte> _memoryOwner;
+
+    private IMemoryOwner<byte> MemoryOwner => GetOrThrowObjectDisposed(_memoryOwner);
 
     /// <inheritdoc />
     public override int KeySizeBits => KeySizeBytes << 3;
@@ -50,10 +54,10 @@ public class SymmetricSecretKey : SecretKey
     public SymmetricSecretKey(string keyId, ReadOnlySpan<byte> keyBytes)
         : base(keyId)
     {
-        MemoryOwner = new HeapMemoryManager(keyBytes.Length, zeroOnDispose: true);
+        _memoryOwner = new HeapMemoryManager(keyBytes.Length, zeroOnDispose: true);
         try
         {
-            keyBytes.CopyTo(MemoryOwner.Memory.Span);
+            keyBytes.CopyTo(_memoryOwner.Memory.Span);
         }
         catch
         {
@@ -71,10 +75,10 @@ public class SymmetricSecretKey : SecretKey
         : base(keyId)
     {
         var byteCount = Encoding.UTF8.GetByteCount(password);
-        MemoryOwner = new HeapMemoryManager(byteCount, zeroOnDispose: true);
+        _memoryOwner = new HeapMemoryManager(byteCount, zeroOnDispose: true);
         try
         {
-            Encoding.UTF8.GetBytes(password, MemoryOwner.Memory.Span);
+            Encoding.UTF8.GetBytes(password, _memoryOwner.Memory.Span);
         }
         catch
         {
@@ -86,11 +90,9 @@ public class SymmetricSecretKey : SecretKey
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            MemoryOwner.Dispose();
-        }
+        if (disposing || IsDisposed) return;
+        IsDisposed = true;
 
-        base.Dispose(disposing);
+        _memoryOwner.Dispose();
     }
 }

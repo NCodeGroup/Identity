@@ -1,4 +1,5 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,21 +14,23 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-namespace NIdentity.OpenId.Playground;
+namespace NCode.Cryptography.Keys.Internal;
 
-internal static class Program
+internal class EmptyDisposable : IDisposable
 {
-    public static void Main(string[] args)
+    public static EmptyDisposable Instance { get; } = new();
+
+    private EmptyDisposable()
     {
-        CreateHostBuilder(args).Build().Run();
+        // nothing
     }
 
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host
-        .CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder =>
-        {
-            webBuilder.UseStartup<Startup>();
-        });
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        // nothing
+    }
 }

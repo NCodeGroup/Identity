@@ -27,26 +27,26 @@ namespace NCode.Cryptography.Keys.DataSources;
 /// </summary>
 public class StaticSecretKeyDataSource : SecretKeyDataSource
 {
-    private readonly IReadOnlyCollection<SecretKey> _secretKeys;
+    private ISecretKeyCollection Collection { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StaticSecretKeyDataSource"/> class with the specified collection of <see cref="SecretKey"/> instances.
     /// </summary>
-    /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    public StaticSecretKeyDataSource(IEnumerable<SecretKey> secretKeys)
+    /// <param name="collection">A collection of <see cref="SecretKey"/> instances.</param>
+    public StaticSecretKeyDataSource(IEnumerable<SecretKey> collection)
     {
-        _secretKeys = secretKeys.ToList();
+        Collection = new SecretKeyCollection(collection);
     }
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<SecretKey> SecretKeys => GetOrThrowObjectDisposed(_secretKeys);
+    public override ISecretKeyCollection SecretKeys => GetOrThrowObjectDisposed(Collection);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
         if (!disposing || IsDisposed) return;
         IsDisposed = true;
-        _secretKeys.DisposeAll();
+        Collection.DisposeAll();
     }
 
     /// <inheritdoc />

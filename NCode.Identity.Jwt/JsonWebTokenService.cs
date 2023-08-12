@@ -20,6 +20,7 @@
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using NCode.Cryptography.Keys;
+using NCode.Cryptography.Keys.Providers;
 using NCode.Jose;
 
 namespace NCode.Identity.Jwt;
@@ -27,10 +28,12 @@ namespace NCode.Identity.Jwt;
 internal class JsonWebTokenService
 {
     private IJoseSerializer JoseSerializer { get; }
+    private IRootSecretKeyProvider RootSecretKeyProvider { get; }
 
-    public JsonWebTokenService(IJoseSerializer joseSerializer)
+    public JsonWebTokenService(IJoseSerializer joseSerializer, IRootSecretKeyProvider rootSecretKeyProvider)
     {
         JoseSerializer = joseSerializer;
+        RootSecretKeyProvider = rootSecretKeyProvider;
     }
 
     // https://datatracker.ietf.org/doc/html/rfc7519
@@ -44,7 +47,14 @@ internal class JsonWebTokenService
         {
             var compactJwt = JoseSerializer.ParseCompactJwt(token);
 
-            var secretKeys = await ResolveSecretKeysAsync(compactJwt, parameters, propertyBag, cancellationToken);
+            // TODO: add support for OpenID Connect Discovery/Metadata
+            var secretKeys = await parameters.ResolveSecretKeysAsync(
+                compactJwt,
+                RootSecretKeyProvider.SecretKeys,
+                parameters,
+                propertyBag,
+                cancellationToken);
+
             var payload = DeserializePayload(compactJwt, secretKeys, out var secretKey);
 
             var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey);
@@ -60,19 +70,6 @@ internal class JsonWebTokenService
         {
             return ValidateJwtResult.Fail(token, exception, propertyBag);
         }
-    }
-
-    private static async ValueTask<IReadOnlyCollection<SecretKey>> ResolveSecretKeysAsync(
-        CompactJwt compactJwt,
-        ValidateJwtParameters parameters,
-        PropertyBag propertyBag,
-        CancellationToken cancellationToken)
-    {
-        // TODO: add support for OpenID Connect Discovery/Metadata
-        var secretKeys = await parameters.ResolveSecretKeysAsync(compactJwt, parameters, propertyBag, cancellationToken);
-        var secretKeysList = secretKeys as IReadOnlyCollection<SecretKey> ?? secretKeys.ToList();
-        // the degenerate case will attempt to use all the keys
-        return secretKeysList.Count > 0 ? secretKeysList : parameters.SecretKeys;
     }
 
     private IReadOnlyDictionary<string, object> DeserializePayload(CompactJwt compactJwt, IEnumerable<SecretKey> secretKeys, out SecretKey secretKey)

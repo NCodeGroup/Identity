@@ -29,6 +29,7 @@ namespace NCode.Identity.Jwt;
 
 public delegate ValueTask<IEnumerable<SecretKey>> ResolveSecretKeysAsync(
     CompactJwt compactJwt,
+    ISecretKeyCollection secretKeys,
     ValidateJwtParameters parameters,
     PropertyBag propertyBag,
     CancellationToken cancellationToken);
@@ -41,35 +42,29 @@ public class ValidateJwtParameters
     /// </summary>
     public PropertyBag PropertyBag { get; } = new();
 
-    public ISecretKeyCollection SecretKeys { get; }
-
     public ResolveSecretKeysAsync ResolveSecretKeysAsync { get; set; } = DefaultResolveSecretKeysAsync;
 
-    public ICollection<IValidateJwtHandler> Handlers { get; }
-
-    public ValidateJwtParameters(ISecretKeyCollection secretKeys)
-    {
-        SecretKeys = secretKeys;
-        Handlers = new List<IValidateJwtHandler>();
-    }
+    public ICollection<IValidateJwtHandler> Handlers { get; } = new List<IValidateJwtHandler>();
 
     private static ValueTask<IEnumerable<SecretKey>> DefaultResolveSecretKeysAsync(
         CompactJwt compactJwt,
+        ISecretKeyCollection secretKeys,
         ValidateJwtParameters parameters,
         PropertyBag propertyBag,
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(
             DefaultResolveSecretKeys(
                 compactJwt,
+                secretKeys,
                 parameters,
                 propertyBag));
 
     private static IEnumerable<SecretKey> DefaultResolveSecretKeys(
         CompactJwt compactJwt,
+        ISecretKeyCollection secretKeys,
         ValidateJwtParameters parameters,
         PropertyBag propertyBag)
     {
-        var secretKeys = parameters.SecretKeys;
         var header = compactJwt.DeserializedHeader;
 
         // attempt to lookup by 'kid'

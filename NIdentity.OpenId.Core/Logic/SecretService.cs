@@ -44,37 +44,34 @@ internal class SecretService : ISecretService
     /// <inheritdoc />
     public ISecretKeyCollection LoadSecretKeys(IEnumerable<Secret> secrets)
     {
-        var otherSecretKeys = new List<SecretKey>();
-        var secretKeysByKeyId = new Dictionary<string, SecretKey>(StringComparer.Ordinal);
-        var collection = new SecretKeyCollection(otherSecretKeys, secretKeysByKeyId);
-
+        var list = new List<SecretKey>();
         try
         {
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            // Nope, that is not equivalent. The try/catch is important.
             foreach (var secret in secrets)
             {
-                var secretKey = LoadSecretKey(secret);
-                try
-                {
-                    var keyId = secretKey.KeyId;
-                    if (string.IsNullOrEmpty(keyId) || !secretKeysByKeyId.TryAdd(keyId, secretKey))
-                    {
-                        otherSecretKeys.Add(secretKey);
-                    }
-                }
-                catch
-                {
-                    secretKey.Dispose();
-                    throw;
-                }
+                list.Add(LoadSecretKey(secret));
             }
         }
         catch
         {
-            collection.Dispose();
+            foreach (var item in list)
+            {
+                try
+                {
+                    item.Dispose();
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
             throw;
         }
 
-        return collection;
+        return new SecretKeyCollection(list);
     }
 
     private static SecretKey LoadSecretKey(Secret secret) =>

@@ -33,6 +33,7 @@ public static class SecretConstants
     {
         /// <summary>
         /// Indicates that a <see cref="Secret"/> represents an <c>x509 certificate</c> secret key.
+        /// The underlying key material may be <c>RSA</c> or <c>ECC</c>.
         /// </summary>
         public const string Certificate = "x509";
 

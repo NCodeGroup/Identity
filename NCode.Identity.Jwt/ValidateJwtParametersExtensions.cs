@@ -17,6 +17,8 @@
 
 #endregion
 
+using NCode.Cryptography.Keys;
+
 namespace NCode.Identity.Jwt;
 
 public static class ValidateJwtParametersExtensions
@@ -46,4 +48,12 @@ public static class ValidateJwtParametersExtensions
         this ValidateJwtParameters parameters,
         params string[] validAudiences) =>
         parameters.ValidateClaim("aud", allowCollection: true, validAudiences);
+
+    public static ValidateJwtParameters UseSecretKeys(
+        this ValidateJwtParameters parameters,
+        ISecretKeyCollection secretKeys)
+    {
+        parameters.ResolveProviderKeysAsync = (_, _, _, _) => ValueTask.FromResult(secretKeys);
+        return parameters;
+    }
 }

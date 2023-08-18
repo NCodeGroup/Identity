@@ -27,11 +27,16 @@ using NCode.Jose.Extensions;
 
 namespace NCode.Identity.Jwt;
 
-public delegate ValueTask<IEnumerable<SecretKey>> ResolveSecretKeysAsync(
+public delegate ValueTask<ISecretKeyCollection> ResolveProviderKeysAsync(
     CompactJwt compactJwt,
-    ISecretKeyCollection secretKeys,
-    ValidateJwtParameters parameters,
     PropertyBag propertyBag,
+    ISecretKeyProvider secretKeyProvider,
+    CancellationToken cancellationToken);
+
+public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
+    CompactJwt compactJwt,
+    PropertyBag propertyBag,
+    ISecretKeyCollection candidateKeys,
     CancellationToken cancellationToken);
 
 public class ValidateJwtParameters
@@ -42,33 +47,39 @@ public class ValidateJwtParameters
     /// </summary>
     public PropertyBag PropertyBag { get; } = new();
 
-    public ResolveSecretKeysAsync ResolveSecretKeysAsync { get; set; } = DefaultResolveSecretKeysAsync;
+    public ResolveProviderKeysAsync ResolveProviderKeysAsync { get; set; } = DefaultResolveProviderKeysAsync;
+
+    public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } = DefaultResolveValidationKeysAsync;
 
     public ICollection<IValidateJwtHandler> Handlers { get; } = new List<IValidateJwtHandler>();
 
-    private static ValueTask<IEnumerable<SecretKey>> DefaultResolveSecretKeysAsync(
+    private static ValueTask<ISecretKeyCollection> DefaultResolveProviderKeysAsync(
         CompactJwt compactJwt,
-        ISecretKeyCollection secretKeys,
-        ValidateJwtParameters parameters,
         PropertyBag propertyBag,
+        ISecretKeyProvider secretKeyProvider,
+        CancellationToken cancellationToken) =>
+        ValueTask.FromResult(secretKeyProvider.SecretKeys);
+
+    private static ValueTask<IEnumerable<SecretKey>> DefaultResolveValidationKeysAsync(
+        CompactJwt compactJwt,
+        PropertyBag propertyBag,
+        ISecretKeyCollection candidateKeys,
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(
-            DefaultResolveSecretKeys(
+            DefaultResolveValidationKeys(
                 compactJwt,
-                secretKeys,
-                parameters,
-                propertyBag));
+                propertyBag,
+                candidateKeys));
 
-    private static IEnumerable<SecretKey> DefaultResolveSecretKeys(
+    private static IEnumerable<SecretKey> DefaultResolveValidationKeys(
         CompactJwt compactJwt,
-        ISecretKeyCollection secretKeys,
-        ValidateJwtParameters parameters,
-        PropertyBag propertyBag)
+        PropertyBag propertyBag,
+        ISecretKeyCollection candidateKeys)
     {
         var header = compactJwt.DeserializedHeader;
 
         // attempt to lookup by 'kid'
-        if (header.TryGetValue<string>("kid", out var keyId) && secretKeys.TryGetByKeyId(keyId, out var specificKey))
+        if (header.TryGetValue<string>("kid", out var keyId) && candidateKeys.TryGetByKeyId(keyId, out var specificKey))
         {
             return new[] { specificKey };
         }
@@ -77,12 +88,12 @@ public class ValidateJwtParameters
         var hasThumbprintSha1 = header.TryGetValue<string>("x5t", out var thumbprintSha1);
         var hasThumbprintSha256 = header.TryGetValue<string>("x5t#S256", out var thumbprintSha256);
 
-        if (hasThumbprintSha1 && secretKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
+        if (hasThumbprintSha1 && candidateKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
         {
             return new[] { specificKey };
         }
 
-        if (hasThumbprintSha256 && secretKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
+        if (hasThumbprintSha256 && candidateKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
         {
             return new[] { specificKey };
         }
@@ -108,7 +119,7 @@ public class ValidateJwtParameters
 
             Span<byte> actualHash = stackalloc byte[sha256HashSize];
 
-            foreach (var secretKey in secretKeys)
+            foreach (var secretKey in candidateKeys)
             {
                 if (secretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey) continue;
                 var certificate = asymmetricSecretKey.Certificate;
@@ -126,7 +137,7 @@ public class ValidateJwtParameters
         }
 
         // otherwise, the degenerate case will attempt to use all the keys
-        return secretKeys;
+        return candidateKeys;
     }
 
     private static bool VerifyCertificateHash(

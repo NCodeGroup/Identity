@@ -34,7 +34,7 @@ public class Secret : ISupportId
 
     /// <summary>
     /// Gets or sets the natural key for this entity.
-    /// Also known as <c>kid</c> or <c>KeyId</c>.
+    /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
     public string SecretId { get; set; } = string.Empty;
 
@@ -42,6 +42,11 @@ public class Secret : ISupportId
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.
     /// </summary>
     public DateTimeOffset CreatedWhen { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid.
+    /// </summary>
+    public DateTimeOffset ExpiresWhen { get; set; }
 
     /// <summary>
     /// Gets or sets a value that specifies the type of secret.

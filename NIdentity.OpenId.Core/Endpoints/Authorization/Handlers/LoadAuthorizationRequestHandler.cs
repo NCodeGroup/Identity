@@ -148,10 +148,12 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         string json;
         try
         {
-            using var secretKeys = SecretService.LoadSecretKeys(client.Secrets);
+            // TODO: configure how expired secrets are handled
+            var secrets = client.Secrets.Where(secret => secret.ExpiresWhen < DateTimeOffset.UtcNow);
+            using var secretKeys = SecretService.LoadSecretKeys(secrets);
 
-            // TODO: add support for specific keys
             var parameters = new ValidateJwtParameters()
+                .UseSecretKeys(secretKeys)
                 .ValidateIssuer(client.ClientId)
                 .ValidateAudience(Options.RequestObject.Audience);
 

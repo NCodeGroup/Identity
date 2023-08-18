@@ -54,17 +54,24 @@ public class JsonWebTokenService : IJsonWebTokenService
         var propertyBag = parameters.PropertyBag.Clone();
         try
         {
+            // TODO: remove
+            propertyBag.Set(parameters);
+
             var compactJwt = JoseSerializer.ParseCompactJwt(token);
 
-            // TODO: add support for OpenID Connect Discovery/Metadata
-            var secretKeys = await parameters.ResolveSecretKeysAsync(
+            var candidateKeys = await parameters.ResolveProviderKeysAsync(
                 compactJwt,
-                SecretKeyProvider.SecretKeys,
-                parameters,
                 propertyBag,
+                SecretKeyProvider,
                 cancellationToken);
 
-            var payload = DeserializePayload(compactJwt, secretKeys, out var secretKey);
+            var validationKeys = await parameters.ResolveValidationKeysAsync(
+                compactJwt,
+                propertyBag,
+                candidateKeys,
+                cancellationToken);
+
+            var payload = DeserializePayload(compactJwt, validationKeys, out var secretKey);
 
             var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey);
             var context = new ValidateJwtContext(secretKey, decodedJwt, propertyBag);
@@ -81,18 +88,18 @@ public class JsonWebTokenService : IJsonWebTokenService
         }
     }
 
-    private IReadOnlyDictionary<string, object> DeserializePayload(CompactJwt compactJwt, IEnumerable<SecretKey> secretKeys, out SecretKey secretKey)
+    private IReadOnlyDictionary<string, object> DeserializePayload(CompactJwt compactJwt, IEnumerable<SecretKey> validationKeys, out SecretKey secretKey)
     {
         var exceptions = new List<Exception>();
         var keysAttempted = new HashSet<string>();
-        foreach (var secretKeyAttempt in secretKeys)
+        foreach (var keyAttempt in validationKeys)
         {
             try
             {
-                keysAttempted.Add(secretKeyAttempt.KeyId);
-                var payload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(compactJwt, secretKeyAttempt) ??
+                keysAttempted.Add(keyAttempt.KeyId);
+                var payload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(compactJwt, keyAttempt) ??
                               throw new InvalidOperationException();
-                secretKey = secretKeyAttempt;
+                secretKey = keyAttempt;
                 return payload;
             }
             catch (Exception exception)

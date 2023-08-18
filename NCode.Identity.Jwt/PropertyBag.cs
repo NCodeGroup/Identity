@@ -19,8 +19,18 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace NCode.Identity.Jwt;
+
+public static class PropertyBagExtensions
+{
+    public static PropertyBag Set<T>(this PropertyBag bag, T value, [CallerArgumentExpression("value")] string? name = null)
+    {
+        bag.Set(new PropertyBagKey<T>(name ?? string.Empty), value);
+        return bag;
+    }
+}
 
 public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDictionary<IPropertyBagKey, object?>
 {

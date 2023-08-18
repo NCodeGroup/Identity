@@ -27,7 +27,7 @@ namespace NCode.Cryptography.Keys.DataSources;
 /// </summary>
 public class StaticSecretKeyDataSource : SecretKeyDataSource
 {
-    private ISecretKeyCollection Collection { get; }
+    private IEnumerable<SecretKey> Collection { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StaticSecretKeyDataSource"/> class with the specified collection of <see cref="SecretKey"/> instances.
@@ -39,7 +39,7 @@ public class StaticSecretKeyDataSource : SecretKeyDataSource
     }
 
     /// <inheritdoc />
-    public override ISecretKeyCollection SecretKeys => GetOrThrowObjectDisposed(Collection);
+    public override IEnumerable<SecretKey> SecretKeys => GetOrThrowObjectDisposed(Collection);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)

@@ -37,7 +37,7 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
     private IChangeToken? ConsumerChangeToken { get; set; }
     private List<IDisposable>? ChangeTokenRegistrations { get; set; }
     private IReadOnlyList<ISecretKeyDataSource> DataSources { get; }
-    private ISecretKeyCollection? Collection { get; set; }
+    private IEnumerable<SecretKey>? Collection { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CompositeSecretKeyDataSource"/> class with the specified collection of <see cref="ISecretKeyDataSource"/> instances.
@@ -49,11 +49,10 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
     }
 
     /// <inheritdoc />
-    public override ISecretKeyCollection SecretKeys
+    public override IEnumerable<SecretKey> SecretKeys
     {
         get
         {
-            ThrowIfDisposed();
             EnsureCollectionInitialized();
             return Collection;
         }
@@ -84,7 +83,6 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
     /// <inheritdoc />
     public override IChangeToken GetChangeToken()
     {
-        ThrowIfDisposed();
         EnsureChangeTokenInitialized();
         return ConsumerChangeToken;
     }
@@ -97,6 +95,7 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
         {
             if (Collection is not null) return;
 
+            ThrowIfDisposed();
             EnsureChangeTokenInitialized();
             RefreshCollection();
         }
@@ -110,6 +109,7 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
         {
             if (ConsumerChangeToken is not null) return;
 
+            ThrowIfDisposed();
             SubscribeChangeTokenProducers();
             RefreshConsumerChangeToken();
         }
@@ -145,7 +145,6 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
 
     private void SubscribeChangeTokenProducers()
     {
-        if (IsDisposed) return;
         ChangeTokenRegistrations ??= new List<IDisposable>();
         ChangeTokenRegistrations.AddRange(DataSources.Select(dataSource =>
             ChangeToken.OnChange(dataSource.GetChangeToken, HandleChange)));
@@ -163,6 +162,6 @@ public class CompositeSecretKeyDataSource : SecretKeyDataSource
     {
         Collection = DataSources.Count == 1 ?
             DataSources[0].SecretKeys :
-            new CompositeSecretKeyCollection(DataSources.Select(dataSource => dataSource.SecretKeys));
+            DataSources.SelectMany(dataSource => dataSource.SecretKeys);
     }
 }

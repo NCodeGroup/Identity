@@ -82,6 +82,15 @@ public class JsonWebTokenService : IJsonWebTokenService
         }
     }
 
+    public ClaimsIdentity CreateClaimsIdentity(DecodedJwt decodedJwt, ValidateJwtParameters parameters)
+    {
+        // var nameType = ClaimTypes.Name;
+        // var roleType = ClaimTypes.Role;
+        // new ClaimsIdentity(authenticationType, nameType, roleType);
+
+        throw new NotImplementedException();
+    }
+
     private async ValueTask<IEnumerable<SecretKey>> GetValidationKeysAsync(
         ValidateJwtParameters parameters,
         CompactJwt compactJwt,

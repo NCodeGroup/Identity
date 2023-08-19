@@ -19,19 +19,12 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 namespace NCode.Identity.Jwt;
 
-public static class PropertyBagExtensions
-{
-    public static PropertyBag Set<T>(this PropertyBag bag, T value, [CallerArgumentExpression("value")] string? name = null)
-    {
-        bag.Set(new PropertyBagKey<T>(name ?? string.Empty), value);
-        return bag;
-    }
-}
-
+/// <summary>
+/// Provides a strongly typed collection of properties that can be accessed by key.
+/// </summary>
 public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDictionary<IPropertyBagKey, object?>
 {
     private IDictionary<IPropertyBagKey, object?>? ItemsOrNull { get; set; }
@@ -63,18 +56,20 @@ public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDicti
     }
 
     /// <summary>
-    /// Sets the strongly typed value for the specified <paramref name="key"/> in the property bag.
+    /// Sets a strongly typed value for the specified <paramref name="key"/> in the property bag.
     /// </summary>
     /// <param name="key">The key of the strongly typed value to set in the property bag.</param>
     /// <param name="value">The strongly typed value to set in the property bag.</param>
     /// <typeparam name="T">The type of the value to set in the property bag.</typeparam>
-    public void Set<T>(PropertyBagKey<T> key, T value)
+    /// <returns>The <see cref="PropertyBag"/> instance for method chaining.</returns>
+    public PropertyBag Set<T>(PropertyBagKey<T> key, T value)
     {
         Items[key] = value;
+        return this;
     }
 
     /// <summary>
-    /// Gets the strongly typed value associated with the specified key from the property bag.
+    /// Gets a strongly typed value associated with the specified key from the property bag.
     /// </summary>
     /// <param name="key">The key of the strongly typed value to get from the property bag.</param>
     /// <param name="value">When this method returns, contains the strongly typed value associated with the specified key,
@@ -85,7 +80,7 @@ public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDicti
     /// <c>false</c>.</returns>
     public bool TryGetValue<T>(PropertyBagKey<T> key, [MaybeNullWhen(false)] out T value)
     {
-        if ((ItemsOrNull?.TryGetValue(key, out var baseValue) ?? false) && baseValue is T typedValue)
+        if (TryGetValue(key, out object? baseValue) && baseValue is T typedValue)
         {
             value = typedValue;
             return true;

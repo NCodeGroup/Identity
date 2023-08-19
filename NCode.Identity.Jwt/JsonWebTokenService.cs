@@ -54,30 +54,18 @@ public class JsonWebTokenService : IJsonWebTokenService
         var propertyBag = parameters.PropertyBag.Clone();
         try
         {
-            // TODO: remove
-            propertyBag.Set(parameters);
-
             var compactJwt = JoseSerializer.ParseCompactJwt(token);
 
-            var candidateKeys = await parameters.ResolveProviderKeysAsync(
-                compactJwt,
-                propertyBag,
-                SecretKeyProvider,
-                cancellationToken);
-
-            var secretKeyTags = await parameters.ResolveSecretKeyTagsAsync(
+            var validationKeys = await GetValidationKeysAsync(
+                parameters,
                 compactJwt,
                 propertyBag,
                 cancellationToken);
 
-            var validationKeys = await parameters.ResolveValidationKeysAsync(
+            var payload = DeserializePayload(
                 compactJwt,
-                propertyBag,
-                candidateKeys,
-                secretKeyTags,
-                cancellationToken);
-
-            var payload = DeserializePayload(compactJwt, validationKeys, out var secretKey);
+                validationKeys,
+                out var secretKey);
 
             var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey);
             var context = new ValidateJwtContext(secretKey, decodedJwt, propertyBag);
@@ -94,7 +82,37 @@ public class JsonWebTokenService : IJsonWebTokenService
         }
     }
 
-    private IReadOnlyDictionary<string, object> DeserializePayload(CompactJwt compactJwt, IEnumerable<SecretKey> validationKeys, out SecretKey secretKey)
+    private async ValueTask<IEnumerable<SecretKey>> GetValidationKeysAsync(
+        ValidateJwtParameters parameters,
+        CompactJwt compactJwt,
+        PropertyBag propertyBag,
+        CancellationToken cancellationToken)
+    {
+        var candidateKeys = await parameters.ResolveProviderKeysAsync(
+            compactJwt,
+            propertyBag,
+            SecretKeyProvider,
+            cancellationToken);
+
+        var secretKeyTags = await parameters.ResolveSecretKeyTagsAsync(
+            compactJwt,
+            propertyBag,
+            cancellationToken);
+
+        var validationKeys = await parameters.ResolveValidationKeysAsync(
+            compactJwt,
+            propertyBag,
+            candidateKeys,
+            secretKeyTags,
+            cancellationToken);
+
+        return validationKeys;
+    }
+
+    private IReadOnlyDictionary<string, object> DeserializePayload(
+        CompactJwt compactJwt,
+        IEnumerable<SecretKey> validationKeys,
+        out SecretKey secretKey)
     {
         var exceptions = new List<Exception>();
         var keysAttempted = new HashSet<string>();
@@ -105,6 +123,7 @@ public class JsonWebTokenService : IJsonWebTokenService
                 keysAttempted.Add(keyAttempt.KeyId);
                 var payload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(compactJwt, keyAttempt) ??
                               throw new InvalidOperationException();
+
                 secretKey = keyAttempt;
                 return payload;
             }

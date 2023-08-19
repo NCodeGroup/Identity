@@ -33,10 +33,16 @@ public delegate ValueTask<ISecretKeyCollection> ResolveProviderKeysAsync(
     ISecretKeyProvider secretKeyProvider,
     CancellationToken cancellationToken);
 
+public delegate ValueTask<IEnumerable<string>> ResolveSecretKeyTagsAsync(
+    CompactJwt compactJwt,
+    PropertyBag propertyBag,
+    CancellationToken cancellationToken);
+
 public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
     CompactJwt compactJwt,
     PropertyBag propertyBag,
     ISecretKeyCollection candidateKeys,
+    IEnumerable<string> secretKeyTags,
     CancellationToken cancellationToken);
 
 public class ValidateJwtParameters
@@ -49,6 +55,8 @@ public class ValidateJwtParameters
 
     public ResolveProviderKeysAsync ResolveProviderKeysAsync { get; set; } = DefaultResolveProviderKeysAsync;
 
+    public ResolveSecretKeyTagsAsync ResolveSecretKeyTagsAsync { get; set; } = DefaultResolveSecretKeyTagsAsync;
+
     public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } = DefaultResolveValidationKeysAsync;
 
     public ICollection<IValidateJwtHandler> Handlers { get; } = new List<IValidateJwtHandler>();
@@ -60,21 +68,31 @@ public class ValidateJwtParameters
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(secretKeyProvider.SecretKeys);
 
+    private static ValueTask<IEnumerable<string>> DefaultResolveSecretKeyTagsAsync(
+        CompactJwt compactJwt,
+        PropertyBag propertyBag,
+        CancellationToken cancellationToken) =>
+        // use an empty collection that has Count=0 to leverage the optimized code path in IsSupersetOf
+        ValueTask.FromResult<IEnumerable<string>>(Array.Empty<string>());
+
     private static ValueTask<IEnumerable<SecretKey>> DefaultResolveValidationKeysAsync(
         CompactJwt compactJwt,
         PropertyBag propertyBag,
         ISecretKeyCollection candidateKeys,
+        IEnumerable<string> secretKeyTags,
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(
             DefaultResolveValidationKeys(
                 compactJwt,
                 propertyBag,
-                candidateKeys));
+                candidateKeys,
+                secretKeyTags));
 
     private static IEnumerable<SecretKey> DefaultResolveValidationKeys(
         CompactJwt compactJwt,
         PropertyBag propertyBag,
-        ISecretKeyCollection candidateKeys)
+        ISecretKeyCollection candidateKeys,
+        IEnumerable<string> secretKeyTags)
     {
         var header = compactJwt.DeserializedHeader;
 
@@ -136,8 +154,8 @@ public class ValidateJwtParameters
             }
         }
 
-        // otherwise, the degenerate case will attempt to use all the keys
-        return candidateKeys;
+        // otherwise, the degenerate case will attempt to use the keys with the specified tags
+        return candidateKeys.GetByTags(secretKeyTags);
     }
 
     private static bool VerifyCertificateHash(

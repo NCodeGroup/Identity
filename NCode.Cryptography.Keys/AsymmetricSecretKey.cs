@@ -61,11 +61,12 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// Initializes a new instance of the <see cref="AsymmetricSecretKey"/> class.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <param name="tags">The collection of tags associated with the secret key.</param>
     /// <param name="keySizeBits">The size of the key material in bits.</param>
     /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
-    protected AsymmetricSecretKey(string keyId, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
-        : base(keyId)
+    protected AsymmetricSecretKey(string keyId, IEnumerable<string> tags, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
+        : base(keyId, tags)
     {
         if (certificate?.HasPrivateKey ?? false)
         {

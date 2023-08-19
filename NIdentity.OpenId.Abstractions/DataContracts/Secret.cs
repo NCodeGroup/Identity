@@ -39,6 +39,11 @@ public class Secret : ISupportId
     public string SecretId { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the collection of tags associated with this secret.
+    /// </summary>
+    public IList<string> Tags { get; set; } = new List<string>();
+
+    /// <summary>
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.
     /// </summary>
     public DateTimeOffset CreatedWhen { get; set; }

@@ -60,14 +60,14 @@ public class JoseSerializerTests : BaseTests
     private static (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
     {
         var nativeKey = RSA.Create();
-        var secretKey = RsaSecretKey.Create(keyId, nativeKey);
+        var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), nativeKey);
         return (nativeKey, secretKey);
     }
 
     private static (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, ECCurve curve)
     {
         using var eccKey = ECDiffieHellman.Create(curve);
-        var secretKey = EccSecretKey.Create(keyId, eccKey);
+        var secretKey = EccSecretKey.Create(keyId, Array.Empty<string>(), eccKey);
         var parameters = eccKey.ExportParameters(true);
         var nativeKey = EccKey.New(parameters.Q.X, parameters.Q.Y, parameters.D, CngKeyUsages.KeyAgreement);
         return (nativeKey, secretKey);
@@ -93,14 +93,14 @@ public class JoseSerializerTests : BaseTests
         var byteCount = bitCount >> 3;
         var bytes = new byte[byteCount];
         RandomNumberGenerator.Fill(bytes);
-        var secretKey = new SymmetricSecretKey(keyId, bytes);
+        var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), bytes);
         return (bytes, secretKey);
     }
 
     private static (object controlKey, SecretKey secretKey) CreateRandomPassword(string keyId)
     {
         var password = Guid.NewGuid().ToString("N");
-        var secretKey = new SymmetricSecretKey(keyId, password);
+        var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
         return (password, secretKey);
     }
 
@@ -460,6 +460,7 @@ public class JoseSerializerTests : BaseTests
         if (encodePayload)
         {
             Assert.DoesNotContain("b64", deserializedHeaders);
+            Assert.DoesNotContain("crit", deserializedHeaders);
             Assert.DoesNotContain("crit", deserializedHeaders);
         }
         else

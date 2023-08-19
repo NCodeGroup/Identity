@@ -32,6 +32,11 @@ public abstract class SecretKey : BaseDisposable
     public string KeyId { get; }
 
     /// <summary>
+    /// Gets a read-only set of tags associated with this <see cref="SecretKey"/>.
+    /// </summary>
+    public IReadOnlySet<string> Tags { get; }
+
+    /// <summary>
     /// Gets the size, in bits, of the key material.
     /// </summary>
     public abstract int KeySizeBits { get; }
@@ -45,8 +50,10 @@ public abstract class SecretKey : BaseDisposable
     /// Initializes a new instance of the <see cref="SecretKey"/> class with the specified <c>Key ID (KID)</c>.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    protected SecretKey(string keyId)
+    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    protected SecretKey(string keyId, IEnumerable<string> tags)
     {
         KeyId = keyId;
+        Tags = tags.ToHashSet(StringComparer.Ordinal);
     }
 }

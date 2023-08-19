@@ -109,26 +109,26 @@ internal class SecretService : ISecretService
     private static SecretKey LoadCertificateSecurityKey(Secret secret)
     {
         using var _ = CreatePemReader(secret, out var reader);
-        return reader.ReadCertificate(secret.SecretId);
+        return reader.ReadCertificate(secret.SecretId, secret.Tags);
     }
 
     private static SecretKey LoadSymmetricSecurityKey(Secret secret) =>
         secret.EncodingType switch
         {
-            SecretConstants.EncodingTypes.None => new SymmetricSecretKey(secret.SecretId, secret.EncodedValue),
-            SecretConstants.EncodingTypes.Base64 => new SymmetricSecretKey(secret.SecretId, Convert.FromBase64String(secret.EncodedValue)),
+            SecretConstants.EncodingTypes.None => new SymmetricSecretKey(secret.SecretId, secret.Tags, secret.EncodedValue),
+            SecretConstants.EncodingTypes.Base64 => new SymmetricSecretKey(secret.SecretId, secret.Tags, Convert.FromBase64String(secret.EncodedValue)),
             _ => throw new InvalidOperationException("Invalid encoding type.")
         };
 
     private static SecretKey LoadRsaSecretKey(Secret secret)
     {
         using var _ = CreatePemReader(secret, out var reader);
-        return reader.ReadRsa(secret.SecretId, AsymmetricSecretKeyEncoding.Pem);
+        return reader.ReadRsa(secret.SecretId, secret.Tags, AsymmetricSecretKeyEncoding.Pem);
     }
 
     private static SecretKey LoadEccSecretKey(Secret secret)
     {
         using var _ = CreatePemReader(secret, out var reader);
-        return reader.ReadEcc(secret.SecretId, AsymmetricSecretKeyEncoding.Pem);
+        return reader.ReadEcc(secret.SecretId, secret.Tags, AsymmetricSecretKeyEncoding.Pem);
     }
 }

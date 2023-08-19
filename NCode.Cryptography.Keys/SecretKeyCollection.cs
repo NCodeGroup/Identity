@@ -36,6 +36,13 @@ public interface ISecretKeyCollection : IReadOnlyCollection<SecretKey>, IDisposa
     /// if found; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if a <see cref="SecretKey"/> was found with the specified <c>Key ID (KID)</c>; otherwise, <c>false</c>.</returns>
     bool TryGetByKeyId(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey);
+
+    /// <summary>
+    /// Gets a collection of <see cref="SecretKey"/> instances that have all of the specified tags.
+    /// </summary>
+    /// <param name="tags">The collection of tags to use when searching for <see cref="SecretKey"/> instance.</param>
+    /// <returns>The collection of <see cref="SecretKey"/> instances that have all the specified tags.</returns>
+    IEnumerable<SecretKey> GetByTags(IEnumerable<string> tags);
 }
 
 /// <summary>
@@ -109,6 +116,10 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
     /// <inheritdoc />
     public bool TryGetByKeyId(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey) =>
         GetOrThrowObjectDisposed(SecretKeysByKeyId).TryGetValue(keyId, out secretKey);
+
+    /// <inheritdoc />
+    public IEnumerable<SecretKey> GetByTags(IEnumerable<string> tags) =>
+        GetOrThrowObjectDisposed(SecretKeys).Where(secretKey => secretKey.Tags.IsSupersetOf(tags));
 
     /// <inheritdoc />
     public IEnumerator<SecretKey> GetEnumerator() =>

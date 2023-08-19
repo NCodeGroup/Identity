@@ -65,10 +65,16 @@ public class JsonWebTokenService : IJsonWebTokenService
                 SecretKeyProvider,
                 cancellationToken);
 
+            var secretKeyTags = await parameters.ResolveSecretKeyTagsAsync(
+                compactJwt,
+                propertyBag,
+                cancellationToken);
+
             var validationKeys = await parameters.ResolveValidationKeysAsync(
                 compactJwt,
                 propertyBag,
                 candidateKeys,
+                secretKeyTags,
                 cancellationToken);
 
             var payload = DeserializePayload(compactJwt, validationKeys, out var secretKey);

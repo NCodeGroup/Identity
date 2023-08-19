@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,8 +40,9 @@ public readonly ref partial struct SecretKeyReader
     /// Reads a <see cref="SymmetricSecretKey"/> from the source buffer.
     /// </summary>
     /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
+    /// <param name="tags">The collection of tags associated with the secret key.</param>
     /// <returns>The <see cref="SymmetricSecretKey"/> that was read.</returns>
-    public SymmetricSecretKey ReadSymmetric(string keyId) => new(keyId, Source);
+    public SymmetricSecretKey ReadSymmetric(string keyId, IEnumerable<string> tags) => new(keyId, tags, Source);
 
     private T ReadAsymmetricKey<T>(Func<T> factory, AsymmetricSecretKeyEncoding encoding, ImportPemDelegate<T> importPem)
         where T : AsymmetricAlgorithm =>

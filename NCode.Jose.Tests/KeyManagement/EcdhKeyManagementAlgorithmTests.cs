@@ -1,18 +1,20 @@
 ﻿#region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
@@ -525,7 +527,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         // party 1
 
         using var key1 = ECDiffieHellman.Create(curve);
-        using var secretKey1 = EccSecretKey.Create(keyId, key1);
+        using var secretKey1 = EccSecretKey.Create(keyId, Array.Empty<string>(), key1);
         var parameters1 = key1.ExportParameters(includePrivateParameters: false);
 
         var header1 = new Dictionary<string, object>
@@ -552,7 +554,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             D = Base64Url.Decode((string)epk["d"])
         };
         using var key2 = ECDiffieHellman.Create(parameters2);
-        using var secretKey2 = EccSecretKey.Create(keyId, key2);
+        using var secretKey2 = EccSecretKey.Create(keyId, Array.Empty<string>(), key2);
 
         var crv = $"P-{secretKey2.KeySizeBits}";
         var header2 = new Dictionary<string, object>

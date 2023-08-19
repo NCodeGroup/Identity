@@ -56,4 +56,17 @@ public static class ValidateJwtParametersExtensions
         parameters.ResolveProviderKeysAsync = (_, _, _, _) => ValueTask.FromResult(secretKeys);
         return parameters;
     }
+
+    public static ValidateJwtParameters UseSecretKeyTags(
+        this ValidateJwtParameters parameters,
+        IEnumerable<string> tags)
+    {
+        parameters.ResolveSecretKeyTagsAsync = (_, _, _) => ValueTask.FromResult(tags);
+        return parameters;
+    }
+
+    public static ValidateJwtParameters UseSecretKeyTags(
+        this ValidateJwtParameters parameters,
+        params string[] tags) =>
+        UseSecretKeyTags(parameters, tags.AsEnumerable());
 }

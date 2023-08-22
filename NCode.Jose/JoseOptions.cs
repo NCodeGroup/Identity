@@ -40,6 +40,6 @@ public class JoseOptions
     /// </summary>
     public JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
     {
-        Converters = { new DictionaryJsonConverter() }
+        Converters = { new JoseDictionaryJsonConverter() }
     };
 }

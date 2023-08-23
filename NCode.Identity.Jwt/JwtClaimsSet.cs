@@ -179,7 +179,8 @@ internal class JwtClaimsSet
 
         if (long.TryParse(
                 stringValue,
-                NumberStyles.Integer,
+                NumberStyles.Integer |
+                NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
                 out var parsedLong))
         {

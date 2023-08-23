@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Claims;
@@ -86,7 +85,8 @@ internal class JwtClaimsSet
         if (DateTime.TryParse(
                 stringValue,
                 CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                DateTimeStyles.AssumeUniversal |
+                DateTimeStyles.AdjustToUniversal,
                 out var dateTimeValue))
         {
             stringValue = dateTimeValue.ToString("O", CultureInfo.InvariantCulture);
@@ -124,9 +124,19 @@ internal class JwtClaimsSet
     }
 
     protected string GetString(string propertyName) =>
-        RootElement.TryGetProperty(propertyName, out var property) ?
-            property.ToString() :
-            string.Empty;
+        TryGetString(propertyName, out var stringOrNull) ? stringOrNull : string.Empty;
+
+    protected bool TryGetString(string propertyName, [MaybeNullWhen(false)] out string valueOrNull)
+    {
+        if (RootElement.TryGetProperty(propertyName, out var property))
+        {
+            valueOrNull = property.ToString();
+            return true;
+        }
+
+        valueOrNull = null;
+        return false;
+    }
 
     protected IReadOnlyCollection<string> GetStringCollection(string propertyName)
     {
@@ -141,16 +151,82 @@ internal class JwtClaimsSet
 
         return new[] { property.ToString() };
     }
+
+    protected bool TryGetInt64(string propertyName, [NotNullWhen(true)] out long? valueOrNull)
+    {
+        if (!RootElement.TryGetProperty(propertyName, out var property))
+        {
+            valueOrNull = null;
+            return false;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number)
+        {
+            if (property.TryGetInt64(out var longValue))
+            {
+                valueOrNull = longValue;
+                return true;
+            }
+
+            if (property.TryGetDouble(out var doubleValue))
+            {
+                valueOrNull = (long)doubleValue;
+                return true;
+            }
+        }
+
+        var stringValue = property.ToString();
+
+        if (long.TryParse(
+                stringValue,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var parsedLong))
+        {
+            valueOrNull = parsedLong;
+            return true;
+        }
+
+        if (double.TryParse(
+                stringValue,
+                NumberStyles.Float |
+                NumberStyles.AllowThousands,
+                CultureInfo.InvariantCulture,
+                out var parsedDouble))
+        {
+            valueOrNull = (long)parsedDouble;
+            return true;
+        }
+
+        valueOrNull = null;
+        return false;
+    }
+
+    protected bool TryGetDateTimeOffset(string propertyName, [NotNullWhen(true)] out DateTimeOffset? valueOrNull)
+    {
+        if (!TryGetInt64(propertyName, out var secondsSinceEpoch))
+        {
+            valueOrNull = null;
+            return false;
+        }
+
+        valueOrNull = DateTimeOffset.FromUnixTimeSeconds(secondsSinceEpoch.Value);
+        return true;
+    }
+
+    protected DateTimeOffset GetDateTimeOffset(string propertyName, DateTimeOffset defaultValue) =>
+        TryGetDateTimeOffset(propertyName, out var dateTimeOrNull) ? dateTimeOrNull.Value : defaultValue;
 }
 
 [SuppressMessage("ReSharper", "IdentifierTypo")]
 internal class JwtHeader : JwtClaimsSet
 {
-    private string? JkuOrNull { get; set; }
-    private string? JwkOrNull { get; set; }
+    // Cty
+    // Enc
+    // Typ
+    // Zip
+
     private string? KidOrNull { get; set; }
-    private string? X5uOrNull { get; set; }
-    private string? X5cOrNull { get; set; }
     private string? X5tOrNull { get; set; }
     private string? X5tS256OrNull { get; set; }
 
@@ -161,21 +237,28 @@ internal class JwtHeader : JwtClaimsSet
         // nothing
     }
 
-    public string Jku => JkuOrNull ??= GetString(JwtClaimNames.Jku);
-    public string Jwk => JwkOrNull ??= GetString(JwtClaimNames.Jwk);
     public string Kid => KidOrNull ??= GetString(JwtClaimNames.Kid);
-    public string X5u => X5uOrNull ??= GetString(JwtClaimNames.X5u);
-    public string X5c => X5cOrNull ??= GetString(JwtClaimNames.X5c);
     public string X5t => X5tOrNull ??= GetString(JwtClaimNames.X5t);
     public string X5tS256 => X5tS256OrNull ??= GetString(JwtClaimNames.X5tS256);
 }
 
 internal class JwtPayload : JwtClaimsSet
 {
+    // Jti
+    // Iat
+    // Sub
+    // Nbf
+    // Exp
+
     private IReadOnlyCollection<Claim>? ClaimsOrNull { get; set; }
 
-    private string? IssuerOrNull { get; set; }
-    private IReadOnlyCollection<string>? AudienceOrNull { get; set; }
+    private string? JtiOrNull { get; set; }
+    private DateTimeOffset? IatOrNull { get; set; }
+    private DateTimeOffset? NbfOrNull { get; set; }
+    private DateTimeOffset? ExpOrNull { get; set; }
+    private string? IssOrNull { get; set; }
+    private IReadOnlyCollection<string>? AudOrNull { get; set; }
+    private string? SubOrNull { get; set; }
 
     /// <inheritdoc />
     public JwtPayload(JsonElement rootElement)
@@ -184,8 +267,13 @@ internal class JwtPayload : JwtClaimsSet
         // nothing
     }
 
-    public IReadOnlyCollection<Claim> Claims => ClaimsOrNull ??= CreateClaimCollection(Issuer);
+    public IReadOnlyCollection<Claim> Claims => ClaimsOrNull ??= CreateClaimCollection(Iss);
 
-    public string Issuer => IssuerOrNull ??= GetString(JwtClaimNames.Iss);
-    public IReadOnlyCollection<string> Audience => AudienceOrNull ??= GetStringCollection(JwtClaimNames.Aud);
+    public string Jti => JtiOrNull ??= GetString(JwtClaimNames.Jti);
+    public DateTimeOffset Iat => IatOrNull ??= GetDateTimeOffset(JwtClaimNames.Iat, DateTimeOffset.UnixEpoch);
+    public DateTimeOffset Nbf => NbfOrNull ??= GetDateTimeOffset(JwtClaimNames.Nbf, DateTimeOffset.UnixEpoch);
+    public DateTimeOffset Exp => ExpOrNull ??= GetDateTimeOffset(JwtClaimNames.Exp, DateTimeOffset.UnixEpoch);
+    public string Iss => IssOrNull ??= GetString(JwtClaimNames.Iss);
+    public IReadOnlyCollection<string> Aud => AudOrNull ??= GetStringCollection(JwtClaimNames.Aud);
+    public string Sub => SubOrNull ??= GetString(JwtClaimNames.Sub);
 }

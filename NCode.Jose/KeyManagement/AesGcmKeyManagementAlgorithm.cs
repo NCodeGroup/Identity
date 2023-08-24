@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,7 @@ using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
+using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -101,7 +102,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        IReadOnlyDictionary<string, object> header,
+        JwtHeader header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)
@@ -137,7 +138,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     }
 
     internal static void ValidateHeaderForUnwrap(
-        IReadOnlyDictionary<string, object> header,
+        JwtHeader header,
         Span<byte> iv,
         Span<byte> tag)
     {

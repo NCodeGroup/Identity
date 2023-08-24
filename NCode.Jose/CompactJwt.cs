@@ -30,7 +30,6 @@ namespace NCode.Jose;
 public class CompactJwt
 {
     private JsonSerializerOptions JsonSerializerOptions { get; }
-    private IReadOnlyDictionary<string, object>? DeserializedHeaderOrNull { get; set; }
     private JwtHeader? HeaderOrNull { get; set; }
 
     /// <summary>
@@ -51,12 +50,7 @@ public class CompactJwt
     /// <summary>
     /// Gets the deserialized header from the JWT.
     /// </summary>
-    public IReadOnlyDictionary<string, object> DeserializedHeader => DeserializedHeaderOrNull ??= DeserializeHeader();
-
-    /// <summary>
-    /// Gets the deserialized header from the JWT.
-    /// </summary>
-    public JwtHeader Header => HeaderOrNull ??= DeserializeHeader2();
+    public JwtHeader DeserializedHeader => HeaderOrNull ??= DeserializeHeader();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CompactJwt"/> class.
@@ -71,15 +65,7 @@ public class CompactJwt
         JsonSerializerOptions = jsonSerializerOptions;
     }
 
-    private IReadOnlyDictionary<string, object> DeserializeHeader()
-    {
-        var name = $"{ProtectionType} Protected Header";
-        using var lease = JoseSerializer.DecodeBase64Url(name, EncodedHeader, isSensitive: false, out var utf8Json);
-        var header = JsonSerializer.Deserialize<Dictionary<string, object>>(utf8Json, JsonSerializerOptions);
-        return header ?? throw new JoseException($"Failed to deserialize {name}");
-    }
-
-    private JwtHeader DeserializeHeader2()
+    private JwtHeader DeserializeHeader()
     {
         var name = $"{ProtectionType} Protected Header";
         using var lease = JoseSerializer.DecodeBase64Url(name, EncodedHeader, isSensitive: false, out var utf8Json);

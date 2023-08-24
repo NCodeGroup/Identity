@@ -1,5 +1,6 @@
 ﻿using NCode.Cryptography.Keys;
 using NCode.Jose;
+using NCode.Jose.Jwt;
 
 namespace NCode.Identity.Jwt;
 
@@ -21,12 +22,12 @@ public class DecodedJwt
     /// <summary>
     /// Gets the deserialized header from the Json Web Token (JWT).
     /// </summary>
-    public IReadOnlyDictionary<string, object> Header => CompactJwt.DeserializedHeader;
+    public JwtHeader Header => CompactJwt.DeserializedHeader;
 
     /// <summary>
     /// Gets the deserialized payload from the Json Web Token (JWT).
     /// </summary>
-    public IReadOnlyDictionary<string, object> Payload { get; }
+    public JwtPayload Payload { get; }
 
     /// <summary>
     /// Gets the <see cref="SecretKey"/> that was used to successfully decode the Json Web Token (JWT).
@@ -39,7 +40,7 @@ public class DecodedJwt
     /// <param name="compactJwt">The Json Web Token (JWT) that was parsed in compact form.</param>
     /// <param name="payload">The deserialized payload from the Json Web Token (JWT).</param>
     /// <param name="secretKey">The <see cref="SecretKey"/> that was used to successfully decode the Json Web Token (JWT).</param>
-    public DecodedJwt(CompactJwt compactJwt, IReadOnlyDictionary<string, object> payload, SecretKey secretKey)
+    public DecodedJwt(CompactJwt compactJwt, JwtPayload payload, SecretKey secretKey)
     {
         CompactJwt = compactJwt;
         Payload = payload;

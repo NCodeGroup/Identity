@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@
 using System.Security.Cryptography;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -100,7 +101,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
     bool TryUnwrapKey(
         SecretKey secretKey,
-        IReadOnlyDictionary<string, object> header,
+        JwtHeader header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten);
@@ -161,7 +162,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public abstract bool TryUnwrapKey(
         SecretKey secretKey,
-        IReadOnlyDictionary<string, object> header,
+        JwtHeader header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten);

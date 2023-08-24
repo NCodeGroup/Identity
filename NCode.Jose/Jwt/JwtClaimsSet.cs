@@ -19,6 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -121,6 +122,32 @@ public class JwtClaimsSet
             valueType = ClaimValueTypes.Double;
 
         return new Claim(propertyName, stringValue, valueType, issuer);
+    }
+
+    //
+
+    public bool TryGetValue<T>(string propertyName, out T? valueOrNull)
+    {
+        if (!RootElement.TryGetProperty(propertyName, out var property))
+        {
+            valueOrNull = default;
+            return false;
+        }
+
+        if (typeof(T) == typeof(JsonElement))
+        {
+            valueOrNull = (T)(object)property;
+            return true;
+        }
+
+        if (typeof(T) == typeof(string))
+        {
+            valueOrNull = (T)(object)property.ToString();
+            return true;
+        }
+
+        valueOrNull = property.Deserialize<T>() ?? throw new InvalidOperationException();
+        return true;
     }
 
     protected string GetString(string propertyName) =>

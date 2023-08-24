@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,11 +14,13 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Jwt;
 
 namespace NCode.Jose;
 
@@ -28,6 +31,7 @@ public class CompactJwt
 {
     private JsonSerializerOptions JsonSerializerOptions { get; }
     private IReadOnlyDictionary<string, object>? DeserializedHeaderOrNull { get; set; }
+    private JwtHeader? HeaderOrNull { get; set; }
 
     /// <summary>
     /// Gets a value indicating how the JWT is protected, either 'JWS' or 'JWE'.
@@ -50,6 +54,11 @@ public class CompactJwt
     public IReadOnlyDictionary<string, object> DeserializedHeader => DeserializedHeaderOrNull ??= DeserializeHeader();
 
     /// <summary>
+    /// Gets the deserialized header from the JWT.
+    /// </summary>
+    public JwtHeader Header => HeaderOrNull ??= DeserializeHeader2();
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CompactJwt"/> class.
     /// </summary>
     /// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
@@ -68,5 +77,18 @@ public class CompactJwt
         using var lease = JoseSerializer.DecodeBase64Url(name, EncodedHeader, isSensitive: false, out var utf8Json);
         var header = JsonSerializer.Deserialize<Dictionary<string, object>>(utf8Json, JsonSerializerOptions);
         return header ?? throw new JoseException($"Failed to deserialize {name}");
+    }
+
+    private JwtHeader DeserializeHeader2()
+    {
+        var name = $"{ProtectionType} Protected Header";
+        using var lease = JoseSerializer.DecodeBase64Url(name, EncodedHeader, isSensitive: false, out var utf8Json);
+
+        using var jsonDocument = JsonSerializer.Deserialize<JsonDocument>(utf8Json, JsonSerializerOptions);
+        if (jsonDocument == null)
+            throw new JoseException($"Failed to deserialize {name}");
+
+        var rootElement = jsonDocument.RootElement.Clone();
+        return new JwtHeader(rootElement);
     }
 }

@@ -22,12 +22,12 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 
-namespace NCode.Identity.Jwt;
+namespace NCode.Jose.Jwt;
 
 /// <summary>
 /// Represents a JSON object that contains the claims conveyed by the JWT.
 /// </summary>
-internal class JwtClaimsSet
+public class JwtClaimsSet
 {
     protected JsonElement RootElement { get; }
 
@@ -217,64 +217,4 @@ internal class JwtClaimsSet
 
     protected DateTimeOffset GetDateTimeOffset(string propertyName, DateTimeOffset defaultValue) =>
         TryGetDateTimeOffset(propertyName, out var dateTimeOrNull) ? dateTimeOrNull.Value : defaultValue;
-}
-
-[SuppressMessage("ReSharper", "IdentifierTypo")]
-internal class JwtHeader : JwtClaimsSet
-{
-    // Cty
-    // Enc
-    // Typ
-    // Zip
-
-    private string? KidOrNull { get; set; }
-    private string? X5tOrNull { get; set; }
-    private string? X5tS256OrNull { get; set; }
-
-    /// <inheritdoc />
-    public JwtHeader(JsonElement rootElement)
-        : base(rootElement)
-    {
-        // nothing
-    }
-
-    public string Kid => KidOrNull ??= GetString(JwtClaimNames.Kid);
-    public string X5t => X5tOrNull ??= GetString(JwtClaimNames.X5t);
-    public string X5tS256 => X5tS256OrNull ??= GetString(JwtClaimNames.X5tS256);
-}
-
-internal class JwtPayload : JwtClaimsSet
-{
-    // Jti
-    // Iat
-    // Sub
-    // Nbf
-    // Exp
-
-    private IReadOnlyCollection<Claim>? ClaimsOrNull { get; set; }
-
-    private string? JtiOrNull { get; set; }
-    private DateTimeOffset? IatOrNull { get; set; }
-    private DateTimeOffset? NbfOrNull { get; set; }
-    private DateTimeOffset? ExpOrNull { get; set; }
-    private string? IssOrNull { get; set; }
-    private IReadOnlyCollection<string>? AudOrNull { get; set; }
-    private string? SubOrNull { get; set; }
-
-    /// <inheritdoc />
-    public JwtPayload(JsonElement rootElement)
-        : base(rootElement)
-    {
-        // nothing
-    }
-
-    public IReadOnlyCollection<Claim> Claims => ClaimsOrNull ??= CreateClaimCollection(Iss);
-
-    public string Jti => JtiOrNull ??= GetString(JwtClaimNames.Jti);
-    public DateTimeOffset Iat => IatOrNull ??= GetDateTimeOffset(JwtClaimNames.Iat, DateTimeOffset.UnixEpoch);
-    public DateTimeOffset Nbf => NbfOrNull ??= GetDateTimeOffset(JwtClaimNames.Nbf, DateTimeOffset.UnixEpoch);
-    public DateTimeOffset Exp => ExpOrNull ??= GetDateTimeOffset(JwtClaimNames.Exp, DateTimeOffset.UnixEpoch);
-    public string Iss => IssOrNull ??= GetString(JwtClaimNames.Iss);
-    public IReadOnlyCollection<string> Aud => AudOrNull ??= GetStringCollection(JwtClaimNames.Aud);
-    public string Sub => SubOrNull ??= GetString(JwtClaimNames.Sub);
 }

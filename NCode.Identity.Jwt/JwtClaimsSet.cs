@@ -128,14 +128,14 @@ internal class JwtClaimsSet
 
     protected bool TryGetString(string propertyName, [MaybeNullWhen(false)] out string valueOrNull)
     {
-        if (RootElement.TryGetProperty(propertyName, out var property))
+        if (!RootElement.TryGetProperty(propertyName, out var property))
         {
-            valueOrNull = property.ToString();
-            return true;
+            valueOrNull = null;
+            return false;
         }
 
-        valueOrNull = null;
-        return false;
+        valueOrNull = property.ToString();
+        return true;
     }
 
     protected IReadOnlyCollection<string> GetStringCollection(string propertyName)

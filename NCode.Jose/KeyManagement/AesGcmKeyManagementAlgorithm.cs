@@ -68,7 +68,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JwtHeader header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)

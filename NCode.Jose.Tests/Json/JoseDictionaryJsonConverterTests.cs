@@ -26,7 +26,7 @@ public class JoseDictionaryJsonConverterTests
     [Fact]
     public void RoundTrip_Valid()
     {
-        var converter = new JoseDictionaryJsonConverter();
+        var converter = new JoseObjectJsonConverter();
 
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {

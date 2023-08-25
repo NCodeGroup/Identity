@@ -19,9 +19,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using NCode.Jose.Json;
 
 namespace NCode.Jose.Jwt;
 
@@ -34,6 +35,8 @@ public class JwtClaimsSet
 
     public JwtClaimsSet(JsonElement rootElement)
     {
+        var obj = JsonObject.Create(rootElement);
+        obj[""] = "";
         RootElement = rootElement;
     }
 
@@ -126,7 +129,7 @@ public class JwtClaimsSet
 
     //
 
-    public bool TryGetValue<T>(string propertyName, out T? valueOrNull)
+    public bool TryGetValue<T>(string propertyName, [MaybeNullWhen(false)] out T valueOrNull)
     {
         if (!RootElement.TryGetProperty(propertyName, out var property))
         {
@@ -134,20 +137,13 @@ public class JwtClaimsSet
             return false;
         }
 
-        if (typeof(T) == typeof(JsonElement))
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
-            valueOrNull = (T)(object)property;
-            return true;
-        }
+            Converters = { JoseObjectJsonConverter.Singleton }
+        };
 
-        if (typeof(T) == typeof(string))
-        {
-            valueOrNull = (T)(object)property.ToString();
-            return true;
-        }
-
-        valueOrNull = property.Deserialize<T>() ?? throw new InvalidOperationException();
-        return true;
+        valueOrNull = property.Deserialize<T>(options);
+        return valueOrNull != null;
     }
 
     protected string GetString(string propertyName) =>

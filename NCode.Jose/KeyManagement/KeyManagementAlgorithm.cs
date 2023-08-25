@@ -126,7 +126,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public virtual void NewKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JwtHeader header,
         Span<byte> contentKey)
     {
         ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length);
@@ -137,7 +137,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public abstract bool TryWrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JwtHeader header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten);
@@ -145,7 +145,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public virtual bool TryWrapNewKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JwtHeader header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)

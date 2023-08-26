@@ -1,27 +1,31 @@
 ﻿#region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Extensions;
+using NCode.Jose.Json;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -84,19 +88,19 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JsonObject header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        if (!header.TryGetValue<string>("alg", out var alg))
+        if (!header.TryGetPropertyValue<string>("alg", out var alg))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!header.TryGetValue<int>("p2c", out var iterationCount))
+        if (!header.TryGetPropertyValue<int>("p2c", out var iterationCount))
         {
             iterationCount = DefaultIterationCount;
         }
@@ -164,7 +168,7 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        IReadOnlyDictionary<string, object> header,
+        JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)
@@ -173,23 +177,17 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
 
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        if (!header.TryGetValue<string>("alg", out var alg))
+        if (!header.TryGetPropertyValue<string>("alg", out var alg))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!header.TryGetValue<int>("p2c", out var iterationCount))
+        if (!header.TryGetPropertyValue<int>("p2c", out var iterationCount))
         {
-            if (!header.TryGetValue<long>("p2c", out var iterationCountLong))
-            {
-                throw new JoseException("The JWT header is missing the 'p2c' field.");
-            }
-
-            Debug.Assert(iterationCountLong < int.MaxValue);
-            iterationCount = (int)iterationCountLong;
+            throw new JoseException("The JWT header is missing the 'p2c' field.");
         }
 
-        if (!header.TryGetValue<string>("p2s", out var saltInputString))
+        if (!header.TryGetPropertyValue<string>("p2s", out var saltInputString))
         {
             throw new JoseException("The JWT header is missing the 'p2s' field.");
         }

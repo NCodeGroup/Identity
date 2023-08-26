@@ -18,8 +18,9 @@
 #endregion
 
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
-using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -64,7 +65,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JsonObject header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
@@ -81,7 +82,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)

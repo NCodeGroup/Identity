@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.KeyManagement;
 
@@ -135,7 +136,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         using var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), key);
 
         var algorithm = new RsaKeyManagementAlgorithm(code, padding);
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
 
         var cekSizeBytes = algorithm.GetLegalCekByteSizes(kekSizeBits).Single().MaxSize;
         var encryptedCekSizeBytes = algorithm.GetEncryptedContentKeySizeBytes(secretKey.KeySizeBits, cekSizeBytes);
@@ -167,7 +168,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         var anyPadding = RSAEncryptionPadding.Pkcs1;
         var algorithm = new RsaKeyManagementAlgorithm(code, anyPadding);
 
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
         var contentKey = new byte[32];
         var encryptedContentKey = new byte[kekSizeBytes - 1];
 
@@ -187,7 +188,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         using var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), key);
 
         var algorithm = new RsaKeyManagementAlgorithm(code, padding);
-        var header = new Dictionary<string, object>();
+        var headerForWrap = new JsonObject();
 
         var cekSizeBytes = algorithm.GetLegalCekByteSizes(kekSizeBits).Single().MaxSize;
         var encryptedCekSizeBytes = algorithm.GetEncryptedContentKeySizeBytes(secretKey.KeySizeBits, cekSizeBytes);
@@ -200,7 +201,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
 
         var wrapResult = algorithm.TryWrapKey(
             secretKey,
-            header,
+            headerForWrap,
             cek,
             encryptedCek,
             out var wrapBytesWritten);
@@ -211,13 +212,15 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         var controlAlgorithm = GetControlAlgorithm(padding);
         if (controlAlgorithm != null)
         {
-            var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), key, cekSizeBits, header);
+            var controlHeader = headerForWrap.Deserialize<Dictionary<string, object?>>();
+            var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), key, cekSizeBits, controlHeader);
             Assert.Equal(cek.ToArray(), controlResult);
         }
 
+        var headerForUnwrap = headerForWrap.Deserialize<JsonElement>();
         var unwrapResult = algorithm.TryUnwrapKey(
             secretKey,
-            header,
+            headerForUnwrap,
             encryptedCek,
             decryptedCek,
             out var unwrapBytesWritten);

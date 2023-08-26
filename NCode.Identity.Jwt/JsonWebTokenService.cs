@@ -19,6 +19,7 @@
 
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
+using System.Text.Json;
 using NCode.Cryptography.Keys;
 using NCode.Jose;
 
@@ -118,7 +119,7 @@ public class JsonWebTokenService : IJsonWebTokenService
         return validationKeys;
     }
 
-    private IReadOnlyDictionary<string, object> DeserializePayload(
+    private JsonElement DeserializePayload(
         CompactJwt compactJwt,
         IEnumerable<SecretKey> validationKeys,
         out SecretKey secretKey)
@@ -130,8 +131,7 @@ public class JsonWebTokenService : IJsonWebTokenService
             try
             {
                 keysAttempted.Add(keyAttempt.KeyId);
-                var payload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(compactJwt, keyAttempt) ??
-                              throw new InvalidOperationException();
+                var payload = JoseSerializer.Deserialize<JsonElement>(compactJwt, keyAttempt);
 
                 secretKey = keyAttempt;
                 return payload;

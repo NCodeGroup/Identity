@@ -19,10 +19,11 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Extensions;
+using NCode.Jose.Json;
 using NCode.Jose.Signature;
 
 namespace NCode.Jose;
@@ -45,8 +46,8 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload, out IReadOnlyDictionary<string, object> header);
+    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
+    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload, out JsonElement header);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -73,8 +74,8 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(string token, SecretKey secretKey, string detachedPayload, out IReadOnlyDictionary<string, object> header);
+    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
+    void VerifyJws(string token, SecretKey secretKey, string detachedPayload, out JsonElement header);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -101,8 +102,8 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload, out IReadOnlyDictionary<string, object> header);
+    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
+    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload, out JsonElement header);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -130,9 +131,9 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
+    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <typeparam name="T">The type of the payload to validate.</typeparam>
-    void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload, out IReadOnlyDictionary<string, object> header);
+    void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload, out JsonElement header);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -163,7 +164,7 @@ partial class JoseSerializer
         VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload);
 
     /// <inheritdoc />
-    public void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload, out IReadOnlyDictionary<string, object> header)
+    public void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload, out JsonElement header)
     {
         var compact = ParseCompactJwt(token);
         VerifyJws(compact, secretKey, detachedPayload);
@@ -183,7 +184,7 @@ partial class JoseSerializer
         VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload.AsSpan());
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, string detachedPayload, out IReadOnlyDictionary<string, object> header) =>
+    public void VerifyJws(string token, SecretKey secretKey, string detachedPayload, out JsonElement header) =>
         VerifyJws(token, secretKey, detachedPayload.AsSpan(), out header);
 
     /// <inheritdoc />
@@ -195,7 +196,7 @@ partial class JoseSerializer
         VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload);
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload, out IReadOnlyDictionary<string, object> header)
+    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload, out JsonElement header)
     {
         var compact = ParseCompactJwt(token);
         VerifyJws(compact, secretKey, detachedPayload);
@@ -208,7 +209,7 @@ partial class JoseSerializer
         AssertJwsDetached(compactJwt);
 
         var header = compactJwt.DeserializedHeader;
-        if (!header.TryGetValue<bool>("b64", out var b64))
+        if (!header.TryGetPropertyValue<bool>("b64", out var b64))
         {
             b64 = true;
         }
@@ -244,7 +245,7 @@ partial class JoseSerializer
         VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload);
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload, out IReadOnlyDictionary<string, object> header)
+    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload, out JsonElement header)
     {
         var compact = ParseCompactJwt(token);
         VerifyJws(compact, secretKey, detachedPayload);
@@ -261,7 +262,7 @@ partial class JoseSerializer
         var encodedHeader = compactJwt.EncodedHeader;
 
         var header = compactJwt.DeserializedHeader;
-        if (!header.TryGetValue<bool>("b64", out var b64))
+        if (!header.TryGetPropertyValue<bool>("b64", out var b64))
         {
             b64 = true;
         }
@@ -279,12 +280,12 @@ partial class JoseSerializer
 
     private void VerifyJws(
         SecretKey secretKey,
-        IReadOnlyDictionary<string, object> header,
+        JsonElement header,
         ReadOnlySpan<char> encodedHeader,
         ReadOnlySpan<char> encodedPayload,
         ReadOnlySpan<char> encodedSignature)
     {
-        if (!header.TryGetValue<string>("alg", out var signatureAlgorithmCode))
+        if (!header.TryGetPropertyValue<string>("alg", out var signatureAlgorithmCode))
             throw new JoseException("The JWT header is missing the 'alg' field.");
 
         var signatureAlgorithm = GetSignatureAlgorithm(signatureAlgorithmCode);

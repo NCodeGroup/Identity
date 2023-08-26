@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,12 +14,14 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -55,7 +58,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <param name="contentKey">Destination for the new content encryption key (CEK).</param>
     void NewKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JsonObject header,
         Span<byte> contentKey);
 
     /// <summary>
@@ -69,7 +72,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
     bool TryWrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JsonObject header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten);
@@ -85,7 +88,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
     bool TryWrapNewKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JsonObject header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten);
@@ -101,7 +104,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
     bool TryUnwrapKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten);
@@ -126,7 +129,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public virtual void NewKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonObject header,
         Span<byte> contentKey)
     {
         ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length);
@@ -137,7 +140,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public abstract bool TryWrapKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonObject header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten);
@@ -145,7 +148,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public virtual bool TryWrapNewKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonObject header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
@@ -162,7 +165,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public abstract bool TryUnwrapKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten);

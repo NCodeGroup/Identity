@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Buffers;
@@ -20,7 +22,7 @@ using System.Diagnostics;
 using System.Text;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
-using NCode.Jose.Extensions;
+using NCode.Jose.Json;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;
@@ -68,7 +70,7 @@ partial class JoseSerializer
 
         VerifyJws(secretKey, header, encodedHeader, encodedPayload, encodedSignature);
 
-        if (!header.TryGetValue<bool>("b64", out var b64))
+        if (!header.TryGetPropertyValue<bool>("b64", out var b64))
         {
             b64 = true;
         }

@@ -153,7 +153,7 @@ public partial class JoseSerializer : IJoseSerializer
             JweSegmentCount => JoseConstants.JWE,
             _ => throw new ArgumentException("The specified value does not represent a valid JOSE token in compact form.", nameof(token))
         };
-        return new CompactJwt(protectionType, segments, JoseOptions.JsonSerializerOptions);
+        return new CompactJwt(protectionType, segments);
     }
 
     /// <inheritdoc />

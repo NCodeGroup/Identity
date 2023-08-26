@@ -65,9 +65,9 @@ public static class JsonElementExtensions
             return false;
         }
 
-        if (typeof(T) == typeof(JsonElement) || typeof(T) == typeof(JsonElement?))
+        if (property is T returnValue)
         {
-            value = (T)(object)property;
+            value = returnValue;
             return true;
         }
 

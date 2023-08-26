@@ -19,7 +19,6 @@
 
 using System.Text.Json;
 using NCode.Buffers;
-using NCode.Jose.Exceptions;
 
 namespace NCode.Jose;
 
@@ -28,7 +27,6 @@ namespace NCode.Jose;
 /// </summary>
 public class CompactJwt
 {
-    private JsonSerializerOptions JsonSerializerOptions { get; }
     private JsonElement? HeaderOrNull { get; set; }
 
     /// <summary>
@@ -56,23 +54,16 @@ public class CompactJwt
     /// </summary>
     /// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
     /// <param name="segments">Contains the substrings from the JWT seperated by '.' (aka dot).</param>
-    /// <param name="jsonSerializerOptions">Contains the options for JSON serialization.</param>
-    public CompactJwt(string protectionType, StringSegments segments, JsonSerializerOptions jsonSerializerOptions)
+    public CompactJwt(string protectionType, StringSegments segments)
     {
         ProtectionType = protectionType;
         Segments = segments;
-        JsonSerializerOptions = jsonSerializerOptions;
     }
 
     private JsonElement DeserializeHeader()
     {
         var name = $"{ProtectionType} Protected Header";
         using var lease = JoseSerializer.DecodeBase64Url(name, EncodedHeader, isSensitive: false, out var utf8Json);
-
-        using var jsonDocument = JsonSerializer.Deserialize<JsonDocument>(utf8Json, JsonSerializerOptions);
-        if (jsonDocument == null)
-            throw new JoseException($"Failed to deserialize {name}");
-
-        return jsonDocument.RootElement.Clone();
+        return JsonSerializer.Deserialize<JsonElement>(utf8Json);
     }
 }

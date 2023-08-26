@@ -27,6 +27,7 @@ using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
+using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -77,7 +78,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     protected EcdhKeyManagementAlgorithm(string code, bool isDirectAgreement)
     {
         Code = code;
-        AlgorithmField = isDirectAgreement ? "enc" : "alg";
+        AlgorithmField = isDirectAgreement ? JoseClaimNames.Header.Enc : JoseClaimNames.Header.Alg;
     }
 
     internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, JsonObject header)
@@ -90,13 +91,13 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         {
             try
             {
-                header["epk"] = new JsonObject
+                header[JoseClaimNames.Header.Epk] = new JsonObject
                 {
-                    ["kty"] = "EC",
-                    ["crv"] = $"P-{curveSizeBits}",
-                    ["x"] = Base64Url.Encode(parameters.Q.X),
-                    ["y"] = Base64Url.Encode(parameters.Q.Y),
-                    ["d"] = Base64Url.Encode(parameters.D)
+                    [JoseClaimNames.Header.Kty] = "EC",
+                    [JoseClaimNames.Header.Crv] = $"P-{curveSizeBits}",
+                    [JoseClaimNames.Header.X] = Base64Url.Encode(parameters.Q.X),
+                    [JoseClaimNames.Header.Y] = Base64Url.Encode(parameters.Q.Y),
+                    [JoseClaimNames.Header.D] = Base64Url.Encode(parameters.D)
                 };
             }
             finally
@@ -119,12 +120,12 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException($"The JWT header is missing the '{AlgorithmField}' field.");
         }
 
-        if (!header.TryGetPropertyValue<JsonElement>("epk", out var epk))
+        if (!header.TryGetPropertyValue<JsonElement>(JoseClaimNames.Header.Epk, out var epk))
         {
             throw new JoseException("The JWT header is missing the 'epk' field.");
         }
 
-        if (!epk.TryGetPropertyValue<string>("kty", out var kty))
+        if (!epk.TryGetPropertyValue<string>(JoseClaimNames.Header.Kty, out var kty))
         {
             throw new JoseException("The 'epk' header is missing the 'kty' field.");
         }
@@ -134,7 +135,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException("The 'kty' field was expected to be 'EC'.");
         }
 
-        if (!epk.TryGetPropertyValue<string>("crv", out var crv))
+        if (!epk.TryGetPropertyValue<string>(JoseClaimNames.Header.Crv, out var crv))
         {
             throw new JoseException("The 'epk' header is missing the 'crv' field.");
         }
@@ -145,12 +146,12 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException($"The 'crv' field was expected to be '{crvExpected}'.");
         }
 
-        if (!epk.TryGetPropertyValue<string>("x", out var x))
+        if (!epk.TryGetPropertyValue<string>(JoseClaimNames.Header.X, out var x))
         {
             throw new JoseException("The 'epk' header is missing the 'x' field.");
         }
 
-        if (!epk.TryGetPropertyValue<string>("y", out var y))
+        if (!epk.TryGetPropertyValue<string>(JoseClaimNames.Header.Y, out var y))
         {
             throw new JoseException("The 'epk' header is missing the 'y' field.");
         }
@@ -167,8 +168,8 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
         algorithm = localAlgorithm;
 
-        header.TryGetPropertyValue("apu", out apu);
-        header.TryGetPropertyValue("apv", out apv);
+        header.TryGetPropertyValue(JoseClaimNames.Header.Apu, out apu);
+        header.TryGetPropertyValue(JoseClaimNames.Header.Apv, out apv);
 
         return ECDiffieHellman.Create(parameters);
     }
@@ -199,8 +200,8 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException($"The JWT header is missing the '{AlgorithmField}' field.");
         }
 
-        header.TryGetPropertyValue<string>("apu", out var apu);
-        header.TryGetPropertyValue<string>("apv", out var apv);
+        header.TryGetPropertyValue<string>(JoseClaimNames.Header.Apu, out var apu);
+        header.TryGetPropertyValue<string>(JoseClaimNames.Header.Apv, out var apv);
 
         using var senderKey = ephemeralKey.PublicKey;
         DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);

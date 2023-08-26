@@ -26,6 +26,7 @@ using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
+using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -95,12 +96,12 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        if (!header.TryGetPropertyValue<string>("alg", out var alg))
+        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var alg))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!header.TryGetPropertyValue<int>("p2c", out var iterationCount))
+        if (!header.TryGetPropertyValue<int>(JoseClaimNames.Header.P2c, out var iterationCount))
         {
             iterationCount = DefaultIterationCount;
         }
@@ -141,8 +142,8 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
 
         RandomNumberGenerator.Fill(saltInput);
 
-        header["p2c"] = iterationCount;
-        header["p2s"] = Base64Url.Encode(saltInput);
+        header[JoseClaimNames.Header.P2c] = iterationCount;
+        header[JoseClaimNames.Header.P2s] = Base64Url.Encode(saltInput);
 
         var newKek = KeySizeBytes <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[KeySizeBytes] :
@@ -177,17 +178,17 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
 
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        if (!header.TryGetPropertyValue<string>("alg", out var alg))
+        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var alg))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!header.TryGetPropertyValue<int>("p2c", out var iterationCount))
+        if (!header.TryGetPropertyValue<int>(JoseClaimNames.Header.P2c, out var iterationCount))
         {
             throw new JoseException("The JWT header is missing the 'p2c' field.");
         }
 
-        if (!header.TryGetPropertyValue<string>("p2s", out var saltInputString))
+        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.P2s, out var saltInputString))
         {
             throw new JoseException("The JWT header is missing the 'p2s' field.");
         }
@@ -205,7 +206,7 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
         var saltInputByteCount = Base64Url.GetByteCountForDecode(saltInputString.Length);
         if (saltInputByteCount != SaltInputSizeBytes)
         {
-            throw new JoseException("The salt input (p2s) does not have a valid size for this cryptographic algorithm.");
+            throw new JoseException("The salt input ('p2s') does not have a valid size for this cryptographic algorithm.");
         }
 
         const int minEncryptedContentKeyByteCount = KeyManagement.AesKeyWrap.IntermediateByteCount + KeyManagement.AesKeyWrap.ChunkByteCount;

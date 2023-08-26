@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
 using NCode.Jose.KeyManagement;
@@ -56,7 +57,7 @@ public class KeyManagementAlgorithmTests : BaseTests
         Span<byte> cek = new byte[cekSizeBytes];
         cek.Fill(0);
 
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
 
         MockKeyManagementAlgorithm
             .Setup(_ => _.GetLegalCekByteSizes(kekSizeBits))

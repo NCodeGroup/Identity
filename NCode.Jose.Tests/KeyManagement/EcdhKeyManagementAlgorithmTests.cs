@@ -19,15 +19,23 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Json;
 using NCode.Jose.KeyManagement;
 
 namespace NCode.Jose.Tests.KeyManagement;
 
 public class EcdhKeyManagementAlgorithmTests : BaseTests
 {
+    private static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { JoseObjectJsonConverter.Singleton }
+    };
+
     private EcdhKeyManagementAlgorithm Algorithm { get; } = new();
 
     private static ECCurve GetCurve(int curveSizeBits)
@@ -85,10 +93,13 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         using var key = ECDiffieHellman.Create(curve);
         var parameters = key.ExportParameters(includePrivateParameters: true);
 
-        var headers = new Dictionary<string, object>();
+        var headers = new JsonObject();
         EcdhKeyManagementAlgorithm.ExportKey(curveSizeBits, key, headers);
 
-        var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", headers));
+        var headerToVerify = headers.Deserialize<Dictionary<string, object?>>(JsonSerializerOptions);
+        Assert.NotNull(headerToVerify);
+
+        var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", headerToVerify));
         var kty = Assert.IsType<string>(Assert.Contains("kty", epk));
         var crv = Assert.IsType<string>(Assert.Contains("crv", epk));
         var x = Assert.IsType<string>(Assert.Contains("x", epk));
@@ -122,10 +133,10 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var encodedApu = Base64Url.Encode(expectedApu);
         var encodedApv = Base64Url.Encode(expectedApv);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new Dictionary<string, object>
+            ["epk"] = new JsonObject
             {
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}",
@@ -136,10 +147,12 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             ["apv"] = encodedApv
         };
 
+        var headerForUnwrap = header.Deserialize<JsonElement>();
+
         using var key = Algorithm.ValidateHeaderForUnwrap(
             curve,
             curveSizeBits,
-            header,
+            headerForUnwrap,
             out var algorithm,
             out var apu,
             out var apv);
@@ -161,13 +174,14 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
             Algorithm.ValidateHeaderForUnwrap(
                 curve,
                 curveSizeBits,
-                header,
+                headerForUnwrap,
                 out _,
                 out _,
                 out _));
@@ -188,16 +202,17 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm
         };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
             Algorithm.ValidateHeaderForUnwrap(
                 curve,
                 curveSizeBits,
-                header,
+                headerForUnwrap,
                 out _,
                 out _,
                 out _));
@@ -218,17 +233,18 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new Dictionary<string, object>()
+            ["epk"] = new JsonObject()
         };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
             Algorithm.ValidateHeaderForUnwrap(
                 curve,
                 curveSizeBits,
-                header,
+                headerForUnwrap,
                 out _,
                 out _,
                 out _));
@@ -249,20 +265,21 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new Dictionary<string, object>
+            ["epk"] = new JsonObject
             {
                 ["kty"] = "NotEC"
             }
         };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
             Algorithm.ValidateHeaderForUnwrap(
                 curve,
                 curveSizeBits,
-                header,
+                headerForUnwrap,
                 out _,
                 out _,
                 out _));
@@ -283,20 +300,21 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new Dictionary<string, object>
+            ["epk"] = new JsonObject
             {
                 ["kty"] = "EC"
             }
         };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
             Algorithm.ValidateHeaderForUnwrap(
                 curve,
                 curveSizeBits,
-                header,
+                headerForUnwrap,
                 out _,
                 out _,
                 out _));
@@ -317,21 +335,22 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new Dictionary<string, object>
+            ["epk"] = new JsonObject
             {
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}"
             }
         };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
             Algorithm.ValidateHeaderForUnwrap(
                 curve,
                 curveSizeBits,
-                header,
+                headerForUnwrap,
                 out _,
                 out _,
                 out _));
@@ -355,22 +374,23 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new Dictionary<string, object>
+            ["epk"] = new JsonObject
             {
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}",
                 ["x"] = encodedX
             }
         };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
             Algorithm.ValidateHeaderForUnwrap(
                 curve,
                 curveSizeBits,
-                header,
+                headerForUnwrap,
                 out _,
                 out _,
                 out _));
@@ -395,10 +415,10 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 
         var encodedApv = Base64Url.Encode(expectedApv);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new Dictionary<string, object>
+            ["epk"] = new JsonObject
             {
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}",
@@ -407,11 +427,12 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             },
             ["apv"] = encodedApv
         };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         using var key = Algorithm.ValidateHeaderForUnwrap(
             curve,
             curveSizeBits,
-            header,
+            headerForUnwrap,
             out var algorithm,
             out var apu,
             out var apv);
@@ -438,10 +459,10 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 
         var encodedApu = Base64Url.Encode(expectedApu);
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new Dictionary<string, object>
+            ["epk"] = new JsonObject
             {
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}",
@@ -450,11 +471,12 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             },
             ["apu"] = encodedApu
         };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         using var key = Algorithm.ValidateHeaderForUnwrap(
             curve,
             curveSizeBits,
-            header,
+            headerForUnwrap,
             out var algorithm,
             out var apu,
             out var apv);
@@ -530,7 +552,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         using var secretKey1 = EccSecretKey.Create(keyId, Array.Empty<string>(), key1);
         var parameters1 = key1.ExportParameters(includePrivateParameters: false);
 
-        var header1 = new Dictionary<string, object>
+        var header1 = new JsonObject
         {
             ["enc"] = enc,
             ["apu"] = Base64Url.Encode(apu),
@@ -542,27 +564,27 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 
         // party 2
 
-        var epk = (IDictionary<string, object>)header1["epk"];
+        var epk = header1.GetPropertyValue<JsonObject>("epk");
         var parameters2 = new ECParameters
         {
             Curve = curve,
             Q = new ECPoint
             {
-                X = Base64Url.Decode((string)epk["x"]),
-                Y = Base64Url.Decode((string)epk["y"]),
+                X = Base64Url.Decode(epk.GetPropertyValue<string>("x")),
+                Y = Base64Url.Decode(epk.GetPropertyValue<string>("y"))
             },
-            D = Base64Url.Decode((string)epk["d"])
+            D = Base64Url.Decode(epk.GetPropertyValue<string>("d"))
         };
         using var key2 = ECDiffieHellman.Create(parameters2);
         using var secretKey2 = EccSecretKey.Create(keyId, Array.Empty<string>(), key2);
 
         var crv = $"P-{secretKey2.KeySizeBits}";
-        var header2 = new Dictionary<string, object>
+        var header2 = new JsonObject
         {
             ["enc"] = enc,
             ["apu"] = Base64Url.Encode(apu),
             ["apv"] = Base64Url.Encode(apv),
-            ["epk"] = new Dictionary<string, object>
+            ["epk"] = new JsonObject
             {
                 ["kty"] = kty,
                 ["crv"] = crv,
@@ -570,9 +592,10 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 ["y"] = Base64Url.Encode(parameters1.Q.Y)
             }
         };
+        var header2ForUnwrap = header2.Deserialize<JsonElement>();
 
         var cek2 = new byte[keySizeBytes];
-        var result = Algorithm.TryUnwrapKey(secretKey2, header2, Array.Empty<byte>(), cek2, out var bytesWritten);
+        var result = Algorithm.TryUnwrapKey(secretKey2, header2ForUnwrap, Array.Empty<byte>(), cek2, out var bytesWritten);
 
         // assert
 
@@ -585,7 +608,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var keySizeBits = keySizeBytes << 3;
         var controlKey = global::Jose.keys.EccKey.New(parameters2.Q.X, parameters2.Q.Y, parameters2.D, CngKeyUsages.KeyAgreement);
         var controlAlgorithm = new global::Jose.EcdhKeyManagement(true);
-        var controlResult = controlAlgorithm.Unwrap(Array.Empty<byte>(), controlKey, keySizeBits, header2);
+        var header2ForControl = header2.Deserialize<Dictionary<string, object?>>(JsonSerializerOptions);
+        var controlResult = controlAlgorithm.Unwrap(Array.Empty<byte>(), controlKey, keySizeBits, header2ForControl);
         Assert.Equal(controlResult, cek1);
     }
 }

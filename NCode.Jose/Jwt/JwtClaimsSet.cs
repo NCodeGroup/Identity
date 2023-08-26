@@ -35,8 +35,6 @@ public class JwtClaimsSet
 
     public JwtClaimsSet(JsonElement rootElement)
     {
-        var obj = JsonObject.Create(rootElement);
-        obj[""] = "";
         RootElement = rootElement;
     }
 

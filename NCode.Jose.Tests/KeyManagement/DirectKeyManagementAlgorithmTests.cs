@@ -18,6 +18,8 @@
 #endregion
 
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
 using NCode.Jose.KeyManagement;
@@ -79,7 +81,7 @@ public class DirectKeyManagementAlgorithmTests
         RandomNumberGenerator.Fill(kek);
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
 
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
 
         Algorithm.NewKey(secretKey, header, cek);
 
@@ -96,7 +98,7 @@ public class DirectKeyManagementAlgorithmTests
         RandomNumberGenerator.Fill(kek);
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
 
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
 
         var exception = Assert.Throws<JoseException>(() =>
         {
@@ -115,7 +117,7 @@ public class DirectKeyManagementAlgorithmTests
         Span<byte> kek = new byte[1];
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
 
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
 
         var exception = Assert.Throws<JoseException>(() =>
         {
@@ -139,9 +141,10 @@ public class DirectKeyManagementAlgorithmTests
         RandomNumberGenerator.Fill(kek);
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
 
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
-        var unwrapResult = Algorithm.TryUnwrapKey(secretKey, header, encryptedCek, cek, out var bytesWritten);
+        var unwrapResult = Algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCek, cek, out var bytesWritten);
         Assert.True(unwrapResult);
         Assert.Equal(kekSizeBytes, bytesWritten);
         Assert.Equal(kek.ToArray(), cek.ToArray());
@@ -157,14 +160,15 @@ public class DirectKeyManagementAlgorithmTests
         RandomNumberGenerator.Fill(kek);
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
 
-        var header = new Dictionary<string, object>();
+        var header = new JsonObject();
+        var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
         {
             Span<byte> cek = new byte[kekSizeBytes];
             Span<byte> encryptedCek = new byte[1];
 
-            Algorithm.TryUnwrapKey(secretKey, header, encryptedCek, cek, out _);
+            Algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCek, cek, out _);
         });
 
         Assert.Equal("The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.", exception.Message);

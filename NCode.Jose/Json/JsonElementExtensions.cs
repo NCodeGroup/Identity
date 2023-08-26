@@ -24,8 +24,15 @@ using System.Text.Json.Nodes;
 
 namespace NCode.Jose.Json;
 
+// TODO: tests
+
 public static class JsonElementExtensions
 {
+    public static T GetPropertyValue<T>(this JsonObject jsonObject, string propertyName) =>
+        !TryGetPropertyValue<T>(jsonObject, propertyName, out var value) ?
+            throw new KeyNotFoundException() :
+            value;
+
     public static bool TryGetPropertyValue<T>(this JsonObject jsonObject, string propertyName, [MaybeNullWhen(false)] out T value)
     {
         if (!jsonObject.TryGetPropertyValue(propertyName, out var property) || property == null)
@@ -34,7 +41,19 @@ public static class JsonElementExtensions
             return false;
         }
 
-        return property.AsValue().TryGetValue(out value);
+        switch (property)
+        {
+            case T returnValue:
+                value = returnValue;
+                return true;
+
+            case JsonValue jsonValue:
+                return jsonValue.TryGetValue(out value);
+
+            default:
+                value = default;
+                return false;
+        }
     }
 
     public static bool TryGetPropertyValue<T>(this JsonElement jsonElement, string propertyName, [MaybeNullWhen(false)] out T value)
@@ -45,7 +64,7 @@ public static class JsonElementExtensions
             return false;
         }
 
-        if (typeof(T) == typeof(JsonElement))
+        if (typeof(JsonElement).IsAssignableTo(typeof(T)))
         {
             value = (T)(object)property;
             return true;
@@ -57,7 +76,7 @@ public static class JsonElementExtensions
             return false;
         }
 
-        if (typeof(T) == typeof(string))
+        if (typeof(string).IsAssignableTo(typeof(T)))
         {
             value = (T)(object)property.ToString();
             return true;

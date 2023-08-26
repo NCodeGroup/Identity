@@ -21,6 +21,7 @@ using System.Buffers;
 using System.Text.Json.Nodes;
 using NCode.CryptoMemory;
 using NCode.Jose.Internal;
+using NCode.Jose.Jwt;
 using Nerdbank.Streams;
 
 namespace NCode.Jose.Compression;
@@ -47,7 +48,7 @@ internal static class CompressionAlgorithmExtensions
         try
         {
             algorithm.Compress(uncompressedData, buffer);
-            header["zip"] = algorithm.Code;
+            header[JoseClaimNames.Header.Zip] = algorithm.Code;
 
             var sequence = buffer.AsReadOnlySequence;
             if (sequence.IsSingleSegment)

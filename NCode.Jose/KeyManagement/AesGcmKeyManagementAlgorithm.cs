@@ -25,6 +25,7 @@ using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
+using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -95,8 +96,8 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
 
         key.Encrypt(iv, contentKey, encryptedContentKey, tag);
 
-        header["iv"] = Base64Url.Encode(iv);
-        header["tag"] = Base64Url.Encode(tag);
+        header[JoseClaimNames.Header.Iv] = Base64Url.Encode(iv);
+        header[JoseClaimNames.Header.Tag] = Base64Url.Encode(tag);
 
         bytesWritten = contentKey.Length;
         return true;
@@ -145,7 +146,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> iv,
         Span<byte> tag)
     {
-        if (!header.TryGetPropertyValue<string>("iv", out var ivString))
+        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Iv, out var ivString))
         {
             throw new JoseException("The JWT header is missing the 'iv' field.");
         }
@@ -166,7 +167,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException("Failed to deserialize the 'iv' field from the JWT header.", exception);
         }
 
-        if (!header.TryGetPropertyValue<string>("tag", out var tagString))
+        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Tag, out var tagString))
         {
             throw new JoseException("The JWT header is missing the 'tag' field.");
         }

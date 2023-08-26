@@ -23,6 +23,7 @@ using System.Text;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Json;
+using NCode.Jose.Jwt;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;
@@ -70,7 +71,7 @@ partial class JoseSerializer
 
         VerifyJws(secretKey, header, encodedHeader, encodedPayload, encodedSignature);
 
-        if (!header.TryGetPropertyValue<bool>("b64", out var b64))
+        if (!header.TryGetPropertyValue<bool>(JoseClaimNames.Header.B64, out var b64))
         {
             b64 = true;
         }

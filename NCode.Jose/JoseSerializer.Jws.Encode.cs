@@ -25,6 +25,7 @@ using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
+using NCode.Jose.Jwt;
 using NCode.Jose.Signature;
 using Nerdbank.Streams;
 
@@ -320,24 +321,24 @@ partial class JoseSerializer
             new Dictionary<string, object>(extraHeaders) :
             new Dictionary<string, object>();
 
-        header.TryAdd("typ", "JWT");
+        header.TryAdd(JoseClaimNames.Header.Typ, "JWT");
 
         if (!string.IsNullOrEmpty(algorithmCode))
-            header["alg"] = algorithmCode;
+            header[JoseClaimNames.Header.Alg] = algorithmCode;
 
         if (!string.IsNullOrEmpty(keyId) && JoseOptions.AddKeyIdHeaderDuringEncode)
-            header["kid"] = keyId;
+            header[JoseClaimNames.Header.Kid] = keyId;
 
         if (!parameters.EncodePayload)
         {
-            var crit = new HashSet<string> { "b64" };
-            if (header.TryGetValue<IEnumerable<string>>("crit", out var existing))
+            var crit = new HashSet<string> { JoseClaimNames.Header.B64 };
+            if (header.TryGetValue<IEnumerable<string>>(JoseClaimNames.Header.Crit, out var existing))
             {
                 crit.UnionWith(existing);
             }
 
-            header["b64"] = false;
-            header["crit"] = crit;
+            header[JoseClaimNames.Header.B64] = false;
+            header[JoseClaimNames.Header.Crit] = crit;
         }
 
         using var headerLease = Serialize(header, out var headerBytes);

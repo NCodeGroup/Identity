@@ -368,12 +368,12 @@ partial class JoseSerializer
             null;
 
         var header = extraHeaders ?? new JsonObject();
-        header[JwtClaimNames.Alg] = keyManagementAlgorithm.Code;
-        header[JwtClaimNames.Enc] = encryptionAlgorithm.Code;
+        header[JoseClaimNames.Header.Alg] = keyManagementAlgorithm.Code;
+        header[JoseClaimNames.Header.Enc] = encryptionAlgorithm.Code;
 
         var keyId = secretKey.KeyId;
         if (!string.IsNullOrEmpty(keyId) && JoseOptions.AddKeyIdHeaderDuringEncode)
-            header[JwtClaimNames.Kid] = keyId;
+            header[JoseClaimNames.Header.Kid] = keyId;
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;
         using var cekLease = CryptoPool.Rent(cekSizeBytes, isSensitive: true, out Span<byte> cek);
@@ -491,10 +491,10 @@ partial class JoseSerializer
             isSensitive: false,
             out var authenticationTagBytes);
 
-        if (!header.TryGetPropertyValue<string>("alg", out var keyManagementAlgorithmCode))
+        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var keyManagementAlgorithmCode))
             throw new JoseException("The JWE header is missing the 'alg' field.");
 
-        if (!header.TryGetPropertyValue<string>("enc", out var encryptionAlgorithmCode))
+        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Enc, out var encryptionAlgorithmCode))
             throw new JoseException("The JWE header is missing the 'enc' field.");
 
         var keyManagementAlgorithm = GetKeyManagementAlgorithm(keyManagementAlgorithmCode);
@@ -567,7 +567,7 @@ partial class JoseSerializer
                 plaintext using the specified compression algorithm.
         */
 
-        if (header.TryGetPropertyValue<string>("zip", out var compressionAlgorithmCode))
+        if (header.TryGetPropertyValue<string>(JoseClaimNames.Header.Zip, out var compressionAlgorithmCode))
         {
             var compressionAlgorithm = GetCompressionAlgorithm(compressionAlgorithmCode);
             compressionAlgorithm.Decompress(plainTextBytes, payloadBytes);

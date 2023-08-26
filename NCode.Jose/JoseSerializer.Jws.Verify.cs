@@ -24,6 +24,7 @@ using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
+using NCode.Jose.Jwt;
 using NCode.Jose.Signature;
 
 namespace NCode.Jose;
@@ -209,7 +210,7 @@ partial class JoseSerializer
         AssertJwsDetached(compactJwt);
 
         var header = compactJwt.DeserializedHeader;
-        if (!header.TryGetPropertyValue<bool>("b64", out var b64))
+        if (!header.TryGetPropertyValue<bool>(JoseClaimNames.Header.B64, out var b64))
         {
             b64 = true;
         }
@@ -262,7 +263,7 @@ partial class JoseSerializer
         var encodedHeader = compactJwt.EncodedHeader;
 
         var header = compactJwt.DeserializedHeader;
-        if (!header.TryGetPropertyValue<bool>("b64", out var b64))
+        if (!header.TryGetPropertyValue<bool>(JoseClaimNames.Header.B64, out var b64))
         {
             b64 = true;
         }
@@ -285,7 +286,7 @@ partial class JoseSerializer
         ReadOnlySpan<char> encodedPayload,
         ReadOnlySpan<char> encodedSignature)
     {
-        if (!header.TryGetPropertyValue<string>("alg", out var signatureAlgorithmCode))
+        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var signatureAlgorithmCode))
             throw new JoseException("The JWT header is missing the 'alg' field.");
 
         var signatureAlgorithm = GetSignatureAlgorithm(signatureAlgorithmCode);

@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -64,7 +65,7 @@ public static class JsonElementExtensions
             return false;
         }
 
-        if (typeof(JsonElement).IsAssignableTo(typeof(T)))
+        if (typeof(T) == typeof(JsonElement) || typeof(T) == typeof(JsonElement?))
         {
             value = (T)(object)property;
             return true;
@@ -76,47 +77,102 @@ public static class JsonElementExtensions
             return false;
         }
 
-        if (typeof(string).IsAssignableTo(typeof(T)))
+        if (typeof(T) == typeof(string))
         {
             value = (T)(object)property.ToString();
             return true;
         }
 
-        if (typeof(bool).IsAssignableTo(typeof(T)) && property.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        var isBoolType = typeof(T) == typeof(bool) || typeof(T) == typeof(bool?);
+        if (isBoolType && property.ValueKind is JsonValueKind.True or JsonValueKind.False)
         {
             value = (T)(object)property.GetBoolean();
             return true;
         }
 
+        var isDateTimeOffsetType = typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?);
+        var isDateTimeType = typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?);
+        if (property.ValueKind == JsonValueKind.String && (isDateTimeOffsetType || isDateTimeType))
+        {
+            var stringValue = property.ToString();
+
+            if (isDateTimeOffsetType &&
+                DateTimeOffset.TryParse(
+                    stringValue,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal,
+                    out var dateTimeOffsetValue))
+            {
+                value = (T)(object)dateTimeOffsetValue;
+                return true;
+            }
+
+            if (isDateTimeType &&
+                DateTime.TryParse(
+                    stringValue,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal,
+                    out var dateTimeValue))
+            {
+                value = (T)(object)dateTimeValue;
+                return true;
+            }
+        }
+
         if (property.ValueKind == JsonValueKind.Number)
         {
-            if (typeof(float).IsAssignableTo(typeof(T)) && property.TryGetSingle(out var floatValue))
+            var isFloatType = typeof(T) == typeof(float) || typeof(T) == typeof(float?);
+            if (isFloatType && property.TryGetSingle(out var floatValue))
             {
                 value = (T)(object)floatValue;
                 return true;
             }
 
-            if (typeof(double).IsAssignableTo(typeof(T)) && property.TryGetDouble(out var doubleValue))
+            var isDoubleType = typeof(T) == typeof(double) || typeof(T) == typeof(double?);
+            if (isDoubleType && property.TryGetDouble(out var doubleValue))
             {
                 value = (T)(object)doubleValue;
                 return true;
             }
 
-            if (typeof(short).IsAssignableTo(typeof(T)) && property.TryGetInt16(out var shortValue))
+            var isByteType = typeof(T) == typeof(byte) || typeof(T) == typeof(byte?);
+            if (isByteType && property.TryGetByte(out var byteValue))
+            {
+                value = (T)(object)byteValue;
+                return true;
+            }
+
+            var isShortType = typeof(T) == typeof(short) || typeof(T) == typeof(short?);
+            if (isShortType && property.TryGetInt16(out var shortValue))
             {
                 value = (T)(object)shortValue;
                 return true;
             }
 
-            if (typeof(int).IsAssignableTo(typeof(T)) && property.TryGetInt32(out var intValue))
+            var isIntType = typeof(T) == typeof(int) || typeof(T) == typeof(int?);
+            if (isIntType && property.TryGetInt32(out var intValue))
             {
                 value = (T)(object)intValue;
                 return true;
             }
 
-            if (typeof(long).IsAssignableTo(typeof(T)) && property.TryGetInt64(out var longValue))
+            var isLongType = typeof(T) == typeof(long) || typeof(T) == typeof(long?);
+            var isLongValue = property.TryGetInt64(out var longValue);
+            if (isLongType && isLongValue)
             {
                 value = (T)(object)longValue;
+                return true;
+            }
+
+            if (isDateTimeOffsetType && isLongValue)
+            {
+                value = (T)(object)DateTimeOffset.FromUnixTimeSeconds(longValue);
+                return true;
+            }
+
+            if (isDateTimeType && isLongValue)
+            {
+                value = (T)(object)DateTimeOffset.FromUnixTimeSeconds(longValue).DateTime;
                 return true;
             }
         }

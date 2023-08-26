@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,17 +14,26 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
+using NCode.Jose.Json;
 using NCode.Jose.KeyManagement;
 
 namespace NCode.Jose.Tests.KeyManagement;
 
 public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
 {
+    private static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { JoseObjectJsonConverter.Singleton }
+    };
+
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
     public EcdhWithAesKeyManagementAlgorithmTests()
@@ -100,7 +110,7 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         Span<byte> cek = new byte[cekSizeBytes];
         Span<byte> encryptedCek = new byte[encryptedCekSizeBytes];
 
-        var header = new Dictionary<string, object>
+        var header = new JsonObject
         {
             ["alg"] = alg,
             ["apu"] = Base64Url.Encode(apu),
@@ -119,10 +129,12 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         var controlAlgorithm = new global::Jose.EcdhKeyManagementWithAesKeyWrap(
             cekSizeBits,
             new global::Jose.AesKeyWrapManagement(cekSizeBits));
-        var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), controlKey, cekSizeBits, header);
+        var controlHeader = header.Deserialize<Dictionary<string, object?>>(JsonSerializerOptions);
+        var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), controlKey, cekSizeBits, controlHeader);
         Assert.Equal(controlResult, cek.ToArray());
 
-        var unwrapResult = algorithm.TryUnwrapKey(secretKey, header, encryptedCek, cek, out var unwrapBytesWritten);
+        var headerForUnwrap = header.Deserialize<JsonElement>();
+        var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCek, cek, out var unwrapBytesWritten);
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
         Assert.Equal(controlResult, cek.ToArray());

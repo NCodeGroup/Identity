@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Jose;
 using Jose.keys;
 using Microsoft.Extensions.DependencyInjection;
@@ -219,7 +220,7 @@ public class JoseSerializerTests : BaseTests
             ["key5"] = DateTimeOffset.Now
         };
 
-        var originalExtraHeaders = new Dictionary<string, object>
+        var originalExtraHeaders = new JsonObject
         {
             ["customHeader"] = "customValue"
         };
@@ -288,7 +289,7 @@ public class JoseSerializerTests : BaseTests
         var originalPayload = new Dictionary<string, object>
         {
             ["key1"] = 1234,
-            ["key2"] = 12.34m,
+            ["key2"] = 12.34,
             ["key3"] = "foo",
             ["key4"] = true,
             ["key5"] = DateTimeOffset.Now
@@ -306,23 +307,26 @@ public class JoseSerializerTests : BaseTests
         var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKey, out var header);
         Assert.Equal(originalPayload, actualPayload);
 
-        var alg = Assert.IsType<string>(Assert.Contains("alg", header));
+        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseOptions.JsonSerializerOptions);
+        Assert.NotNull(headerToVerify);
+
+        var alg = Assert.IsType<string>(Assert.Contains("alg", headerToVerify));
         Assert.Equal(jwtSettings.JwaHeaderValue(jweAlgorithm), alg);
 
-        var enc = Assert.IsType<string>(Assert.Contains("enc", header));
+        var enc = Assert.IsType<string>(Assert.Contains("enc", headerToVerify));
         Assert.Equal(jwtSettings.JweHeaderValue(jweEncryption), enc);
 
         if (jweCompression.HasValue)
         {
-            var zip = Assert.IsType<string>(Assert.Contains("zip", header));
+            var zip = Assert.IsType<string>(Assert.Contains("zip", headerToVerify));
             Assert.Equal(jwtSettings.CompressionHeader(jweCompression.Value), zip);
         }
         else
         {
-            Assert.DoesNotContain("zip", header);
+            Assert.DoesNotContain("zip", headerToVerify);
         }
 
-        var kid = Assert.IsType<string>(Assert.Contains("kid", header));
+        var kid = Assert.IsType<string>(Assert.Contains("kid", headerToVerify));
         Assert.Equal(keyId, kid);
     }
 
@@ -351,7 +355,7 @@ public class JoseSerializerTests : BaseTests
         var originalPayload = new Dictionary<string, object>
         {
             ["key1"] = 1234,
-            ["key2"] = 12.34M,
+            ["key2"] = 12.34,
             ["key3"] = "foo",
             ["key4"] = true,
             ["key5"] = DateTimeOffset.Now
@@ -377,7 +381,7 @@ public class JoseSerializerTests : BaseTests
         var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings, detachedPayload);
         Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
-        IReadOnlyDictionary<string, object> header;
+        JsonElement header;
         if (detachPayload)
         {
             JoseSerializer.VerifyJws(originalToken, secretKey, originalPayload, out header);
@@ -388,10 +392,13 @@ public class JoseSerializerTests : BaseTests
             Assert.Equal(originalPayload, actualPayload);
         }
 
-        var alg = Assert.IsType<string>(Assert.Contains("alg", header));
+        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseOptions.JsonSerializerOptions);
+        Assert.NotNull(headerToVerify);
+
+        var alg = Assert.IsType<string>(Assert.Contains("alg", headerToVerify));
         Assert.Equal(jwtSettings.JwsHeaderValue(jwsAlgorithm), alg);
 
-        var kid = Assert.IsType<string>(Assert.Contains("kid", header));
+        var kid = Assert.IsType<string>(Assert.Contains("kid", headerToVerify));
         Assert.Equal(keyId, kid);
     }
 
@@ -425,7 +432,7 @@ public class JoseSerializerTests : BaseTests
         var json = JsonSerializer.Serialize(payload, JoseOptions.JsonSerializerOptions);
         var token2 = JoseSerializer.EncodeJws(json, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
 
-        IReadOnlyDictionary<string, object> deserializedHeaders;
+        JsonElement deserializedHeaders;
         if (detachPayload)
         {
             JoseSerializer.VerifyJws(token, secretKey, payload, out deserializedHeaders);
@@ -451,31 +458,33 @@ public class JoseSerializerTests : BaseTests
             Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(controlPayload));
         }
 
+        var headerToVerify = deserializedHeaders.Deserialize<Dictionary<string, object?>>(JoseOptions.JsonSerializerOptions);
+        Assert.NotNull(headerToVerify);
+
         if (secretKey.KeySizeBits > 0)
         {
-            var kidHeader = Assert.Contains("kid", deserializedHeaders);
+            var kidHeader = Assert.Contains("kid", headerToVerify);
             Assert.Equal(secretKey.KeyId, kidHeader);
         }
 
         if (encodePayload)
         {
-            Assert.DoesNotContain("b64", deserializedHeaders);
-            Assert.DoesNotContain("crit", deserializedHeaders);
-            Assert.DoesNotContain("crit", deserializedHeaders);
+            Assert.DoesNotContain("b64", headerToVerify);
+            Assert.DoesNotContain("crit", headerToVerify);
         }
         else
         {
-            var b64Header = Assert.Contains("b64", deserializedHeaders);
+            var b64Header = Assert.Contains("b64", headerToVerify);
             Assert.Equal(false, b64Header);
 
-            var critHeader = Assert.Contains("crit", deserializedHeaders);
+            var critHeader = Assert.Contains("crit", headerToVerify);
             Assert.Equal(new[] { "b64" }, critHeader);
         }
 
-        var typHeader = Assert.Contains("typ", deserializedHeaders);
+        var typHeader = Assert.Contains("typ", headerToVerify);
         Assert.Equal("JWT", typHeader);
 
-        var algHeader = Assert.Contains("alg", deserializedHeaders);
+        var algHeader = Assert.Contains("alg", headerToVerify);
         Assert.Equal(signatureAlgorithmCode, algHeader);
     }
 }

@@ -80,7 +80,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         AlgorithmField = isDirectAgreement ? "enc" : "alg";
     }
 
-    internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, JsonObject headers)
+    internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, JsonObject header)
     {
         var parameters = key.ExportParameters(includePrivateParameters: true);
 
@@ -90,7 +90,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         {
             try
             {
-                headers["epk"] = new JsonObject
+                header["epk"] = new JsonObject
                 {
                     ["kty"] = "EC",
                     ["crv"] = $"P-{curveSizeBits}",

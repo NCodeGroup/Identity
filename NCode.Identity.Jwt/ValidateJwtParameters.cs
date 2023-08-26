@@ -84,14 +84,15 @@ public class ValidateJwtParameters
         var header = compactJwt.DeserializedHeader;
 
         // attempt to lookup by 'kid'
-        if (header.TryGetPropertyValue<string>("kid", out var keyId) && candidateKeys.TryGetByKeyId(keyId, out var specificKey))
+        if (header.TryGetPropertyValue<string>(JwtClaimNames.Kid, out var keyId) &&
+            candidateKeys.TryGetByKeyId(keyId, out var specificKey))
         {
             return new[] { specificKey };
         }
 
         // attempt to lookup by certificate thumbprint
-        var hasThumbprintSha1 = header.TryGetPropertyValue<string>("x5t", out var thumbprintSha1);
-        var hasThumbprintSha256 = header.TryGetPropertyValue<string>("x5t#S256", out var thumbprintSha256);
+        var hasThumbprintSha1 = header.TryGetPropertyValue<string>(JwtClaimNames.X5t, out var thumbprintSha1);
+        var hasThumbprintSha256 = header.TryGetPropertyValue<string>(JwtClaimNames.X5tS256, out var thumbprintSha256);
 
         if (hasThumbprintSha1 && candidateKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
         {

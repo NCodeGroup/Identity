@@ -18,6 +18,7 @@
 #endregion
 
 using System.Buffers;
+using System.Text.Json.Nodes;
 using NCode.CryptoMemory;
 using NCode.Jose.Internal;
 using Nerdbank.Streams;
@@ -28,7 +29,7 @@ internal static class CompressionAlgorithmExtensions
 {
     public static IDisposable Compress(
         this ICompressionAlgorithm? algorithm,
-        IDictionary<string, object> header,
+        JsonObject header,
         ReadOnlySpan<byte> uncompressedData,
         out ReadOnlySpan<byte> compressedData)
     {

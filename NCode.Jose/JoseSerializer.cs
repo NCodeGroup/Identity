@@ -58,9 +58,9 @@ public partial interface IJoseSerializer
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to decode and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
-    /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
+    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <returns>The decoded payload from Json Web Token (JWT).</returns>
-    string Decode(string token, SecretKey secretKey, out IReadOnlyDictionary<string, object> header);
+    string Decode(string token, SecretKey secretKey, out JsonElement header);
 
     /// <summary>
     /// Validates a Json Web Token (JWT) and returns the decoded payload.
@@ -84,10 +84,10 @@ public partial interface IJoseSerializer
     /// </summary>
     /// <param name="token">The Json Web Token (JWT) to deserialize and validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
-    /// <param name="header">An <see cref="IReadOnlyDictionary{TKey,TValue}"/> that is to receive the decoded JOSE header if validation was successful.</param>
+    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
-    T? Deserialize<T>(string token, SecretKey secretKey, out IReadOnlyDictionary<string, object> header);
+    T? Deserialize<T>(string token, SecretKey secretKey, out JsonElement header);
 
     /// <summary>
     /// Validates a Json Web Token (JWT) and returns the deserialized payload.
@@ -161,7 +161,7 @@ public partial class JoseSerializer : IJoseSerializer
         Decode(ParseCompactJwt(token), secretKey);
 
     /// <inheritdoc />
-    public string Decode(string token, SecretKey secretKey, out IReadOnlyDictionary<string, object> header)
+    public string Decode(string token, SecretKey secretKey, out JsonElement header)
     {
         var compact = ParseCompactJwt(token);
         var payload = Decode(compact, secretKey);
@@ -190,7 +190,7 @@ public partial class JoseSerializer : IJoseSerializer
         Deserialize<T>(ParseCompactJwt(token), secretKey);
 
     /// <inheritdoc />
-    public T? Deserialize<T>(string token, SecretKey secretKey, out IReadOnlyDictionary<string, object> header)
+    public T? Deserialize<T>(string token, SecretKey secretKey, out JsonElement header)
     {
         var compact = ParseCompactJwt(token);
         var payload = Deserialize<T>(compact, secretKey);

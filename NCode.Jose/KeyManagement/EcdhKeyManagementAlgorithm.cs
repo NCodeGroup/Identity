@@ -1,28 +1,32 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Extensions;
+using NCode.Jose.Json;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -76,7 +80,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         AlgorithmField = isDirectAgreement ? "enc" : "alg";
     }
 
-    internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, IDictionary<string, object> headers)
+    internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, JsonObject headers)
     {
         var parameters = key.ExportParameters(includePrivateParameters: true);
 
@@ -86,7 +90,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         {
             try
             {
-                headers["epk"] = new Dictionary<string, object>
+                headers["epk"] = new JsonObject
                 {
                     ["kty"] = "EC",
                     ["crv"] = $"P-{curveSizeBits}",
@@ -105,22 +109,22 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     internal ECDiffieHellman ValidateHeaderForUnwrap(
         ECCurve curve,
         int curveSizeBits,
-        IReadOnlyDictionary<string, object> header,
+        JsonElement header,
         out string algorithm,
         out string? apu,
         out string? apv)
     {
-        if (!header.TryGetValue<string>(AlgorithmField, out var localAlgorithm))
+        if (!header.TryGetPropertyValue<string>(AlgorithmField, out var localAlgorithm))
         {
             throw new JoseException($"The JWT header is missing the '{AlgorithmField}' field.");
         }
 
-        if (!header.TryGetValue<IDictionary<string, object>>("epk", out var epk))
+        if (!header.TryGetPropertyValue<JsonElement>("epk", out var epk))
         {
             throw new JoseException("The JWT header is missing the 'epk' field.");
         }
 
-        if (!epk.TryGetValue<string>("kty", out var kty))
+        if (!epk.TryGetPropertyValue<string>("kty", out var kty))
         {
             throw new JoseException("The 'epk' header is missing the 'kty' field.");
         }
@@ -130,7 +134,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException("The 'kty' field was expected to be 'EC'.");
         }
 
-        if (!epk.TryGetValue<string>("crv", out var crv))
+        if (!epk.TryGetPropertyValue<string>("crv", out var crv))
         {
             throw new JoseException("The 'epk' header is missing the 'crv' field.");
         }
@@ -141,12 +145,12 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
             throw new JoseException($"The 'crv' field was expected to be '{crvExpected}'.");
         }
 
-        if (!epk.TryGetValue<string>("x", out var x))
+        if (!epk.TryGetPropertyValue<string>("x", out var x))
         {
             throw new JoseException("The 'epk' header is missing the 'x' field.");
         }
 
-        if (!epk.TryGetValue<string>("y", out var y))
+        if (!epk.TryGetPropertyValue<string>("y", out var y))
         {
             throw new JoseException("The 'epk' header is missing the 'y' field.");
         }
@@ -163,8 +167,8 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
 
         algorithm = localAlgorithm;
 
-        header.TryGetValue("apu", out apu);
-        header.TryGetValue("apv", out apv);
+        header.TryGetPropertyValue("apu", out apu);
+        header.TryGetPropertyValue("apv", out apv);
 
         return ECDiffieHellman.Create(parameters);
     }
@@ -178,7 +182,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override void NewKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JsonObject header,
         Span<byte> contentKey)
     {
         var validatedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
@@ -190,13 +194,13 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         using var ephemeralKey = ECDiffieHellman.Create(curve);
         ExportKey(curveSizeBits, ephemeralKey, header);
 
-        if (!header.TryGetValue<string>(AlgorithmField, out var algorithm))
+        if (!header.TryGetPropertyValue<string>(AlgorithmField, out var algorithm))
         {
             throw new JoseException($"The JWT header is missing the '{AlgorithmField}' field.");
         }
 
-        header.TryGetValue<string>("apu", out var apu);
-        header.TryGetValue<string>("apv", out var apv);
+        header.TryGetPropertyValue<string>("apu", out var apu);
+        header.TryGetPropertyValue<string>("apv", out var apv);
 
         using var senderKey = ephemeralKey.PublicKey;
         DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
@@ -205,7 +209,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JsonObject header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
@@ -216,7 +220,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapNewKey(
         SecretKey secretKey,
-        IDictionary<string, object> header,
+        JsonObject header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
@@ -229,7 +233,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        IReadOnlyDictionary<string, object> header,
+        JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)

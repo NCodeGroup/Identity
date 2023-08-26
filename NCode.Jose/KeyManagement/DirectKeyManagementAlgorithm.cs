@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,12 +14,14 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 
@@ -55,7 +58,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override void NewKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonObject header,
         Span<byte> contentKey)
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
@@ -71,7 +74,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonObject header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
@@ -82,7 +85,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapNewKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonObject header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
@@ -95,7 +98,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
-        JwtHeader header,
+        JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten)

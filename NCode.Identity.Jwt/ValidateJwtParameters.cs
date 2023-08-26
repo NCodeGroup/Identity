@@ -24,7 +24,7 @@ using System.Security.Cryptography.X509Certificates;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose;
-using NCode.Jose.Extensions;
+using NCode.Jose.Json;
 
 namespace NCode.Identity.Jwt;
 
@@ -84,14 +84,14 @@ public class ValidateJwtParameters
         var header = compactJwt.DeserializedHeader;
 
         // attempt to lookup by 'kid'
-        if (header.TryGetValue<string>("kid", out var keyId) && candidateKeys.TryGetByKeyId(keyId, out var specificKey))
+        if (header.TryGetPropertyValue<string>("kid", out var keyId) && candidateKeys.TryGetByKeyId(keyId, out var specificKey))
         {
             return new[] { specificKey };
         }
 
         // attempt to lookup by certificate thumbprint
-        var hasThumbprintSha1 = header.TryGetValue<string>("x5t", out var thumbprintSha1);
-        var hasThumbprintSha256 = header.TryGetValue<string>("x5t#S256", out var thumbprintSha256);
+        var hasThumbprintSha1 = header.TryGetPropertyValue<string>("x5t", out var thumbprintSha1);
+        var hasThumbprintSha256 = header.TryGetPropertyValue<string>("x5t#S256", out var thumbprintSha256);
 
         if (hasThumbprintSha1 && candidateKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
         {

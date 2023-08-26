@@ -26,6 +26,114 @@ using NCode.Jose.Json;
 
 namespace NCode.Jose.Jwt;
 
+public class ClaimFactory
+{
+    public static ClaimsIdentity CreateClaimsIdentity(
+        JsonElement header,
+        JsonElement payload,
+        string authenticationType,
+        string? nameClaimType,
+        string? roleClaimType)
+    {
+        if (!payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var issuer))
+        {
+            issuer = ClaimsIdentity.DefaultIssuer;
+        }
+
+        var effectiveNameClaimType = string.IsNullOrEmpty(nameClaimType) ? ClaimsIdentity.DefaultNameClaimType : nameClaimType;
+        var effectiveRoleClaimType = string.IsNullOrEmpty(roleClaimType) ? ClaimsIdentity.DefaultRoleClaimType : roleClaimType;
+
+        var identity = new ClaimsIdentity(
+            authenticationType,
+            ClaimsIdentity.DefaultNameClaimType,
+            ClaimsIdentity.DefaultRoleClaimType);
+
+        AddClaims(payload, issuer, identity);
+
+        return identity;
+    }
+
+    private static void AddClaims(JsonElement payload, string issuer, ClaimsIdentity subject)
+    {
+        foreach (var property in payload.EnumerateObject())
+        {
+            var name = property.Name;
+            var value = property.Value;
+
+            if (value.ValueKind == JsonValueKind.Array)
+            {
+                subject.AddClaims(
+                    value.EnumerateArray().Select(item =>
+                        CreateClaim(name, item, issuer, subject)));
+            }
+            else
+            {
+                subject.AddClaim(CreateClaim(name, value, issuer, subject));
+            }
+        }
+    }
+
+    private static Claim CreateClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject) =>
+        jsonElement.ValueKind switch
+        {
+            JsonValueKind.Undefined => throw new NotSupportedException(),
+            JsonValueKind.Object => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.Json, issuer, issuer, subject),
+            JsonValueKind.Array => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.JsonArray, issuer, issuer, subject),
+            JsonValueKind.String => CreateStringClaim(propertyName, jsonElement, issuer, subject),
+            JsonValueKind.Number => CreateNumberClaim(propertyName, jsonElement, issuer, subject),
+            JsonValueKind.True => new Claim(propertyName, "true", ClaimValueTypes.Boolean, issuer, issuer, subject),
+            JsonValueKind.False => new Claim(propertyName, "false", ClaimValueTypes.Boolean, issuer, issuer, subject),
+            JsonValueKind.Null => new Claim(propertyName, string.Empty, JsonClaimValueTypes.Null, issuer, issuer, subject),
+            _ => throw new ArgumentOutOfRangeException(nameof(jsonElement), "Unsupported JsonValueKind.")
+        };
+
+    private static Claim CreateStringClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject)
+    {
+        var stringValue = jsonElement.ToString();
+        var valueType = ClaimValueTypes.String;
+
+        if (DateTime.TryParse(
+                stringValue,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal |
+                DateTimeStyles.AdjustToUniversal,
+                out var dateTimeValue))
+        {
+            stringValue = dateTimeValue.ToString("O", CultureInfo.InvariantCulture);
+            valueType = ClaimValueTypes.DateTime;
+        }
+
+        return new Claim(propertyName, stringValue, valueType, issuer, issuer, subject);
+    }
+
+    private static Claim CreateNumberClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject)
+    {
+        var stringValue = jsonElement.ToString();
+        var valueType = ClaimValueTypes.String;
+
+        if (jsonElement.TryGetInt16(out _))
+            valueType = ClaimValueTypes.Integer;
+
+        if (jsonElement.TryGetInt32(out _))
+            valueType = ClaimValueTypes.Integer32;
+
+        if (jsonElement.TryGetInt64(out _))
+            valueType = ClaimValueTypes.Integer64;
+
+        if (jsonElement.TryGetUInt32(out _))
+            valueType = ClaimValueTypes.UInteger32;
+
+        if (jsonElement.TryGetUInt64(out _))
+            valueType = ClaimValueTypes.UInteger64;
+
+        // no need to check single or decimal since the range of double is larger
+        if (jsonElement.TryGetDouble(out _))
+            valueType = ClaimValueTypes.Double;
+
+        return new Claim(propertyName, stringValue, valueType, issuer, issuer, subject);
+    }
+}
+
 /// <summary>
 /// Represents a JSON object that contains the claims conveyed by the JWT.
 /// </summary>

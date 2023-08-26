@@ -55,6 +55,7 @@ public class ValidateJwtParameters
     public PropertyBag PropertyBag { get; } = new();
 
     // TODO: add similar resolvers for these
+    public string AuthenticationType { get; set; } = "TODO";
     public string NameClaimType { get; set; } = ClaimsIdentity.DefaultNameClaimType;
     public string RoleClaimType { get; set; } = ClaimsIdentity.DefaultRoleClaimType;
 

@@ -22,8 +22,34 @@ using System.Security.Claims;
 
 namespace NCode.Identity.Jwt;
 
+public delegate ValueTask<ClaimsIdentity> ClaimsIdentityFactory(
+    DecodedJwt decodedJwt,
+    PropertyBag propertyBag,
+    CancellationToken cancellationToken);
+
 public class ValidateJwtResult
 {
+    public static ValidateJwtResult Fail(PropertyBag propertyBag, string encodedToken, Exception exception) =>
+        new(propertyBag, encodedToken)
+        {
+            Exception = exception,
+        };
+
+    public static ValidateJwtResult Success(PropertyBag propertyBag, DecodedJwt decodedJwt, ClaimsIdentityFactory claimsIdentityFactory) =>
+        new(propertyBag, decodedJwt.EncodedToken)
+        {
+            DecodedJwt = decodedJwt,
+            ClaimsIdentityFactory = claimsIdentityFactory
+        };
+
+    private ClaimsIdentity? ClaimsIdentityOrNull { get; set; }
+    private ClaimsIdentityFactory? ClaimsIdentityFactory { get; set; }
+
+    /// <summary>
+    /// Gets a <see cref="PropertyBag"/> that can be used to store custom state information.
+    /// </summary>
+    public PropertyBag PropertyBag { get; }
+
     /// <summary>
     /// Gets the original encoded Json Web Token (JWT) value.
     /// </summary>
@@ -33,7 +59,7 @@ public class ValidateJwtResult
     /// Gets a value that indicates whether the Json Web Token (JWT) was successfully decoded and validated.
     /// </summary>
     [MemberNotNullWhen(true, nameof(DecodedJwt))]
-    [MemberNotNullWhen(true, nameof(ClaimsIdentity))]
+    [MemberNotNullWhen(true, nameof(ClaimsIdentityFactory))]
     [MemberNotNullWhen(false, nameof(Exception))]
     public bool IsValid => Exception is null;
 
@@ -47,32 +73,18 @@ public class ValidateJwtResult
     /// </summary>
     public DecodedJwt? DecodedJwt { get; private init; }
 
-    /// <summary>
-    /// Gets an <see cref="ClaimsIdentity"/> that contains the claims from the decoded Json Web Token (JWT).
-    /// </summary>
-    public ClaimsIdentity? ClaimsIdentity { get; private init; }
-
-    /// <summary>
-    /// Gets a <see cref="PropertyBag"/> that can be used to store custom state information.
-    /// </summary>
-    public PropertyBag PropertyBag { get; }
-
-    private ValidateJwtResult(string encodedToken, PropertyBag propertyBag)
+    private ValidateJwtResult(PropertyBag propertyBag, string encodedToken)
     {
         EncodedToken = encodedToken;
         PropertyBag = propertyBag;
     }
 
-    public static ValidateJwtResult Fail(string encodedToken, Exception exception, PropertyBag propertyBag) =>
-        new(encodedToken, propertyBag)
-        {
-            Exception = exception,
-        };
-
-    public static ValidateJwtResult Success(DecodedJwt decodedJwt, ClaimsIdentity claimsIdentity, PropertyBag propertyBag) =>
-        new(decodedJwt.EncodedToken, propertyBag)
-        {
-            DecodedJwt = decodedJwt,
-            ClaimsIdentity = claimsIdentity
-        };
+    /// <summary>
+    /// Gets an <see cref="ClaimsIdentity"/> that contains the claims from the decoded Json Web Token (JWT).
+    /// </summary>
+    public async ValueTask<ClaimsIdentity> GetClaimsIdentityAsync(CancellationToken cancellationToken)
+    {
+        if (!IsValid) throw new InvalidOperationException();
+        return ClaimsIdentityOrNull ??= await ClaimsIdentityFactory(DecodedJwt, PropertyBag, cancellationToken);
+    }
 }

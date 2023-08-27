@@ -22,7 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace NCode.Jose;
 
 [SuppressMessage("ReSharper", "IdentifierTypo")]
-internal static class JoseClaimNames
+public static class JoseClaimNames
 {
     public static class Header
     {

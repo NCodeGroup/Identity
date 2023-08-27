@@ -18,9 +18,11 @@
 #endregion
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose;
@@ -46,6 +48,17 @@ public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
     IEnumerable<string> secretKeyTags,
     CancellationToken cancellationToken);
 
+public delegate ValueTask<ClaimsIdentity> CreateSubjectAsync(
+    DecodedJwt decodedJwt,
+    PropertyBag propertyBag,
+    CancellationToken cancellationToken);
+
+public delegate ValueTask AddClaimsToSubjectAsync(
+    ClaimsIdentity subject,
+    DecodedJwt decodedJwt,
+    PropertyBag propertyBag,
+    CancellationToken cancellationToken);
+
 public class ValidateJwtParameters
 {
     /// <summary>
@@ -54,28 +67,41 @@ public class ValidateJwtParameters
     /// </summary>
     public PropertyBag PropertyBag { get; } = new();
 
-    // TODO: add similar resolvers for these
+    public IEnumerable<string> SecretKeyTags { get; set; } = Array.Empty<string>();
+
     public string AuthenticationType { get; set; } = "TODO";
+
     public string NameClaimType { get; set; } = ClaimsIdentity.DefaultNameClaimType;
+
     public string RoleClaimType { get; set; } = ClaimsIdentity.DefaultRoleClaimType;
 
-    public ResolveProviderKeysAsync ResolveProviderKeysAsync { get; set; } =
-        (_, _, secretKeyProvider, _) => ValueTask.FromResult(
-            secretKeyProvider.SecretKeys);
+    public ICollection<IValidateJwtHandler> Handlers { get; } = new List<IValidateJwtHandler>();
 
-    public ResolveSecretKeyTagsAsync ResolveSecretKeyTagsAsync { get; set; } =
-        // use an empty collection that has Count=0 to leverage the optimized code path in IsSupersetOf
-        (_, _, _) => ValueTask.FromResult<IEnumerable<string>>(
-            Array.Empty<string>());
+    public ValidateJwtParameters()
+    {
+        ResolveProviderKeysAsync = (_, _, secretKeyProvider, _) => ValueTask.FromResult(secretKeyProvider.SecretKeys);
 
-    public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } =
-        (compactJwt, _, candidateKeys, secretKeyTags, _) => ValueTask.FromResult(
+        ResolveSecretKeyTagsAsync = (_, _, _) => ValueTask.FromResult(SecretKeyTags);
+
+        ResolveValidationKeysAsync = (compactJwt, _, candidateKeys, secretKeyTags, _) => ValueTask.FromResult(
             DefaultResolveValidationKeys(
                 compactJwt,
                 candidateKeys,
                 secretKeyTags));
 
-    public ICollection<IValidateJwtHandler> Handlers { get; } = new List<IValidateJwtHandler>();
+        CreateSubjectAsync = (_, _, _) => ValueTask.FromResult(DefaultCreateSubject(
+            AuthenticationType,
+            NameClaimType,
+            RoleClaimType));
+
+        AddClaimsToSubjectAsync = (subject, decodedJet, _, _) => DefaultClaimsToSubjectAsync(subject, decodedJet);
+    }
+
+    public ResolveProviderKeysAsync ResolveProviderKeysAsync { get; set; }
+    public ResolveSecretKeyTagsAsync ResolveSecretKeyTagsAsync { get; set; }
+    public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; }
+    public CreateSubjectAsync CreateSubjectAsync { get; set; }
+    public AddClaimsToSubjectAsync AddClaimsToSubjectAsync { get; set; }
 
     private static IEnumerable<SecretKey> DefaultResolveValidationKeys(
         CompactJwt compactJwt,
@@ -159,5 +185,115 @@ public class ValidateJwtParameters
         Debug.Assert(result);
 
         return expected.SequenceEqual(actual[..bytesWritten]);
+    }
+
+    private static ClaimsIdentity DefaultCreateSubject(
+        string authenticationType,
+        string nameClaimType,
+        string roleClaimType)
+    {
+        var effectiveNameClaimType = string.IsNullOrEmpty(nameClaimType) ?
+            ClaimsIdentity.DefaultNameClaimType :
+            nameClaimType;
+
+        var effectiveRoleClaimType = string.IsNullOrEmpty(roleClaimType) ?
+            ClaimsIdentity.DefaultRoleClaimType :
+            roleClaimType;
+
+        return new ClaimsIdentity(
+            authenticationType,
+            effectiveNameClaimType,
+            effectiveRoleClaimType);
+    }
+
+    private static ValueTask DefaultClaimsToSubjectAsync(
+        ClaimsIdentity subject,
+        DecodedJwt decodedJwt)
+    {
+        var payload = decodedJwt.Payload;
+
+        if (!payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var issuer) || string.IsNullOrEmpty(issuer))
+        {
+            issuer = ClaimsIdentity.DefaultIssuer;
+        }
+
+        foreach (var property in payload.EnumerateObject())
+        {
+            var name = property.Name;
+            var value = property.Value;
+
+            if (value.ValueKind == JsonValueKind.Array)
+            {
+                subject.AddClaims(
+                    value.EnumerateArray().Select(item =>
+                        CreateClaim(name, item, issuer, subject)));
+            }
+            else
+            {
+                subject.AddClaim(CreateClaim(name, value, issuer, subject));
+            }
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    private static Claim CreateClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject) =>
+        jsonElement.ValueKind switch
+        {
+            JsonValueKind.Undefined => throw new NotSupportedException(),
+            JsonValueKind.Null => new Claim(propertyName, string.Empty, Jose.Jwt.JsonClaimValueTypes.Null, issuer, issuer, subject),
+            JsonValueKind.Object => new Claim(propertyName, jsonElement.ToString(), Jose.Jwt.JsonClaimValueTypes.Json, issuer, issuer, subject),
+            JsonValueKind.Array => new Claim(propertyName, jsonElement.ToString(), Jose.Jwt.JsonClaimValueTypes.JsonArray, issuer, issuer, subject),
+            JsonValueKind.String => CreateStringClaim(propertyName, jsonElement, issuer, subject),
+            JsonValueKind.Number => CreateNumberClaim(propertyName, jsonElement, issuer, subject),
+            JsonValueKind.True => new Claim(propertyName, "true", ClaimValueTypes.Boolean, issuer, issuer, subject),
+            JsonValueKind.False => new Claim(propertyName, "false", ClaimValueTypes.Boolean, issuer, issuer, subject),
+            _ => throw new ArgumentOutOfRangeException(nameof(jsonElement), "Unsupported JsonValueKind.")
+        };
+
+    private static Claim CreateStringClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject)
+    {
+        var stringValue = jsonElement.ToString();
+        var valueType = ClaimValueTypes.String;
+
+        if (DateTime.TryParse(
+                stringValue,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal |
+                DateTimeStyles.AdjustToUniversal,
+                out var dateTimeValue))
+        {
+            stringValue = dateTimeValue.ToString("O", CultureInfo.InvariantCulture);
+            valueType = ClaimValueTypes.DateTime;
+        }
+
+        return new Claim(propertyName, stringValue, valueType, issuer, issuer, subject);
+    }
+
+    private static Claim CreateNumberClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject)
+    {
+        var stringValue = jsonElement.ToString();
+        var valueType = ClaimValueTypes.String;
+
+        if (jsonElement.TryGetInt16(out _))
+            valueType = ClaimValueTypes.Integer;
+
+        if (jsonElement.TryGetInt32(out _))
+            valueType = ClaimValueTypes.Integer32;
+
+        if (jsonElement.TryGetInt64(out _))
+            valueType = ClaimValueTypes.Integer64;
+
+        if (jsonElement.TryGetUInt32(out _))
+            valueType = ClaimValueTypes.UInteger32;
+
+        if (jsonElement.TryGetUInt64(out _))
+            valueType = ClaimValueTypes.UInteger64;
+
+        // no need to check single or decimal since the range of double is larger
+        if (jsonElement.TryGetDouble(out _))
+            valueType = ClaimValueTypes.Double;
+
+        return new Claim(propertyName, stringValue, valueType, issuer, issuer, subject);
     }
 }

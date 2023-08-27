@@ -18,7 +18,6 @@
 #endregion
 
 using System.Runtime.ExceptionServices;
-using System.Security.Claims;
 using System.Text.Json;
 using NCode.Cryptography.Keys;
 using NCode.Jose;
@@ -72,24 +71,30 @@ public class JsonWebTokenService : IJsonWebTokenService
             var context = new ValidateJwtContext(secretKey, decodedJwt, propertyBag);
             await InvokeValidationHandlersAsync(context, parameters.Handlers, cancellationToken);
 
-            // TODO
-            var claimsIdentity = new ClaimsIdentity();
+            // TODO: defer/delay load claims identity
 
-            return ValidateJwtResult.Success(decodedJwt, claimsIdentity, propertyBag);
+            var claimsIdentityFactory = (jwt, bag, token1) =>
+            {
+
+            };
+
+            var claimsIdentity = await parameters.CreateSubjectAsync(
+                decodedJwt,
+                propertyBag,
+                cancellationToken);
+
+            await parameters.AddClaimsToSubjectAsync(
+                claimsIdentity,
+                decodedJwt,
+                propertyBag,
+                cancellationToken);
+
+            return ValidateJwtResult.Success(propertyBag, decodedJwt, claimsIdentityFactory);
         }
         catch (Exception exception)
         {
-            return ValidateJwtResult.Fail(token, exception, propertyBag);
+            return ValidateJwtResult.Fail(propertyBag, token, exception);
         }
-    }
-
-    public ClaimsIdentity CreateClaimsIdentity(DecodedJwt decodedJwt, ValidateJwtParameters parameters)
-    {
-        // var nameType = ClaimTypes.Name;
-        // var roleType = ClaimTypes.Role;
-        // new ClaimsIdentity(authenticationType, nameType, roleType);
-
-        throw new NotImplementedException();
     }
 
     private async ValueTask<IEnumerable<SecretKey>> GetValidationKeysAsync(

@@ -31,49 +31,26 @@ using NCode.Jose.Json;
 namespace NCode.Identity.Jwt;
 
 /// <summary>
-/// Provides the signature for a delegate that returns an <see cref="ISecretKeyCollection"/>.
-/// </summary>
-public delegate ValueTask<ISecretKeyCollection> ResolveProviderKeysAsync(
-    CompactJwt compactJwt,
-    PropertyBag propertyBag,
-    ISecretKeyProvider secretKeyProvider,
-    CancellationToken cancellationToken);
-
-/// <summary>
-/// Provides the signature for a delegate that returns a <see cref="string"/> collection that is used to filter which
-/// <see cref="SecretKey"/> instances are to be used when a specific <see cref="SecretKey"/> instance cannot be found.
-/// </summary>
-public delegate ValueTask<IEnumerable<string>> ResolveSecretKeyTagsAsync(
-    CompactJwt compactJwt,
-    PropertyBag propertyBag,
-    CancellationToken cancellationToken);
-
-/// <summary>
-/// Provides the signature for a delegate that is used to return a collection of <see cref="SecretKey"/> instances that are to
-/// be used to validate a Json Web Token (JWT).
+/// Provides the signature for a delegate that is used to return a collection of <see cref="SecretKey"/> instances
+/// that are to be used to validate a Json Web Token (JWT).
 /// </summary>
 public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
     CompactJwt compactJwt,
     PropertyBag propertyBag,
-    ISecretKeyCollection candidateKeys,
+    ISecretKeyProvider secretKeyProvider,
     IEnumerable<string> secretKeyTags,
     CancellationToken cancellationToken);
 
 /// <summary>
-/// Provides the signature for a delegate that is used to create a <see cref="ClaimsIdentity"/> instance.
+/// Contains the signature for a delegate that is used to create a <see cref="ClaimsIdentity"/> instance
+/// from a decoded Json Web Token (JWT).
 /// </summary>
-public delegate ValueTask<ClaimsIdentity> CreateSubjectAsync(
+public delegate ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
     DecodedJwt decodedJwt,
     PropertyBag propertyBag,
-    CancellationToken cancellationToken);
-
-/// <summary>
-/// Provides the signature for a delegate that is used to add claims to a <see cref="ClaimsIdentity"/> instance.
-/// </summary>
-public delegate ValueTask AddClaimsToSubjectAsync(
-    ClaimsIdentity subject,
-    DecodedJwt decodedJwt,
-    PropertyBag propertyBag,
+    string authenticationType,
+    string nameClaimType,
+    string roleClaimType,
     CancellationToken cancellationToken);
 
 /// <summary>
@@ -118,73 +95,45 @@ public class ValidateJwtParameters
     public ICollection<IValidateJwtHandler> Handlers { get; } = new List<IValidateJwtHandler>();
 
     /// <summary>
-    /// Gets or sets a delegate that returns an <see cref="ISecretKeyCollection"/>.
-    /// The default implementation returns the <see cref="ISecretKeyProvider.SecretKeys"/> property from
-    /// <see cref="ISecretKeyProvider"/>.
-    /// </summary>
-    public ResolveProviderKeysAsync ResolveProviderKeysAsync { get; set; }
-
-    /// <summary>
-    /// Gets or sets a delegate that returns a <see cref="string"/> collection that is used to filter which <see cref="SecretKey"/>
-    /// instances are to be used when a specific <see cref="SecretKey"/> instance cannot be found.
-    /// </summary>
-    public ResolveSecretKeyTagsAsync ResolveSecretKeyTagsAsync { get; set; }
-
-    /// <summary>
     /// Gets or sets a delegate that is used to return a collection of <see cref="SecretKey"/> instances that are to be used
     /// to validate a Json Web Token (JWT).
     /// </summary>
     public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; }
 
     /// <summary>
-    /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance.
+    /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).
     /// </summary>
-    public CreateSubjectAsync CreateSubjectAsync { get; set; }
-
-    /// <summary>
-    /// Gets or sets a delegate that is used to add claims to a <see cref="ClaimsIdentity"/> instance.
-    /// </summary>
-    public AddClaimsToSubjectAsync AddClaimsToSubjectAsync { get; set; }
+    public CreateClaimsIdentityAsync CreateClaimsIdentityAsync { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidateJwtParameters"/> class.
     /// </summary>
     public ValidateJwtParameters()
     {
-        ResolveProviderKeysAsync = (_, _, secretKeyProvider, _) =>
-            ValueTask.FromResult(secretKeyProvider.SecretKeys);
-
-        ResolveSecretKeyTagsAsync = (_, _, _) =>
-            ValueTask.FromResult(SecretKeyTags);
-
-        ResolveValidationKeysAsync = (compactJwt, _, candidateKeys, secretKeyTags, _) =>
+        ResolveValidationKeysAsync = (compactJwt, _, secretKeyProvider, secretKeyTags, _) =>
             ValueTask.FromResult(
                 DefaultResolveValidationKeys(
-                    compactJwt,
-                    candidateKeys,
+                    compactJwt.DeserializedHeader,
+                    secretKeyProvider.SecretKeys,
                     secretKeyTags));
 
-        CreateSubjectAsync = (_, _, _) =>
+        CreateClaimsIdentityAsync = (decodedJet, _, authenticationType, nameClaimType, roleClaimType, _) =>
             ValueTask.FromResult(
-                DefaultCreateSubject(
-                    AuthenticationType,
-                    NameClaimType,
-                    RoleClaimType));
-
-        AddClaimsToSubjectAsync = (subject, decodedJet, _, _) =>
-            DefaultAddClaimsToSubjectAsync(subject, decodedJet);
+                DefaultCreateClaimsIdentity(
+                    authenticationType,
+                    nameClaimType,
+                    roleClaimType,
+                    decodedJet.Payload));
     }
 
     private static IEnumerable<SecretKey> DefaultResolveValidationKeys(
-        CompactJwt compactJwt,
-        ISecretKeyCollection candidateKeys,
+        JsonElement header,
+        ISecretKeyCollection secretKeys,
         IEnumerable<string> secretKeyTags)
     {
-        var header = compactJwt.DeserializedHeader;
-
         // attempt to lookup by 'kid'
         if (header.TryGetPropertyValue<string>(JwtClaimNames.Kid, out var keyId) &&
-            candidateKeys.TryGetByKeyId(keyId, out var specificKey))
+            secretKeys.TryGetByKeyId(keyId, out var specificKey))
         {
             return new[] { specificKey };
         }
@@ -193,12 +142,12 @@ public class ValidateJwtParameters
         var hasThumbprintSha1 = header.TryGetPropertyValue<string>(JwtClaimNames.X5t, out var thumbprintSha1);
         var hasThumbprintSha256 = header.TryGetPropertyValue<string>(JwtClaimNames.X5tS256, out var thumbprintSha256);
 
-        if (hasThumbprintSha1 && candidateKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
+        if (hasThumbprintSha1 && secretKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
         {
             return new[] { specificKey };
         }
 
-        if (hasThumbprintSha256 && candidateKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
+        if (hasThumbprintSha256 && secretKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
         {
             return new[] { specificKey };
         }
@@ -224,7 +173,7 @@ public class ValidateJwtParameters
 
             Span<byte> actualHash = stackalloc byte[sha256HashSize];
 
-            foreach (var secretKey in candidateKeys)
+            foreach (var secretKey in secretKeys)
             {
                 if (secretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey) continue;
                 var certificate = asymmetricSecretKey.Certificate;
@@ -242,7 +191,7 @@ public class ValidateJwtParameters
         }
 
         // otherwise, the degenerate case will attempt to use the keys with the specified tags
-        return candidateKeys.GetByTags(secretKeyTags);
+        return secretKeys.GetByTags(secretKeyTags);
     }
 
     private static bool VerifyCertificateHash(
@@ -263,10 +212,11 @@ public class ValidateJwtParameters
                expected.SequenceEqual(actual[..bytesWritten]);
     }
 
-    private static ClaimsIdentity DefaultCreateSubject(
+    private static ClaimsIdentity DefaultCreateClaimsIdentity(
         string authenticationType,
         string nameClaimType,
-        string roleClaimType)
+        string roleClaimType,
+        JsonElement payload)
     {
         var effectiveNameClaimType = string.IsNullOrEmpty(nameClaimType) ?
             ClaimsIdentity.DefaultNameClaimType :
@@ -276,17 +226,10 @@ public class ValidateJwtParameters
             ClaimsIdentity.DefaultRoleClaimType :
             roleClaimType;
 
-        return new ClaimsIdentity(
+        var subject = new ClaimsIdentity(
             authenticationType,
             effectiveNameClaimType,
             effectiveRoleClaimType);
-    }
-
-    private static ValueTask DefaultAddClaimsToSubjectAsync(
-        ClaimsIdentity subject,
-        DecodedJwt decodedJwt)
-    {
-        var payload = decodedJwt.Payload;
 
         if (!payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var issuer) || string.IsNullOrEmpty(issuer))
         {
@@ -310,16 +253,16 @@ public class ValidateJwtParameters
             }
         }
 
-        return ValueTask.CompletedTask;
+        return subject;
     }
 
     private static Claim CreateClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject) =>
         jsonElement.ValueKind switch
         {
             JsonValueKind.Undefined => throw new NotSupportedException(),
-            JsonValueKind.Null => new Claim(propertyName, string.Empty, Jose.Jwt.JsonClaimValueTypes.Null, issuer, issuer, subject),
-            JsonValueKind.Object => new Claim(propertyName, jsonElement.ToString(), Jose.Jwt.JsonClaimValueTypes.Json, issuer, issuer, subject),
-            JsonValueKind.Array => new Claim(propertyName, jsonElement.ToString(), Jose.Jwt.JsonClaimValueTypes.JsonArray, issuer, issuer, subject),
+            JsonValueKind.Null => new Claim(propertyName, string.Empty, JsonClaimValueTypes.Null, issuer, issuer, subject),
+            JsonValueKind.Object => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.Json, issuer, issuer, subject),
+            JsonValueKind.Array => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.JsonArray, issuer, issuer, subject),
             JsonValueKind.String => CreateStringClaim(propertyName, jsonElement, issuer, subject),
             JsonValueKind.Number => CreateNumberClaim(propertyName, jsonElement, issuer, subject),
             JsonValueKind.True => new Claim(propertyName, "true", ClaimValueTypes.Boolean, issuer, issuer, subject),
@@ -334,17 +277,6 @@ public class ValidateJwtParameters
 
         try
         {
-            if (DateTimeOffset.TryParse(
-                    stringValue,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal |
-                    DateTimeStyles.AdjustToUniversal,
-                    out var dateTimeOffsetValue))
-            {
-                stringValue = dateTimeOffsetValue.ToString("O", CultureInfo.InvariantCulture);
-                valueType = ClaimValueTypes.DateTime;
-            }
-
             if (DateTime.TryParse(
                     stringValue,
                     CultureInfo.InvariantCulture,
@@ -396,25 +328,5 @@ public class ValidateJwtParameters
         }
 
         return new Claim(propertyName, stringValue, valueType, issuer, issuer, subject);
-    }
-
-    /// <summary>
-    /// Creates and returns a <see cref="ClaimsIdentity"/> instance by using the <see cref="CreateSubjectAsync"/> and
-    /// <see cref="AddClaimsToSubjectAsync"/> delegates from the current <see cref="ValidateJwtParameters"/> instance.
-    /// </summary>
-    /// <param name="decodedJwt">The decoded Json Web Token (JWT) which contains the JOSE claims.</param>
-    /// <param name="propertyBag">A <see cref="PropertyBag"/> that can be used to store custom state information.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
-    /// <see cref="ClaimsIdentity"/> instance from the decoded Json Web Token (JWT).</returns>
-    public virtual async ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
-        DecodedJwt decodedJwt,
-        PropertyBag propertyBag,
-        CancellationToken cancellationToken)
-    {
-        var claimsIdentity = await CreateSubjectAsync(decodedJwt, propertyBag, cancellationToken);
-        await AddClaimsToSubjectAsync(claimsIdentity, decodedJwt, propertyBag, cancellationToken);
-        return claimsIdentity;
     }
 }

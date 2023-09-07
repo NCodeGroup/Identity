@@ -17,15 +17,24 @@
 
 #endregion
 
+using System.Text.Json;
 using NCode.Cryptography.Keys;
 
 namespace NCode.Identity.Jwt;
 
 public static class ValidateJwtParametersExtensions
 {
+    public static ValidateJwtParameters UseValidationKeys(
+        this ValidateJwtParameters parameters,
+        IEnumerable<SecretKey> secretKeys)
+    {
+        parameters.ResolveValidationKeysAsync = (_, _, _, _, _) => ValueTask.FromResult(secretKeys);
+        return parameters;
+    }
+
     public static ValidateJwtParameters AddValidator(
         this ValidateJwtParameters parameters,
-        IValidateJwtHandler handler)
+        ValidateJwtAsync handler)
     {
         parameters.Handlers.Add(handler);
         return parameters;
@@ -37,7 +46,10 @@ public static class ValidateJwtParametersExtensions
         bool allowCollection,
         params string[] validValues) =>
         parameters.AddValidator(
-            new ValidateClaimValueJwtHandler(claimName, allowCollection, validValues));
+            ValidateClaimValue(
+                claimName,
+                allowCollection,
+                validValues.ToHashSet(StringComparer.Ordinal)));
 
     public static ValidateJwtParameters ValidateIssuer(
         this ValidateJwtParameters parameters,
@@ -49,11 +61,37 @@ public static class ValidateJwtParametersExtensions
         params string[] validAudiences) =>
         parameters.ValidateClaim("aud", allowCollection: true, validAudiences);
 
-    public static ValidateJwtParameters UseValidationKeys(
-        this ValidateJwtParameters parameters,
-        IEnumerable<SecretKey> secretKeys)
+    private static ValidateJwtAsync ValidateClaimValue(
+        string claimName,
+        bool allowCollection,
+        ICollection<string> validValues) => (context, cancellationToken) =>
     {
-        parameters.ResolveValidationKeysAsync = (_, _, _, _, _) => ValueTask.FromResult(secretKeys);
-        return parameters;
-    }
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!context.DecodedJwt.Payload.TryGetProperty(claimName, out var property))
+            throw new Exception("TODO");
+
+        // ReSharper disable once ConvertIfStatementToSwitchStatement
+        if (property.ValueKind == JsonValueKind.Null)
+        {
+            throw new Exception("TODO");
+        }
+
+        if (property.ValueKind == JsonValueKind.Array)
+        {
+            if (!allowCollection)
+                throw new Exception("TODO");
+
+            if (property.EnumerateArray().Select(jsonElement => jsonElement.ToString()).Except(validValues).Any())
+                throw new Exception("TODO");
+        }
+        else
+        {
+            var stringValue = property.ToString();
+            if (!validValues.Contains(stringValue))
+                throw new Exception("TODO");
+        }
+
+        return ValueTask.CompletedTask;
+    };
 }

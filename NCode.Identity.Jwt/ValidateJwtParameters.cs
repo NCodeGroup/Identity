@@ -31,6 +31,13 @@ using NCode.Jose.Json;
 namespace NCode.Identity.Jwt;
 
 /// <summary>
+/// Provides the signature for a delegate to validate the claims in a Json Web Token (JWT).
+/// </summary>
+public delegate ValueTask ValidateJwtAsync(
+    ValidateJwtContext context,
+    CancellationToken cancellationToken);
+
+/// <summary>
 /// Provides the signature for a delegate that is used to return a collection of <see cref="SecretKey"/> instances
 /// that are to be used to validate a Json Web Token (JWT).
 /// </summary>
@@ -90,9 +97,9 @@ public class ValidateJwtParameters
     public string RoleClaimType { get; set; } = ClaimsIdentity.DefaultRoleClaimType;
 
     /// <summary>
-    /// Gets a collection of <see cref="IValidateJwtHandler"/> instances that are used to validate the claims in a Json Web Token (JWT).
+    /// Gets a collection of <see cref="ValidateJwtAsync"/> delegates that are used to validate the claims in a Json Web Token (JWT).
     /// </summary>
-    public ICollection<IValidateJwtHandler> Handlers { get; } = new List<IValidateJwtHandler>();
+    public ICollection<ValidateJwtAsync> Handlers { get; } = new List<ValidateJwtAsync>();
 
     /// <summary>
     /// Gets or sets a delegate that is used to return a collection of <see cref="SecretKey"/> instances that are to be used

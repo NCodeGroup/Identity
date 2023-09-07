@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -145,7 +146,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
             return null;
         }
 
-        string json;
+        JsonElement jwtPayload;
         try
         {
             // TODO: configure how expired secrets are handled
@@ -162,9 +163,12 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
                 parameters,
                 cancellationToken);
 
-            // TODO: get string json
-            // json = result.DecodedJwt.
-            throw new NotImplementedException();
+            if (!result.IsValid)
+            {
+                ExceptionDispatchInfo.Throw(result.Exception);
+            }
+
+            jwtPayload = result.DecodedJwt.Payload;
         }
         catch (Exception exception)
         {
@@ -175,7 +179,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         try
         {
             // this will deserialize the object using: OpenIdMessageJsonConverterFactory => OpenIdMessageJsonConverter => OpenIdMessage.Load
-            var requestObject = JsonSerializer.Deserialize<AuthorizationRequestObject>(json, requestMessage.OpenIdContext.JsonSerializerOptions);
+            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(requestMessage.OpenIdContext.JsonSerializerOptions);
             if (requestObject == null)
                 throw new JsonException("TODO");
 

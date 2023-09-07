@@ -98,35 +98,34 @@ public class ValidateJwtParameters
     /// Gets or sets a delegate that is used to return a collection of <see cref="SecretKey"/> instances that are to be used
     /// to validate a Json Web Token (JWT).
     /// </summary>
-    public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; }
-
-    /// <summary>
-    /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).
-    /// </summary>
-    public CreateClaimsIdentityAsync CreateClaimsIdentityAsync { get; set; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ValidateJwtParameters"/> class.
-    /// </summary>
-    public ValidateJwtParameters()
-    {
-        ResolveValidationKeysAsync = (compactJwt, _, secretKeyProvider, secretKeyTags, _) =>
+    public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } =
+        (compactJwt, _, secretKeyProvider, secretKeyTags, _) =>
             ValueTask.FromResult(
                 DefaultResolveValidationKeys(
                     compactJwt.DeserializedHeader,
                     secretKeyProvider.SecretKeys,
                     secretKeyTags));
 
-        CreateClaimsIdentityAsync = (decodedJet, _, authenticationType, nameClaimType, roleClaimType, _) =>
+    /// <summary>
+    /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).
+    /// </summary>
+    public CreateClaimsIdentityAsync CreateClaimsIdentityAsync { get; set; } =
+        (decodedJet, _, authenticationType, nameClaimType, roleClaimType, _) =>
             ValueTask.FromResult(
                 DefaultCreateClaimsIdentity(
                     authenticationType,
                     nameClaimType,
                     roleClaimType,
                     decodedJet.Payload));
-    }
 
-    private static IEnumerable<SecretKey> DefaultResolveValidationKeys(
+    /// <summary>
+    /// Provides a default implementation for the <see cref="ResolveValidationKeysAsync"/> delegate.
+    /// </summary>
+    /// <param name="header">A <see cref="JsonElement"/> instance that contains the Json Web Token (JWT) header.</param>
+    /// <param name="secretKeys">A <see cref="ISecretKeyCollection"/> instance that contains the candidate <see cref="SecretKey"/> instances.</param>
+    /// <param name="secretKeyTags">A collection of <see cref="string"/> tags that is to be used for filtering which <see cref="SecretKey"/> instances should be returned when a specific key cannot be found.</param>
+    /// <returns>A collection of <see cref="SecretKey"/> instances.</returns>
+    public static IEnumerable<SecretKey> DefaultResolveValidationKeys(
         JsonElement header,
         ISecretKeyCollection secretKeys,
         IEnumerable<string> secretKeyTags)
@@ -212,7 +211,17 @@ public class ValidateJwtParameters
                expected.SequenceEqual(actual[..bytesWritten]);
     }
 
-    private static ClaimsIdentity DefaultCreateClaimsIdentity(
+    /// <summary>
+    /// Provides a default implementation for the <see cref="CreateClaimsIdentityAsync"/> delegate.
+    /// </summary>
+    /// <param name="authenticationType">A <see cref="string"/> for the <c>AuthenticationType</c> that is used when creating a <see cref="ClaimsIdentity"/> instance.</param>
+    /// <param name="nameClaimType">A <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Name</c>
+    /// claim for a <see cref="ClaimsIdentity"/> instance.</param>
+    /// <param name="roleClaimType">A <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Role</c>
+    /// claim for a <see cref="ClaimsIdentity"/> instance.</param>
+    /// <param name="payload">A <see cref="JsonElement"/> that contains the Json Web Token (JWT) payload.</param>
+    /// <returns>The newly created <see cref="ClaimsIdentity"/> instance.</returns>
+    public static ClaimsIdentity DefaultCreateClaimsIdentity(
         string authenticationType,
         string nameClaimType,
         string roleClaimType,

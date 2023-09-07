@@ -77,10 +77,11 @@ public class JsonWebTokenService : IJsonWebTokenService
         {
             var compactJwt = JoseSerializer.ParseCompactJwt(token);
 
-            var validationKeys = await GetValidationKeysAsync(
-                parameters,
+            var validationKeys = await parameters.ResolveValidationKeysAsync(
                 compactJwt,
                 propertyBag,
+                SecretKeyProvider,
+                parameters.SecretKeyTags,
                 cancellationToken);
 
             var payload = DeserializePayload(
@@ -92,39 +93,12 @@ public class JsonWebTokenService : IJsonWebTokenService
             var context = new ValidateJwtContext(secretKey, decodedJwt, propertyBag);
             await InvokeValidationHandlersAsync(context, parameters.Handlers, cancellationToken);
 
-            return ValidateJwtResult.Success(propertyBag, decodedJwt, parameters.CreateClaimsIdentityAsync);
+            return ValidateJwtResult.Success(parameters, propertyBag, decodedJwt);
         }
         catch (Exception exception)
         {
-            return ValidateJwtResult.Fail(propertyBag, token, exception);
+            return ValidateJwtResult.Fail(parameters, propertyBag, token, exception);
         }
-    }
-
-    private async ValueTask<IEnumerable<SecretKey>> GetValidationKeysAsync(
-        ValidateJwtParameters parameters,
-        CompactJwt compactJwt,
-        PropertyBag propertyBag,
-        CancellationToken cancellationToken)
-    {
-        var candidateKeys = await parameters.ResolveProviderKeysAsync(
-            compactJwt,
-            propertyBag,
-            SecretKeyProvider,
-            cancellationToken);
-
-        var secretKeyTags = await parameters.ResolveSecretKeyTagsAsync(
-            compactJwt,
-            propertyBag,
-            cancellationToken);
-
-        var validationKeys = await parameters.ResolveValidationKeysAsync(
-            compactJwt,
-            propertyBag,
-            candidateKeys,
-            secretKeyTags,
-            cancellationToken);
-
-        return validationKeys;
     }
 
     private JsonElement DeserializePayload(

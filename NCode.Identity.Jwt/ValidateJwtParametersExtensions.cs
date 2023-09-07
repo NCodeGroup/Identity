@@ -49,24 +49,11 @@ public static class ValidateJwtParametersExtensions
         params string[] validAudiences) =>
         parameters.ValidateClaim("aud", allowCollection: true, validAudiences);
 
-    public static ValidateJwtParameters UseSecretKeys(
+    public static ValidateJwtParameters UseValidationKeys(
         this ValidateJwtParameters parameters,
-        ISecretKeyCollection secretKeys)
+        IEnumerable<SecretKey> secretKeys)
     {
-        parameters.ResolveProviderKeysAsync = (_, _, _, _) => ValueTask.FromResult(secretKeys);
+        parameters.ResolveValidationKeysAsync = (_, _, _, _, _) => ValueTask.FromResult(secretKeys);
         return parameters;
     }
-
-    public static ValidateJwtParameters UseSecretKeyTags(
-        this ValidateJwtParameters parameters,
-        IEnumerable<string> tags)
-    {
-        parameters.ResolveSecretKeyTagsAsync = (_, _, _) => ValueTask.FromResult(tags);
-        return parameters;
-    }
-
-    public static ValidateJwtParameters UseSecretKeyTags(
-        this ValidateJwtParameters parameters,
-        params string[] tags) =>
-        UseSecretKeyTags(parameters, tags.AsEnumerable());
 }

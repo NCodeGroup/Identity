@@ -153,7 +153,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
             using var secretKeys = SecretService.LoadSecretKeys(secrets);
 
             var parameters = new ValidateJwtParameters()
-                .UseSecretKeys(secretKeys)
+                .UseValidationKeys(secretKeys)
                 .ValidateIssuer(client.ClientId)
                 .ValidateAudience(Options.RequestObject.Audience);
 

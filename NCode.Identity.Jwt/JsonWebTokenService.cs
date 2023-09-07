@@ -24,21 +24,42 @@ using NCode.Jose;
 
 namespace NCode.Identity.Jwt;
 
-// https://datatracker.ietf.org/doc/html/rfc7519
-
+/// <summary>
+/// Provides the ability to create and validate a Json Web Token (JWT).
+/// See the following RFCs for more information:
+/// https://datatracker.ietf.org/doc/html/rfc7519
+/// https://datatracker.ietf.org/doc/html/rfc7515
+/// </summary>
 public interface IJsonWebTokenService
 {
+    /// <summary>
+    /// Validates a Json Web Token (JWT) that is encoded using JWS or JWE compact serialization format.
+    /// </summary>
+    /// <param name="token">The Json Web Token (JWT) to validate.</param>
+    /// <param name="parameters">An <see cref="ValidateJwtParameters"/> instance that specifies how to perform the validation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// results of the validated JWT.</returns>
     ValueTask<ValidateJwtResult> ValidateJwtAsync(
         string token,
         ValidateJwtParameters parameters,
         CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Provides a default implementation for the <see cref="IJsonWebTokenService"/> interface.
+/// </summary>
 public class JsonWebTokenService : IJsonWebTokenService
 {
     private IJoseSerializer JoseSerializer { get; }
     private ISecretKeyProvider SecretKeyProvider { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonWebTokenService"/> class.
+    /// </summary>
+    /// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
+    /// <param name="secretKeyProvider">An <see cref="ISecretKeyProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
     public JsonWebTokenService(IJoseSerializer joseSerializer, ISecretKeyProvider secretKeyProvider)
     {
         JoseSerializer = joseSerializer;
@@ -71,25 +92,7 @@ public class JsonWebTokenService : IJsonWebTokenService
             var context = new ValidateJwtContext(secretKey, decodedJwt, propertyBag);
             await InvokeValidationHandlersAsync(context, parameters.Handlers, cancellationToken);
 
-            // TODO: defer/delay load claims identity
-
-            var claimsIdentityFactory = (jwt, bag, token1) =>
-            {
-
-            };
-
-            var claimsIdentity = await parameters.CreateSubjectAsync(
-                decodedJwt,
-                propertyBag,
-                cancellationToken);
-
-            await parameters.AddClaimsToSubjectAsync(
-                claimsIdentity,
-                decodedJwt,
-                propertyBag,
-                cancellationToken);
-
-            return ValidateJwtResult.Success(propertyBag, decodedJwt, claimsIdentityFactory);
+            return ValidateJwtResult.Success(propertyBag, decodedJwt, parameters.CreateClaimsIdentityAsync);
         }
         catch (Exception exception)
         {
@@ -130,6 +133,7 @@ public class JsonWebTokenService : IJsonWebTokenService
         out SecretKey secretKey)
     {
         var exceptions = new List<Exception>();
+        // TODO: not all keys will have a key id
         var keysAttempted = new HashSet<string>();
         foreach (var keyAttempt in validationKeys)
         {

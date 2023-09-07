@@ -137,12 +137,12 @@ public class JsonWebTokenService : IJsonWebTokenService
 
     private static async ValueTask InvokeValidationHandlersAsync(
         ValidateJwtContext context,
-        IEnumerable<IValidateJwtHandler> handlers,
+        IEnumerable<ValidateJwtAsync> handlers,
         CancellationToken cancellationToken)
     {
         foreach (var handler in handlers)
         {
-            await handler.ValidateAsync(context, cancellationToken);
+            await handler(context, cancellationToken);
         }
     }
 }

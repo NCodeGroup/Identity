@@ -21,7 +21,7 @@ namespace NCode.Cryptography.Keys.Internal;
 
 internal class EmptyDisposable : IDisposable
 {
-    public static EmptyDisposable Instance { get; } = new();
+    public static EmptyDisposable Singleton { get; } = new();
 
     private EmptyDisposable()
     {

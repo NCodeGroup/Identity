@@ -24,12 +24,12 @@ namespace NCode.Identity.Jwt;
 public class ValidateJwtContext
 {
     /// <summary>
-    /// Gets the <see cref="SecretKey"/> that was used to decode the JWT.
+    /// Gets the <see cref="SecretKey"/> that was used to decode the Json Web Token (JWT).
     /// </summary>
     public SecretKey SecretKey { get; }
 
     /// <summary>
-    /// Gets an <see cref="DecodedJwt"/> that contains the decoded JWT header and payload.
+    /// Gets an <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT) header and payload.
     /// </summary>
     public DecodedJwt DecodedJwt { get; }
 

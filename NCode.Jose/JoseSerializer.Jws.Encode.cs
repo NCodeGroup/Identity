@@ -25,7 +25,6 @@ using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
-using NCode.Jose.Jwt;
 using NCode.Jose.Signature;
 using Nerdbank.Streams;
 

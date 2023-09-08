@@ -26,7 +26,6 @@ using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
-using NCode.Jose.Jwt;
 
 namespace NCode.Jose.KeyManagement;
 

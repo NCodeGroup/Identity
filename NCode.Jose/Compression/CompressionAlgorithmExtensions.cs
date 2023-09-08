@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Text.Json.Nodes;
 using NCode.CryptoMemory;
 using NCode.Jose.Internal;
-using NCode.Jose.Jwt;
 using Nerdbank.Streams;
 
 namespace NCode.Jose.Compression;

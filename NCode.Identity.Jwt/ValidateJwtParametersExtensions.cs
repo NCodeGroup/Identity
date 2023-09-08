@@ -35,9 +35,9 @@ public static class ValidateJwtParametersExtensions
 
     public static ValidateJwtParameters AddValidator(
         this ValidateJwtParameters parameters,
-        ValidateJwtAsync handler)
+        ValidateJwtAsync validator)
     {
-        parameters.Handlers.Add(handler);
+        parameters.Validators.Add(validator);
         return parameters;
     }
 

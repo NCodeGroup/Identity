@@ -99,7 +99,7 @@ public class ValidateJwtParameters
     /// <summary>
     /// Gets a collection of <see cref="ValidateJwtAsync"/> delegates that are used to validate the claims in a Json Web Token (JWT).
     /// </summary>
-    public ICollection<ValidateJwtAsync> Handlers { get; } = new List<ValidateJwtAsync>();
+    public ICollection<ValidateJwtAsync> Validators { get; } = new List<ValidateJwtAsync>();
 
     /// <summary>
     /// Gets or sets a delegate that is used to return a collection of <see cref="SecretKey"/> instances that are to be used

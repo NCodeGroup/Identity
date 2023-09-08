@@ -24,7 +24,6 @@ using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
-using NCode.Jose.Jwt;
 using NCode.Jose.Signature;
 
 namespace NCode.Jose;

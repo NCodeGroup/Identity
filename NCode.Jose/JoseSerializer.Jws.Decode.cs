@@ -23,7 +23,6 @@ using System.Text;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Json;
-using NCode.Jose.Jwt;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;

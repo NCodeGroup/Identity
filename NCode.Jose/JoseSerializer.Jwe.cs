@@ -28,7 +28,6 @@ using NCode.Jose.AuthenticatedEncryption;
 using NCode.Jose.Compression;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
-using NCode.Jose.Jwt;
 using NCode.Jose.KeyManagement;
 using Nerdbank.Streams;
 

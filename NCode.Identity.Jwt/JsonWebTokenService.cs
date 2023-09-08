@@ -91,7 +91,7 @@ public class JsonWebTokenService : IJsonWebTokenService
 
             var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey);
             var context = new ValidateJwtContext(secretKey, decodedJwt, propertyBag);
-            await InvokeValidationHandlersAsync(context, parameters.Handlers, cancellationToken);
+            await InvokeValidatorsAsync(context, parameters.Validators, cancellationToken);
 
             return ValidateJwtResult.Success(parameters, propertyBag, decodedJwt);
         }
@@ -135,14 +135,14 @@ public class JsonWebTokenService : IJsonWebTokenService
         throw new AggregateException(exceptions);
     }
 
-    private static async ValueTask InvokeValidationHandlersAsync(
+    private static async ValueTask InvokeValidatorsAsync(
         ValidateJwtContext context,
-        IEnumerable<ValidateJwtAsync> handlers,
+        IEnumerable<ValidateJwtAsync> validators,
         CancellationToken cancellationToken)
     {
-        foreach (var handler in handlers)
+        foreach (var validator in validators)
         {
-            await handler(context, cancellationToken);
+            await validator(context, cancellationToken);
         }
     }
 }

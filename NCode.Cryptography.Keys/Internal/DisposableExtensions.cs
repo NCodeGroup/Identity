@@ -25,7 +25,7 @@ internal static class DisposableExtensions
 {
     public static void DisposeAll(this IEnumerable<IDisposable?> collection, bool ignoreExceptions = false)
     {
-        List<Exception>? exceptions = null;
+        IList<Exception>? exceptions = null;
 
         foreach (var item in collection)
         {

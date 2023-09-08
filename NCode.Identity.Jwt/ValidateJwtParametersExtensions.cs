@@ -19,6 +19,7 @@
 
 using System.Text.Json;
 using NCode.Cryptography.Keys;
+using NCode.Jose;
 
 namespace NCode.Identity.Jwt;
 
@@ -54,12 +55,18 @@ public static class ValidateJwtParametersExtensions
     public static ValidateJwtParameters ValidateIssuer(
         this ValidateJwtParameters parameters,
         params string[] validIssuers) =>
-        parameters.ValidateClaim("iss", allowCollection: false, validIssuers);
+        parameters.ValidateClaim(
+            JoseClaimNames.Payload.Iss,
+            allowCollection: false,
+            validIssuers);
 
     public static ValidateJwtParameters ValidateAudience(
         this ValidateJwtParameters parameters,
         params string[] validAudiences) =>
-        parameters.ValidateClaim("aud", allowCollection: true, validAudiences);
+        parameters.ValidateClaim(
+            JoseClaimNames.Payload.Aud,
+            allowCollection: true,
+            validAudiences);
 
     private static ValidateJwtAsync ValidateClaimValue(
         string claimName,

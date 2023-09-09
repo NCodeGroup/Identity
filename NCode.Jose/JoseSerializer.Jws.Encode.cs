@@ -23,9 +23,9 @@ using System.Text;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
+using NCode.Jose.Algorithms.Signature;
 using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
-using NCode.Jose.Signature;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;

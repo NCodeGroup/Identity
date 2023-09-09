@@ -369,6 +369,7 @@ partial class JoseSerializer
             new Dictionary<string, object>(extraHeaders) :
             new Dictionary<string, object>();
 
+        header.TryAdd(JoseClaimNames.Header.Typ, JoseConstants.Jwt);
         header[JoseClaimNames.Header.Alg] = keyManagementAlgorithm.Code;
         header[JoseClaimNames.Header.Enc] = encryptionAlgorithm.Code;
 
@@ -450,7 +451,7 @@ partial class JoseSerializer
               BASE64URL(JWE Ciphertext) || '.' ||
               BASE64URL(JWE Authentication Tag)
         */
-        Debug.Assert(compactJwt.ProtectionType == JoseConstants.JWE);
+        Debug.Assert(compactJwt.ProtectionType == JoseConstants.Jwe);
 
         // JWE Protected Header
         var jweProtectedHeader = compactJwt.Segments.First;

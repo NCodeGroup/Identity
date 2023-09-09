@@ -150,7 +150,7 @@ partial class JoseSerializer
 {
     private static void AssertJwsDetached(CompactJwt compactJwt)
     {
-        if (compactJwt.ProtectionType != JoseConstants.JWS)
+        if (compactJwt.ProtectionType != JoseConstants.Jws)
             throw new InvalidOperationException("Only JWS tokens can be validated with a detached payload.");
     }
 

@@ -29,7 +29,7 @@ public static class PropertyBagExtensions
     /// <summary>
     /// Sets a strongly typed value in the property bag by inferring the name of key using <see cref="CallerArgumentExpressionAttribute"/>.
     /// </summary>
-    /// <param name="bag"></param>
+    /// <param name="bag">The <see cref="PropertyBag"/> instance.</param>
     /// <param name="value">The strongly typed value to set in the property bag.</param>
     /// <param name="name">The <see cref="string"/> name of the value in the property bag.</param>
     /// <typeparam name="T">The type of the value in the property bag.</typeparam>

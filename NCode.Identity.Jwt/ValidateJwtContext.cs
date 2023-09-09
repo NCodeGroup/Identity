@@ -21,6 +21,9 @@ using NCode.Cryptography.Keys;
 
 namespace NCode.Identity.Jwt;
 
+/// <summary>
+/// An opaque context that is used when validating a Json Web Token (JWT).
+/// </summary>
 public class ValidateJwtContext
 {
     /// <summary>
@@ -29,7 +32,7 @@ public class ValidateJwtContext
     public SecretKey SecretKey { get; }
 
     /// <summary>
-    /// Gets an <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT) header and payload.
+    /// Gets a <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT) header and payload.
     /// </summary>
     public DecodedJwt DecodedJwt { get; }
 
@@ -38,6 +41,12 @@ public class ValidateJwtContext
     /// </summary>
     public PropertyBag PropertyBag { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ValidateJwtContext"/> class.
+    /// </summary>
+    /// <param name="secretKey">The <see cref="SecretKey"/> that was used to decode the Json Web Token (JWT).</param>
+    /// <param name="decodedJwt">A <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT) header and payload.</param>
+    /// <param name="propertyBag">A <see cref="PropertyBag"/> that can be used to store custom state information.</param>
     public ValidateJwtContext(SecretKey secretKey, DecodedJwt decodedJwt, PropertyBag propertyBag)
     {
         SecretKey = secretKey;

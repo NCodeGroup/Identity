@@ -19,7 +19,6 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.KeyManagement;
 
@@ -46,7 +45,7 @@ public class DelegatingKeyManagementAlgorithm : KeyManagementAlgorithm
 
     public override bool TryWrapKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten) =>

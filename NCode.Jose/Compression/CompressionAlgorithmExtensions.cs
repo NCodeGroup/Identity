@@ -18,7 +18,6 @@
 #endregion
 
 using System.Buffers;
-using System.Text.Json.Nodes;
 using NCode.CryptoMemory;
 using NCode.Jose.Internal;
 using Nerdbank.Streams;
@@ -29,7 +28,7 @@ internal static class CompressionAlgorithmExtensions
 {
     public static IDisposable Compress(
         this ICompressionAlgorithm? algorithm,
-        JsonObject header,
+        IDictionary<string, object> header,
         ReadOnlySpan<byte> uncompressedData,
         out ReadOnlySpan<byte> compressedData)
     {
@@ -41,6 +40,7 @@ internal static class CompressionAlgorithmExtensions
 
         var buffer = new Sequence<byte>
         {
+            // increase our chances of getting a single-segment buffer
             MinimumSpanLength = Math.Min(uncompressedData.Length, 1024)
         };
 
@@ -57,7 +57,7 @@ internal static class CompressionAlgorithmExtensions
             }
 
             var byteCount = (int)sequence.Length;
-            var lease = CryptoPool.Rent(byteCount, false, out Span<byte> span);
+            var lease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> span);
             try
             {
                 sequence.CopyTo(span);

@@ -19,21 +19,14 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Json;
 using NCode.Jose.KeyManagement;
 
 namespace NCode.Jose.Tests.KeyManagement;
 
 public class Pbes2KeyManagementAlgorithmTests : BaseTests
 {
-    private static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { JoseObjectJsonConverter.Singleton }
-    };
-
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
     public Pbes2KeyManagementAlgorithmTests()
@@ -105,7 +98,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var cekSizeBytes = Random.Shared.Next();
 
         MockAesKeyWrap
-            .Setup(_ => _.GetEncryptedContentKeySizeBytes(cekSizeBytes))
+            .Setup(x => x.GetEncryptedContentKeySizeBytes(cekSizeBytes))
             .Returns(expected)
             .Verifiable();
 
@@ -120,7 +113,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var expected = Enumerable.Empty<KeySizes>();
 
         MockAesKeyWrap
-            .Setup(_ => _.LegalCekByteSizes)
+            .Setup(x => x.LegalCekByteSizes)
             .Returns(expected)
             .Verifiable();
 
@@ -139,7 +132,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
 
-        var header = new JsonObject();
+        var header = new Dictionary<string, object>();
         var contentKey = Array.Empty<byte>();
         var encryptedContentKey = Array.Empty<byte>();
 
@@ -159,7 +152,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
 
-        var header = new JsonObject
+        var header = new Dictionary<string, object>
         {
             ["alg"] = "anything",
             ["p2c"] = 1
@@ -184,7 +177,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
 
-        var header = new JsonObject
+        var header = new Dictionary<string, object>
         {
             ["alg"] = "anything",
             ["p2c"] = int.MaxValue
@@ -210,7 +203,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
 
-        var header = new JsonObject
+        var header = new Dictionary<string, object>
         {
             ["alg"] = "anything"
         };
@@ -219,12 +212,12 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var encryptedContentKey = Array.Empty<byte>();
 
         MockAesKeyWrap
-            .Setup(_ => _.LegalCekByteSizes)
+            .Setup(x => x.LegalCekByteSizes)
             .Returns(new[] { new KeySizes(1, int.MaxValue, 1) })
             .Verifiable();
 
         MockAesKeyWrap
-            .Setup(_ => _.GetEncryptedContentKeySizeBytes(contentKey.Length))
+            .Setup(x => x.GetEncryptedContentKeySizeBytes(contentKey.Length))
             .Returns(1)
             .Verifiable();
 
@@ -258,7 +251,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var p2c = Random.Shared.Next(Pbes2KeyManagementAlgorithm.MinIterationCount, 310000);
         var saltSize = alg.Length + 1 + Pbes2KeyManagementAlgorithm.SaltInputSizeBytes;
 
-        var header = new JsonObject
+        var header = new Dictionary<string, object>
         {
             [nameof(alg)] = alg,
             [nameof(p2c)] = p2c
@@ -273,20 +266,19 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var wrapResult = algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out var wrapBytesWritten);
         Assert.True(wrapResult);
         Assert.Equal(encryptedContentKey.Length, wrapBytesWritten);
-        Assert.Equal(p2c, Assert.Contains(nameof(p2c), header)?.GetValue<int>());
+        Assert.Equal(p2c, Assert.IsType<int>(Assert.Contains(nameof(p2c), header)));
 
-        var encodedSaltInput = Assert.Contains("p2s", header)?.GetValue<string>();
-        Assert.Equal(saltSize, encodedSaltInput?.Length);
+        var encodedSaltInput = Assert.IsType<string>(Assert.Contains("p2s", header));
+        Assert.Equal(saltSize, encodedSaltInput.Length);
 
         var controlAlgorithm = new global::Jose.Pbse2HmacShaKeyManagementWithAesKeyWrap(
             keySizeBits,
             new global::Jose.AesKeyWrapManagement(keySizeBits));
 
-        var controlHeader = header.Deserialize<Dictionary<string, object?>>(JsonSerializerOptions);
-        var expectedControl = controlAlgorithm.Unwrap(encryptedContentKey, password, cekSizeBits, controlHeader);
+        var expectedControl = controlAlgorithm.Unwrap(encryptedContentKey, password, cekSizeBits, header);
         Assert.Equal(expectedControl, contentKey.ToArray());
 
-        var headerForUnwrap = header.Deserialize<JsonElement>();
+        var headerForUnwrap = JsonSerializer.SerializeToElement(header);
         var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedContentKey, decryptedContentKey, out var unwrapBytesWritten);
         Assert.True(unwrapResult);
         Assert.Equal(contentKey.Length, unwrapBytesWritten);

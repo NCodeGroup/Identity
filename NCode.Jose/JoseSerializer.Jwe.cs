@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Jose.AuthenticatedEncryption;
@@ -52,7 +51,7 @@ partial interface IJoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -72,7 +71,7 @@ partial interface IJoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -91,7 +90,7 @@ partial interface IJoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -109,7 +108,7 @@ partial interface IJoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -128,7 +127,7 @@ partial interface IJoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -146,7 +145,7 @@ partial interface IJoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -164,7 +163,7 @@ partial interface IJoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -183,7 +182,7 @@ partial interface IJoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 }
 
 partial class JoseSerializer
@@ -210,7 +209,7 @@ partial class JoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
         using var _ = Serialize(payload, out var payloadBytes);
@@ -233,7 +232,7 @@ partial class JoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var _ = Serialize(payload, out var payloadBytes);
         EncodeJwe(
@@ -254,7 +253,7 @@ partial class JoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         EncodeJwe(
             tokenWriter,
@@ -273,7 +272,7 @@ partial class JoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         return EncodeJwe(
             payload.AsSpan(),
@@ -292,7 +291,7 @@ partial class JoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         var byteCount = Encoding.UTF8.GetByteCount(payload);
         using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
@@ -315,7 +314,7 @@ partial class JoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
         EncodeJwe(
@@ -336,7 +335,7 @@ partial class JoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
         EncodeJwe(
@@ -358,7 +357,7 @@ partial class JoseSerializer
         string keyManagementAlgorithmCode,
         string encryptionAlgorithmCode,
         string? compressionAlgorithmCode,
-        JsonObject? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         var keyManagementAlgorithm = GetKeyManagementAlgorithm(keyManagementAlgorithmCode);
         var encryptionAlgorithm = GetAuthenticatedEncryptionAlgorithm(encryptionAlgorithmCode);
@@ -366,7 +365,10 @@ partial class JoseSerializer
             GetCompressionAlgorithm(compressionAlgorithmCode) :
             null;
 
-        var header = extraHeaders ?? new JsonObject();
+        var header = extraHeaders != null ?
+            new Dictionary<string, object>(extraHeaders) :
+            new Dictionary<string, object>();
+
         header[JoseClaimNames.Header.Alg] = keyManagementAlgorithm.Code;
         header[JoseClaimNames.Header.Enc] = encryptionAlgorithm.Code;
 

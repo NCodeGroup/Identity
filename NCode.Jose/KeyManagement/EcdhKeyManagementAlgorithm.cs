@@ -22,10 +22,10 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Extensions;
 using NCode.Jose.Json;
 
 namespace NCode.Jose.KeyManagement;
@@ -80,7 +80,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         AlgorithmField = isDirectAgreement ? JoseClaimNames.Header.Enc : JoseClaimNames.Header.Alg;
     }
 
-    internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, JsonObject header)
+    internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, IDictionary<string, object> header)
     {
         var parameters = key.ExportParameters(includePrivateParameters: true);
 
@@ -90,7 +90,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         {
             try
             {
-                header[JoseClaimNames.Header.Epk] = new JsonObject
+                header[JoseClaimNames.Header.Epk] = new Dictionary<string, object>
                 {
                     [JoseClaimNames.Header.Kty] = "EC",
                     [JoseClaimNames.Header.Crv] = $"P-{curveSizeBits}",
@@ -182,7 +182,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override void NewKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         Span<byte> contentKey)
     {
         var validatedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
@@ -194,13 +194,13 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         using var ephemeralKey = ECDiffieHellman.Create(curve);
         ExportKey(curveSizeBits, ephemeralKey, header);
 
-        if (!header.TryGetPropertyValue<string>(AlgorithmField, out var algorithm))
+        if (!header.TryGetValue<string>(AlgorithmField, out var algorithm))
         {
             throw new JoseException($"The JWT header is missing the '{AlgorithmField}' field.");
         }
 
-        header.TryGetPropertyValue<string>(JoseClaimNames.Header.Apu, out var apu);
-        header.TryGetPropertyValue<string>(JoseClaimNames.Header.Apv, out var apv);
+        header.TryGetValue<string>(JoseClaimNames.Header.Apu, out var apu);
+        header.TryGetValue<string>(JoseClaimNames.Header.Apv, out var apv);
 
         using var senderKey = ephemeralKey.PublicKey;
         DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
@@ -209,7 +209,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
@@ -220,7 +220,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapNewKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)

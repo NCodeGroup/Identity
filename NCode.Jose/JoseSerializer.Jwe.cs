@@ -23,11 +23,11 @@ using System.Security.Cryptography;
 using System.Text;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
-using NCode.Jose.AuthenticatedEncryption;
-using NCode.Jose.Compression;
+using NCode.Jose.Algorithms.AuthenticatedEncryption;
+using NCode.Jose.Algorithms.Compression;
+using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
-using NCode.Jose.KeyManagement;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;

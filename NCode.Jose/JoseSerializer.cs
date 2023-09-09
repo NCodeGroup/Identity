@@ -26,6 +26,7 @@ using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
+using NCode.Jose.Algorithms;
 using NCode.Jose.Exceptions;
 using Nerdbank.Streams;
 

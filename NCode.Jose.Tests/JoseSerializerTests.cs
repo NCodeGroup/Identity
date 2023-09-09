@@ -24,6 +24,7 @@ using Jose.keys;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Cryptography.Keys;
+using NCode.Jose.Algorithms;
 using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
 

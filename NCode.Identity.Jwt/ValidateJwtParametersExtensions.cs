@@ -59,23 +59,26 @@ public static class ValidateJwtParametersExtensions
     }
 
     /// <summary>
-    /// Adds a validator that asserts the specified <paramref name="claimName"/> exists in the Json Web Token (JWT) payload
-    /// with any value specified from <paramref name="validValues"/>. If the claim does not exist or the value is not one of
-    /// the valid values, then an exception is thrown.
+    /// Adds a validator that asserts the specified <paramref name="claimName"/> exists in the Json Web Token (JWT) with any
+    /// value specified from <paramref name="validValues"/>. If the claim does not exist or the value is not one of the valid
+    /// values, then an exception is thrown.
     /// </summary>
     /// <param name="parameters">The <see cref="ValidateJwtParameters"/> instance.</param>
     /// <param name="claimName">The name of the claim to validate.</param>
+    /// <param name="usePayload"><c>true</c> to check the payload claims, <c>false</c> to check the header claims.</param>
     /// <param name="allowCollection"><c>true</c> if the claim allows multiple values; <c>false</c> if the claim must be a single value.</param>
     /// <param name="validValues">The collection of allowable values for the claim.</param>
     /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
     public static ValidateJwtParameters ValidateClaim(
         this ValidateJwtParameters parameters,
         string claimName,
+        bool usePayload,
         bool allowCollection,
         params string[] validValues) =>
         parameters.AddValidator(
-            ValidatePayloadClaimValue(
+            ValidateClaimValue(
                 claimName,
+                usePayload,
                 allowCollection,
                 validValues.ToHashSet(StringComparer.Ordinal)));
 
@@ -91,6 +94,7 @@ public static class ValidateJwtParametersExtensions
         params string[] validIssuers) =>
         parameters.ValidateClaim(
             JoseClaimNames.Payload.Iss,
+            usePayload: true,
             allowCollection: false,
             validIssuers);
 
@@ -106,17 +110,20 @@ public static class ValidateJwtParametersExtensions
         params string[] validAudiences) =>
         parameters.ValidateClaim(
             JoseClaimNames.Payload.Aud,
+            usePayload: true,
             allowCollection: true,
             validAudiences);
 
-    private static ValidateJwtAsync ValidatePayloadClaimValue(
+    private static ValidateJwtAsync ValidateClaimValue(
         string claimName,
+        bool usePayload,
         bool allowCollection,
         ICollection<string> validValues) => (context, cancellationToken) =>
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!context.DecodedJwt.Payload.TryGetProperty(claimName, out var property))
+        var claims = usePayload ? context.DecodedJwt.Payload : context.DecodedJwt.Header;
+        if (!claims.TryGetProperty(claimName, out var property))
             throw new Exception("TODO");
 
         // ReSharper disable once ConvertIfStatementToSwitchStatement

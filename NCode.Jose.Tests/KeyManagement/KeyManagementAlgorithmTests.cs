@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
 using NCode.Jose.KeyManagement;
@@ -57,10 +56,10 @@ public class KeyManagementAlgorithmTests : BaseTests
         Span<byte> cek = new byte[cekSizeBytes];
         cek.Fill(0);
 
-        var header = new JsonObject();
+        var header = new Dictionary<string, object>();
 
         MockKeyManagementAlgorithm
-            .Setup(_ => _.GetLegalCekByteSizes(kekSizeBits))
+            .Setup(x => x.GetLegalCekByteSizes(kekSizeBits))
             .Returns(new[] { new KeySizes(cekSizeBytes, cekSizeBytes, 0) })
             .Verifiable();
 
@@ -78,7 +77,7 @@ public class KeyManagementAlgorithmTests : BaseTests
         const int cekSizeBytes = 64;
 
         MockKeyManagementAlgorithm
-            .Setup(_ => _.GetLegalCekByteSizes(kekSizeBits))
+            .Setup(x => x.GetLegalCekByteSizes(kekSizeBits))
             .Returns(new[] { new KeySizes(cekSizeBytes, cekSizeBytes, 0) })
             .Verifiable();
 
@@ -93,7 +92,7 @@ public class KeyManagementAlgorithmTests : BaseTests
         const int cekSizeBytes = 64;
 
         MockKeyManagementAlgorithm
-            .Setup(_ => _.GetLegalCekByteSizes(kekSizeBits))
+            .Setup(x => x.GetLegalCekByteSizes(kekSizeBits))
             .Returns(new[] { new KeySizes(cekSizeBytes + 1, cekSizeBytes + 1, 0) })
             .Verifiable();
 

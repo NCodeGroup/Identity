@@ -23,18 +23,12 @@ using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
-using NCode.Jose.Json;
 using NCode.Jose.KeyManagement;
 
 namespace NCode.Jose.Tests.KeyManagement;
 
 public class AesGcmKeyManagementAlgorithmTests
 {
-    private static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { JoseObjectJsonConverter.Singleton }
-    };
-
     private static AesGcmKeyManagementAlgorithm CreateAlgorithm(int? kekSizeBits = null) =>
         new("code", kekSizeBits ?? Random.Shared.Next());
 
@@ -103,7 +97,7 @@ public class AesGcmKeyManagementAlgorithmTests
         RandomNumberGenerator.Fill(kek);
 
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
-        var headerForWrap = new JsonObject();
+        var headerForWrap = new Dictionary<string, object>();
 
         var cekSizeBytes = cekSizeBits >> 3;
         Span<byte> cek = new byte[cekSizeBytes];
@@ -114,22 +108,19 @@ public class AesGcmKeyManagementAlgorithmTests
         Assert.True(wrapResult);
         Assert.Equal(cekSizeBytes, wrapBytesWritten);
 
-        var controlHeader = headerForWrap.Deserialize<Dictionary<string, object?>>(JsonSerializerOptions);
-        Assert.NotNull(controlHeader);
-
-        var encodedNonce = Assert.IsType<string>(Assert.Contains("iv", controlHeader));
+        var encodedNonce = Assert.IsType<string>(Assert.Contains("iv", headerForWrap));
         var nonceSizeBytes = Base64Url.GetByteCountForDecode(encodedNonce.Length);
         Assert.Equal(96 >> 3, nonceSizeBytes);
 
-        var encodedTag = Assert.IsType<string>(Assert.Contains("tag", controlHeader));
+        var encodedTag = Assert.IsType<string>(Assert.Contains("tag", headerForWrap));
         var tagSizeBytes = Base64Url.GetByteCountForDecode(encodedTag.Length);
         Assert.Equal(128 >> 3, tagSizeBytes);
 
         var controlAlgorithm = new global::Jose.AesGcmKeyWrapManagement(kekSizeBits);
-        var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), kek.ToArray(), cekSizeBits, controlHeader);
+        var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), kek.ToArray(), cekSizeBits, headerForWrap);
         Assert.Equal(controlResult, cek.ToArray());
 
-        var headerForUnwrap = headerForWrap.Deserialize<JsonElement>();
+        var headerForUnwrap = JsonSerializer.SerializeToElement(headerForWrap);
         var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCek, cek, out var unwrapBytesWritten);
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);

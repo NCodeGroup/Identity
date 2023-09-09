@@ -19,7 +19,6 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
 
@@ -58,7 +57,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <param name="contentKey">Destination for the new content encryption key (CEK).</param>
     void NewKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         Span<byte> contentKey);
 
     /// <summary>
@@ -72,7 +71,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
     bool TryWrapKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten);
@@ -88,7 +87,7 @@ public interface IKeyManagementAlgorithm : IKeyedAlgorithm
     /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
     bool TryWrapNewKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten);
@@ -129,7 +128,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public virtual void NewKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         Span<byte> contentKey)
     {
         ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length);
@@ -140,7 +139,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public abstract bool TryWrapKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten);
@@ -148,7 +147,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm, IKeyManagementAlg
     /// <inheritdoc />
     public virtual bool TryWrapNewKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)

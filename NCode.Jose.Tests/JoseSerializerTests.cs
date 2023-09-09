@@ -19,7 +19,6 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Jose;
 using Jose.keys;
 using Microsoft.Extensions.DependencyInjection;
@@ -220,7 +219,7 @@ public class JoseSerializerTests : BaseTests
             ["key5"] = DateTimeOffset.Now
         };
 
-        var originalExtraHeaders = new JsonObject
+        var originalExtraHeaders = new Dictionary<string, object>
         {
             ["customHeader"] = "customValue"
         };

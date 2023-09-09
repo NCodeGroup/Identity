@@ -21,10 +21,10 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Extensions;
 using NCode.Jose.Json;
 
 namespace NCode.Jose.KeyManagement;
@@ -88,19 +88,19 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
 
-        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var alg))
+        if (!header.TryGetValue<string>(JoseClaimNames.Header.Alg, out var alg))
         {
             throw new JoseException("The JWT header is missing the 'alg' field.");
         }
 
-        if (!header.TryGetPropertyValue<int>(JoseClaimNames.Header.P2c, out var iterationCount))
+        if (!header.TryGetValue<int>(JoseClaimNames.Header.P2c, out var iterationCount))
         {
             iterationCount = DefaultIterationCount;
         }

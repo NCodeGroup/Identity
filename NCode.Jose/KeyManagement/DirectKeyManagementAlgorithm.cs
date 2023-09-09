@@ -19,7 +19,6 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NCode.Cryptography.Keys;
 using NCode.Jose.Exceptions;
 
@@ -58,7 +57,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override void NewKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         Span<byte> contentKey)
     {
         var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
@@ -74,7 +73,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)
@@ -85,7 +84,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override bool TryWrapNewKey(
         SecretKey secretKey,
-        JsonObject header,
+        IDictionary<string, object> header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
         out int bytesWritten)

@@ -81,7 +81,7 @@ public class DirectKeyManagementAlgorithmTests
         RandomNumberGenerator.Fill(kek);
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
 
-        var header = new JsonObject();
+        var header = new Dictionary<string, object>();
 
         Algorithm.NewKey(secretKey, header, cek);
 
@@ -98,7 +98,7 @@ public class DirectKeyManagementAlgorithmTests
         RandomNumberGenerator.Fill(kek);
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
 
-        var header = new JsonObject();
+        var header = new Dictionary<string, object>();
 
         var exception = Assert.Throws<JoseException>(() =>
         {
@@ -117,7 +117,7 @@ public class DirectKeyManagementAlgorithmTests
         Span<byte> kek = new byte[1];
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
 
-        var header = new JsonObject();
+        var header = new Dictionary<string, object>();
 
         var exception = Assert.Throws<JoseException>(() =>
         {

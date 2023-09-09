@@ -53,7 +53,7 @@ partial class JoseSerializer
               BASE64URL(JWS Payload) || '.' ||
               BASE64URL(JWS Signature)
         */
-        Debug.Assert(compactJwt.ProtectionType == JoseConstants.JWS);
+        Debug.Assert(compactJwt.ProtectionType == JoseConstants.Jws);
 
         // JWS Protected Header
         var jwsProtectedHeader = compactJwt.Segments.First;

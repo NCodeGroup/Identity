@@ -320,7 +320,7 @@ partial class JoseSerializer
             new Dictionary<string, object>(extraHeaders) :
             new Dictionary<string, object>();
 
-        header.TryAdd(JoseClaimNames.Header.Typ, "JWT");
+        header.TryAdd(JoseClaimNames.Header.Typ, JoseConstants.Jwt);
 
         if (!string.IsNullOrEmpty(algorithmCode))
             header[JoseClaimNames.Header.Alg] = algorithmCode;

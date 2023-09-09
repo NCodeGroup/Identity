@@ -241,6 +241,9 @@ public class JoseSerializerTests : BaseTests
         var customHeader = Assert.Contains("customHeader", deserializedHeaders);
         Assert.Equal("customValue", customHeader);
 
+        var typHeader = Assert.Contains("typ", deserializedHeaders);
+        Assert.Equal("JWT", typHeader);
+
         var algHeader = Assert.Contains("alg", deserializedHeaders);
         Assert.Equal(keyManagementAlgorithmCode, algHeader);
 
@@ -296,6 +299,7 @@ public class JoseSerializerTests : BaseTests
         };
         var originalExtraHeaders = new Dictionary<string, object>
         {
+            ["typ"] = "JWT",
             ["kid"] = keyId
         };
         var jwtSettings = new JwtSettings();
@@ -309,6 +313,9 @@ public class JoseSerializerTests : BaseTests
 
         var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseOptions.JsonSerializerOptions);
         Assert.NotNull(headerToVerify);
+
+        var typ = Assert.IsType<string>(Assert.Contains("typ", headerToVerify));
+        Assert.Equal("JWT", typ);
 
         var alg = Assert.IsType<string>(Assert.Contains("alg", headerToVerify));
         Assert.Equal(jwtSettings.JwaHeaderValue(jweAlgorithm), alg);
@@ -363,6 +370,7 @@ public class JoseSerializerTests : BaseTests
 
         var originalExtraHeaders = new Dictionary<string, object>
         {
+            ["typ"] = "JWT",
             ["kid"] = keyId
         };
 
@@ -394,6 +402,9 @@ public class JoseSerializerTests : BaseTests
 
         var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseOptions.JsonSerializerOptions);
         Assert.NotNull(headerToVerify);
+
+        var typ = Assert.IsType<string>(Assert.Contains("typ", headerToVerify));
+        Assert.Equal("JWT", typ);
 
         var alg = Assert.IsType<string>(Assert.Contains("alg", headerToVerify));
         Assert.Equal(jwtSettings.JwsHeaderValue(jwsAlgorithm), alg);

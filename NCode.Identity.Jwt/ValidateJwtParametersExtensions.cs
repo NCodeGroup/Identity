@@ -23,8 +23,18 @@ using NCode.Jose;
 
 namespace NCode.Identity.Jwt;
 
+/// <summary>
+/// Contains extension methods for the <see cref="ValidateJwtParameters"/> class.
+/// </summary>
 public static class ValidateJwtParametersExtensions
 {
+    /// <summary>
+    /// Sets the <see cref="ValidateJwtParameters.ResolveValidationKeysAsync"/> property on <see cref="ValidateJwtParameters"/>
+    /// to a delegate that returns the specified <paramref name="secretKeys"/>.
+    /// </summary>
+    /// <param name="parameters">The <see cref="ValidateJwtParameters"/> instance.</param>
+    /// <param name="secretKeys">The collection of <see cref="SecretKey"/> instances to use for Json Web Token (JWT) validation.</param>
+    /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
     public static ValidateJwtParameters UseValidationKeys(
         this ValidateJwtParameters parameters,
         IEnumerable<SecretKey> secretKeys)
@@ -33,6 +43,13 @@ public static class ValidateJwtParametersExtensions
         return parameters;
     }
 
+    /// <summary>
+    /// Adds the specified <paramref name="validator"/> delegate to the <see cref="ValidateJwtParameters.Validators"/>
+    /// property on <see cref="ValidateJwtParameters"/>.
+    /// </summary>
+    /// <param name="parameters">The <see cref="ValidateJwtParameters"/> instance.</param>
+    /// <param name="validator">The <see cref="ValidateJwtAsync"/> delegate to add.</param>
+    /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
     public static ValidateJwtParameters AddValidator(
         this ValidateJwtParameters parameters,
         ValidateJwtAsync validator)
@@ -41,17 +58,34 @@ public static class ValidateJwtParametersExtensions
         return parameters;
     }
 
+    /// <summary>
+    /// Adds a validator that asserts the specified <paramref name="claimName"/> exists in the Json Web Token (JWT) payload
+    /// with any value specified from <paramref name="validValues"/>. If the claim does not exist or the value is not one of
+    /// the valid values, then an exception is thrown.
+    /// </summary>
+    /// <param name="parameters">The <see cref="ValidateJwtParameters"/> instance.</param>
+    /// <param name="claimName">The name of the claim to validate.</param>
+    /// <param name="allowCollection"><c>true</c> if the claim allows multiple values; <c>false</c> if the claim must be a single value.</param>
+    /// <param name="validValues">The collection of allowable values for the claim.</param>
+    /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
     public static ValidateJwtParameters ValidateClaim(
         this ValidateJwtParameters parameters,
         string claimName,
         bool allowCollection,
         params string[] validValues) =>
         parameters.AddValidator(
-            ValidateClaimValue(
+            ValidatePayloadClaimValue(
                 claimName,
                 allowCollection,
                 validValues.ToHashSet(StringComparer.Ordinal)));
 
+    /// <summary>
+    /// Adds a validator that asserts the <c>iss</c> claim exists in the Json Web Token (JWT) payload with any of the
+    /// specified <paramref name="validIssuers"/>.
+    /// </summary>
+    /// <param name="parameters">The <see cref="ValidateJwtParameters"/> instance.</param>
+    /// <param name="validIssuers">The collection of allowable values for the <c>iss></c> claim.</param>
+    /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
     public static ValidateJwtParameters ValidateIssuer(
         this ValidateJwtParameters parameters,
         params string[] validIssuers) =>
@@ -60,6 +94,13 @@ public static class ValidateJwtParametersExtensions
             allowCollection: false,
             validIssuers);
 
+    /// <summary>
+    /// Adds a validator that asserts the <c>aud</c> claim exists in the Json Web Token (JWT) payload with any of the
+    /// specified <paramref name="validAudiences"/>.
+    /// </summary>
+    /// <param name="parameters">The <see cref="ValidateJwtParameters"/> instance.</param>
+    /// <param name="validAudiences">The collection of allowable values for the <c>aud></c> claim.</param>
+    /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
     public static ValidateJwtParameters ValidateAudience(
         this ValidateJwtParameters parameters,
         params string[] validAudiences) =>
@@ -68,7 +109,7 @@ public static class ValidateJwtParametersExtensions
             allowCollection: true,
             validAudiences);
 
-    private static ValidateJwtAsync ValidateClaimValue(
+    private static ValidateJwtAsync ValidatePayloadClaimValue(
         string claimName,
         bool allowCollection,
         ICollection<string> validValues) => (context, cancellationToken) =>

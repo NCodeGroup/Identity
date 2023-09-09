@@ -68,9 +68,15 @@ public readonly struct PropertyBagKey<T> : IPropertyBagKey
     public override int GetHashCode() =>
         HashCode.Combine(Type, Name);
 
+    /// <summary>
+    /// The equality operator that returns <c>true</c> if the two operands are equal.
+    /// </summary>
     public static bool operator ==(PropertyBagKey<T> left, PropertyBagKey<T> right) =>
         left.Equals(right);
 
+    /// <summary>
+    /// The inequality operator that returns <c>true</c> if the two operands aren't equal.
+    /// </summary>
     public static bool operator !=(PropertyBagKey<T> left, PropertyBagKey<T> right) =>
         !(left == right);
 }

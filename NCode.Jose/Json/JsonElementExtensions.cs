@@ -17,46 +17,27 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace NCode.Jose.Json;
 
 // TODO: tests
 
+/// <summary>
+/// Provides extension methods for <see cref="JsonElement"/>.
+/// </summary>
 public static class JsonElementExtensions
 {
-    public static T GetPropertyValue<T>(this JsonObject jsonObject, string propertyName) =>
-        !TryGetPropertyValue<T>(jsonObject, propertyName, out var value) ?
-            throw new KeyNotFoundException() :
-            value;
-
-    public static bool TryGetPropertyValue<T>(this JsonObject jsonObject, string propertyName, [MaybeNullWhen(false)] out T value)
-    {
-        if (!jsonObject.TryGetPropertyValue(propertyName, out var property) || property == null)
-        {
-            value = default;
-            return false;
-        }
-
-        switch (property)
-        {
-            case T returnValue:
-                value = returnValue;
-                return true;
-
-            case JsonValue jsonValue:
-                return jsonValue.TryGetValue(out value);
-
-            default:
-                value = default;
-                return false;
-        }
-    }
-
+    /// <summary>
+    /// Attempts to get the value of a JSON property with the specified name.
+    /// </summary>
+    /// <param name="jsonElement">An <see cref="JsonElement"/> instance.</param>
+    /// <param name="propertyName">The name of the JSON property to get.</param>
+    /// <param name="value">When this method returns, contains the value of the JSON property if it was successfully found and converted to <typeparamref name="T"/>.</param>
+    /// <typeparam name="T">The type of the JSON property to get.</typeparam>
+    /// <returns><c>true</c> if the operation succeeded; otherwise, <c>false</c> if the JSON property wasn't found or the value wasn't able to be converted to <typeparamref name="T"/>.</returns>
     public static bool TryGetPropertyValue<T>(this JsonElement jsonElement, string propertyName, [MaybeNullWhen(false)] out T value)
     {
         if (!jsonElement.TryGetProperty(propertyName, out var property))
@@ -177,7 +158,6 @@ public static class JsonElementExtensions
             }
         }
 
-        Debug.Fail("Not Implemented");
         value = default;
         return false;
     }

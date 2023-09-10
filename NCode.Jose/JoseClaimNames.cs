@@ -21,11 +21,20 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace NCode.Jose;
 
+/// <summary>
+/// Defines some of the standard claim names used in <c>JOSE</c>.
+/// </summary>
 [SuppressMessage("ReSharper", "IdentifierTypo")]
+[SuppressMessage("ReSharper", "InconsistentNaming")]
 public static class JoseClaimNames
 {
+    /// <summary>
+    /// Defines some of the standard claim names used in <c>JOSE</c> headers.
+    /// </summary>
     public static class Header
     {
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
         public const string Alg = "alg";
         public const string Enc = "enc";
         public const string Zip = "zip";
@@ -57,10 +66,17 @@ public static class JoseClaimNames
         public const string Typ = "typ";
         public const string Cty = "cty";
         public const string Crit = "crit";
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 
+    /// <summary>
+    /// Defines some of the standard claim names used in <c>JOSE</c> payloads.
+    /// </summary>
     public static class Payload
     {
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
         public const string Iss = "iss";
         public const string Sub = "sub";
         public const string Aud = "aud";
@@ -70,5 +86,7 @@ public static class JoseClaimNames
         public const string Jti = "jti";
 
         public const string Actort = "actort";
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 }

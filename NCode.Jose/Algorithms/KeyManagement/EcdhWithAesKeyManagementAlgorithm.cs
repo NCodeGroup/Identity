@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
-using NCode.Cryptography.Keys;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Algorithms.KeyManagement;
 

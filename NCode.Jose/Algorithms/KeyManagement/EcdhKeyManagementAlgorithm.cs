@@ -22,11 +22,11 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
 using NCode.Jose.Json;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Algorithms.KeyManagement;
 

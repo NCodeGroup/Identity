@@ -20,11 +20,11 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Jose.Algorithms.Signature;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose;
 

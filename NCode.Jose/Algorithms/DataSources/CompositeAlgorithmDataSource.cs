@@ -19,7 +19,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
-using NCode.Cryptography.Keys.Internal;
 using NCode.Jose.Internal;
 
 namespace NCode.Jose.Algorithms.DataSources;

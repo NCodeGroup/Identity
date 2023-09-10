@@ -109,7 +109,7 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlg
         }
         catch (CryptographicException exception)
         {
-            throw new EncryptionException("Failed to decrypt the ciphertext.", exception);
+            throw new JoseEncryptionException("Failed to decrypt the ciphertext.", exception);
         }
 
         bytesWritten = cipherText.Length;

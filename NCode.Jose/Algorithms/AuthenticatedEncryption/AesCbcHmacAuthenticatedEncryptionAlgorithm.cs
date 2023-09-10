@@ -161,7 +161,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
                 expectedAuthenticationTag);
 
             if (!CryptographicOperations.FixedTimeEquals(expectedAuthenticationTag, authenticationTag))
-                throw new IntegrityException("Failed to verify authentication tag.");
+                throw new JoseIntegrityException("Failed to verify authentication tag.");
         }
         finally
         {
@@ -175,7 +175,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptio
         }
         catch (CryptographicException exception)
         {
-            throw new EncryptionException("Failed to decrypt ciphertext.", exception);
+            throw new JoseEncryptionException("Failed to decrypt ciphertext.", exception);
         }
     }
 

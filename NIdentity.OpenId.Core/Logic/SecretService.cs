@@ -19,8 +19,8 @@
 
 using System.Diagnostics;
 using System.Text;
-using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
+using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Logic;

@@ -18,8 +18,8 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Cryptography.Keys;
 using NCode.Jose;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Identity.Jwt;
 

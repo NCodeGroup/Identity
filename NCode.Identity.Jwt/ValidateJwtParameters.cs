@@ -23,10 +23,10 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
-using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose;
 using NCode.Jose.Json;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Identity.Jwt;
 

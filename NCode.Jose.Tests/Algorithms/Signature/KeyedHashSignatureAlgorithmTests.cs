@@ -18,9 +18,9 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Cryptography.Keys;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.Signature;
 

@@ -17,7 +17,7 @@
 
 #endregion
 
-using NCode.Cryptography.Keys;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Identity.Jwt;
 

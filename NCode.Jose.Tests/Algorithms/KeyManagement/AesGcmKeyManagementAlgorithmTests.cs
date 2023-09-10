@@ -20,10 +20,10 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Exceptions;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 

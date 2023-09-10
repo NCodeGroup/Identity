@@ -20,9 +20,9 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Text;
-using NCode.Cryptography.Keys;
 using NCode.Encoders;
 using NCode.Jose.Json;
+using NCode.Jose.SecretKeys;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;

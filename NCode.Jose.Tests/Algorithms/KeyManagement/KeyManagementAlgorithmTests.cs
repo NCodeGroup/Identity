@@ -18,10 +18,10 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Cryptography.Keys;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Exceptions;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 

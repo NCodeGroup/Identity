@@ -24,11 +24,11 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
-using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Exceptions;
+using NCode.Jose.SecretKeys;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;

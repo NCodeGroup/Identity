@@ -21,13 +21,13 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
 using NCode.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Jose.Algorithms.Compression;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
+using NCode.Jose.SecretKeys;
 using Nerdbank.Streams;
 
 namespace NCode.Jose;

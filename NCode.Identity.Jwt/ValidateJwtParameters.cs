@@ -197,7 +197,7 @@ public class ValidateJwtParameters
         }
 
         // otherwise, the degenerate case will attempt to use the keys with the specified tags
-        return secretKeys.GetByTags(secretKeyTags);
+        return secretKeys.Where(secretKey => secretKey.Tags.IsSupersetOf(secretKeyTags));
     }
 
     private static bool VerifyCertificateHash(

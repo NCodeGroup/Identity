@@ -22,7 +22,6 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
 using NCode.CryptoMemory;
 using NCode.Encoders;
@@ -104,7 +103,7 @@ public partial interface IJoseSerializer
 /// <summary>
 /// Provides a default implementation for the <see cref="IJoseSerializer"/> interface.
 /// </summary>
-public partial class JoseSerializer : IJoseSerializer, IDisposable
+public partial class JoseSerializer : IJoseSerializer
 {
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
@@ -134,9 +133,7 @@ public partial class JoseSerializer : IJoseSerializer, IDisposable
 
     private IAlgorithmProvider AlgorithmProvider { get; }
 
-    private IAlgorithmCollection AlgorithmCollection { get; set; }
-
-    private IDisposable AlgorithmChangeRegistration { get; }
+    private IAlgorithmCollection AlgorithmCollection => AlgorithmProvider.Algorithms;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
@@ -146,22 +143,7 @@ public partial class JoseSerializer : IJoseSerializer, IDisposable
     public JoseSerializer(IOptions<JoseOptions> optionsAccessor, IAlgorithmProvider algorithmProvider)
     {
         JoseOptions = optionsAccessor.Value;
-
         AlgorithmProvider = algorithmProvider;
-        AlgorithmChangeRegistration = ChangeToken.OnChange(algorithmProvider.GetChangeToken, HandleAlgorithmChange);
-        AlgorithmCollection = algorithmProvider.Algorithms;
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        AlgorithmChangeRegistration.Dispose();
-        GC.SuppressFinalize(this);
-    }
-
-    private void HandleAlgorithmChange()
-    {
-        AlgorithmCollection = AlgorithmProvider.Algorithms;
     }
 
     /// <inheritdoc />

@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -20,50 +20,37 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
 using NCode.Cryptography.Keys.Internal;
-using NCode.Jose.Algorithms.DataSources;
 using NCode.Jose.Internal;
 
-namespace NCode.Jose.Algorithms;
+namespace NCode.Jose.Algorithms.DataSources;
 
 /// <summary>
-/// Provides the composition root (i.e. top-level collection) of <see cref="IAlgorithm"/> instances by aggregating multiple <see cref="IAlgorithmDataSource"/> instances.
+/// Provides an implementation of <see cref="IAlgorithmDataSource"/> that aggregates multiple <see cref="IAlgorithmDataSource"/> instances.
 /// </summary>
-public interface IAlgorithmProvider : IDisposable
-{
-    /// <summary>
-    /// Gets a read-only collection of <see cref="IAlgorithm"/> instances.
-    /// </summary>
-    IAlgorithmCollection Algorithms { get; }
-
-    /// <summary>
-    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
-    /// </summary>
-    IChangeToken GetChangeToken();
-}
-
-/// <summary>
-/// Provides a default implementation for the <see cref="IAlgorithmProvider"/> interface.
-/// </summary>
-public class AlgorithmProvider : BaseDisposable, IAlgorithmProvider
+/// <remarks>
+/// Because this class is intended to be used with DI, it does not own the <see cref="IAlgorithmDataSource"/> instances.
+/// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
+/// </remarks>
+public class CompositeAlgorithmDataSource : BaseDisposable, IAlgorithmDataSource
 {
     private object SyncObj { get; } = new();
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
-    private IDisposable? ChangeTokenRegistration { get; set; }
-    private CompositeAlgorithmDataSource DataSource { get; }
-    private IAlgorithmCollection? Collection { get; set; }
+    private List<IDisposable>? ChangeTokenRegistrations { get; set; }
+    private IReadOnlyList<IAlgorithmDataSource> DataSources { get; }
+    private IEnumerable<IAlgorithm>? Collection { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AlgorithmProvider"/> class with the specified collection of <see cref="IAlgorithmDataSource"/> instances.
+    /// Initializes a new instance of the <see cref="CompositeAlgorithmDataSource"/> class with the specified collection of <see cref="IAlgorithmDataSource"/> instances.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="IAlgorithmDataSource"/> instances to aggregate.</param>
-    public AlgorithmProvider(IEnumerable<IAlgorithmDataSource> dataSources)
+    public CompositeAlgorithmDataSource(IEnumerable<IAlgorithmDataSource> dataSources)
     {
-        DataSource = new CompositeAlgorithmDataSource(dataSources);
+        DataSources = dataSources.ToList();
     }
 
     /// <inheritdoc />
-    public IAlgorithmCollection Algorithms
+    public IEnumerable<IAlgorithm> Algorithms
     {
         get
         {
@@ -77,15 +64,15 @@ public class AlgorithmProvider : BaseDisposable, IAlgorithmProvider
     {
         if (IsDisposed || !disposing) return;
 
-        List<IDisposable> disposables = new() { DataSource };
+        List<IDisposable> disposables = new();
 
         lock (SyncObj)
         {
             if (IsDisposed) return;
             IsDisposed = true;
 
-            if (ChangeTokenRegistration is not null)
-                disposables.Add(ChangeTokenRegistration);
+            if (ChangeTokenRegistrations is { Count: > 0 })
+                disposables.AddRange(ChangeTokenRegistrations);
 
             if (ChangeTokenSource is not null)
                 disposables.Add(ChangeTokenSource);
@@ -159,7 +146,9 @@ public class AlgorithmProvider : BaseDisposable, IAlgorithmProvider
 
     private void SubscribeChangeTokenProducers()
     {
-        ChangeTokenRegistration = ChangeToken.OnChange(DataSource.GetChangeToken, HandleChange);
+        ChangeTokenRegistrations ??= new List<IDisposable>();
+        ChangeTokenRegistrations.AddRange(DataSources.Select(dataSource =>
+            ChangeToken.OnChange(dataSource.GetChangeToken, HandleChange)));
     }
 
     [MemberNotNull(nameof(ConsumerChangeToken))]
@@ -172,6 +161,8 @@ public class AlgorithmProvider : BaseDisposable, IAlgorithmProvider
     [MemberNotNull(nameof(Collection))]
     private void RefreshCollection()
     {
-        Collection = new AlgorithmCollection(DataSource.Algorithms);
+        Collection = DataSources.Count == 1 ?
+            DataSources[0].Algorithms :
+            DataSources.SelectMany(dataSource => dataSource.Algorithms);
     }
 }

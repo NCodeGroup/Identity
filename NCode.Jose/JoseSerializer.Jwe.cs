@@ -188,17 +188,17 @@ partial interface IJoseSerializer
 partial class JoseSerializer
 {
     private IKeyManagementAlgorithm GetKeyManagementAlgorithm(string code) =>
-        !AlgorithmProvider.TryGetKeyManagementAlgorithm(code, out var algorithm) ?
+        !AlgorithmCollection.TryGetKeyManagementAlgorithm(code, out var algorithm) ?
             throw new InvalidAlgorithmJoseException($"No registered JWA key agreement algorithm for `{code}` was found.") :
             algorithm;
 
     private IAuthenticatedEncryptionAlgorithm GetAuthenticatedEncryptionAlgorithm(string code) =>
-        !AlgorithmProvider.TryGetAuthenticatedEncryptionAlgorithm(code, out var algorithm) ?
+        !AlgorithmCollection.TryGetAuthenticatedEncryptionAlgorithm(code, out var algorithm) ?
             throw new InvalidAlgorithmJoseException($"No registered AEAD encryption algorithm for `{code}` was found.") :
             algorithm;
 
     private ICompressionAlgorithm GetCompressionAlgorithm(string code) =>
-        !AlgorithmProvider.TryGetCompressionAlgorithm(code, out var algorithm) ?
+        !AlgorithmCollection.TryGetCompressionAlgorithm(code, out var algorithm) ?
             throw new InvalidAlgorithmJoseException($"No registered JWE compression algorithm for `{code}` was found.") :
             algorithm;
 

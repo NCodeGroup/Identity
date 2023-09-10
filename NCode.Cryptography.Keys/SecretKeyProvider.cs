@@ -25,7 +25,7 @@ using NCode.Cryptography.Keys.Internal;
 namespace NCode.Cryptography.Keys;
 
 /// <summary>
-/// Provides the root (i.e. top-level) collection of <see cref="SecretKey"/> instances by aggregating multiple <see cref="ISecretKeyDataSource"/> instances.
+/// Provides the composition root (i.e. top-level collection) of <see cref="SecretKey"/> instances by aggregating multiple <see cref="ISecretKeyDataSource"/> instances.
 /// </summary>
 public interface ISecretKeyProvider : IDisposable
 {
@@ -41,7 +41,7 @@ public interface ISecretKeyProvider : IDisposable
 }
 
 /// <summary>
-/// Provides a default implementation for <see cref="ISecretKeyProvider"/>.
+/// Provides a default implementation for the <see cref="ISecretKeyProvider"/> interface.
 /// </summary>
 public class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
 {

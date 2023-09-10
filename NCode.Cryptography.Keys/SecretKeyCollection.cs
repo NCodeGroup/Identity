@@ -39,7 +39,7 @@ public interface ISecretKeyCollection : IReadOnlyCollection<SecretKey>, IDisposa
 }
 
 /// <summary>
-/// Provides a default implementation for <see cref="ISecretKeyCollection"/>.
+/// Provides a default implementation for the <see cref="ISecretKeyCollection"/> interface.
 /// </summary>
 public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
 {

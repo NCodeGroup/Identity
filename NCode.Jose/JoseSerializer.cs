@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
 using NCode.Cryptography.Keys;
 using NCode.CryptoMemory;
@@ -103,7 +104,7 @@ public partial interface IJoseSerializer
 /// <summary>
 /// Provides a default implementation for the <see cref="IJoseSerializer"/> interface.
 /// </summary>
-public partial class JoseSerializer : IJoseSerializer
+public partial class JoseSerializer : IJoseSerializer, IDisposable
 {
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
@@ -133,15 +134,34 @@ public partial class JoseSerializer : IJoseSerializer
 
     private IAlgorithmProvider AlgorithmProvider { get; }
 
+    private IAlgorithmCollection AlgorithmCollection { get; set; }
+
+    private IDisposable AlgorithmChangeRegistration { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
     /// </summary>
     /// <param name="optionsAccessor">An accessor that provides <see cref="JoseOptions"/>.</param>
-    /// <param name="algorithmProvider">An <see cref="IAlgorithmProvider"/> that is used to lookup signing keys for signature validation.</param>
+    /// <param name="algorithmProvider">An <see cref="IAlgorithmProvider"/> that provides a collection of <see cref="IAlgorithm"/> instances.</param>
     public JoseSerializer(IOptions<JoseOptions> optionsAccessor, IAlgorithmProvider algorithmProvider)
     {
         JoseOptions = optionsAccessor.Value;
+
         AlgorithmProvider = algorithmProvider;
+        AlgorithmChangeRegistration = ChangeToken.OnChange(algorithmProvider.GetChangeToken, HandleAlgorithmChange);
+        AlgorithmCollection = algorithmProvider.Algorithms;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        AlgorithmChangeRegistration.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    private void HandleAlgorithmChange()
+    {
+        AlgorithmCollection = AlgorithmProvider.Algorithms;
     }
 
     /// <inheritdoc />

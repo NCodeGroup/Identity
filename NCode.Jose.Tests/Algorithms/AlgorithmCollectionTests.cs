@@ -25,16 +25,14 @@ using NCode.Jose.Algorithms.Signature;
 
 namespace NCode.Jose.Tests.Algorithms;
 
-public class AlgorithmProviderTests : BaseTests
+public class AlgorithmCollectionTests : BaseTests
 {
-    private Mock<IAlgorithmFilter> MockAlgorithmFilter { get; }
     private Mock<IAlgorithm> MockAlgorithm1 { get; }
     private Mock<IAlgorithm> MockAlgorithm2 { get; }
     private Mock<IAlgorithm> MockAlgorithm3 { get; }
 
-    public AlgorithmProviderTests()
+    public AlgorithmCollectionTests()
     {
-        MockAlgorithmFilter = CreateStrictMock<IAlgorithmFilter>();
         MockAlgorithm1 = CreateStrictMock<IAlgorithm>();
         MockAlgorithm2 = CreateStrictMock<IAlgorithm>();
         MockAlgorithm3 = CreateStrictMock<IAlgorithm>();
@@ -70,7 +68,7 @@ public class AlgorithmProviderTests : BaseTests
             .Verifiable();
     }
 
-    private AlgorithmProvider CreateProvider()
+    private AlgorithmCollection CreateCollection()
     {
         var algorithms = new[]
         {
@@ -78,35 +76,15 @@ public class AlgorithmProviderTests : BaseTests
             MockAlgorithm2.Object,
             MockAlgorithm3.Object
         };
-        var filters = new[]
-        {
-            MockAlgorithmFilter.Object
-        };
-        return new AlgorithmProvider(algorithms, filters);
+        return new AlgorithmCollection(algorithms);
     }
 
     [Fact]
     public void Algorithms_Valid()
     {
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm1.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm2.Object))
-            .Returns(true)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm3.Object))
-            .Returns(false)
-            .Verifiable();
-
-        var provider = CreateProvider();
-        var algorithms = provider.Algorithms;
+        var algorithms = CreateCollection();
         Assert.Contains(MockAlgorithm1.Object, algorithms);
-        Assert.DoesNotContain(MockAlgorithm2.Object, algorithms);
+        Assert.Contains(MockAlgorithm2.Object, algorithms);
         Assert.Contains(MockAlgorithm3.Object, algorithms);
     }
 
@@ -121,34 +99,18 @@ public class AlgorithmProviderTests : BaseTests
         MockAlgorithm2
             .As<ISignatureAlgorithm>();
 
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm1.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm2.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm3.Object))
-            .Returns(false)
-            .Verifiable();
-
-        var provider = CreateProvider();
-        var algorithms = provider.Algorithms;
+        var algorithms = CreateCollection();
         Assert.Equal(3, algorithms.Count);
 
-        var result1 = provider.TryGetSignatureAlgorithm("code1", out var algorithm1);
+        var result1 = algorithms.TryGetSignatureAlgorithm("code1", out var algorithm1);
         Assert.False(result1);
         Assert.Null(algorithm1);
 
-        var result2 = provider.TryGetSignatureAlgorithm("code2", out var algorithm2);
+        var result2 = algorithms.TryGetSignatureAlgorithm("code2", out var algorithm2);
         Assert.True(result2);
         Assert.NotNull(algorithm2);
 
-        var result3 = provider.TryGetSignatureAlgorithm("code3", out var algorithm3);
+        var result3 = algorithms.TryGetSignatureAlgorithm("code3", out var algorithm3);
         Assert.False(result3);
         Assert.Null(algorithm3);
     }
@@ -164,34 +126,18 @@ public class AlgorithmProviderTests : BaseTests
         MockAlgorithm2
             .As<IKeyManagementAlgorithm>();
 
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm1.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm2.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm3.Object))
-            .Returns(false)
-            .Verifiable();
-
-        var provider = CreateProvider();
-        var algorithms = provider.Algorithms;
+        var algorithms = CreateCollection();
         Assert.Equal(3, algorithms.Count);
 
-        var result1 = provider.TryGetKeyManagementAlgorithm("code1", out var algorithm1);
+        var result1 = algorithms.TryGetKeyManagementAlgorithm("code1", out var algorithm1);
         Assert.False(result1);
         Assert.Null(algorithm1);
 
-        var result2 = provider.TryGetKeyManagementAlgorithm("code2", out var algorithm2);
+        var result2 = algorithms.TryGetKeyManagementAlgorithm("code2", out var algorithm2);
         Assert.True(result2);
         Assert.NotNull(algorithm2);
 
-        var result3 = provider.TryGetKeyManagementAlgorithm("code3", out var algorithm3);
+        var result3 = algorithms.TryGetKeyManagementAlgorithm("code3", out var algorithm3);
         Assert.False(result3);
         Assert.Null(algorithm3);
     }
@@ -207,34 +153,18 @@ public class AlgorithmProviderTests : BaseTests
         MockAlgorithm2
             .As<IAuthenticatedEncryptionAlgorithm>();
 
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm1.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm2.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm3.Object))
-            .Returns(false)
-            .Verifiable();
-
-        var provider = CreateProvider();
-        var algorithms = provider.Algorithms;
+        var algorithms = CreateCollection();
         Assert.Equal(3, algorithms.Count);
 
-        var result1 = provider.TryGetAuthenticatedEncryptionAlgorithm("code1", out var algorithm1);
+        var result1 = algorithms.TryGetAuthenticatedEncryptionAlgorithm("code1", out var algorithm1);
         Assert.False(result1);
         Assert.Null(algorithm1);
 
-        var result2 = provider.TryGetAuthenticatedEncryptionAlgorithm("code2", out var algorithm2);
+        var result2 = algorithms.TryGetAuthenticatedEncryptionAlgorithm("code2", out var algorithm2);
         Assert.True(result2);
         Assert.NotNull(algorithm2);
 
-        var result3 = provider.TryGetAuthenticatedEncryptionAlgorithm("code3", out var algorithm3);
+        var result3 = algorithms.TryGetAuthenticatedEncryptionAlgorithm("code3", out var algorithm3);
         Assert.False(result3);
         Assert.Null(algorithm3);
     }
@@ -250,34 +180,18 @@ public class AlgorithmProviderTests : BaseTests
         MockAlgorithm2
             .As<ICompressionAlgorithm>();
 
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm1.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm2.Object))
-            .Returns(false)
-            .Verifiable();
-
-        MockAlgorithmFilter
-            .Setup(x => x.Exclude(MockAlgorithm3.Object))
-            .Returns(false)
-            .Verifiable();
-
-        var provider = CreateProvider();
-        var algorithms = provider.Algorithms;
+        var algorithms = CreateCollection();
         Assert.Equal(3, algorithms.Count);
 
-        var result1 = provider.TryGetCompressionAlgorithm("code1", out var algorithm1);
+        var result1 = algorithms.TryGetCompressionAlgorithm("code1", out var algorithm1);
         Assert.False(result1);
         Assert.Null(algorithm1);
 
-        var result2 = provider.TryGetCompressionAlgorithm("code2", out var algorithm2);
+        var result2 = algorithms.TryGetCompressionAlgorithm("code2", out var algorithm2);
         Assert.True(result2);
         Assert.NotNull(algorithm2);
 
-        var result3 = provider.TryGetCompressionAlgorithm("code3", out var algorithm3);
+        var result3 = algorithms.TryGetCompressionAlgorithm("code3", out var algorithm3);
         Assert.False(result3);
         Assert.Null(algorithm3);
     }

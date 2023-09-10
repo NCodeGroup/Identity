@@ -19,13 +19,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Update="AlgorithmCodes.*.cs">
+        <Compile Update="*\AlgorithmCodes.*.cs">
             <DependentUpon>AlgorithmCodes.cs</DependentUpon>
         </Compile>
         <Compile Update="JoseSerializer.*.cs">
             <DependentUpon>JoseSerializer.cs</DependentUpon>
         </Compile>
-        <Compile Update="SecretKeyReader.*.cs">
+        <Compile Update="*\SecretKeyReader.*.cs">
             <DependentUpon>SecretKeyReader.cs</DependentUpon>
         </Compile>
     </ItemGroup>

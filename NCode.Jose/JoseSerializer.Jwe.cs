@@ -189,17 +189,17 @@ partial class JoseSerializer
 {
     private IKeyManagementAlgorithm GetKeyManagementAlgorithm(string code) =>
         !AlgorithmCollection.TryGetKeyManagementAlgorithm(code, out var algorithm) ?
-            throw new InvalidAlgorithmJoseException($"No registered JWA key agreement algorithm for `{code}` was found.") :
+            throw new InvalidAlgorithmException($"No registered JWA key agreement algorithm for `{code}` was found.") :
             algorithm;
 
     private IAuthenticatedEncryptionAlgorithm GetAuthenticatedEncryptionAlgorithm(string code) =>
         !AlgorithmCollection.TryGetAuthenticatedEncryptionAlgorithm(code, out var algorithm) ?
-            throw new InvalidAlgorithmJoseException($"No registered AEAD encryption algorithm for `{code}` was found.") :
+            throw new InvalidAlgorithmException($"No registered AEAD encryption algorithm for `{code}` was found.") :
             algorithm;
 
     private ICompressionAlgorithm GetCompressionAlgorithm(string code) =>
         !AlgorithmCollection.TryGetCompressionAlgorithm(code, out var algorithm) ?
-            throw new InvalidAlgorithmJoseException($"No registered JWE compression algorithm for `{code}` was found.") :
+            throw new InvalidAlgorithmException($"No registered JWE compression algorithm for `{code}` was found.") :
             algorithm;
 
     /// <inheritdoc />
@@ -513,7 +513,7 @@ partial class JoseSerializer
             out var unwrapBytesWritten);
 
         if (!unwrapResult || unwrapBytesWritten == 0)
-            throw new EncryptionJoseException("Failed to decrypt the encrypted content encryption key (CEK).");
+            throw new EncryptionException("Failed to decrypt the encrypted content encryption key (CEK).");
 
         if (unwrapBytesWritten < cekSizeBytes)
             contentKey = contentKey[..unwrapBytesWritten];
@@ -559,7 +559,7 @@ partial class JoseSerializer
             out var decryptBytesWritten);
 
         if (!decryptResult || decryptBytesWritten == 0)
-            throw new EncryptionJoseException("Failed to decrypt the JWE Ciphertext.");
+            throw new EncryptionException("Failed to decrypt the JWE Ciphertext.");
 
         if (decryptBytesWritten < plainTextSizeBytes)
             plainTextBytes = plainTextBytes[..decryptBytesWritten];

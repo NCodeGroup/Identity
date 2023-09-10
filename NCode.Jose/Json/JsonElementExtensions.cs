@@ -23,8 +23,6 @@ using System.Text.Json;
 
 namespace NCode.Jose.Json;
 
-// TODO: tests
-
 /// <summary>
 /// Provides extension methods for <see cref="JsonElement"/>.
 /// </summary>

@@ -45,11 +45,9 @@ internal static class DisposableExtensions
 
         if (exceptions.Count > 1)
         {
-            ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
-        }
-        else
-        {
             throw new AggregateException(exceptions);
         }
+
+        ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
     }
 }

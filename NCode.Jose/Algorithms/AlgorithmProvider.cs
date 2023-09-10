@@ -1,136 +1,177 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using NCode.Jose.Algorithms.AuthenticatedEncryption;
-using NCode.Jose.Algorithms.Compression;
-using NCode.Jose.Algorithms.KeyManagement;
-using NCode.Jose.Algorithms.Signature;
+using Microsoft.Extensions.Primitives;
+using NCode.Cryptography.Keys.Internal;
+using NCode.Jose.Algorithms.DataSources;
+using NCode.Jose.Internal;
 
 namespace NCode.Jose.Algorithms;
 
 /// <summary>
-/// Provides the ability to retrieve <see cref="IAlgorithm"/> instances.
+/// Provides the composition root (i.e. top-level collection) of <see cref="IAlgorithm"/> instances by aggregating multiple <see cref="IAlgorithmDataSource"/> instances.
 /// </summary>
-public interface IAlgorithmProvider
+public interface IAlgorithmProvider : IDisposable
 {
     /// <summary>
-    /// Gets a collection of all the supported algorithms.
+    /// Gets a read-only collection of <see cref="IAlgorithm"/> instances.
     /// </summary>
-    IReadOnlyCollection<IAlgorithm> Algorithms { get; }
+    IAlgorithmCollection Algorithms { get; }
 
     /// <summary>
-    /// Gets an <see cref="ISignatureAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
+    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
     /// </summary>
-    /// <param name="algorithmCode">The code of the <see cref="ISignatureAlgorithm"/> to get.</param>
-    /// <param name="algorithm">When this method returns, an <see cref="ISignatureAlgorithm"/> with the specified <paramref name="algorithmCode"/>, if found; otherwise, <c>null</c>.</param>
-    /// <returns><c>true</c> if an <see cref="ISignatureAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
-    bool TryGetSignatureAlgorithm(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out ISignatureAlgorithm algorithm);
-
-    /// <summary>
-    /// Gets an <see cref="IKeyManagementAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
-    /// </summary>
-    /// <param name="algorithmCode">The code of the <see cref="IKeyManagementAlgorithm"/> to get.</param>
-    /// <param name="algorithm">When this method returns, an <see cref="IKeyManagementAlgorithm"/> with the specified <paramref name="algorithmCode"/>, if found; otherwise, <c>null</c>.</param>
-    /// <returns><c>true</c> if an <see cref="IKeyManagementAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
-    bool TryGetKeyManagementAlgorithm(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out IKeyManagementAlgorithm algorithm);
-
-    /// <summary>
-    /// Gets an <see cref="IAuthenticatedEncryptionAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
-    /// </summary>
-    /// <param name="algorithmCode">The code of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to get.</param>
-    /// <param name="algorithm">When this method returns, an <see cref="IAuthenticatedEncryptionAlgorithm"/> with the specified <paramref name="algorithmCode"/>, if found; otherwise, <c>null</c>.</param>
-    /// <returns><c>true</c> if an <see cref="IAuthenticatedEncryptionAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
-    bool TryGetAuthenticatedEncryptionAlgorithm(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out IAuthenticatedEncryptionAlgorithm algorithm);
-
-    /// <summary>
-    /// Gets an <see cref="ICompressionAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
-    /// </summary>
-    /// <param name="algorithmCode">The code of the <see cref="ICompressionAlgorithm"/> to get.</param>
-    /// <param name="algorithm">When this method returns, an <see cref="ICompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/>, if found; otherwise, <c>null</c>.</param>
-    /// <returns><c>true</c> if an <see cref="ICompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
-    bool TryGetCompressionAlgorithm(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out ICompressionAlgorithm algorithm);
+    IChangeToken GetChangeToken();
 }
 
 /// <summary>
 /// Provides a default implementation for the <see cref="IAlgorithmProvider"/> interface.
 /// </summary>
-public class AlgorithmProvider : IAlgorithmProvider
+public class AlgorithmProvider : BaseDisposable, IAlgorithmProvider
 {
-    private Dictionary<(AlgorithmType type, string code), IAlgorithm> AlgorithmLookup { get; }
-
-    /// <inheritdoc />
-    public IReadOnlyCollection<IAlgorithm> Algorithms => AlgorithmLookup.Values;
+    private object SyncObj { get; } = new();
+    private CancellationTokenSource? ChangeTokenSource { get; set; }
+    private IChangeToken? ConsumerChangeToken { get; set; }
+    private IDisposable? ChangeTokenRegistration { get; set; }
+    private CompositeAlgorithmDataSource DataSource { get; }
+    private IAlgorithmCollection? Collection { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AlgorithmProvider"/> class.
+    /// Initializes a new instance of the <see cref="AlgorithmProvider"/> class with the specified collection of <see cref="IAlgorithmDataSource"/> instances.
     /// </summary>
-    public AlgorithmProvider(
-        IEnumerable<IAlgorithm> algorithms,
-        IEnumerable<IAlgorithmFilter> filters)
+    /// <param name="dataSources">A collection of <see cref="IAlgorithmDataSource"/> instances to aggregate.</param>
+    public AlgorithmProvider(IEnumerable<IAlgorithmDataSource> dataSources)
     {
-        var filtersList = filters.ToList();
-        AlgorithmLookup = algorithms
-            .Where(algorithm => !filtersList.Any(filter => filter.Exclude(algorithm)))
-            .ToDictionary(algorithm => (algorithm.Type, algorithm.Code));
+        DataSource = new CompositeAlgorithmDataSource(dataSources);
     }
 
-    private bool TryGetAlgorithm<T>(AlgorithmType type, string code, [MaybeNullWhen(false)] out T algorithm)
-        where T : IAlgorithm
+    /// <inheritdoc />
+    public IAlgorithmCollection Algorithms
     {
-        if (AlgorithmLookup.TryGetValue((type, code), out var baseAlgorithm) && baseAlgorithm is T typedAlgorithm)
+        get
         {
-            algorithm = typedAlgorithm;
-            return true;
+            EnsureCollectionInitialized();
+            return Collection;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        if (IsDisposed || !disposing) return;
+
+        List<IDisposable> disposables = new() { DataSource };
+
+        lock (SyncObj)
+        {
+            if (IsDisposed) return;
+            IsDisposed = true;
+
+            if (ChangeTokenRegistration is not null)
+                disposables.Add(ChangeTokenRegistration);
+
+            if (ChangeTokenSource is not null)
+                disposables.Add(ChangeTokenSource);
         }
 
-        algorithm = default;
-        return false;
+        disposables.DisposeAll();
     }
 
     /// <inheritdoc />
-    public bool TryGetSignatureAlgorithm(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out ISignatureAlgorithm algorithm) =>
-        TryGetAlgorithm(AlgorithmType.DigitalSignature, algorithmCode, out algorithm);
+    public IChangeToken GetChangeToken()
+    {
+        EnsureChangeTokenInitialized();
+        return ConsumerChangeToken;
+    }
 
-    /// <inheritdoc />
-    public bool TryGetKeyManagementAlgorithm(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out IKeyManagementAlgorithm algorithm) =>
-        TryGetAlgorithm(AlgorithmType.KeyManagement, algorithmCode, out algorithm);
+    [MemberNotNull(nameof(Collection))]
+    private void EnsureCollectionInitialized()
+    {
+        if (Collection is not null) return;
+        lock (SyncObj)
+        {
+            if (Collection is not null) return;
 
-    /// <inheritdoc />
-    public bool TryGetAuthenticatedEncryptionAlgorithm(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out IAuthenticatedEncryptionAlgorithm algorithm) =>
-        TryGetAlgorithm(AlgorithmType.AuthenticatedEncryption, algorithmCode, out algorithm);
+            ThrowIfDisposed();
+            EnsureChangeTokenInitialized();
+            RefreshCollection();
+        }
+    }
 
-    /// <inheritdoc />
-    public bool TryGetCompressionAlgorithm(
-        string algorithmCode,
-        [MaybeNullWhen(false)] out ICompressionAlgorithm algorithm) =>
-        TryGetAlgorithm(AlgorithmType.Compression, algorithmCode, out algorithm);
+    [MemberNotNull(nameof(ConsumerChangeToken))]
+    private void EnsureChangeTokenInitialized()
+    {
+        if (ConsumerChangeToken is not null) return;
+        lock (SyncObj)
+        {
+            if (ConsumerChangeToken is not null) return;
+
+            ThrowIfDisposed();
+            SubscribeChangeTokenProducers();
+            RefreshConsumerChangeToken();
+        }
+    }
+
+    private void HandleChange()
+    {
+        CancellationTokenSource? oldTokenSource;
+
+        if (IsDisposed) return;
+        lock (SyncObj)
+        {
+            if (IsDisposed) return;
+
+            oldTokenSource = ChangeTokenSource;
+
+            // refresh the cached change token
+            if (oldTokenSource is not null)
+            {
+                RefreshConsumerChangeToken();
+            }
+
+            // refresh the cached collection
+            if (Collection is not null)
+            {
+                RefreshCollection();
+            }
+        }
+
+        oldTokenSource?.Cancel();
+        oldTokenSource?.Dispose();
+    }
+
+    private void SubscribeChangeTokenProducers()
+    {
+        ChangeTokenRegistration = ChangeToken.OnChange(DataSource.GetChangeToken, HandleChange);
+    }
+
+    [MemberNotNull(nameof(ConsumerChangeToken))]
+    private void RefreshConsumerChangeToken()
+    {
+        ChangeTokenSource = new CancellationTokenSource();
+        ConsumerChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
+    }
+
+    [MemberNotNull(nameof(Collection))]
+    private void RefreshCollection()
+    {
+        Collection = new AlgorithmCollection(DataSource.Algorithms);
+    }
 }

@@ -132,7 +132,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
         }
         catch (CryptographicException exception)
         {
-            throw new EncryptionException("Failed to decrypt the encrypted content encryption key (CEK).", exception);
+            throw new JoseEncryptionException("Failed to decrypt the encrypted content encryption key (CEK).", exception);
         }
 
         bytesWritten = encryptedContentKey.Length;

@@ -156,7 +156,7 @@ partial class JoseSerializer
 
     private ISignatureAlgorithm GetSignatureAlgorithm(string code) =>
         !AlgorithmCollection.TryGetSignatureAlgorithm(code, out var algorithm) ?
-            throw new InvalidAlgorithmException($"No registered JWS signature algorithm for `{code}` was found.") :
+            throw new JoseInvalidAlgorithmException($"No registered JWS signature algorithm for `{code}` was found.") :
             algorithm;
 
     /// <inheritdoc />
@@ -298,7 +298,7 @@ partial class JoseSerializer
 
         var expectedSignatureSizeBytes = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
         if (signature.Length != expectedSignatureSizeBytes)
-            throw new IntegrityException($"Invalid signature size, expected {expectedSignatureSizeBytes} bytes but was {signature.Length} bytes.");
+            throw new JoseIntegrityException($"Invalid signature size, expected {expectedSignatureSizeBytes} bytes but was {signature.Length} bytes.");
 
         using var signatureInputLease = GetSignatureInput(
             encodedHeader,
@@ -306,7 +306,7 @@ partial class JoseSerializer
             out var signatureInput);
 
         if (!signatureAlgorithm.Verify(secretKey, signatureInput, signature))
-            throw new IntegrityException("Invalid signature, verification failed.");
+            throw new JoseIntegrityException("Invalid signature, verification failed.");
     }
 
     private static IDisposable GetSignatureInput(

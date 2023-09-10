@@ -21,16 +21,30 @@ using System.Runtime.CompilerServices;
 
 namespace NCode.Jose.Internal;
 
+/// <summary>
+/// Provides a base class for implementing the <see cref="IDisposable"/> interface.
+/// </summary>
 public abstract class BaseDisposable : IDisposable
 {
+    /// <summary>
+    /// Gets or sets a value indicating whether this instance has been disposed.
+    /// </summary>
     protected bool IsDisposed { get; set; }
 
+    /// <summary>
+    /// Throws an <see cref="ObjectDisposedException"/> if this instance has been disposed.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void ThrowIfDisposed()
     {
         if (IsDisposed) throw new ObjectDisposedException(GetType().FullName);
     }
 
+    /// <summary>
+    /// Returns the specified <paramref name="value"/> if this instance has not been disposed; otherwise, throws an
+    /// <see cref="ObjectDisposedException"/>.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected T GetOrThrowObjectDisposed<T>(T value) =>
         IsDisposed ? throw new ObjectDisposedException(GetType().FullName) : value;

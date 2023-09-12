@@ -22,6 +22,7 @@ namespace NCode.Jose.Exceptions;
 /// <summary>
 /// Represents errors that occur during <c>Jose</c> encryption or decryption.
 /// </summary>
+[Serializable]
 public class JoseEncryptionException : JoseException
 {
     /// <summary>

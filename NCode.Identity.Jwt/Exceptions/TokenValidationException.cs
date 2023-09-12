@@ -22,6 +22,7 @@ namespace NCode.Identity.Jwt.Exceptions;
 /// <summary>
 /// Represents errors that occur during <c>Json Web Token (JWT)</c> validation.
 /// </summary>
+[Serializable]
 public class TokenValidationException : Exception
 {
     /// <summary>

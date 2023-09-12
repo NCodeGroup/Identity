@@ -81,8 +81,9 @@ public class ValidateJwtParameters
 
     /// <summary>
     /// Gets or sets the <c>AuthenticationType</c> that is used when creating <see cref="ClaimsIdentity"/> instances.
+    /// The default value is <c>AuthenticationTypes.Federation</c>.
     /// </summary>
-    public string AuthenticationType { get; set; } = "TODO";
+    public string AuthenticationType { get; set; } = "AuthenticationTypes.Federation";
 
     /// <summary>
     /// Gets or sets a <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Name</c>

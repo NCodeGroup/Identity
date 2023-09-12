@@ -22,6 +22,7 @@ namespace NCode.Jose.Exceptions;
 /// <summary>
 /// Represents errors that occur when the <c>Jose</c> implementation is unable to determine what algorithm to use.
 /// </summary>
+[Serializable]
 public class JoseInvalidAlgorithmException : JoseException
 {
     /// <summary>

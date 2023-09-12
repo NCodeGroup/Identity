@@ -22,6 +22,7 @@ namespace NCode.Jose.Exceptions;
 /// <summary>
 /// Represents errors that occur during <c>Jose</c> signature validation.
 /// </summary>
+[Serializable]
 public class JoseIntegrityException : JoseException
 {
     /// <summary>

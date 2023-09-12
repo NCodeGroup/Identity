@@ -18,7 +18,7 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Jose;
+using NCode.Identity.Jwt.Exceptions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Identity.Jwt;
@@ -74,79 +74,38 @@ public static class ValidateJwtParametersExtensions
         string claimName,
         bool usePayload,
         bool allowCollection,
-        params string[] validValues) =>
-        parameters.AddValidator(
-            ValidateClaimValue(
-                claimName,
-                usePayload,
-                allowCollection,
-                validValues.ToHashSet(StringComparer.Ordinal)));
-
-    /// <summary>
-    /// Adds a validator that asserts the <c>iss</c> claim exists in the Json Web Token (JWT) payload with any of the
-    /// specified <paramref name="validIssuers"/>.
-    /// </summary>
-    /// <param name="parameters">The <see cref="ValidateJwtParameters"/> instance.</param>
-    /// <param name="validIssuers">The collection of allowable values for the <c>iss></c> claim.</param>
-    /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
-    public static ValidateJwtParameters ValidateIssuer(
-        this ValidateJwtParameters parameters,
-        params string[] validIssuers) =>
-        parameters.ValidateClaim(
-            JoseClaimNames.Payload.Iss,
-            usePayload: true,
-            allowCollection: false,
-            validIssuers);
-
-    /// <summary>
-    /// Adds a validator that asserts the <c>aud</c> claim exists in the Json Web Token (JWT) payload with any of the
-    /// specified <paramref name="validAudiences"/>.
-    /// </summary>
-    /// <param name="parameters">The <see cref="ValidateJwtParameters"/> instance.</param>
-    /// <param name="validAudiences">The collection of allowable values for the <c>aud></c> claim.</param>
-    /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
-    public static ValidateJwtParameters ValidateAudience(
-        this ValidateJwtParameters parameters,
-        params string[] validAudiences) =>
-        parameters.ValidateClaim(
-            JoseClaimNames.Payload.Aud,
-            usePayload: true,
-            allowCollection: true,
-            validAudiences);
-
-    private static ValidateJwtAsync ValidateClaimValue(
-        string claimName,
-        bool usePayload,
-        bool allowCollection,
-        ICollection<string> validValues) => (context, cancellationToken) =>
+        IEnumerable<string> validValues)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var claims = usePayload ? context.DecodedJwt.Payload : context.DecodedJwt.Header;
-        if (!claims.TryGetProperty(claimName, out var property))
-            throw new Exception("TODO");
-
-        // ReSharper disable once ConvertIfStatementToSwitchStatement
-        if (property.ValueKind == JsonValueKind.Null)
+        return parameters.AddValidator((context, cancellationToken) =>
         {
-            throw new Exception("TODO");
-        }
+            cancellationToken.ThrowIfCancellationRequested();
 
-        if (property.ValueKind == JsonValueKind.Array)
-        {
-            if (!allowCollection)
-                throw new Exception("TODO");
+            var claims = usePayload ? context.DecodedJwt.Payload : context.DecodedJwt.Header;
+            if (!claims.TryGetProperty(claimName, out var property))
+                throw new TokenValidationException($"The claim '{claimName}' is missing.");
 
-            if (property.EnumerateArray().Select(jsonElement => jsonElement.ToString()).Except(validValues).Any())
-                throw new Exception("TODO");
-        }
-        else
-        {
-            var stringValue = property.ToString();
-            if (!validValues.Contains(stringValue))
-                throw new Exception("TODO");
-        }
+            // ReSharper disable once ConvertIfStatementToSwitchStatement
+            if (property.ValueKind == JsonValueKind.Null)
+            {
+                throw new TokenValidationException($"The claim '{claimName}' is null.");
+            }
 
-        return ValueTask.CompletedTask;
-    };
+            if (property.ValueKind == JsonValueKind.Array)
+            {
+                if (!allowCollection)
+                    throw new TokenValidationException($"The claim '{claimName}' does not allow collections.");
+
+                if (property.EnumerateArray().Select(jsonElement => jsonElement.ToString()).Except(validValues).Any())
+                    throw new TokenValidationException($"The collection for claim '{claimName}' is invalid.");
+            }
+            else
+            {
+                var stringValue = property.ToString();
+                if (!validValues.Contains(stringValue))
+                    throw new TokenValidationException($"The value for claim '{claimName}' is invalid.");
+            }
+
+            return ValueTask.CompletedTask;
+        });
+    }
 }

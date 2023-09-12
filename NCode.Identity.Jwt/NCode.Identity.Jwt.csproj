@@ -11,8 +11,11 @@
         <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj"/>
     </ItemGroup>
 
+
     <ItemGroup>
-      <Folder Include="Exceptions\" />
+      <PackageReference Include="NCode.SystemClock" Version="1.0.1" />
     </ItemGroup>
+
+
 
 </Project>

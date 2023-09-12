@@ -21,6 +21,7 @@ using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using NCode.Jose;
 using NCode.Jose.SecretKeys;
+using NCode.SystemClock;
 
 namespace NCode.Identity.Jwt;
 
@@ -52,16 +53,26 @@ public interface IJsonWebTokenService
 /// </summary>
 public class JsonWebTokenService : IJsonWebTokenService
 {
+    private IServiceProvider ServiceProvider { get; }
+    private ISystemClockSecondsAccuracy SystemClock { get; }
     private IJoseSerializer JoseSerializer { get; }
     private ISecretKeyProvider SecretKeyProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonWebTokenService"/> class.
     /// </summary>
+    /// <param name="serviceProvider">An <see cref="IServiceProvider"/> that can be used to resolve services.</param>
+    /// <param name="systemClock">An <see cref="ISystemClockSecondsAccuracy"/> that can be used to get the current time.</param>
     /// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
     /// <param name="secretKeyProvider">An <see cref="ISecretKeyProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
-    public JsonWebTokenService(IJoseSerializer joseSerializer, ISecretKeyProvider secretKeyProvider)
+    public JsonWebTokenService(
+        IServiceProvider serviceProvider,
+        ISystemClockSecondsAccuracy systemClock,
+        IJoseSerializer joseSerializer,
+        ISecretKeyProvider secretKeyProvider)
     {
+        ServiceProvider = serviceProvider;
+        SystemClock = systemClock;
         JoseSerializer = joseSerializer;
         SecretKeyProvider = secretKeyProvider;
     }
@@ -89,8 +100,18 @@ public class JsonWebTokenService : IJsonWebTokenService
                 validationKeys,
                 out var secretKey);
 
-            var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey);
-            var context = new ValidateJwtContext(secretKey, decodedJwt, propertyBag);
+            var decodedJwt = new DecodedJwt(
+                compactJwt,
+                payload,
+                secretKey);
+
+            var context = new ValidateJwtContext(
+                secretKey,
+                decodedJwt,
+                propertyBag,
+                ServiceProvider,
+                SystemClock);
+
             await InvokeValidatorsAsync(context, parameters.Validators, cancellationToken);
 
             return ValidateJwtResult.Success(parameters, propertyBag, decodedJwt);

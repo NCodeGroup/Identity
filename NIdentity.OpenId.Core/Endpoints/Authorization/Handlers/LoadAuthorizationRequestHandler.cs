@@ -156,7 +156,9 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
             var parameters = new ValidateJwtParameters()
                 .UseValidationKeys(secretKeys)
                 .ValidateIssuer(client.ClientId)
-                .ValidateAudience(Options.RequestObject.Audience);
+                .ValidateAudience(Options.RequestObject.Audience)
+                .ValidateCertificateLifeTime()
+                .ValidateTokenLifeTime();
 
             var result = await JsonWebTokenService.ValidateJwtAsync(
                 requestJwt,

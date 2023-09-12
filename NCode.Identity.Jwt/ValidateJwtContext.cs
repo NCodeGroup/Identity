@@ -18,6 +18,7 @@
 #endregion
 
 using NCode.Jose.SecretKeys;
+using NCode.SystemClock;
 
 namespace NCode.Identity.Jwt;
 
@@ -42,15 +43,34 @@ public class ValidateJwtContext
     public PropertyBag PropertyBag { get; }
 
     /// <summary>
+    /// Gets an <see cref="IServiceProvider"/> that can be used to resolve services.
+    /// </summary>
+    public IServiceProvider ServiceProvider { get; }
+
+    /// <summary>
+    /// Gets an <see cref="ISystemClock"/> that can be used to get the current time.
+    /// </summary>
+    public ISystemClock SystemClock { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ValidateJwtContext"/> class.
     /// </summary>
     /// <param name="secretKey">The <see cref="SecretKey"/> that was used to decode the Json Web Token (JWT).</param>
     /// <param name="decodedJwt">A <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT) header and payload.</param>
     /// <param name="propertyBag">A <see cref="PropertyBag"/> that can be used to store custom state information.</param>
-    public ValidateJwtContext(SecretKey secretKey, DecodedJwt decodedJwt, PropertyBag propertyBag)
+    /// <param name="serviceProvider">An <see cref="IServiceProvider"/> that can be used to resolve services.</param>
+    /// <param name="systemClock">An <see cref="ISystemClock"/> that can be used to get the current time.</param>
+    public ValidateJwtContext(
+        SecretKey secretKey,
+        DecodedJwt decodedJwt,
+        PropertyBag propertyBag,
+        IServiceProvider serviceProvider,
+        ISystemClock systemClock)
     {
         SecretKey = secretKey;
         DecodedJwt = decodedJwt;
         PropertyBag = propertyBag;
+        ServiceProvider = serviceProvider;
+        SystemClock = systemClock;
     }
 }

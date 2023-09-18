@@ -17,15 +17,8 @@
 
 #endregion
 
-using System.Diagnostics;
-using System.Globalization;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.Json;
-using NCode.Encoders;
 using NCode.Jose;
-using NCode.Jose.Json;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Identity.Jwt;
@@ -109,7 +102,7 @@ public class ValidateJwtParameters
     public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } =
         (compactJwt, _, secretKeyProvider, secretKeyTags, _) =>
             ValueTask.FromResult(
-                DefaultResolveValidationKeys(
+                DefaultValidationKeyResolver.ResolveValidationKeys(
                     compactJwt.DeserializedHeader,
                     secretKeyProvider.SecretKeys,
                     secretKeyTags));
@@ -120,7 +113,7 @@ public class ValidateJwtParameters
     public CreateClaimsIdentityAsync CreateClaimsIdentityAsync { get; set; } =
         (decodedJet, _, authenticationType, nameClaimType, roleClaimType, _) =>
             ValueTask.FromResult(
-                DefaultCreateClaimsIdentity(
+                DefaultClaimsIdentityFactory.CreateClaimsIdentity(
                     authenticationType,
                     nameClaimType,
                     roleClaimType,
@@ -131,225 +124,4 @@ public class ValidateJwtParameters
     /// The default is <c>300</c> seconds (5 minutes).
     /// </summary>
     public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5);
-
-    /// <summary>
-    /// Provides a default implementation for the <see cref="ResolveValidationKeysAsync"/> delegate.
-    /// </summary>
-    /// <param name="header">A <see cref="JsonElement"/> instance that contains the Json Web Token (JWT) header.</param>
-    /// <param name="secretKeys">A <see cref="ISecretKeyCollection"/> instance that contains the candidate <see cref="SecretKey"/> instances.</param>
-    /// <param name="secretKeyTags">A collection of <see cref="string"/> tags that is to be used for filtering which <see cref="SecretKey"/> instances should be returned when a specific key cannot be found.</param>
-    /// <returns>A collection of <see cref="SecretKey"/> instances.</returns>
-    public static IEnumerable<SecretKey> DefaultResolveValidationKeys(
-        JsonElement header,
-        ISecretKeyCollection secretKeys,
-        IEnumerable<string> secretKeyTags)
-    {
-        // attempt to lookup by 'kid'
-        if (header.TryGetPropertyValue<string>(JoseClaimNames.Header.Kid, out var keyId) &&
-            secretKeys.TryGetByKeyId(keyId, out var specificKey))
-        {
-            return new[] { specificKey };
-        }
-
-        // attempt to lookup by certificate thumbprint
-        var hasThumbprintSha1 = header.TryGetPropertyValue<string>(JoseClaimNames.Header.X5t, out var thumbprintSha1);
-        var hasThumbprintSha256 = header.TryGetPropertyValue<string>(JoseClaimNames.Header.X5tS256, out var thumbprintSha256);
-
-        if (hasThumbprintSha1 && secretKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
-        {
-            return new[] { specificKey };
-        }
-
-        if (hasThumbprintSha256 && secretKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
-        {
-            return new[] { specificKey };
-        }
-
-        if (hasThumbprintSha1 || hasThumbprintSha256)
-        {
-            const int sha1HashSize = 20;
-            const int sha256HashSize = 32;
-
-            var expectedSha1 = hasThumbprintSha1 ? stackalloc byte[sha1HashSize] : default;
-            if (hasThumbprintSha1)
-            {
-                var result = Base64Url.TryDecode(thumbprintSha1, expectedSha1, out var bytesWritten);
-                Debug.Assert(result && bytesWritten == sha1HashSize);
-            }
-
-            var expectedSha256 = hasThumbprintSha256 ? stackalloc byte[sha256HashSize] : default;
-            if (hasThumbprintSha256)
-            {
-                var result = Base64Url.TryDecode(thumbprintSha256, expectedSha256, out var bytesWritten);
-                Debug.Assert(result && bytesWritten == sha256HashSize);
-            }
-
-            Span<byte> actualHash = stackalloc byte[sha256HashSize];
-
-            foreach (var secretKey in secretKeys)
-            {
-                if (secretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey) continue;
-                var certificate = asymmetricSecretKey.Certificate;
-
-                if (VerifyCertificateHash(certificate, HashAlgorithmName.SHA1, expectedSha1, actualHash))
-                {
-                    return new[] { secretKey };
-                }
-
-                if (VerifyCertificateHash(certificate, HashAlgorithmName.SHA256, expectedSha256, actualHash))
-                {
-                    return new[] { secretKey };
-                }
-            }
-        }
-
-        // otherwise, the degenerate case will attempt to use the keys with the specified tags
-        return secretKeys.Where(secretKey => secretKey.Tags.IsSupersetOf(secretKeyTags));
-    }
-
-    private static bool VerifyCertificateHash(
-        X509Certificate certificate,
-        HashAlgorithmName hashAlgorithmName,
-        ReadOnlySpan<byte> expected,
-        Span<byte> actual)
-    {
-        if (expected.IsEmpty) return false;
-
-        var result = certificate.TryGetCertHash(
-            hashAlgorithmName,
-            actual,
-            out var bytesWritten);
-
-        return result &&
-               bytesWritten == expected.Length &&
-               expected.SequenceEqual(actual[..bytesWritten]);
-    }
-
-    /// <summary>
-    /// Provides a default implementation for the <see cref="CreateClaimsIdentityAsync"/> delegate.
-    /// </summary>
-    /// <param name="authenticationType">A <see cref="string"/> for the <c>AuthenticationType</c> that is used when creating a <see cref="ClaimsIdentity"/> instance.</param>
-    /// <param name="nameClaimType">A <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Name</c>
-    /// claim for a <see cref="ClaimsIdentity"/> instance.</param>
-    /// <param name="roleClaimType">A <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Role</c>
-    /// claim for a <see cref="ClaimsIdentity"/> instance.</param>
-    /// <param name="payload">A <see cref="JsonElement"/> that contains the Json Web Token (JWT) payload.</param>
-    /// <returns>The newly created <see cref="ClaimsIdentity"/> instance.</returns>
-    public static ClaimsIdentity DefaultCreateClaimsIdentity(
-        string authenticationType,
-        string nameClaimType,
-        string roleClaimType,
-        JsonElement payload)
-    {
-        var effectiveNameClaimType = string.IsNullOrEmpty(nameClaimType) ?
-            ClaimsIdentity.DefaultNameClaimType :
-            nameClaimType;
-
-        var effectiveRoleClaimType = string.IsNullOrEmpty(roleClaimType) ?
-            ClaimsIdentity.DefaultRoleClaimType :
-            roleClaimType;
-
-        var subject = new ClaimsIdentity(
-            authenticationType,
-            effectiveNameClaimType,
-            effectiveRoleClaimType);
-
-        if (!payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var issuer) || string.IsNullOrEmpty(issuer))
-        {
-            issuer = ClaimsIdentity.DefaultIssuer;
-        }
-
-        foreach (var property in payload.EnumerateObject())
-        {
-            var name = property.Name;
-            var value = property.Value;
-
-            if (value.ValueKind == JsonValueKind.Array)
-            {
-                subject.AddClaims(
-                    value.EnumerateArray().Select(item =>
-                        CreateClaim(name, item, issuer, subject)));
-            }
-            else
-            {
-                subject.AddClaim(CreateClaim(name, value, issuer, subject));
-            }
-        }
-
-        return subject;
-    }
-
-    private static Claim CreateClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject) =>
-        jsonElement.ValueKind switch
-        {
-            JsonValueKind.Undefined => throw new NotSupportedException(),
-            JsonValueKind.Null => new Claim(propertyName, string.Empty, JsonClaimValueTypes.Null, issuer, issuer, subject),
-            JsonValueKind.Object => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.Json, issuer, issuer, subject),
-            JsonValueKind.Array => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.JsonArray, issuer, issuer, subject),
-            JsonValueKind.String => CreateStringClaim(propertyName, jsonElement, issuer, subject),
-            JsonValueKind.Number => CreateNumberClaim(propertyName, jsonElement, issuer, subject),
-            JsonValueKind.True => new Claim(propertyName, "true", ClaimValueTypes.Boolean, issuer, issuer, subject),
-            JsonValueKind.False => new Claim(propertyName, "false", ClaimValueTypes.Boolean, issuer, issuer, subject),
-            _ => throw new ArgumentOutOfRangeException(nameof(jsonElement), "Unsupported JsonValueKind.")
-        };
-
-    private static Claim CreateStringClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject)
-    {
-        var stringValue = jsonElement.ToString();
-        var valueType = ClaimValueTypes.String;
-
-        try
-        {
-            if (DateTime.TryParse(
-                    stringValue,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal |
-                    DateTimeStyles.AdjustToUniversal,
-                    out var dateTimeValue))
-            {
-                stringValue = dateTimeValue.ToString("O", CultureInfo.InvariantCulture);
-                valueType = ClaimValueTypes.DateTime;
-            }
-        }
-        catch
-        {
-            // ignored
-        }
-
-        return new Claim(propertyName, stringValue, valueType, issuer, issuer, subject);
-    }
-
-    private static Claim CreateNumberClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject)
-    {
-        var stringValue = jsonElement.ToString();
-        var valueType = ClaimValueTypes.String;
-
-        try
-        {
-            if (jsonElement.TryGetInt16(out _))
-                valueType = ClaimValueTypes.Integer;
-
-            if (jsonElement.TryGetInt32(out _))
-                valueType = ClaimValueTypes.Integer32;
-
-            if (jsonElement.TryGetInt64(out _))
-                valueType = ClaimValueTypes.Integer64;
-
-            if (jsonElement.TryGetUInt32(out _))
-                valueType = ClaimValueTypes.UInteger32;
-
-            if (jsonElement.TryGetUInt64(out _))
-                valueType = ClaimValueTypes.UInteger64;
-
-            // no need to check single or decimal since the range of double is larger
-            if (jsonElement.TryGetDouble(out _))
-                valueType = ClaimValueTypes.Double;
-        }
-        catch
-        {
-            // ignored
-        }
-
-        return new Claim(propertyName, stringValue, valueType, issuer, issuer, subject);
-    }
 }

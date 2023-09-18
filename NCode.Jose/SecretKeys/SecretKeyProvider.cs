@@ -25,7 +25,8 @@ using NCode.Jose.SecretKeys.DataSources;
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Provides the composition root (i.e. top-level collection) of <see cref="SecretKey"/> instances by aggregating multiple <see cref="ISecretKeyDataSource"/> instances.
+/// Provides the composition root (i.e. top-level collection) of <see cref="SecretKey"/> instances by aggregating multiple
+/// <see cref="ISecretKeyDataSource"/> instances and providing change notifications.
 /// </summary>
 public interface ISecretKeyProvider : IDisposable
 {

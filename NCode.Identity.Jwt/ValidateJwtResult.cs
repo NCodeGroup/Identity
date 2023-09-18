@@ -72,7 +72,7 @@ public class ValidateJwtResult
 
     private ClaimsIdentity? ClaimsIdentityOrNull { get; set; }
 
-    private Func<CancellationToken, ValueTask<ClaimsIdentity>>? CreateClaimsIdentityAsync { get; set; }
+    private Func<CancellationToken, ValueTask<ClaimsIdentity>>? CreateClaimsIdentityAsync { get; init; }
 
     /// <summary>
     /// Gets the <see cref="ValidateJwtParameters"/> instance that was used to validate the Json Web Token (JWT).

@@ -48,6 +48,6 @@ internal static class DisposableExtensions
             throw new AggregateException(exceptions);
         }
 
-        ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
+        ExceptionDispatchInfo.Throw(exceptions[0]);
     }
 }

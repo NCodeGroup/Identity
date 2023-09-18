@@ -39,7 +39,7 @@ public class StaticSecretKeyDataSource : SecretKeyDataSource
     public StaticSecretKeyDataSource(IEnumerable<SecretKey> collection, bool owns = true)
     {
         Owns = owns;
-        Collection = collection;
+        Collection = collection.ToList(); // prevent deferred changes
     }
 
     /// <inheritdoc />

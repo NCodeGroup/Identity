@@ -100,7 +100,7 @@ public class ValidateJwtParameters
     /// to validate a Json Web Token (JWT).
     /// </summary>
     public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } =
-        (compactJwt, _, secretKeyProvider, secretKeyTags, _) =>
+        static (compactJwt, _, secretKeyProvider, secretKeyTags, _) =>
             ValueTask.FromResult(
                 DefaultValidationKeyResolver.ResolveValidationKeys(
                     compactJwt.DeserializedHeader,
@@ -111,7 +111,7 @@ public class ValidateJwtParameters
     /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).
     /// </summary>
     public CreateClaimsIdentityAsync CreateClaimsIdentityAsync { get; set; } =
-        (decodedJet, _, authenticationType, nameClaimType, roleClaimType, _) =>
+        static (decodedJet, _, authenticationType, nameClaimType, roleClaimType, _) =>
             ValueTask.FromResult(
                 DefaultClaimsIdentityFactory.CreateClaimsIdentity(
                     authenticationType,

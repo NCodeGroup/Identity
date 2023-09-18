@@ -26,6 +26,8 @@ namespace NCode.Jose.SecretKeys;
 /// </summary>
 public abstract class SecretKey : BaseDisposable
 {
+    private string? ToStringOrNull { get; set; }
+
     /// <summary>
     /// Gets the <c>Key ID (KID)</c> of this <see cref="SecretKey"/>.
     /// </summary>
@@ -56,4 +58,9 @@ public abstract class SecretKey : BaseDisposable
         KeyId = keyId;
         Tags = tags.ToHashSet(StringComparer.Ordinal);
     }
+
+    /// <summary>
+    /// Returns a formatted <see cref="string"/> that represents this <see cref="SecretKey"/> instance.
+    /// </summary>
+    public override string ToString() => ToStringOrNull ??= $"{GetType().Name} {{ KeyId = '{KeyId}', Tags = [{string.Join(", ", Tags.Select(tag => $"'{tag}'"))}], Size = {KeySizeBits} }}";
 }

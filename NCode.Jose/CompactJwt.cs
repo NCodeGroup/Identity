@@ -60,6 +60,11 @@ public class CompactJwt
         Segments = segments;
     }
 
+    /// <summary>
+    /// Returns the original Json Web Token (JWT) in compact form.
+    /// </summary>
+    public override string ToString() => Segments.Original.ToString();
+
     private JsonElement DeserializeHeader()
     {
         var name = $"{ProtectionType} Protected Header";

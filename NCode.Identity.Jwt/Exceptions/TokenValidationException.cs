@@ -17,18 +17,23 @@
 
 #endregion
 
+using NCode.Jose.Exceptions;
+
 namespace NCode.Identity.Jwt.Exceptions;
 
 /// <summary>
 /// Represents errors that occur during <c>Json Web Token (JWT)</c> validation.
 /// </summary>
 [Serializable]
-public class TokenValidationException : Exception
+public class TokenValidationException : JoseException
 {
+    private const string DefaultMessage = "Token validation failed.";
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="TokenValidationException"/> class.
+    /// Initializes a new instance of the <see cref="TokenValidationException"/> class with a default error message.
     /// </summary>
     public TokenValidationException()
+        : base(DefaultMessage)
     {
         // nothing
     }

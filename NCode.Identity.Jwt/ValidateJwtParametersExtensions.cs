@@ -93,16 +93,16 @@ public static class ValidateJwtParametersExtensions
             if (property.ValueKind == JsonValueKind.Array)
             {
                 if (!allowCollection)
-                    throw new TokenValidationException($"The claim '{claimName}' does not allow collections.");
+                    throw new TokenValidationException($"The claim '{claimName}' does not allow multiple values.");
 
                 if (property.EnumerateArray().Select(jsonElement => jsonElement.ToString()).Except(validValues).Any())
-                    throw new TokenValidationException($"The collection for claim '{claimName}' is invalid.");
+                    throw new TokenValidationException($"The claim '{claimName}' is invalid because at least one value did not contain any of the valid values.");
             }
             else
             {
                 var stringValue = property.ToString();
                 if (!validValues.Contains(stringValue))
-                    throw new TokenValidationException($"The value for claim '{claimName}' is invalid.");
+                    throw new TokenValidationException($"The claim '{claimName}' is invalid because it does not contain any of the valid values.");
             }
 
             return ValueTask.CompletedTask;

@@ -25,7 +25,8 @@ using NCode.Jose.Internal;
 namespace NCode.Jose.Algorithms;
 
 /// <summary>
-/// Provides the composition root (i.e. top-level collection) of <see cref="IAlgorithm"/> instances by aggregating multiple <see cref="IAlgorithmDataSource"/> instances.
+/// Provides the composition root (i.e. top-level collection) of <see cref="IAlgorithm"/> instances by aggregating multiple
+/// <see cref="IAlgorithmDataSource"/> instances and providing change notifications.
 /// </summary>
 public interface IAlgorithmProvider : IDisposable
 {

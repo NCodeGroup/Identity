@@ -17,8 +17,10 @@
 
 #endregion
 
-using System.Runtime.ExceptionServices;
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
+using NCode.Identity.Jwt.Exceptions;
 using NCode.Jose;
 using NCode.Jose.SecretKeys;
 using NCode.SystemClock;
@@ -127,33 +129,53 @@ public class JsonWebTokenService : IJsonWebTokenService
         IEnumerable<SecretKey> validationKeys,
         out SecretKey secretKey)
     {
-        var exceptions = new List<Exception>();
-        // TODO: not all keys will have a key id
-        var keysAttempted = new HashSet<string>();
-        foreach (var keyAttempt in validationKeys)
+        StringBuilder? exceptions = null;
+        StringBuilder? attemptedKeys = null;
+
+        foreach (var attemptedKey in validationKeys)
         {
             try
             {
-                keysAttempted.Add(keyAttempt.KeyId);
-                var payload = JoseSerializer.Deserialize<JsonElement>(compactJwt, keyAttempt);
+                var payload = JoseSerializer.Deserialize<JsonElement>(compactJwt, attemptedKey);
 
-                secretKey = keyAttempt;
+                secretKey = attemptedKey;
                 return payload;
             }
             catch (Exception exception)
             {
-                exceptions.Add(exception);
+                exceptions ??= new StringBuilder("Inner exceptions:\n");
+                exceptions.Append(exception);
+                exceptions.Append('\n');
             }
+
+            attemptedKeys ??= new StringBuilder("Keys attempted:\n");
+            attemptedKeys.Append(attemptedKey);
+            attemptedKeys.Append('\n');
         }
 
-        // TODO: use custom exception with message about which keys were attempted
-
-        if (exceptions.Count == 1)
+        if (attemptedKeys is null)
         {
-            ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
+            throw new TokenValidationSecretKeyNotFoundException();
         }
 
-        throw new AggregateException(exceptions);
+        Debug.Assert(exceptions != null);
+
+        // BEGIN EXAMPLE
+        // Token validation failed. Unable to decode the token with any of the provided keys.
+        //
+        // Token:
+        // A.B.C
+        //
+        // Keys attempted:
+        // RsaSecretKey { KeyId = '0x1234', Tags = ['foo','bar'], Size = 1024 }
+        //
+        // Inner exceptions:
+        // Foo
+        // Bar
+        // END EXAMPLE
+
+        throw new TokenValidationDecodeException(
+            $"{TokenValidationDecodeException.DefaultMessage}.\n\nToken:\n{compactJwt}\n\nKeys attempted:\n{attemptedKeys}\nInner exceptions:\n{exceptions}");
     }
 
     private static async ValueTask InvokeValidatorsAsync(

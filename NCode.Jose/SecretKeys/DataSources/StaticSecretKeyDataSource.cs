@@ -27,15 +27,19 @@ namespace NCode.Jose.SecretKeys.DataSources;
 /// </summary>
 public class StaticSecretKeyDataSource : SecretKeyDataSource
 {
+    private bool Owns { get; }
     private IEnumerable<SecretKey> Collection { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StaticSecretKeyDataSource"/> class with the specified collection of <see cref="SecretKey"/> instances.
     /// </summary>
     /// <param name="collection">A collection of <see cref="SecretKey"/> instances.</param>
-    public StaticSecretKeyDataSource(IEnumerable<SecretKey> collection)
+    /// <param name="owns">Indicates whether this new instance will own the <see cref="SecretKey"/> instances
+    /// and dispose of them when this class is disposed. The default is <c>true</c>.</param>
+    public StaticSecretKeyDataSource(IEnumerable<SecretKey> collection, bool owns = true)
     {
-        Collection = new SecretKeyCollection(collection);
+        Owns = owns;
+        Collection = collection;
     }
 
     /// <inheritdoc />
@@ -46,6 +50,8 @@ public class StaticSecretKeyDataSource : SecretKeyDataSource
     {
         if (!disposing || IsDisposed) return;
         IsDisposed = true;
+
+        if (!Owns) return;
         Collection.DisposeAll();
     }
 

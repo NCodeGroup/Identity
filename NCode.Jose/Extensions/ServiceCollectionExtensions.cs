@@ -43,7 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddJose(_ => { });
 
     /// <summary>
-    /// Adds Jose services and algorithms to the specified <see cref="IServiceCollection"/>.
+    /// Adds Jose services and algorithms to the specified <see cref="IServiceCollection"/> instance.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <param name="configureOptions">The action used to configure the <see cref="JoseOptions"/>.</param>

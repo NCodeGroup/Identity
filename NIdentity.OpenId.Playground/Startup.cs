@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.OpenApi.Models;
+using NCode.Identity.Jwt;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization;
 using NIdentity.OpenId.Endpoints.Discovery;
@@ -48,6 +49,8 @@ internal class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddHttpClient();
+
+        services.AddJsonWebTokenService();
 
         services.AddTransient<ISecretService, SecretService>();
         services.AddTransient<IClientStore, NullClientStore>();

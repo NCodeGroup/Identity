@@ -67,6 +67,7 @@ internal class CryptoService : ICryptoService
     private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmType hashAlgorithmType) =>
         hashAlgorithmType switch
         {
+            HashAlgorithmType.Sha1 => SHA1.Create(),
             HashAlgorithmType.Sha256 => SHA256.Create(),
             _ => throw new ArgumentException("Unsupported algorithm", nameof(hashAlgorithmType))
         };
@@ -75,7 +76,7 @@ internal class CryptoService : ICryptoService
     {
         using var hashAlgorithm = CreateHashAlgorithm(hashAlgorithmType);
 
-        var hashByteLength = hashAlgorithm.HashSize / 8;
+        var hashByteLength = (hashAlgorithm.HashSize + 7) >> 3;
         var hashBytes = hashByteLength <= MaxStackAlloc ?
             stackalloc byte[hashByteLength] :
             GC.AllocateUninitializedArray<byte>(hashByteLength, pinned: false);

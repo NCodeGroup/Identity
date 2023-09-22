@@ -123,5 +123,5 @@ public class ValidateJwtParameters
     /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.
     /// The default is <c>300</c> seconds (5 minutes).
     /// </summary>
-    public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5.0);
 }

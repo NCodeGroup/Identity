@@ -95,9 +95,9 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
     private async ValueTask<string> CreateAuthorizationCodeAsync(AuthorizationContext authorizationContext, CancellationToken cancellationToken)
     {
         const int byteLength = 32;
-        var key = CryptoService.GenerateKey(byteLength, BinaryEncodingType.Base64Url);
-        var hashedKey = CryptoService.HashValue(key, HashAlgorithmType.Sha256, BinaryEncodingType.Base64);
-        Debug.Assert(hashedKey.Length <= DataConstants.MaxIndexLength);
+        var code = CryptoService.GenerateKey(byteLength, BinaryEncodingType.Base64Url);
+        var hashedCode = CryptoService.HashValue(code, HashAlgorithmType.Sha256, BinaryEncodingType.Base64);
+        Debug.Assert(hashedCode.Length <= DataConstants.MaxIndexLength);
 
         var authorizationRequest = authorizationContext.AuthorizationRequest;
         var authorizationRequestJson = JsonSerializer.Serialize(authorizationRequest, OpenIdContext.JsonSerializerOptions);
@@ -111,7 +111,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         var authorizationCode = new AuthorizationCode
         {
             Id = id,
-            HashedKey = hashedKey,
+            HashedCode = hashedCode,
             CreatedWhen = createdWhen,
             ExpiresWhen = expiresWhen,
             AuthorizationRequestJson = authorizationRequestJson
@@ -119,6 +119,6 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
 
         await AuthorizationCodeStore.AddAsync(authorizationCode, cancellationToken);
 
-        return key;
+        return code;
     }
 }

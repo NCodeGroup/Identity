@@ -31,7 +31,7 @@ public class AuthorizationCode : ISupportId
     /// Gets or sets the SHA-256 hash of the natural key that uniquely identifies this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string HashedKey { get; set; } = string.Empty;
+    public string HashedCode { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets when the authorization code was created.

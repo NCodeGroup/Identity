@@ -23,6 +23,8 @@ using NIdentity.OpenId.Messages;
 
 namespace NIdentity.OpenId.Results;
 
+// TODO - remove?
+
 /// <summary>
 /// Provides a default implementation of <see cref="IOpenIdResult"/> using <see cref="OpenIdMessage"/>
 /// for any <c>OAuth</c> or<c>OpenID Connect</c> parameters.

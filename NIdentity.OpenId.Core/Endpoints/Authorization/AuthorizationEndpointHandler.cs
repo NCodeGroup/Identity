@@ -1,18 +1,20 @@
 ﻿#region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
@@ -44,18 +46,28 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
     {
         var endpointContext = command.EndpointContext;
 
-        var authorizationSource = await LoadAuthorizationSource(endpointContext, cancellationToken);
+        var authorizationSource = await LoadAuthorizationSourceAsync(
+            endpointContext,
+            cancellationToken);
+
         IBaseAuthorizationRequest authorizationMessage = authorizationSource;
 
         try
         {
-            var authorizationContext = await LoadAuthorizationRequestAsync(authorizationSource, cancellationToken);
+            var authorizationContext = await LoadAuthorizationRequestAsync(
+                authorizationSource,
+                cancellationToken);
+
             var authorizationRequest = authorizationContext.AuthorizationRequest;
             authorizationMessage = authorizationRequest;
 
-            await ValidateAuthorizationRequestAsync(authorizationContext, cancellationToken);
+            await ValidateAuthorizationRequestAsync(
+                authorizationContext,
+                cancellationToken);
 
-            var authenticateResult = await AuthenticateAsync(endpointContext, cancellationToken);
+            var authenticateResult = await AuthenticateAsync(
+                endpointContext,
+                cancellationToken);
 
             var authorizeResult = await AuthorizeAsync(
                 endpointContext,
@@ -79,7 +91,11 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
         }
         catch (Exception exception)
         {
-            var result = await DetermineErrorResultAsync(endpointContext, authorizationMessage, exception);
+            var result = await DetermineErrorResultAsync(
+                endpointContext,
+                authorizationMessage,
+                exception);
+
             if (result != null)
             {
                 return result;
@@ -89,7 +105,7 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
         }
     }
 
-    private async ValueTask<IAuthorizationSource> LoadAuthorizationSource(
+    private async ValueTask<IAuthorizationSource> LoadAuthorizationSourceAsync(
         OpenIdEndpointContext endpointContext,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
@@ -204,12 +220,12 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
                 return null;
             }
 
-            if (!message.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId) || string.IsNullOrEmpty(clientId))
+            if (!message.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId) || StringValues.IsNullOrEmpty(clientId))
             {
                 return null;
             }
 
-            var client = await ClientStore.TryGetByClientIdAsync(clientId, cancellationToken);
+            var client = await ClientStore.TryGetByClientIdAsync(clientId.ToString(), cancellationToken);
             if (client == null)
             {
                 return null;

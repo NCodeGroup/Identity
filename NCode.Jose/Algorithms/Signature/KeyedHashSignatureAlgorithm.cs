@@ -49,7 +49,7 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     public KeyedHashSignatureAlgorithm(string code, int signatureSizeBits, KeyedHashFunctionDelegate keyedHashFunction)
     {
         Code = code;
-        SignatureSizeBytes = signatureSizeBits / 8;
+        SignatureSizeBytes = (signatureSizeBits + 7) >> 3;
         KeyedHashFunction = keyedHashFunction;
 
         /*

@@ -64,7 +64,7 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     }
 
     /// <inheritdoc />
-    public override int GetSignatureSizeBytes(int keySizeBits) => keySizeBits / 8;
+    public override int GetSignatureSizeBytes(int keySizeBits) => (keySizeBits + 7) >> 3;
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)

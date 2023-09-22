@@ -74,7 +74,7 @@ public class RsaSignatureAlgorithmTests
     {
         const string code = nameof(code);
 
-        var expected = keySizeBits / 8;
+        var expected = (keySizeBits + 7) >> 3;
         var algorithm = new RsaSignatureAlgorithm(code, hashAlgorithmName, null!);
         var result = algorithm.GetSignatureSizeBytes(keySizeBits);
         Assert.Equal(expected, result);
@@ -138,7 +138,7 @@ public class RsaSignatureAlgorithmTests
         if (padding == RSASignaturePadding.Pkcs1)
             return new global::Jose.RsaUsingSha($"SHA{hashSizeBits}");
         if (padding == RSASignaturePadding.Pss)
-            return new global::Jose.RsaPssUsingSha(hashSizeBits / 8);
+            return new global::Jose.RsaPssUsingSha((hashSizeBits + 7) >> 3);
         throw new InvalidOperationException();
     }
 }

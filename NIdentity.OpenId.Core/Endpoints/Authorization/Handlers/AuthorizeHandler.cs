@@ -1,18 +1,20 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Security.Claims;
@@ -112,7 +114,7 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
 
         // check MaxAge
         var identity = authenticationTicket.Principal.Identity as ClaimsIdentity ?? throw new InvalidOperationException();
-        if (!ValidateMaxAge(identity, authorizationRequest.MaxAge))
+        if (!ValidateMaxAge(identity, authorizationRequest.MaxAge, Options.ClockSkew))
         {
             var returnUrl = CallbackFeature.GetRedirectUrl(authorizationRequest, "MaxAge exceeded.");
             var redirectUrl = LoginFeature.GetRedirectUrl(returnUrl);
@@ -146,7 +148,7 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
         return validateUserIsActiveContext.IsActive;
     }
 
-    private bool ValidateMaxAge(ClaimsIdentity identity, TimeSpan? maxAge)
+    private bool ValidateMaxAge(ClaimsIdentity identity, TimeSpan? maxAge, TimeSpan clockSkew)
     {
         /*
          * max_age
@@ -170,7 +172,17 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
             return false;
         }
 
+        // use 'long/ticks' vs 'DateTime/DateTimeOffset' comparisons to avoid overflow exceptions
+
+        var now = SystemClock.UtcNow;
+        var nowTicks = now.UtcTicks;
+
         var authTime = DateTimeOffset.FromUnixTimeSeconds(authTimeSeconds);
-        return authTime + maxAge.Value >= SystemClock.UtcNow;
+        var authTimeTicks = authTime.UtcTicks;
+
+        var maxAgeTicks = maxAge.Value.Ticks;
+        var clockSkewTicks = clockSkew.Ticks;
+
+        return nowTicks <= authTimeTicks + maxAgeTicks + clockSkewTicks;
     }
 }

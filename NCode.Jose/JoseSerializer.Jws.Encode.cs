@@ -39,7 +39,7 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="parameters">Options that specify how the JWS token is encoded.</param>
+    /// <param name="encodeParameters">Options that specify how the JWS token is encoded.</param>
     /// <typeparam name="T">The type of the payload to encode.</typeparam>
     /// <returns>The encoded JWS token.</returns>
     string EncodeJws<T>(
@@ -47,7 +47,7 @@ partial interface IJoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null);
+        EncodeJwsParameters? encodeParameters = null);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -57,7 +57,7 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="parameters">Options that specify how the JWS token is encoded.</param>
+    /// <param name="encodeParameters">Options that specify how the JWS token is encoded.</param>
     /// <typeparam name="T">The type of the payload to encode.</typeparam>
     void EncodeJws<T>(
         IBufferWriter<char> tokenWriter,
@@ -65,7 +65,7 @@ partial interface IJoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null);
+        EncodeJwsParameters? encodeParameters = null);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -74,14 +74,14 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="parameters">Options that specify how the JWS token is encoded.</param>
+    /// <param name="encodeParameters">Options that specify how the JWS token is encoded.</param>
     /// <returns>The encoded JWS token.</returns>
     string EncodeJws(
         string payload,
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null);
+        EncodeJwsParameters? encodeParameters = null);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -91,14 +91,14 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="parameters">Options that specify how the JWS token is encoded.</param>
+    /// <param name="encodeParameters">Options that specify how the JWS token is encoded.</param>
     void EncodeJws(
         IBufferWriter<char> tokenWriter,
         string payload,
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null);
+        EncodeJwsParameters? encodeParameters = null);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -107,14 +107,14 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="parameters">Options that specify how the JWS token is encoded.</param>
+    /// <param name="encodeParameters">Options that specify how the JWS token is encoded.</param>
     /// <returns>The encoded JWS token.</returns>
     string EncodeJws(
         ReadOnlySpan<char> payload,
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null);
+        EncodeJwsParameters? encodeParameters = null);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -124,14 +124,14 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="parameters">Options that specify how the JWS token is encoded.</param>
+    /// <param name="encodeParameters">Options that specify how the JWS token is encoded.</param>
     void EncodeJws(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<char> payload,
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null);
+        EncodeJwsParameters? encodeParameters = null);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -140,14 +140,14 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="parameters">Options that specify how the JWS token is encoded.</param>
+    /// <param name="encodeParameters">Options that specify how the JWS token is encoded.</param>
     /// <returns>The encoded JWS token.</returns>
     string EncodeJws(
         ReadOnlySpan<byte> payload,
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null);
+        EncodeJwsParameters? encodeParameters = null);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -157,14 +157,14 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for signing.</param>
     /// <param name="signatureAlgorithmCode">The <c>Code</c> of the <see cref="ISignatureAlgorithm"/> to use for signing.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="parameters">Options that specify how the JWS token is encoded.</param>
+    /// <param name="encodeParameters">Options that specify how the JWS token is encoded.</param>
     void EncodeJws(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null);
+        EncodeJwsParameters? encodeParameters = null);
 }
 
 partial class JoseSerializer
@@ -177,10 +177,10 @@ partial class JoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null)
+        EncodeJwsParameters? encodeParameters = null)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-        EncodeJws(tokenBuffer, payload, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        EncodeJws(tokenBuffer, payload, secretKey, signatureAlgorithmCode, extraHeaders, encodeParameters);
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
@@ -191,10 +191,10 @@ partial class JoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null)
+        EncodeJwsParameters? encodeParameters = null)
     {
         using var _ = Serialize(payload, out var bytes);
-        EncodeJws(tokenWriter, bytes, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        EncodeJws(tokenWriter, bytes, secretKey, signatureAlgorithmCode, extraHeaders, encodeParameters);
     }
 
     /// <inheritdoc />
@@ -203,10 +203,10 @@ partial class JoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null)
+        EncodeJwsParameters? encodeParameters = null)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-        EncodeJws(tokenBuffer, payload, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        EncodeJws(tokenBuffer, payload, secretKey, signatureAlgorithmCode, extraHeaders, encodeParameters);
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
@@ -217,9 +217,9 @@ partial class JoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null)
+        EncodeJwsParameters? encodeParameters = null)
     {
-        EncodeJws(tokenWriter, payload.AsSpan(), secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        EncodeJws(tokenWriter, payload.AsSpan(), secretKey, signatureAlgorithmCode, extraHeaders, encodeParameters);
     }
 
     /// <inheritdoc />
@@ -228,10 +228,10 @@ partial class JoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null)
+        EncodeJwsParameters? encodeParameters = null)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-        EncodeJws(tokenBuffer, payload, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        EncodeJws(tokenBuffer, payload, secretKey, signatureAlgorithmCode, extraHeaders, encodeParameters);
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
@@ -242,13 +242,13 @@ partial class JoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null)
+        EncodeJwsParameters? encodeParameters = null)
     {
         var byteCount = Encoding.UTF8.GetByteCount(payload);
         using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
         var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
-        EncodeJws(tokenWriter, payloadBytes, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        EncodeJws(tokenWriter, payloadBytes, secretKey, signatureAlgorithmCode, extraHeaders, encodeParameters);
     }
 
     /// <inheritdoc />
@@ -257,10 +257,10 @@ partial class JoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null)
+        EncodeJwsParameters? encodeParameters = null)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-        EncodeJws(tokenBuffer, payload, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        EncodeJws(tokenBuffer, payload, secretKey, signatureAlgorithmCode, extraHeaders, encodeParameters);
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
@@ -271,9 +271,9 @@ partial class JoseSerializer
         SecretKey secretKey,
         string signatureAlgorithmCode,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null,
-        EncodeJwsParameters? parameters = null)
+        EncodeJwsParameters? encodeParameters = null)
     {
-        var nonNullParameters = parameters ?? DefaultEncodeJwsParameters;
+        var nonNullParameters = encodeParameters ?? DefaultEncodeJwsParameters;
 
         var signatureAlgorithm = GetSignatureAlgorithm(signatureAlgorithmCode);
 

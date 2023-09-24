@@ -33,6 +33,15 @@ public interface ISignatureAlgorithm : IKeyedAlgorithm
     int GetSignatureSizeBytes(int keySizeBits);
 
     /// <summary>
+    /// When overridden in a derived class, computes the hash value for the specified <paramref name="source"/> data.
+    /// </summary>
+    /// <param name="source">Contains the data to hash.</param>
+    /// <param name="destination">Destination for the calculated hash.</param>
+    /// <param name="bytesWritten">The number of bytes written to <paramref name="destination"/>.</param>
+    /// <returns><c>true></c> if there was enough room in <paramref name="destination"/> to copy all computed bytes; otherwise, <c>false</c>.</returns>
+    bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten);
+
+    /// <summary>
     /// When overridden in a derived class, computes a digital signature.
     /// </summary>
     /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
@@ -62,6 +71,9 @@ public abstract class SignatureAlgorithm : KeyedAlgorithm, ISignatureAlgorithm
 
     /// <inheritdoc />
     public abstract int GetSignatureSizeBytes(int keySizeBits);
+
+    /// <inheritdoc />
+    public abstract bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten);
 
     /// <inheritdoc />
     public abstract bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten);

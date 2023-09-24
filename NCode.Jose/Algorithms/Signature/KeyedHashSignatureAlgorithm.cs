@@ -38,6 +38,8 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
 
     private int SignatureSizeBytes { get; }
 
+    private HashFunctionDelegate HashFunction { get; }
+
     private KeyedHashFunctionDelegate KeyedHashFunction { get; }
 
     /// <summary>
@@ -45,11 +47,17 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="signatureSizeBits">Contains the size, in bits, of the digital signature.</param>
+    /// <param name="hashFunction">Contains a <see cref="HashFunctionDelegate"/> for the function to calculate a hash value.</param>
     /// <param name="keyedHashFunction">Contains a delegate for the <c>keyed hash (HMAC)</c> function to use.</param>
-    public KeyedHashSignatureAlgorithm(string code, int signatureSizeBits, KeyedHashFunctionDelegate keyedHashFunction)
+    public KeyedHashSignatureAlgorithm(
+        string code,
+        int signatureSizeBits,
+        HashFunctionDelegate hashFunction,
+        KeyedHashFunctionDelegate keyedHashFunction)
     {
         Code = code;
         SignatureSizeBytes = (signatureSizeBits + 7) >> 3;
+        HashFunction = hashFunction;
         KeyedHashFunction = keyedHashFunction;
 
         /*
@@ -65,6 +73,10 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
+
+    /// <inheritdoc />
+    public override bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten) =>
+        HashFunction(source, destination, out bytesWritten);
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)

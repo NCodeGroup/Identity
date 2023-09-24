@@ -40,17 +40,20 @@ public class EccSignatureAlgorithmDataSource : StaticAlgorithmDataSource
             // ES256
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha256,
-                HashAlgorithmName.SHA256);
+                HashAlgorithmName.SHA256,
+                SHA256.TryHashData);
 
             // ES384
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha384,
-                HashAlgorithmName.SHA384);
+                HashAlgorithmName.SHA384,
+                SHA384.TryHashData);
 
             // ES512
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha512,
-                HashAlgorithmName.SHA512);
+                HashAlgorithmName.SHA512,
+                SHA512.TryHashData);
         }
     }
 }

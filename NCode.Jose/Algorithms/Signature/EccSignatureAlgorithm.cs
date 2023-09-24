@@ -40,12 +40,18 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
 
     private HashAlgorithmName HashAlgorithmName { get; }
 
+    private HashFunctionDelegate HashFunction { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="EccSignatureAlgorithm"/> class.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+    /// <param name="hashFunction">Contains a <see cref="HashFunctionDelegate"/> for the function to calculate a hash value.</param>
     /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function to use.</param>
-    public EccSignatureAlgorithm(string code, HashAlgorithmName hashAlgorithmName)
+    public EccSignatureAlgorithm(
+        string code,
+        HashAlgorithmName hashAlgorithmName,
+        HashFunctionDelegate hashFunction)
     {
         var hashSizeBits = HashSizeBitsFromAlgorithmName(hashAlgorithmName);
         var kekSizeBits = hashSizeBits == 512 ? 521 : hashSizeBits;
@@ -56,12 +62,17 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
 
         Code = code;
         HashAlgorithmName = hashAlgorithmName;
+        HashFunction = hashFunction;
 
         KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
     }
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
+
+    /// <inheritdoc />
+    public override bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten) =>
+        HashFunction(source, destination, out bytesWritten);
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)

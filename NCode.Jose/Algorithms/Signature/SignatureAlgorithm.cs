@@ -28,18 +28,14 @@ namespace NCode.Jose.Algorithms.Signature;
 public interface ISignatureAlgorithm : IKeyedAlgorithm
 {
     /// <summary>
+    /// Gets the <see cref="HashAlgorithmName"/> that is used by this digital signature algorithm.
+    /// </summary>
+    HashAlgorithmName HashAlgorithmName { get; }
+
+    /// <summary>
     /// Gets the size, in bytes, of the digital signature given the size, in bits, of the signing key.
     /// </summary>
     int GetSignatureSizeBytes(int keySizeBits);
-
-    /// <summary>
-    /// When overridden in a derived class, computes the hash value for the specified <paramref name="source"/> data.
-    /// </summary>
-    /// <param name="source">Contains the data to hash.</param>
-    /// <param name="destination">Destination for the calculated hash.</param>
-    /// <param name="bytesWritten">The number of bytes written to <paramref name="destination"/>.</param>
-    /// <returns><c>true></c> if there was enough room in <paramref name="destination"/> to copy all computed bytes; otherwise, <c>false</c>.</returns>
-    bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten);
 
     /// <summary>
     /// When overridden in a derived class, computes a digital signature.
@@ -66,14 +62,23 @@ public interface ISignatureAlgorithm : IKeyedAlgorithm
 /// </summary>
 public abstract class SignatureAlgorithm : KeyedAlgorithm, ISignatureAlgorithm
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SignatureAlgorithm"/> class.
+    /// </summary>
+    /// <param name="hashAlgorithmName">The <see cref="HashAlgorithmName"/> for this digital signature algorithm.</param>
+    protected SignatureAlgorithm(HashAlgorithmName hashAlgorithmName)
+    {
+        HashAlgorithmName = hashAlgorithmName;
+    }
+
     /// <inheritdoc />
     public override AlgorithmType Type => AlgorithmType.DigitalSignature;
 
     /// <inheritdoc />
-    public abstract int GetSignatureSizeBytes(int keySizeBits);
+    public virtual HashAlgorithmName HashAlgorithmName { get; }
 
     /// <inheritdoc />
-    public abstract bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten);
+    public abstract int GetSignatureSizeBytes(int keySizeBits);
 
     /// <inheritdoc />
     public abstract bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten);

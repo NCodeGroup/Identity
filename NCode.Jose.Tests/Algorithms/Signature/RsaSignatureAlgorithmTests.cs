@@ -20,6 +20,7 @@
 using System.Security.Cryptography;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.Signature;
@@ -31,7 +32,7 @@ public class RsaSignatureAlgorithmTests
     {
         const string code = nameof(code);
 
-        var algorithm = new RsaSignatureAlgorithm(code, default, null!, null!);
+        var algorithm = new RsaSignatureAlgorithm(code, default, null!);
         Assert.Equal(code, algorithm.Code);
     }
 
@@ -40,7 +41,7 @@ public class RsaSignatureAlgorithmTests
     {
         const string code = nameof(code);
 
-        var algorithm = new RsaSignatureAlgorithm(code, default, null!, null!);
+        var algorithm = new RsaSignatureAlgorithm(code, default, null!);
         Assert.Equal(typeof(RsaSecretKey), algorithm.KeyType);
     }
 
@@ -49,7 +50,7 @@ public class RsaSignatureAlgorithmTests
     {
         const string code = nameof(code);
 
-        var algorithm = new RsaSignatureAlgorithm(code, default, null!, null!);
+        var algorithm = new RsaSignatureAlgorithm(code, default, null!);
         var result = Assert.Single(algorithm.KeyBitSizes);
         Assert.Equal(2048, result.MinSize);
         Assert.Equal(16384, result.MaxSize);
@@ -73,7 +74,7 @@ public class RsaSignatureAlgorithmTests
         const string code = nameof(code);
 
         var expected = (keySizeBits + 7) >> 3;
-        var algorithm = new RsaSignatureAlgorithm(code, default, null!, null!);
+        var algorithm = new RsaSignatureAlgorithm(code, default, null!);
         var result = algorithm.GetSignatureSizeBytes(keySizeBits);
         Assert.Equal(expected, result);
     }
@@ -102,7 +103,7 @@ public class RsaSignatureAlgorithmTests
         using var key = RSA.Create(keySizeBits);
         using var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), key);
 
-        var algorithm = new RsaSignatureAlgorithm(code, hashAlgorithmName, null!, padding);
+        var algorithm = new RsaSignatureAlgorithm(code, hashAlgorithmName, padding);
 
         var dataSizeBytes = Random.Shared.Next(128, 1024);
         var signatureSizeBytes = algorithm.GetSignatureSizeBytes(keySizeBits);
@@ -132,7 +133,7 @@ public class RsaSignatureAlgorithmTests
 
     private static global::Jose.IJwsAlgorithm GetControlAlgorithm(HashAlgorithmName hashAlgorithmName, RSASignaturePadding padding)
     {
-        var hashSizeBits = KeyedAlgorithm.HashSizeBitsFromAlgorithmName(hashAlgorithmName);
+        var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
         if (padding == RSASignaturePadding.Pkcs1)
             return new global::Jose.RsaUsingSha($"SHA{hashSizeBits}");
         if (padding == RSASignaturePadding.Pss)
@@ -145,33 +146,5 @@ public class RsaSignatureAlgorithmTests
         yield return new object[] { 256, (HashFunctionDelegate)SHA256.TryHashData };
         yield return new object[] { 384, (HashFunctionDelegate)SHA384.TryHashData };
         yield return new object[] { 512, (HashFunctionDelegate)SHA512.TryHashData };
-    }
-
-    [Theory]
-    [MemberData(nameof(GetTryHashTestData))]
-    public void TryHash_Valid(int hashSizeBits, HashFunctionDelegate hashFunction)
-    {
-        const string code = nameof(code);
-        var anyHashAlgorithmName = HashAlgorithmName.SHA512;
-
-        var algorithm = new RsaSignatureAlgorithm(code, anyHashAlgorithmName, hashFunction, null!);
-
-        var hashSizeBytes = hashSizeBits >> 3;
-        var dataSizeBytes = Random.Shared.Next(128, 1024);
-        Span<byte> inputData = stackalloc byte[dataSizeBytes];
-        Span<byte> expected = stackalloc byte[hashSizeBytes];
-        Span<byte> actual = stackalloc byte[hashSizeBytes];
-
-        RandomNumberGenerator.Fill(inputData);
-
-        var expectedHashResult = hashFunction(inputData, expected, out var expectedBytesWritten);
-        Assert.True(expectedHashResult);
-        Assert.Equal(hashSizeBytes, expectedBytesWritten);
-
-        var actualHashResult = algorithm.TryHash(inputData, actual, out var actualBytesWritten);
-        Assert.True(actualHashResult);
-        Assert.Equal(hashSizeBytes, actualBytesWritten);
-
-        Assert.Equal(expected.ToArray(), actual.ToArray());
     }
 }

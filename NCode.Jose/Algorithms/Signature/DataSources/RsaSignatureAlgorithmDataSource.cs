@@ -42,21 +42,18 @@ public class RsaSignatureAlgorithmDataSource : StaticAlgorithmDataSource
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSha256,
                 HashAlgorithmName.SHA256,
-                SHA256.TryHashData,
                 RSASignaturePadding.Pkcs1);
 
             // RS384
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSha384,
                 HashAlgorithmName.SHA384,
-                SHA384.TryHashData,
                 RSASignaturePadding.Pkcs1);
 
             // RS512
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSha512,
                 HashAlgorithmName.SHA512,
-                SHA512.TryHashData,
                 RSASignaturePadding.Pkcs1);
 
             // Digital Signature with RSASSA-PSS
@@ -66,21 +63,18 @@ public class RsaSignatureAlgorithmDataSource : StaticAlgorithmDataSource
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
                 HashAlgorithmName.SHA256,
-                SHA256.TryHashData,
                 RSASignaturePadding.Pss);
 
             // PS384
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSsaPssSha384,
                 HashAlgorithmName.SHA384,
-                SHA384.TryHashData,
                 RSASignaturePadding.Pss);
 
             // PS512
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSsaPssSha512,
                 HashAlgorithmName.SHA512,
-                SHA512.TryHashData,
                 RSASignaturePadding.Pss);
         }
     }

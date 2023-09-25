@@ -50,25 +50,6 @@ public abstract class KeyedAlgorithm : Algorithm, IKeyedAlgorithm
     public abstract IEnumerable<KeySizes> KeyBitSizes { get; }
 
     /// <summary>
-    /// Gets the hash size, in bits, from the specified <see cref="HashAlgorithmName"/>.
-    /// </summary>
-    /// <param name="hashAlgorithmName">Contains the <see cref="HashAlgorithmName"/>.</param>
-    /// <returns>The hash size, in bits, from the <see cref="HashAlgorithmName"/>.</returns>
-    /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
-    protected internal static int HashSizeBitsFromAlgorithmName(HashAlgorithmName hashAlgorithmName)
-    {
-        if (hashAlgorithmName == HashAlgorithmName.SHA1)
-            return 160;
-        if (hashAlgorithmName == HashAlgorithmName.SHA256)
-            return 256;
-        if (hashAlgorithmName == HashAlgorithmName.SHA384)
-            return 384;
-        if (hashAlgorithmName == HashAlgorithmName.SHA512)
-            return 512;
-        throw new ArgumentException("Unsupported hash algorithm.", nameof(hashAlgorithmName));
-    }
-
-    /// <summary>
     /// Validates that the specified <paramref name="secretKey"/> is an instance of <typeparamref name="T"/>
     /// and verifies the key size.
     /// </summary>

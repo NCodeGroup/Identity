@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Algorithms.KeyManagement;
@@ -61,7 +62,7 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
         {
             // https://crypto.stackexchange.com/a/42100
             // ceil(kLenBits/8) - 2*ceil(hLenBits/8) - 2
-            var hLenBits = HashSizeBitsFromAlgorithmName(Padding.OaepHashAlgorithm);
+            var hLenBits = Padding.OaepHashAlgorithm.GetHashSizeBits();
             var maxSizeBytes = ((kekSizeBits + 7) >> 3) - (((hLenBits + 7) >> 3) << 1) - 2;
             return maxSizeBytes;
         }

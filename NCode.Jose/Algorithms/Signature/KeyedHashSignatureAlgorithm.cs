@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Algorithms.Signature;
@@ -38,26 +39,24 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
 
     private int SignatureSizeBytes { get; }
 
-    private HashFunctionDelegate HashFunction { get; }
-
     private KeyedHashFunctionDelegate KeyedHashFunction { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="KeyedHashSignatureAlgorithm"/> class.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="signatureSizeBits">Contains the size, in bits, of the digital signature.</param>
-    /// <param name="hashFunction">Contains a <see cref="HashFunctionDelegate"/> for the function to calculate a hash value.</param>
+    /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
     /// <param name="keyedHashFunction">Contains a delegate for the <c>keyed hash (HMAC)</c> function to use.</param>
     public KeyedHashSignatureAlgorithm(
         string code,
-        int signatureSizeBits,
-        HashFunctionDelegate hashFunction,
+        HashAlgorithmName hashAlgorithmName,
         KeyedHashFunctionDelegate keyedHashFunction)
+        : base(hashAlgorithmName)
     {
+        var signatureSizeBits = hashAlgorithmName.GetHashSizeBits();
+
         Code = code;
         SignatureSizeBytes = (signatureSizeBits + 7) >> 3;
-        HashFunction = hashFunction;
         KeyedHashFunction = keyedHashFunction;
 
         /*
@@ -73,10 +72,6 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
-
-    /// <inheritdoc />
-    public override bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten) =>
-        HashFunction(source, destination, out bytesWritten);
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)

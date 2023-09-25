@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.Signature;
 using NCode.Jose.SecretKeys;
 
@@ -30,9 +29,9 @@ public class EccSignatureAlgorithmTests
     public void Code_Valid()
     {
         const string code = nameof(code);
-        var anyHashAlgorithmName = HashAlgorithmName.SHA512;
+        var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
 
-        var algorithm = new EccSignatureAlgorithm(code, anyHashAlgorithmName, null!);
+        var algorithm = new EccSignatureAlgorithm(code, anyValidHashAlgorithmName);
         Assert.Equal(code, algorithm.Code);
     }
 
@@ -40,9 +39,9 @@ public class EccSignatureAlgorithmTests
     public void KeyType_Valid()
     {
         const string code = nameof(code);
-        var anyHashAlgorithmName = HashAlgorithmName.SHA512;
+        var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
 
-        var algorithm = new EccSignatureAlgorithm(code, anyHashAlgorithmName, null!);
+        var algorithm = new EccSignatureAlgorithm(code, anyValidHashAlgorithmName);
         Assert.Equal(typeof(EccSecretKey), algorithm.KeyType);
     }
 
@@ -59,7 +58,7 @@ public class EccSignatureAlgorithmTests
     {
         const string code = nameof(code);
 
-        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName, null!);
+        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
         var result = Assert.Single(algorithm.KeyBitSizes);
         Assert.Equal(expected, result.MinSize);
         Assert.Equal(expected, result.MaxSize);
@@ -82,7 +81,7 @@ public class EccSignatureAlgorithmTests
 
         var keySizeBits = Random.Shared.Next();
 
-        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName, null!);
+        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
         var result = algorithm.GetSignatureSizeBytes(keySizeBits);
         Assert.Equal(expected, result);
     }
@@ -104,7 +103,7 @@ public class EccSignatureAlgorithmTests
         using var key = ECDsa.Create(curve);
         using var secretKey = EccSecretKey.Create(keyId, Array.Empty<string>(), key);
 
-        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName, null!);
+        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
         var hashSizeBytes = algorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
 
         var dataSizeBytes = Random.Shared.Next(128, 1024);
@@ -129,40 +128,5 @@ public class EccSignatureAlgorithmTests
 
         var verifyHashUsingControl = controlAlgorithm.Verify(signature.ToArray(), inputData.ToArray(), key);
         Assert.True(verifyHashUsingControl);
-    }
-
-    public static IEnumerable<object[]> GetTryHashTestData()
-    {
-        yield return new object[] { 256, (HashFunctionDelegate)SHA256.TryHashData };
-        yield return new object[] { 384, (HashFunctionDelegate)SHA384.TryHashData };
-        yield return new object[] { 512, (HashFunctionDelegate)SHA512.TryHashData };
-    }
-
-    [Theory]
-    [MemberData(nameof(GetTryHashTestData))]
-    public void TryHash_Valid(int hashSizeBits, HashFunctionDelegate hashFunction)
-    {
-        const string code = nameof(code);
-        var anyHashAlgorithmName = HashAlgorithmName.SHA512;
-
-        var algorithm = new EccSignatureAlgorithm(code, anyHashAlgorithmName, hashFunction);
-
-        var hashSizeBytes = hashSizeBits >> 3;
-        var dataSizeBytes = Random.Shared.Next(128, 1024);
-        Span<byte> inputData = stackalloc byte[dataSizeBytes];
-        Span<byte> expected = stackalloc byte[hashSizeBytes];
-        Span<byte> actual = stackalloc byte[hashSizeBytes];
-
-        RandomNumberGenerator.Fill(inputData);
-
-        var expectedHashResult = hashFunction(inputData, expected, out var expectedBytesWritten);
-        Assert.True(expectedHashResult);
-        Assert.Equal(hashSizeBytes, expectedBytesWritten);
-
-        var actualHashResult = algorithm.TryHash(inputData, actual, out var actualBytesWritten);
-        Assert.True(actualHashResult);
-        Assert.Equal(hashSizeBytes, actualBytesWritten);
-
-        Assert.Equal(expected.ToArray(), actual.ToArray());
     }
 }

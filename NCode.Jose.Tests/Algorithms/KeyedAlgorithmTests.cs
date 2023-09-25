@@ -34,33 +34,6 @@ public class KeyedAlgorithmTests : BaseTests
         Algorithm = MockKeyedAlgorithm.Object;
     }
 
-    public static IEnumerable<object?[]> GetHashSizeBitsFromAlgorithmNameTestData()
-    {
-        yield return new object?[] { HashAlgorithmName.MD5, null };
-        yield return new object?[] { HashAlgorithmName.SHA1, 160 };
-        yield return new object?[] { HashAlgorithmName.SHA256, 256 };
-        yield return new object?[] { HashAlgorithmName.SHA384, 384 };
-        yield return new object?[] { HashAlgorithmName.SHA512, 512 };
-    }
-
-    [Theory]
-    [MemberData(nameof(GetHashSizeBitsFromAlgorithmNameTestData))]
-    public void HashSizeBitsFromAlgorithmName_Valid(HashAlgorithmName hashAlgorithmName, int? expected)
-    {
-        if (expected.HasValue)
-        {
-            var actual = KeyedAlgorithm.HashSizeBitsFromAlgorithmName(hashAlgorithmName);
-            Assert.Equal(expected.Value, actual);
-        }
-        else
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-                KeyedAlgorithm.HashSizeBitsFromAlgorithmName(hashAlgorithmName));
-
-            Assert.Equal("Unsupported hash algorithm. (Parameter 'hashAlgorithmName')", exception.Message);
-        }
-    }
-
     [Fact]
     public void ValidateSecretKey_Valid()
     {

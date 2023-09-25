@@ -30,10 +30,9 @@ public class KeyedHashSignatureAlgorithmTests
     public void Code_Valid()
     {
         const string code = nameof(code);
+        var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
 
-        var signatureSizeBits = Random.Shared.Next();
-
-        var algorithm = new KeyedHashSignatureAlgorithm(code, signatureSizeBits, null!, null!);
+        var algorithm = new KeyedHashSignatureAlgorithm(code, anyValidHashAlgorithmName, null!);
         Assert.Equal(code, algorithm.Code);
     }
 
@@ -41,39 +40,44 @@ public class KeyedHashSignatureAlgorithmTests
     public void KeyType_Valid()
     {
         const string code = nameof(code);
+        var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
 
-        var signatureSizeBits = Random.Shared.Next();
-
-        var algorithm = new KeyedHashSignatureAlgorithm(code, signatureSizeBits, null!, null!);
+        var algorithm = new KeyedHashSignatureAlgorithm(code, anyValidHashAlgorithmName, null!);
         Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
     }
 
-    [Fact]
-    public void KeyBitSizes_Valid()
+    [Theory]
+    [InlineData(256)]
+    [InlineData(384)]
+    [InlineData(512)]
+    public void KeyBitSizes_Valid(int hashSizeBits)
     {
         const string code = nameof(code);
 
-        var signatureSizeBits = Random.Shared.Next();
+        var hashAlgorithmName = new HashAlgorithmName($"SHA{hashSizeBits}");
 
-        var algorithm = new KeyedHashSignatureAlgorithm(code, signatureSizeBits, null!, null!);
+        var algorithm = new KeyedHashSignatureAlgorithm(code, hashAlgorithmName, null!);
         var result = Assert.Single(algorithm.KeyBitSizes);
-        Assert.Equal(signatureSizeBits, result.MinSize);
+        Assert.Equal(hashSizeBits, result.MinSize);
         Assert.Equal(int.MaxValue, result.MaxSize);
         Assert.Equal(8, result.SkipSize);
     }
 
-    [Fact]
-    public void GetSignatureSizeBytes_Valid()
+    [Theory]
+    [InlineData(256)]
+    [InlineData(384)]
+    [InlineData(512)]
+    public void GetSignatureSizeBytes_Valid(int hashSizeBits)
     {
         const string code = nameof(code);
 
+        var hashSizeBytes = (hashSizeBits + 7) >> 3;
+        var hashAlgorithmName = new HashAlgorithmName($"SHA{hashSizeBits}");
         var keySizeBits = Random.Shared.Next(128, 1024);
-        var signatureSizeBytes = Random.Shared.Next(128, 1024);
-        var signatureSizeBits = signatureSizeBytes * 8;
 
-        var algorithm = new KeyedHashSignatureAlgorithm(code, signatureSizeBits, null!, null!);
+        var algorithm = new KeyedHashSignatureAlgorithm(code, hashAlgorithmName, null!);
         var result = algorithm.GetSignatureSizeBytes(keySizeBits);
-        Assert.Equal(signatureSizeBytes, result);
+        Assert.Equal(hashSizeBytes, result);
     }
 
     public static IEnumerable<object[]> GetRoundTripTestData()
@@ -104,13 +108,14 @@ public class KeyedHashSignatureAlgorithmTests
         Span<byte> key = new byte[keySizeBytes];
         Span<byte> inputData = stackalloc byte[dataSizeBytes];
         Span<byte> signature = stackalloc byte[hashSizeBytes];
+        var hashAlgorithmName = new HashAlgorithmName($"SHA{signatureSizeBits}");
 
         RandomNumberGenerator.Fill(key);
         RandomNumberGenerator.Fill(inputData);
 
         using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), key);
 
-        var algorithm = new KeyedHashSignatureAlgorithm(code, signatureSizeBits, null!, keyedHashFunction);
+        var algorithm = new KeyedHashSignatureAlgorithm(code, hashAlgorithmName, keyedHashFunction);
 
         var signResult = algorithm.TrySign(secretKey, inputData, signature, out var signBytesWritten);
         Assert.True(signResult);
@@ -128,39 +133,5 @@ public class KeyedHashSignatureAlgorithmTests
 
         var verifyHashUsingControl = controlAlgorithm.Verify(signature.ToArray(), inputData.ToArray(), key.ToArray());
         Assert.True(verifyHashUsingControl);
-    }
-
-    public static IEnumerable<object[]> GetTryHashTestData()
-    {
-        yield return new object[] { 256, (HashFunctionDelegate)SHA256.TryHashData };
-        yield return new object[] { 384, (HashFunctionDelegate)SHA384.TryHashData };
-        yield return new object[] { 512, (HashFunctionDelegate)SHA512.TryHashData };
-    }
-
-    [Theory]
-    [MemberData(nameof(GetTryHashTestData))]
-    public void TryHash_Valid(int hashSizeBits, HashFunctionDelegate hashFunction)
-    {
-        const string code = nameof(code);
-
-        var algorithm = new KeyedHashSignatureAlgorithm(code, hashSizeBits, hashFunction, null!);
-
-        var hashSizeBytes = hashSizeBits >> 3;
-        var dataSizeBytes = Random.Shared.Next(128, 1024);
-        Span<byte> inputData = stackalloc byte[dataSizeBytes];
-        Span<byte> expected = stackalloc byte[hashSizeBytes];
-        Span<byte> actual = stackalloc byte[hashSizeBytes];
-
-        RandomNumberGenerator.Fill(inputData);
-
-        var expectedHashResult = hashFunction(inputData, expected, out var expectedBytesWritten);
-        Assert.True(expectedHashResult);
-        Assert.Equal(hashSizeBytes, expectedBytesWritten);
-
-        var actualHashResult = algorithm.TryHash(inputData, actual, out var actualBytesWritten);
-        Assert.True(actualHashResult);
-        Assert.Equal(hashSizeBytes, actualBytesWritten);
-
-        Assert.Equal(expected.ToArray(), actual.ToArray());
     }
 }

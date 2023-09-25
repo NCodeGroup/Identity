@@ -40,22 +40,19 @@ public class HmacSignatureAlgorithmDataSource : StaticAlgorithmDataSource
             // HS256
             yield return new KeyedHashSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.HmacSha256,
-                signatureSizeBits: 256,
-                SHA256.TryHashData,
+                HashAlgorithmName.SHA256,
                 HMACSHA256.TryHashData);
 
             // HS384
             yield return new KeyedHashSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.HmacSha384,
-                signatureSizeBits: 384,
-                SHA384.TryHashData,
+                HashAlgorithmName.SHA384,
                 HMACSHA384.TryHashData);
 
             // HS512
             yield return new KeyedHashSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.HmacSha512,
-                signatureSizeBits: 512,
-                SHA512.TryHashData,
+                HashAlgorithmName.SHA512,
                 HMACSHA512.TryHashData);
         }
     }

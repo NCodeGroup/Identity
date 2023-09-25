@@ -46,37 +46,26 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
-    private HashAlgorithmName HashAlgorithmName { get; }
-
-    private HashFunctionDelegate HashFunction { get; }
-
     private RSASignaturePadding Padding { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RsaSignatureAlgorithm"/> class.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function to use.</param>
-    /// <param name="hashFunction">Contains a <see cref="HashFunctionDelegate"/> for the function to calculate a hash value.</param>
+    /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
     /// <param name="padding">Contains a <see cref="RSASignaturePadding"/> value that specifies the type of <c>RSA</c> padding to use.</param>
     public RsaSignatureAlgorithm(
         string code,
         HashAlgorithmName hashAlgorithmName,
-        HashFunctionDelegate hashFunction,
         RSASignaturePadding padding)
+        : base(hashAlgorithmName)
     {
         Code = code;
-        HashAlgorithmName = hashAlgorithmName;
-        HashFunction = hashFunction;
         Padding = padding;
     }
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => (keySizeBits + 7) >> 3;
-
-    /// <inheritdoc />
-    public override bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten) =>
-        HashFunction(source, destination, out bytesWritten);
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)

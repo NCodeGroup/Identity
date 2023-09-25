@@ -27,6 +27,15 @@ namespace NCode.Jose.Algorithms.Signature;
 /// </summary>
 public class NoneSignatureAlgorithm : SignatureAlgorithm
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NoneSignatureAlgorithm"/> class.
+    /// </summary>
+    public NoneSignatureAlgorithm()
+        : base(hashAlgorithmName: default)
+    {
+        // nothing
+    }
+
     /// <inheritdoc />
     public override string Code => AlgorithmCodes.DigitalSignature.None;
 
@@ -38,13 +47,6 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => 0;
-
-    /// <inheritdoc />
-    public override bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten)
-    {
-        bytesWritten = 0;
-        return true;
-    }
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)

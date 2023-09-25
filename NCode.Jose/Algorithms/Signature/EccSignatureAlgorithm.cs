@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Algorithms.Signature;
@@ -38,22 +39,15 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
 
     private int SignatureSizeBytes { get; }
 
-    private HashAlgorithmName HashAlgorithmName { get; }
-
-    private HashFunctionDelegate HashFunction { get; }
-
     /// <summary>
     /// Initializes a new instance of the <see cref="EccSignatureAlgorithm"/> class.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="hashFunction">Contains a <see cref="HashFunctionDelegate"/> for the function to calculate a hash value.</param>
-    /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function to use.</param>
-    public EccSignatureAlgorithm(
-        string code,
-        HashAlgorithmName hashAlgorithmName,
-        HashFunctionDelegate hashFunction)
+    /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
+    public EccSignatureAlgorithm(string code, HashAlgorithmName hashAlgorithmName)
+        : base(hashAlgorithmName)
     {
-        var hashSizeBits = HashSizeBitsFromAlgorithmName(hashAlgorithmName);
+        var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
         var kekSizeBits = hashSizeBits == 512 ? 521 : hashSizeBits;
 
         // ECDSA signatures are twice the size of the key size rounded up to the nearest byte
@@ -61,18 +55,12 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
         SignatureSizeBytes = quotient + remainder;
 
         Code = code;
-        HashAlgorithmName = hashAlgorithmName;
-        HashFunction = hashFunction;
 
         KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
     }
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
-
-    /// <inheritdoc />
-    public override bool TryHash(ReadOnlySpan<byte> source, Span<byte> destination, out int bytesWritten) =>
-        HashFunction(source, destination, out bytesWritten);
 
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)

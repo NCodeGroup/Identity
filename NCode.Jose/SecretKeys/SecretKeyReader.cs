@@ -39,10 +39,9 @@ public readonly ref partial struct SecretKeyReader
     /// <summary>
     /// Reads a <see cref="SymmetricSecretKey"/> from the source buffer.
     /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    /// <param name="metadata">The metadata for the secret key.</param>
     /// <returns>The <see cref="SymmetricSecretKey"/> that was read.</returns>
-    public SymmetricSecretKey ReadSymmetric(string keyId, IEnumerable<string> tags) => new(keyId, tags, Source);
+    public SymmetricSecretKey ReadSymmetric(KeyMetadata metadata) => new(metadata, Source);
 
     private T ReadAsymmetricKey<T>(Func<T> factory, AsymmetricSecretKeyEncoding encoding, ImportPemDelegate<T> importPem)
         where T : AsymmetricAlgorithm =>

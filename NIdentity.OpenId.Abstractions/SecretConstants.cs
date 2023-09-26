@@ -43,12 +43,12 @@ public static class SecretConstants
         public const string Symmetric = "symmetric";
 
         /// <summary>
-        /// Indicates that a <see cref="Secret"/> represents an <c>RSA</c> secret key.
+        /// Indicates that a <see cref="Secret"/> represents an <c>RSA</c> secret key without a certificate.
         /// </summary>
         public const string Rsa = "rsa";
 
         /// <summary>
-        /// Indicates that a <see cref="Secret"/> represents an <c>Elliptic-Curve</c> secret key.
+        /// Indicates that a <see cref="Secret"/> represents an <c>Elliptic-Curve</c> secret key without a certificate.
         /// </summary>
         public const string Ecc = "ecc";
     }
@@ -59,7 +59,7 @@ public static class SecretConstants
     public static class EncodingTypes
     {
         /// <summary>
-        /// Indicates that a <see cref="Secret"/> is not encoded and stored as plain-text.
+        /// Indicates that a <see cref="Secret"/> is not encoded and instead stored as plain-text.
         /// Primarily only used for password-based key derivation (<c>PBES2</c>).
         /// </summary>
         public const string None = "none";

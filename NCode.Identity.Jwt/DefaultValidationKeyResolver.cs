@@ -38,14 +38,14 @@ public static class DefaultValidationKeyResolver
     /// Provides a default implementation for resolving the <see cref="SecretKey"/> instances that are to be used
     /// to validate a Json Web Token (JWT).
     /// </summary>
+    /// <param name="protectionType">A value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
     /// <param name="header">A <see cref="JsonElement"/> instance that contains the Json Web Token (JWT) header.</param>
     /// <param name="secretKeys">A <see cref="ISecretKeyCollection"/> instance that contains the candidate <see cref="SecretKey"/> instances.</param>
-    /// <param name="secretKeyTags">A collection of <see cref="string"/> tags that is to be used for filtering which <see cref="SecretKey"/> instances should be returned when a specific key cannot be found.</param>
     /// <returns>A collection of <see cref="SecretKey"/> instances.</returns>
     public static IEnumerable<SecretKey> ResolveValidationKeys(
+        string protectionType,
         JsonElement header,
-        ISecretKeyCollection secretKeys,
-        IEnumerable<string> secretKeyTags)
+        ISecretKeyCollection secretKeys)
     {
         // attempt to lookup by 'kid'
         if (header.TryGetPropertyValue<string>(JoseClaimNames.Header.Kid, out var keyId) &&
@@ -106,8 +106,15 @@ public static class DefaultValidationKeyResolver
             }
         }
 
-        // otherwise, the degenerate case will attempt to use the keys with the specified tags
-        return secretKeys.Where(secretKey => secretKey.Tags.IsSupersetOf(secretKeyTags));
+        var use = protectionType switch
+        {
+            "JWS" => "sig",
+            "JWE" => "enc",
+            _ => protectionType
+        };
+
+        // otherwise, the degenerate case will attempt to use all the keys with the specified usage
+        return secretKeys.Where(secretKey => secretKey.Use is null || secretKey.Use == use);
     }
 
     private static bool VerifyCertificateHash(

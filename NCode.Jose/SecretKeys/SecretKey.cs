@@ -31,12 +31,21 @@ public abstract class SecretKey : BaseDisposable
     /// <summary>
     /// Gets the <c>Key ID (KID)</c> of this <see cref="SecretKey"/>.
     /// </summary>
-    public string KeyId { get; }
+    public string? KeyId { get; }
 
     /// <summary>
-    /// Gets a read-only set of tags associated with this <see cref="SecretKey"/>.
+    /// Gets the intended use for this <see cref="SecretKey"/>. This property is optional and may be <c>null</c> to
+    /// indicate that this key is intended for use with any compatible algorithm.
+    /// Valid values are defined in RFC 7517 Section 4.2:
+    /// https://tools.ietf.org/html/rfc7517#section-4.2
     /// </summary>
-    public IReadOnlySet<string> Tags { get; }
+    public string? Use { get; }
+
+    /// <summary>
+    /// Gets the intended algorithm for use with this <see cref="SecretKey"/>. This property is optional and may be
+    /// <c>null</c> to indicate that this key is intended for use with any compatible algorithm.
+    /// </summary>
+    public string? Algorithm { get; }
 
     /// <summary>
     /// Gets the size, in bits, of the key material.
@@ -49,18 +58,20 @@ public abstract class SecretKey : BaseDisposable
     public virtual int KeySizeBytes => (KeySizeBits + 7) >> 3;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKey"/> class with the specified <c>Key ID (KID)</c>.
+    /// Initializes a new instance of the <see cref="SecretKey"/> class with the specified metadata.
     /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
-    protected SecretKey(string keyId, IEnumerable<string> tags)
+    /// <param name="metadata">The metadata for the secret key.</param>
+    protected SecretKey(KeyMetadata metadata)
     {
-        KeyId = keyId;
-        Tags = tags.ToHashSet(StringComparer.Ordinal);
+        KeyId = metadata.KeyId;
+        Use = metadata.Use;
+        Algorithm = metadata.Algorithm;
     }
 
     /// <summary>
     /// Returns a formatted <see cref="string"/> that represents this <see cref="SecretKey"/> instance.
     /// </summary>
-    public override string ToString() => ToStringOrNull ??= $"{GetType().Name} {{ KeyId = '{KeyId}', Tags = [{string.Join(", ", Tags.Select(tag => $"'{tag}'"))}], Size = {KeySizeBits} }}";
+    public override string ToString() => ToStringOrNull ??= $"{GetType().Name} {{ KeyId = {QuoteOrNull(KeyId)}, Use = {QuoteOrNull(Use)}, Algorithm = {QuoteOrNull(Algorithm)}, Size = {KeySizeBits} }}";
+
+    private static string QuoteOrNull(string? value) => value is null ? "(null)" : $"'{value}'";
 }

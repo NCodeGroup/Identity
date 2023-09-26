@@ -27,27 +27,26 @@ partial struct SecretKeyReader
     /// <summary>
     /// Reads an <see cref="EccSecretKey"/> from the source buffer.
     /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    /// <param name="metadata">The metadata for the secret key.</param>
     /// <param name="encoding">Specifies the type of encoding to use when reading the asymmetric key.</param>
     /// <returns>The <see cref="EccSecretKey"/> that was read.</returns>
-    public EccSecretKey ReadEcc(string keyId, IEnumerable<string> tags, AsymmetricSecretKeyEncoding encoding) =>
-        ReadECDiffieHellman(keyId, tags, encoding, certificate: null);
+    public EccSecretKey ReadEcc(KeyMetadata metadata, AsymmetricSecretKeyEncoding encoding) =>
+        ReadECDiffieHellman(metadata, encoding, certificate: null);
 
-    private static EccSecretKey CreateEccSecretKey(string keyId, IEnumerable<string> tags, AsymmetricAlgorithm key, X509Certificate2? certificate) =>
+    private static EccSecretKey CreateEccSecretKey(KeyMetadata metadata, AsymmetricAlgorithm key, X509Certificate2? certificate) =>
         SecretKeyFactory.Create<EccSecretKey>(key, pkcs8PrivateKey =>
-            new EccSecretKey(keyId, tags, key.KeySize, pkcs8PrivateKey, certificate));
+            new EccSecretKey(metadata, key.KeySize, pkcs8PrivateKey, certificate));
 
-    private EccSecretKey ReadECDiffieHellman(string keyId, IEnumerable<string> tags, AsymmetricSecretKeyEncoding encoding, X509Certificate2? certificate)
+    private EccSecretKey ReadECDiffieHellman(KeyMetadata metadata, AsymmetricSecretKeyEncoding encoding, X509Certificate2? certificate)
     {
         using var key = ReadAsymmetricKey(ECDiffieHellman.Create, encoding, ImportECDiffieHellman);
-        return CreateEccSecretKey(keyId, tags, key, certificate);
+        return CreateEccSecretKey(metadata, key, certificate);
     }
 
-    private static EccSecretKey ReadECDiffieHellman(string keyId, IEnumerable<string> tags, ReadOnlySpan<char> pem, X509Certificate2? certificate)
+    private static EccSecretKey ReadECDiffieHellman(KeyMetadata metadata, ReadOnlySpan<char> pem, X509Certificate2? certificate)
     {
         using var key = ImportECDiffieHellman(pem);
-        return CreateEccSecretKey(keyId, tags, key, certificate);
+        return CreateEccSecretKey(metadata, key, certificate);
     }
 
     private static ECDiffieHellman ImportECDiffieHellman(ReadOnlySpan<char> pem) =>
@@ -68,10 +67,10 @@ partial struct SecretKeyReader
             _ => null
         });
 
-    private static EccSecretKey ReadECDsa(string keyId, IEnumerable<string> tags, ReadOnlySpan<char> pem, X509Certificate2? certificate)
+    private static EccSecretKey ReadECDsa(KeyMetadata metadata, ReadOnlySpan<char> pem, X509Certificate2? certificate)
     {
         using var key = ImportECDsa(pem);
-        return CreateEccSecretKey(keyId, tags, key, certificate);
+        return CreateEccSecretKey(metadata, key, certificate);
     }
 
     private static ECDsa ImportECDsa(ReadOnlySpan<char> pem) =>

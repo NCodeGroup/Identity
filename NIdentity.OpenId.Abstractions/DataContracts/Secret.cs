@@ -39,9 +39,18 @@ public class Secret : ISupportId
     public string SecretId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the collection of tags associated with this secret.
+    /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to
+    /// indicate that this secret is intended for use with any compatible algorithm.
+    /// Valid values are defined in RFC 7517 Section 4.2:
+    /// https://tools.ietf.org/html/rfc7517#section-4.2
     /// </summary>
-    public IList<string> Tags { get; set; } = new List<string>();
+    public string? Use { get; set; }
+
+    /// <summary>
+    /// Gets or sets the intended algorithm for use with this secret. This property is optional and may be
+    /// <c>null</c> to indicate that this secret is intended for use with any compatible algorithm.
+    /// </summary>
+    public string? Algorithm { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.

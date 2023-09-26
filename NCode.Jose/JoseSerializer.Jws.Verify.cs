@@ -156,7 +156,7 @@ partial class JoseSerializer
 
     private ISignatureAlgorithm GetSignatureAlgorithm(string code) =>
         !AlgorithmCollection.TryGetSignatureAlgorithm(code, out var algorithm) ?
-            throw new JoseInvalidAlgorithmException($"No registered JWS signature algorithm for `{code}` was found.") :
+            throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for digital signatures.") :
             algorithm;
 
     /// <inheritdoc />

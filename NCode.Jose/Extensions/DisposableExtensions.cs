@@ -19,9 +19,9 @@
 
 using System.Runtime.ExceptionServices;
 
-namespace NCode.Jose.Internal;
+namespace NCode.Jose.Extensions;
 
-internal static class DisposableExtensions
+public static class DisposableExtensions
 {
     public static void DisposeAll(this IEnumerable<IDisposable?> collection, bool ignoreExceptions = false)
     {

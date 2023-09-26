@@ -1,18 +1,20 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.ComponentModel.DataAnnotations;
@@ -90,4 +92,17 @@ public class Client : ISupportId, ISupportConcurrencyToken
     /// Defaults to 5 minutes.
     /// </summary>
     public TimeSpan AuthorizationCodeLifetime { get; set; } = TimeSpan.FromMinutes(5.0);
+
+    /// <summary>
+    /// Gets or sets the amount of time that an <c>IdToken</c> is valid for.
+    /// Defaults to 5 minutes.
+    /// </summary>
+    public TimeSpan IdTokenLifetime { get; set; } = TimeSpan.FromMinutes(5.0);
+
+    /// <summary>
+    /// Gets or sets the collection of string codes that specify which digital signature algorithms are to be used for
+    /// signing <c>IdToken</c> values. If empty, then the <c>IdToken</c> will signed using the server's default signature
+    /// algorithms.
+    /// </summary>
+    public IList<string> IdTokenSigningAlgorithms { get; set; } = new List<string>();
 }

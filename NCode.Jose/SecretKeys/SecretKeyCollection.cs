@@ -19,6 +19,7 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
 
 namespace NCode.Jose.SecretKeys;

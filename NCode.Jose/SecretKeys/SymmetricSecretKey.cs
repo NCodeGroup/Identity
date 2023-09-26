@@ -49,11 +49,10 @@ public class SymmetricSecretKey : SecretKey
     /// <summary>
     /// Initializes a new instance of the <see cref="SymmetricSecretKey"/> class by coping the specified key bytes.
     /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    /// <param name="metadata">The metadata for the secret key.</param>
     /// <param name="keyBytes">The cryptographic material for the secret key.</param>
-    public SymmetricSecretKey(string keyId, IEnumerable<string> tags, ReadOnlySpan<byte> keyBytes)
-        : base(keyId, tags)
+    public SymmetricSecretKey(KeyMetadata metadata, ReadOnlySpan<byte> keyBytes)
+        : base(metadata)
     {
         _memoryOwner = new HeapMemoryManager(keyBytes.Length, zeroOnDispose: true);
         try
@@ -70,11 +69,10 @@ public class SymmetricSecretKey : SecretKey
     /// <summary>
     /// Initializes a new instance of the <see cref="SymmetricSecretKey"/> class from the specified password.
     /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    /// <param name="metadata">The metadata for the secret key.</param>
     /// <param name="password">The password that will be decoded using UTF8 and used as the cryptographic material for the secret key.</param>
-    public SymmetricSecretKey(string keyId, IEnumerable<string> tags, ReadOnlySpan<char> password)
-        : base(keyId, tags)
+    public SymmetricSecretKey(KeyMetadata metadata, ReadOnlySpan<char> password)
+        : base(metadata)
     {
         var byteCount = Encoding.UTF8.GetByteCount(password);
         _memoryOwner = new HeapMemoryManager(byteCount, zeroOnDispose: true);

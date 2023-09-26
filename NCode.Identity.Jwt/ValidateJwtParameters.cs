@@ -38,7 +38,6 @@ public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
     CompactJwt compactJwt,
     PropertyBag propertyBag,
     ISecretKeyProvider secretKeyProvider,
-    IEnumerable<string> secretKeyTags,
     CancellationToken cancellationToken);
 
 /// <summary>
@@ -63,14 +62,6 @@ public class ValidateJwtParameters
     /// This instance will be cloned for each JWT operation.
     /// </summary>
     public PropertyBag PropertyBag { get; } = new();
-
-    /// <summary>
-    /// Gets or sets a <see cref="string"/> collection of tags that are used to filter which <see cref="SecretKey"/>
-    /// instances will be used when a specific <see cref="SecretKey"/> cannot be found. If this collection is empty,
-    /// then all <see cref="SecretKey"/> instances will be used when a specific <see cref="SecretKey"/> cannot be found.
-    /// The default value is an empty collection.
-    /// </summary>
-    public IEnumerable<string> SecretKeyTags { get; set; } = Array.Empty<string>();
 
     /// <summary>
     /// Gets or sets the <c>AuthenticationType</c> that is used when creating <see cref="ClaimsIdentity"/> instances.
@@ -100,12 +91,12 @@ public class ValidateJwtParameters
     /// to validate a Json Web Token (JWT).
     /// </summary>
     public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } =
-        static (compactJwt, _, secretKeyProvider, secretKeyTags, _) =>
+        static (compactJwt, _, secretKeyProvider, _) =>
             ValueTask.FromResult(
                 DefaultValidationKeyResolver.ResolveValidationKeys(
+                    compactJwt.ProtectionType,
                     compactJwt.DeserializedHeader,
-                    secretKeyProvider.SecretKeys,
-                    secretKeyTags));
+                    secretKeyProvider.SecretKeys));
 
     /// <summary>
     /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,26 +17,12 @@
 
 #endregion
 
-using System.Text.Json;
-using NCode.Jose.Json;
-
-namespace NCode.Jose;
+namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Contains options for Jose services and algorithms.
+/// Contains common metadata for a secret key such as <c>KeyId</c>, <c>Use</c>, and <c>Algorithm</c>.
 /// </summary>
-public class JoseOptions
-{
-    /// <summary>
-    /// Gets or sets a list containing the codes of all the disabled algorithms.
-    /// </summary>
-    public List<string> DisabledAlgorithms { get; set; } = new();
-
-    /// <summary>
-    /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.
-    /// </summary>
-    public JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { JoseObjectJsonConverter.Singleton }
-    };
-}
+/// <param name="KeyId">The <c>Key ID (KID)</c> for the secret key.</param>
+/// <param name="Use">The intended use for the secret key.</param>
+/// <param name="Algorithm">The intended algorithm for the secret key.</param>
+public record struct KeyMetadata(string? KeyId, string? Use, string? Algorithm);

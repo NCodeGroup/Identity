@@ -56,6 +56,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IAlgorithmProvider, AlgorithmProvider>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAlgorithmFilter, AlgorithmFilter>());
 
+        // TODO: combine these into a single data source
         services
             // digital signature
             .AddAlgorithmDataSource<NoneSignatureAlgorithmDataSource>()

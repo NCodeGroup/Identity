@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics;
@@ -37,34 +39,31 @@ public class EccSecretKey : AsymmetricSecretKey
     /// <summary>
     /// Factory method to create an <see cref="EccSecretKey"/> from an <see cref="ECDsa"/> instance.
     /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    /// <param name="metadata">The metadata for the secret key.</param>
     /// <param name="key">An <see cref="ECDsa"/> that contains the ECC key material.</param>
     /// <returns>The newly created <see cref="EccSecretKey"/> instance.</returns>
-    public static EccSecretKey Create(string keyId, IEnumerable<string> tags, ECDsa key) =>
-        SecretKeyFactory.Create(key, bytes => new EccSecretKey(keyId, tags, key.KeySize, bytes));
+    public static EccSecretKey Create(KeyMetadata metadata, ECDsa key) =>
+        SecretKeyFactory.Create(key, bytes => new EccSecretKey(metadata, key.KeySize, bytes));
 
     /// <summary>
     /// Factory method to create an <see cref="EccSecretKey"/> from an <see cref="ECDiffieHellman"/> instance.
     /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    /// <param name="metadata">The metadata for the secret key.</param>
     /// <param name="key">An <see cref="ECDiffieHellman"/> that contains the ECC key material.</param>
     /// <returns>The newly created <see cref="EccSecretKey"/> instance.</returns>
-    public static EccSecretKey Create(string keyId, IEnumerable<string> tags, ECDiffieHellman key) =>
-        SecretKeyFactory.Create(key, bytes => new EccSecretKey(keyId, tags, key.KeySize, bytes));
+    public static EccSecretKey Create(KeyMetadata metadata, ECDiffieHellman key) =>
+        SecretKeyFactory.Create(key, bytes => new EccSecretKey(metadata, key.KeySize, bytes));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EccSecretKey"/> class with the specified <c>PKCS#8</c> key material
     /// and optional certificate.
     /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    /// <param name="metadata">The metadata for the secret key.</param>
     /// <param name="curveSizeBits">The size of the ECC curve in bits.</param>
     /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
-    public EccSecretKey(string keyId, IEnumerable<string> tags, int curveSizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
-        : base(keyId, tags, curveSizeBits, pkcs8PrivateKey, certificate)
+    public EccSecretKey(KeyMetadata metadata, int curveSizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
+        : base(metadata, curveSizeBits, pkcs8PrivateKey, certificate)
     {
         Debug.Assert(certificate == null || certificate.GetKeyAlgorithm() == Oid);
     }

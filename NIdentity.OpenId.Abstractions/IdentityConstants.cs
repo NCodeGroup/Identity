@@ -17,26 +17,9 @@
 
 #endregion
 
-using System.Text.Json;
-using NCode.Jose.Json;
+namespace NIdentity.OpenId;
 
-namespace NCode.Jose;
-
-/// <summary>
-/// Contains options for Jose services and algorithms.
-/// </summary>
-public class JoseOptions
+public static class IdentityConstants
 {
-    /// <summary>
-    /// Gets or sets a list containing the codes of all the disabled algorithms.
-    /// </summary>
-    public List<string> DisabledAlgorithms { get; set; } = new();
-
-    /// <summary>
-    /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.
-    /// </summary>
-    public JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { JoseObjectJsonConverter.Singleton }
-    };
+    public const string LocalIdentityProvider = "local";
 }

@@ -75,18 +75,92 @@ public static class JoseClaimNames
     /// </summary>
     public static class Payload
     {
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-        public const string Iss = "iss";
-        public const string Sub = "sub";
-        public const string Aud = "aud";
-        public const string Exp = "exp";
-        public const string Nbf = "nbf";
-        public const string Iat = "iat";
-        public const string Jti = "jti";
-
+        /// <summary>
+        /// Contains a constant with the value: <c>actort</c>
+        /// </summary>
         public const string Actort = "actort";
 
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+        /// <summary>
+        /// Contains a constant with the value: <c>amr</c>
+        /// http://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        /// </summary>
+        public const string Amr = "amr";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>at_hash</c>
+        /// https://openid.net/specs/openid-connect-core-1_0.html#HybridIDToken
+        /// </summary>
+        public const string AtHash = "at_hash";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>aud</c>
+        /// https://datatracker.ietf.org/doc/html/rfc7519#section-4
+        /// </summary>
+        public const string Aud = "aud";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>auth_time</c>
+        /// http://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        /// </summary>
+        public const string AuthTime = "auth_time";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>c_hash</c>
+        /// https://openid.net/specs/openid-connect-core-1_0.html#HybridIDToken
+        /// </summary>
+        public const string CHash = "c_hash";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>exp</c>
+        /// https://datatracker.ietf.org/doc/html/rfc7519#section-4
+        /// </summary>
+        public const string Exp = "exp";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>iat</c>
+        /// https://datatracker.ietf.org/doc/html/rfc7519#section-4
+        /// </summary>
+        public const string Iat = "iat";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>idp</c>
+        /// </summary>
+        public const string Idp = "idp";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>iss</c>
+        /// https://datatracker.ietf.org/doc/html/rfc7519#section-4
+        /// </summary>
+        public const string Iss = "iss";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>jti</c>
+        /// https://datatracker.ietf.org/doc/html/rfc7519#section-4
+        /// </summary>
+        public const string Jti = "jti";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>nbf</c>
+        /// https://datatracker.ietf.org/doc/html/rfc7519#section-4
+        /// </summary>
+        public const string Nbf = "nbf";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>nonce</c>
+        /// https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        /// </summary>
+        public const string Nonce = "nonce";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>s_hash</c>
+        /// https://openid.net/specs/openid-financial-api-part-2-1_0.html#id-token-as-detached-signature
+        /// </summary>
+        public const string SHash = "s_hash";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>sub</c>
+        /// https://datatracker.ietf.org/doc/html/rfc7519#section-4
+        /// </summary>
+        public const string Sub = "sub";
     }
 }

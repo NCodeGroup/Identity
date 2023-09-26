@@ -25,41 +25,27 @@ partial struct SecretKeyReader
 {
     /// <summary>
     /// Reads a <see cref="SecretKey"/> from the source buffer along with its corresponding certificate.
-    /// The certificate's <see cref="X509Certificate2.Thumbprint"/> is used as the <c>Key ID (KID)</c>.
     /// </summary>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
+    /// <param name="metadata">The metadata for the secret key.</param>
     /// <returns>The <see cref="SecretKey"/> that was read.</returns>
     /// <remarks>
     /// The data for the certificate must be encoded using <c>PEM</c> rules.
     /// The currently supported PKI algorithms are RSA and EcPublicKey (either ECDsa or ECDiffieHellman).
     /// </remarks>
-    public SecretKey ReadCertificate(IEnumerable<string> tags) =>
-        ReadPem(pem => ReadCertificate(keyId: null, tags, pem));
+    public SecretKey ReadCertificate(KeyMetadata metadata) =>
+        ReadPem(pem => ReadCertificate(metadata, pem));
 
-    /// <summary>
-    /// Reads a <see cref="SecretKey"/> from the source buffer along with its corresponding certificate.
-    /// </summary>
-    /// <param name="keyId">The <c>Key ID (KID)</c> for the secret key.</param>
-    /// <param name="tags">The collection of tags associated with the secret key.</param>
-    /// <returns>The <see cref="SecretKey"/> that was read.</returns>
-    /// <remarks>
-    /// The data for the certificate must be encoded using <c>PEM</c> rules.
-    /// The currently supported PKI algorithms are RSA and EcPublicKey (either ECDsa or ECDiffieHellman).
-    /// </remarks>
-    public SecretKey ReadCertificate(string keyId, IEnumerable<string> tags) =>
-        ReadPem(pem => ReadCertificate(keyId, tags, pem));
-
-    private static SecretKey ReadCertificate(string? keyId, IEnumerable<string> tags, ReadOnlySpan<char> pem)
+    private static SecretKey ReadCertificate(KeyMetadata metadata, ReadOnlySpan<char> pem)
     {
         var certificate = X509Certificate2.CreateFromPem(pem);
         try
         {
-            keyId ??= certificate.Thumbprint;
+            var metadataWithKeyId = metadata with { KeyId = metadata.KeyId ?? certificate.Thumbprint };
             return certificate.GetKeyAlgorithm() switch
             {
-                RsaSecretKey.Oid => ReadRsa(keyId, tags, pem, certificate),
-                EccSecretKey.Oid when IsECDsa(certificate) => ReadECDsa(keyId, tags, pem, certificate),
-                EccSecretKey.Oid when IsECDiffieHellman(certificate) => ReadECDiffieHellman(keyId, tags, pem, certificate),
+                RsaSecretKey.Oid => ReadRsa(metadataWithKeyId, pem, certificate),
+                EccSecretKey.Oid when IsECDsa(certificate) => ReadECDsa(metadataWithKeyId, pem, certificate),
+                EccSecretKey.Oid when IsECDiffieHellman(certificate) => ReadECDiffieHellman(metadataWithKeyId, pem, certificate),
                 _ => throw new InvalidOperationException()
             };
         }

@@ -20,6 +20,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
 using NCode.Jose.Algorithms.DataSources;
+using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
 
 namespace NCode.Jose.Algorithms;

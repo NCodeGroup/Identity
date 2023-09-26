@@ -1,18 +1,20 @@
 ﻿#region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 namespace NIdentity.OpenId;
@@ -25,34 +27,14 @@ public static partial class OpenIdConstants
     public static class Parameters
     {
         /// <summary>
-        /// Contains the name of <c>error</c> parameter.
-        /// </summary>
-        public const string ErrorCode = "error";
-
-        /// <summary>
-        /// Contains the name of <c>error_description</c> parameter.
-        /// </summary>
-        public const string ErrorDescription = "error_description";
-
-        /// <summary>
-        /// Contains the name of <c>error_uri</c> parameter.
-        /// </summary>
-        public const string ErrorUri = "error_uri";
-
-        /// <summary>
         /// Contains the name of <c>access_token</c> parameter.
         /// </summary>
         public const string AccessToken = "access_token";
 
         /// <summary>
-        /// Contains the name of <c>token_type</c> parameter.
+        /// Contains the name of <c>at_hash</c> parameter.
         /// </summary>
-        public const string TokenType = "token_type";
-
-        /// <summary>
-        /// Contains the name of <c>expires_in</c> parameter.
-        /// </summary>
-        public const string ExpiresIn = "expires_in";
+        public const string AccessTokenHash = "at_hash";
 
         /// <summary>
         /// Contains the name of <c>acr_values</c> parameter.
@@ -68,6 +50,11 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>audience</c> parameter.
         /// </summary>
         public const string Audience = "audience";
+
+        /// <summary>
+        /// Contains the name of <c>auth_time</c> parameter.
+        /// </summary>
+        public const string AuthTime = "auth_time";
 
         /// <summary>
         /// Contains the name of <c>claims</c> parameter.
@@ -105,6 +92,11 @@ public static partial class OpenIdConstants
         public const string Code = "code";
 
         /// <summary>
+        /// Contains the name of <c>c_hash</c> parameter.
+        /// </summary>
+        public const string CodeHash = "c_hash";
+
+        /// <summary>
         /// Contains the name of <c>code_challenge</c> parameter.
         /// </summary>
         public const string CodeChallenge = "code_challenge";
@@ -130,9 +122,34 @@ public static partial class OpenIdConstants
         public const string Display = "display";
 
         /// <summary>
+        /// Contains the name of <c>error</c> parameter.
+        /// </summary>
+        public const string ErrorCode = "error";
+
+        /// <summary>
+        /// Contains the name of <c>error_description</c> parameter.
+        /// </summary>
+        public const string ErrorDescription = "error_description";
+
+        /// <summary>
+        /// Contains the name of <c>error_uri</c> parameter.
+        /// </summary>
+        public const string ErrorUri = "error_uri";
+
+        /// <summary>
         /// Contains the name of <c>essential</c> parameter.
         /// </summary>
         public const string Essential = "essential";
+
+        /// <summary>
+        /// Contains the name of <c>exp</c> parameter.
+        /// </summary>
+        public const string Expiration = "exp";
+
+        /// <summary>
+        /// Contains the name of <c>expires_in</c> parameter.
+        /// </summary>
+        public const string ExpiresIn = "expires_in";
 
         /// <summary>
         /// Contains the name of <c>grant_type</c> parameter.
@@ -153,6 +170,16 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>id_token_hint</c> parameter.
         /// </summary>
         public const string IdTokenHint = "id_token_hint";
+
+        /// <summary>
+        /// Contains the name of <c>iat</c> parameter.
+        /// </summary>
+        public const string IssuedAt = "iat";
+
+        /// <summary>
+        /// Contains the name of <c>iss</c> parameter.
+        /// </summary>
+        public const string Issuer = "iss";
 
         /// <summary>
         /// Contains the name of <c>login_hint</c> parameter.
@@ -240,9 +267,24 @@ public static partial class OpenIdConstants
         public const string State = "state";
 
         /// <summary>
+        /// Contains the name of <c>s_hash</c> parameter.
+        /// </summary>
+        public const string StateHash = "s_hash";
+
+        /// <summary>
+        /// Contains the name of <c>sub</c> parameter.
+        /// </summary>
+        public const string Subject = "sub";
+
+        /// <summary>
         /// Contains the name of <c>token</c> parameter.
         /// </summary>
         public const string Token = "token";
+
+        /// <summary>
+        /// Contains the name of <c>token_type</c> parameter.
+        /// </summary>
+        public const string TokenType = "token_type";
 
         /// <summary>
         /// Contains the name of <c>token_type_hint</c> parameter.
@@ -278,10 +320,5 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>values</c> parameter.
         /// </summary>
         public const string Values = "values";
-
-        /// <summary>
-        /// Contains the name of <c>iss</c> parameter.
-        /// </summary>
-        public const string Issuer = "iss";
     }
 }

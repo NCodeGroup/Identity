@@ -19,6 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
+using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
 using NCode.Jose.SecretKeys.DataSources;
 

@@ -30,7 +30,7 @@ public sealed class EmptySecretKey : SecretKey
     public static EmptySecretKey Singleton { get; } = new();
 
     private EmptySecretKey()
-        : base(string.Empty, Array.Empty<string>())
+        : base(new KeyMetadata(string.Empty, null, null))
     {
         // nothing
     }

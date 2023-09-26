@@ -52,7 +52,7 @@ internal class Startup
 
         services.AddJsonWebTokenService();
 
-        services.AddTransient<ISecretService, SecretService>();
+        services.AddTransient<ISecretSerializer, SecretSerializer>();
         services.AddTransient<IClientStore, NullClientStore>();
 
         services.AddSingleton<IMediator, MediatorImpl>();

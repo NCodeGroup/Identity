@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,25 +14,22 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
+
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose;
 
 /// <summary>
-/// Contains a set of parameters that are used by a <see cref="IJoseSerializer"/> when encoding a JWS token.
+/// Contains a common set of parameters that are used by <see cref="IJoseSerializer"/> when encoding a JOSE token.
 /// </summary>
-public class EncodeJwsParameters
+/// <param name="SecretKey">The Key Encryption Key (KEK) to use for encoding.</param>
+public abstract record JoseEncodeParameters(SecretKey SecretKey)
 {
     /// <summary>
-    /// Gets or sets a value indicating whether the payload should be base64url encoded (default).
-    /// Note that unencoded and non-detached payloads may cause issues with JWS compact serialization.
-    /// See RFC 7797 Section 5 for more information.
+    /// Gets or sets a boolean indicating whether to add the <c>kid</c> header.
+    /// The default value is <c>true</c>.
     /// </summary>
-    public bool EncodePayload { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the payload should NOT be included to the encoded token.
-    /// See RFC 7515 Appendix F for more information.
-    /// </summary>
-    public bool DetachPayload { get; set; }
+    public bool AddKeyIdHeader { get; init; } = true;
 }

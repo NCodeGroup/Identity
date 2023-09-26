@@ -38,19 +38,13 @@ partial interface IJoseSerializer
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
-    /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
-    /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-    /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+    /// <param name="parameters">The JOSE encryption parameters.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <typeparam name="T">The type of the payload to encode.</typeparam>
     /// <returns>The encrypted JWE token.</returns>
     string EncodeJwe<T>(
         T payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
@@ -58,19 +52,13 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
-    /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
-    /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-    /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+    /// <param name="parameters">The JOSE encryption parameters.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <typeparam name="T">The type of the payload to encode.</typeparam>
     void EncodeJwe<T>(
         IBufferWriter<char> tokenWriter,
         T payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
@@ -78,36 +66,24 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
-    /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
-    /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-    /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+    /// <param name="parameters">The JOSE encryption parameters.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     void EncodeJwe(
         IBufferWriter<char> tokenWriter,
         string payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
-    /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
-    /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-    /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+    /// <param name="parameters">The JOSE encryption parameters.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encrypted JWE token.</returns>
     string EncodeJwe(
         string payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
@@ -115,54 +91,36 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
-    /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
-    /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-    /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+    /// <param name="parameters">The JOSE encryption parameters.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     void EncodeJwe(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<char> payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
-    /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
-    /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-    /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+    /// <param name="parameters">The JOSE encryption parameters.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encrypted JWE token.</returns>
     string EncodeJwe(
         ReadOnlySpan<char> payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
-    /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
-    /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-    /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+    /// <param name="parameters">The JOSE encryption parameters.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encrypted JWE token.</returns>
     string EncodeJwe(
         ReadOnlySpan<byte> payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 
     /// <summary>
@@ -170,18 +128,12 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for encryption.</param>
-    /// <param name="keyManagementAlgorithmCode">The <c>Code</c> of the <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
-    /// <param name="encryptionAlgorithmCode">The <c>Code</c> of the <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-    /// <param name="compressionAlgorithmCode">The <c>Code</c> of the <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+    /// <param name="parameters">The JOSE encryption parameters.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     void EncodeJwe(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 }
 
@@ -189,26 +141,23 @@ partial class JoseSerializer
 {
     private IKeyManagementAlgorithm GetKeyManagementAlgorithm(string code) =>
         !AlgorithmCollection.TryGetKeyManagementAlgorithm(code, out var algorithm) ?
-            throw new JoseInvalidAlgorithmException($"No registered JWA key agreement algorithm for `{code}` was found.") :
+            throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for key management.") :
             algorithm;
 
     private IAuthenticatedEncryptionAlgorithm GetAuthenticatedEncryptionAlgorithm(string code) =>
         !AlgorithmCollection.TryGetAuthenticatedEncryptionAlgorithm(code, out var algorithm) ?
-            throw new JoseInvalidAlgorithmException($"No registered AEAD encryption algorithm for `{code}` was found.") :
+            throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for AEAD encryption.") :
             algorithm;
 
     private ICompressionAlgorithm GetCompressionAlgorithm(string code) =>
         !AlgorithmCollection.TryGetCompressionAlgorithm(code, out var algorithm) ?
-            throw new JoseInvalidAlgorithmException($"No registered JWE compression algorithm for `{code}` was found.") :
+            throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for compression.") :
             algorithm;
 
     /// <inheritdoc />
     public string EncodeJwe<T>(
         T payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
@@ -216,10 +165,7 @@ partial class JoseSerializer
         EncodeJwe(
             tokenBuffer,
             payloadBytes,
-            secretKey,
-            keyManagementAlgorithmCode,
-            encryptionAlgorithmCode,
-            compressionAlgorithmCode,
+            parameters,
             extraHeaders);
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -228,20 +174,14 @@ partial class JoseSerializer
     public void EncodeJwe<T>(
         IBufferWriter<char> tokenWriter,
         T payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var _ = Serialize(payload, out var payloadBytes);
         EncodeJwe(
             tokenWriter,
             payloadBytes,
-            secretKey,
-            keyManagementAlgorithmCode,
-            encryptionAlgorithmCode,
-            compressionAlgorithmCode,
+            parameters,
             extraHeaders);
     }
 
@@ -249,37 +189,25 @@ partial class JoseSerializer
     public void EncodeJwe(
         IBufferWriter<char> tokenWriter,
         string payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         EncodeJwe(
             tokenWriter,
             payload.AsSpan(),
-            secretKey,
-            keyManagementAlgorithmCode,
-            encryptionAlgorithmCode,
-            compressionAlgorithmCode,
+            parameters,
             extraHeaders);
     }
 
     /// <inheritdoc />
     public string EncodeJwe(
         string payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         return EncodeJwe(
             payload.AsSpan(),
-            secretKey,
-            keyManagementAlgorithmCode,
-            encryptionAlgorithmCode,
-            compressionAlgorithmCode,
+            parameters,
             extraHeaders);
     }
 
@@ -287,10 +215,7 @@ partial class JoseSerializer
     public void EncodeJwe(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<char> payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         var byteCount = Encoding.UTF8.GetByteCount(payload);
@@ -300,30 +225,21 @@ partial class JoseSerializer
         EncodeJwe(
             tokenWriter,
             payloadBytes,
-            secretKey,
-            keyManagementAlgorithmCode,
-            encryptionAlgorithmCode,
-            compressionAlgorithmCode,
+            parameters,
             extraHeaders);
     }
 
     /// <inheritdoc />
     public string EncodeJwe(
         ReadOnlySpan<char> payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
         EncodeJwe(
             tokenBuffer,
             payload,
-            secretKey,
-            keyManagementAlgorithmCode,
-            encryptionAlgorithmCode,
-            compressionAlgorithmCode,
+            parameters,
             extraHeaders);
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -331,20 +247,14 @@ partial class JoseSerializer
     /// <inheritdoc />
     public string EncodeJwe(
         ReadOnlySpan<byte> payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
         EncodeJwe(
             tokenBuffer,
             payload,
-            secretKey,
-            keyManagementAlgorithmCode,
-            encryptionAlgorithmCode,
-            compressionAlgorithmCode,
+            parameters,
             extraHeaders);
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -353,28 +263,21 @@ partial class JoseSerializer
     public void EncodeJwe(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        SecretKey secretKey,
-        string keyManagementAlgorithmCode,
-        string encryptionAlgorithmCode,
-        string? compressionAlgorithmCode,
+        JoseEncryptionParameters parameters,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        var keyManagementAlgorithm = GetKeyManagementAlgorithm(keyManagementAlgorithmCode);
-        var encryptionAlgorithm = GetAuthenticatedEncryptionAlgorithm(encryptionAlgorithmCode);
-        var compressionAlgorithm = !string.IsNullOrEmpty(compressionAlgorithmCode) ?
-            GetCompressionAlgorithm(compressionAlgorithmCode) :
-            null;
-
         var header = extraHeaders != null ?
             new Dictionary<string, object>(extraHeaders) :
             new Dictionary<string, object>();
+
+        var (secretKey, keyManagementAlgorithm, encryptionAlgorithm, compressionAlgorithm) = parameters;
 
         header.TryAdd(JoseClaimNames.Header.Typ, JoseConstants.Jwt);
         header[JoseClaimNames.Header.Alg] = keyManagementAlgorithm.Code;
         header[JoseClaimNames.Header.Enc] = encryptionAlgorithm.Code;
 
         var keyId = secretKey.KeyId;
-        if (!string.IsNullOrEmpty(keyId) && JoseOptions.AddKeyIdHeaderDuringEncode)
+        if (!string.IsNullOrEmpty(keyId) && parameters.AddKeyIdHeader)
             header[JoseClaimNames.Header.Kid] = keyId;
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;

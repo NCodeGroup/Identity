@@ -94,7 +94,6 @@ public class JsonWebTokenService : IJsonWebTokenService
                 compactJwt,
                 propertyBag,
                 SecretKeyProvider,
-                parameters.SecretKeyTags,
                 cancellationToken);
 
             var payload = DeserializePayload(

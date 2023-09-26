@@ -40,7 +40,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
     private IOpenIdErrorFactory ErrorFactory { get; }
     private IHttpClientFactory HttpClientFactory { get; }
     private IClientStore ClientStore { get; }
-    private ISecretService SecretService { get; }
+    private ISecretSerializer SecretSerializer { get; }
     private IJsonWebTokenService JsonWebTokenService { get; }
 
     public LoadAuthorizationRequestHandler(
@@ -49,7 +49,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         IOpenIdErrorFactory errorFactory,
         IHttpClientFactory httpClientFactory,
         IClientStore clientStore,
-        ISecretService secretService,
+        ISecretSerializer secretSerializer,
         IJsonWebTokenService jsonWebTokenService)
     {
         Logger = logger;
@@ -57,7 +57,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         ErrorFactory = errorFactory;
         HttpClientFactory = httpClientFactory;
         ClientStore = clientStore;
-        SecretService = secretService;
+        SecretSerializer = secretSerializer;
         JsonWebTokenService = jsonWebTokenService;
     }
 
@@ -151,7 +151,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         {
             // TODO: configure how expired secrets are handled
             var secrets = client.Secrets.Where(secret => secret.ExpiresWhen < DateTimeOffset.UtcNow);
-            using var secretKeys = SecretService.LoadSecretKeys(secrets);
+            using var secretKeys = SecretSerializer.DeserializeSecrets(secrets);
 
             var parameters = new ValidateJwtParameters()
                 .UseValidationKeys(secretKeys)

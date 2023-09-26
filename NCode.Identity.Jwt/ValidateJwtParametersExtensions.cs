@@ -39,7 +39,7 @@ public static class ValidateJwtParametersExtensions
         this ValidateJwtParameters parameters,
         IEnumerable<SecretKey> secretKeys)
     {
-        parameters.ResolveValidationKeysAsync = (_, _, _, _, _) => ValueTask.FromResult(secretKeys);
+        parameters.ResolveValidationKeysAsync = (_, _, _, _) => ValueTask.FromResult(secretKeys);
         return parameters;
     }
 

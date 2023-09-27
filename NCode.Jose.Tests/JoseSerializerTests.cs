@@ -33,7 +33,7 @@ namespace NCode.Jose.Tests;
 public class JoseSerializerTests : BaseTests
 {
     private ServiceProvider ServiceProvider { get; }
-    private JoseOptions JoseOptions { get; } = new();
+    private JoseSerializerOptions JoseSerializerOptions { get; } = new();
     private Mock<JoseSerializer> MockJoseSerializer { get; }
     private JoseSerializer JoseSerializer { get; }
 
@@ -44,7 +44,7 @@ public class JoseSerializerTests : BaseTests
         ServiceProvider = services.BuildServiceProvider();
 
         var algorithmProvider = ServiceProvider.GetRequiredService<IAlgorithmProvider>();
-        MockJoseSerializer = CreatePartialMock<JoseSerializer>(Options.Create(JoseOptions), algorithmProvider);
+        MockJoseSerializer = CreatePartialMock<JoseSerializer>(Options.Create(JoseSerializerOptions), algorithmProvider);
         JoseSerializer = MockJoseSerializer.Object;
     }
 
@@ -233,7 +233,7 @@ public class JoseSerializerTests : BaseTests
             compressionAlgorithmCode,
             originalExtraHeaders);
 
-        var originalJson = JsonSerializer.Serialize(originalPayload, JoseOptions.JsonSerializerOptions);
+        var originalJson = JsonSerializer.Serialize(originalPayload, JoseSerializerOptions.JsonSerializerOptions);
         var deserializedJson = JWT.Decode(token, controlKey);
         var deserializedHeaders = JWT.Headers(token);
         Assert.Equal(originalJson, deserializedJson);
@@ -311,7 +311,7 @@ public class JoseSerializerTests : BaseTests
         var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKey, out var header);
         Assert.Equal(originalPayload, actualPayload);
 
-        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseOptions.JsonSerializerOptions);
+        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseSerializerOptions.JsonSerializerOptions);
         Assert.NotNull(headerToVerify);
 
         var typ = Assert.IsType<string>(Assert.Contains("typ", headerToVerify));
@@ -383,7 +383,7 @@ public class JoseSerializerTests : BaseTests
 
         var originalToken = JWT.Encode(originalPayload, controlKey, jwsAlgorithm, originalExtraHeaders, jwtSettings, jwtOptions);
 
-        var originalPayloadJson = JsonSerializer.Serialize(originalPayload, JoseOptions.JsonSerializerOptions);
+        var originalPayloadJson = JsonSerializer.Serialize(originalPayload, JoseSerializerOptions.JsonSerializerOptions);
         var detachedPayload = detachPayload ? originalPayloadJson : null;
 
         var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings, detachedPayload);
@@ -400,7 +400,7 @@ public class JoseSerializerTests : BaseTests
             Assert.Equal(originalPayload, actualPayload);
         }
 
-        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseOptions.JsonSerializerOptions);
+        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseSerializerOptions.JsonSerializerOptions);
         Assert.NotNull(headerToVerify);
 
         var typ = Assert.IsType<string>(Assert.Contains("typ", headerToVerify));
@@ -440,7 +440,7 @@ public class JoseSerializerTests : BaseTests
 
         var token = JoseSerializer.EncodeJws(payload, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
 
-        var json = JsonSerializer.Serialize(payload, JoseOptions.JsonSerializerOptions);
+        var json = JsonSerializer.Serialize(payload, JoseSerializerOptions.JsonSerializerOptions);
         var token2 = JoseSerializer.EncodeJws(json, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
 
         JsonElement deserializedHeaders;
@@ -469,7 +469,7 @@ public class JoseSerializerTests : BaseTests
             Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(controlPayload));
         }
 
-        var headerToVerify = deserializedHeaders.Deserialize<Dictionary<string, object?>>(JoseOptions.JsonSerializerOptions);
+        var headerToVerify = deserializedHeaders.Deserialize<Dictionary<string, object?>>(JoseSerializerOptions.JsonSerializerOptions);
         Assert.NotNull(headerToVerify);
 
         if (secretKey.KeySizeBits > 0)

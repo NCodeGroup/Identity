@@ -28,6 +28,8 @@ using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose;
 
+// TODO: breakout the verify overloads into extension methods
+
 partial interface IJoseSerializer
 {
     /// <summary>
@@ -37,7 +39,10 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload);
+    void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        ReadOnlySpan<byte> detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -47,7 +52,11 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload, out JsonElement header);
+    void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        ReadOnlySpan<byte> detachedPayload,
+        out JsonElement header);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -56,7 +65,10 @@ partial interface IJoseSerializer
     /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload);
+    void VerifyJws(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        ReadOnlySpan<byte> detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -65,7 +77,10 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(string token, SecretKey secretKey, string detachedPayload);
+    void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        string detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -75,7 +90,11 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(string token, SecretKey secretKey, string detachedPayload, out JsonElement header);
+    void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        string detachedPayload,
+        out JsonElement header);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -84,7 +103,10 @@ partial interface IJoseSerializer
     /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, string detachedPayload);
+    void VerifyJws(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        string detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -93,7 +115,10 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload);
+    void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        ReadOnlySpan<char> detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -103,7 +128,11 @@ partial interface IJoseSerializer
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
     /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload, out JsonElement header);
+    void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        ReadOnlySpan<char> detachedPayload,
+        out JsonElement header);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -112,7 +141,10 @@ partial interface IJoseSerializer
     /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, ReadOnlySpan<char> detachedPayload);
+    void VerifyJws(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        ReadOnlySpan<char> detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -121,8 +153,13 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
+    /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
     /// <typeparam name="T">The type of the payload to validate.</typeparam>
-    void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload);
+    void VerifyJws<T>(
+        string token,
+        SecretKey secretKey,
+        T detachedPayload,
+        JsonSerializerOptions? jsonOptions);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -131,9 +168,15 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
+    /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
     /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
     /// <typeparam name="T">The type of the payload to validate.</typeparam>
-    void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload, out JsonElement header);
+    void VerifyJws<T>(
+        string token,
+        SecretKey secretKey,
+        T detachedPayload,
+        JsonSerializerOptions? jsonOptions,
+        out JsonElement header);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -142,8 +185,13 @@ partial interface IJoseSerializer
     /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
+    /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
     /// <typeparam name="T">The type of the payload to validate.</typeparam>
-    void VerifyJws<T>(CompactJwt compactJwt, SecretKey secretKey, T detachedPayload);
+    void VerifyJws<T>(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        T detachedPayload,
+        JsonSerializerOptions? jsonOptions);
 }
 
 partial class JoseSerializer
@@ -160,43 +208,86 @@ partial class JoseSerializer
             algorithm;
 
     /// <inheritdoc />
-    public void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload) =>
-        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload);
+    public void VerifyJws<T>(
+        string token,
+        SecretKey secretKey,
+        T detachedPayload,
+        JsonSerializerOptions? jsonOptions) =>
+        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload, jsonOptions);
 
     /// <inheritdoc />
-    public void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload, out JsonElement header)
+    public void VerifyJws<T>(
+        string token,
+        SecretKey secretKey,
+        T detachedPayload,
+        JsonSerializerOptions? jsonOptions,
+        out JsonElement header)
     {
         var compact = ParseCompactJwt(token);
-        VerifyJws(compact, secretKey, detachedPayload);
+        VerifyJws(compact, secretKey, detachedPayload, jsonOptions);
         header = compact.DeserializedHeader;
     }
 
     /// <inheritdoc />
-    public void VerifyJws<T>(CompactJwt compactJwt, SecretKey secretKey, T detachedPayload)
+    public void VerifyJws<T>(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        T detachedPayload,
+        JsonSerializerOptions? jsonOptions)
     {
         AssertJwsDetached(compactJwt);
-        using var _ = Serialize(detachedPayload, out var bytes);
+        using var _ = SerializeJson(detachedPayload, jsonOptions, out var bytes);
         VerifyJws(compactJwt, secretKey, bytes);
     }
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, string detachedPayload) =>
-        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload.AsSpan());
+    public void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        string detachedPayload) =>
+        VerifyJws(
+            ParseCompactJwt(token),
+            secretKey,
+            detachedPayload.AsSpan());
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, string detachedPayload, out JsonElement header) =>
-        VerifyJws(token, secretKey, detachedPayload.AsSpan(), out header);
+    public void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        string detachedPayload,
+        out JsonElement header) =>
+        VerifyJws(
+            token,
+            secretKey,
+            detachedPayload.AsSpan(),
+            out header);
 
     /// <inheritdoc />
-    public void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, string detachedPayload) =>
-        VerifyJws(compactJwt, secretKey, detachedPayload.AsSpan());
+    public void VerifyJws(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        string detachedPayload) =>
+        VerifyJws(
+            compactJwt,
+            secretKey,
+            detachedPayload.AsSpan());
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload) =>
-        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload);
+    public void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        ReadOnlySpan<char> detachedPayload) =>
+        VerifyJws(
+            ParseCompactJwt(token),
+            secretKey,
+            detachedPayload);
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload, out JsonElement header)
+    public void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        ReadOnlySpan<char> detachedPayload,
+        out JsonElement header)
     {
         var compact = ParseCompactJwt(token);
         VerifyJws(compact, secretKey, detachedPayload);
@@ -204,7 +295,10 @@ partial class JoseSerializer
     }
 
     /// <inheritdoc />
-    public void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, ReadOnlySpan<char> detachedPayload)
+    public void VerifyJws(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        ReadOnlySpan<char> detachedPayload)
     {
         AssertJwsDetached(compactJwt);
 
@@ -241,11 +335,21 @@ partial class JoseSerializer
     }
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload) =>
-        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload);
+    public void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        ReadOnlySpan<byte> detachedPayload) =>
+        VerifyJws(
+            ParseCompactJwt(token),
+            secretKey,
+            detachedPayload);
 
     /// <inheritdoc />
-    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload, out JsonElement header)
+    public void VerifyJws(
+        string token,
+        SecretKey secretKey,
+        ReadOnlySpan<byte> detachedPayload,
+        out JsonElement header)
     {
         var compact = ParseCompactJwt(token);
         VerifyJws(compact, secretKey, detachedPayload);
@@ -253,7 +357,10 @@ partial class JoseSerializer
     }
 
     /// <inheritdoc />
-    public void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload)
+    public void VerifyJws(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        ReadOnlySpan<byte> detachedPayload)
     {
         AssertJwsDetached(compactJwt);
 

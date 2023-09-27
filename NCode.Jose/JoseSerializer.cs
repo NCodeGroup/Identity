@@ -98,6 +98,16 @@ public partial interface IJoseSerializer
     /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
     /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
     T? Deserialize<T>(CompactJwt compactJwt, SecretKey secretKey);
+
+    /// <summary>
+    /// Provides the ability to serialize a value to JSON using memory pooling.
+    /// </summary>
+    /// <param name="value">The value to serialize.</param>
+    /// <param name="options">The options to control JSON serialization behavior.</param>
+    /// <param name="bytes">When this method returns, contains the UTF8 bytes from the JSON serialization..</param>
+    /// <typeparam name="T">The type of the value to serialize.</typeparam>
+    /// <returns>An <see cref="IDisposable"/> that controls the lifetime of the serialized bytes from a memory pool.</returns>
+    IDisposable SerializeJson<T>(T value, JsonSerializerOptions? options, out ReadOnlySpan<byte> bytes);
 }
 
 /// <summary>
@@ -108,7 +118,11 @@ public partial class JoseSerializer : IJoseSerializer
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
 
-    internal static IDisposable DecodeBase64Url(string name, ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
+    internal static IDisposable DecodeBase64Url(
+        string name,
+        ReadOnlySpan<char> chars,
+        bool isSensitive,
+        out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
         var lease = CryptoPool.Rent(byteCount, isSensitive, out bytes);
@@ -129,7 +143,7 @@ public partial class JoseSerializer : IJoseSerializer
         return lease;
     }
 
-    private JoseOptions JoseOptions { get; }
+    private JoseSerializerOptions JoseSerializerOptions { get; }
 
     private IAlgorithmProvider AlgorithmProvider { get; }
 
@@ -138,11 +152,11 @@ public partial class JoseSerializer : IJoseSerializer
     /// <summary>
     /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
     /// </summary>
-    /// <param name="optionsAccessor">An accessor that provides <see cref="JoseOptions"/>.</param>
+    /// <param name="optionsAccessor">An accessor that provides <see cref="JoseSerializerOptions"/>.</param>
     /// <param name="algorithmProvider">An <see cref="IAlgorithmProvider"/> that provides a collection of <see cref="IAlgorithm"/> instances.</param>
-    public JoseSerializer(IOptions<JoseOptions> optionsAccessor, IAlgorithmProvider algorithmProvider)
+    public JoseSerializer(IOptions<JoseSerializerOptions> optionsAccessor, IAlgorithmProvider algorithmProvider)
     {
-        JoseOptions = optionsAccessor.Value;
+        JoseSerializerOptions = optionsAccessor.Value;
         AlgorithmProvider = algorithmProvider;
     }
 
@@ -212,7 +226,7 @@ public partial class JoseSerializer : IJoseSerializer
 
     private T? Deserialize<T>(ReadOnlySequence<byte> byteSequence)
     {
-        var jsonOptions = JoseOptions.JsonSerializerOptions;
+        var jsonOptions = JoseSerializerOptions.JsonSerializerOptions;
         var readerOptions = new JsonReaderOptions
         {
             AllowTrailingCommas = jsonOptions.AllowTrailingCommas,
@@ -223,7 +237,11 @@ public partial class JoseSerializer : IJoseSerializer
         return JsonSerializer.Deserialize<T>(ref reader, jsonOptions);
     }
 
-    private IDisposable Serialize<T>(T value, out ReadOnlySpan<byte> bytes)
+    /// <inheritdoc />
+    public IDisposable SerializeJson<T>(
+        T value,
+        JsonSerializerOptions? options,
+        out ReadOnlySpan<byte> bytes)
     {
         var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
         {
@@ -233,7 +251,7 @@ public partial class JoseSerializer : IJoseSerializer
         try
         {
             using var writer = new Utf8JsonWriter(buffer);
-            JsonSerializer.Serialize(writer, value, JoseOptions.JsonSerializerOptions);
+            JsonSerializer.Serialize(writer, value, options ?? JoseSerializerOptions.JsonSerializerOptions);
 
             var sequence = buffer.AsReadOnlySequence;
             if (sequence.IsSingleSegment)
@@ -265,13 +283,20 @@ public partial class JoseSerializer : IJoseSerializer
         }
     }
 
-    private IDisposable EncodeJose<T>(bool b64, T value, out ReadOnlySpan<char> chars)
+    private IDisposable EncodeJose<T>(
+        bool b64,
+        T value,
+        out ReadOnlySpan<char> chars)
     {
-        using var bytesLease = Serialize(value, out var bytes);
+        using var bytesLease = SerializeJson(value, options: null, out var bytes);
         return EncodeJose(b64, bytes, out chars);
     }
 
-    private static bool TryEncodeJose(bool b64, ReadOnlySpan<byte> bytes, Span<char> chars, out int charsWritten)
+    private static bool TryEncodeJose(
+        bool b64,
+        ReadOnlySpan<byte> bytes,
+        Span<char> chars,
+        out int charsWritten)
     {
         if (b64)
         {
@@ -282,7 +307,10 @@ public partial class JoseSerializer : IJoseSerializer
         return charsWritten > 0;
     }
 
-    private static IDisposable EncodeJose(bool b64, ReadOnlySpan<byte> bytes, out ReadOnlySpan<char> chars)
+    private static IDisposable EncodeJose(
+        bool b64,
+        ReadOnlySpan<byte> bytes,
+        out ReadOnlySpan<char> chars)
     {
         var charCount = b64 ?
             Base64Url.GetCharCountForEncode(bytes.Length) :
@@ -306,7 +334,10 @@ public partial class JoseSerializer : IJoseSerializer
         return charLease;
     }
 
-    private static IDisposable Encode(Encoding encoding, ReadOnlySpan<char> chars, out ReadOnlySpan<byte> bytes)
+    private static IDisposable Encode(
+        Encoding encoding,
+        ReadOnlySpan<char> chars,
+        out ReadOnlySpan<byte> bytes)
     {
         var byteCount = encoding.GetByteCount(chars);
         var byteLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> span);
@@ -326,7 +357,10 @@ public partial class JoseSerializer : IJoseSerializer
         return byteLease;
     }
 
-    private static void WriteCompactSegment(ReadOnlySpan<char> chars, IBufferWriter<char> writer, bool addDot = true)
+    private static void WriteCompactSegment(
+        ReadOnlySpan<char> chars,
+        IBufferWriter<char> writer,
+        bool addDot = true)
     {
         var charCount = chars.Length;
         var dotLength = addDot ? 1 : 0;
@@ -342,7 +376,11 @@ public partial class JoseSerializer : IJoseSerializer
         writer.Advance(charCount + dotLength);
     }
 
-    private static ReadOnlySpan<char> WriteCompactSegment(ReadOnlySpan<byte> bytes, IBufferWriter<char> writer, bool addDot = true, bool b64 = true)
+    private static ReadOnlySpan<char> WriteCompactSegment(
+        ReadOnlySpan<byte> bytes,
+        IBufferWriter<char> writer,
+        bool addDot = true,
+        bool b64 = true)
     {
         var charCount = b64 ?
             Base64Url.GetCharCountForEncode(bytes.Length) :

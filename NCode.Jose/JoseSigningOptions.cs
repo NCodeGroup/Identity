@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,21 +17,18 @@
 
 #endregion
 
-using NCode.Jose.Algorithms.Signature;
-using NCode.Jose.SecretKeys;
-
 namespace NCode.Jose;
 
 /// <summary>
-/// Contains a set of parameters that are used by <see cref="IJoseSerializer"/> when signing a JWS token.
+/// Contains a set of options while signing a JWS token.
 /// </summary>
-/// <param name="SecretKey">The Key Encryption Key (KEK) to use for signing.</param>
-/// <param name="SignatureAlgorithm">The <see cref="ISignatureAlgorithm"/> to use for signing.</param>
-public record JoseSigningParameters(
-        SecretKey SecretKey,
-        ISignatureAlgorithm SignatureAlgorithm)
-    : JoseEncodeParameters(SecretKey)
+public class JoseSigningOptions : JoseEncodeOptions
 {
+    /// <summary>
+    /// Gets a default instance for <see cref="JoseSigningOptions"/>.
+    /// </summary>
+    public static JoseSigningOptions Default { get; } = new();
+
     /// <summary>
     /// Gets or sets a value indicating whether the payload should be base64url encoded (default).
     /// Note that unencoded and non-detached payloads may cause issues with JWS compact serialization.

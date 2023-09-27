@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,19 +17,26 @@
 
 #endregion
 
-using NCode.Jose.SecretKeys;
+using System.Text.Json;
+using NCode.Jose.Json;
 
 namespace NCode.Jose;
 
 /// <summary>
-/// Contains a common set of parameters that are used by <see cref="IJoseSerializer"/> when encoding a JOSE token.
+/// Contains options for Jose services and algorithms.
 /// </summary>
-/// <param name="SecretKey">The Key Encryption Key (KEK) to use for encoding.</param>
-public abstract record JoseEncodeParameters(SecretKey SecretKey)
+public class JoseSerializerOptions
 {
     /// <summary>
-    /// Gets or sets a boolean indicating whether to add the <c>kid</c> header.
-    /// The default value is <c>true</c>.
+    /// Gets or sets a list containing the codes of all the disabled algorithms.
     /// </summary>
-    public bool AddKeyIdHeader { get; init; } = true;
+    public List<string> DisabledAlgorithms { get; set; } = new();
+
+    /// <summary>
+    /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.
+    /// </summary>
+    public JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { JoseObjectJsonConverter.Singleton }
+    };
 }

@@ -28,6 +28,24 @@
         <Compile Update="*\SecretKeyReader.*.cs">
             <DependentUpon>SecretKeyReader.cs</DependentUpon>
         </Compile>
+        <Compile Update="JoseEncryptionCredentials.cs">
+          <DependentUpon>JoseCredentials.cs</DependentUpon>
+        </Compile>
+        <Compile Update="JoseSigningCredentials.cs">
+          <DependentUpon>JoseCredentials.cs</DependentUpon>
+        </Compile>
+        <Compile Update="JoseSigningOptions.cs">
+          <DependentUpon>JoseEncodeOptions.cs</DependentUpon>
+        </Compile>
+        <Compile Update="JoseEncryptionOptions.cs">
+          <DependentUpon>JoseEncodeOptions.cs</DependentUpon>
+        </Compile>
+        <Compile Update="JoseEncryptionEncoder.cs">
+          <DependentUpon>JoseEncoder.cs</DependentUpon>
+        </Compile>
+        <Compile Update="JoseSigningEncoder.cs">
+          <DependentUpon>JoseEncoder.cs</DependentUpon>
+        </Compile>
     </ItemGroup>
 
 

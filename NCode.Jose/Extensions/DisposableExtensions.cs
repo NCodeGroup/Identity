@@ -21,8 +21,16 @@ using System.Runtime.ExceptionServices;
 
 namespace NCode.Jose.Extensions;
 
+/// <summary>
+/// Provides various extension methods for <see cref="IDisposable"/> instances.
+/// </summary>
 public static class DisposableExtensions
 {
+    /// <summary>
+    /// Provides a safe way to dispose of a collection of <see cref="IDisposable"/> instances.
+    /// </summary>
+    /// <param name="collection">The collection of <see cref="IDisposable"/> instances.</param>
+    /// <param name="ignoreExceptions"><c>true</c> to ignore any exceptions thrown while disposing individual items.</param>
     public static void DisposeAll(this IEnumerable<IDisposable?> collection, bool ignoreExceptions = false)
     {
         IList<Exception>? exceptions = null;

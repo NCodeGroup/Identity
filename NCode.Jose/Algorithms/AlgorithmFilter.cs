@@ -39,7 +39,7 @@ public interface IAlgorithmFilter
 
 /// <summary>
 /// Provides an implementation for the <see cref="IAlgorithmFilter"/> interface by excluding algorithms
-/// that are configured in <see cref="JoseOptions"/>.
+/// that are configured in <see cref="JoseSerializerOptions"/>.
 /// </summary>
 public class AlgorithmFilter : IAlgorithmFilter
 {
@@ -48,8 +48,8 @@ public class AlgorithmFilter : IAlgorithmFilter
     /// <summary>
     /// Initializes a new instance of the <see cref="AlgorithmFilter"/> class.
     /// </summary>
-    /// <param name="optionsAccessor">An <see cref="IOptions{TOptions}"/> can that fetch <see cref="JoseOptions"/>.</param>
-    public AlgorithmFilter(IOptions<JoseOptions> optionsAccessor)
+    /// <param name="optionsAccessor">An <see cref="IOptions{TOptions}"/> can that fetch <see cref="JoseSerializerOptions"/>.</param>
+    public AlgorithmFilter(IOptions<JoseSerializerOptions> optionsAccessor)
     {
         DisabledAlgorithms = optionsAccessor.Value.DisabledAlgorithms.ToHashSet();
     }

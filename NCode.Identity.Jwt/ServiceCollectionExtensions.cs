@@ -42,9 +42,9 @@ public static class ServiceCollectionExtensions
     /// Adds Json Web Token (JWT) services to the specified <see cref="IServiceCollection"/> instance.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <param name="configureOptions">The action used to configure the <see cref="JoseOptions"/>.</param>
+    /// <param name="configureOptions">The action used to configure the <see cref="JoseSerializerOptions"/>.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddJsonWebTokenService(this IServiceCollection services, Action<JoseOptions> configureOptions)
+    public static IServiceCollection AddJsonWebTokenService(this IServiceCollection services, Action<JoseSerializerOptions> configureOptions)
     {
         services.AddJose(configureOptions);
 

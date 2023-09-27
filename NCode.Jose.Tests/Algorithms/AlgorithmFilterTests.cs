@@ -30,7 +30,7 @@ public class AlgorithmFilterTests : BaseTests
         const string disabledCode = nameof(disabledCode);
         const string enabledCode = nameof(enabledCode);
 
-        var options = new JoseOptions
+        var options = new JoseSerializerOptions
         {
             DisabledAlgorithms = new List<string>
             {

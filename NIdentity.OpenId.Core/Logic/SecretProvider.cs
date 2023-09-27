@@ -103,7 +103,7 @@ public class SecretProvider : IDisposable, ISecretProvider
         SupportedCompressionAlgorithms = compressionAlgorithms;
     }
 
-    public JoseEncodeParameters GetJoseParameters(IEnumerable<string> allowedAlgorithms)
+    public JoseCredentials GetJoseParameters(IEnumerable<string> allowedAlgorithms)
     {
         var supportedKeys = SecretKeyProvider.SecretKeys;
         var supportedAlgorithms = AlgorithmProvider.Algorithms

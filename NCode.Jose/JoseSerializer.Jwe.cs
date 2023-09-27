@@ -35,105 +35,28 @@ namespace NCode.Jose;
 partial interface IJoseSerializer
 {
     /// <summary>
-    /// Encrypts a JWE token given the specified payload.
+    /// Creates a new <see cref="JoseEncoder"/> with the specified encryption credentials and options.
     /// </summary>
-    /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="parameters">The JOSE encryption parameters.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <typeparam name="T">The type of the payload to encode.</typeparam>
-    /// <returns>The encrypted JWE token.</returns>
-    string EncodeJwe<T>(
-        T payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+    /// <param name="encryptionCredentials">The JOSE encryption credentials.</param>
+    /// <param name="encryptionOptions">The JOSE encryption options.</param>
+    /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
+    JoseEncoder CreateEncoder(
+        JoseEncryptionCredentials encryptionCredentials,
+        JoseEncryptionOptions encryptionOptions);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="parameters">The JOSE encryption parameters.</param>
+    /// <param name="encryptionCredentials">The JOSE encryption credentials.</param>
+    /// <param name="encryptionOptions">The JOSE encryption options.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <typeparam name="T">The type of the payload to encode.</typeparam>
-    void EncodeJwe<T>(
-        IBufferWriter<char> tokenWriter,
-        T payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
-
-    /// <summary>
-    /// Encrypts a JWE token given the specified payload.
-    /// </summary>
-    /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
-    /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="parameters">The JOSE encryption parameters.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    void EncodeJwe(
-        IBufferWriter<char> tokenWriter,
-        string payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
-
-    /// <summary>
-    /// Encrypts a JWE token given the specified payload.
-    /// </summary>
-    /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="parameters">The JOSE encryption parameters.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <returns>The encrypted JWE token.</returns>
-    string EncodeJwe(
-        string payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
-
-    /// <summary>
-    /// Encrypts a JWE token given the specified payload.
-    /// </summary>
-    /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
-    /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="parameters">The JOSE encryption parameters.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    void EncodeJwe(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<char> payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
-
-    /// <summary>
-    /// Encrypts a JWE token given the specified payload.
-    /// </summary>
-    /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="parameters">The JOSE encryption parameters.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <returns>The encrypted JWE token.</returns>
-    string EncodeJwe(
-        ReadOnlySpan<char> payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
-
-    /// <summary>
-    /// Encrypts a JWE token given the specified payload.
-    /// </summary>
-    /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="parameters">The JOSE encryption parameters.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <returns>The encrypted JWE token.</returns>
-    string EncodeJwe(
-        ReadOnlySpan<byte> payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
-
-    /// <summary>
-    /// Encrypts a JWE token given the specified payload.
-    /// </summary>
-    /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
-    /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="parameters">The JOSE encryption parameters.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    void EncodeJwe(
+    void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        JoseEncryptionParameters parameters,
+        JoseEncryptionCredentials encryptionCredentials,
+        JoseEncryptionOptions? encryptionOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 }
 
@@ -155,129 +78,33 @@ partial class JoseSerializer
             algorithm;
 
     /// <inheritdoc />
-    public string EncodeJwe<T>(
-        T payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
-    {
-        using var tokenBuffer = new Sequence<char>();
-        using var _ = Serialize(payload, out var payloadBytes);
-        EncodeJwe(
-            tokenBuffer,
-            payloadBytes,
-            parameters,
-            extraHeaders);
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
+    public JoseEncoder CreateEncoder(
+        JoseEncryptionCredentials encryptionCredentials,
+        JoseEncryptionOptions encryptionOptions) =>
+        new JoseEncryptionEncoder(this, encryptionCredentials, encryptionOptions);
 
     /// <inheritdoc />
-    public void EncodeJwe<T>(
-        IBufferWriter<char> tokenWriter,
-        T payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
-    {
-        using var _ = Serialize(payload, out var payloadBytes);
-        EncodeJwe(
-            tokenWriter,
-            payloadBytes,
-            parameters,
-            extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public void EncodeJwe(
-        IBufferWriter<char> tokenWriter,
-        string payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
-    {
-        EncodeJwe(
-            tokenWriter,
-            payload.AsSpan(),
-            parameters,
-            extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public string EncodeJwe(
-        string payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
-    {
-        return EncodeJwe(
-            payload.AsSpan(),
-            parameters,
-            extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public void EncodeJwe(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<char> payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
-    {
-        var byteCount = Encoding.UTF8.GetByteCount(payload);
-        using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
-        var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
-        Debug.Assert(bytesWritten == byteCount);
-        EncodeJwe(
-            tokenWriter,
-            payloadBytes,
-            parameters,
-            extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public string EncodeJwe(
-        ReadOnlySpan<char> payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
-    {
-        using var tokenBuffer = new Sequence<char>();
-        EncodeJwe(
-            tokenBuffer,
-            payload,
-            parameters,
-            extraHeaders);
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public string EncodeJwe(
-        ReadOnlySpan<byte> payload,
-        JoseEncryptionParameters parameters,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
-    {
-        using var tokenBuffer = new Sequence<char>();
-        EncodeJwe(
-            tokenBuffer,
-            payload,
-            parameters,
-            extraHeaders);
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public void EncodeJwe(
+    public void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        JoseEncryptionParameters parameters,
+        JoseEncryptionCredentials encryptionCredentials,
+        JoseEncryptionOptions? encryptionOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
+        var effectiveOptions = encryptionOptions ?? JoseEncryptionOptions.Default;
+
         var header = extraHeaders != null ?
             new Dictionary<string, object>(extraHeaders) :
             new Dictionary<string, object>();
 
-        var (secretKey, keyManagementAlgorithm, encryptionAlgorithm, compressionAlgorithm) = parameters;
+        var (secretKey, keyManagementAlgorithm, encryptionAlgorithm, compressionAlgorithm) = encryptionCredentials;
 
         header.TryAdd(JoseClaimNames.Header.Typ, JoseConstants.Jwt);
         header[JoseClaimNames.Header.Alg] = keyManagementAlgorithm.Code;
         header[JoseClaimNames.Header.Enc] = encryptionAlgorithm.Code;
 
         var keyId = secretKey.KeyId;
-        if (!string.IsNullOrEmpty(keyId) && parameters.AddKeyIdHeader)
+        if (!string.IsNullOrEmpty(keyId) && effectiveOptions.AddKeyIdHeader)
             header[JoseClaimNames.Header.Kid] = keyId;
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;

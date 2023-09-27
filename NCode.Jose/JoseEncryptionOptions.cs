@@ -17,26 +17,15 @@
 
 #endregion
 
-using System.Text.Json;
-using NCode.Jose.Json;
-
 namespace NCode.Jose;
 
 /// <summary>
-/// Contains options for Jose services and algorithms.
+/// Contains a set of options while encrypting a JWE token.
 /// </summary>
-public class JoseOptions
+public class JoseEncryptionOptions : JoseEncodeOptions
 {
     /// <summary>
-    /// Gets or sets a list containing the codes of all the disabled algorithms.
+    /// Gets a default instance for <see cref="JoseEncryptionOptions"/>.
     /// </summary>
-    public List<string> DisabledAlgorithms { get; set; } = new();
-
-    /// <summary>
-    /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.
-    /// </summary>
-    public JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { JoseObjectJsonConverter.Singleton }
-    };
+    public static JoseEncryptionOptions Default { get; } = new();
 }

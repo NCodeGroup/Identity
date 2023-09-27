@@ -46,9 +46,9 @@ public static class ServiceCollectionExtensions
     /// Adds Jose services and algorithms to the specified <see cref="IServiceCollection"/> instance.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <param name="configureOptions">The action used to configure the <see cref="JoseOptions"/>.</param>
+    /// <param name="configureOptions">The action used to configure the <see cref="JoseSerializerOptions"/>.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddJose(this IServiceCollection services, Action<JoseOptions> configureOptions)
+    public static IServiceCollection AddJose(this IServiceCollection services, Action<JoseSerializerOptions> configureOptions)
     {
         services.Configure(configureOptions);
 

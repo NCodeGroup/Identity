@@ -265,7 +265,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         throw new NotImplementedException();
     }
 
-    private JoseSigningParameters GetIdTokenSigningParameters(IEnumerable<string> allowedAlgorithmCodes)
+    private JoseSigningCredentials GetIdTokenSigningParameters(IEnumerable<string> allowedAlgorithmCodes)
     {
         throw new NotImplementedException();
     }

@@ -25,15 +25,15 @@ using NCode.Jose.SecretKeys;
 namespace NCode.Jose;
 
 /// <summary>
-/// Contains a set of parameters that are used by <see cref="IJoseSerializer"/> when encrypting a JWE token.
+/// Contains the set of cryptographic credentials that are used by <see cref="IJoseSerializer"/> when encrypting a JWE token.
 /// </summary>
 /// <param name="SecretKey">The Key Encryption Key (KEK) to use for encryption.</param>
 /// <param name="KeyManagementAlgorithm">The <see cref="IKeyManagementAlgorithm"/> to use for key management.</param>
 /// <param name="AuthenticatedEncryptionAlgorithm">The <see cref="IAuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
-/// <param name="CompressionAlgorithm">The <see cref="ICompressionAlgorithm"/> to use for compression.</param>
-public record JoseEncryptionParameters(
+/// <param name="CompressionAlgorithm">The optional <see cref="ICompressionAlgorithm"/> to use for compression.</param>
+public record JoseEncryptionCredentials(
         SecretKey SecretKey,
         IKeyManagementAlgorithm KeyManagementAlgorithm,
         IAuthenticatedEncryptionAlgorithm AuthenticatedEncryptionAlgorithm,
         ICompressionAlgorithm? CompressionAlgorithm = null)
-    : JoseEncodeParameters(SecretKey);
+    : JoseCredentials(SecretKey);

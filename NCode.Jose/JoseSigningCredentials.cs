@@ -30,4 +30,4 @@ namespace NCode.Jose;
 public record JoseSigningCredentials(
         SecretKey SecretKey,
         ISignatureAlgorithm SignatureAlgorithm)
-    : JoseCredentials(SecretKey);
+    : JoseEncodeCredentials(SecretKey);

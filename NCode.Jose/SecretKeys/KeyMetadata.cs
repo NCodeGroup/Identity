@@ -23,6 +23,15 @@ namespace NCode.Jose.SecretKeys;
 /// Contains common metadata for a secret key such as <c>KeyId</c>, <c>Use</c>, and <c>Algorithm</c>.
 /// </summary>
 /// <param name="KeyId">The <c>Key ID (KID)</c> for the secret key.</param>
-/// <param name="Use">The intended use for the secret key.</param>
-/// <param name="Algorithm">The intended algorithm for the secret key.</param>
-public record struct KeyMetadata(string? KeyId, string? Use, string? Algorithm);
+/// <param name="Use">The intended use for the secret key. This value is optional and may be <c>null</c> to
+/// indicate that this key is intended for use with any compatible algorithm.
+/// Valid values are defined in RFC 7517 Section 4.2:
+/// https://tools.ietf.org/html/rfc7517#section-4.2</param>
+/// <param name="Algorithm">The intended algorithm for the secret key. This value is optional and may be
+/// <c>null</c> to indicate that this key is intended for use with any compatible algorithm.</param>
+/// <param name="ExpiresWhen">The <see cref="DateTimeOffset"/> when set secret key expires and is no longer valid.</param>
+public record struct KeyMetadata(
+    string? KeyId,
+    string? Use,
+    string? Algorithm,
+    DateTimeOffset? ExpiresWhen);

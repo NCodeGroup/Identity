@@ -36,4 +36,4 @@ public record JoseEncryptionCredentials(
         IKeyManagementAlgorithm KeyManagementAlgorithm,
         IAuthenticatedEncryptionAlgorithm AuthenticatedEncryptionAlgorithm,
         ICompressionAlgorithm? CompressionAlgorithm = null)
-    : JoseCredentials(SecretKey);
+    : JoseEncodeCredentials(SecretKey);

@@ -162,9 +162,9 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
             throw new InvalidOperationException();
 
         // TODO: async?
-        var signingParameters = GetIdTokenSigningParameters(authorizationContext.Client.IdTokenSigningAlgorithms);
+        var signingCredentials = GetIdTokenSigningCredentials(authorizationContext.Client.IdTokenSigningAlgorithms);
 
-        var hashAlgorithmName = signingParameters.SignatureAlgorithm.HashAlgorithmName;
+        var hashAlgorithmName = signingCredentials.SignatureAlgorithm.HashAlgorithmName;
         var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
         var hashFunction = hashAlgorithmName.GetHashFunction();
 
@@ -256,16 +256,16 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
 
         var extraHeaders = Enumerable.Empty<KeyValuePair<string, object>>();
 
-        var idToken = JoseSerializer.EncodeJws(
+        var idToken = JoseSerializer.Encode(
             payload,
-            signingParameters,
-            extraHeaders);
+            signingCredentials,
+            extraHeaders: extraHeaders);
 
         await ValueTask.CompletedTask;
         throw new NotImplementedException();
     }
 
-    private JoseSigningCredentials GetIdTokenSigningParameters(IEnumerable<string> allowedAlgorithmCodes)
+    private JoseSigningCredentials GetIdTokenSigningCredentials(IEnumerable<string> allowedAlgorithmCodes)
     {
         throw new NotImplementedException();
     }

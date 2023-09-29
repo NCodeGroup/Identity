@@ -73,7 +73,7 @@ internal class SecretSerializer : ISecretSerializer
     /// <inheritdoc />
     public SecretKey DeserializeSecret(Secret secret)
     {
-        var metadata = new KeyMetadata(secret.SecretId, secret.Use, secret.Algorithm);
+        var metadata = new KeyMetadata(secret.SecretId, secret.Use, secret.Algorithm, secret.ExpiresWhen);
         return secret.SecretType switch
         {
             SecretConstants.SecretTypes.Certificate => DeserializeCertificate(metadata, secret),

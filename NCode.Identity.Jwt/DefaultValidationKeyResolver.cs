@@ -114,7 +114,7 @@ public static class DefaultValidationKeyResolver
         };
 
         // otherwise, the degenerate case will attempt to use all the keys with the specified usage
-        return secretKeys.Where(secretKey => secretKey.Use is null || secretKey.Use == use);
+        return secretKeys.Where(key => key.Metadata.Use is null || key.Metadata.Use == use);
     }
 
     private static bool VerifyCertificateHash(

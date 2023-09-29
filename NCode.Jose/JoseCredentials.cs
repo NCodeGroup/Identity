@@ -25,4 +25,4 @@ namespace NCode.Jose;
 /// Contains the common set of cryptographic credentials that are used by <see cref="IJoseSerializer"/> when encoding a JOSE token.
 /// </summary>
 /// <param name="SecretKey">The Key Encryption Key (KEK) to use for encoding.</param>
-public abstract record JoseCredentials(SecretKey SecretKey);
+public abstract record JoseEncodeCredentials(SecretKey SecretKey);

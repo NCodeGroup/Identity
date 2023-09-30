@@ -32,6 +32,6 @@ namespace NCode.Jose.SecretKeys;
 /// <param name="ExpiresWhen">The <see cref="DateTimeOffset"/> when set secret key expires and is no longer valid.</param>
 public record struct KeyMetadata(
     string? KeyId,
-    string? Use,
-    string? Algorithm,
-    DateTimeOffset? ExpiresWhen);
+    string? Use = null,
+    string? Algorithm = null,
+    DateTimeOffset? ExpiresWhen = null);

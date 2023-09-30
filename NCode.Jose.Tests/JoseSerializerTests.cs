@@ -24,6 +24,7 @@ using Jose.keys;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Jose.Algorithms;
+using NCode.Jose.Credentials;
 using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
 using NCode.Jose.SecretKeys;
@@ -32,8 +33,10 @@ namespace NCode.Jose.Tests;
 
 public class JoseSerializerTests : BaseTests
 {
+    private JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web);
     private ServiceProvider ServiceProvider { get; }
     private JoseSerializerOptions JoseSerializerOptions { get; } = new();
+    private IAlgorithmProvider AlgorithmProvider { get; }
     private Mock<JoseSerializer> MockJoseSerializer { get; }
     private JoseSerializer JoseSerializer { get; }
 
@@ -43,8 +46,8 @@ public class JoseSerializerTests : BaseTests
         ConfigureServices(services);
         ServiceProvider = services.BuildServiceProvider();
 
-        var algorithmProvider = ServiceProvider.GetRequiredService<IAlgorithmProvider>();
-        MockJoseSerializer = CreatePartialMock<JoseSerializer>(Options.Create(JoseSerializerOptions), algorithmProvider);
+        AlgorithmProvider = ServiceProvider.GetRequiredService<IAlgorithmProvider>();
+        MockJoseSerializer = CreatePartialMock<JoseSerializer>(Options.Create(JoseSerializerOptions), AlgorithmProvider);
         JoseSerializer = MockJoseSerializer.Object;
     }
 
@@ -60,15 +63,17 @@ public class JoseSerializerTests : BaseTests
 
     private static (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
     {
+        var metadata = new KeyMetadata(keyId);
         var nativeKey = RSA.Create();
-        var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), nativeKey);
+        var secretKey = RsaSecretKey.Create(metadata, nativeKey);
         return (nativeKey, secretKey);
     }
 
     private static (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, ECCurve curve)
     {
+        var metadata = new KeyMetadata(keyId);
         using var eccKey = ECDiffieHellman.Create(curve);
-        var secretKey = EccSecretKey.Create(keyId, Array.Empty<string>(), eccKey);
+        var secretKey = EccSecretKey.Create(metadata, eccKey);
         var parameters = eccKey.ExportParameters(true);
         var nativeKey = EccKey.New(parameters.Q.X, parameters.Q.Y, parameters.D, CngKeyUsages.KeyAgreement);
         return (nativeKey, secretKey);
@@ -94,14 +99,16 @@ public class JoseSerializerTests : BaseTests
         var byteCount = bitCount >> 3;
         var bytes = new byte[byteCount];
         RandomNumberGenerator.Fill(bytes);
-        var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), bytes);
+        var metadata = new KeyMetadata(keyId);
+        var secretKey = new SymmetricSecretKey(metadata, bytes);
         return (bytes, secretKey);
     }
 
     private static (object controlKey, SecretKey secretKey) CreateRandomPassword(string keyId)
     {
+        var metadata = new KeyMetadata(keyId);
         var password = Guid.NewGuid().ToString("N");
-        var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
+        var secretKey = new SymmetricSecretKey(metadata, password);
         return (password, secretKey);
     }
 
@@ -225,12 +232,33 @@ public class JoseSerializerTests : BaseTests
             ["customHeader"] = "customValue"
         };
 
-        var token = JoseSerializer.EncodeJwe(
-            originalPayload,
+        if (!AlgorithmProvider.Algorithms.TryGetKeyManagementAlgorithm(
+                keyManagementAlgorithmCode,
+                out var keyManagementAlgorithm))
+            throw new InvalidOperationException();
+
+        if (!AlgorithmProvider.Algorithms.TryGetAuthenticatedEncryptionAlgorithm(
+                encryptionAlgorithmCode,
+                out var encryptionAlgorithm))
+            throw new InvalidOperationException();
+
+        if (string.IsNullOrEmpty(compressionAlgorithmCode) ||
+            !AlgorithmProvider.Algorithms.TryGetCompressionAlgorithm(
+                compressionAlgorithmCode,
+                out var compressionAlgorithm))
+            compressionAlgorithm = null;
+
+        var credentials = new JoseEncryptionCredentials(
             secretKey,
-            keyManagementAlgorithmCode,
-            encryptionAlgorithmCode,
-            compressionAlgorithmCode,
+            keyManagementAlgorithm,
+            encryptionAlgorithm,
+            compressionAlgorithm);
+
+        var token = JoseSerializer.Encode(
+            originalPayload,
+            credentials,
+            JoseEncryptionOptions.Default,
+            JsonSerializerOptions,
             originalExtraHeaders);
 
         var originalJson = JsonSerializer.Serialize(originalPayload, JoseSerializerOptions.JsonSerializerOptions);
@@ -392,7 +420,12 @@ public class JoseSerializerTests : BaseTests
         JsonElement header;
         if (detachPayload)
         {
-            JoseSerializer.VerifyJws(originalToken, secretKey, originalPayload, out header);
+            JoseSerializer.VerifyJws(
+                originalToken,
+                secretKey,
+                originalPayload,
+                JsonSerializerOptions,
+                out header);
         }
         else
         {
@@ -423,6 +456,11 @@ public class JoseSerializerTests : BaseTests
         var (controlKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
         var signatureAlgorithmCode = controlSettings.JwsHeaderValue(jwsAlgorithm);
 
+        if (!AlgorithmProvider.Algorithms.TryGetSignatureAlgorithm(
+                signatureAlgorithmCode,
+                out var signatureAlgorithm))
+            throw new InvalidOperationException();
+
         var payload = new Dictionary<string, object>
         {
             ["key1"] = "p-value"
@@ -432,24 +470,33 @@ public class JoseSerializerTests : BaseTests
             ["header1"] = "h-value"
         };
 
-        var parameters = new EncodeJwsParameters
+        var signatureCredentials = new JoseSignatureCredentials(
+            secretKey,
+            signatureAlgorithm);
+
+        var signatureOptions = new JoseSignatureOptions
         {
             EncodePayload = encodePayload,
             DetachPayload = detachPayload
         };
 
-        var token = JoseSerializer.EncodeJws(payload, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        var token = JoseSerializer.Encode(
+            payload,
+            signatureCredentials,
+            signatureOptions,
+            JsonSerializerOptions,
+            extraHeaders);
 
         var json = JsonSerializer.Serialize(payload, JoseSerializerOptions.JsonSerializerOptions);
-        var token2 = JoseSerializer.EncodeJws(json, secretKey, signatureAlgorithmCode, extraHeaders, parameters);
+        var token2 = JoseSerializer.Encode(json, signatureCredentials, signatureOptions, extraHeaders);
 
         JsonElement deserializedHeaders;
         if (detachPayload)
         {
-            JoseSerializer.VerifyJws(token, secretKey, payload, out deserializedHeaders);
+            JoseSerializer.VerifyJws(token, secretKey, payload, JsonSerializerOptions, out deserializedHeaders);
             JoseSerializer.VerifyJws(token, secretKey, json, out var deserializedHeaders2);
 
-            JoseSerializer.VerifyJws(token2, secretKey, payload, out var deserializedHeaders3);
+            JoseSerializer.VerifyJws(token2, secretKey, payload, JsonSerializerOptions, out var deserializedHeaders3);
             JoseSerializer.VerifyJws(token2, secretKey, json, out var deserializedHeaders4);
 
             Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders2));
@@ -488,8 +535,8 @@ public class JoseSerializerTests : BaseTests
             var b64Header = Assert.Contains("b64", headerToVerify);
             Assert.Equal(false, b64Header);
 
-            var critHeader = Assert.Contains("crit", headerToVerify);
-            Assert.Equal(new[] { "b64" }, critHeader);
+            var criticalHeader = Assert.Contains("crit", headerToVerify);
+            Assert.Equal(new[] { "b64" }, criticalHeader);
         }
 
         var typHeader = Assert.Contains("typ", headerToVerify);

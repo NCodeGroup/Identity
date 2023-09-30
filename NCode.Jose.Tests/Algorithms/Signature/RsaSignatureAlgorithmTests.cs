@@ -100,8 +100,9 @@ public class RsaSignatureAlgorithmTests
         const string keyId = nameof(keyId);
         const string code = nameof(code);
 
+        var metadata = new KeyMetadata(keyId);
         using var key = RSA.Create(keySizeBits);
-        using var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), key);
+        using var secretKey = RsaSecretKey.Create(metadata, key);
 
         var algorithm = new RsaSignatureAlgorithm(code, hashAlgorithmName, padding);
 

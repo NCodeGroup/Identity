@@ -125,12 +125,11 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void TryWrapKey_GivenMissingAlgHeader_ThenThrows()
     {
-        const string keyId = nameof(keyId);
         const string password = nameof(password);
 
         var algorithm = Create();
 
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
+        using var secretKey = new SymmetricSecretKey(default, password);
 
         var header = new Dictionary<string, object>();
         var contentKey = Array.Empty<byte>();
@@ -145,12 +144,11 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void TryWrapKey_GivenTooSmallIterationCount_ThenThrows()
     {
-        const string keyId = nameof(keyId);
         const string password = nameof(password);
 
         var algorithm = Create();
 
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
+        using var secretKey = new SymmetricSecretKey(default, password);
 
         var header = new Dictionary<string, object>
         {
@@ -170,12 +168,11 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void TryWrapKey_GivenTooLargeIterationCount_ThenThrows()
     {
-        const string keyId = nameof(keyId);
         const string password = nameof(password);
 
         var algorithm = Create();
 
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
+        using var secretKey = new SymmetricSecretKey(default, password);
 
         var header = new Dictionary<string, object>
         {
@@ -196,12 +193,11 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void TryWrapKey_GivenDestinationTooSmall_ThenValid()
     {
-        const string keyId = nameof(keyId);
         const string password = nameof(password);
 
         var algorithm = Create();
 
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
+        using var secretKey = new SymmetricSecretKey(default, password);
 
         var header = new Dictionary<string, object>
         {
@@ -245,7 +241,8 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
             keySizeBits: keySizeBits,
             aesKeyWrap: AesKeyWrap.Default);
 
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), password);
+        var metadata = new KeyMetadata(keyId);
+        using var secretKey = new SymmetricSecretKey(metadata, password);
 
         // ReSharper disable once InconsistentNaming
         var p2c = Random.Shared.Next(Pbes2KeyManagementAlgorithm.MinIterationCount, 310000);

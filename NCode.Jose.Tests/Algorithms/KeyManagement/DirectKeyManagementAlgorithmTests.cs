@@ -73,13 +73,11 @@ public class DirectKeyManagementAlgorithmTests
     [Fact]
     public void NewKey_Valid()
     {
-        const string keyId = nameof(keyId);
-
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
         Span<byte> cek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
+        using var secretKey = new SymmetricSecretKey(default, kek);
 
         var header = new Dictionary<string, object>();
 
@@ -91,12 +89,10 @@ public class DirectKeyManagementAlgorithmTests
     [Fact]
     public void NewKey_InvalidDestinationSize()
     {
-        const string keyId = nameof(keyId);
-
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
+        using var secretKey = new SymmetricSecretKey(default, kek);
 
         var header = new Dictionary<string, object>();
 
@@ -112,10 +108,8 @@ public class DirectKeyManagementAlgorithmTests
     [Fact]
     public void TryWrapKey_Valid()
     {
-        const string keyId = nameof(keyId);
-
         Span<byte> kek = new byte[1];
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
+        using var secretKey = new SymmetricSecretKey(default, kek);
 
         var header = new Dictionary<string, object>();
 
@@ -132,14 +126,12 @@ public class DirectKeyManagementAlgorithmTests
     [Fact]
     public void TryUnwrapKey_Valid()
     {
-        const string keyId = nameof(keyId);
-
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
         Span<byte> cek = new byte[kekSizeBytes];
         Span<byte> encryptedCek = Array.Empty<byte>();
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
+        using var secretKey = new SymmetricSecretKey(default, kek);
 
         var header = new JsonObject();
         var headerForUnwrap = header.Deserialize<JsonElement>();
@@ -153,12 +145,10 @@ public class DirectKeyManagementAlgorithmTests
     [Fact]
     public void TryUnwrapKey_InvalidSize()
     {
-        const string keyId = nameof(keyId);
-
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
+        using var secretKey = new SymmetricSecretKey(default, kek);
 
         var header = new JsonObject();
         var headerForUnwrap = header.Deserialize<JsonElement>();

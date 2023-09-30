@@ -45,14 +45,13 @@ public class KeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void NewKey_Valid()
     {
-        const string keyId = nameof(keyId);
         const int kekSizeBytes = 32;
         const int kekSizeBits = kekSizeBytes << 3;
         const int cekSizeBytes = 64;
 
         Span<byte> kek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), kek);
+        using var secretKey = new SymmetricSecretKey(default, kek);
 
         Span<byte> cek = new byte[cekSizeBytes];
         cek.Fill(0);

@@ -537,10 +537,12 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var apv = new byte[32];
         RandomNumberGenerator.Fill(apv);
 
+        var metadata = new KeyMetadata(keyId);
+
         // party 1
 
         using var key1 = ECDiffieHellman.Create(curve);
-        using var secretKey1 = EccSecretKey.Create(keyId, Array.Empty<string>(), key1);
+        using var secretKey1 = EccSecretKey.Create(metadata, key1);
         var parameters1 = key1.ExportParameters(includePrivateParameters: false);
 
         var header1 = new Dictionary<string, object>
@@ -567,7 +569,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             D = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("d", epk)))
         };
         using var key2 = ECDiffieHellman.Create(parameters2);
-        using var secretKey2 = EccSecretKey.Create(keyId, Array.Empty<string>(), key2);
+        using var secretKey2 = EccSecretKey.Create(metadata, key2);
 
         var crv = $"P-{secretKey2.KeySizeBits}";
         var header2 = new Dictionary<string, object>

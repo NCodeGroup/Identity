@@ -129,10 +129,9 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     public void TryWrapKey_Valid(int kekSizeBits, RSAEncryptionPadding padding)
     {
         const string code = nameof(code);
-        const string keyId = nameof(keyId);
 
         using var key = RSA.Create(kekSizeBits);
-        using var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), key);
+        using var secretKey = RsaSecretKey.Create(default, key);
 
         var algorithm = new RsaKeyManagementAlgorithm(code, padding);
         var header = new Dictionary<string, object>();
@@ -157,12 +156,11 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     public void TryWrapKey_GivenTooSmallDestination_ThenValid()
     {
         const string code = nameof(code);
-        const string keyId = nameof(keyId);
         const int kekSizeBits = 2048;
         const int kekSizeBytes = kekSizeBits >> 3;
 
         using var key = RSA.Create(kekSizeBits);
-        using var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), key);
+        using var secretKey = RsaSecretKey.Create(default, key);
 
         var anyPadding = RSAEncryptionPadding.Pkcs1;
         var algorithm = new RsaKeyManagementAlgorithm(code, anyPadding);
@@ -183,8 +181,9 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         const string code = nameof(code);
         const string keyId = nameof(keyId);
 
+        var metadata = new KeyMetadata(keyId);
         using var key = RSA.Create(kekSizeBits);
-        using var secretKey = RsaSecretKey.Create(keyId, Array.Empty<string>(), key);
+        using var secretKey = RsaSecretKey.Create(metadata, key);
 
         var algorithm = new RsaKeyManagementAlgorithm(code, padding);
         var headerForWrap = new Dictionary<string, object>();

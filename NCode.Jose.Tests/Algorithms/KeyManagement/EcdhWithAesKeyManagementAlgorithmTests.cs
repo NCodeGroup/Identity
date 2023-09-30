@@ -85,8 +85,9 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         const string keyId = nameof(keyId);
         const string alg = nameof(alg);
 
+        var metadata = new KeyMetadata(keyId);
         using var key = ECDiffieHellman.Create(curve);
-        using var secretKey = EccSecretKey.Create(keyId, Array.Empty<string>(), key);
+        using var secretKey = EccSecretKey.Create(metadata, key);
 
         var cekSizeBits = cekSizeBytes << 3;
         var algorithm = CreateAlgorithm(cekSizeBits, AesKeyWrap.Default);

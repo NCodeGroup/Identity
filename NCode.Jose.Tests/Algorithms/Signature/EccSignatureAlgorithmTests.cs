@@ -100,8 +100,9 @@ public class EccSignatureAlgorithmTests
         const string keyId = nameof(keyId);
         const string code = nameof(code);
 
+        var metadata = new KeyMetadata(keyId);
         using var key = ECDsa.Create(curve);
-        using var secretKey = EccSecretKey.Create(keyId, Array.Empty<string>(), key);
+        using var secretKey = EccSecretKey.Create(metadata, key);
 
         var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
         var hashSizeBytes = algorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);

@@ -37,12 +37,11 @@ public class KeyedAlgorithmTests : BaseTests
     [Fact]
     public void ValidateSecretKey_Valid()
     {
-        const string keyId = nameof(keyId);
         const int keySizeBytes = 32;
         const int keySizeBits = keySizeBytes * 8;
 
         Span<byte> key = new byte[keySizeBytes];
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), key);
+        using var secretKey = new SymmetricSecretKey(default, key);
 
         MockKeyedAlgorithm
             .Setup(x => x.KeyBitSizes)
@@ -56,12 +55,11 @@ public class KeyedAlgorithmTests : BaseTests
     [Fact]
     public void ValidateSecretKey_InvalidType()
     {
-        const string keyId = nameof(keyId);
         const int keySizeBytes = 32;
         const int keySizeBits = keySizeBytes * 8;
 
         Span<byte> key = new byte[keySizeBytes];
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), key);
+        using var secretKey = new SymmetricSecretKey(default, key);
 
         MockKeyedAlgorithm
             .Setup(x => x.KeyBitSizes)
@@ -77,12 +75,11 @@ public class KeyedAlgorithmTests : BaseTests
     [Fact]
     public void ValidateSecretKey_InvalidSize()
     {
-        const string keyId = nameof(keyId);
         const int keySizeBytes = 32;
         const int keySizeBits = keySizeBytes * 8;
 
         Span<byte> key = new byte[keySizeBytes];
-        using var secretKey = new SymmetricSecretKey(keyId, Array.Empty<string>(), key);
+        using var secretKey = new SymmetricSecretKey(default, key);
 
         MockKeyedAlgorithm
             .Setup(x => x.KeyBitSizes)

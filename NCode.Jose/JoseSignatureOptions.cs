@@ -22,12 +22,12 @@ namespace NCode.Jose;
 /// <summary>
 /// Contains a set of options while signing a JWS token.
 /// </summary>
-public class JoseSigningOptions : JoseEncodeOptions
+public class JoseSignatureOptions : JoseEncodeOptions
 {
     /// <summary>
-    /// Gets a default instance for <see cref="JoseSigningOptions"/>.
+    /// Gets a default instance for <see cref="JoseSignatureOptions"/>.
     /// </summary>
-    public static JoseSigningOptions Default { get; } = new();
+    public static JoseSignatureOptions Default { get; } = new();
 
     /// <summary>
     /// Gets or sets a value indicating whether the payload should be base64url encoded (default).

@@ -18,31 +18,32 @@
 #endregion
 
 using System.Buffers;
+using NCode.Jose.Credentials;
 
 namespace NCode.Jose;
 
 /// <summary>
 /// Provides an implementation of <see cref="JoseEncoder"/> that can be used to sign JWS tokens.
 /// </summary>
-public class JoseSigningEncoder : JoseEncoder
+public class JoseSignatureEncoder : JoseEncoder
 {
-    private JoseSigningCredentials SigningCredentials { get; }
-    private JoseSigningOptions SigningOptions { get; }
+    private JoseSignatureCredentials SignatureCredentials { get; }
+    private JoseSignatureOptions SignatureOptions { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JoseSigningEncoder"/> class with the specified signing credentials and options.
+    /// Initializes a new instance of the <see cref="JoseSignatureEncoder"/> class with the specified signing credentials and options.
     /// </summary>
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
-    /// <param name="signingOptions">The JOSE signing options.</param>
-    public JoseSigningEncoder(
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureOptions">The JOSE signing options.</param>
+    public JoseSignatureEncoder(
         IJoseSerializer joseSerializer,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions signingOptions)
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions signatureOptions)
         : base(joseSerializer)
     {
-        SigningCredentials = signingCredentials;
-        SigningOptions = signingOptions;
+        SignatureCredentials = signatureCredentials;
+        SignatureOptions = signatureOptions;
     }
 
     /// <inheritdoc />
@@ -53,7 +54,7 @@ public class JoseSigningEncoder : JoseEncoder
         JoseSerializer.Encode(
             tokenWriter,
             payload,
-            SigningCredentials,
-            SigningOptions,
+            SignatureCredentials,
+            SignatureOptions,
             extraHeaders);
 }

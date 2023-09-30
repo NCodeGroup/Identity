@@ -22,7 +22,7 @@ using NCode.Jose.Algorithms.Compression;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.SecretKeys;
 
-namespace NCode.Jose;
+namespace NCode.Jose.Credentials;
 
 /// <summary>
 /// Contains the set of cryptographic credentials that are used by <see cref="IJoseSerializer"/> when encrypting a JWE token.

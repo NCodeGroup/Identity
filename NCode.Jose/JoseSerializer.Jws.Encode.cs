@@ -23,6 +23,7 @@ using System.Text;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.Credentials;
 using NCode.Jose.Extensions;
 using NCode.Jose.Internal;
 using NCode.Jose.SecretKeys;
@@ -34,26 +35,26 @@ partial interface IJoseSerializer
     /// <summary>
     /// Creates a new <see cref="JoseEncoder"/> with the specified signing credentials and options.
     /// </summary>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
-    /// <param name="signingOptions">The JOSE signing options.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureOptions">The JOSE signing options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
     JoseEncoder CreateEncoder(
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions signingOptions);
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions signatureOptions);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 }
 
@@ -61,19 +62,19 @@ partial class JoseSerializer
 {
     /// <inheritdoc />
     public JoseEncoder CreateEncoder(
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions signingOptions) =>
-        new JoseSigningEncoder(this, signingCredentials, signingOptions);
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions signatureOptions) =>
+        new JoseSignatureEncoder(this, signatureCredentials, signatureOptions);
 
     /// <inheritdoc />
     public void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        var effectiveOptions = signingOptions ?? JoseSigningOptions.Default;
+        var effectiveOptions = signingOptions ?? JoseSignatureOptions.Default;
 
         /*
               BASE64URL(UTF8(JWS Protected Header)) || '.' ||
@@ -81,7 +82,7 @@ partial class JoseSerializer
               BASE64URL(JWS Signature)
         */
 
-        var (secretKey, signatureAlgorithm) = signingCredentials;
+        var (secretKey, signatureAlgorithm) = signatureCredentials;
 
         // BASE64URL(UTF8(JWS Protected Header)) || '.'
         EncodeJwsHeader(
@@ -112,7 +113,7 @@ partial class JoseSerializer
         string algorithmCode,
         string? keyId,
         IBufferWriter<char> tokenWriter,
-        JoseSigningOptions options,
+        JoseSignatureOptions options,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders,
         out ReadOnlySpan<char> encodedHeaderPart)
     {
@@ -147,7 +148,7 @@ partial class JoseSerializer
     private static IDisposable EncodeJwsPayload(
         ReadOnlySpan<byte> payload,
         IBufferWriter<char> tokenWriter,
-        JoseSigningOptions options,
+        JoseSignatureOptions options,
         out ReadOnlySpan<char> encodedPayloadPart)
     {
         var payloadCharCount = options.EncodePayload ?

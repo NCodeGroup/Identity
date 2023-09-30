@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,12 +17,21 @@
 
 #endregion
 
-using NCode.Jose.SecretKeys;
-
-namespace NCode.Jose;
+namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Contains the common set of cryptographic credentials that are used by <see cref="IJoseSerializer"/> when encoding a JOSE token.
+/// Contains constants for the <see cref="KeyMetadata.Use"/> property.
+/// https://datatracker.ietf.org/doc/html/rfc7517#section-4.2
 /// </summary>
-/// <param name="SecretKey">The Key Encryption Key (KEK) to use for encoding.</param>
-public abstract record JoseEncodeCredentials(SecretKey SecretKey);
+public static class SecretKeyUses
+{
+    /// <summary>
+    /// Contains the constant value for the <see cref="KeyMetadata.Use"/> property when the key is intended for digital signatures.
+    /// </summary>
+    public const string Signature = "sig";
+
+    /// <summary>
+    /// Contains the constant value for the <see cref="KeyMetadata.Use"/> property when the key is intended for encryption.
+    /// </summary>
+    public const string Encryption = "enc";
+}

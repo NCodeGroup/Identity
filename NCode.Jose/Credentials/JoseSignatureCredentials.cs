@@ -20,14 +20,14 @@
 using NCode.Jose.Algorithms.Signature;
 using NCode.Jose.SecretKeys;
 
-namespace NCode.Jose;
+namespace NCode.Jose.Credentials;
 
 /// <summary>
 /// Contains the set of cryptographic credentials that are used by <see cref="IJoseSerializer"/> when signing a JWS token.
 /// </summary>
 /// <param name="SecretKey">The Key Encryption Key (KEK) to use for signing.</param>
 /// <param name="SignatureAlgorithm">The <see cref="ISignatureAlgorithm"/> to use for signing.</param>
-public record JoseSigningCredentials(
+public record JoseSignatureCredentials(
         SecretKey SecretKey,
         ISignatureAlgorithm SignatureAlgorithm)
     : JoseEncodeCredentials(SecretKey);

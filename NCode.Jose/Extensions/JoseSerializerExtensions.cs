@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using NCode.CryptoMemory;
+using NCode.Jose.Credentials;
 using Nerdbank.Streams;
 
 namespace NCode.Jose.Extensions;
@@ -38,7 +39,7 @@ public static class JoseSerializerExtensions
     /// </summary>
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
@@ -47,8 +48,8 @@ public static class JoseSerializerExtensions
     public static string Encode<T>(
         this IJoseSerializer joseSerializer,
         T payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         JsonSerializerOptions? jsonOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
@@ -60,7 +61,7 @@ public static class JoseSerializerExtensions
         joseSerializer.Encode(
             tokenBuffer,
             payloadBytes,
-            signingCredentials,
+            signatureCredentials,
             signingOptions,
             extraHeaders);
         return tokenBuffer.AsReadOnlySequence.ToString();
@@ -72,7 +73,7 @@ public static class JoseSerializerExtensions
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
     /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
@@ -81,8 +82,8 @@ public static class JoseSerializerExtensions
         this IJoseSerializer joseSerializer,
         IBufferWriter<char> tokenWriter,
         T payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         JsonSerializerOptions? jsonOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
@@ -93,7 +94,7 @@ public static class JoseSerializerExtensions
         joseSerializer.Encode(
             tokenWriter,
             bytes,
-            signingCredentials,
+            signatureCredentials,
             signingOptions,
             extraHeaders);
     }
@@ -103,22 +104,22 @@ public static class JoseSerializerExtensions
     /// </summary>
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encoded JWS token.</returns>
     public static string Encode(
         this IJoseSerializer joseSerializer,
         string payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
         joseSerializer.Encode(
             tokenBuffer,
             payload.AsSpan(),
-            signingCredentials,
+            signatureCredentials,
             signingOptions,
             extraHeaders);
         return tokenBuffer.AsReadOnlySequence.ToString();
@@ -130,21 +131,21 @@ public static class JoseSerializerExtensions
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
     /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     public static void Encode(
         this IJoseSerializer joseSerializer,
         IBufferWriter<char> tokenWriter,
         string payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         joseSerializer.Encode(
             tokenWriter,
             payload.AsSpan(),
-            signingCredentials,
+            signatureCredentials,
             signingOptions,
             extraHeaders);
     }
@@ -154,22 +155,22 @@ public static class JoseSerializerExtensions
     /// </summary>
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encoded JWS token.</returns>
     public static string Encode(
         this IJoseSerializer joseSerializer,
         ReadOnlySpan<char> payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
         joseSerializer.Encode(
             tokenBuffer,
             payload,
-            signingCredentials,
+            signatureCredentials,
             signingOptions,
             extraHeaders);
         return tokenBuffer.AsReadOnlySequence.ToString();
@@ -181,15 +182,15 @@ public static class JoseSerializerExtensions
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
     /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     public static void Encode(
         this IJoseSerializer joseSerializer,
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<char> payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         var byteCount = Encoding.UTF8.GetByteCount(payload);
@@ -199,7 +200,7 @@ public static class JoseSerializerExtensions
         joseSerializer.Encode(
             tokenWriter,
             payloadBytes,
-            signingCredentials,
+            signatureCredentials,
             signingOptions,
             extraHeaders);
     }
@@ -210,21 +211,21 @@ public static class JoseSerializerExtensions
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
     /// <param name="payload">The payload to encode.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
+    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <returns>The encoded JWS token.</returns>
     public static string Encode(
         this IJoseSerializer joseSerializer,
         ReadOnlySpan<byte> payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
+        JoseSignatureCredentials signatureCredentials,
+        JoseSignatureOptions? signingOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
         joseSerializer.Encode(
             tokenBuffer,
             payload,
-            signingCredentials,
+            signatureCredentials,
             signingOptions,
             extraHeaders);
         return tokenBuffer.AsReadOnlySequence.ToString();

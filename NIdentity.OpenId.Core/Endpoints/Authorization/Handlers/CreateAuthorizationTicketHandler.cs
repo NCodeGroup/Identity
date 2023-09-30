@@ -25,9 +25,8 @@ using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose;
 using NCode.Jose.Algorithms;
-using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.Credentials;
 using NCode.Jose.Extensions;
-using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
@@ -48,7 +47,6 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
     private ICryptoService CryptoService { get; }
     private IAuthorizationCodeStore AuthorizationCodeStore { get; }
     private IJoseSerializer JoseSerializer { get; }
-    private IAlgorithmProvider AlgorithmProvider { get; }
 
     public CreateAuthorizationTicketHandler(
         ISystemClock systemClock,
@@ -56,8 +54,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         IOpenIdContext openIdContext,
         ICryptoService cryptoService,
         IAuthorizationCodeStore authorizationCodeStore,
-        IJoseSerializer joseSerializer,
-        IAlgorithmProvider algorithmProvider)
+        IJoseSerializer joseSerializer)
     {
         SystemClock = systemClock;
         IdGenerator = idGenerator;
@@ -65,7 +62,6 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         CryptoService = cryptoService;
         AuthorizationCodeStore = authorizationCodeStore;
         JoseSerializer = joseSerializer;
-        AlgorithmProvider = algorithmProvider;
     }
 
     // TODO: move back into the original handler and use mediator for each response type
@@ -162,7 +158,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
             throw new InvalidOperationException();
 
         // TODO: async?
-        var signingCredentials = GetIdTokenSigningCredentials(authorizationContext.Client.IdTokenSigningAlgorithms);
+        var signingCredentials = GetIdTokenSignatureCredentials(authorizationContext.Client.IdTokenSigningAlgorithms);
 
         var hashAlgorithmName = signingCredentials.SignatureAlgorithm.HashAlgorithmName;
         var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
@@ -265,7 +261,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         throw new NotImplementedException();
     }
 
-    private JoseSigningCredentials GetIdTokenSigningCredentials(IEnumerable<string> allowedAlgorithmCodes)
+    private JoseSignatureCredentials GetIdTokenSignatureCredentials(IEnumerable<string> allowedAlgorithmCodes)
     {
         throw new NotImplementedException();
     }

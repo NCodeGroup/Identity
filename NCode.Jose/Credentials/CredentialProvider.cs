@@ -18,94 +18,90 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Primitives;
-using NCode.Jose;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Jose.Algorithms.Compression;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Algorithms.Signature;
-using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
-namespace NIdentity.OpenId.Logic;
+namespace NCode.Jose.Credentials;
 
+/// <summary>
+/// Provides the ability to retrieve <see cref="JoseSignatureCredentials"/> and <see cref="JoseEncryptionCredentials"/>
+/// based on criteria that specify supported and allowed algorithms.
+/// </summary>
 public interface ICredentialProvider
 {
-    IReadOnlyCollection<ISignatureAlgorithm> SupportedSignatureAlgorithms { get; }
-    IReadOnlyCollection<IKeyManagementAlgorithm> SupportedKeyManagementAlgorithms { get; }
-    IReadOnlyCollection<IAuthenticatedEncryptionAlgorithm> SupportedAuthenticatedEncryptionAlgorithms { get; }
-    IReadOnlyCollection<ICompressionAlgorithm> SupportedCompressionAlgorithms { get; }
+    /// <summary>
+    /// Attempts to retrieve <see cref="JoseSignatureCredentials"/> based on the specified criteria.
+    /// </summary>
+    /// <param name="supported">A collection of algorithms codes that will be considered.</param>
+    /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
+    /// <param name="credentials">When this method returns, contains the <see cref="JoseSignatureCredentials"/> that meet the specified criteria.</param>
+    /// <returns><c>true</c> if signing credentials were found that match the specified criteria; otherwise, <c>false</c>.</returns>
+    bool TryGetSignatureCredentials(
+        IEnumerable<string> supported,
+        IEnumerable<string>? allowed,
+        [NotNullWhen(true)] out JoseSignatureCredentials? credentials);
+
+    /// <summary>
+    /// Attempts to retrieve <see cref="JoseEncryptionCredentials"/> based on the specified criteria.
+    /// </summary>
+    /// <param name="supported">A collection of algorithms codes that will be considered.</param>
+    /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
+    /// <param name="credentials">When this method returns, contains the <see cref="JoseEncryptionCredentials"/> that meet the specified criteria.</param>
+    /// <returns><c>true</c> if encryption credentials were found that match the specified criteria; otherwise, <c>false</c>.</returns>
+    bool TryGetEncryptionCredentials(
+        AlgorithmSet supported,
+        AlgorithmSet? allowed,
+        [NotNullWhen(true)] out JoseEncryptionCredentials? credentials);
+
+    /// <summary>
+    /// Gets the <see cref="JoseEncodeCredentials"/> that meet the specified criteria.
+    /// </summary>
+    /// <param name="supported">A collection of algorithms codes that will be considered.</param>
+    /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
+    /// <param name="requireEncryption"><c>true</c> whether only encryption credentials should be returned; otherwise, <c>false</c> when either signing credentials or encryption credentials should be returned.</param>
+    /// <returns>The <see cref="JoseEncodeCredentials"/> that can be used to encode a JOSE token.</returns>
+    JoseEncodeCredentials GetEncodeCredentials(
+        AlgorithmSet supported,
+        AlgorithmSet? allowed,
+        bool requireEncryption = false);
 }
 
-public class CredentialProvider : IDisposable, ICredentialProvider
+/// <summary>
+/// Provides the default implementation of the <see cref="ICredentialProvider"/> interface.
+/// </summary>
+public class CredentialProvider : ICredentialProvider
 {
     private ISecretKeyProvider SecretKeyProvider { get; }
     private IAlgorithmProvider AlgorithmProvider { get; }
 
-    private IList<IDisposable> ChangeRegistrations { get; } = new List<IDisposable>();
-
-    public IReadOnlyCollection<ISignatureAlgorithm> SupportedSignatureAlgorithms { get; private set; }
-    public IReadOnlyCollection<IKeyManagementAlgorithm> SupportedKeyManagementAlgorithms { get; private set; }
-    public IReadOnlyCollection<IAuthenticatedEncryptionAlgorithm> SupportedAuthenticatedEncryptionAlgorithms { get; private set; }
-    public IReadOnlyCollection<ICompressionAlgorithm> SupportedCompressionAlgorithms { get; private set; }
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CredentialProvider"/> class.
+    /// </summary>
+    /// <param name="secretKeyProvider">The <see cref="ISecretKeyProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
+    /// <param name="algorithmProvider">The <see cref="IAlgorithmProvider"/> instance that provides <see cref="IAlgorithm"/> instances.</param>
     public CredentialProvider(ISecretKeyProvider secretKeyProvider, IAlgorithmProvider algorithmProvider)
     {
         SecretKeyProvider = secretKeyProvider;
         AlgorithmProvider = algorithmProvider;
-
-        HandleAlgorithmChange();
-
-        ChangeRegistrations.Add(ChangeToken.OnChange(algorithmProvider.GetChangeToken, HandleAlgorithmChange));
     }
-
-    public void Dispose()
-    {
-        ChangeRegistrations.DisposeAll(ignoreExceptions: true);
-    }
-
-    private void HandleAlgorithmChange()
-    {
-        var signatureAlgorithms = new List<ISignatureAlgorithm>();
-        var keyManagementAlgorithms = new List<IKeyManagementAlgorithm>();
-        var authenticatedEncryptionAlgorithms = new List<IAuthenticatedEncryptionAlgorithm>();
-        var compressionAlgorithms = new List<ICompressionAlgorithm>();
-
-        foreach (var algorithm in AlgorithmProvider.Algorithms)
-        {
-            switch (algorithm)
-            {
-                case ISignatureAlgorithm signatureAlgorithm:
-                    signatureAlgorithms.Add(signatureAlgorithm);
-                    break;
-
-                case IKeyManagementAlgorithm keyManagementAlgorithm:
-                    keyManagementAlgorithms.Add(keyManagementAlgorithm);
-                    break;
-
-                case IAuthenticatedEncryptionAlgorithm authenticatedEncryptionAlgorithm:
-                    authenticatedEncryptionAlgorithms.Add(authenticatedEncryptionAlgorithm);
-                    break;
-
-                case ICompressionAlgorithm compressionAlgorithm:
-                    compressionAlgorithms.Add(compressionAlgorithm);
-                    break;
-            }
-        }
-
-        SupportedSignatureAlgorithms = signatureAlgorithms;
-        SupportedKeyManagementAlgorithms = keyManagementAlgorithms;
-        SupportedAuthenticatedEncryptionAlgorithms = authenticatedEncryptionAlgorithms;
-        SupportedCompressionAlgorithms = compressionAlgorithms;
-    }
-
-    //private TokenPreferredAlgorithms IdTokenPreferredAlgorithms { get; } = new();
 
     private static IEnumerable<string> GetIntersection(
         IEnumerable<string> aRequired,
-        IReadOnlyCollection<string>? bOptional) =>
-        bOptional is null || bOptional.Count == 0 ? aRequired : aRequired.Intersect(bOptional);
+        IEnumerable<string>? bOptional)
+    {
+        if (bOptional is null)
+            return aRequired;
+
+        if (bOptional.TryGetNonEnumeratedCount(out var count) && count == 0)
+            return aRequired;
+
+        var bCollection = bOptional as IReadOnlyCollection<string> ?? bOptional.ToList();
+        return bCollection.Count == 0 ? aRequired : aRequired.Intersect(bCollection);
+    }
 
     private static bool IsSecretKeySupported(
         string expectedUse,
@@ -138,15 +134,17 @@ public class CredentialProvider : IDisposable, ICredentialProvider
     private bool TryGetCredentials<T>(
         string expectedUse,
         IEnumerable<string> supported,
-        IReadOnlyCollection<string>? allowed,
+        IEnumerable<string>? allowed,
         [NotNullWhen(true)] out Tuple<SecretKey, T>? credentials)
         where T : IKeyedAlgorithm
     {
         var algorithmCodes = GetIntersection(supported, allowed)
             .ToHashSet();
+
         var secretKeys = SecretKeyProvider.SecretKeys
             .Where(key => IsSecretKeySupported(expectedUse, key.Metadata, algorithmCodes))
             .OrderByDescending(key => key.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue);
+
         var algorithms = AlgorithmProvider.Algorithms
             .OfType<T>()
             .Where(algorithm => algorithmCodes.Contains(algorithm.Code));
@@ -161,28 +159,34 @@ public class CredentialProvider : IDisposable, ICredentialProvider
         return credentials != null;
     }
 
-    public bool TryGetSigningCredentials(
+    /// <inheritdoc />
+    public bool TryGetSignatureCredentials(
         IEnumerable<string> supported,
-        IReadOnlyCollection<string>? allowed,
-        [NotNullWhen(true)] out JoseSigningCredentials? credentials)
+        IEnumerable<string>? allowed,
+        [NotNullWhen(true)] out JoseSignatureCredentials? credentials)
     {
-        if (!TryGetCredentials<ISignatureAlgorithm>("sig", supported, allowed, out var tuple))
+        if (!TryGetCredentials<ISignatureAlgorithm>(
+                SecretKeyUses.Signature,
+                supported,
+                allowed,
+                out var tuple))
         {
             credentials = null;
             return false;
         }
 
-        credentials = new JoseSigningCredentials(tuple.Item1, tuple.Item2);
+        credentials = new JoseSignatureCredentials(tuple.Item1, tuple.Item2);
         return true;
     }
 
+    /// <inheritdoc />
     public bool TryGetEncryptionCredentials(
         AlgorithmSet supported,
         AlgorithmSet? allowed,
         [NotNullWhen(true)] out JoseEncryptionCredentials? credentials)
     {
         if (!TryGetCredentials<IKeyManagementAlgorithm>(
-                "enc",
+                SecretKeyUses.Encryption,
                 supported.KeyManagementAlgorithms,
                 allowed?.KeyManagementAlgorithms,
                 out var tuple))
@@ -194,7 +198,10 @@ public class CredentialProvider : IDisposable, ICredentialProvider
         var supportedEncryptionCodes = GetIntersection(
             supported.EncryptionAlgorithms,
             allowed?.EncryptionAlgorithms);
-        if (!TryGetAlgorithm<IAuthenticatedEncryptionAlgorithm>(supportedEncryptionCodes, out var algorithmEncryption))
+
+        if (!TryGetAlgorithm<IAuthenticatedEncryptionAlgorithm>(
+                supportedEncryptionCodes,
+                out var algorithmEncryption))
         {
             credentials = null;
             return false;
@@ -203,7 +210,10 @@ public class CredentialProvider : IDisposable, ICredentialProvider
         var supportedCompressionCodes = GetIntersection(
             supported.CompressionAlgorithms,
             allowed?.CompressionAlgorithms);
-        TryGetAlgorithm<ICompressionAlgorithm>(supportedCompressionCodes, out var algorithmCompression);
+
+        TryGetAlgorithm<ICompressionAlgorithm>(
+            supportedCompressionCodes,
+            out var algorithmCompression);
 
         credentials = new JoseEncryptionCredentials(
             tuple.Item1,
@@ -213,13 +223,14 @@ public class CredentialProvider : IDisposable, ICredentialProvider
         return true;
     }
 
+    /// <inheritdoc />
     public JoseEncodeCredentials GetEncodeCredentials(
         AlgorithmSet supported,
         AlgorithmSet? allowed,
         bool requireEncryption = false)
     {
         if (!requireEncryption &&
-            TryGetSigningCredentials(
+            TryGetSignatureCredentials(
                 supported.SigningAlgorithms,
                 allowed?.SigningAlgorithms,
                 out var signingCredentials))
@@ -233,12 +244,4 @@ public class CredentialProvider : IDisposable, ICredentialProvider
 
         throw new InvalidOperationException();
     }
-}
-
-public class AlgorithmSet
-{
-    public List<string> SigningAlgorithms { get; set; } = new();
-    public List<string> KeyManagementAlgorithms { get; set; } = new();
-    public List<string> EncryptionAlgorithms { get; set; } = new();
-    public List<string> CompressionAlgorithms { get; set; } = new();
 }

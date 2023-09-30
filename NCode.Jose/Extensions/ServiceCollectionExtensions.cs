@@ -26,6 +26,8 @@ using NCode.Jose.Algorithms.DataSources;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Algorithms.KeyManagement.DataSources;
 using NCode.Jose.Algorithms.Signature.DataSources;
+using NCode.Jose.Credentials;
+using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Extensions;
 
@@ -54,7 +56,8 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IAesKeyWrap, AesKeyWrap>();
         services.TryAddSingleton<IAlgorithmProvider, AlgorithmProvider>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAlgorithmFilter, AlgorithmFilter>());
+        services.TryAddSingleton<ISecretKeyProvider, SecretKeyProvider>();
+        services.TryAddSingleton<ICredentialProvider, CredentialProvider>();
 
         // TODO: combine these into a single data source
         services

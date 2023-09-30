@@ -25,6 +25,7 @@ using NCode.CryptoMemory;
 using NCode.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Jose.Algorithms.Compression;
 using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.Credentials;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
 using NCode.Jose.SecretKeys;

@@ -18,6 +18,7 @@
 #endregion
 
 using System.Buffers;
+using NCode.Jose.Credentials;
 
 namespace NCode.Jose;
 

@@ -28,13 +28,7 @@
         <Compile Update="*\SecretKeyReader.*.cs">
             <DependentUpon>SecretKeyReader.cs</DependentUpon>
         </Compile>
-        <Compile Update="JoseEncryptionCredentials.cs">
-          <DependentUpon>JoseCredentials.cs</DependentUpon>
-        </Compile>
-        <Compile Update="JoseSigningCredentials.cs">
-          <DependentUpon>JoseCredentials.cs</DependentUpon>
-        </Compile>
-        <Compile Update="JoseSigningOptions.cs">
+        <Compile Update="JoseSignatureOptions.cs">
           <DependentUpon>JoseEncodeOptions.cs</DependentUpon>
         </Compile>
         <Compile Update="JoseEncryptionOptions.cs">
@@ -43,7 +37,7 @@
         <Compile Update="JoseEncryptionEncoder.cs">
           <DependentUpon>JoseEncoder.cs</DependentUpon>
         </Compile>
-        <Compile Update="JoseSigningEncoder.cs">
+        <Compile Update="JoseSignatureEncoder.cs">
           <DependentUpon>JoseEncoder.cs</DependentUpon>
         </Compile>
     </ItemGroup>

@@ -141,17 +141,21 @@ public class CredentialProvider : ICredentialProvider
         var algorithmCodes = GetIntersection(supported, allowed)
             .ToHashSet();
 
-        var secretKeys = SecretKeyProvider.SecretKeys
+        var algorithmsByCode = AlgorithmProvider.Algorithms
+            .OfType<T>()
+            .Where(algorithm => algorithmCodes.Contains(algorithm.Code))
+            .ToDictionary(algorithm => algorithm.Code);
+
+        var sortedSecretKeys = SecretKeyProvider.SecretKeys
             .Where(key => IsSecretKeySupported(expectedUse, key.Metadata, algorithmCodes))
             .OrderByDescending(key => key.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue);
 
-        var algorithms = AlgorithmProvider.Algorithms
-            .OfType<T>()
-            .Where(algorithm => algorithmCodes.Contains(algorithm.Code));
+        var sortedAlgorithms = algorithmCodes
+            .Select(algorithmCode => algorithmsByCode[algorithmCode]);
 
         var query =
-            from secretKey in secretKeys
-            from algorithm in algorithms
+            from secretKey in sortedSecretKeys
+            from algorithm in sortedAlgorithms
             where IsSecretKeyCompatible(algorithm, secretKey)
             select Tuple.Create(secretKey, algorithm);
 

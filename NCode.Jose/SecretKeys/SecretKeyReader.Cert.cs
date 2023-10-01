@@ -40,12 +40,17 @@ partial struct SecretKeyReader
         var certificate = X509Certificate2.CreateFromPem(pem);
         try
         {
-            var metadataWithKeyId = metadata with { KeyId = metadata.KeyId ?? certificate.Thumbprint };
+            var newMetadata = metadata with
+            {
+                KeyId = metadata.KeyId ?? certificate.Thumbprint,
+                ExpiresWhen = metadata.ExpiresWhen ?? certificate.NotAfter
+            };
+
             return certificate.GetKeyAlgorithm() switch
             {
-                RsaSecretKey.Oid => ReadRsa(metadataWithKeyId, pem, certificate),
-                EccSecretKey.Oid when IsECDsa(certificate) => ReadECDsa(metadataWithKeyId, pem, certificate),
-                EccSecretKey.Oid when IsECDiffieHellman(certificate) => ReadECDiffieHellman(metadataWithKeyId, pem, certificate),
+                RsaSecretKey.Oid => ReadRsa(newMetadata, pem, certificate),
+                EccSecretKey.Oid when IsECDsa(certificate) => ReadECDsa(newMetadata, pem, certificate),
+                EccSecretKey.Oid when IsECDiffieHellman(certificate) => ReadECDiffieHellman(newMetadata, pem, certificate),
                 _ => throw new InvalidOperationException()
             };
         }

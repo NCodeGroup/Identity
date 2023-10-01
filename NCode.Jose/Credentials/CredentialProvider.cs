@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Jose.Algorithms.Compression;
@@ -43,7 +44,7 @@ public interface ICredentialProvider
     bool TryGetSignatureCredentials(
         IEnumerable<string> supported,
         IEnumerable<string>? allowed,
-        [NotNullWhen(true)] out JoseSignatureCredentials? credentials);
+        [MaybeNullWhen(false)] out JoseSignatureCredentials credentials);
 
     /// <summary>
     /// Attempts to retrieve <see cref="JoseEncryptionCredentials"/> based on the specified criteria.
@@ -55,7 +56,7 @@ public interface ICredentialProvider
     bool TryGetEncryptionCredentials(
         AlgorithmSet supported,
         AlgorithmSet? allowed,
-        [NotNullWhen(true)] out JoseEncryptionCredentials? credentials);
+        [MaybeNullWhen(false)] out JoseEncryptionCredentials credentials);
 
     /// <summary>
     /// Gets the <see cref="JoseEncodeCredentials"/> that meet the specified criteria.
@@ -93,6 +94,8 @@ public class CredentialProvider : ICredentialProvider
         IEnumerable<string> aRequired,
         IEnumerable<string>? bOptional)
     {
+        // NOTE: we must preserve the order of 'b', if present, otherwise 'a'
+
         if (bOptional is null)
             return aRequired;
 
@@ -100,77 +103,91 @@ public class CredentialProvider : ICredentialProvider
             return aRequired;
 
         var bCollection = bOptional as IReadOnlyCollection<string> ?? bOptional.ToList();
-        return bCollection.Count == 0 ? aRequired : aRequired.Intersect(bCollection);
+        return bCollection.Count == 0 ? aRequired : bCollection.Intersect(aRequired);
     }
 
-    private static bool IsSecretKeySupported(
-        string expectedUse,
-        KeyMetadata keyMetadata,
-        IReadOnlySet<string> algorithmCodes) =>
-        (keyMetadata.Use is null || keyMetadata.Use == expectedUse) &&
-        (keyMetadata.Algorithm is null || algorithmCodes.Contains(keyMetadata.Algorithm));
+    private static bool IsSecretKeyUseCompatible(SecretKey secretKey, string expectedUse) =>
+        secretKey.Metadata.Use is null || secretKey.Metadata.Use == expectedUse;
 
-    private static bool IsSecretKeyCompatible(
-        IKeyedAlgorithm algorithm,
-        SecretKey secretKey) =>
-        algorithm.KeyType.IsInstanceOfType(secretKey) &&
-        KeySizesUtility.IsLegalSize(algorithm.KeyBitSizes, secretKey.KeySizeBits);
+    private static bool IsSecretKeyAlgorithmCompatible(SecretKey secretKey, string algorithmCode) =>
+        secretKey.Metadata.Algorithm is null || secretKey.Metadata.Algorithm == algorithmCode;
 
-    private bool TryGetAlgorithm<T>(
+    private static bool IsSecretKeyTypeCompatible(SecretKey secretKey, Type keyType) =>
+        keyType.IsInstanceOfType(secretKey);
+
+    private static bool IsSecretKeySizeCompatible(SecretKey secretKey, IEnumerable<KeySizes> legalBitSizes) =>
+        KeySizesUtility.IsLegalSize(legalBitSizes, secretKey.KeySizeBits);
+
+    private static bool IsSecretKeyCompatible(SecretKey secretKey, IKeyedAlgorithm algorithm, string expectedUse) =>
+        IsSecretKeyUseCompatible(secretKey, expectedUse) &&
+        IsSecretKeyAlgorithmCompatible(secretKey, algorithm.Code) &&
+        IsSecretKeyTypeCompatible(secretKey, algorithm.KeyType) &&
+        IsSecretKeySizeCompatible(secretKey, algorithm.KeyBitSizes);
+
+    private bool TryGetFirstAlgorithm<T>(
+        AlgorithmType algorithmType,
         IEnumerable<string> algorithmCodes,
-        [NotNullWhen(true)] out T? algorithm)
+        [MaybeNullWhen(false)] out T algorithm)
         where T : IAlgorithm
     {
-        var query =
-            from algorithmCode in algorithmCodes
-            join algorithmToCheck in AlgorithmProvider.Algorithms.OfType<T>()
-                on algorithmCode equals algorithmToCheck.Code
-            select algorithmToCheck;
+        // NOTE: we must preserve the order of algorithms
 
-        algorithm = query.FirstOrDefault();
-        return algorithm != null;
+        foreach (var algorithmCode in algorithmCodes)
+        {
+            if (AlgorithmProvider.Algorithms.TryGetAlgorithm(algorithmType, algorithmCode, out algorithm))
+            {
+                return true;
+            }
+        }
+
+        algorithm = default;
+        return false;
     }
 
-    private bool TryGetCredentials<T>(
+    private bool TryGetFirstCredential<T>(
         string expectedUse,
+        AlgorithmType algorithmType,
         IEnumerable<string> supported,
         IEnumerable<string>? allowed,
-        [NotNullWhen(true)] out Tuple<SecretKey, T>? credentials)
+        [MaybeNullWhen(false)] out Tuple<SecretKey, T> credentials)
         where T : IKeyedAlgorithm
     {
-        var algorithmCodes = GetIntersection(supported, allowed)
-            .ToHashSet();
+        // NOTE: we must preserve the order of algorithms
 
-        var algorithmsByCode = AlgorithmProvider.Algorithms
-            .OfType<T>()
-            .Where(algorithm => algorithmCodes.Contains(algorithm.Code))
-            .ToDictionary(algorithm => algorithm.Code);
+        var algorithmCodes = GetIntersection(supported, allowed);
 
-        var sortedSecretKeys = SecretKeyProvider.SecretKeys
-            .Where(key => IsSecretKeySupported(expectedUse, key.Metadata, algorithmCodes))
-            .OrderByDescending(key => key.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue);
+        foreach (var algorithmCode in algorithmCodes)
+        {
+            if (!AlgorithmProvider.Algorithms.TryGetAlgorithm<T>(algorithmType, algorithmCode, out var algorithm))
+                continue;
 
-        var sortedAlgorithms = algorithmCodes
-            .Select(algorithmCode => algorithmsByCode[algorithmCode]);
+            // TODO: can we optimize this to not enumerate all keys repeatedly?
+            var secretKeys = SecretKeyProvider.SecretKeys
+                .OrderByDescending(key => key.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue);
 
-        var query =
-            from secretKey in sortedSecretKeys
-            from algorithm in sortedAlgorithms
-            where IsSecretKeyCompatible(algorithm, secretKey)
-            select Tuple.Create(secretKey, algorithm);
+            foreach (var secretKey in secretKeys)
+            {
+                if (!IsSecretKeyCompatible(secretKey, algorithm, expectedUse))
+                    continue;
 
-        credentials = query.FirstOrDefault();
-        return credentials != null;
+                credentials = Tuple.Create(secretKey, algorithm);
+                return true;
+            }
+        }
+
+        credentials = default;
+        return false;
     }
 
     /// <inheritdoc />
     public bool TryGetSignatureCredentials(
         IEnumerable<string> supported,
         IEnumerable<string>? allowed,
-        [NotNullWhen(true)] out JoseSignatureCredentials? credentials)
+        [MaybeNullWhen(false)] out JoseSignatureCredentials credentials)
     {
-        if (!TryGetCredentials<ISignatureAlgorithm>(
+        if (!TryGetFirstCredential<ISignatureAlgorithm>(
                 SecretKeyUses.Signature,
+                AlgorithmType.DigitalSignature,
                 supported,
                 allowed,
                 out var tuple))
@@ -187,10 +204,11 @@ public class CredentialProvider : ICredentialProvider
     public bool TryGetEncryptionCredentials(
         AlgorithmSet supported,
         AlgorithmSet? allowed,
-        [NotNullWhen(true)] out JoseEncryptionCredentials? credentials)
+        [MaybeNullWhen(false)] out JoseEncryptionCredentials credentials)
     {
-        if (!TryGetCredentials<IKeyManagementAlgorithm>(
+        if (!TryGetFirstCredential<IKeyManagementAlgorithm>(
                 SecretKeyUses.Encryption,
+                AlgorithmType.KeyManagement,
                 supported.KeyManagementAlgorithms,
                 allowed?.KeyManagementAlgorithms,
                 out var tuple))
@@ -203,7 +221,8 @@ public class CredentialProvider : ICredentialProvider
             supported.EncryptionAlgorithms,
             allowed?.EncryptionAlgorithms);
 
-        if (!TryGetAlgorithm<IAuthenticatedEncryptionAlgorithm>(
+        if (!TryGetFirstAlgorithm<IAuthenticatedEncryptionAlgorithm>(
+                AlgorithmType.AuthenticatedEncryption,
                 supportedEncryptionCodes,
                 out var algorithmEncryption))
         {
@@ -215,7 +234,8 @@ public class CredentialProvider : ICredentialProvider
             supported.CompressionAlgorithms,
             allowed?.CompressionAlgorithms);
 
-        TryGetAlgorithm<ICompressionAlgorithm>(
+        TryGetFirstAlgorithm<ICompressionAlgorithm>(
+            AlgorithmType.Compression,
             supportedCompressionCodes,
             out var algorithmCompression);
 
@@ -246,6 +266,7 @@ public class CredentialProvider : ICredentialProvider
                 out var encryptionCredentials))
             return encryptionCredentials;
 
+        // TODO: better exception
         throw new InvalidOperationException();
     }
 }

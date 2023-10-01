@@ -32,6 +32,20 @@ namespace NCode.Jose.Algorithms;
 public interface IAlgorithmCollection : IReadOnlyCollection<IAlgorithm>
 {
     /// <summary>
+    /// Gets an <see cref="IAlgorithm"/> that has the specified <paramref name="algorithmType"/> and <paramref name="algorithmCode"/>.
+    /// </summary>
+    /// <param name="algorithmType">The <see cref="string"/> type of the <see cref="IAlgorithm"/> to get.</param>
+    /// <param name="algorithmCode">The <see cref="string"/> code of the <see cref="IAlgorithm"/> to get.</param>
+    /// <param name="algorithm">When this method returns, an <see cref="IAlgorithm"/> with the specified <paramref name="algorithmType"/> and <paramref name="algorithmCode"/>, if found; otherwise, <c>null</c>.</param>
+    /// <typeparam name="T">The type of the <see cref="IAlgorithm"/> to get.</typeparam>
+    /// <returns><c>true</c> if an <see cref="IAlgorithm"/> with the specified <paramref name="algorithmType"/> and <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
+    bool TryGetAlgorithm<T>(
+        AlgorithmType algorithmType,
+        string algorithmCode,
+        [MaybeNullWhen(false)] out T algorithm)
+        where T : IAlgorithm;
+
+    /// <summary>
     /// Gets an <see cref="ISignatureAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
     /// </summary>
     /// <param name="algorithmCode">The code of the <see cref="ISignatureAlgorithm"/> to get.</param>
@@ -96,10 +110,11 @@ public class AlgorithmCollection : IAlgorithmCollection
         AlgorithmLookup = algorithms.ToDictionary(algorithm => (algorithm.Type, algorithm.Code));
     }
 
-    private bool TryGetAlgorithm<T>(AlgorithmType type, string code, [MaybeNullWhen(false)] out T algorithm)
+    /// <inheritdoc />
+    public bool TryGetAlgorithm<T>(AlgorithmType algorithmType, string algorithmCode, [MaybeNullWhen(false)] out T algorithm)
         where T : IAlgorithm
     {
-        if (AlgorithmLookup.TryGetValue((type, code), out var baseAlgorithm) && baseAlgorithm is T typedAlgorithm)
+        if (AlgorithmLookup.TryGetValue((algorithmType, algorithmCode), out var baseAlgorithm) && baseAlgorithm is T typedAlgorithm)
         {
             algorithm = typedAlgorithm;
             return true;

@@ -29,7 +29,8 @@ namespace NCode.Jose.SecretKeys;
 /// https://tools.ietf.org/html/rfc7517#section-4.2</param>
 /// <param name="Algorithm">The intended algorithm for the secret key. This value is optional and may be
 /// <c>null</c> to indicate that this key is intended for use with any compatible algorithm.</param>
-/// <param name="ExpiresWhen">The <see cref="DateTimeOffset"/> when set secret key expires and is no longer valid.</param>
+/// <param name="ExpiresWhen">The <see cref="DateTimeOffset"/> when set secret key expires and is no longer valid.
+/// This value is optional and may be <c>null</c> to indicate that this key never expires.</param>
 public record struct KeyMetadata(
     string? KeyId,
     string? Use = null,

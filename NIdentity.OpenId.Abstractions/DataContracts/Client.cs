@@ -105,4 +105,21 @@ public class Client : ISupportId, ISupportConcurrencyToken
     /// algorithms.
     /// </summary>
     public IList<string> IdTokenSigningAlgorithms { get; set; } = new List<string>();
+
+    public TokenConfiguration IdTokenConfiguration { get; set; } = new TokenConfiguration();
+}
+
+public class TokenConfiguration
+{
+    public bool RequireEncryption { get; set; }
+
+    public TimeSpan Lifetime { get; set; } = TimeSpan.FromMinutes(5.0);
+
+    public IList<string> SignatureAlgorithms { get; set; } = new List<string>();
+
+    public IList<string> KeyManagementAlgorithms { get; set; } = new List<string>();
+
+    public IList<string> EncryptionAlgorithms { get; set; } = new List<string>();
+
+    public IList<string> CompressionAlgorithms { get; set; } = new List<string>();
 }

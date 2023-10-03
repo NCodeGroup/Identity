@@ -25,22 +25,22 @@ namespace NCode.Jose.Algorithms;
 public class AlgorithmSet
 {
     /// <summary>
-    /// Gets or sets a collection of string codes representing signing algorithms.
+    /// Gets or sets an ordered collection of string codes representing signing algorithms.
     /// </summary>
-    public IList<string> SigningAlgorithms { get; set; } = new List<string>();
+    public ICollection<string> SignatureAlgorithms { get; set; } = new List<string>();
 
     /// <summary>
-    /// Gets or sets a collection of string codes representing key management algorithms.
+    /// Gets or sets an ordered collection of string codes representing key management algorithms.
     /// </summary>
-    public IList<string> KeyManagementAlgorithms { get; set; } = new List<string>();
+    public ICollection<string> KeyManagementAlgorithms { get; set; } = new List<string>();
 
     /// <summary>
-    /// Gets or sets a collection of string codes representing encryption algorithms.
+    /// Gets or sets an ordered collection of string codes representing encryption algorithms.
     /// </summary>
-    public IList<string> EncryptionAlgorithms { get; set; } = new List<string>();
+    public ICollection<string> EncryptionAlgorithms { get; set; } = new List<string>();
 
     /// <summary>
-    /// Gets or sets a collection of string codes representing compression algorithms.
+    /// Gets or sets an ordered collection of string codes representing compression algorithms.
     /// </summary>
-    public IList<string> CompressionAlgorithms { get; set; } = new List<string>();
+    public ICollection<string> CompressionAlgorithms { get; set; } = new List<string>();
 }

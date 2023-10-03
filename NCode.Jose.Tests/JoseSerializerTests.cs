@@ -248,7 +248,7 @@ public class JoseSerializerTests : BaseTests
                 out var compressionAlgorithm))
             compressionAlgorithm = null;
 
-        var credentials = new JoseEncryptionCredentials(
+        var credentials = new JoseEncryptingCredentials(
             secretKey,
             keyManagementAlgorithm,
             encryptionAlgorithm,
@@ -257,7 +257,7 @@ public class JoseSerializerTests : BaseTests
         var token = JoseSerializer.Encode(
             originalPayload,
             credentials,
-            JoseEncryptionOptions.Default,
+            JoseEncryptingOptions.Default,
             JsonSerializerOptions,
             originalExtraHeaders);
 
@@ -470,11 +470,11 @@ public class JoseSerializerTests : BaseTests
             ["header1"] = "h-value"
         };
 
-        var signatureCredentials = new JoseSignatureCredentials(
+        var signatureCredentials = new JoseSigningCredentials(
             secretKey,
             signatureAlgorithm);
 
-        var signatureOptions = new JoseSignatureOptions
+        var signatureOptions = new JoseSigningOptions
         {
             EncodePayload = encodePayload,
             DetachPayload = detachPayload

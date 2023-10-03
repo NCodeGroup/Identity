@@ -17,17 +17,12 @@
 
 #endregion
 
-using NCode.Jose.Algorithms.Signature;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Credentials;
 
 /// <summary>
-/// Contains the set of cryptographic credentials that are used by <see cref="IJoseSerializer"/> when signing a JWS token.
+/// Contains the common set of cryptographic credentials that are used by <see cref="IJoseSerializer"/> when encoding a JOSE token.
 /// </summary>
-/// <param name="SecretKey">The Key Encryption Key (KEK) to use for signing.</param>
-/// <param name="SignatureAlgorithm">The <see cref="ISignatureAlgorithm"/> to use for signing.</param>
-public record JoseSignatureCredentials(
-        SecretKey SecretKey,
-        ISignatureAlgorithm SignatureAlgorithm)
-    : JoseEncodeCredentials(SecretKey);
+/// <param name="SecretKey">The Key Encryption Key (KEK) to use for encoding.</param>
+public abstract record JoseEncodingCredentials(SecretKey SecretKey);

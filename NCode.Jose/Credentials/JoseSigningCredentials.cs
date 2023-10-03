@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,15 +17,17 @@
 
 #endregion
 
-namespace NCode.Jose;
+using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.SecretKeys;
+
+namespace NCode.Jose.Credentials;
 
 /// <summary>
-/// Contains a set of options while encrypting a JWE token.
+/// Contains the set of cryptographic credentials that are used by <see cref="IJoseSerializer"/> when signing a JWS token.
 /// </summary>
-public class JoseEncryptionOptions : JoseEncodeOptions
-{
-    /// <summary>
-    /// Gets a default instance for <see cref="JoseEncryptionOptions"/>.
-    /// </summary>
-    public static JoseEncryptionOptions Default { get; } = new();
-}
+/// <param name="SecretKey">The Key Encryption Key (KEK) to use for signing.</param>
+/// <param name="SignatureAlgorithm">The <see cref="ISignatureAlgorithm"/> to use for signing.</param>
+public record JoseSigningCredentials(
+        SecretKey SecretKey,
+        ISignatureAlgorithm SignatureAlgorithm)
+    : JoseEncodingCredentials(SecretKey);

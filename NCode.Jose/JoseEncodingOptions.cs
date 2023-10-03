@@ -17,28 +17,29 @@
 
 #endregion
 
+using NCode.Jose.Credentials;
+
 namespace NCode.Jose;
 
 /// <summary>
-/// Contains a set of options while signing a JWS token.
+/// Contains the credentials and common set of options that are required when encoding a JOSE token.
 /// </summary>
-public class JoseSignatureOptions : JoseEncodeOptions
+public abstract class JoseEncodingOptions
 {
     /// <summary>
-    /// Gets a default instance for <see cref="JoseSignatureOptions"/>.
+    /// Gets the <see cref="JoseEncodingCredentials"/> that are used to encode the JOSE token.
     /// </summary>
-    public static JoseSignatureOptions Default { get; } = new();
+    public abstract JoseEncodingCredentials Credentials { get; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the payload should be base64url encoded (default).
-    /// Note that unencoded and non-detached payloads may cause issues with JWS compact serialization.
-    /// See RFC 7797 Section 5 for more information.
+    /// Gets or set the value for the <c>typ</c> JOSE header parameter.
+    /// The default value is <c>JWT</c>.
     /// </summary>
-    public bool EncodePayload { get; init; } = true;
+    public string TokenType { get; init; } = JoseConstants.Jwt;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the payload should NOT be included to the encoded token.
-    /// See RFC 7515 Appendix F for more information.
+    /// Gets or sets a boolean indicating whether to add the secret's <c>kid</c> value to the JOSE header.
+    /// The default value is <c>true</c>.
     /// </summary>
-    public bool DetachPayload { get; init; }
+    public bool AddKeyIdHeader { get; init; } = true;
 }

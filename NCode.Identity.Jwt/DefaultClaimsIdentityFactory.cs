@@ -96,7 +96,7 @@ public static class DefaultClaimsIdentityFactory
         jsonElement.ValueKind switch
         {
             JsonValueKind.Undefined => throw new NotSupportedException(),
-            JsonValueKind.Null => new Claim(propertyName, string.Empty, JsonClaimValueTypes.Null, issuer, issuer, subject),
+            JsonValueKind.Null => new Claim(propertyName, string.Empty, JsonClaimValueTypes.JsonNull, issuer, issuer, subject),
             JsonValueKind.Object => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.Json, issuer, issuer, subject),
             JsonValueKind.Array => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.JsonArray, issuer, issuer, subject),
             JsonValueKind.String => CreateStringClaim(propertyName, jsonElement, issuer, subject),

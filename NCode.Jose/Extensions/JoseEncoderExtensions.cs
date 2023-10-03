@@ -90,15 +90,15 @@ public static class JoseEncoderExtensions
     /// </summary>
     /// <param name="joseEncoder">The <see cref="JoseEncoder"/> instance.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
+    /// <param name="signingCredentials">The JOSE signing credentials.</param>
     /// <param name="signingOptions">The JOSE signing options.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encoded JOSE token.</returns>
     public static string Encode(
         this JoseEncoder joseEncoder,
         string payload,
-        JoseSignatureCredentials signatureCredentials,
-        JoseSignatureOptions? signingOptions = null,
+        JoseSigningCredentials signingCredentials,
+        JoseSigningOptions? signingOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);

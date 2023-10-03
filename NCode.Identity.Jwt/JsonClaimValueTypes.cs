@@ -27,11 +27,6 @@ namespace NCode.Identity.Jwt;
 public static class JsonClaimValueTypes
 {
     /// <summary>
-    /// A value that indicates the <see cref="Claim.Value"/> is <c>null</c>.
-    /// </summary>
-    public const string Null = "NULL";
-
-    /// <summary>
     /// A value that indicates the <see cref="Claim.Value"/> is a <c>JSON</c> object.
     /// </summary>
     public const string Json = "JSON";
@@ -40,4 +35,9 @@ public static class JsonClaimValueTypes
     /// A value that indicates the <see cref="Claim.Value"/> is a <c>JSON</c> array.
     /// </summary>
     public const string JsonArray = "JSON_ARRAY";
+
+    /// <summary>
+    /// A value that indicates the <see cref="Claim.Value"/> is <c>null</c>.
+    /// </summary>
+    public const string JsonNull = "JSON_NULL";
 }

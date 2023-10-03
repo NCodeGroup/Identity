@@ -18,32 +18,27 @@
 #endregion
 
 using System.Buffers;
-using NCode.Jose.Credentials;
 
 namespace NCode.Jose;
 
 /// <summary>
-/// Provides an implementation of <see cref="JoseEncoder"/> that can be used to sign JWS tokens.
+/// Provides an implementation of <see cref="JoseEncoder"/> that can be used to encrypt JWE tokens.
 /// </summary>
-public class JoseSignatureEncoder : JoseEncoder
+public class JoseEncryptingEncoder : JoseEncoder
 {
-    private JoseSignatureCredentials SignatureCredentials { get; }
-    private JoseSignatureOptions SignatureOptions { get; }
+    private JoseEncryptingOptions EncryptingOptions { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JoseSignatureEncoder"/> class with the specified signing credentials and options.
+    /// Initializes a new instance of the <see cref="JoseEncryptingEncoder"/> class with the specified encryption credentials and options.
     /// </summary>
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
-    /// <param name="signatureCredentials">The JOSE signing credentials.</param>
-    /// <param name="signatureOptions">The JOSE signing options.</param>
-    public JoseSignatureEncoder(
+    /// <param name="encryptingOptions">The JOSE encryption credentials and options.</param>
+    public JoseEncryptingEncoder(
         IJoseSerializer joseSerializer,
-        JoseSignatureCredentials signatureCredentials,
-        JoseSignatureOptions signatureOptions)
+        JoseEncryptingOptions encryptingOptions)
         : base(joseSerializer)
     {
-        SignatureCredentials = signatureCredentials;
-        SignatureOptions = signatureOptions;
+        EncryptingOptions = encryptingOptions;
     }
 
     /// <inheritdoc />
@@ -54,7 +49,6 @@ public class JoseSignatureEncoder : JoseEncoder
         JoseSerializer.Encode(
             tokenWriter,
             payload,
-            SignatureCredentials,
-            SignatureOptions,
+            EncryptingOptions,
             extraHeaders);
 }

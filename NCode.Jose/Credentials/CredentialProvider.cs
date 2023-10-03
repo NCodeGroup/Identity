@@ -29,43 +29,43 @@ using NCode.Jose.SecretKeys;
 namespace NCode.Jose.Credentials;
 
 /// <summary>
-/// Provides the ability to retrieve <see cref="JoseSignatureCredentials"/> and <see cref="JoseEncryptionCredentials"/>
+/// Provides the ability to retrieve <see cref="JoseSigningCredentials"/> and <see cref="JoseEncryptingCredentials"/>
 /// based on criteria that specify supported and allowed algorithms.
 /// </summary>
 public interface ICredentialProvider
 {
     /// <summary>
-    /// Attempts to retrieve <see cref="JoseSignatureCredentials"/> based on the specified criteria.
+    /// Attempts to retrieve <see cref="JoseSigningCredentials"/> based on the specified criteria.
     /// </summary>
     /// <param name="supported">A collection of algorithms codes that will be considered.</param>
     /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
-    /// <param name="credentials">When this method returns, contains the <see cref="JoseSignatureCredentials"/> that meet the specified criteria.</param>
+    /// <param name="credentials">When this method returns, contains the <see cref="JoseSigningCredentials"/> that meet the specified criteria.</param>
     /// <returns><c>true</c> if signing credentials were found that match the specified criteria; otherwise, <c>false</c>.</returns>
     bool TryGetSignatureCredentials(
         IEnumerable<string> supported,
         IEnumerable<string>? allowed,
-        [MaybeNullWhen(false)] out JoseSignatureCredentials credentials);
+        [MaybeNullWhen(false)] out JoseSigningCredentials credentials);
 
     /// <summary>
-    /// Attempts to retrieve <see cref="JoseEncryptionCredentials"/> based on the specified criteria.
+    /// Attempts to retrieve <see cref="JoseEncryptingCredentials"/> based on the specified criteria.
     /// </summary>
     /// <param name="supported">A collection of algorithms codes that will be considered.</param>
     /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
-    /// <param name="credentials">When this method returns, contains the <see cref="JoseEncryptionCredentials"/> that meet the specified criteria.</param>
+    /// <param name="credentials">When this method returns, contains the <see cref="JoseEncryptingCredentials"/> that meet the specified criteria.</param>
     /// <returns><c>true</c> if encryption credentials were found that match the specified criteria; otherwise, <c>false</c>.</returns>
     bool TryGetEncryptionCredentials(
         AlgorithmSet supported,
         AlgorithmSet? allowed,
-        [MaybeNullWhen(false)] out JoseEncryptionCredentials credentials);
+        [MaybeNullWhen(false)] out JoseEncryptingCredentials credentials);
 
     /// <summary>
-    /// Gets the <see cref="JoseEncodeCredentials"/> that meet the specified criteria.
+    /// Gets the <see cref="JoseEncodingCredentials"/> that meet the specified criteria.
     /// </summary>
     /// <param name="supported">A collection of algorithms codes that will be considered.</param>
     /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
     /// <param name="requireEncryption"><c>true</c> whether only encryption credentials should be returned; otherwise, <c>false</c> when either signing credentials or encryption credentials should be returned.</param>
-    /// <returns>The <see cref="JoseEncodeCredentials"/> that can be used to encode a JOSE token.</returns>
-    JoseEncodeCredentials GetEncodeCredentials(
+    /// <returns>The <see cref="JoseEncodingCredentials"/> that can be used to encode a JOSE token.</returns>
+    JoseEncodingCredentials GetEncodeCredentials(
         AlgorithmSet supported,
         AlgorithmSet? allowed,
         bool requireEncryption = false);
@@ -183,7 +183,7 @@ public class CredentialProvider : ICredentialProvider
     public bool TryGetSignatureCredentials(
         IEnumerable<string> supported,
         IEnumerable<string>? allowed,
-        [MaybeNullWhen(false)] out JoseSignatureCredentials credentials)
+        [MaybeNullWhen(false)] out JoseSigningCredentials credentials)
     {
         if (!TryGetFirstCredential<ISignatureAlgorithm>(
                 SecretKeyUses.Signature,
@@ -196,7 +196,7 @@ public class CredentialProvider : ICredentialProvider
             return false;
         }
 
-        credentials = new JoseSignatureCredentials(tuple.Item1, tuple.Item2);
+        credentials = new JoseSigningCredentials(tuple.Item1, tuple.Item2);
         return true;
     }
 
@@ -204,7 +204,7 @@ public class CredentialProvider : ICredentialProvider
     public bool TryGetEncryptionCredentials(
         AlgorithmSet supported,
         AlgorithmSet? allowed,
-        [MaybeNullWhen(false)] out JoseEncryptionCredentials credentials)
+        [MaybeNullWhen(false)] out JoseEncryptingCredentials credentials)
     {
         if (!TryGetFirstCredential<IKeyManagementAlgorithm>(
                 SecretKeyUses.Encryption,
@@ -239,7 +239,7 @@ public class CredentialProvider : ICredentialProvider
             supportedCompressionCodes,
             out var algorithmCompression);
 
-        credentials = new JoseEncryptionCredentials(
+        credentials = new JoseEncryptingCredentials(
             tuple.Item1,
             tuple.Item2,
             algorithmEncryption,
@@ -248,15 +248,15 @@ public class CredentialProvider : ICredentialProvider
     }
 
     /// <inheritdoc />
-    public JoseEncodeCredentials GetEncodeCredentials(
+    public JoseEncodingCredentials GetEncodeCredentials(
         AlgorithmSet supported,
         AlgorithmSet? allowed,
         bool requireEncryption = false)
     {
         if (!requireEncryption &&
             TryGetSignatureCredentials(
-                supported.SigningAlgorithms,
-                allowed?.SigningAlgorithms,
+                supported.SignatureAlgorithms,
+                allowed?.SignatureAlgorithms,
                 out var signingCredentials))
             return signingCredentials;
 

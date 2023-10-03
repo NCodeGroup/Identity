@@ -28,6 +28,11 @@ namespace NCode.Jose.Algorithms.Signature;
 public class NoneSignatureAlgorithm : SignatureAlgorithm
 {
     /// <summary>
+    /// Gets a singleton instance of <see cref="NoneSignatureAlgorithm"/>.
+    /// </summary>
+    public static ISignatureAlgorithm Singleton { get; } = new NoneSignatureAlgorithm();
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="NoneSignatureAlgorithm"/> class.
     /// </summary>
     public NoneSignatureAlgorithm()

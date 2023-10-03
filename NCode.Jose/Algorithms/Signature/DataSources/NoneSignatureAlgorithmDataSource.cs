@@ -31,6 +31,6 @@ public class NoneSignatureAlgorithmDataSource : StaticAlgorithmDataSource
     /// <inheritdoc />
     public override IEnumerable<IAlgorithm> Algorithms
     {
-        get { yield return new NoneSignatureAlgorithm(); }
+        get { yield return NoneSignatureAlgorithm.Singleton; }
     }
 }

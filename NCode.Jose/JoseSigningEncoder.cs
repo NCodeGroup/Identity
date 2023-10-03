@@ -18,32 +18,27 @@
 #endregion
 
 using System.Buffers;
-using NCode.Jose.Credentials;
 
 namespace NCode.Jose;
 
 /// <summary>
-/// Provides an implementation of <see cref="JoseEncoder"/> that can be used to encrypt JWE tokens.
+/// Provides an implementation of <see cref="JoseEncoder"/> that can be used to sign JWS tokens.
 /// </summary>
-public class JoseEncryptionEncoder : JoseEncoder
+public class JoseSigningEncoder : JoseEncoder
 {
-    private JoseEncryptionCredentials EncryptionCredentials { get; }
-    private JoseEncryptionOptions EncryptionOptions { get; }
+    private JoseSigningOptions SigningOptions { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JoseEncryptionEncoder"/> class with the specified encryption credentials and options.
+    /// Initializes a new instance of the <see cref="JoseSigningEncoder"/> class with the specified signing credentials and options.
     /// </summary>
     /// <param name="joseSerializer">The <see cref="IJoseSerializer"/> instance.</param>
-    /// <param name="encryptionCredentials">The JOSE encryption credentials.</param>
-    /// <param name="encryptionOptions">The JOSE encryption options.</param>
-    public JoseEncryptionEncoder(
+    /// <param name="signingOptions">The JOSE signing credentials and options.</param>
+    public JoseSigningEncoder(
         IJoseSerializer joseSerializer,
-        JoseEncryptionCredentials encryptionCredentials,
-        JoseEncryptionOptions encryptionOptions)
+        JoseSigningOptions signingOptions)
         : base(joseSerializer)
     {
-        EncryptionCredentials = encryptionCredentials;
-        EncryptionOptions = encryptionOptions;
+        SigningOptions = signingOptions;
     }
 
     /// <inheritdoc />
@@ -54,7 +49,6 @@ public class JoseEncryptionEncoder : JoseEncoder
         JoseSerializer.Encode(
             tokenWriter,
             payload,
-            EncryptionCredentials,
-            EncryptionOptions,
+            SigningOptions,
             extraHeaders);
 }

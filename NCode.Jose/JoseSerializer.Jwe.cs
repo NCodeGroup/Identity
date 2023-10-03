@@ -25,7 +25,6 @@ using NCode.CryptoMemory;
 using NCode.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Jose.Algorithms.Compression;
 using NCode.Jose.Algorithms.KeyManagement;
-using NCode.Jose.Credentials;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
 using NCode.Jose.SecretKeys;
@@ -36,28 +35,24 @@ namespace NCode.Jose;
 partial interface IJoseSerializer
 {
     /// <summary>
-    /// Creates a new <see cref="JoseEncoder"/> with the specified encryption credentials and options.
+    /// Creates a new <see cref="JoseEncoder"/> with the specified encrypting credentials and options.
     /// </summary>
-    /// <param name="encryptionCredentials">The JOSE encryption credentials.</param>
-    /// <param name="encryptionOptions">The JOSE encryption options.</param>
+    /// <param name="encryptingOptions">The JOSE encrypting credentials and options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
     JoseEncoder CreateEncoder(
-        JoseEncryptionCredentials encryptionCredentials,
-        JoseEncryptionOptions encryptionOptions);
+        JoseEncryptingOptions encryptingOptions);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
     /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="encryptionCredentials">The JOSE encryption credentials.</param>
-    /// <param name="encryptionOptions">The JOSE encryption options.</param>
+    /// <param name="encryptingOptions">The JOSE encrypting credentials and options.</param>
     /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        JoseEncryptionCredentials encryptionCredentials,
-        JoseEncryptionOptions? encryptionOptions = null,
+        JoseEncryptingOptions encryptingOptions,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
 }
 
@@ -79,33 +74,32 @@ partial class JoseSerializer
             algorithm;
 
     /// <inheritdoc />
-    public JoseEncoder CreateEncoder(
-        JoseEncryptionCredentials encryptionCredentials,
-        JoseEncryptionOptions encryptionOptions) =>
-        new JoseEncryptionEncoder(this, encryptionCredentials, encryptionOptions);
+    public JoseEncoder CreateEncoder(JoseEncryptingOptions encryptingOptions) =>
+        new JoseEncryptingEncoder(this, encryptingOptions);
 
     /// <inheritdoc />
     public void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        JoseEncryptionCredentials encryptionCredentials,
-        JoseEncryptionOptions? encryptionOptions = null,
+        JoseEncryptingOptions encryptingOptions,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        var effectiveOptions = encryptionOptions ?? JoseEncryptionOptions.Default;
-
         var header = extraHeaders != null ?
             new Dictionary<string, object>(extraHeaders) :
             new Dictionary<string, object>();
 
-        var (secretKey, keyManagementAlgorithm, encryptionAlgorithm, compressionAlgorithm) = encryptionCredentials;
+        var encryptingCredentials = encryptingOptions.EncryptingCredentials;
+        var (secretKey, keyManagementAlgorithm, encryptionAlgorithm, compressionAlgorithm) = encryptingCredentials;
 
-        header.TryAdd(JoseClaimNames.Header.Typ, JoseConstants.Jwt);
         header[JoseClaimNames.Header.Alg] = keyManagementAlgorithm.Code;
         header[JoseClaimNames.Header.Enc] = encryptionAlgorithm.Code;
 
+        var tokenType = encryptingOptions.TokenType;
+        if (!string.IsNullOrEmpty(tokenType))
+            header[JoseClaimNames.Header.Typ] = tokenType;
+
         var keyId = secretKey.KeyId;
-        if (!string.IsNullOrEmpty(keyId) && effectiveOptions.AddKeyIdHeader)
+        if (!string.IsNullOrEmpty(keyId) && encryptingOptions.AddKeyIdHeader)
             header[JoseClaimNames.Header.Kid] = keyId;
 
         var cekSizeBytes = encryptionAlgorithm.ContentKeySizeBytes;

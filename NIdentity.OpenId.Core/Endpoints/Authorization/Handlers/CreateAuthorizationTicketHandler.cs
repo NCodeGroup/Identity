@@ -21,8 +21,10 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using IdGen;
+using Microsoft.Extensions.Primitives;
 using NCode.CryptoMemory;
 using NCode.Encoders;
+using NCode.Identity.Jwt;
 using NCode.Jose;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Credentials;
@@ -30,7 +32,6 @@ using NCode.Jose.Extensions;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Endpoints.Authorization.Models;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Mediator;
@@ -48,6 +49,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
     private IAuthorizationCodeStore AuthorizationCodeStore { get; }
     private IJoseSerializer JoseSerializer { get; }
     private ICredentialProvider CredentialProvider { get; }
+    private IJsonWebTokenService JsonWebTokenService { get; }
 
     public CreateAuthorizationTicketHandler(
         ISystemClock systemClock,
@@ -56,7 +58,8 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         ICryptoService cryptoService,
         IAuthorizationCodeStore authorizationCodeStore,
         IJoseSerializer joseSerializer,
-        ICredentialProvider credentialProvider)
+        ICredentialProvider credentialProvider,
+        IJsonWebTokenService jsonWebTokenService)
     {
         SystemClock = systemClock;
         IdGenerator = idGenerator;
@@ -65,6 +68,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         AuthorizationCodeStore = authorizationCodeStore;
         JoseSerializer = joseSerializer;
         CredentialProvider = credentialProvider;
+        JsonWebTokenService = jsonWebTokenService;
     }
 
     // TODO: move back into the original handler and use mediator for each response type
@@ -149,48 +153,44 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken)
     {
+        var utcNow = SystemClock.UtcNow;
+
         var authorizationContext = command.AuthorizationContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
 
         var authenticateResult = command.AuthenticateResult;
         Debug.Assert(authenticateResult.Succeeded);
 
-        var normalizedAuthenticationClaims =
-            authenticateResult.Properties.GetParameter<NormalizedAuthenticationClaims>(NormalizedAuthenticationClaims.Key) ??
-            // TODO: moved into extension method, maybe?
-            throw new InvalidOperationException();
+        // References:
+        // https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+        // https://learn.microsoft.com/en-us/azure/active-directory/develop/id-token-claims-reference
 
-        var algorithmSet = GetAlgorithmSet(authorizationContext.Client.IdTokenConfiguration);
-        var requireEncryption = authorizationContext.Client.IdTokenConfiguration.RequireEncryption;
-        var encodeCredentials = CredentialProvider.GetEncodeCredentials(
-            algorithmSet,
-            algorithmSet,
-            requireEncryption);
+        var tokenConfiguration = authorizationContext.Client.IdTokenConfiguration;
 
-        var hashAlgorithmName = encodeCredentials..HashAlgorithmName;
+        if (!CredentialProvider.TryGetSigningCredentials(
+                tokenConfiguration.SignatureAlgorithms,
+                out var signingCredentials))
+            throw new InvalidOperationException("TODO: no signing credentials found.");
+
+        JoseEncryptingCredentials? encryptingCredentials = null;
+        var requireEncryption = tokenConfiguration.RequireEncryption;
+        if (requireEncryption &&
+            !CredentialProvider.TryGetEncryptingCredentials(
+                tokenConfiguration.KeyManagementAlgorithms,
+                tokenConfiguration.EncryptionAlgorithms,
+                tokenConfiguration.CompressionAlgorithms,
+                out encryptingCredentials))
+            throw new InvalidOperationException("TODO: no encrypting credentials found.");
+
+        var hashAlgorithmName = signingCredentials.SignatureAlgorithm.HashAlgorithmName;
         var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
         var hashFunction = hashAlgorithmName.GetHashFunction();
 
-        var issuedWhen = SystemClock.UtcNow;
-        var expiresWhen = issuedWhen + authorizationContext.Client.IdTokenLifetime;
-
-        var issuedWhenUnixSeconds = issuedWhen.ToUnixTimeSeconds();
-        var expiresWhenUnixSeconds = expiresWhen.ToUnixTimeSeconds();
-
-        // References:
-        // https://openid.net/specs/openid-connect-core-1_0.html#IDToken
-        // https://learn.microsoft.com/en-us/azure/active-directory/develop/id-token-claims-reference
-
+        var authTime = authenticateResult.Properties.IssuedUtc ?? utcNow;
         var payload = new Dictionary<string, object>
         {
-            [JoseClaimNames.Payload.Iss] = "TODO",
-            [JoseClaimNames.Payload.Idp] = normalizedAuthenticationClaims.Issuer,
-            [JoseClaimNames.Payload.Sub] = normalizedAuthenticationClaims.Subject,
-            [JoseClaimNames.Payload.Aud] = authorizationRequest.ClientId,
-            [JoseClaimNames.Payload.Nbf] = issuedWhenUnixSeconds,
-            [JoseClaimNames.Payload.Iat] = issuedWhenUnixSeconds,
-            [JoseClaimNames.Payload.Exp] = expiresWhenUnixSeconds,
-            [JoseClaimNames.Payload.AuthTime] = normalizedAuthenticationClaims.AuthTime.ToUnixTimeSeconds()
+            [JoseClaimNames.Payload.AuthTime] = authTime.ToUnixTimeSeconds()
         };
 
         // nonce
@@ -230,55 +230,98 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
                 hashFunction);
         }
 
-        // TODO: other claims...
-        // client_id
-        // amr
-        // acr
-        // sid
-        // cnf
+        var claimTypes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            JoseClaimNames.Payload.Sub
+        };
 
-        // Include profile claims when an access token isn't requested because the
-        // client won't be able to access the userinfo endpoint without an access token.
-        var includeProfileClaims = !authorizationRequest.ResponseType.HasFlag(ResponseTypes.Token);
-
-        // TODO: add support for standard claims requested by the client (via the scope parameter)
+        // add standard claims requested by the client via the scope parameter
         // https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
 
-        // TODO: add support for specific claims requested by the client (via the claims parameter)
+        // TODO: use constants
+
+        if (authorizationRequest.Scopes.Contains("profile"))
+        {
+            claimTypes.UnionWith(new[]
+            {
+                "name",
+                "family_name",
+                "given_name",
+                "middle_name",
+                "nickname",
+                "preferred_username",
+                "profile",
+                "picture",
+                "website",
+                "gender",
+                "birthdate",
+                "zoneinfo",
+                "locale",
+                "updated_at"
+            });
+        }
+
+        if (authorizationRequest.Scopes.Contains("email"))
+        {
+            claimTypes.UnionWith(new[]
+            {
+                "email",
+                "email_verified"
+            });
+        }
+
+        if (authorizationRequest.Scopes.Contains("address"))
+        {
+            claimTypes.UnionWith(new[]
+            {
+                "address"
+            });
+        }
+
+        if (authorizationRequest.Scopes.Contains("phone"))
+        {
+            claimTypes.UnionWith(new[]
+            {
+                "phone_number",
+                "phone_number_verified"
+            });
+        }
+
+        // TODO: add specific claims requested by the client via the claims parameter
         // https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 
         // TODO: should we also include profile claims based on a client configuration setting?
 
-        if (includeProfileClaims)
+        // TODO: other claims...
+        // client_id
+        // acr
+        // amr
+        // azp (https://bitbucket.org/openid/connect/issues/973/)
+        // sid
+        // cnf
+
+        var subject = authenticateResult.Principal.Identities.First();
+        var filteredClaims = subject.Claims.Where(claim => claimTypes.Contains(claim.Type));
+
+        var parameters = new EncodeJwtParameters
         {
-            // TODO: user/profile claims...
-        }
+            SigningOptions = new JoseSigningOptions(signingCredentials),
+            EncryptingOptions = encryptingCredentials is not null ?
+                new JoseEncryptingOptions(encryptingCredentials) :
+                null,
 
-        // TODO: header claims...
-        // typ
+            Issuer = "TODO",
+            Audience = authorizationRequest.ClientId,
 
-        var extraHeaders = Enumerable.Empty<KeyValuePair<string, object>>();
+            IssuedAt = utcNow,
+            NotBefore = utcNow,
+            Expires = utcNow + tokenConfiguration.Lifetime,
 
-        var idToken = JoseSerializer.Encode(
-            payload,
-            encodeCredentials,
-            extraHeaders: extraHeaders);
+            SubjectClaims = filteredClaims,
+            ExtraPayloadClaims = payload
+        };
 
-        await ValueTask.CompletedTask;
-        throw new NotImplementedException();
-    }
-
-    private static AlgorithmSet GetAlgorithmSet(TokenConfiguration tokenConfiguration) => new()
-    {
-        SignatureAlgorithms = tokenConfiguration.SignatureAlgorithms,
-        KeyManagementAlgorithms = tokenConfiguration.KeyManagementAlgorithms,
-        EncryptionAlgorithms = tokenConfiguration.EncryptionAlgorithms,
-        CompressionAlgorithms = tokenConfiguration.CompressionAlgorithms,
-    };
-
-    private JoseSigningCredentials GetIdTokenSignatureCredentials(IEnumerable<string> allowedAlgorithmCodes)
-    {
-        throw new NotImplementedException();
+        return JsonWebTokenService.EncodeJwt(parameters);
     }
 
     private static string GetHashValue(string value, int hashSizeBits, HashFunctionDelegate hashFunction)

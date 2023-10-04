@@ -48,7 +48,7 @@ public static class JoseEncoderExtensions
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
-        using var _ = joseEncoder.JoseSerializer.SerializeJson(
+        using var _ = joseEncoder.JoseSerializer.SerializeToUtf8(
             payload,
             jsonOptions,
             out var payloadBytes);
@@ -75,7 +75,7 @@ public static class JoseEncoderExtensions
         JsonSerializerOptions? jsonOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        using var _ = joseEncoder.JoseSerializer.SerializeJson(
+        using var _ = joseEncoder.JoseSerializer.SerializeToUtf8(
             payload,
             jsonOptions,
             out var bytes);

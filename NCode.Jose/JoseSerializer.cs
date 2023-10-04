@@ -100,14 +100,16 @@ public partial interface IJoseSerializer
     T? Deserialize<T>(CompactJwt compactJwt, SecretKey secretKey);
 
     /// <summary>
-    /// Provides the ability to serialize a value to JSON using memory pooling.
+    /// Provides the ability to serialize a value to UTF8 using memory pooling.
+    /// String values are encoded as UTF8 bytes.
+    /// Objects are serialized as JSON.
     /// </summary>
     /// <param name="value">The value to serialize.</param>
     /// <param name="options">The options to control JSON serialization behavior.</param>
-    /// <param name="bytes">When this method returns, contains the UTF8 bytes from the JSON serialization..</param>
+    /// <param name="bytes">When this method returns, contains the UTF8 bytes from the serialized value.</param>
     /// <typeparam name="T">The type of the value to serialize.</typeparam>
     /// <returns>An <see cref="IDisposable"/> that controls the lifetime of the serialized bytes from a memory pool.</returns>
-    IDisposable SerializeJson<T>(T value, JsonSerializerOptions? options, out ReadOnlySpan<byte> bytes);
+    IDisposable SerializeToUtf8<T>(T value, JsonSerializerOptions? options, out ReadOnlySpan<byte> bytes);
 }
 
 /// <summary>
@@ -238,11 +240,16 @@ public partial class JoseSerializer : IJoseSerializer
     }
 
     /// <inheritdoc />
-    public IDisposable SerializeJson<T>(
+    public IDisposable SerializeToUtf8<T>(
         T value,
         JsonSerializerOptions? options,
         out ReadOnlySpan<byte> bytes)
     {
+        if (value is string stringValue)
+        {
+            return Encode(Encoding.UTF8, stringValue, out bytes);
+        }
+
         var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
         {
             // increase our chances of getting a single-segment buffer
@@ -288,7 +295,7 @@ public partial class JoseSerializer : IJoseSerializer
         T value,
         out ReadOnlySpan<char> chars)
     {
-        using var bytesLease = SerializeJson(value, options: null, out var bytes);
+        using var bytesLease = SerializeToUtf8(value, options: null, out var bytes);
         return EncodeJose(b64, bytes, out chars);
     }
 

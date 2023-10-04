@@ -236,7 +236,7 @@ partial class JoseSerializer
         JsonSerializerOptions? jsonOptions)
     {
         AssertJwsDetached(compactJwt);
-        using var _ = SerializeJson(detachedPayload, jsonOptions, out var bytes);
+        using var _ = SerializeToUtf8(detachedPayload, jsonOptions, out var bytes);
         VerifyJws(compactJwt, secretKey, bytes);
     }
 

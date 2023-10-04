@@ -17,5 +17,15 @@
     </ItemGroup>
 
 
+    <ItemGroup>
+      <Compile Update="JsonWebTokenService.Validate.cs">
+        <DependentUpon>JsonWebTokenService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="JsonWebTokenService.Encode.cs">
+        <DependentUpon>JsonWebTokenService.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+
 
 </Project>

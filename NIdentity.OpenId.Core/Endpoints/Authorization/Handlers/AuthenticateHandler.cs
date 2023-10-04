@@ -44,6 +44,7 @@ internal class AuthenticateHandler : ICommandResponseHandler<AuthenticateCommand
     {
         var authenticateResult = await command.EndpointContext.HttpContext.AuthenticateAsync(Options.SignInScheme);
 
+        // TODO: remove?
         if (authenticateResult.Succeeded)
             NormalizeAuthenticationClaims(authenticateResult.Principal, authenticateResult.Properties);
 

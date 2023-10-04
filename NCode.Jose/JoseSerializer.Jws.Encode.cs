@@ -134,7 +134,7 @@ partial class JoseSerializer
             header[JoseClaimNames.Header.Crit] = critical;
         }
 
-        using var headerLease = SerializeJson(header, options: null, out var headerBytes);
+        using var headerLease = SerializeToUtf8(header, options: null, out var headerBytes);
         encodedHeaderPart = WriteCompactSegment(headerBytes, tokenWriter);
     }
 

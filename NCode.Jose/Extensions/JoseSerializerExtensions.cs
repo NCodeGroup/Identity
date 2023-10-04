@@ -51,7 +51,7 @@ public static class JoseSerializerExtensions
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
-        using var _ = joseSerializer.SerializeJson(
+        using var _ = joseSerializer.SerializeToUtf8(
             payload,
             jsonOptions,
             out var payloadBytes);
@@ -81,7 +81,7 @@ public static class JoseSerializerExtensions
         JsonSerializerOptions? jsonOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        using var _ = joseSerializer.SerializeJson(
+        using var _ = joseSerializer.SerializeToUtf8(
             payload,
             jsonOptions,
             out var bytes);
@@ -231,7 +231,7 @@ public static class JoseSerializerExtensions
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
         using var tokenBuffer = new Sequence<char>();
-        using var _ = joseSerializer.SerializeJson(
+        using var _ = joseSerializer.SerializeToUtf8(
             payload,
             jsonOptions,
             out var payloadBytes);
@@ -261,7 +261,7 @@ public static class JoseSerializerExtensions
         JsonSerializerOptions? jsonOptions = null,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        using var _ = joseSerializer.SerializeJson(
+        using var _ = joseSerializer.SerializeToUtf8(
             payload,
             jsonOptions,
             out var payloadBytes);

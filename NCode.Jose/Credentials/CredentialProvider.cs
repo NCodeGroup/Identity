@@ -37,38 +37,26 @@ public interface ICredentialProvider
     /// <summary>
     /// Attempts to retrieve <see cref="JoseSigningCredentials"/> based on the specified criteria.
     /// </summary>
-    /// <param name="supported">A collection of algorithms codes that will be considered.</param>
-    /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
+    /// <param name="preferredSignatureAlgorithmCodes">An ordered collection of signature algorithms codes that will be considered.</param>
     /// <param name="credentials">When this method returns, contains the <see cref="JoseSigningCredentials"/> that meet the specified criteria.</param>
     /// <returns><c>true</c> if signing credentials were found that match the specified criteria; otherwise, <c>false</c>.</returns>
-    bool TryGetSignatureCredentials(
-        IEnumerable<string> supported,
-        IEnumerable<string>? allowed,
+    bool TryGetSigningCredentials(
+        IEnumerable<string> preferredSignatureAlgorithmCodes,
         [MaybeNullWhen(false)] out JoseSigningCredentials credentials);
 
     /// <summary>
     /// Attempts to retrieve <see cref="JoseEncryptingCredentials"/> based on the specified criteria.
     /// </summary>
-    /// <param name="supported">A collection of algorithms codes that will be considered.</param>
-    /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
+    /// <param name="preferredKeyManagementAlgorithmCodes">An ordered collection of key management algorithms codes that will be considered.</param>
+    /// <param name="preferredEncryptionAlgorithmCodes">An ordered collection of encryption algorithms codes that will be considered.</param>
+    /// <param name="preferredCompressionAlgorithmCodes">An ordered collection of compression algorithms codes that will be considered.</param>
     /// <param name="credentials">When this method returns, contains the <see cref="JoseEncryptingCredentials"/> that meet the specified criteria.</param>
     /// <returns><c>true</c> if encryption credentials were found that match the specified criteria; otherwise, <c>false</c>.</returns>
-    bool TryGetEncryptionCredentials(
-        AlgorithmSet supported,
-        AlgorithmSet? allowed,
+    bool TryGetEncryptingCredentials(
+        IEnumerable<string> preferredKeyManagementAlgorithmCodes,
+        IEnumerable<string> preferredEncryptionAlgorithmCodes,
+        IEnumerable<string> preferredCompressionAlgorithmCodes,
         [MaybeNullWhen(false)] out JoseEncryptingCredentials credentials);
-
-    /// <summary>
-    /// Gets the <see cref="JoseEncodingCredentials"/> that meet the specified criteria.
-    /// </summary>
-    /// <param name="supported">A collection of algorithms codes that will be considered.</param>
-    /// <param name="allowed">A optional collection of algorithm codes that restrict the list of supported algorithms.</param>
-    /// <param name="requireEncryption"><c>true</c> whether only encryption credentials should be returned; otherwise, <c>false</c> when either signing credentials or encryption credentials should be returned.</param>
-    /// <returns>The <see cref="JoseEncodingCredentials"/> that can be used to encode a JOSE token.</returns>
-    JoseEncodingCredentials GetEncodeCredentials(
-        AlgorithmSet supported,
-        AlgorithmSet? allowed,
-        bool requireEncryption = false);
 }
 
 /// <summary>
@@ -88,22 +76,6 @@ public class CredentialProvider : ICredentialProvider
     {
         SecretKeyProvider = secretKeyProvider;
         AlgorithmProvider = algorithmProvider;
-    }
-
-    private static IEnumerable<string> GetIntersection(
-        IEnumerable<string> aRequired,
-        IEnumerable<string>? bOptional)
-    {
-        // NOTE: we must preserve the order of 'b', if present, otherwise 'a'
-
-        if (bOptional is null)
-            return aRequired;
-
-        if (bOptional.TryGetNonEnumeratedCount(out var count) && count == 0)
-            return aRequired;
-
-        var bCollection = bOptional as IReadOnlyCollection<string> ?? bOptional.ToList();
-        return bCollection.Count == 0 ? aRequired : bCollection.Intersect(aRequired);
     }
 
     private static bool IsSecretKeyUseCompatible(SecretKey secretKey, string expectedUse) =>
@@ -126,13 +98,13 @@ public class CredentialProvider : ICredentialProvider
 
     private bool TryGetFirstAlgorithm<T>(
         AlgorithmType algorithmType,
-        IEnumerable<string> algorithmCodes,
+        IEnumerable<string> preferredAlgorithmCodes,
         [MaybeNullWhen(false)] out T algorithm)
         where T : IAlgorithm
     {
-        // NOTE: we must preserve the order of algorithms
+        // NOTE: we must preserve the order of preferred algorithms
 
-        foreach (var algorithmCode in algorithmCodes)
+        foreach (var algorithmCode in preferredAlgorithmCodes)
         {
             if (AlgorithmProvider.Algorithms.TryGetAlgorithm(algorithmType, algorithmCode, out algorithm))
             {
@@ -144,19 +116,16 @@ public class CredentialProvider : ICredentialProvider
         return false;
     }
 
-    private bool TryGetFirstCredential<T>(
+    private bool TryGetCredential<T>(
         string expectedUse,
         AlgorithmType algorithmType,
-        IEnumerable<string> supported,
-        IEnumerable<string>? allowed,
+        IEnumerable<string> preferredAlgorithmCodes,
         [MaybeNullWhen(false)] out Tuple<SecretKey, T> credentials)
         where T : IKeyedAlgorithm
     {
-        // NOTE: we must preserve the order of algorithms
+        // NOTE: we must preserve the order of preferred algorithms
 
-        var algorithmCodes = GetIntersection(supported, allowed);
-
-        foreach (var algorithmCode in algorithmCodes)
+        foreach (var algorithmCode in preferredAlgorithmCodes)
         {
             if (!AlgorithmProvider.Algorithms.TryGetAlgorithm<T>(algorithmType, algorithmCode, out var algorithm))
                 continue;
@@ -180,16 +149,14 @@ public class CredentialProvider : ICredentialProvider
     }
 
     /// <inheritdoc />
-    public bool TryGetSignatureCredentials(
-        IEnumerable<string> supported,
-        IEnumerable<string>? allowed,
+    public bool TryGetSigningCredentials(
+        IEnumerable<string> preferredSignatureAlgorithmCodes,
         [MaybeNullWhen(false)] out JoseSigningCredentials credentials)
     {
-        if (!TryGetFirstCredential<ISignatureAlgorithm>(
+        if (!TryGetCredential<ISignatureAlgorithm>(
                 SecretKeyUses.Signature,
                 AlgorithmType.DigitalSignature,
-                supported,
-                allowed,
+                preferredSignatureAlgorithmCodes,
                 out var tuple))
         {
             credentials = null;
@@ -201,72 +168,41 @@ public class CredentialProvider : ICredentialProvider
     }
 
     /// <inheritdoc />
-    public bool TryGetEncryptionCredentials(
-        AlgorithmSet supported,
-        AlgorithmSet? allowed,
+    public bool TryGetEncryptingCredentials(
+        IEnumerable<string> preferredKeyManagementAlgorithmCodes,
+        IEnumerable<string> preferredEncryptionAlgorithmCodes,
+        IEnumerable<string> preferredCompressionAlgorithmCodes,
         [MaybeNullWhen(false)] out JoseEncryptingCredentials credentials)
     {
-        if (!TryGetFirstCredential<IKeyManagementAlgorithm>(
+        if (!TryGetCredential<IKeyManagementAlgorithm>(
                 SecretKeyUses.Encryption,
                 AlgorithmType.KeyManagement,
-                supported.KeyManagementAlgorithms,
-                allowed?.KeyManagementAlgorithms,
+                preferredKeyManagementAlgorithmCodes,
                 out var tuple))
         {
             credentials = null;
             return false;
         }
 
-        var supportedEncryptionCodes = GetIntersection(
-            supported.EncryptionAlgorithms,
-            allowed?.EncryptionAlgorithms);
-
         if (!TryGetFirstAlgorithm<IAuthenticatedEncryptionAlgorithm>(
                 AlgorithmType.AuthenticatedEncryption,
-                supportedEncryptionCodes,
-                out var algorithmEncryption))
+                preferredEncryptionAlgorithmCodes,
+                out var encryptionAlgorithm))
         {
             credentials = null;
             return false;
         }
 
-        var supportedCompressionCodes = GetIntersection(
-            supported.CompressionAlgorithms,
-            allowed?.CompressionAlgorithms);
-
         TryGetFirstAlgorithm<ICompressionAlgorithm>(
             AlgorithmType.Compression,
-            supportedCompressionCodes,
-            out var algorithmCompression);
+            preferredCompressionAlgorithmCodes,
+            out var compressionAlgorithm);
 
         credentials = new JoseEncryptingCredentials(
             tuple.Item1,
             tuple.Item2,
-            algorithmEncryption,
-            algorithmCompression);
+            encryptionAlgorithm,
+            compressionAlgorithm);
         return true;
-    }
-
-    /// <inheritdoc />
-    public JoseEncodingCredentials GetEncodeCredentials(
-        AlgorithmSet supported,
-        AlgorithmSet? allowed,
-        bool requireEncryption = false)
-    {
-        if (!requireEncryption &&
-            TryGetSignatureCredentials(
-                supported.SignatureAlgorithms,
-                allowed?.SignatureAlgorithms,
-                out var signingCredentials))
-            return signingCredentials;
-
-        if (TryGetEncryptionCredentials(
-                supported,
-                allowed,
-                out var encryptionCredentials))
-            return encryptionCredentials;
-
-        // TODO: better exception
-        throw new InvalidOperationException();
     }
 }

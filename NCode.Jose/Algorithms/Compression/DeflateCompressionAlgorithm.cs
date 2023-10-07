@@ -32,7 +32,7 @@ public class DeflateCompressionAlgorithm : CompressionAlgorithm
     /// <summary>
     /// Gets a singleton instance of <see cref="DeflateCompressionAlgorithm"/>.
     /// </summary>
-    public static CompressionAlgorithm Singleton { get; } = new DeflateCompressionAlgorithm();
+    public static DeflateCompressionAlgorithm Singleton { get; } = new();
 
     /// <inheritdoc />
     public override string Code => AlgorithmCodes.Compression.Deflate;

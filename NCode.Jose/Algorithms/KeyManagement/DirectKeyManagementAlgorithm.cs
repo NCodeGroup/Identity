@@ -33,7 +33,7 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// <summary>
     /// Gets a singleton instance of <see cref="DirectKeyManagementAlgorithm"/>.
     /// </summary>
-    public static KeyManagementAlgorithm Singleton { get; } = new DirectKeyManagementAlgorithm();
+    public static DirectKeyManagementAlgorithm Singleton { get; } = new();
 
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
     {

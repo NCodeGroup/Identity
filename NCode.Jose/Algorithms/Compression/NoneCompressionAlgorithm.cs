@@ -29,7 +29,7 @@ public class NoneCompressionAlgorithm : CompressionAlgorithm
     /// <summary>
     /// Gets a singleton instance of <see cref="NoneCompressionAlgorithm"/>.
     /// </summary>
-    public static CompressionAlgorithm Singleton { get; } = new NoneCompressionAlgorithm();
+    public static NoneCompressionAlgorithm Singleton { get; } = new();
 
     /// <inheritdoc />
     public override string Code => AlgorithmCodes.Compression.None;

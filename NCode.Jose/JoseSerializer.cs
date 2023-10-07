@@ -88,8 +88,8 @@ public partial class JoseSerializer : IJoseSerializer
         var segments = token.SplitSegments('.');
         var protectionType = segments.Count switch
         {
-            JwsSegmentCount => JoseConstants.Jws,
-            JweSegmentCount => JoseConstants.Jwe,
+            JwsSegmentCount => JoseProtectionTypes.Jws,
+            JweSegmentCount => JoseProtectionTypes.Jwe,
             _ => throw new JoseException("The specified value does not represent a valid JOSE token in compact form.")
         };
         return new DefaultCompactJwt(protectionType, segments);
@@ -112,8 +112,8 @@ public partial class JoseSerializer : IJoseSerializer
     public string Decode(CompactJwt compactJwt, SecretKey secretKey) =>
         compactJwt.ProtectionType switch
         {
-            JoseConstants.Jws => DecodeJws(compactJwt, secretKey),
-            JoseConstants.Jwe => DecodeJwe(compactJwt, secretKey),
+            JoseProtectionTypes.Jws => DecodeJws(compactJwt, secretKey),
+            JoseProtectionTypes.Jwe => DecodeJwe(compactJwt, secretKey),
             _ => throw new InvalidOperationException()
         };
 
@@ -141,8 +141,8 @@ public partial class JoseSerializer : IJoseSerializer
     public T? Deserialize<T>(CompactJwt compactJwt, SecretKey secretKey) =>
         compactJwt.ProtectionType switch
         {
-            JoseConstants.Jws => DeserializeJws<T>(compactJwt, secretKey),
-            JoseConstants.Jwe => DeserializeJwe<T>(compactJwt, secretKey),
+            JoseProtectionTypes.Jws => DeserializeJws<T>(compactJwt, secretKey),
+            JoseProtectionTypes.Jwe => DeserializeJwe<T>(compactJwt, secretKey),
             _ => throw new InvalidOperationException()
         };
 

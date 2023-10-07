@@ -30,7 +30,8 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class EcdhKeyManagementAlgorithmTests : BaseTests
 {
-    private EcdhKeyManagementAlgorithm Algorithm { get; } = new();
+    private static SecretKeyFactory SecretKeyFactory { get; } = new();
+    private static EcdhKeyManagementAlgorithm Algorithm => EcdhKeyManagementAlgorithm.Singleton;
 
     private static ECCurve GetCurve(int curveSizeBits)
     {
@@ -542,7 +543,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         // party 1
 
         using var key1 = ECDiffieHellman.Create(curve);
-        using var secretKey1 = EccSecretKey.Create(metadata, key1);
+        using var secretKey1 = SecretKeyFactory.CreateEcc(metadata, key1);
         var parameters1 = key1.ExportParameters(includePrivateParameters: false);
 
         var header1 = new Dictionary<string, object>
@@ -569,7 +570,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             D = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("d", epk)))
         };
         using var key2 = ECDiffieHellman.Create(parameters2);
-        using var secretKey2 = EccSecretKey.Create(metadata, key2);
+        using var secretKey2 = SecretKeyFactory.CreateEcc(metadata, key2);
 
         var crv = $"P-{secretKey2.KeySizeBits}";
         var header2 = new Dictionary<string, object>

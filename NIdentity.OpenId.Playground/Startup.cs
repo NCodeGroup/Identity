@@ -18,7 +18,7 @@
 #endregion
 
 using Microsoft.OpenApi.Models;
-using NCode.Identity.Jwt;
+using NCode.Identity.JsonWebTokens;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization;
 using NIdentity.OpenId.Endpoints.Discovery;

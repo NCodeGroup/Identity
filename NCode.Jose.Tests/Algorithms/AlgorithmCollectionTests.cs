@@ -18,88 +18,95 @@
 #endregion
 
 using NCode.Jose.Algorithms;
-using NCode.Jose.Algorithms.AuthenticatedEncryption;
-using NCode.Jose.Algorithms.Compression;
-using NCode.Jose.Algorithms.KeyManagement;
-using NCode.Jose.Algorithms.Signature;
 
 namespace NCode.Jose.Tests.Algorithms;
 
 public class AlgorithmCollectionTests : BaseTests
 {
-    private Mock<IAlgorithm> MockAlgorithm1 { get; }
-    private Mock<IAlgorithm> MockAlgorithm2 { get; }
-    private Mock<IAlgorithm> MockAlgorithm3 { get; }
-
-    public AlgorithmCollectionTests()
+    [Fact]
+    public void Algorithms_Valid()
     {
-        MockAlgorithm1 = CreateStrictMock<IAlgorithm>();
-        MockAlgorithm2 = CreateStrictMock<IAlgorithm>();
-        MockAlgorithm3 = CreateStrictMock<IAlgorithm>();
+        var mockAlgorithm1 = CreateStrictMock<Algorithm>();
+        var mockAlgorithm2 = CreateStrictMock<Algorithm>();
+        var mockAlgorithm3 = CreateStrictMock<Algorithm>();
 
-        MockAlgorithm1
+        mockAlgorithm1
             .Setup(x => x.Code)
             .Returns("code1")
             .Verifiable();
-
-        MockAlgorithm2
+        mockAlgorithm2
             .Setup(x => x.Code)
             .Returns("code2")
             .Verifiable();
-
-        MockAlgorithm3
+        mockAlgorithm3
             .Setup(x => x.Code)
             .Returns("code3")
             .Verifiable();
 
-        MockAlgorithm1
+        mockAlgorithm1
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
+        mockAlgorithm2
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
+        mockAlgorithm3
             .Setup(x => x.Type)
             .Returns(AlgorithmType.Unspecified)
             .Verifiable();
 
-        MockAlgorithm2
-            .Setup(x => x.Type)
-            .Returns(AlgorithmType.Unspecified)
-            .Verifiable();
-
-        MockAlgorithm3
-            .Setup(x => x.Type)
-            .Returns(AlgorithmType.Unspecified)
-            .Verifiable();
-    }
-
-    private AlgorithmCollection CreateCollection()
-    {
         var algorithms = new[]
         {
-            MockAlgorithm1.Object,
-            MockAlgorithm2.Object,
-            MockAlgorithm3.Object
+            mockAlgorithm1.Object,
+            mockAlgorithm2.Object,
+            mockAlgorithm3.Object
         };
-        return new AlgorithmCollection(algorithms);
-    }
 
-    [Fact]
-    public void Algorithms_Valid()
-    {
-        var algorithms = CreateCollection();
-        Assert.Contains(MockAlgorithm1.Object, algorithms);
-        Assert.Contains(MockAlgorithm2.Object, algorithms);
-        Assert.Contains(MockAlgorithm3.Object, algorithms);
+        Assert.Contains(mockAlgorithm1.Object, algorithms);
+        Assert.Contains(mockAlgorithm2.Object, algorithms);
+        Assert.Contains(mockAlgorithm3.Object, algorithms);
     }
 
     [Fact]
     public void TryGetSignatureAlgorithm_Valid()
     {
-        MockAlgorithm2
+        var mockAlgorithm1 = CreateStrictMock<Algorithm>();
+        var mockAlgorithm2 = CreateStrictMock<SignatureAlgorithm>();
+        var mockAlgorithm3 = CreateStrictMock<Algorithm>();
+
+        mockAlgorithm1
+            .Setup(x => x.Code)
+            .Returns("code1")
+            .Verifiable();
+        mockAlgorithm2
+            .Setup(x => x.Code)
+            .Returns("code2")
+            .Verifiable();
+        mockAlgorithm3
+            .Setup(x => x.Code)
+            .Returns("code3")
+            .Verifiable();
+
+        mockAlgorithm1
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
+        mockAlgorithm2
             .Setup(x => x.Type)
             .Returns(AlgorithmType.DigitalSignature)
             .Verifiable();
+        mockAlgorithm3
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
 
-        MockAlgorithm2
-            .As<ISignatureAlgorithm>();
-
-        var algorithms = CreateCollection();
+        var algorithms = new AlgorithmCollection(new[]
+        {
+            mockAlgorithm1.Object,
+            mockAlgorithm2.Object,
+            mockAlgorithm3.Object
+        });
         Assert.Equal(3, algorithms.Count);
 
         var result1 = algorithms.TryGetSignatureAlgorithm("code1", out var algorithm1);
@@ -118,15 +125,42 @@ public class AlgorithmCollectionTests : BaseTests
     [Fact]
     public void TryGetKeyManagementAlgorithm_Valid()
     {
-        MockAlgorithm2
+        var mockAlgorithm1 = CreateStrictMock<Algorithm>();
+        var mockAlgorithm2 = CreateStrictMock<KeyManagementAlgorithm>();
+        var mockAlgorithm3 = CreateStrictMock<Algorithm>();
+
+        mockAlgorithm1
+            .Setup(x => x.Code)
+            .Returns("code1")
+            .Verifiable();
+        mockAlgorithm2
+            .Setup(x => x.Code)
+            .Returns("code2")
+            .Verifiable();
+        mockAlgorithm3
+            .Setup(x => x.Code)
+            .Returns("code3")
+            .Verifiable();
+
+        mockAlgorithm1
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
+        mockAlgorithm2
             .Setup(x => x.Type)
             .Returns(AlgorithmType.KeyManagement)
             .Verifiable();
+        mockAlgorithm3
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
 
-        MockAlgorithm2
-            .As<IKeyManagementAlgorithm>();
-
-        var algorithms = CreateCollection();
+        var algorithms = new AlgorithmCollection(new[]
+        {
+            mockAlgorithm1.Object,
+            mockAlgorithm2.Object,
+            mockAlgorithm3.Object
+        });
         Assert.Equal(3, algorithms.Count);
 
         var result1 = algorithms.TryGetKeyManagementAlgorithm("code1", out var algorithm1);
@@ -145,15 +179,42 @@ public class AlgorithmCollectionTests : BaseTests
     [Fact]
     public void TryGetAuthenticatedEncryptionAlgorithm_Valid()
     {
-        MockAlgorithm2
+        var mockAlgorithm1 = CreateStrictMock<Algorithm>();
+        var mockAlgorithm2 = CreateStrictMock<AuthenticatedEncryptionAlgorithm>();
+        var mockAlgorithm3 = CreateStrictMock<Algorithm>();
+
+        mockAlgorithm1
+            .Setup(x => x.Code)
+            .Returns("code1")
+            .Verifiable();
+        mockAlgorithm2
+            .Setup(x => x.Code)
+            .Returns("code2")
+            .Verifiable();
+        mockAlgorithm3
+            .Setup(x => x.Code)
+            .Returns("code3")
+            .Verifiable();
+
+        mockAlgorithm1
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
+        mockAlgorithm2
             .Setup(x => x.Type)
             .Returns(AlgorithmType.AuthenticatedEncryption)
             .Verifiable();
+        mockAlgorithm3
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
 
-        MockAlgorithm2
-            .As<IAuthenticatedEncryptionAlgorithm>();
-
-        var algorithms = CreateCollection();
+        var algorithms = new AlgorithmCollection(new[]
+        {
+            mockAlgorithm1.Object,
+            mockAlgorithm2.Object,
+            mockAlgorithm3.Object
+        });
         Assert.Equal(3, algorithms.Count);
 
         var result1 = algorithms.TryGetAuthenticatedEncryptionAlgorithm("code1", out var algorithm1);
@@ -172,15 +233,42 @@ public class AlgorithmCollectionTests : BaseTests
     [Fact]
     public void TryGetCompressionAlgorithm_Valid()
     {
-        MockAlgorithm2
+        var mockAlgorithm1 = CreateStrictMock<Algorithm>();
+        var mockAlgorithm2 = CreateStrictMock<CompressionAlgorithm>();
+        var mockAlgorithm3 = CreateStrictMock<Algorithm>();
+
+        mockAlgorithm1
+            .Setup(x => x.Code)
+            .Returns("code1")
+            .Verifiable();
+        mockAlgorithm2
+            .Setup(x => x.Code)
+            .Returns("code2")
+            .Verifiable();
+        mockAlgorithm3
+            .Setup(x => x.Code)
+            .Returns("code3")
+            .Verifiable();
+
+        mockAlgorithm1
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
+        mockAlgorithm2
             .Setup(x => x.Type)
             .Returns(AlgorithmType.Compression)
             .Verifiable();
+        mockAlgorithm3
+            .Setup(x => x.Type)
+            .Returns(AlgorithmType.Unspecified)
+            .Verifiable();
 
-        MockAlgorithm2
-            .As<ICompressionAlgorithm>();
-
-        var algorithms = CreateCollection();
+        var algorithms = new AlgorithmCollection(new[]
+        {
+            mockAlgorithm1.Object,
+            mockAlgorithm2.Object,
+            mockAlgorithm3.Object
+        });
         Assert.Equal(3, algorithms.Count);
 
         var result1 = algorithms.TryGetCompressionAlgorithm("code1", out var algorithm1);

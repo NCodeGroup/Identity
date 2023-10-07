@@ -26,6 +26,8 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class RsaKeyManagementAlgorithmTests : BaseTests
 {
+    private static SecretKeyFactory SecretKeyFactory { get; } = new();
+
     [Fact]
     public void Code_Valid()
     {
@@ -131,7 +133,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         const string code = nameof(code);
 
         using var key = RSA.Create(kekSizeBits);
-        using var secretKey = RsaSecretKey.Create(default, key);
+        using var secretKey = SecretKeyFactory.CreateRsa(default, key);
 
         var algorithm = new RsaKeyManagementAlgorithm(code, padding);
         var header = new Dictionary<string, object>();
@@ -160,7 +162,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         const int kekSizeBytes = kekSizeBits >> 3;
 
         using var key = RSA.Create(kekSizeBits);
-        using var secretKey = RsaSecretKey.Create(default, key);
+        using var secretKey = SecretKeyFactory.CreateRsa(default, key);
 
         var anyPadding = RSAEncryptionPadding.Pkcs1;
         var algorithm = new RsaKeyManagementAlgorithm(code, anyPadding);
@@ -183,7 +185,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
 
         var metadata = new KeyMetadata { KeyId = keyId };
         using var key = RSA.Create(kekSizeBits);
-        using var secretKey = RsaSecretKey.Create(metadata, key);
+        using var secretKey = SecretKeyFactory.CreateRsa(metadata, key);
 
         var algorithm = new RsaKeyManagementAlgorithm(code, padding);
         var headerForWrap = new Dictionary<string, object>();

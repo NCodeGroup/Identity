@@ -22,7 +22,4 @@ namespace NCode.Jose;
 internal static class JoseConstants
 {
     public const int MaxStackAlloc = 512 >> 3;
-
-    public const string Jws = "JWS";
-    public const string Jwe = "JWE";
 }

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,9 +17,20 @@
 
 #endregion
 
-namespace NCode.Jose;
+namespace NCode.Identity.JsonWebTokens.Options;
 
-internal static class JoseConstants
+/// <summary>
+/// Contains configurable options for <see cref="JsonWebTokenService"/>.
+/// </summary>
+public class JsonWebTokenServiceOptions
 {
-    public const int MaxStackAlloc = 512 >> 3;
+    /// <summary>
+    /// Gets or sets a value indicating whether generated tokens will have default values for the 'iat', 'nbf', and 'exp' claims if not specified.
+    /// </summary>
+    public bool EnsureTokenLifetime { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the default lifetime for generated tokens.
+    /// </summary>
+    public TimeSpan DefaultTokenLifetime { get; } = TimeSpan.FromMinutes(60);
 }

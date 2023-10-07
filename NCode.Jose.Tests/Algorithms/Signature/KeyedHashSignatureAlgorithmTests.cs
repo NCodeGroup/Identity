@@ -114,7 +114,7 @@ public class KeyedHashSignatureAlgorithmTests
         RandomNumberGenerator.Fill(inputData);
 
         var metadata = new KeyMetadata { KeyId = keyId };
-        using var secretKey = new SymmetricSecretKey(metadata, key);
+        using var secretKey = new DefaultSymmetricSecretKey(metadata, key);
 
         var algorithm = new KeyedHashSignatureAlgorithm(code, hashAlgorithmName, keyedHashFunction);
 

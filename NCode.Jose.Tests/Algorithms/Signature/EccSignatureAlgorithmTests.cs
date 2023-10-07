@@ -25,6 +25,8 @@ namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class EccSignatureAlgorithmTests
 {
+    private static SecretKeyFactory SecretKeyFactory { get; } = new();
+
     [Fact]
     public void Code_Valid()
     {
@@ -102,7 +104,7 @@ public class EccSignatureAlgorithmTests
 
         var metadata = new KeyMetadata { KeyId = keyId };
         using var key = ECDsa.Create(curve);
-        using var secretKey = EccSecretKey.Create(metadata, key);
+        using var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
 
         var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
         var hashSizeBytes = algorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);

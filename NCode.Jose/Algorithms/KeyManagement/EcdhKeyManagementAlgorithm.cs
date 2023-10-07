@@ -38,7 +38,7 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// <summary>
     /// Gets a singleton instance of <see cref="EcdhKeyManagementAlgorithm"/>.
     /// </summary>
-    public static KeyManagementAlgorithm Singleton { get; } = new EcdhKeyManagementAlgorithm();
+    public static EcdhKeyManagementAlgorithm Singleton { get; } = new();
 
     private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new KeySizes[]
     {

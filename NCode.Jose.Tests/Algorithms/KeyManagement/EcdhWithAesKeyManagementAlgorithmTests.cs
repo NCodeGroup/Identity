@@ -28,6 +28,7 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
 {
+    private static SecretKeyFactory SecretKeyFactory { get; } = new();
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
     public EcdhWithAesKeyManagementAlgorithmTests()
@@ -88,7 +89,7 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
 
         var metadata = new KeyMetadata { KeyId = keyId };
         using var key = ECDiffieHellman.Create(curve);
-        using var secretKey = EccSecretKey.Create(metadata, key);
+        using var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
 
         var cekSizeBits = cekSizeBytes << 3;
         var algorithm = CreateAlgorithm(cekSizeBits, AesKeyWrap.Singleton);

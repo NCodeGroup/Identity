@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,9 +17,16 @@
 
 #endregion
 
-namespace NCode.Jose;
+namespace NCode.Identity.JsonWebTokens.Options;
 
-internal static class JoseConstants
+/// <summary>
+/// Provides the ability to configure the behavior when validating the lifetime of a Json Web Token (JWT).
+/// </summary>
+public class ValidateTokenLifeTimeOptions
 {
-    public const int MaxStackAlloc = 512 >> 3;
+    /// <summary>
+    /// Gets or sets a value indicating whether the <c>exp</c> claim is required.
+    /// The default is <c>true</c>.
+    /// </summary>
+    public bool RequireExpirationTime { get; set; } = true;
 }

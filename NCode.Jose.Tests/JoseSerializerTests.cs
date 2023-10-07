@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Jose;
 using Jose.keys;
@@ -33,6 +34,7 @@ namespace NCode.Jose.Tests;
 
 public class JoseSerializerTests : BaseTests
 {
+    private static SecretKeyFactory SecretKeyFactory { get; } = new();
     private JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web);
     private ServiceProvider ServiceProvider { get; }
     private JoseSerializerOptions JoseSerializerOptions { get; } = new();
@@ -65,7 +67,7 @@ public class JoseSerializerTests : BaseTests
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         var nativeKey = RSA.Create();
-        var secretKey = RsaSecretKey.Create(metadata, nativeKey);
+        var secretKey = SecretKeyFactory.CreateRsa(metadata, nativeKey);
         return (nativeKey, secretKey);
     }
 
@@ -73,7 +75,7 @@ public class JoseSerializerTests : BaseTests
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         using var eccKey = ECDiffieHellman.Create(curve);
-        var secretKey = EccSecretKey.Create(metadata, eccKey);
+        var secretKey = SecretKeyFactory.CreateEcc(metadata, eccKey);
         var parameters = eccKey.ExportParameters(true);
         var nativeKey = EccKey.New(parameters.Q.X, parameters.Q.Y, parameters.D, CngKeyUsages.KeyAgreement);
         return (nativeKey, secretKey);
@@ -100,7 +102,7 @@ public class JoseSerializerTests : BaseTests
         var bytes = new byte[byteCount];
         RandomNumberGenerator.Fill(bytes);
         var metadata = new KeyMetadata { KeyId = keyId };
-        var secretKey = new SymmetricSecretKey(metadata, bytes);
+        var secretKey = new DefaultSymmetricSecretKey(metadata, bytes);
         return (bytes, secretKey);
     }
 
@@ -108,7 +110,8 @@ public class JoseSerializerTests : BaseTests
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         var password = Guid.NewGuid().ToString("N");
-        var secretKey = new SymmetricSecretKey(metadata, password);
+        var keyBytes = Encoding.UTF8.GetBytes(password);
+        var secretKey = new DefaultSymmetricSecretKey(metadata, keyBytes);
         return (password, secretKey);
     }
 
@@ -248,16 +251,17 @@ public class JoseSerializerTests : BaseTests
                 out var compressionAlgorithm))
             compressionAlgorithm = null;
 
-        var credentials = new JoseEncryptingCredentials(
+        var encryptingCredentials = new JoseEncryptingCredentials(
             secretKey,
             keyManagementAlgorithm,
             encryptionAlgorithm,
             compressionAlgorithm);
 
+        var encryptingOptions = new JoseEncryptingOptions(encryptingCredentials);
+
         var token = JoseSerializer.Encode(
             originalPayload,
-            credentials,
-            JoseEncryptingOptions.Default,
+            encryptingOptions,
             JsonSerializerOptions,
             originalExtraHeaders);
 
@@ -470,11 +474,11 @@ public class JoseSerializerTests : BaseTests
             ["header1"] = "h-value"
         };
 
-        var signatureCredentials = new JoseSigningCredentials(
+        var signingCredentials = new JoseSigningCredentials(
             secretKey,
             signatureAlgorithm);
 
-        var signatureOptions = new JoseSigningOptions
+        var signingOptions = new JoseSigningOptions(signingCredentials)
         {
             EncodePayload = encodePayload,
             DetachPayload = detachPayload
@@ -482,13 +486,12 @@ public class JoseSerializerTests : BaseTests
 
         var token = JoseSerializer.Encode(
             payload,
-            signatureCredentials,
-            signatureOptions,
+            signingOptions,
             JsonSerializerOptions,
             extraHeaders);
 
         var json = JsonSerializer.Serialize(payload, JoseSerializerOptions.JsonSerializerOptions);
-        var token2 = JoseSerializer.Encode(json, signatureCredentials, signatureOptions, extraHeaders);
+        var token2 = JoseSerializer.Encode(json, signingOptions, extraHeaders);
 
         JsonElement deserializedHeaders;
         if (detachPayload)

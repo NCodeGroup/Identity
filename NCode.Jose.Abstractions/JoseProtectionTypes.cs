@@ -19,7 +19,18 @@
 
 namespace NCode.Jose;
 
-internal static class JoseConstants
+/// <summary>
+/// Constants for <see cref="CompactJwt.ProtectionType"/> that can be used to indicate how the JWT is protected.
+/// </summary>
+public static class JoseProtectionTypes
 {
-    public const int MaxStackAlloc = 512 >> 3;
+    /// <summary>
+    /// A value that indicates the JWT is protected using <c>JWS</c> (signing).
+    /// </summary>
+    public const string Jws = "JWS";
+
+    /// <summary>
+    /// A value that indicates the JWT is protected using <c>JWE</c> (encryption).
+    /// </summary>
+    public const string Jwe = "JWE";
 }

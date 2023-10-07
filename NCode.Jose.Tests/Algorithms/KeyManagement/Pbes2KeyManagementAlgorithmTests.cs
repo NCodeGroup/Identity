@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
@@ -130,7 +131,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var algorithm = Create();
 
-        using var secretKey = new SymmetricSecretKey(default, password);
+        using var secretKey = new DefaultSymmetricSecretKey(default, Encoding.UTF8.GetBytes(password));
 
         var header = new Dictionary<string, object>();
         var contentKey = Array.Empty<byte>();
@@ -149,7 +150,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var algorithm = Create();
 
-        using var secretKey = new SymmetricSecretKey(default, password);
+        using var secretKey = new DefaultSymmetricSecretKey(default, Encoding.UTF8.GetBytes(password));
 
         var header = new Dictionary<string, object>
         {
@@ -173,7 +174,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var algorithm = Create();
 
-        using var secretKey = new SymmetricSecretKey(default, password);
+        using var secretKey = new DefaultSymmetricSecretKey(default, Encoding.UTF8.GetBytes(password));
 
         var header = new Dictionary<string, object>
         {
@@ -198,7 +199,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var algorithm = Create();
 
-        using var secretKey = new SymmetricSecretKey(default, password);
+        using var secretKey = new DefaultSymmetricSecretKey(default, Encoding.UTF8.GetBytes(password));
 
         var header = new Dictionary<string, object>
         {
@@ -236,6 +237,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         const string alg = nameof(alg);
 
         var password = Guid.NewGuid().ToString("N");
+        var keyBytes = Encoding.UTF8.GetBytes(password);
         var cekSizeBytes = cekSizeBits >> 3;
 
         var algorithm = Create(
@@ -243,7 +245,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
             aesKeyWrap: AesKeyWrap.Singleton);
 
         var metadata = new KeyMetadata { KeyId = keyId };
-        using var secretKey = new SymmetricSecretKey(metadata, password);
+        using var secretKey = new DefaultSymmetricSecretKey(metadata, keyBytes);
 
         // ReSharper disable once InconsistentNaming
         var p2c = Random.Shared.Next(Pbes2KeyManagementAlgorithm.MinIterationCount, 310000);

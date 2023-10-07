@@ -266,7 +266,7 @@ partial class JoseSerializer
               BASE64URL(JWE Ciphertext) || '.' ||
               BASE64URL(JWE Authentication Tag)
         */
-        Debug.Assert(compactJwt.ProtectionType == JoseConstants.Jwe);
+        Debug.Assert(compactJwt.ProtectionType == JoseProtectionTypes.Jwe);
 
         // JWE Protected Header
         var jweProtectedHeader = compactJwt.Segments.First;

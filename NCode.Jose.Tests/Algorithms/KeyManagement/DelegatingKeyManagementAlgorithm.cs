@@ -19,16 +19,16 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
-using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.Algorithms;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class DelegatingKeyManagementAlgorithm : KeyManagementAlgorithm
 {
-    private IKeyManagementAlgorithm Inner { get; }
+    private KeyManagementAlgorithm Inner { get; }
 
-    public DelegatingKeyManagementAlgorithm(IKeyManagementAlgorithm inner) =>
+    public DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner) =>
         Inner = inner;
 
     public override string Code => Inner.Code;
@@ -43,6 +43,15 @@ public class DelegatingKeyManagementAlgorithm : KeyManagementAlgorithm
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
         Inner.GetEncryptedContentKeySizeBytes(kekSizeBits, cekSizeBytes);
 
+    public override void NewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey) =>
+        Inner.NewKey(
+            secretKey,
+            header,
+            contentKey);
+
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
@@ -50,6 +59,19 @@ public class DelegatingKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten) =>
         Inner.TryWrapKey(
+            secretKey,
+            header,
+            contentKey,
+            encryptedContentKey,
+            out bytesWritten);
+
+    public override bool TryWrapNewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey,
+        Span<byte> encryptedContentKey,
+        out int bytesWritten) =>
+        Inner.TryWrapNewKey(
             secretKey,
             header,
             contentKey,

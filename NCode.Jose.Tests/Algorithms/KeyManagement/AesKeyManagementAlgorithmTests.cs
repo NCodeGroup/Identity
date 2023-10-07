@@ -113,7 +113,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         Span<byte> kek = new byte[kekSizeBytes];
 
         var metadata = new KeyMetadata { KeyId = keyId };
-        using var secretKey = new SymmetricSecretKey(metadata, kek);
+        using var secretKey = new DefaultSymmetricSecretKey(metadata, kek);
 
         var cekSizeBytes = cekSizeBits >> 3;
         var encryptedCekSizeBytes = aesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);

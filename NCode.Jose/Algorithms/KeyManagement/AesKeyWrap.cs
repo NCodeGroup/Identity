@@ -36,7 +36,7 @@ public class AesKeyWrap : IAesKeyWrap
     /// <summary>
     /// Provides a default singleton instance for <see cref="AesKeyWrap"/>.
     /// </summary>
-    public static IAesKeyWrap Singleton { get; } = new AesKeyWrap();
+    public static AesKeyWrap Singleton { get; } = new();
 
     private const int ChunkBitCount = 64;
     internal const int ChunkByteCount = ChunkBitCount >> 3;

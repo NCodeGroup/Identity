@@ -27,6 +27,8 @@ namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class RsaSignatureAlgorithmTests
 {
+    private static SecretKeyFactory SecretKeyFactory { get; } = new();
+
     [Fact]
     public void Code_Valid()
     {
@@ -102,7 +104,7 @@ public class RsaSignatureAlgorithmTests
 
         var metadata = new KeyMetadata { KeyId = keyId };
         using var key = RSA.Create(keySizeBits);
-        using var secretKey = RsaSecretKey.Create(metadata, key);
+        using var secretKey = SecretKeyFactory.CreateRsa(metadata, key);
 
         var algorithm = new RsaSignatureAlgorithm(code, hashAlgorithmName, padding);
 

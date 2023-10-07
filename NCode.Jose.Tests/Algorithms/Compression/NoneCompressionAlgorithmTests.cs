@@ -27,7 +27,7 @@ namespace NCode.Jose.Tests.Algorithms.Compression;
 public class NoneCompressionAlgorithmTests : BaseTests
 {
     private Mock<IBufferWriter<byte>> MockBufferWriter { get; }
-    private NoneCompressionAlgorithm Algorithm { get; } = new();
+    private static NoneCompressionAlgorithm Algorithm => NoneCompressionAlgorithm.Singleton;
 
     public NoneCompressionAlgorithmTests()
     {

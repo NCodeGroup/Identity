@@ -30,7 +30,7 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
     /// <summary>
     /// Gets a singleton instance of <see cref="NoneSignatureAlgorithm"/>.
     /// </summary>
-    public static SignatureAlgorithm Singleton { get; } = new NoneSignatureAlgorithm();
+    public static NoneSignatureAlgorithm Singleton { get; } = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NoneSignatureAlgorithm"/> class.

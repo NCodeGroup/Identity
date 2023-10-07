@@ -23,7 +23,7 @@ using System.Text.Json;
 using IdGen;
 using NCode.CryptoMemory;
 using NCode.Encoders;
-using NCode.Identity.Jwt;
+using NCode.Identity.JsonWebTokens;
 using NCode.Jose;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Credentials;

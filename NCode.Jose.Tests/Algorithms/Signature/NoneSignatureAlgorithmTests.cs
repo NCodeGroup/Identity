@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.Signature;
 using NCode.Jose.SecretKeys;
 
@@ -24,7 +25,7 @@ namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class NoneSignatureAlgorithmTests
 {
-    private NoneSignatureAlgorithm Algorithm { get; } = new();
+    private static SignatureAlgorithm Algorithm => NoneSignatureAlgorithm.Singleton;
 
     [Fact]
     public void Code_Valid()

@@ -27,7 +27,7 @@ namespace NCode.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>RSA</c> cryptographic algorithm for key management.
 /// </summary>
-public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
+public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
     {
@@ -104,7 +104,7 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
             return false;
         }
 
-        var validatedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
 
         using var key = validatedSecretKey.ExportRSA();
 
@@ -119,7 +119,7 @@ public class RsaKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<RsaSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
 
         using var key = validatedSecretKey.ExportRSA();
 

@@ -23,15 +23,15 @@ using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
 
-internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options);
+internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, IOpenIdMessageContext context, ParameterDescriptor descriptor, JsonSerializerOptions options);
 
-internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, IOpenIdContext context, Parameter parameter, JsonSerializerOptions options);
+internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, IOpenIdMessageContext context, Parameter parameter, JsonSerializerOptions options);
 
 internal interface ITestParameterParser
 {
-    StringValues Serialize(IOpenIdContext context, string? value);
+    StringValues Serialize(IOpenIdMessageContext context, string? value);
 
-    string Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
+    string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
 }
 
 internal class TestParameterParser : ParameterParser<string>
@@ -47,22 +47,22 @@ internal class TestParameterParser : ParameterParser<string>
         WriteJsonDelegate = writeJsonDelegate;
     }
 
-    public override StringValues Serialize(IOpenIdContext context, string? value)
+    public override StringValues Serialize(IOpenIdMessageContext context, string? value)
     {
         return InnerParser.Serialize(context, value);
     }
 
-    public override string Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override string Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         return InnerParser.Parse(context, descriptor, stringValues, ignoreErrors);
     }
 
-    public override Parameter Read(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    public override Parameter Read(ref Utf8JsonReader reader, IOpenIdMessageContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         return ReadJsonDelegate?.Invoke(ref reader, context, descriptor, options) ?? new Parameter<string>(descriptor, string.Empty);
     }
 
-    public override void Write(Utf8JsonWriter writer, IOpenIdContext context, Parameter parameter, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, IOpenIdMessageContext context, Parameter parameter, JsonSerializerOptions options)
     {
         WriteJsonDelegate?.Invoke(writer, context, parameter, options);
     }

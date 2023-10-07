@@ -25,7 +25,7 @@ namespace NIdentity.OpenId.Messages;
 public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
 {
     /// <summary>
-    /// Gets the <see cref="IOpenIdContext"/> for the current instance.
+    /// Gets the <see cref="IOpenIdMessageContext"/> for the current instance.
     /// </summary>
-    IOpenIdContext OpenIdContext { get; }
+    IOpenIdMessageContext OpenIdMessageContext { get; }
 }

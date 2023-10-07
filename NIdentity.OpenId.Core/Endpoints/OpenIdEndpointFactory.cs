@@ -44,6 +44,7 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         Mediator = mediator;
     }
 
+    /// <inheritdoc />
     public Endpoint CreateEndpoint(
         string name,
         string path,
@@ -57,7 +58,14 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 
         var displayName = $"{path} HTTP: {string.Join(", ", httpMethodArray)}";
 
+        var descriptor = new OpenIdEndpointDescriptor
+        {
+            Name = name,
+            DisplayName = displayName
+        };
+
         endpointConventionBuilder.WithName(name);
+        endpointConventionBuilder.WithGroupName("OpenId"); // TODO
         endpointConventionBuilder.WithDisplayName(displayName);
         endpointConventionBuilder.WithMetadata(new HttpMethodMetadata(httpMethodArray));
 
@@ -66,14 +74,10 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 
         async Task RequestDelegate(HttpContext httpContext)
         {
-            var endpoint = httpContext.GetEndpoint();
-            var descriptor = new OpenIdEndpointDescriptor
-            {
-                Name = name,
-                DisplayName = displayName,
-                Metadata = endpoint?.Metadata ?? EndpointMetadataCollection.Empty
-            };
-            var context = new OpenIdEndpointContext(descriptor, httpContext);
+            var context = new DefaultOpenIdEndpointContext(httpContext, descriptor);
+
+            // TODO: should we provide a convenience method to get the endpoint?
+            //var endpoint = httpContext.GetEndpoint();
 
             var command = commandFactory(context);
             var result = await Mediator.SendAsync(command, httpContext.RequestAborted);

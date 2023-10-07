@@ -19,7 +19,7 @@
 
 using System.Buffers;
 using NCode.CryptoMemory;
-using NCode.Jose.Internal;
+using NCode.Jose.Infrastructure;
 using Nerdbank.Streams;
 
 namespace NCode.Jose.Algorithms.Compression;
@@ -27,7 +27,7 @@ namespace NCode.Jose.Algorithms.Compression;
 internal static class CompressionAlgorithmExtensions
 {
     public static IDisposable Compress(
-        this ICompressionAlgorithm? algorithm,
+        this CompressionAlgorithm? algorithm,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> uncompressedData,
         out ReadOnlySpan<byte> compressedData)

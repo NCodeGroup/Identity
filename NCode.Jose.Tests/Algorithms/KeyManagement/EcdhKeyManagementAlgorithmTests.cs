@@ -537,7 +537,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var apv = new byte[32];
         RandomNumberGenerator.Fill(apv);
 
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
 
         // party 1
 

@@ -96,7 +96,7 @@ public class AesGcmKeyManagementAlgorithmTests
         Span<byte> kek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
 
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         using var secretKey = new SymmetricSecretKey(metadata, kek);
         var headerForWrap = new Dictionary<string, object>();
 

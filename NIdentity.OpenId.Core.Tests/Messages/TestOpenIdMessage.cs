@@ -32,13 +32,13 @@ internal class TestOpenIdMessage : OpenIdMessage<TestOpenIdMessage>, ITestOpenId
         // nothing
     }
 
-    public TestOpenIdMessage(IOpenIdContext context, params Parameter[] parameters)
+    public TestOpenIdMessage(IOpenIdMessageContext context, params Parameter[] parameters)
         : base(context, parameters)
     {
         // nothing
     }
 
-    public TestOpenIdMessage(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    public TestOpenIdMessage(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
         : base(context, parameters)
     {
         // nothing

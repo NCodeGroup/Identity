@@ -21,10 +21,11 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using NCode.CryptoMemory;
-using NCode.Jose.Algorithms.AuthenticatedEncryption;
+using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.Compression;
-using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.Encoders;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
 using NCode.Jose.SecretKeys;
@@ -32,43 +33,19 @@ using Nerdbank.Streams;
 
 namespace NCode.Jose;
 
-partial interface IJoseSerializer
-{
-    /// <summary>
-    /// Creates a new <see cref="JoseEncoder"/> with the specified encrypting credentials and options.
-    /// </summary>
-    /// <param name="encryptingOptions">The JOSE encrypting credentials and options.</param>
-    /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
-    JoseEncoder CreateEncoder(
-        JoseEncryptingOptions encryptingOptions);
-
-    /// <summary>
-    /// Encrypts a JWE token given the specified payload.
-    /// </summary>
-    /// <param name="tokenWriter">The destination for the encrypted JWE token.</param>
-    /// <param name="payload">The payload to encrypt.</param>
-    /// <param name="encryptingOptions">The JOSE encrypting credentials and options.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<byte> payload,
-        JoseEncryptingOptions encryptingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
-}
-
 partial class JoseSerializer
 {
-    private IKeyManagementAlgorithm GetKeyManagementAlgorithm(string code) =>
+    private KeyManagementAlgorithm GetKeyManagementAlgorithm(string code) =>
         !AlgorithmCollection.TryGetKeyManagementAlgorithm(code, out var algorithm) ?
             throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for key management.") :
             algorithm;
 
-    private IAuthenticatedEncryptionAlgorithm GetAuthenticatedEncryptionAlgorithm(string code) =>
+    private AuthenticatedEncryptionAlgorithm GetAuthenticatedEncryptionAlgorithm(string code) =>
         !AlgorithmCollection.TryGetAuthenticatedEncryptionAlgorithm(code, out var algorithm) ?
             throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for AEAD encryption.") :
             algorithm;
 
-    private ICompressionAlgorithm GetCompressionAlgorithm(string code) =>
+    private CompressionAlgorithm GetCompressionAlgorithm(string code) =>
         !AlgorithmCollection.TryGetCompressionAlgorithm(code, out var algorithm) ?
             throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for compression.") :
             algorithm;
@@ -76,6 +53,119 @@ partial class JoseSerializer
     /// <inheritdoc />
     public JoseEncoder CreateEncoder(JoseEncryptingOptions encryptingOptions) =>
         new JoseEncryptingEncoder(this, encryptingOptions);
+
+    /// <inheritdoc />
+    public string Encode<T>(
+        T payload,
+        JoseEncryptingOptions encryptingOptions,
+        JsonSerializerOptions? jsonOptions = null,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var tokenBuffer = new Sequence<char>();
+        using var _ = SerializeToUtf8(
+            payload,
+            jsonOptions,
+            out var payloadBytes);
+        Encode(
+            tokenBuffer,
+            payloadBytes,
+            encryptingOptions,
+            extraHeaders);
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public void Encode<T>(
+        IBufferWriter<char> tokenWriter,
+        T payload,
+        JoseEncryptingOptions encryptingOptions,
+        JsonSerializerOptions? jsonOptions = null,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var _ = SerializeToUtf8(
+            payload,
+            jsonOptions,
+            out var payloadBytes);
+        Encode(
+            tokenWriter,
+            payloadBytes,
+            encryptingOptions,
+            extraHeaders);
+    }
+
+    /// <inheritdoc />
+    public void Encode(
+        IBufferWriter<char> tokenWriter,
+        string payload,
+        JoseEncryptingOptions encryptingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        Encode(
+            tokenWriter,
+            payload.AsSpan(),
+            encryptingOptions,
+            extraHeaders);
+    }
+
+    /// <inheritdoc />
+    public string Encode(
+        string payload,
+        JoseEncryptingOptions encryptingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        return Encode(
+            payload.AsSpan(),
+            encryptingOptions,
+            extraHeaders);
+    }
+
+    /// <inheritdoc />
+    public void Encode(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlySpan<char> payload,
+        JoseEncryptingOptions encryptingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(payload);
+        using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
+        Debug.Assert(bytesWritten == byteCount);
+        Encode(
+            tokenWriter,
+            payloadBytes,
+            encryptingOptions,
+            extraHeaders);
+    }
+
+    /// <inheritdoc />
+    public string Encode(
+        ReadOnlySpan<char> payload,
+        JoseEncryptingOptions encryptingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var tokenBuffer = new Sequence<char>();
+        Encode(
+            tokenBuffer,
+            payload,
+            encryptingOptions,
+            extraHeaders);
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public string Encode(
+        ReadOnlySpan<byte> payload,
+        JoseEncryptingOptions encryptingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var tokenBuffer = new Sequence<char>();
+        Encode(
+            tokenBuffer,
+            payload,
+            encryptingOptions,
+            extraHeaders);
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
 
     /// <inheritdoc />
     public void Encode(
@@ -186,7 +276,6 @@ partial class JoseSerializer
         var jweEncryptedKey = jweProtectedHeader.Next!;
         var encodedEncryptedKey = jweEncryptedKey.Memory.Span;
         using var encryptedKeyLease = DecodeBase64Url(
-            "JWE Encrypted Key",
             encodedEncryptedKey,
             isSensitive: true,
             out var encryptedKeyBytes);
@@ -195,7 +284,6 @@ partial class JoseSerializer
         var jweInitializationVector = jweEncryptedKey.Next!;
         var encodedInitializationVector = jweInitializationVector.Memory.Span;
         using var initializationVectorLease = DecodeBase64Url(
-            "JWE Initialization Vector",
             encodedInitializationVector,
             isSensitive: false,
             out var initializationVectorBytes);
@@ -204,7 +292,6 @@ partial class JoseSerializer
         var jweCiphertext = jweInitializationVector.Next!;
         var encodedCiphertext = jweCiphertext.Memory.Span;
         using var cipherTextLease = DecodeBase64Url(
-            "JWE Ciphertext",
             encodedCiphertext,
             isSensitive: false,
             out var cipherTextBytes);
@@ -213,7 +300,6 @@ partial class JoseSerializer
         var jweAuthenticationTag = jweCiphertext.Next!;
         var encodedAuthenticationTag = jweAuthenticationTag.Memory.Span;
         using var authenticationTagLease = DecodeBase64Url(
-            "JWE Authentication Tag",
             encodedAuthenticationTag,
             isSensitive: false,
             out var authenticationTagBytes);

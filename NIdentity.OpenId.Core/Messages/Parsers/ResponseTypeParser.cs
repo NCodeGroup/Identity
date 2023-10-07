@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class ResponseTypeParser : ParameterParser<ResponseTypes?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdContext context, ResponseTypes? value)
+    public override StringValues Serialize(IOpenIdMessageContext context, ResponseTypes? value)
     {
         if (value is null or ResponseTypes.Unspecified)
             return StringValues.Empty;
@@ -53,7 +53,7 @@ public class ResponseTypeParser : ParameterParser<ResponseTypes?>
     }
 
     /// <inheritdoc/>
-    public override ResponseTypes? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override ResponseTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 

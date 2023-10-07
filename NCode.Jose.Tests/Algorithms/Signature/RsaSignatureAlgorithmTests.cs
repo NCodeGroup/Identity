@@ -100,7 +100,7 @@ public class RsaSignatureAlgorithmTests
         const string keyId = nameof(keyId);
         const string code = nameof(code);
 
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         using var key = RSA.Create(keySizeBits);
         using var secretKey = RsaSecretKey.Create(metadata, key);
 

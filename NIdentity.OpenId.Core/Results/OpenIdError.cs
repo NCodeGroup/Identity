@@ -23,7 +23,7 @@ namespace NIdentity.OpenId.Results;
 
 internal class OpenIdError : OpenIdMessage, IOpenIdError
 {
-    public OpenIdError(IOpenIdContext context, string errorCode)
+    public OpenIdError(IOpenIdMessageContext context, string errorCode)
         : base(context)
     {
         Code = errorCode;

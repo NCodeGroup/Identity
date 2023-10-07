@@ -37,6 +37,9 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes { get; }
 
+    /// <inheritdoc />
+    public override HashAlgorithmName HashAlgorithmName { get; }
+
     private int SignatureSizeBytes { get; }
 
     private KeyedHashFunctionDelegate KeyedHashFunction { get; }
@@ -51,11 +54,11 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
         string code,
         HashAlgorithmName hashAlgorithmName,
         KeyedHashFunctionDelegate keyedHashFunction)
-        : base(hashAlgorithmName)
     {
         var signatureSizeBits = hashAlgorithmName.GetHashSizeBits();
 
         Code = code;
+        HashAlgorithmName = hashAlgorithmName;
         SignatureSizeBytes = (signatureSizeBits + 7) >> 3;
         KeyedHashFunction = keyedHashFunction;
 
@@ -76,8 +79,22 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
     {
-        var validatedSecurityKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecurityKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         return KeyedHashFunction(validatedSecurityKey.KeyBytes, inputData, signature, out bytesWritten);
+    }
+
+    /// <inheritdoc />
+    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
+    {
+        if (signature.Length != SignatureSizeBytes)
+            return false;
+
+        var computedSignature = SignatureSizeBytes <= JoseConstants.MaxStackAlloc ?
+            stackalloc byte[SignatureSizeBytes] :
+            GC.AllocateUninitializedArray<byte>(SignatureSizeBytes, pinned: false);
+
+        return TrySign(secretKey, inputData, computedSignature, out _) &&
+               CryptographicOperations.FixedTimeEquals(computedSignature, signature);
     }
 }

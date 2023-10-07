@@ -33,86 +33,6 @@ using Nerdbank.Streams;
 namespace NCode.Jose;
 
 /// <summary>
-/// Provides the ability to encode and decode JWT values using JSON Object Signing and Encryption (JOSE).
-/// </summary>
-public partial interface IJoseSerializer
-{
-    /// <summary>
-    /// Parses a Json Web Token (JWT) and returns the parsed JWT in compact form.
-    /// This method supports both JWS and JWE (i.e. encrypted) tokens in compact form.
-    /// The main purpose of this method is to extract the JWT header before validation/decryption.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to parse.</param>
-    /// <returns>The parsed JWT in compact form.</returns>
-    CompactJwt ParseCompactJwt(string token);
-
-    /// <summary>
-    /// Validates a Json Web Token (JWT) and returns the decoded payload.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to decode and validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
-    /// <returns>The decoded payload from Json Web Token (JWT).</returns>
-    string Decode(string token, SecretKey secretKey);
-
-    /// <summary>
-    /// Validates a Json Web Token (JWT) and returns the decoded payload and header.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to decode and validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
-    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    /// <returns>The decoded payload from Json Web Token (JWT).</returns>
-    string Decode(string token, SecretKey secretKey, out JsonElement header);
-
-    /// <summary>
-    /// Validates a Json Web Token (JWT) and returns the decoded payload.
-    /// </summary>
-    /// <param name="compactJwt">The parsed JWT in compact form to decode and validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
-    /// <returns>The decoded payload from Json Web Token (JWT).</returns>
-    string Decode(CompactJwt compactJwt, SecretKey secretKey);
-
-    /// <summary>
-    /// Validates a Json Web Token (JWT) and returns the deserialized payload.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to deserialize and validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
-    /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
-    /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
-    T? Deserialize<T>(string token, SecretKey secretKey);
-
-    /// <summary>
-    /// Validates a Json Web Token (JWT) and returns the deserialized payload and header.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to deserialize and validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
-    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
-    /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
-    T? Deserialize<T>(string token, SecretKey secretKey, out JsonElement header);
-
-    /// <summary>
-    /// Validates a Json Web Token (JWT) and returns the deserialized payload.
-    /// </summary>
-    /// <param name="compactJwt">The parsed JWT in compact form to deserialize and validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation/decryption.</param>
-    /// <typeparam name="T">The type of the payload to deserialize.</typeparam>
-    /// <returns>The deserialized payload from Json Web Token (JWT).</returns>
-    T? Deserialize<T>(CompactJwt compactJwt, SecretKey secretKey);
-
-    /// <summary>
-    /// Provides the ability to serialize a value to UTF8 using memory pooling.
-    /// String values are encoded as UTF8 bytes.
-    /// Objects are serialized as JSON.
-    /// </summary>
-    /// <param name="value">The value to serialize.</param>
-    /// <param name="options">The options to control JSON serialization behavior.</param>
-    /// <param name="bytes">When this method returns, contains the UTF8 bytes from the serialized value.</param>
-    /// <typeparam name="T">The type of the value to serialize.</typeparam>
-    /// <returns>An <see cref="IDisposable"/> that controls the lifetime of the serialized bytes from a memory pool.</returns>
-    IDisposable SerializeToUtf8<T>(T value, JsonSerializerOptions? options, out ReadOnlySpan<byte> bytes);
-}
-
-/// <summary>
 /// Provides a default implementation for the <see cref="IJoseSerializer"/> interface.
 /// </summary>
 public partial class JoseSerializer : IJoseSerializer
@@ -120,21 +40,21 @@ public partial class JoseSerializer : IJoseSerializer
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
 
-    internal static IDisposable DecodeBase64Url(
-        string name,
-        ReadOnlySpan<char> chars,
-        bool isSensitive,
-        out Span<byte> bytes)
+    /// <summary>
+    /// Provides the ability to decode binary data from Base64Url encoding using memory pooling.
+    /// </summary>
+    /// <param name="chars">The base64url data to decode.</param>
+    /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
+    /// <param name="bytes">When this method returns, contains the buffer with the decoded data.</param>
+    /// <returns>An <see cref="IDisposable"/> that manages the lifetime of the lease.</returns>
+    public static IDisposable DecodeBase64Url(ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
         var lease = CryptoPool.Rent(byteCount, isSensitive, out bytes);
         try
         {
-            var decodeResult = Base64Url.TryDecode(chars, bytes, out var decodeBytesWritten);
-            if (!decodeResult || decodeBytesWritten != byteCount)
-            {
-                throw new JoseException($"Failed to base64url decode {name}.");
-            }
+            var decodeResult = Base64Url.TryDecode(chars, bytes, out var bytesWritten);
+            Debug.Assert(decodeResult && bytesWritten == byteCount);
         }
         catch
         {
@@ -155,7 +75,7 @@ public partial class JoseSerializer : IJoseSerializer
     /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
     /// </summary>
     /// <param name="optionsAccessor">An accessor that provides <see cref="JoseSerializerOptions"/>.</param>
-    /// <param name="algorithmProvider">An <see cref="IAlgorithmProvider"/> that provides a collection of <see cref="IAlgorithm"/> instances.</param>
+    /// <param name="algorithmProvider">An <see cref="IAlgorithmProvider"/> that provides a collection of <see cref="Algorithm"/> instances.</param>
     public JoseSerializer(IOptions<JoseSerializerOptions> optionsAccessor, IAlgorithmProvider algorithmProvider)
     {
         JoseSerializerOptions = optionsAccessor.Value;
@@ -170,9 +90,9 @@ public partial class JoseSerializer : IJoseSerializer
         {
             JwsSegmentCount => JoseConstants.Jws,
             JweSegmentCount => JoseConstants.Jwe,
-            _ => throw new ArgumentException("The specified value does not represent a valid JOSE token in compact form.", nameof(token))
+            _ => throw new JoseException("The specified value does not represent a valid JOSE token in compact form.")
         };
-        return new CompactJwt(protectionType, segments);
+        return new DefaultCompactJwt(protectionType, segments);
     }
 
     /// <inheritdoc />
@@ -239,7 +159,16 @@ public partial class JoseSerializer : IJoseSerializer
         return JsonSerializer.Deserialize<T>(ref reader, jsonOptions);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Provides the ability to serialize a value to UTF8 using memory pooling.
+    /// String values are encoded as UTF8 bytes.
+    /// Objects are serialized as JSON.
+    /// </summary>
+    /// <param name="value">The value to serialize.</param>
+    /// <param name="options">The options to control JSON serialization behavior.</param>
+    /// <param name="bytes">When this method returns, contains the UTF8 bytes from the serialized value.</param>
+    /// <typeparam name="T">The type of the value to serialize.</typeparam>
+    /// <returns>An <see cref="IDisposable"/> that controls the lifetime of the serialized bytes from a memory pool.</returns>
     public IDisposable SerializeToUtf8<T>(
         T value,
         JsonSerializerOptions? options,

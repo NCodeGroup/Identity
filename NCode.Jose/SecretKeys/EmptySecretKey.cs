@@ -27,19 +27,21 @@ public sealed class EmptySecretKey : SecretKey
     /// <summary>
     /// Gets a singleton instance of <see cref="EmptySecretKey"/>.
     /// </summary>
-    public static EmptySecretKey Singleton { get; } = new();
+    public static SecretKey Singleton { get; } = new EmptySecretKey();
 
-    private EmptySecretKey()
-        : base(new KeyMetadata(string.Empty, null, null, null))
-    {
-        // nothing
-    }
+    /// <inheritdoc />
+    public override KeyMetadata Metadata => default;
 
     /// <inheritdoc />
     public override int KeySizeBits => 0;
 
     /// <inheritdoc />
     public override int KeySizeBytes => 0;
+
+    private EmptySecretKey()
+    {
+        // nothing
+    }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)

@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Claims;
+using NCode.Identity.JsonWebTokens;
 using NCode.Jose;
 using NCode.Jose.SecretKeys;
 

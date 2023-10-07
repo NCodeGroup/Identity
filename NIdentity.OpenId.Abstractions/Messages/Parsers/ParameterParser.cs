@@ -40,37 +40,37 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
     /// <summary>
     /// Returns the specified <paramref name="value"/> formatted as <see cref="StringValues"/>.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use when serializing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when serializing the value.</param>
     /// <param name="value">The value to serialize.</param>
     /// <returns>The value formatted as <see cref="StringValues"/>.</returns>
-    public abstract StringValues Serialize(IOpenIdContext context, T? value);
+    public abstract StringValues Serialize(IOpenIdMessageContext context, T? value);
 
     /// <summary>
     /// Parses the specified string values into a type-specific value.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The parsed type-specific value.</returns>
-    public abstract T Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
+    public abstract T Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
 
     /// <summary>
     /// Parses and loads a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public override Parameter Load(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override Parameter Load(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         var parsedValue = Parse(context, descriptor, stringValues, ignoreErrors);
         return new Parameter<T>(descriptor, stringValues, parsedValue);
     }
 
     /// <inheritdoc />
-    public virtual Parameter Read(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    public virtual Parameter Read(ref Utf8JsonReader reader, IOpenIdMessageContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         var parsedValue = JsonSerializer.Deserialize<T?>(ref reader, options);
         var stringValues = Serialize(context, parsedValue);
@@ -78,7 +78,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
     }
 
     /// <inheritdoc />
-    public virtual void Write(Utf8JsonWriter writer, IOpenIdContext context, Parameter parameter, JsonSerializerOptions options)
+    public virtual void Write(Utf8JsonWriter writer, IOpenIdMessageContext context, Parameter parameter, JsonSerializerOptions options)
     {
         var typedParameter = (Parameter<T?>)parameter;
         writer.WritePropertyName(parameter.Descriptor.ParameterName);

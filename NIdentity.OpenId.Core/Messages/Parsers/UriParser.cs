@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class UriParser : ParameterParser<Uri?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdContext context, Uri? value)
+    public override StringValues Serialize(IOpenIdMessageContext context, Uri? value)
     {
         if (value is null)
             return StringValues.Empty;
@@ -37,7 +37,7 @@ public class UriParser : ParameterParser<Uri?>
     }
 
     /// <inheritdoc/>
-    public override Uri? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override Uri? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 

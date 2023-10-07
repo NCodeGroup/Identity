@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Encoders;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Extensions;
 using NCode.Jose.Json;
 using NCode.Jose.SecretKeys;
 
@@ -30,7 +31,7 @@ namespace NCode.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>AES GCM</c> cryptographic algorithm for key management.
 /// </summary>
-public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
+public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     private const int IvSizeBytes = 96 >> 3;
     private const int TagSizeBytes = 128 >> 3;
@@ -75,7 +76,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         // Output size = Input size
         if (encryptedContentKey.Length < contentKey.Length)
@@ -109,7 +110,7 @@ public class AesGcmKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         // Output size = Input size
         if (contentKey.Length < encryptedContentKey.Length)

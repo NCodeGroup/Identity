@@ -20,6 +20,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Encoders;
+using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.SecretKeys;
 
@@ -85,12 +86,12 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         const string keyId = nameof(keyId);
         const string alg = nameof(alg);
 
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         using var key = ECDiffieHellman.Create(curve);
         using var secretKey = EccSecretKey.Create(metadata, key);
 
         var cekSizeBits = cekSizeBytes << 3;
-        var algorithm = CreateAlgorithm(cekSizeBits, AesKeyWrap.Default);
+        var algorithm = CreateAlgorithm(cekSizeBits, AesKeyWrap.Singleton);
 
         var encryptedCekSizeBytes = algorithm.GetEncryptedContentKeySizeBytes(cekSizeBits, cekSizeBytes);
         var parameters = key.ExportParameters(includePrivateParameters: true);

@@ -2,7 +2,7 @@
 using NCode.Jose;
 using NCode.Jose.SecretKeys;
 
-namespace NCode.Identity.Jwt;
+namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
 /// Represents a Json Web Token (JWT) that has been successfully decoded.

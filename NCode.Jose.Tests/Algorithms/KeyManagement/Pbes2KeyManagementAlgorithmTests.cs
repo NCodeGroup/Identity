@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Exceptions;
 using NCode.Jose.SecretKeys;
@@ -239,9 +240,9 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var algorithm = Create(
             keySizeBits: keySizeBits,
-            aesKeyWrap: AesKeyWrap.Default);
+            aesKeyWrap: AesKeyWrap.Singleton);
 
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         using var secretKey = new SymmetricSecretKey(metadata, password);
 
         // ReSharper disable once InconsistentNaming

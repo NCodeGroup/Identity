@@ -39,6 +39,11 @@ public class Secret : ISupportId
     public string SecretId { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the tenant identifier for this entity.
+    /// </summary>
+    public string? TenantId { get; set; }
+
+    /// <summary>
     /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to
     /// indicate that this secret is intended for use with any compatible algorithm.
     /// Valid values are defined in RFC 7517 Section 4.2:

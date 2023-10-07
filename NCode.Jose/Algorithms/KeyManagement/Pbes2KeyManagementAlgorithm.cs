@@ -32,7 +32,7 @@ namespace NCode.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>PBKDF2 with AES</c> cryptographic algorithm for key management.
 /// </summary>
-public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
+public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     internal const int SaltInputSizeBytes = 12;
     internal const int MinIterationCount = 1000;
@@ -68,7 +68,12 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function to use.</param>
     /// <param name="keySizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
     /// <param name="maxIterationCount">Contains the maximum number of iterations allowed for the PBKDF2 algorithm.</param>
-    public Pbes2KeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, HashAlgorithmName hashAlgorithmName, int keySizeBits, int maxIterationCount)
+    public Pbes2KeyManagementAlgorithm(
+        IAesKeyWrap aesKeyWrap,
+        string code,
+        HashAlgorithmName hashAlgorithmName,
+        int keySizeBits,
+        int maxIterationCount)
     {
         AesKeyWrap = aesKeyWrap;
         Code = code;
@@ -93,7 +98,7 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         if (!header.TryGetValue<string>(JoseClaimNames.Header.Alg, out var alg))
         {
@@ -175,7 +180,7 @@ public class Pbes2KeyManagementAlgorithm : KeyManagementAlgorithm
     {
         // TODO: unit test for the edge cases in this method
 
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var alg))
         {

@@ -48,12 +48,12 @@ public abstract class Parameter
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use while loading the parameter.</param>
+    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public static Parameter Load(IOpenIdContext context, string parameterName, IEnumerable<string> stringValues, bool ignoreErrors = false)
+    public static Parameter Load(IOpenIdMessageContext context, string parameterName, IEnumerable<string> stringValues, bool ignoreErrors = false)
     {
         return Load(context, parameterName, stringValues.ToArray(), ignoreErrors);
     }
@@ -61,12 +61,12 @@ public abstract class Parameter
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use while loading the parameter.</param>
+    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public static Parameter Load(IOpenIdContext context, string parameterName, StringValues stringValues, bool ignoreErrors = false)
+    public static Parameter Load(IOpenIdMessageContext context, string parameterName, StringValues stringValues, bool ignoreErrors = false)
     {
         var descriptor = context.TryGetKnownParameter(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :

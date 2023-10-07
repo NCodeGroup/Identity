@@ -18,9 +18,11 @@
 #endregion
 
 using System.Diagnostics;
-using System.Text;
+using System.Security.Cryptography.X509Certificates;
 using NCode.CryptoMemory;
+using NCode.Encoders;
 using NCode.Jose.Extensions;
+using NCode.Jose.Infrastructure;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
 
@@ -48,6 +50,13 @@ public interface ISecretSerializer
 
 internal class SecretSerializer : ISecretSerializer
 {
+    private ISecretKeyFactory SecretKeyFactory { get; }
+
+    public SecretSerializer(ISecretKeyFactory secretKeyFactory)
+    {
+        SecretKeyFactory = secretKeyFactory;
+    }
+
     /// <inheritdoc />
     public ISecretKeyCollection DeserializeSecrets(IEnumerable<Secret> secrets)
     {
@@ -73,62 +82,143 @@ internal class SecretSerializer : ISecretSerializer
     /// <inheritdoc />
     public SecretKey DeserializeSecret(Secret secret)
     {
-        var metadata = new KeyMetadata(secret.SecretId, secret.Use, secret.Algorithm, secret.ExpiresWhen);
+        var metadata = new KeyMetadata
+        {
+            KeyId = secret.SecretId,
+            TenantId = secret.TenantId,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            ExpiresWhen = secret.ExpiresWhen
+        };
         return secret.SecretType switch
         {
             SecretConstants.SecretTypes.Certificate => DeserializeCertificate(metadata, secret),
             SecretConstants.SecretTypes.Symmetric => DeserializeSymmetric(metadata, secret),
             SecretConstants.SecretTypes.Rsa => DeserializeRsa(metadata, secret),
             SecretConstants.SecretTypes.Ecc => DeserializeEcc(metadata, secret),
-            _ => throw new InvalidOperationException()
+            _ => throw new InvalidOperationException($"The '{secret.SecretType}' secret type is not supported.")
         };
     }
 
-    private static SecretKey DeserializeCertificate(KeyMetadata metadata, Secret secret)
+    private SecretKey DeserializeCertificate(KeyMetadata metadata, Secret secret)
     {
-        using var _ = CreatePemReader(secret, out var reader);
-        return reader.ReadCertificate(metadata);
-    }
+        // the certificate is owned by the secret
 
-    private static SecretKey DeserializeSymmetric(KeyMetadata metadata, Secret secret) =>
-        secret.EncodingType switch
+        switch (secret.EncodingType)
         {
-            SecretConstants.EncodingTypes.None => new SymmetricSecretKey(metadata, secret.EncodedValue),
-            SecretConstants.EncodingTypes.Base64 => new SymmetricSecretKey(metadata, Convert.FromBase64String(secret.EncodedValue)),
-            _ => throw new InvalidOperationException($"The {secret.EncodingType} encoding type is not supported when deserializing a symmetric secret.")
-        };
+            case SecretConstants.EncodingTypes.Pem:
+            {
+                var certificate = X509Certificate2.CreateFromPem(secret.EncodedValue);
+                try
+                {
+                    return SecretKeyFactory.Create(metadata, certificate);
+                }
+                catch
+                {
+                    certificate.Dispose();
+                    throw;
+                }
+            }
 
-    private static SecretKey DeserializeRsa(KeyMetadata metadata, Secret secret)
-    {
-        using var _ = CreatePemReader(secret, out var reader);
-        return reader.ReadRsa(metadata, AsymmetricSecretKeyEncoding.Pem);
+            case SecretConstants.EncodingTypes.Base64:
+            {
+                using var _ = DecodeBase64(secret.EncodedValue, out var bytes);
+                var certificate = new X509Certificate2(bytes);
+                try
+                {
+                    return SecretKeyFactory.Create(metadata, certificate);
+                }
+                catch
+                {
+                    certificate.Dispose();
+                    throw;
+                }
+            }
+
+            default:
+                throw InvalidEncodingType(secret.EncodingType, "certificate");
+        }
     }
 
-    private static SecretKey DeserializeEcc(KeyMetadata metadata, Secret secret)
+    private SecretKey DeserializeSymmetric(KeyMetadata metadata, Secret secret)
     {
-        using var _ = CreatePemReader(secret, out var reader);
-        return reader.ReadEcc(metadata, AsymmetricSecretKeyEncoding.Pem);
+        switch (secret.EncodingType)
+        {
+            case SecretConstants.EncodingTypes.None:
+                return SecretKeyFactory.CreateSymmetric(metadata, secret.EncodedValue);
+
+            case SecretConstants.EncodingTypes.Base64:
+            {
+                using var _ = DecodeBase64(secret.EncodedValue, out var bytes);
+                return SecretKeyFactory.CreateSymmetric(metadata, bytes);
+            }
+
+            default:
+                throw InvalidEncodingType(secret.EncodingType, "symmetric");
+        }
     }
 
-    private static IDisposable CreatePemReader(Secret secret, out SecretKeyReader reader)
+    private SecretKey DeserializeRsa(KeyMetadata metadata, Secret secret)
     {
-        if (secret.EncodingType != SecretConstants.EncodingTypes.Pem)
-            throw new InvalidOperationException($"Loading an `{secret.SecretType}` secret requires PEM encoding.");
+        switch (secret.EncodingType)
+        {
+            case SecretConstants.EncodingTypes.Pem:
+                return SecretKeyFactory.CreateRsaPem(metadata, secret.EncodedValue);
 
-        var byteCount = Encoding.ASCII.GetByteCount(secret.EncodedValue);
-        var lease = CryptoPool.Rent(byteCount, isSensitive: true, out Span<byte> bytes);
+            case SecretConstants.EncodingTypes.Base64:
+            {
+                using var _ = DecodeBase64(secret.EncodedValue, out var bytes);
+                return SecretKeyFactory.CreateRsaPkcs8(metadata, bytes);
+            }
+
+            default:
+                throw InvalidEncodingType(secret.EncodingType, "RSA");
+        }
+    }
+
+    private SecretKey DeserializeEcc(KeyMetadata metadata, Secret secret)
+    {
+        switch (secret.EncodingType)
+        {
+            case SecretConstants.EncodingTypes.Pem:
+                return SecretKeyFactory.CreateEccPem(metadata, secret.EncodedValue);
+
+            case SecretConstants.EncodingTypes.Base64:
+            {
+                using var _ = DecodeBase64(secret.EncodedValue, out var bytes);
+                return SecretKeyFactory.CreateEccPkcs8(metadata, bytes);
+            }
+
+            default:
+                throw InvalidEncodingType(secret.EncodingType, "ECC");
+        }
+    }
+
+    private static InvalidOperationException InvalidEncodingType(string encodingType, string keyType) =>
+        new($"The '{encodingType}' encoding type is not supported when deserializing {keyType} secrets.");
+
+    private static IDisposable DecodeBase64(ReadOnlySpan<char> chars, out Span<byte> bytes)
+    {
+        if (chars.Length == 0)
+        {
+            bytes = Span<byte>.Empty;
+            return EmptyDisposable.Singleton;
+        }
+
+        var maxByteCount = Base64Url.GetByteCountForDecode(chars.Length);
+        var lease = CryptoPool.Rent(maxByteCount, isSensitive: true, out bytes);
         try
         {
-            var bytesWritten = Encoding.ASCII.GetBytes(secret.EncodedValue, bytes);
-            Debug.Assert(bytesWritten == byteCount);
-
-            reader = new SecretKeyReader(bytes);
-            return lease;
+            var result = Convert.TryFromBase64Chars(chars, bytes, out var bytesWritten);
+            Debug.Assert(result && bytesWritten > 0 && bytesWritten <= maxByteCount);
+            bytes = bytes[..bytesWritten];
         }
         catch
         {
             lease.Dispose();
             throw;
         }
+
+        return lease;
     }
 }

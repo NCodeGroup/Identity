@@ -37,6 +37,9 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes { get; }
 
+    /// <inheritdoc />
+    public override HashAlgorithmName HashAlgorithmName { get; }
+
     private int SignatureSizeBytes { get; }
 
     /// <summary>
@@ -45,8 +48,9 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
     public EccSignatureAlgorithm(string code, HashAlgorithmName hashAlgorithmName)
-        : base(hashAlgorithmName)
     {
+        HashAlgorithmName = hashAlgorithmName;
+
         var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
         var kekSizeBits = hashSizeBits == 512 ? 521 : hashSizeBits;
 
@@ -65,7 +69,7 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
     {
-        var validatedSecurityKey = ValidateSecretKey<EccSecretKey>(secretKey);
+        var validatedSecurityKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 
         using var key = validatedSecurityKey.ExportECDsa();
 
@@ -75,7 +79,7 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
     {
-        var validatedSecurityKey = ValidateSecretKey<EccSecretKey>(secretKey);
+        var validatedSecurityKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 
         using var key = validatedSecurityKey.ExportECDsa();
 

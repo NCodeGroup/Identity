@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class DisplayTypeParser : ParameterParser<DisplayType?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdContext context, DisplayType? value)
+    public override StringValues Serialize(IOpenIdMessageContext context, DisplayType? value)
     {
         return value switch
         {
@@ -41,7 +41,7 @@ public class DisplayTypeParser : ParameterParser<DisplayType?>
     }
 
     /// <inheritdoc/>
-    public override DisplayType? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override DisplayType? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 

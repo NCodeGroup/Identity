@@ -181,7 +181,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         const string code = nameof(code);
         const string keyId = nameof(keyId);
 
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         using var key = RSA.Create(kekSizeBits);
         using var secretKey = RsaSecretKey.Create(metadata, key);
 

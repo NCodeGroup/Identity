@@ -28,24 +28,10 @@
         <Compile Update="*\SecretKeyReader.*.cs">
             <DependentUpon>SecretKeyReader.cs</DependentUpon>
         </Compile>
-        <Compile Update="JoseSigningOptions.cs">
-          <DependentUpon>JoseEncodingOptions.cs</DependentUpon>
-        </Compile>
-        <Compile Update="JoseEncryptingOptions.cs">
-          <DependentUpon>JoseEncodingOptions.cs</DependentUpon>
-        </Compile>
-        <Compile Update="JoseEncryptingEncoder.cs">
-          <DependentUpon>JoseEncoder.cs</DependentUpon>
-        </Compile>
-        <Compile Update="JoseSigningEncoder.cs">
-          <DependentUpon>JoseEncoder.cs</DependentUpon>
-        </Compile>
-        <Compile Update="Credentials\JoseEncryptingCredentials.cs">
-          <DependentUpon>JoseEncodingCredentials.cs</DependentUpon>
-        </Compile>
-        <Compile Update="Credentials\JoseSigningCredentials.cs">
-          <DependentUpon>JoseEncodingCredentials.cs</DependentUpon>
-        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\NCode.Jose.Abstractions\NCode.Jose.Abstractions.csproj" />
     </ItemGroup>
 
 

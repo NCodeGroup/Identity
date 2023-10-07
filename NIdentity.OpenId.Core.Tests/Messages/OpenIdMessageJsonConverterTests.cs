@@ -29,12 +29,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 public class OpenIdMessageJsonConverterTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdContext> MockOpenIdContext { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdContext { get; }
 
     public OpenIdMessageJsonConverterTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
+        MockOpenIdContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
@@ -169,7 +169,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         Assert.Equal(expectedValue, JsonSerializer.Serialize(typedParameter.ParsedValue));
     }
 
-    private static Parameter ReadJsonValid(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    private static Parameter ReadJsonValid(ref Utf8JsonReader reader, IOpenIdMessageContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         Assert.True(reader.Read());
         Assert.Equal(JsonTokenType.PropertyName, reader.TokenType);
@@ -241,7 +241,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         Assert.Empty(message.Parameters);
     }
 
-    private static Parameter ReadJsonThrows(ref Utf8JsonReader reader, IOpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
+    private static Parameter ReadJsonThrows(ref Utf8JsonReader reader, IOpenIdMessageContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
     {
         throw new InvalidOperationException();
     }
@@ -316,7 +316,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
         Assert.Empty(message);
     }
 
@@ -352,7 +352,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<StringValues>>(parameter);
@@ -396,7 +396,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<StringValues>>(parameter);
@@ -440,7 +440,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<StringValues>>(parameter);
@@ -485,7 +485,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<StringValues>>(parameter);
@@ -530,7 +530,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<StringValues>>(parameter);
@@ -575,7 +575,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<StringValues>>(parameter);
@@ -620,7 +620,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<StringValues>>(parameter);
@@ -667,7 +667,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<JsonElement>>(parameter);
@@ -715,7 +715,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<JsonElement>>(parameter);
@@ -764,7 +764,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<ITestNestedObject>>(parameter);
@@ -811,7 +811,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
         Assert.IsType<TestOpenIdMessage>(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<StringValues>>(parameter);
@@ -863,7 +863,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var message = converter.Read(ref reader, typeToConvert, jsonSerializerOptions);
         Assert.NotNull(message);
         var typedMessage = Assert.IsType<TestOpenIdMessageWithKnownParameter>(message);
-        Assert.Same(MockOpenIdContext.Object, message!.OpenIdContext);
+        Assert.Same(MockOpenIdContext.Object, message!.OpenIdMessageContext);
 
         var (key, parameter) = Assert.Single(message.Parameters);
         var typedParameter = Assert.IsType<Parameter<ITestNestedObject>>(parameter);

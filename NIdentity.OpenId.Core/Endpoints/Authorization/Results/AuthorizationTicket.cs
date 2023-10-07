@@ -22,7 +22,7 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
 internal class AuthorizationTicket : OpenIdMessage, IAuthorizationTicket
 {
-    public AuthorizationTicket(IOpenIdContext context)
+    public AuthorizationTicket(IOpenIdMessageContext context)
         : base(context)
     {
         // nothing

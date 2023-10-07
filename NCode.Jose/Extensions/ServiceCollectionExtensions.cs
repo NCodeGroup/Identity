@@ -20,12 +20,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Jose.Algorithms;
-using NCode.Jose.Algorithms.AuthenticatedEncryption.DataSources;
-using NCode.Jose.Algorithms.Compression.DataSources;
-using NCode.Jose.Algorithms.DataSources;
 using NCode.Jose.Algorithms.KeyManagement;
-using NCode.Jose.Algorithms.KeyManagement.DataSources;
-using NCode.Jose.Algorithms.Signature.DataSources;
 using NCode.Jose.Credentials;
 using NCode.Jose.SecretKeys;
 
@@ -57,35 +52,11 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IAesKeyWrap, AesKeyWrap>();
         services.TryAddSingleton<IAlgorithmProvider, AlgorithmProvider>();
         services.TryAddSingleton<ISecretKeyProvider, SecretKeyProvider>();
-        services.TryAddSingleton<ICredentialProvider, CredentialProvider>();
-
-        // TODO: combine these into a single data source
-        services
-            // digital signature
-            .AddAlgorithmDataSource<NoneSignatureAlgorithmDataSource>()
-            .AddAlgorithmDataSource<HmacSignatureAlgorithmDataSource>()
-            .AddAlgorithmDataSource<RsaSignatureAlgorithmDataSource>()
-            .AddAlgorithmDataSource<EccSignatureAlgorithmDataSource>()
-            // key management
-            .AddAlgorithmDataSource<DirectKeyManagementAlgorithmDataSource>()
-            .AddAlgorithmDataSource<RsaKeyManagementAlgorithmDataSource>()
-            .AddAlgorithmDataSource<AesKeyManagementAlgorithmDataSource>()
-            .AddAlgorithmDataSource<EccKeyManagementAlgorithmDataSource>()
-            .AddAlgorithmDataSource<Pbes2KeyManagementAlgorithmDataSource>()
-            // authenticated encryption
-            .AddAlgorithmDataSource<AesAuthenticatedEncryptionAlgorithmDataSource>()
-            // compression
-            .AddAlgorithmDataSource<CompressionAlgorithmDataSource>();
-
+        services.TryAddSingleton<ISecretKeyFactory, SecretKeyFactory>();
+        services.TryAddSingleton<ICredentialSelector, CredentialSelector>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAlgorithmDataSource, DefaultAlgorithmDataSource>());
         services.TryAddSingleton<IJoseSerializer, JoseSerializer>();
 
-        return services;
-    }
-
-    private static IServiceCollection AddAlgorithmDataSource<T>(
-        this IServiceCollection services) where T : class, IAlgorithmDataSource
-    {
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAlgorithmDataSource, T>());
         return services;
     }
 }

@@ -100,7 +100,7 @@ public class EccSignatureAlgorithmTests
         const string keyId = nameof(keyId);
         const string code = nameof(code);
 
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         using var key = ECDsa.Create(curve);
         using var secretKey = EccSecretKey.Create(metadata, key);
 

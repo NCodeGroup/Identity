@@ -26,7 +26,7 @@ using Microsoft.Extensions.Options;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Credentials;
 using NCode.Jose.Extensions;
-using NCode.Jose.Internal;
+using NCode.Jose.Infrastructure;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests;
@@ -63,7 +63,7 @@ public class JoseSerializerTests : BaseTests
 
     private static (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
     {
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         var nativeKey = RSA.Create();
         var secretKey = RsaSecretKey.Create(metadata, nativeKey);
         return (nativeKey, secretKey);
@@ -71,7 +71,7 @@ public class JoseSerializerTests : BaseTests
 
     private static (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, ECCurve curve)
     {
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         using var eccKey = ECDiffieHellman.Create(curve);
         var secretKey = EccSecretKey.Create(metadata, eccKey);
         var parameters = eccKey.ExportParameters(true);
@@ -99,14 +99,14 @@ public class JoseSerializerTests : BaseTests
         var byteCount = bitCount >> 3;
         var bytes = new byte[byteCount];
         RandomNumberGenerator.Fill(bytes);
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         var secretKey = new SymmetricSecretKey(metadata, bytes);
         return (bytes, secretKey);
     }
 
     private static (object controlKey, SecretKey secretKey) CreateRandomPassword(string keyId)
     {
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         var password = Guid.NewGuid().ToString("N");
         var secretKey = new SymmetricSecretKey(metadata, password);
         return (password, secretKey);

@@ -33,8 +33,13 @@ namespace NCode.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>ECDH-ES</c> cryptographic algorithm for key management.
 /// </summary>
-public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
+public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
+    /// <summary>
+    /// Gets a singleton instance of <see cref="EcdhKeyManagementAlgorithm"/>.
+    /// </summary>
+    public static KeyManagementAlgorithm Singleton { get; } = new EcdhKeyManagementAlgorithm();
+
     private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new KeySizes[]
     {
         new(minSize: 256, maxSize: 384, skipSize: 128),
@@ -61,7 +66,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
     /// Initializes a new instance of the <see cref="EcdhKeyManagementAlgorithm"/> class
     /// for usage in key agreement with key wrapping mode.
     /// </summary>
-    public EcdhKeyManagementAlgorithm()
+    private EcdhKeyManagementAlgorithm()
         : this(AlgorithmCodes.KeyManagement.EcdhEs, isDirectAgreement: true)
     {
         // nothing
@@ -80,7 +85,10 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         AlgorithmField = isDirectAgreement ? JoseClaimNames.Header.Enc : JoseClaimNames.Header.Alg;
     }
 
-    internal static unsafe void ExportKey(int curveSizeBits, ECDiffieHellman key, IDictionary<string, object> header)
+    internal static unsafe void ExportKey(
+        int curveSizeBits,
+        ECDiffieHellman key,
+        IDictionary<string, object> header)
     {
         var parameters = key.ExportParameters(includePrivateParameters: true);
 
@@ -185,7 +193,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         IDictionary<string, object> header,
         Span<byte> contentKey)
     {
-        var validatedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 
         var curve = validatedSecretKey.GetECCurve();
         var curveSizeBits = validatedSecretKey.KeySizeBits;
@@ -203,7 +211,15 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         header.TryGetValue<string>(JoseClaimNames.Header.Apv, out var apv);
 
         using var senderKey = ephemeralKey.PublicKey;
-        DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
+
+        DeriveKey(
+            algorithm,
+            apu,
+            apv,
+            curveSizeBits,
+            recipientKey,
+            senderKey,
+            contentKey);
     }
 
     /// <inheritdoc />
@@ -245,7 +261,7 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
                 nameof(encryptedContentKey));
         }
 
-        var validatedSecretKey = ValidateSecretKey<EccSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 
         var curve = validatedSecretKey.GetECCurve();
         var curveSizeBits = validatedSecretKey.KeySizeBits;
@@ -254,13 +270,21 @@ public class EcdhKeyManagementAlgorithm : KeyManagementAlgorithm
         using var ephemeralKey = ValidateHeaderForUnwrap(curve, curveSizeBits, header, out var algorithm, out var apu, out var apv);
         using var senderKey = ephemeralKey.PublicKey;
 
-        DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
+        DeriveKey(
+            algorithm,
+            apu,
+            apv,
+            curveSizeBits,
+            recipientKey,
+            senderKey,
+            contentKey);
 
         bytesWritten = contentKey.Length;
         return true;
     }
 
-    private static void DeriveKey(string algorithm,
+    private static void DeriveKey(
+        string algorithm,
         string? apu,
         string? apv,
         int curveSizeBits,

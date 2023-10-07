@@ -21,7 +21,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using NCode.CryptoMemory;
-using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.Algorithms;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
 using NCode.Jose.SecretKeys;
@@ -29,170 +29,6 @@ using NCode.Jose.SecretKeys;
 namespace NCode.Jose;
 
 // TODO: breakout the verify overloads into extension methods
-
-partial interface IJoseSerializer
-{
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload,
-        out JsonElement header);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        CompactJwt compactJwt,
-        SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        string detachedPayload);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        string detachedPayload,
-        out JsonElement header);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        CompactJwt compactJwt,
-        SecretKey secretKey,
-        string detachedPayload);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload,
-        out JsonElement header);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        CompactJwt compactJwt,
-        SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
-    /// <typeparam name="T">The type of the payload to validate.</typeparam>
-    void VerifyJws<T>(
-        string token,
-        SecretKey secretKey,
-        T detachedPayload,
-        JsonSerializerOptions? jsonOptions);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
-    /// <param name="header">A <see cref="JsonElement"/> that is to receive the decoded JOSE header if validation was successful.</param>
-    /// <typeparam name="T">The type of the payload to validate.</typeparam>
-    void VerifyJws<T>(
-        string token,
-        SecretKey secretKey,
-        T detachedPayload,
-        JsonSerializerOptions? jsonOptions,
-        out JsonElement header);
-
-    /// <summary>
-    /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
-    /// This method does not support JWE (i.e. encrypted) tokens.
-    /// </summary>
-    /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
-    /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
-    /// <param name="detachedPayload">The detached payload to validate.</param>
-    /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
-    /// <typeparam name="T">The type of the payload to validate.</typeparam>
-    void VerifyJws<T>(
-        CompactJwt compactJwt,
-        SecretKey secretKey,
-        T detachedPayload,
-        JsonSerializerOptions? jsonOptions);
-}
 
 partial class JoseSerializer
 {
@@ -202,7 +38,7 @@ partial class JoseSerializer
             throw new InvalidOperationException("Only JWS tokens can be validated with a detached payload.");
     }
 
-    private ISignatureAlgorithm GetSignatureAlgorithm(string code) =>
+    private SignatureAlgorithm GetSignatureAlgorithm(string code) =>
         !AlgorithmCollection.TryGetSignatureAlgorithm(code, out var algorithm) ?
             throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for digital signatures.") :
             algorithm;
@@ -398,7 +234,6 @@ partial class JoseSerializer
         var signatureAlgorithm = GetSignatureAlgorithm(signatureAlgorithmCode);
 
         using var signatureLease = DecodeBase64Url(
-            "JWS Signature",
             encodedSignature,
             isSensitive: false,
             out var signature);

@@ -44,7 +44,7 @@ internal class AuthorizationRequest : IAuthorizationRequest
 
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 
-    public IOpenIdContext OpenIdContext => OriginalRequestMessage.OpenIdContext;
+    public IOpenIdMessageContext OpenIdMessageContext => OriginalRequestMessage.OpenIdMessageContext;
 
     public IAuthorizationRequestMessage OriginalRequestMessage { get; }
 
@@ -75,7 +75,7 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public string ClientId =>
         OriginalRequestObject?.ClientId ??
         OriginalRequestMessage.ClientId ??
-        throw OpenIdContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ClientId).AsException();
+        throw OpenIdMessageContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ClientId).AsException();
 
     public string? CodeChallenge =>
         OriginalRequestObject?.CodeChallenge ??
@@ -122,7 +122,7 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public Uri RedirectUri =>
         OriginalRequestObject?.RedirectUri ??
         OriginalRequestMessage.RedirectUri ??
-        throw OpenIdContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri).AsException();
+        throw OpenIdMessageContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri).AsException();
 
     public ResponseMode ResponseMode =>
         OriginalRequestObject?.ResponseMode ??
@@ -132,12 +132,12 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public ResponseTypes ResponseType =>
         OriginalRequestObject?.ResponseType ??
         OriginalRequestMessage.ResponseType ??
-        throw OpenIdContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
+        throw OpenIdMessageContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
 
     public IReadOnlyCollection<string> Scopes =>
         OriginalRequestObject?.Scopes ??
         OriginalRequestMessage.Scopes ??
-        throw OpenIdContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
+        throw OpenIdMessageContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
 
     public string? State =>
         OriginalRequestObject?.State ??

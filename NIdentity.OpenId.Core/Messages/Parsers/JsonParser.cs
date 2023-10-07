@@ -1,13 +1,13 @@
 #region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,12 +34,12 @@ public class JsonParser<T> : ParameterParser<T?>
     /// Gets the <see cref="JsonConverter{T}"/> that is used to (de)serialize the JSON payload.
     /// The default implementation retrieves the <see cref="JsonConverter{T}"/> from the <see cref="JsonSerializerOptions"/>.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to be parsed.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     /// <returns>The <see cref="JsonConverter{T}"/> to (de)serialize the JSON payload.</returns>
     protected virtual JsonConverter<T?> GetJsonConverter(
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options
     ) => (JsonConverter<T?>)options.GetConverter(typeof(T));
@@ -47,7 +47,7 @@ public class JsonParser<T> : ParameterParser<T?>
     /// <inheritdoc/>
     public override Parameter Read(
         ref Utf8JsonReader reader,
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
@@ -62,7 +62,7 @@ public class JsonParser<T> : ParameterParser<T?>
     /// <inheritdoc/>
     public override void Write(
         Utf8JsonWriter writer,
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         Parameter parameter,
         JsonSerializerOptions options)
     {
@@ -76,14 +76,14 @@ public class JsonParser<T> : ParameterParser<T?>
     }
 
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdContext context, T? value)
+    public override StringValues Serialize(IOpenIdMessageContext context, T? value)
     {
         return JsonSerializer.Serialize(value, context.JsonSerializerOptions);
     }
 
     /// <inheritdoc/>
     public override T? Parse(
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         ParameterDescriptor descriptor,
         StringValues stringValues,
         bool ignoreErrors = false)
@@ -103,6 +103,7 @@ public class JsonParser<T> : ParameterParser<T?>
         }
 
         var json = stringValues[0];
+        Debug.Assert(json is not null);
 
         try
         {
@@ -127,7 +128,7 @@ public class JsonParser<T, TConverter> : JsonParser<T>
 {
     /// <inheritdoc />
     protected override JsonConverter<T?> GetJsonConverter(
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options
     ) => new TConverter();

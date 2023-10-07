@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.SecretKeys;
 
@@ -111,7 +112,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         var kekSizeBytes = kekSizeBits >> 3;
         Span<byte> kek = new byte[kekSizeBytes];
 
-        var metadata = new KeyMetadata(keyId);
+        var metadata = new KeyMetadata { KeyId = keyId };
         using var secretKey = new SymmetricSecretKey(metadata, kek);
 
         var cekSizeBytes = cekSizeBits >> 3;
@@ -120,7 +121,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         Span<byte> encryptedCek = new byte[encryptedCekSizeBytes];
 
         var headerForWrap = new Dictionary<string, object>();
-        var algorithm = CreateAlgorithm(kekSizeBits, AesKeyWrap.Default);
+        var algorithm = CreateAlgorithm(kekSizeBits, AesKeyWrap.Singleton);
 
         var wrapResult = algorithm.TryWrapKey(secretKey, headerForWrap, cek, encryptedCek, out var wrapBytesWritten);
         Assert.True(wrapResult);

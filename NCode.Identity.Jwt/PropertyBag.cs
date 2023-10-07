@@ -22,10 +22,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace NCode.Identity.Jwt;
 
+// TODO: Can we add the following base interface?
+// IDictionary<IPropertyBagKey, object?>
+
 /// <summary>
 /// Provides a strongly typed collection of properties that can be accessed by key.
 /// </summary>
-public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDictionary<IPropertyBagKey, object?>
+public class PropertyBag : IReadOnlyDictionary<IPropertyBagKey, object?>
 {
     private IDictionary<IPropertyBagKey, object?>? ItemsOrNull { get; set; }
 
@@ -120,52 +123,52 @@ public class PropertyBag : IDictionary<IPropertyBagKey, object?>, IReadOnlyDicti
 
     //
 
-    bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.IsReadOnly =>
-        ItemsOrNull?.IsReadOnly ?? false;
-
-    int ICollection<KeyValuePair<IPropertyBagKey, object?>>.Count =>
-        ItemsOrNull?.Count ?? 0;
-
-    bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.Contains(KeyValuePair<IPropertyBagKey, object?> item) =>
-        ItemsOrNull?.Contains(item) ?? false;
-
-    void ICollection<KeyValuePair<IPropertyBagKey, object?>>.CopyTo(KeyValuePair<IPropertyBagKey, object?>[] array, int arrayIndex) =>
-        ItemsOrNull?.CopyTo(array, arrayIndex);
-
-    void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Clear() =>
-        ItemsOrNull = null;
-
-    void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Add(KeyValuePair<IPropertyBagKey, object?> item) =>
-        Items.Add(item);
-
-    bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.Remove(KeyValuePair<IPropertyBagKey, object?> item) =>
-        ItemsOrNull?.Remove(item) ?? false;
+    // bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.IsReadOnly =>
+    //     ItemsOrNull?.IsReadOnly ?? false;
+    //
+    // int ICollection<KeyValuePair<IPropertyBagKey, object?>>.Count =>
+    //     ItemsOrNull?.Count ?? 0;
+    //
+    // bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.Contains(KeyValuePair<IPropertyBagKey, object?> item) =>
+    //     ItemsOrNull?.Contains(item) ?? false;
+    //
+    // void ICollection<KeyValuePair<IPropertyBagKey, object?>>.CopyTo(KeyValuePair<IPropertyBagKey, object?>[] array, int arrayIndex) =>
+    //     ItemsOrNull?.CopyTo(array, arrayIndex);
+    //
+    // void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Clear() =>
+    //     ItemsOrNull = null;
+    //
+    // void ICollection<KeyValuePair<IPropertyBagKey, object?>>.Add(KeyValuePair<IPropertyBagKey, object?> item) =>
+    //     Items.Add(item);
+    //
+    // bool ICollection<KeyValuePair<IPropertyBagKey, object?>>.Remove(KeyValuePair<IPropertyBagKey, object?> item) =>
+    //     ItemsOrNull?.Remove(item) ?? false;
 
     //
 
-    ICollection<IPropertyBagKey> IDictionary<IPropertyBagKey, object?>.Keys =>
-        ItemsOrNull?.Keys ?? Array.Empty<IPropertyBagKey>();
-
-    ICollection<object?> IDictionary<IPropertyBagKey, object?>.Values =>
-        ItemsOrNull?.Values ?? Array.Empty<object?>();
-
-    object? IDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key]
-    {
-        get => GetValue(key);
-        set => Items[key] = value;
-    }
-
-    bool IDictionary<IPropertyBagKey, object?>.ContainsKey(IPropertyBagKey key) =>
-        ItemsOrNull?.ContainsKey(key) ?? false;
-
-    bool IDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value) =>
-        TryGetValue(key, out value);
-
-    void IDictionary<IPropertyBagKey, object?>.Add(IPropertyBagKey key, object? value) =>
-        Items.Add(key, value);
-
-    bool IDictionary<IPropertyBagKey, object?>.Remove(IPropertyBagKey key) =>
-        ItemsOrNull?.Remove(key) ?? false;
+    // ICollection<IPropertyBagKey> IDictionary<IPropertyBagKey, object?>.Keys =>
+    //     ItemsOrNull?.Keys ?? Array.Empty<IPropertyBagKey>();
+    //
+    // ICollection<object?> IDictionary<IPropertyBagKey, object?>.Values =>
+    //     ItemsOrNull?.Values ?? Array.Empty<object?>();
+    //
+    // object? IDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key]
+    // {
+    //     get => GetValue(key);
+    //     set => Items[key] = value;
+    // }
+    //
+    // bool IDictionary<IPropertyBagKey, object?>.ContainsKey(IPropertyBagKey key) =>
+    //     ItemsOrNull?.ContainsKey(key) ?? false;
+    //
+    // bool IDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value) =>
+    //     TryGetValue(key, out value);
+    //
+    // void IDictionary<IPropertyBagKey, object?>.Add(IPropertyBagKey key, object? value) =>
+    //     Items.Add(key, value);
+    //
+    // bool IDictionary<IPropertyBagKey, object?>.Remove(IPropertyBagKey key) =>
+    //     ItemsOrNull?.Remove(key) ?? false;
 
     //
 

@@ -19,8 +19,8 @@
 
 using Microsoft.Extensions.Primitives;
 using NCode.Jose.Algorithms;
-using NCode.Jose.Algorithms.DataSources;
-using NCode.Jose.Internal;
+using NCode.Jose.DataSources;
+using NCode.Jose.Infrastructure;
 
 namespace NCode.Jose.Tests.Algorithms.DataSources;
 

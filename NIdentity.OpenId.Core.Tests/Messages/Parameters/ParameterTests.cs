@@ -63,7 +63,7 @@ public class ParameterTests : IDisposable
     public void Load_GivenEnumerable_ThenValid()
     {
         var mockParser = MockRepository.Create<ParameterParser<string>>();
-        var mockOpenIdContext = MockRepository.Create<IOpenIdContext>();
+        var mockOpenIdContext = MockRepository.Create<IOpenIdMessageContext>();
 
         const bool ignoreErrors = false;
         const string parameterName = "parameterName";

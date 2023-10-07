@@ -30,13 +30,12 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
     /// <summary>
     /// Gets a singleton instance of <see cref="NoneSignatureAlgorithm"/>.
     /// </summary>
-    public static ISignatureAlgorithm Singleton { get; } = new NoneSignatureAlgorithm();
+    public static SignatureAlgorithm Singleton { get; } = new NoneSignatureAlgorithm();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NoneSignatureAlgorithm"/> class.
     /// </summary>
-    public NoneSignatureAlgorithm()
-        : base(hashAlgorithmName: default)
+    private NoneSignatureAlgorithm()
     {
         // nothing
     }
@@ -51,6 +50,9 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
     public override IEnumerable<KeySizes> KeyBitSizes => Array.Empty<KeySizes>();
 
     /// <inheritdoc />
+    public override HashAlgorithmName HashAlgorithmName => default;
+
+    /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => 0;
 
     /// <inheritdoc />
@@ -58,5 +60,11 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
     {
         bytesWritten = 0;
         return true;
+    }
+
+    /// <inheritdoc />
+    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
+    {
+        return signature.Length == 0;
     }
 }

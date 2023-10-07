@@ -21,7 +21,6 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using IdGen;
-using Microsoft.Extensions.Primitives;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Identity.Jwt;
@@ -40,34 +39,41 @@ using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Handlers;
 
+public interface IUrlHelper
+{
+    string EncodeCanonicalUrl(UriDescriptor uriDescriptor);
+
+    string EncodeAbsoluteUri(UriDescriptor uriDescriptor);
+}
+
 internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>
 {
     private ISystemClock SystemClock { get; }
     private IIdGenerator<long> IdGenerator { get; }
-    private IOpenIdContext OpenIdContext { get; }
+    private IOpenIdMessageContext OpenIdMessageContext { get; }
     private ICryptoService CryptoService { get; }
     private IAuthorizationCodeStore AuthorizationCodeStore { get; }
     private IJoseSerializer JoseSerializer { get; }
-    private ICredentialProvider CredentialProvider { get; }
+    private ICredentialSelector CredentialSelector { get; }
     private IJsonWebTokenService JsonWebTokenService { get; }
 
     public CreateAuthorizationTicketHandler(
         ISystemClock systemClock,
         IIdGenerator<long> idGenerator,
-        IOpenIdContext openIdContext,
+        IOpenIdMessageContext openIdMessageContext,
         ICryptoService cryptoService,
         IAuthorizationCodeStore authorizationCodeStore,
         IJoseSerializer joseSerializer,
-        ICredentialProvider credentialProvider,
+        ICredentialSelector credentialSelector,
         IJsonWebTokenService jsonWebTokenService)
     {
         SystemClock = systemClock;
         IdGenerator = idGenerator;
-        OpenIdContext = openIdContext;
+        OpenIdMessageContext = openIdMessageContext;
         CryptoService = cryptoService;
         AuthorizationCodeStore = authorizationCodeStore;
         JoseSerializer = joseSerializer;
-        CredentialProvider = credentialProvider;
+        CredentialSelector = credentialSelector;
         JsonWebTokenService = jsonWebTokenService;
     }
 
@@ -83,7 +89,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         var authorizationRequest = authorizationContext.AuthorizationRequest;
         var responseType = authorizationRequest.ResponseType;
 
-        var ticket = new AuthorizationTicket(OpenIdContext)
+        var ticket = new AuthorizationTicket(OpenIdMessageContext)
         {
             State = authorizationRequest.State
         };
@@ -110,8 +116,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
                 cancellationToken);
         }
 
-        ticket.Issuer = "TODO";
-        ticket.Issuer = endpointContext.HttpContext.Request.Host.Value;
+        ticket.Issuer = endpointContext.Tenant.Issuer;
 
         return ticket;
     }
@@ -126,7 +131,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         Debug.Assert(hashedCode.Length <= DataConstants.MaxIndexLength);
 
         var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var authorizationRequestJson = JsonSerializer.Serialize(authorizationRequest, OpenIdContext.JsonSerializerOptions);
+        var authorizationRequestJson = JsonSerializer.Serialize(authorizationRequest, OpenIdMessageContext.JsonSerializerOptions);
 
         var client = authorizationContext.Client;
         var lifetime = client.AuthorizationCodeLifetime;
@@ -155,6 +160,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
     {
         var utcNow = SystemClock.UtcNow;
 
+        var endpointContext = command.EndpointContext;
         var authorizationContext = command.AuthorizationContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
 
@@ -168,7 +174,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
 
         var tokenConfiguration = authorizationContext.Client.IdTokenConfiguration;
 
-        if (!CredentialProvider.TryGetSigningCredentials(
+        if (!CredentialSelector.TryGetSigningCredentials(
                 tokenConfiguration.SignatureAlgorithms,
                 out var signingCredentials))
             throw new InvalidOperationException("TODO: no signing credentials found.");
@@ -176,7 +182,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
         JoseEncryptingCredentials? encryptingCredentials = null;
         var requireEncryption = tokenConfiguration.RequireEncryption;
         if (requireEncryption &&
-            !CredentialProvider.TryGetEncryptingCredentials(
+            !CredentialSelector.TryGetEncryptingCredentials(
                 tokenConfiguration.KeyManagementAlgorithms,
                 tokenConfiguration.EncryptionAlgorithms,
                 tokenConfiguration.CompressionAlgorithms,
@@ -310,7 +316,7 @@ internal class CreateAuthorizationTicketHandler : ICommandResponseHandler<Create
                 new JoseEncryptingOptions(encryptingCredentials) :
                 null,
 
-            Issuer = "TODO",
+            Issuer = endpointContext.Tenant.Issuer,
             Audience = authorizationRequest.ClientId,
 
             IssuedAt = utcNow,

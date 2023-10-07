@@ -20,6 +20,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Jose.Exceptions;
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Algorithms.KeyManagement;
@@ -27,8 +28,13 @@ namespace NCode.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>key encryption key (KEK)</c> directly for key agreement.
 /// </summary>
-public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
+public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
+    /// <summary>
+    /// Gets a singleton instance of <see cref="DirectKeyManagementAlgorithm"/>.
+    /// </summary>
+    public static KeyManagementAlgorithm Singleton { get; } = new DirectKeyManagementAlgorithm();
+
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
     {
         new KeySizes(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
@@ -48,6 +54,14 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DirectKeyManagementAlgorithm"/> class.
+    /// </summary>
+    private DirectKeyManagementAlgorithm()
+    {
+        // nothing
+    }
+
     /// <inheritdoc />
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
 
@@ -60,7 +74,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
         IDictionary<string, object> header,
         Span<byte> contentKey)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         if (contentKey.Length != secretKey.KeySizeBytes)
         {
@@ -102,7 +116,7 @@ public class DirectKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         if (encryptedContentKey.Length != 0)
         {

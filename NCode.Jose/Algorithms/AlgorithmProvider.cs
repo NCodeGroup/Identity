@@ -19,28 +19,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
-using NCode.Jose.Algorithms.DataSources;
 using NCode.Jose.Extensions;
-using NCode.Jose.Internal;
+using NCode.Jose.Infrastructure;
 
 namespace NCode.Jose.Algorithms;
-
-/// <summary>
-/// Provides the composition root (i.e. top-level collection) of <see cref="IAlgorithm"/> instances by aggregating multiple
-/// <see cref="IAlgorithmDataSource"/> instances and providing change notifications.
-/// </summary>
-public interface IAlgorithmProvider : IDisposable
-{
-    /// <summary>
-    /// Gets a read-only collection of <see cref="IAlgorithm"/> instances.
-    /// </summary>
-    IAlgorithmCollection Algorithms { get; }
-
-    /// <summary>
-    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
-    /// </summary>
-    IChangeToken GetChangeToken();
-}
 
 /// <summary>
 /// Provides a default implementation for the <see cref="IAlgorithmProvider"/> interface.

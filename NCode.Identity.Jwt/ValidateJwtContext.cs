@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Identity.JsonWebTokens;
 using NCode.Jose.SecretKeys;
 using NCode.SystemClock;
 

@@ -29,13 +29,13 @@ public interface IJsonParser
     /// Parses and loads JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
     /// </summary>
     /// <param name="reader">The <see cref="Utf8JsonReader"/> to read from.</param>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use when parsing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     Parameter Read(
         ref Utf8JsonReader reader,
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options);
 
@@ -43,12 +43,12 @@ public interface IJsonParser
     /// Serializes the JSON value from a <see cref="Parameter"/> into the given <see cref="Utf8JsonWriter"/>.
     /// </summary>
     /// <param name="writer">The <see cref="Utf8JsonWriter"/> to write to.</param>
-    /// <param name="context">The <see cref="IOpenIdContext"/> to use when serializing the value.</param>
+    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when serializing the value.</param>
     /// <param name="parameter">The <see cref="Parameter"/> to serialize as JSON.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     void Write(
         Utf8JsonWriter writer,
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         Parameter parameter,
         JsonSerializerOptions options);
 }

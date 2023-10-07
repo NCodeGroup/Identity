@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Algorithms.KeyManagement;
@@ -26,7 +27,7 @@ namespace NCode.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>AES</c> cryptographic algorithm for key management.
 /// </summary>
-public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
+public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     private IAesKeyWrap AesKeyWrap { get; }
 
@@ -69,7 +70,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> encryptedContentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         return AesKeyWrap.TryWrapKey(
             validatedSecretKey.KeyBytes,
@@ -86,7 +87,7 @@ public class AesKeyManagementAlgorithm : KeyManagementAlgorithm
         Span<byte> contentKey,
         out int bytesWritten)
     {
-        var validatedSecretKey = ValidateSecretKey<SymmetricSecretKey>(secretKey);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         return AesKeyWrap.TryUnwrapKey(
             validatedSecretKey.KeyBytes,

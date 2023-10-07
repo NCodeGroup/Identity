@@ -28,12 +28,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 public class OpenIdMessageTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdContext> MockOpenIdContext { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdContext { get; }
 
     public OpenIdMessageTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
+        MockOpenIdContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()
@@ -50,7 +50,7 @@ public class OpenIdMessageTests : IDisposable
         message.Initialize(context, Array.Empty<Parameter>());
 
         Assert.Empty(message.Parameters);
-        Assert.Same(context, message.OpenIdContext);
+        Assert.Same(context, message.OpenIdMessageContext);
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class OpenIdMessageTests : IDisposable
         var message = new OpenIdMessage();
 
         Assert.Throws<InvalidOperationException>(() =>
-            message.OpenIdContext);
+            message.OpenIdMessageContext);
     }
 
     [Fact]

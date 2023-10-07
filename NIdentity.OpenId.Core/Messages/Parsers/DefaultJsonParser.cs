@@ -35,7 +35,7 @@ public class DefaultJsonParser : IJsonParser
     /// <inheritdoc/>
     public Parameter Read(
         ref Utf8JsonReader reader,
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
@@ -71,7 +71,7 @@ public class DefaultJsonParser : IJsonParser
     /// <inheritdoc/>
     public void Write(
         Utf8JsonWriter writer,
-        IOpenIdContext context,
+        IOpenIdMessageContext context,
         Parameter parameter,
         JsonSerializerOptions options)
     {

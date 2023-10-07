@@ -1,13 +1,13 @@
 #region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,7 +34,7 @@ public class OpenIdMessage : IOpenIdMessage
     [MemberNotNullWhen(true, nameof(ContextOrNull))]
     private bool IsInitialized { get; set; }
 
-    private IOpenIdContext? ContextOrNull { get; set; }
+    private IOpenIdMessageContext? ContextOrNull { get; set; }
 
     private Dictionary<string, Parameter> ParameterStore { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -45,10 +45,10 @@ public class OpenIdMessage : IOpenIdMessage
     public IReadOnlyDictionary<string, Parameter> Parameters => ParameterStore;
 
     /// <summary>
-    /// Gets the <see cref="IOpenIdContext"/> for the current instance.
+    /// Gets the <see cref="IOpenIdMessageContext"/> for the current instance.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
-    public IOpenIdContext OpenIdContext => ContextOrNull ?? throw NotInitializedException;
+    public IOpenIdMessageContext OpenIdMessageContext => ContextOrNull ?? throw NotInitializedException;
 
     /// <summary>
     /// Creates an uninitialized new instance of the <see cref="OpenIdMessage"/> class.
@@ -61,9 +61,9 @@ public class OpenIdMessage : IOpenIdMessage
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdContext"/></param>
+    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
-    public OpenIdMessage(IOpenIdContext context, params Parameter[] parameters)
+    public OpenIdMessage(IOpenIdMessageContext context, params Parameter[] parameters)
     {
         Initialize(context, parameters);
     }
@@ -71,20 +71,20 @@ public class OpenIdMessage : IOpenIdMessage
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdContext"/></param>
+    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
-    public OpenIdMessage(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    public OpenIdMessage(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
     {
         Initialize(context, parameters);
     }
 
     /// <summary>
-    /// Initializes the current instance with an <see cref="IOpenIdContext"/> and collection of <see cref="Parameter"/> values.
+    /// Initializes the current instance with an <see cref="IOpenIdMessageContext"/> and collection of <see cref="Parameter"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdContext"/></param>
+    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
-    public void Initialize(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    public void Initialize(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
     {
         if (IsInitialized) throw new InvalidOperationException("Already initialized");
 
@@ -191,14 +191,14 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(IOpenIdContext context, params Parameter[] parameters)
+    protected OpenIdMessage(IOpenIdMessageContext context, params Parameter[] parameters)
         : base(context, parameters)
     {
         // nothing
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    protected OpenIdMessage(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
         : base(context, parameters)
     {
         // nothing
@@ -207,10 +207,10 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <summary>
     /// Create and loads an <c>OAuth</c> or <c>OpenId Connect</c> message by using a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdContext"/></param>
+    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(IOpenIdContext context, IEnumerable<Parameter> parameters)
+    public static T Load(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
     {
         var message = new T();
         message.Initialize(context, parameters);
@@ -220,10 +220,10 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <summary>
     /// Create and loads an <c>OAuth</c> or <c>OpenId Connect</c> message by parsing <see cref="StringValues"/> key-value pairs into a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdContext"/></param>
+    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
     /// <param name="properties">The collection of <see cref="StringValues"/> key-value pairs to be parsed into <see cref="Parameter{T}"/> values.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(IOpenIdContext context, IEnumerable<KeyValuePair<string, StringValues>> properties) =>
+    public static T Load(IOpenIdMessageContext context, IEnumerable<KeyValuePair<string, StringValues>> properties) =>
         Load(context, properties.Select(property => Parameter.Load(context, property.Key, property.Value)));
 
     /// <summary>
@@ -232,7 +232,7 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <param name="other">The <see cref="IOpenIdMessage"/> to clone.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
     public static T Load(IOpenIdMessage other) =>
-        Load(other.OpenIdContext, other);
+        Load(other.OpenIdMessageContext, other);
 }
 
 /// <summary>

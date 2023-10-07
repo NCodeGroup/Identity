@@ -18,7 +18,6 @@
 #endregion
 
 using NCode.Jose.Extensions;
-using NCode.Jose.Internal;
 
 namespace NCode.Jose.Tests.Internal;
 

@@ -31,13 +31,13 @@ public class DelegatingJsonConverterTests : IDisposable
 {
     private MockRepository MockRepository { get; }
     private Mock<IOpenIdErrorFactory> MockOpenIdErrorFactory { get; }
-    private OpenIdContext OpenIdContext { get; }
+    private OpenIdMessageContext OpenIdMessageContext { get; }
 
     public DelegatingJsonConverterTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        OpenIdContext = new OpenIdContext(MockOpenIdErrorFactory.Object);
+        OpenIdMessageContext = new OpenIdMessageContext(MockOpenIdErrorFactory.Object);
     }
 
     public void Dispose()
@@ -53,13 +53,13 @@ public class DelegatingJsonConverterTests : IDisposable
             Converters =
             {
                 new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(OpenIdContext),
+                new OpenIdMessageJsonConverterFactory(OpenIdMessageContext),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>()
             }
         };
 
         var inputMessage = new AuthorizationRequestMessage();
-        inputMessage.Initialize(OpenIdContext, Array.Empty<Parameter>());
+        inputMessage.Initialize(OpenIdMessageContext, Array.Empty<Parameter>());
 
         inputMessage.AuthorizationSourceType = AuthorizationSourceType.Union;
         inputMessage.Nonce = "nonce";
@@ -85,14 +85,14 @@ public class DelegatingJsonConverterTests : IDisposable
             Converters =
             {
                 new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(OpenIdContext),
+                new OpenIdMessageJsonConverterFactory(OpenIdMessageContext),
                 new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
             }
         };
 
-        var requestMessage = AuthorizationRequestMessage.Load(OpenIdContext, Array.Empty<Parameter>());
+        var requestMessage = AuthorizationRequestMessage.Load(OpenIdMessageContext, Array.Empty<Parameter>());
         requestMessage.AuthorizationSourceType = AuthorizationSourceType.Query;
         requestMessage.Nonce = "!nonce!";
         requestMessage.DisplayType = DisplayType.Touch;
@@ -100,7 +100,7 @@ public class DelegatingJsonConverterTests : IDisposable
         requestMessage.Scopes = new[] { "!scope1!", "!scope2!" };
         requestMessage.RedirectUri = new Uri("https://localhost/test");
 
-        var requestObject = AuthorizationRequestObject.Load(OpenIdContext, Array.Empty<Parameter>());
+        var requestObject = AuthorizationRequestObject.Load(OpenIdMessageContext, Array.Empty<Parameter>());
         requestObject.RequestObjectSource = RequestObjectSource.Remote;
         requestObject.Nonce = "nonce";
         requestObject.DisplayType = DisplayType.Popup;

@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class TimeSpanParser : ParameterParser<TimeSpan?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdContext context, TimeSpan? value)
+    public override StringValues Serialize(IOpenIdMessageContext context, TimeSpan? value)
     {
         if (value == null)
             return StringValues.Empty;
@@ -38,7 +38,7 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
     }
 
     /// <inheritdoc/>
-    public override TimeSpan? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override TimeSpan? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         switch (stringValues.Count)
         {

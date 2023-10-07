@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Algorithms.Signature;
@@ -46,6 +47,9 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
+    /// <inheritdoc />
+    public override HashAlgorithmName HashAlgorithmName { get; }
+
     private RSASignaturePadding Padding { get; }
 
     /// <summary>
@@ -54,13 +58,10 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
     /// <param name="padding">Contains a <see cref="RSASignaturePadding"/> value that specifies the type of <c>RSA</c> padding to use.</param>
-    public RsaSignatureAlgorithm(
-        string code,
-        HashAlgorithmName hashAlgorithmName,
-        RSASignaturePadding padding)
-        : base(hashAlgorithmName)
+    public RsaSignatureAlgorithm(string code, HashAlgorithmName hashAlgorithmName, RSASignaturePadding padding)
     {
         Code = code;
+        HashAlgorithmName = hashAlgorithmName;
         Padding = padding;
     }
 
@@ -70,7 +71,7 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
     {
-        var validatedSecurityKey = ValidateSecretKey<RsaSecretKey>(secretKey);
+        var validatedSecurityKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
 
         using var key = validatedSecurityKey.ExportRSA();
 
@@ -85,7 +86,7 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
     {
-        var validatedSecurityKey = ValidateSecretKey<RsaSecretKey>(secretKey);
+        var validatedSecurityKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
 
         using var key = validatedSecurityKey.ExportRSA();
 

@@ -29,20 +29,20 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
     private const string TypeKey = "$type";
     private const string PropertiesKey = "$properties";
 
-    private IOpenIdContext OpenIdContext { get; }
+    private IOpenIdMessageContext OpenIdMessageContext { get; }
 
-    public OpenIdMessageJsonConverter(IOpenIdContext context)
+    public OpenIdMessageJsonConverter(IOpenIdMessageContext context)
     {
-        OpenIdContext = context;
+        OpenIdMessageContext = context;
     }
 
     internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
-        var descriptor = OpenIdContext.TryGetKnownParameter(parameterName, out var knownParameter) ?
+        var descriptor = OpenIdMessageContext.TryGetKnownParameter(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
         var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
-        return jsonParser.Read(ref reader, OpenIdContext, descriptor, options);
+        return jsonParser.Read(ref reader, OpenIdMessageContext, descriptor, options);
     }
 
     private static T CreateMessage(Type messageType)
@@ -87,7 +87,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             {
                 case JsonTokenType.EndObject:
                     messageOrNull ??= CreateMessage(messageType);
-                    messageOrNull.Initialize(OpenIdContext, parameters);
+                    messageOrNull.Initialize(OpenIdMessageContext, parameters);
                     return messageOrNull;
 
                 case JsonTokenType.PropertyName:
@@ -162,7 +162,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         foreach (var parameter in message.Parameters.Values)
         {
             var jsonParser = parameter.Descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
-            jsonParser.Write(writer, OpenIdContext, parameter, options);
+            jsonParser.Write(writer, OpenIdMessageContext, parameter, options);
         }
 
         writer.WriteEndObject();

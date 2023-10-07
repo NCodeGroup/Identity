@@ -181,7 +181,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
         try
         {
             // this will deserialize the object using: OpenIdMessageJsonConverterFactory => OpenIdMessageJsonConverter => OpenIdMessage.Load
-            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(requestMessage.OpenIdContext.JsonSerializerOptions);
+            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(requestMessage.OpenIdMessageContext.JsonSerializerOptions);
             if (requestObject == null)
                 throw new JsonException("TODO");
 

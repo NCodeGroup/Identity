@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class PromptTypeParser : ParameterParser<PromptTypes?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdContext context, PromptTypes? value)
+    public override StringValues Serialize(IOpenIdMessageContext context, PromptTypes? value)
     {
         if (value is null or PromptTypes.Unspecified)
             return StringValues.Empty;
@@ -56,7 +56,7 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
     }
 
     /// <inheritdoc/>
-    public override PromptTypes? Parse(IOpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override PromptTypes? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 

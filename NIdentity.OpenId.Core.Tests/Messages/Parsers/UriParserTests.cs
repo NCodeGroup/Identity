@@ -30,12 +30,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class UriParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdContext> MockOpenIdContext { get; }
+    private Mock<IOpenIdMessageContext> MockOpenIdContext { get; }
 
     public UriParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<IOpenIdContext>();
+        MockOpenIdContext = MockRepository.Create<IOpenIdMessageContext>();
     }
 
     public void Dispose()

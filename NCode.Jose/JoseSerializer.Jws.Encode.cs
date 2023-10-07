@@ -20,44 +20,139 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using NCode.CryptoMemory;
 using NCode.Encoders;
-using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.Algorithms;
+using NCode.Jose.Encoders;
 using NCode.Jose.Extensions;
-using NCode.Jose.Internal;
+using NCode.Jose.Infrastructure;
 using NCode.Jose.SecretKeys;
+using Nerdbank.Streams;
 
 namespace NCode.Jose;
-
-partial interface IJoseSerializer
-{
-    /// <summary>
-    /// Creates a new <see cref="JoseEncoder"/> with the specified signing credentials and options.
-    /// </summary>
-    /// <param name="signingOptions">The JOSE signing credentials and options.</param>
-    /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
-    JoseEncoder CreateEncoder(
-        JoseSigningOptions signingOptions);
-
-    /// <summary>
-    /// Encodes a JWS token given the specified payload.
-    /// </summary>
-    /// <param name="tokenWriter">The destination for the encoded JWS token.</param>
-    /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingOptions">The JOSE signing credentials and options.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<byte> payload,
-        JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
-}
 
 partial class JoseSerializer
 {
     /// <inheritdoc />
     public JoseEncoder CreateEncoder(JoseSigningOptions signingOptions) =>
         new JoseSigningEncoder(this, signingOptions);
+
+    /// <inheritdoc />
+    public string Encode<T>(
+        T payload,
+        JoseSigningOptions signingOptions,
+        JsonSerializerOptions? jsonOptions = null,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var tokenBuffer = new Sequence<char>();
+        using var _ = SerializeToUtf8(
+            payload,
+            jsonOptions,
+            out var payloadBytes);
+        Encode(
+            tokenBuffer,
+            payloadBytes,
+            signingOptions,
+            extraHeaders);
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public void Encode<T>(
+        IBufferWriter<char> tokenWriter,
+        T payload,
+        JoseSigningOptions signingOptions,
+        JsonSerializerOptions? jsonOptions = null,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var _ = SerializeToUtf8(
+            payload,
+            jsonOptions,
+            out var bytes);
+        Encode(
+            tokenWriter,
+            bytes,
+            signingOptions,
+            extraHeaders);
+    }
+
+    /// <inheritdoc />
+    public string Encode(
+        string payload,
+        JoseSigningOptions signingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+        Encode(
+            tokenBuffer,
+            payload.AsSpan(),
+            signingOptions,
+            extraHeaders);
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public void Encode(
+        IBufferWriter<char> tokenWriter,
+        string payload,
+        JoseSigningOptions signingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        Encode(
+            tokenWriter,
+            payload.AsSpan(),
+            signingOptions,
+            extraHeaders);
+    }
+
+    /// <inheritdoc />
+    public string Encode(
+        ReadOnlySpan<char> payload,
+        JoseSigningOptions signingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+        Encode(
+            tokenBuffer,
+            payload,
+            signingOptions,
+            extraHeaders);
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
+
+    /// <inheritdoc />
+    public void Encode(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlySpan<char> payload,
+        JoseSigningOptions signingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(payload);
+        using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
+        Debug.Assert(bytesWritten == byteCount);
+        Encode(
+            tokenWriter,
+            payloadBytes,
+            signingOptions,
+            extraHeaders);
+    }
+
+    /// <inheritdoc />
+    public string Encode(
+        ReadOnlySpan<byte> payload,
+        JoseSigningOptions signingOptions,
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+    {
+        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+        Encode(
+            tokenBuffer,
+            payload,
+            signingOptions,
+            extraHeaders);
+        return tokenBuffer.AsReadOnlySequence.ToString();
+    }
 
     /// <inheritdoc />
     public void Encode(
@@ -193,7 +288,7 @@ partial class JoseSerializer
 
     private static void EncodeJwsSignature(
         SecretKey secretKey,
-        ISignatureAlgorithm signatureAlgorithm,
+        SignatureAlgorithm signatureAlgorithm,
         ReadOnlySpan<char> encodedHeaderPart,
         ReadOnlySpan<char> encodedPayloadPart,
         IBufferWriter<char> tokenWriter)

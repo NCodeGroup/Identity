@@ -45,7 +45,7 @@ public class ParameterLoaderTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var descriptor = new ParameterDescriptor(parameterName);
-        var mockOpenIdContext = MockRepository.Create<IOpenIdContext>();
+        var mockOpenIdContext = MockRepository.Create<IOpenIdMessageContext>();
         var context = mockOpenIdContext.Object;
 
         var parameter = loader.Load(context, descriptor, stringValues);
@@ -63,7 +63,7 @@ public class ParameterLoaderTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var descriptor = new ParameterDescriptor(parameterName);
-        var mockOpenIdContext = MockRepository.Create<IOpenIdContext>();
+        var mockOpenIdContext = MockRepository.Create<IOpenIdMessageContext>();
         var context = mockOpenIdContext.Object;
 
         var parameter = loader.Load(context, descriptor, stringValues, stringValues);

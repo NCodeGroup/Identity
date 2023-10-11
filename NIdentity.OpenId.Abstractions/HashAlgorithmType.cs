@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 namespace NIdentity.OpenId;
@@ -30,10 +32,15 @@ public enum HashAlgorithmType
     /// <summary>
     /// Specifies to use the <c>SHA-1</c> cryptographic hash algorithm.
     /// </summary>
-    Sha1,
+    Sha1 = 20,
 
     /// <summary>
     /// Specifies to use the <c>SHA-256</c> cryptographic hash algorithm.
     /// </summary>
-    Sha256
+    Sha256 = 32,
+
+    /// <summary>
+    /// Specifies to use the <c>SHA-512</c> cryptographic hash algorithm.
+    /// </summary>
+    Sha512 = 64
 }

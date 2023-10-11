@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Collections;
@@ -65,7 +67,7 @@ public class OpenIdMessage : IOpenIdMessage
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
     public OpenIdMessage(IOpenIdMessageContext context, params Parameter[] parameters)
     {
-        Initialize(context, parameters);
+        Initialize(context, parameters.AsEnumerable());
     }
 
     /// <summary>
@@ -76,6 +78,17 @@ public class OpenIdMessage : IOpenIdMessage
     public OpenIdMessage(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
     {
         Initialize(context, parameters);
+    }
+
+    /// <summary>
+    /// Initializes the current instance with an <see cref="IOpenIdMessageContext"/> and collection of <see cref="Parameter"/> values.
+    /// </summary>
+    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
+    public void Initialize(IOpenIdMessageContext context, params Parameter[] parameters)
+    {
+        Initialize(context, parameters.AsEnumerable());
     }
 
     /// <summary>
@@ -202,6 +215,18 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
         : base(context, parameters)
     {
         // nothing
+    }
+
+    /// <summary>
+    /// Create an empty <c>OAuth</c> or <c>OpenId Connect</c> message.
+    /// </summary>
+    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <returns>A new instance of <typeparamref name="T"/>.</returns>
+    public static T Create(IOpenIdMessageContext context)
+    {
+        var message = new T();
+        message.Initialize(context);
+        return message;
     }
 
     /// <summary>

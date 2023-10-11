@@ -26,8 +26,6 @@ namespace NCode.Jose;
 /// </summary>
 public abstract class JoseEncodingOptions
 {
-    private const string DefaultTokenType = "JWT";
-
     /// <summary>
     /// Gets the <see cref="JoseCredentials"/> that are used to encode the JOSE token.
     /// </summary>
@@ -37,7 +35,7 @@ public abstract class JoseEncodingOptions
     /// Gets or set the value for the <c>typ</c> JOSE header parameter.
     /// The default value is <c>JWT</c>.
     /// </summary>
-    public string TokenType { get; init; } = DefaultTokenType;
+    public string TokenType { get; init; } = JoseTokenTypes.Jwt;
 
     /// <summary>
     /// Gets or sets a boolean indicating whether to add the secret's <c>kid</c> value to the JOSE header.

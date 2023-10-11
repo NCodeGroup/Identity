@@ -20,30 +20,25 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using NCode.CryptoMemory;
 using NCode.Encoders;
+using NCode.Jose.Algorithms;
+using NCode.Jose.Infrastructure;
 
 namespace NIdentity.OpenId.Logic;
 
-public interface ICryptoService
-{
-    void GenerateBytes(Span<byte> destination);
-
-    string EncodeBinary(ReadOnlySpan<byte> data, BinaryEncodingType binaryEncodingType);
-
-    string GenerateKey(int byteLength, BinaryEncodingType binaryEncodingType);
-
-    string HashValue(ReadOnlySpan<byte> data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType);
-
-    string HashValue(string data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType);
-}
-
-internal class CryptoService : ICryptoService
+/// <summary>
+/// Provides a default implementation of the <see cref="ICryptoService"/> abstraction.
+/// </summary>
+public class CryptoService : ICryptoService
 {
     private const int MaxStackAlloc = 512 >> 3;
 
+    /// <inheritdoc />
     public void GenerateBytes(Span<byte> destination) =>
         RandomNumberGenerator.Fill(destination);
 
+    /// <inheritdoc />
     public string EncodeBinary(ReadOnlySpan<byte> data, BinaryEncodingType binaryEncodingType) =>
         binaryEncodingType switch
         {
@@ -53,50 +48,99 @@ internal class CryptoService : ICryptoService
             _ => throw new ArgumentException("Unsupported encoding", nameof(binaryEncodingType))
         };
 
+    /// <inheritdoc />
     public string GenerateKey(int byteLength, BinaryEncodingType binaryEncodingType)
     {
-        var bytes = byteLength <= MaxStackAlloc ?
-            stackalloc byte[byteLength] :
-            GC.AllocateUninitializedArray<byte>(byteLength, pinned: false);
+        var lease = EmptyDisposable.Singleton;
+        try
+        {
+            Span<byte> bytes = stackalloc byte[0];
 
-        GenerateBytes(bytes);
+            if (byteLength <= MaxStackAlloc)
+            {
+                bytes = stackalloc byte[byteLength];
+            }
+            else
+            {
+                lease = CryptoPool.Rent(byteLength, isSensitive: false, out bytes);
+            }
 
-        return EncodeBinary(bytes, binaryEncodingType);
+            GenerateBytes(bytes);
+
+            return EncodeBinary(bytes, binaryEncodingType);
+        }
+        finally
+        {
+            lease.Dispose();
+        }
     }
 
-    private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmType hashAlgorithmType) =>
+    private static HashFunctionDelegate GetHashFunction(HashAlgorithmType hashAlgorithmType) =>
         hashAlgorithmType switch
         {
-            HashAlgorithmType.Sha1 => SHA1.Create(),
-            HashAlgorithmType.Sha256 => SHA256.Create(),
+            HashAlgorithmType.Sha1 => SHA1.TryHashData,
+            HashAlgorithmType.Sha256 => SHA256.TryHashData,
+            HashAlgorithmType.Sha512 => SHA512.TryHashData,
             _ => throw new ArgumentException("Unsupported algorithm", nameof(hashAlgorithmType))
         };
 
+    /// <inheritdoc />
     public string HashValue(ReadOnlySpan<byte> data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
     {
-        using var hashAlgorithm = CreateHashAlgorithm(hashAlgorithmType);
+        var tryComputeHash = GetHashFunction(hashAlgorithmType);
 
-        var hashByteLength = (hashAlgorithm.HashSize + 7) >> 3;
-        var hashBytes = hashByteLength <= MaxStackAlloc ?
-            stackalloc byte[hashByteLength] :
-            GC.AllocateUninitializedArray<byte>(hashByteLength, pinned: false);
+        var lease = EmptyDisposable.Singleton;
+        try
+        {
+            Span<byte> hashBytes = stackalloc byte[0];
 
-        var result = hashAlgorithm.TryComputeHash(data, hashBytes, out var bytesWritten);
-        Debug.Assert(result && bytesWritten == hashByteLength);
+            var hashByteLength = (int)hashAlgorithmType;
+            if (hashByteLength <= MaxStackAlloc)
+            {
+                hashBytes = stackalloc byte[hashByteLength];
+            }
+            else
+            {
+                lease = CryptoPool.Rent(hashByteLength, isSensitive: false, out hashBytes);
+            }
 
-        return EncodeBinary(hashBytes, binaryEncodingType);
+            var result = tryComputeHash(data, hashBytes, out var bytesWritten);
+            Debug.Assert(result && bytesWritten == hashByteLength);
+
+            return EncodeBinary(hashBytes, binaryEncodingType);
+        }
+        finally
+        {
+            lease.Dispose();
+        }
     }
 
+    /// <inheritdoc />
     public string HashValue(string data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
     {
-        var dataByteLength = Encoding.UTF8.GetByteCount(data);
-        var dataBytes = dataByteLength <= MaxStackAlloc ?
-            stackalloc byte[dataByteLength] :
-            GC.AllocateUninitializedArray<byte>(dataByteLength, pinned: false);
+        var lease = EmptyDisposable.Singleton;
+        try
+        {
+            Span<byte> dataBytes = stackalloc byte[0];
 
-        var bytesWritten = Encoding.UTF8.GetBytes(data, dataBytes);
-        Debug.Assert(bytesWritten == dataByteLength);
+            var dataByteLength = Encoding.UTF8.GetByteCount(data);
+            if (dataByteLength <= MaxStackAlloc)
+            {
+                dataBytes = stackalloc byte[dataByteLength];
+            }
+            else
+            {
+                lease = CryptoPool.Rent(dataByteLength, isSensitive: false, out dataBytes);
+            }
 
-        return HashValue(dataBytes, hashAlgorithmType, binaryEncodingType);
+            var bytesWritten = Encoding.UTF8.GetBytes(data, dataBytes);
+            Debug.Assert(bytesWritten == dataByteLength);
+
+            return HashValue(dataBytes, hashAlgorithmType, binaryEncodingType);
+        }
+        finally
+        {
+            lease.Dispose();
+        }
     }
 }

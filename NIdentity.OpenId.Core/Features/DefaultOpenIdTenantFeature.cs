@@ -18,33 +18,26 @@
 #endregion
 
 using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Features;
 
 /// <summary>
-/// Provides access to the <see cref="IOpenIdTenant"/> for the current request.
+/// Provides a default implementation of the <see cref="IOpenIdTenantFeature"/> abstraction.
 /// </summary>
-public interface IOpenIdTenantFeature
+public class DefaultOpenIdTenantFeature : IOpenIdTenantFeature
 {
-    /// <summary>
-    /// Gets the <see cref="IOpenIdTenant"/> for the current request.
-    /// </summary>
-    IOpenIdTenant Tenant { get; }
-}
+    /// <inheritdoc />
+    public string TenantId => string.Empty;
 
-public class DefaultOpenIdTenant : IOpenIdTenant
-{
-    public string TenantId => throw new NotImplementedException();
+    /// <inheritdoc />
+    public string DisplayName => string.Empty;
 
-    public string Issuer => throw new NotImplementedException();
+    /// <inheritdoc />
+    public string Issuer => string.Empty;
 
-    public UriDescriptor BaseAddress => throw new NotImplementedException();
+    /// <inheritdoc />
+    public UriDescriptor BaseAddress => default;
 
-    public ISecretKeyProvider SecretKeyProvider { get; }
-
-    public DefaultOpenIdTenant(ISecretKeyProvider secretKeyProvider)
-    {
-        SecretKeyProvider = secretKeyProvider;
-    }
+    /// <inheritdoc />
+    public ISecretKeyProvider SecretKeyProvider => EmptySecretKeyProvider.Singleton;
 }

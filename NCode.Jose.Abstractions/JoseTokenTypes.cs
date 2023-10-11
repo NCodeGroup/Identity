@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,37 +17,23 @@
 
 #endregion
 
-using NCode.Jose.SecretKeys;
-
-namespace NIdentity.OpenId.Tenants;
+namespace NCode.Jose;
 
 /// <summary>
-/// Provides configuration details about an OpenID tenant.
+/// Constants for the possible values that can be used in the <c>typ</c> JOSE header parameter.
+/// https://datatracker.ietf.org/doc/html/rfc7515#section-4.1.9
 /// </summary>
-public interface IOpenIdTenant
+public static class JoseTokenTypes
 {
     /// <summary>
-    /// Gets the unique identifier for the tenant.
+    /// Specifies that the content is a <c>JWT</c>.
+    /// https://datatracker.ietf.org/doc/html/rfc7519#section-5.1
     /// </summary>
-    string TenantId { get; }
+    public const string Jwt = "JWT";
 
     /// <summary>
-    /// Gets the display name for the tenant.
+    /// Specifies that the content is a <c>JWT access token</c>.
+    /// https://datatracker.ietf.org/doc/html/rfc9068#section-2.1
     /// </summary>
-    string DisplayName { get; }
-
-    /// <summary>
-    /// Gets the issuer identifier for the tenant.
-    /// </summary>
-    string Issuer { get; }
-
-    /// <summary>
-    /// Gets the base address for the tenant.
-    /// </summary>
-    UriDescriptor BaseAddress { get; }
-
-    /// <summary>
-    /// Gets the <see cref="ISecretKeyProvider"/> for the tenant.
-    /// </summary>
-    ISecretKeyProvider SecretKeyProvider { get; }
+    public const string AccessTokenJwt = "at+jwt";
 }

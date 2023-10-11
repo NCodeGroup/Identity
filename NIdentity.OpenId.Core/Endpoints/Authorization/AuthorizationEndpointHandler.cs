@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
@@ -69,10 +70,26 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
                 endpointContext,
                 cancellationToken);
 
+            if (!authenticateResult.Succeeded)
+            {
+                // TODO: better exception handling
+
+                if (authenticateResult.None)
+                    throw new InvalidOperationException();
+
+                var exception = authenticateResult.Failure;
+                if (exception is not null)
+                    ExceptionDispatchInfo.Throw(exception);
+
+                throw new InvalidOperationException();
+            }
+
+            var authenticationTicket = authenticateResult.Ticket;
+
             var authorizeResult = await AuthorizeAsync(
                 endpointContext,
                 authorizationContext,
-                authenticateResult,
+                authenticationTicket,
                 cancellationToken);
 
             if (authorizeResult != null)
@@ -81,7 +98,7 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
             var authorizationTicket = await CreateAuthorizationTicketAsync(
                 endpointContext,
                 authorizationContext,
-                authenticateResult,
+                authenticationTicket,
                 cancellationToken);
 
             return new AuthorizationResult(
@@ -136,25 +153,25 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
     private async ValueTask<IOpenIdResult?> AuthorizeAsync(
         OpenIdEndpointContext endpointContext,
         AuthorizationContext authorizationContext,
-        AuthenticateResult authenticateResult,
+        AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
             new AuthorizeCommand(
                 endpointContext,
                 authorizationContext,
-                authenticateResult),
+                authenticationTicket),
             cancellationToken);
 
     private async Task<IAuthorizationTicket> CreateAuthorizationTicketAsync(
         OpenIdEndpointContext endpointContext,
         AuthorizationContext authorizationContext,
-        AuthenticateResult authenticateResult,
+        AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken) =>
         await Mediator.SendAsync(
             new CreateAuthorizationTicketCommand(
                 endpointContext,
                 authorizationContext,
-                authenticateResult),
+                authenticationTicket),
             cancellationToken);
 
     private async ValueTask<IOpenIdResult?> DetermineErrorResultAsync(

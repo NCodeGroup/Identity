@@ -39,7 +39,8 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of
-    /// <see cref="SecretKey"/> instances.
+    /// <see cref="SecretKey"/> instances. The collection will be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/>
+    /// property.
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
     /// <param name="owns">Indicates whether this new instance will own the <see cref="SecretKey"/> instances
@@ -47,12 +48,15 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
     public SecretKeyCollection(IEnumerable<SecretKey> secretKeys, bool owns = true)
     {
         Owns = owns;
-        SecretKeys = secretKeys.ToList();
+        SecretKeys = secretKeys
+            .OrderByDescending(secretKey => secretKey.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue)
+            .ToList();
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of
-    /// <see cref="SecretKey"/> instances.
+    /// <see cref="SecretKey"/> instances. The collection is used as-is and should already be sorted descending by the
+    /// <see cref="KeyMetadata.ExpiresWhen"/> property.
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
     /// <param name="owns">Indicates whether the new collection will own the <see cref="SecretKey"/> instances

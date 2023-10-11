@@ -29,16 +29,6 @@ namespace NCode.Jose.Credentials;
 /// </summary>
 public class CredentialSelector : ICredentialSelector
 {
-    private IAlgorithmProvider AlgorithmProvider { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="CredentialSelector"/> class.
-    /// </summary>
-    public CredentialSelector(IAlgorithmProvider algorithmProvider)
-    {
-        AlgorithmProvider = algorithmProvider;
-    }
-
     private static bool IsSecretKeyUseCompatible(SecretKey secretKey, string expectedUse) =>
         secretKey.Metadata.Use is null || secretKey.Metadata.Use == expectedUse;
 
@@ -57,15 +47,16 @@ public class CredentialSelector : ICredentialSelector
         IsSecretKeyTypeCompatible(secretKey, algorithm.KeyType) &&
         IsSecretKeySizeCompatible(secretKey, algorithm.KeyBitSizes);
 
-    private bool TryGetAlgorithm<T>(
+    private static bool TryGetAlgorithm<T>(
         AlgorithmType algorithmType,
+        IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredAlgorithms,
         [MaybeNullWhen(false)] out T algorithm)
         where T : Algorithm
     {
         foreach (var algorithmCode in preferredAlgorithms)
         {
-            if (AlgorithmProvider.Algorithms.TryGetAlgorithm(algorithmType, algorithmCode, out algorithm))
+            if (candidateAlgorithms.TryGetAlgorithm(algorithmType, algorithmCode, out algorithm))
             {
                 return true;
             }
@@ -75,20 +66,21 @@ public class CredentialSelector : ICredentialSelector
         return false;
     }
 
-    private bool TryGetCredential<T>(
+    private static bool TryGetCredential<T>(
         string expectedUse,
         AlgorithmType algorithmType,
+        IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredAlgorithms,
-        IReadOnlyCollection<SecretKey> secretKeyCollection,
+        IReadOnlyCollection<SecretKey> candidateKeys,
         [MaybeNullWhen(false)] out Tuple<SecretKey, T> credentials)
         where T : KeyedAlgorithm
     {
         foreach (var algorithmCode in preferredAlgorithms)
         {
-            if (!AlgorithmProvider.Algorithms.TryGetAlgorithm<T>(algorithmType, algorithmCode, out var algorithm))
+            if (!candidateAlgorithms.TryGetAlgorithm<T>(algorithmType, algorithmCode, out var algorithm))
                 continue;
 
-            foreach (var secretKey in secretKeyCollection.Where(secretKey => IsSecretKeyCompatible(secretKey, algorithm, expectedUse)))
+            foreach (var secretKey in candidateKeys.Where(secretKey => IsSecretKeyCompatible(secretKey, algorithm, expectedUse)))
             {
                 credentials = Tuple.Create(secretKey, algorithm);
                 return true;
@@ -101,15 +93,17 @@ public class CredentialSelector : ICredentialSelector
 
     /// <inheritdoc />
     public bool TryGetSigningCredentials(
+        IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredSignatureAlgorithms,
-        IReadOnlyCollection<SecretKey> secretKeyCollection,
+        IReadOnlyCollection<SecretKey> candidateKeys,
         [MaybeNullWhen(false)] out JoseSigningCredentials credentials)
     {
         if (!TryGetCredential<SignatureAlgorithm>(
                 SecretKeyUses.Signature,
                 AlgorithmType.DigitalSignature,
+                candidateAlgorithms,
                 preferredSignatureAlgorithms,
-                secretKeyCollection, out var tuple))
+                candidateKeys, out var tuple))
         {
             credentials = null;
             return false;
@@ -121,17 +115,19 @@ public class CredentialSelector : ICredentialSelector
 
     /// <inheritdoc />
     public bool TryGetEncryptingCredentials(
+        IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredKeyManagementAlgorithms,
         IEnumerable<string> preferredEncryptionAlgorithms,
         IEnumerable<string> preferredCompressionAlgorithms,
-        IReadOnlyCollection<SecretKey> secretKeyCollection,
+        IReadOnlyCollection<SecretKey> candidateKeys,
         [MaybeNullWhen(false)] out JoseEncryptingCredentials credentials)
     {
         if (!TryGetCredential<KeyManagementAlgorithm>(
                 SecretKeyUses.Encryption,
                 AlgorithmType.KeyManagement,
+                candidateAlgorithms,
                 preferredKeyManagementAlgorithms,
-                secretKeyCollection,
+                candidateKeys,
                 out var tuple))
         {
             credentials = null;
@@ -140,6 +136,7 @@ public class CredentialSelector : ICredentialSelector
 
         if (!TryGetAlgorithm<AuthenticatedEncryptionAlgorithm>(
                 AlgorithmType.AuthenticatedEncryption,
+                candidateAlgorithms,
                 preferredEncryptionAlgorithms,
                 out var encryptionAlgorithm))
         {
@@ -149,6 +146,7 @@ public class CredentialSelector : ICredentialSelector
 
         TryGetAlgorithm<CompressionAlgorithm>(
             AlgorithmType.Compression,
+            candidateAlgorithms,
             preferredCompressionAlgorithms,
             out var compressionAlgorithm);
 

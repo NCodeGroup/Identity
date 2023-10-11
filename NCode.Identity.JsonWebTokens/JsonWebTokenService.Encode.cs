@@ -37,22 +37,34 @@ partial class JsonWebTokenService
         string? encodedToken = null;
         object valueToEncode = GetEffectivePayload(parameters);
 
-        if (parameters.SigningOptions is not null)
+        if (parameters.SigningCredentials is not null)
         {
+            var signingOptions = new JoseSigningOptions(parameters.SigningCredentials)
+            {
+                TokenType = parameters.TokenType,
+                AddKeyIdHeader = parameters.AddKeyIdHeader
+            };
+
             encodedToken = JoseSerializer.Encode(
                 valueToEncode,
-                parameters.SigningOptions,
+                signingOptions,
                 extraHeaders: parameters.ExtraSignatureHeaderClaims);
 
             // for the possibility of a nested token
             valueToEncode = encodedToken;
         }
 
-        if (parameters.EncryptingOptions is not null)
+        if (parameters.EncryptingCredentials is not null)
         {
+            var encryptingOptions = new JoseEncryptingOptions(parameters.EncryptingCredentials)
+            {
+                TokenType = parameters.TokenType,
+                AddKeyIdHeader = parameters.AddKeyIdHeader
+            };
+
             encodedToken = JoseSerializer.Encode(
                 valueToEncode,
-                parameters.EncryptingOptions,
+                encryptingOptions,
                 extraHeaders: parameters.ExtraEncryptionHeaderClaims);
         }
 
@@ -98,7 +110,7 @@ partial class JsonWebTokenService
                 }
                 else
                 {
-                    payload[claim.Type] = new List<object>
+                    payload[claim.Type] = new HashSet<object>
                     {
                         existingValue,
                         nativeValue

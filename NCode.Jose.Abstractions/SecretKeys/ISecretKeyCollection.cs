@@ -23,6 +23,7 @@ namespace NCode.Jose.SecretKeys;
 
 /// <summary>
 /// Provides a read-only collection of <see cref="SecretKey"/> instances that can be accessed by <c>Key ID (KID)</c>.
+/// The collection is sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
 /// </summary>
 public interface ISecretKeyCollection : IReadOnlyCollection<SecretKey>, IDisposable
 {

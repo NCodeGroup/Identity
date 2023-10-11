@@ -20,6 +20,7 @@
 using System.Security.Claims;
 using Microsoft.Extensions.Primitives;
 using NCode.Jose;
+using NCode.Jose.Credentials;
 
 namespace NCode.Identity.JsonWebTokens;
 
@@ -29,37 +30,53 @@ namespace NCode.Identity.JsonWebTokens;
 public class EncodeJwtParameters
 {
     /// <summary>
-    /// Gets or sets the <see cref="JoseSigningOptions"/> that is used to sign the token.
+    /// Gets or sets the value that will be used in the <c>typ</c> header parameter.
+    /// The default value is <c>JWT</c>.
     /// </summary>
-    public JoseSigningOptions? SigningOptions { get; set; }
+    public string TokenType { get; set; } = JoseTokenTypes.Jwt;
 
     /// <summary>
-    /// Gets or sets the <see cref="JoseEncryptingOptions"/> that is used to encrypt the token.
+    /// Gets or sets a boolean indicating whether to add the secret's <c>kid</c> value (if present) to the JWT header.
+    /// The default value is <c>true</c>.
     /// </summary>
-    public JoseEncryptingOptions? EncryptingOptions { get; set; }
+    public bool AddKeyIdHeader { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the value of the 'iss' claim.
+    /// Gets or sets the <see cref="JoseSigningCredentials"/> that is used to sign the token.
+    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptingCredentials"/> are specified,
+    /// then the result will be a nested JWS+JWE token. Both credentials cannot be <c>null</c>.
+    /// </summary>
+    public JoseSigningCredentials? SigningCredentials { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="JoseEncryptingCredentials"/> that is used to encrypt the token.
+    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptingCredentials"/> are specified,
+    /// then the result will be a nested JWS+JWE token. Both credentials cannot be <c>null</c>.
+    /// </summary>
+    public JoseEncryptingCredentials? EncryptingCredentials { get; set; }
+
+    /// <summary>
+    /// Gets or sets the value of the <c>iss</c> claim.
     /// </summary>
     public string? Issuer { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the 'aud' claim.
+    /// Gets or sets the value of the <c>aud</c> claim.
     /// </summary>
     public StringValues Audience { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the 'iat' claim.
+    /// Gets or sets the value of the <c>iat</c> claim.
     /// </summary>
     public DateTimeOffset? IssuedAt { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the 'nbf' claim.
+    /// Gets or sets the value of the <c>nbf</c> claim.
     /// </summary>
     public DateTimeOffset? NotBefore { get; set; }
 
     /// <summary>
-    /// Gets or sets the value of the 'exp' claim.
+    /// Gets or sets the value of the <c>exp</c> claim.
     /// </summary>
     public DateTimeOffset? Expires { get; set; }
 

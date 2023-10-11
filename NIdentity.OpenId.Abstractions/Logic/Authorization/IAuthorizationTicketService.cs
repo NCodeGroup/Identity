@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,17 +14,28 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
-using NIdentity.OpenId.Mediator;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
+namespace NIdentity.OpenId.Logic.Authorization;
 
-public record struct CreateAuthorizationTicketCommand(
-    OpenIdEndpointContext EndpointContext,
-    AuthorizationContext AuthorizationContext,
-    AuthenticationTicket AuthenticationTicket
-) : ICommand<IAuthorizationTicket>;
+public interface IAuthorizationTicketService
+{
+    ValueTask CreateAuthorizationCodeAsync(
+        CreateAuthorizationTicketCommand command,
+        IAuthorizationTicket ticket,
+        CancellationToken cancellationToken);
+
+    ValueTask CreateAccessTokenAsync(
+        CreateAuthorizationTicketCommand command,
+        IAuthorizationTicket ticket,
+        CancellationToken cancellationToken);
+
+    ValueTask CreateIdTokenAsync(
+        CreateAuthorizationTicketCommand command,
+        IAuthorizationTicket ticket,
+        CancellationToken cancellationToken);
+}

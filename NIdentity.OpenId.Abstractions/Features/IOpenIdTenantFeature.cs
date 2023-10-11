@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,17 +17,19 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Jose.SecretKeys;
 
-internal class AuthorizationRequestMessage :
-    BaseAuthorizationRequestMessage<
-        AuthorizationRequestMessage,
-        AuthorizationRequestMessageProperties>,
-    IAuthorizationRequestMessage
+namespace NIdentity.OpenId.Features;
+
+public interface IOpenIdTenantFeature
 {
-    public AuthorizationSourceType AuthorizationSourceType
-    {
-        get => Properties.AuthorizationSourceType;
-        set => Properties.AuthorizationSourceType = value;
-    }
+    string TenantId { get; }
+
+    string DisplayName { get; }
+
+    string Issuer { get; }
+
+    UriDescriptor BaseAddress { get; }
+
+    ISecretKeyProvider SecretKeyProvider { get; }
 }

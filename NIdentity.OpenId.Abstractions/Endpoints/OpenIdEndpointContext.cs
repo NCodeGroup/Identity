@@ -38,7 +38,7 @@ public abstract class OpenIdEndpointContext
     public abstract OpenIdEndpointDescriptor EndpointDescriptor { get; }
 
     /// <summary>
-    /// Gets the <see cref="IOpenIdTenant"/> associated with the current request.
+    /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
     /// </summary>
-    public abstract IOpenIdTenant Tenant { get; }
+    public abstract OpenIdTenant Tenant { get; }
 }

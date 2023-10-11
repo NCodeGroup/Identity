@@ -20,6 +20,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using NCode.Jose;
 using NIdentity.OpenId.Contexts;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
@@ -59,7 +60,7 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
         var endpointContext = command.EndpointContext;
         var authorizationContext = command.AuthorizationContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var authenticationTicket = command.AuthenticateResult.Ticket;
+        var authenticationTicket = command.AuthenticationTicket;
 
         var promptType = authorizationRequest.PromptType;
 
@@ -95,6 +96,9 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
             return new HttpResult(HttpResults.Redirect(redirectUrl));
         }
 
+        var subject = authenticationTicket.Principal.Identity as ClaimsIdentity ??
+                      throw new InvalidOperationException("The AuthenticationTicket must contain a ClaimsIdentity.");
+
         if (!await ValidateUserIsActiveAsync(
                 endpointContext,
                 authenticationTicket,
@@ -113,8 +117,7 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
         // TODO: check IdP
 
         // check MaxAge
-        var identity = authenticationTicket.Principal.Identity as ClaimsIdentity ?? throw new InvalidOperationException();
-        if (!ValidateMaxAge(identity, authorizationRequest.MaxAge, Options.ClockSkew))
+        if (!ValidateMaxAge(subject, authorizationRequest.MaxAge, Options.ClockSkew))
         {
             var returnUrl = CallbackFeature.GetRedirectUrl(authorizationRequest, "MaxAge exceeded.");
             var redirectUrl = LoginFeature.GetRedirectUrl(returnUrl);
@@ -148,7 +151,7 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
         return validateUserIsActiveContext.IsActive;
     }
 
-    private bool ValidateMaxAge(ClaimsIdentity identity, TimeSpan? maxAge, TimeSpan clockSkew)
+    private bool ValidateMaxAge(ClaimsIdentity subject, TimeSpan? maxAge, TimeSpan clockSkew)
     {
         /*
          * max_age
@@ -164,9 +167,7 @@ internal class AuthorizeHandler : ICommandResponseHandler<AuthorizeCommand, IOpe
             return true;
         }
 
-        // TODO: RFC says to check against auth_time but should we also check against AuthenticationTicket.Properties.IssuedUtc?
-
-        var authTimeClaim = identity.FindFirst(OpenIdConstants.JwtClaimTypes.AuthenticationTime);
+        var authTimeClaim = subject.FindFirst(JoseClaimNames.Payload.AuthTime);
         if (authTimeClaim is null || !long.TryParse(authTimeClaim.Value, out var authTimeSeconds))
         {
             return false;

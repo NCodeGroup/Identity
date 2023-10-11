@@ -17,15 +17,24 @@
 
 #endregion
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Tenants;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
+namespace NIdentity.OpenId.Logic.Authorization;
 
-public record struct AuthorizeCommand(
-    OpenIdEndpointContext EndpointContext,
-    AuthorizationContext AuthorizationContext,
-    AuthenticationTicket AuthenticationTicket
-) : ICommand<IOpenIdResult?>;
+public interface IAuthorizationClaimsService
+{
+    IAsyncEnumerable<Claim> GetAccessTokenClaimsAsync(
+        OpenIdTenant tenant,
+        IAuthorizationRequest authorizationRequest,
+        AuthenticationTicket authenticationTicket,
+        CancellationToken cancellationToken);
+
+    IAsyncEnumerable<Claim> GetIdTokenClaimsAsync(
+        OpenIdTenant tenant,
+        IAuthorizationRequest authorizationRequest,
+        AuthenticationTicket authenticationTicket,
+        CancellationToken cancellationToken);
+}

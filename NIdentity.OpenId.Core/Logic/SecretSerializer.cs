@@ -60,23 +60,23 @@ internal class SecretSerializer : ISecretSerializer
     /// <inheritdoc />
     public ISecretKeyCollection DeserializeSecrets(IEnumerable<Secret> secrets)
     {
-        var list = new List<SecretKey>();
+        var results = new SortedSet<SecretKey>(SecretKeyExpiresWhenComparer.Singleton);
         try
         {
             // ReSharper disable once LoopCanBeConvertedToQuery
             // Nope, that is not equivalent. The try/catch is important.
             foreach (var secret in secrets)
             {
-                list.Add(DeserializeSecret(secret));
+                results.Add(DeserializeSecret(secret));
             }
         }
         catch
         {
-            list.DisposeAll(ignoreExceptions: true);
+            results.DisposeAll(ignoreExceptions: true);
             throw;
         }
 
-        return new SecretKeyCollection(list);
+        return new SecretKeyCollection(results);
     }
 
     /// <inheritdoc />

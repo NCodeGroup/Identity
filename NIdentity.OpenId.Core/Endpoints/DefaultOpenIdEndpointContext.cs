@@ -18,8 +18,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
-using NIdentity.OpenId.Features;
 using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -29,48 +27,24 @@ namespace NIdentity.OpenId.Endpoints;
 /// </summary>
 public class DefaultOpenIdEndpointContext : OpenIdEndpointContext
 {
-    private readonly HttpContext _httpContext;
-
-    private FeatureReferences<FeatureInterfaces> _features;
-    private static readonly Func<IFeatureCollection, IOpenIdTenantFeature?> NullTenantFeature = _ => null;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdEndpointContext"/> class.
     /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> instance.</param>
+    /// <param name="endpointDescriptor">The <see cref="OpenIdEndpointDescriptor"/> instance.</param>
     public DefaultOpenIdEndpointContext(HttpContext httpContext, OpenIdEndpointDescriptor endpointDescriptor)
     {
-        _httpContext = httpContext;
+        HttpContext = httpContext;
         EndpointDescriptor = endpointDescriptor;
-
-        _features.Initalize(_httpContext.Features);
-    }
-
-    private IOpenIdTenantFeature? TenantFeatureOrNull =>
-        _features.Fetch(ref _features.Cache.Tenant, NullTenantFeature);
-
-    /// <inheritdoc />
-    public override IOpenIdTenant Tenant
-    {
-        get
-        {
-            var feature = TenantFeatureOrNull;
-            if (feature == null)
-            {
-                throw new InvalidOperationException("Tenant has not been configured for this application.");
-            }
-
-            return feature.Tenant;
-        }
+        Tenant = new DefaultOpenIdTenant(httpContext.Features);
     }
 
     /// <inheritdoc />
-    public override HttpContext HttpContext => _httpContext;
+    public override HttpContext HttpContext { get; }
 
     /// <inheritdoc />
     public override OpenIdEndpointDescriptor EndpointDescriptor { get; }
 
-    private struct FeatureInterfaces
-    {
-        public IOpenIdTenantFeature? Tenant;
-    }
+    /// <inheritdoc />
+    public override OpenIdTenant Tenant { get; }
 }

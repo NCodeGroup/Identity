@@ -17,9 +17,13 @@
 
 #endregion
 
-namespace NIdentity.OpenId;
+namespace NIdentity.OpenId.Options;
 
-public static class IdentityConstants
+public class TenantOptions
 {
-    public const string LocalIdentityProvider = "local";
+    public string TenantId { get; set; } = string.Empty;
+
+    public string DisplayName { get; set; } = string.Empty;
+
+    public UriDescriptor BaseAddress { get; set; } = default;
 }

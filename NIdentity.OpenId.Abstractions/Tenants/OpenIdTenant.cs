@@ -17,29 +17,37 @@
 
 #endregion
 
-using NCode.Jose.Credentials;
+using NCode.Jose.SecretKeys;
 
-namespace NCode.Jose;
+namespace NIdentity.OpenId.Tenants;
 
 /// <summary>
-/// Contains the credentials and common set of options that are required when encoding a JOSE token.
+/// Provides configuration details about an OpenID tenant.
 /// </summary>
-public abstract class JoseEncodingOptions
+public abstract class OpenIdTenant
 {
     /// <summary>
-    /// Gets the <see cref="JoseCredentials"/> that are used to encode the JOSE token.
+    /// Gets the unique identifier for the tenant.
     /// </summary>
-    public abstract JoseCredentials Credentials { get; }
+    public abstract string TenantId { get; }
 
     /// <summary>
-    /// Gets or set the value for the <c>typ</c> JOSE header parameter.
-    /// The default value is <c>JWT</c>.
+    /// Gets the display name for the tenant.
     /// </summary>
-    public string TokenType { get; init; } = JoseTokenTypes.Jwt;
+    public abstract string DisplayName { get; }
 
     /// <summary>
-    /// Gets or sets a boolean indicating whether to add the secret's <c>kid</c> value to the JOSE header.
-    /// The default value is <c>true</c>.
+    /// Gets the issuer identifier for the tenant.
     /// </summary>
-    public bool AddKeyIdHeader { get; init; } = true;
+    public abstract string Issuer { get; }
+
+    /// <summary>
+    /// Gets the base address for the tenant.
+    /// </summary>
+    public abstract UriDescriptor BaseAddress { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ISecretKeyProvider"/> for the tenant.
+    /// </summary>
+    public abstract ISecretKeyProvider SecretKeyProvider { get; }
 }

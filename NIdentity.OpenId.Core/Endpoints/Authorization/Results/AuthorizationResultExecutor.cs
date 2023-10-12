@@ -74,7 +74,7 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
             Enumerable.Empty<KeyValuePair<string, StringValues>>();
 
         var parameters = existingParameters.Union(message);
-        var serializedParameters = SerializeParameters(parameters);
+        var serializedParameters = SerializeUriParameters(parameters);
 
         var uriBuilder = new UriBuilder(redirectUri);
         if (useQuery)
@@ -94,12 +94,13 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
         return uriBuilder.Uri;
     }
 
-    private static string SerializeParameters(IEnumerable<KeyValuePair<string, StringValues>> parameters)
+    private static string SerializeUriParameters(IEnumerable<KeyValuePair<string, StringValues>> parameters)
     {
         var first = true;
         var builder = new StringBuilder();
 
-        // TODO: should we replace "+" with "%20" and where (key and/or value)?
+        // In the URL, encode spaces as '%20'
+        // Uri.EscapeDataString does this for us
 
         foreach (var (parameterName, stringValues) in parameters)
         {
@@ -130,6 +131,9 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
                     }
 
                     builder.Append(Uri.EscapeDataString(parameterName));
+
+                    if (string.IsNullOrEmpty(stringValue)) continue;
+
                     builder.Append('=');
                     builder.Append(Uri.EscapeDataString(stringValue));
                 }
@@ -178,13 +182,16 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
             )
         );
 
+        // In the Form, encode spaces as '+'
+        // But Uri.EscapeDataString uses '%20', so replace them
+
         var children = parameters.Aggregate(
             new StringBuilder(),
             (builder, kvp) => builder
                 .Append("<input type='hidden' name='")
-                .Append(Uri.EscapeDataString(kvp.Key))
+                .Append(EncodeFormParameter(kvp.Key))
                 .Append("' value='")
-                .Append(Uri.EscapeDataString(kvp.Value))
+                .Append(EncodeFormParameter(kvp.Value))
                 .Append("'/>")
         );
 
@@ -194,4 +201,9 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
 
         return html.ToString();
     }
+
+    private static string EncodeFormParameter(string? value) =>
+        // Reference: `FormUrlEncodedContent.Encode`
+        // Escape spaces as '+'.
+        string.IsNullOrEmpty(value) ? string.Empty : Uri.EscapeDataString(value).Replace("%20", "+");
 }

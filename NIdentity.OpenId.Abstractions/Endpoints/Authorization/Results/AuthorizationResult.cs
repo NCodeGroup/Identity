@@ -17,15 +17,18 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
 /// <summary>
 /// An implementation of <see cref="IOpenIdResult"/> that when executed, issues the response for an
-/// <c>OAuth</c> or <c>OpenID Connect</c> authorization operation.
+/// <c>OAuth</c> or <c>OpenID Connect</c> authorization operation. This result is only used when the
+/// request has been validated, specifically the <c>client_id</c> and <c>redirect_uri</c> parameters
+/// from the request have been validated and it is safe to redirect the user agent back to the client.
 /// </summary>
-public class AuthorizationResult : OpenIdResult
+public class AuthorizationResult : OpenIdResult<AuthorizationResult>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizationResult"/> class.
@@ -71,6 +74,13 @@ public class AuthorizationResult : OpenIdResult
     public ResponseMode ResponseMode { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the authorization operation was successful.
+    /// </summary>
+    [MemberNotNullWhen(false, nameof(Error))]
+    [MemberNotNullWhen(true, nameof(Ticket))]
+    public bool Succeeded => Ticket != null;
+
+    /// <summary>
     /// Gets or sets an <see cref="IOpenIdError"/> that contains information about the failure of the operation.
     /// </summary>
     public IOpenIdError? Error { get; }
@@ -80,8 +90,4 @@ public class AuthorizationResult : OpenIdResult
     /// <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
     /// </summary>
     public IAuthorizationTicket? Ticket { get; }
-
-    /// <inheritdoc />
-    public override async ValueTask ExecuteResultAsync(OpenIdEndpointContext context, CancellationToken cancellationToken) =>
-        await GetExecutor<AuthorizationResult>(context).ExecuteResultAsync(context, this, cancellationToken);
 }

@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,21 +14,20 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-#endregion
 
-using NIdentity.OpenId.Endpoints;
+#endregion
 
 namespace NIdentity.OpenId.Results;
 
 /// <summary>
 /// An implementation of <see cref="IOpenIdResult"/> that when executed, will render an <see cref="IOpenIdError"/>.
 /// </summary>
-public class OpenIdErrorResult : OpenIdResult
+public class OpenIdErrorResult : OpenIdResult<OpenIdErrorResult>
 {
     /// <summary>
-    /// Gets or sets the <see cref="IOpenIdError"/>.
+    /// Gets the <see cref="IOpenIdError"/>.
     /// </summary>
-    public IOpenIdError Error { get; set; }
+    public IOpenIdError Error { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdErrorResult"/> class.
@@ -37,8 +37,4 @@ public class OpenIdErrorResult : OpenIdResult
     {
         Error = error;
     }
-
-    /// <inheritdoc />
-    public override async ValueTask ExecuteResultAsync(OpenIdEndpointContext context, CancellationToken cancellationToken) =>
-        await GetExecutor<OpenIdErrorResult>(context).ExecuteResultAsync(context, this, cancellationToken);
 }

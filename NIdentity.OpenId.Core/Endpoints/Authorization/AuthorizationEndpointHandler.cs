@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
@@ -33,13 +32,13 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
 {
     private IMediator Mediator { get; }
     private IClientStore ClientStore { get; }
-    private IOpenIdErrorFactory OpenIdErrorFactory { get; }
+    private IOpenIdErrorFactory ErrorFactory { get; }
 
-    public AuthorizationEndpointHandler(IMediator mediator, IClientStore clientStore, IOpenIdErrorFactory openIdErrorFactory)
+    public AuthorizationEndpointHandler(IMediator mediator, IClientStore clientStore, IOpenIdErrorFactory errorFactory)
     {
         Mediator = mediator;
         ClientStore = clientStore;
-        OpenIdErrorFactory = openIdErrorFactory;
+        ErrorFactory = errorFactory;
     }
 
     /// <inheritdoc />
@@ -72,16 +71,14 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
 
             if (!authenticateResult.Succeeded)
             {
-                // TODO: better exception handling
+                var error = ErrorFactory
+                    .AccessDenied("An error occured while attempting to authenticate the end-user.")
+                    .WithException(authenticateResult.Failure);
 
-                if (authenticateResult.None)
-                    throw new InvalidOperationException();
-
-                var exception = authenticateResult.Failure;
-                if (exception is not null)
-                    ExceptionDispatchInfo.Throw(exception);
-
-                throw new InvalidOperationException();
+                return await DetermineErrorResultAsync(
+                    authorizationMessage,
+                    error,
+                    cancellationToken);
             }
 
             var authenticationTicket = authenticateResult.Ticket;
@@ -108,17 +105,10 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
         }
         catch (Exception exception)
         {
-            var result = await DetermineErrorResultAsync(
-                endpointContext,
+            return await DetermineErrorResultAsync(
                 authorizationMessage,
-                exception);
-
-            if (result != null)
-            {
-                return result;
-            }
-
-            throw;
+                exception,
+                cancellationToken);
         }
     }
 
@@ -174,24 +164,32 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
                 authenticationTicket),
             cancellationToken);
 
-    private async ValueTask<IOpenIdResult?> DetermineErrorResultAsync(
-        OpenIdEndpointContext context,
-        IBaseAuthorizationRequest message,
-        Exception exception)
+    private async ValueTask<IOpenIdResult> DetermineErrorResultAsync(
+        IBaseAuthorizationRequest authorizationMessage,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        var error = exception is OpenIdException openIdException ?
+            openIdException.Error :
+            ErrorFactory
+                .Create(OpenIdConstants.ErrorCodes.ServerError)
+                .WithException(exception);
+
+        return await DetermineErrorResultAsync(
+            authorizationMessage,
+            error,
+            cancellationToken);
+    }
+
+    private async ValueTask<IOpenIdResult> DetermineErrorResultAsync(
+        IBaseAuthorizationRequest authorizationMessage,
+        IOpenIdError error,
+        CancellationToken cancellationToken)
     {
         // before we redirect, we must validate the client_id and redirect_uri
         // otherwise we must return a failure HTTP status code
 
-        var httpContext = context.HttpContext;
-        var cancellationToken = httpContext.RequestAborted;
-
-        var error = exception is OpenIdException openIdException ?
-            openIdException.Error :
-            OpenIdErrorFactory
-                .Create(OpenIdConstants.ErrorCodes.ServerError)
-                .WithException(exception);
-
-        if (message is IAuthorizationRequest authorizationRequest)
+        if (authorizationMessage is IAuthorizationRequest authorizationRequest)
         {
             var state = authorizationRequest.State;
             var redirectUri = authorizationRequest.RedirectUri;
@@ -204,53 +202,53 @@ internal class AuthorizationEndpointHandler : ICommandResponseHandler<Authorizat
 
             if (string.IsNullOrEmpty(authorizationRequest.ClientId))
             {
-                return null;
+                return new OpenIdErrorResult(error);
             }
 
             var client = await ClientStore.TryGetByClientIdAsync(authorizationRequest.ClientId, cancellationToken);
             if (client == null)
             {
-                return null;
+                return new OpenIdErrorResult(error);
             }
 
             if (!client.RedirectUris.Contains(redirectUri) && !(client.AllowLoopback && redirectUri.IsLoopback))
             {
-                return null;
+                return new OpenIdErrorResult(error);
             }
 
             return new AuthorizationResult(redirectUri, responseMode, error);
         }
         else
         {
-            if (message.TryGetValue(OpenIdConstants.Parameters.State, out var state) && !StringValues.IsNullOrEmpty(state))
+            if (authorizationMessage.TryGetValue(OpenIdConstants.Parameters.State, out var state) && !StringValues.IsNullOrEmpty(state))
             {
                 error.State = state;
             }
 
-            if (!message.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues) || !Enum.TryParse(responseModeStringValues, out ResponseMode responseMode))
+            if (!authorizationMessage.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues) || !Enum.TryParse(responseModeStringValues, out ResponseMode responseMode))
             {
                 responseMode = ResponseMode.Query;
             }
 
-            if (!message.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl) || !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
+            if (!authorizationMessage.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl) || !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
             {
-                return null;
+                return new OpenIdErrorResult(error);
             }
 
-            if (!message.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId) || StringValues.IsNullOrEmpty(clientId))
+            if (!authorizationMessage.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId) || StringValues.IsNullOrEmpty(clientId))
             {
-                return null;
+                return new OpenIdErrorResult(error);
             }
 
             var client = await ClientStore.TryGetByClientIdAsync(clientId.ToString(), cancellationToken);
             if (client == null)
             {
-                return null;
+                return new OpenIdErrorResult(error);
             }
 
             if (!client.RedirectUris.Contains(redirectUri) && !(client.AllowLoopback && redirectUri.IsLoopback))
             {
-                return null;
+                return new OpenIdErrorResult(error);
             }
 
             return new AuthorizationResult(redirectUri, responseMode, error);

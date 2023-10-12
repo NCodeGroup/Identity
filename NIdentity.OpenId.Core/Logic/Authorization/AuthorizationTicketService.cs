@@ -38,6 +38,9 @@ using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
+/// <summary>
+/// Provides a default implementation of the <see cref="IAuthorizationTicketService"/> abstraction.
+/// </summary>
 public class AuthorizationTicketService : IAuthorizationTicketService
 {
     private IIdGenerator<long> IdGenerator { get; }
@@ -48,6 +51,9 @@ public class AuthorizationTicketService : IAuthorizationTicketService
     private IAuthorizationClaimsService AuthorizationClaimsService { get; }
     private IAuthorizationCodeStore AuthorizationCodeStore { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthorizationTicketService"/> class.
+    /// </summary>
     public AuthorizationTicketService(
         IIdGenerator<long> idGenerator,
         ICryptoService cryptoService,
@@ -66,6 +72,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         AuthorizationCodeStore = authorizationCodeStore;
     }
 
+    /// <inheritdoc />
     public virtual async ValueTask CreateAuthorizationCodeAsync(
         CreateAuthorizationTicketCommand command,
         IAuthorizationTicket ticket,
@@ -89,12 +96,23 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         ticket.Code = code;
     }
 
+    /// <summary>
+    /// Generates a new token identifier (aka <c>jti</c>).
+    /// The default implementation generates a strong cryptographic random 128-bit value that is Base64Url encoded.
+    /// </summary>
+    /// <returns>The newly generated token identifier.</returns>
     protected virtual string GenerateTokenId()
     {
         const int byteLength = 16; // aka 128 bits which is larger than the entropy of GUID v4 (122 bits)
         return CryptoService.GenerateKey(byteLength, BinaryEncodingType.Base64Url);
     }
 
+    /// <summary>
+    /// Generates a new authorization code and its hashed value.
+    /// The default implementation generates a strong cryptographic random 256-bit value that is Base64Url encoded,
+    /// the hashed value uses the SHA-256 algorithm and is Base64 encoded.
+    /// </summary>
+    /// <returns>The newly generated authorization code and its hashed value.</returns>
     protected virtual (string code, string hashedCode) GenerateAuthorizationCode()
     {
         const int byteLength = 32; // aka 256 bits
@@ -103,6 +121,16 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         return (code, hashedCode);
     }
 
+    /// <summary>
+    /// Persists the authorization request to the <see cref="IAuthorizationCodeStore"/>
+    /// by using the hashed authorization code as the key.
+    /// </summary>
+    /// <param name="hashedCode">The hashed authorization code.</param>
+    /// <param name="createdWhen">The <see cref="DateTimeOffset"/> when the authorization ticket was created.</param>
+    /// <param name="expiresWhen">The <see cref="DateTimeOffset"/> when the authorization ticker expires.</param>
+    /// <param name="authorizationRequest">The <see cref="IAuthorizationRequest"/> to persist in the store.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
     protected virtual async ValueTask SaveAuthorizationRequestAsync(
         string hashedCode,
         DateTimeOffset createdWhen,
@@ -129,6 +157,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         await AuthorizationCodeStore.AddAsync(authorizationCode, cancellationToken);
     }
 
+    /// <inheritdoc />
     public virtual async ValueTask CreateAccessTokenAsync(
         CreateAuthorizationTicketCommand command,
         IAuthorizationTicket ticket,
@@ -208,6 +237,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         ticket.ExpiresIn = tokenConfiguration.Lifetime;
     }
 
+    /// <inheritdoc />
     public virtual async ValueTask CreateIdTokenAsync(
         CreateAuthorizationTicketCommand command,
         IAuthorizationTicket ticket,

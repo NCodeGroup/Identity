@@ -36,7 +36,7 @@ public delegate ValueTask ValidateJwtAsync(
 /// </summary>
 public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
     CompactJwt compactJwt,
-    PropertyBag propertyBag,
+    IPropertyBag propertyBag,
     ISecretKeyProvider secretKeyProvider,
     CancellationToken cancellationToken);
 
@@ -46,7 +46,7 @@ public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
 /// </summary>
 public delegate ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
     DecodedJwt decodedJwt,
-    PropertyBag propertyBag,
+    IPropertyBag propertyBag,
     string authenticationType,
     string nameClaimType,
     string roleClaimType,
@@ -58,10 +58,10 @@ public delegate ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
 public class ValidateJwtParameters
 {
     /// <summary>
-    /// Gets a <see cref="PropertyBag"/> that can be used to store custom state information.
+    /// Gets an <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
     /// This instance will be cloned for each JWT operation.
     /// </summary>
-    public PropertyBag PropertyBag { get; } = new();
+    public IPropertyBag PropertyBag { get; } = new PropertyBag();
 
     /// <summary>
     /// Gets or sets the <c>AuthenticationType</c> that is used when creating <see cref="ClaimsIdentity"/> instances.

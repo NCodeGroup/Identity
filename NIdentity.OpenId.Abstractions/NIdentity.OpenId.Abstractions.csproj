@@ -26,6 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
       <ProjectReference Include="..\NCode.Jose.Abstractions\NCode.Jose.Abstractions.csproj" />
     </ItemGroup>
 

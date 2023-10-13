@@ -20,12 +20,12 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
-namespace NCode.Identity.JsonWebTokens;
+namespace NCode.Identity;
 
 /// <summary>
-/// Provides a strongly typed collection of properties that can be accessed by key.
+/// Provides a default implementation of the <see cref="IPropertyBag"/> abstraction.
 /// </summary>
-public class PropertyBag : IReadOnlyDictionary<IPropertyBagKey, object?>
+public class PropertyBag : IPropertyBag, IReadOnlyDictionary<IPropertyBagKey, object?>
 {
     private IDictionary<IPropertyBagKey, object?>? ItemsOrNull { get; set; }
 
@@ -39,10 +39,8 @@ public class PropertyBag : IReadOnlyDictionary<IPropertyBagKey, object?>
         // nothing
     }
 
-    /// <summary>
-    /// Returns a new instance of the <see cref="PropertyBag"/> class that is a shallow copy of the current instance.
-    /// </summary>
-    public PropertyBag Clone()
+    /// <inheritdoc />
+    public IPropertyBag Clone()
     {
         var newBag = new PropertyBag();
 
@@ -55,29 +53,14 @@ public class PropertyBag : IReadOnlyDictionary<IPropertyBagKey, object?>
         return newBag;
     }
 
-    /// <summary>
-    /// Sets a strongly typed value for the specified <paramref name="key"/> in the property bag.
-    /// </summary>
-    /// <param name="key">The key of the strongly typed value to set in the property bag.</param>
-    /// <param name="value">The strongly typed value to set in the property bag.</param>
-    /// <typeparam name="T">The type of the value to set in the property bag.</typeparam>
-    /// <returns>The <see cref="PropertyBag"/> instance for method chaining.</returns>
-    public PropertyBag Set<T>(PropertyBagKey<T> key, T value)
+    /// <inheritdoc />
+    public IPropertyBag Set<T>(PropertyBagKey<T> key, T value)
     {
         Items[key] = value;
         return this;
     }
 
-    /// <summary>
-    /// Gets a strongly typed value associated with the specified key from the property bag.
-    /// </summary>
-    /// <param name="key">The key of the strongly typed value to get from the property bag.</param>
-    /// <param name="value">When this method returns, contains the strongly typed value associated with the specified key,
-    /// it the key is found; otherwise, the default value for the type of the <paramref name="value"/> parameter.
-    /// This parameter is passed uninitialized.</param>
-    /// <typeparam name="T">The type of the value to get from the property bag.</typeparam>
-    /// <returns><c>true</c> if the <see cref="PropertyBag"/> contains an element with the specified key; otherwise,
-    /// <c>false</c>.</returns>
+    /// <inheritdoc />
     public bool TryGetValue<T>(PropertyBagKey<T> key, [MaybeNullWhen(false)] out T value)
     {
         if (TryGetValue(key, out object? baseValue) && baseValue is T typedValue)
@@ -102,14 +85,6 @@ public class PropertyBag : IReadOnlyDictionary<IPropertyBagKey, object?>
         return false;
     }
 
-    private object? GetValue(IPropertyBagKey key)
-    {
-        if (!TryGetValue(key, out var value))
-            throw new KeyNotFoundException();
-
-        return value;
-    }
-
     //
 
     IEnumerator IEnumerable.GetEnumerator() =>
@@ -128,7 +103,7 @@ public class PropertyBag : IReadOnlyDictionary<IPropertyBagKey, object?>
         ItemsOrNull?.Values ?? Array.Empty<object?>();
 
     object? IReadOnlyDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key] =>
-        GetValue(key);
+        TryGetValue(key, out var value) ? value : default;
 
     bool IReadOnlyDictionary<IPropertyBagKey, object?>.ContainsKey(IPropertyBagKey key) =>
         ItemsOrNull?.ContainsKey(key) ?? false;

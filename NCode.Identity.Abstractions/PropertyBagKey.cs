@@ -17,10 +17,10 @@
 
 #endregion
 
-namespace NCode.Identity.JsonWebTokens;
+namespace NCode.Identity;
 
 /// <summary>
-/// Base interface for a strongly typed key in a <see cref="PropertyBag"/>.
+/// Base interface for a strongly typed key in a <see cref="IPropertyBag"/>.
 /// </summary>
 public interface IPropertyBagKey : IEquatable<IPropertyBagKey>
 {
@@ -35,8 +35,10 @@ public interface IPropertyBagKey : IEquatable<IPropertyBagKey>
     string Name { get; }
 }
 
+// TODO: using a struct might be a bad idea, should we always use a class?
+
 /// <summary>
-/// Represents a strongly typed key in a <see cref="PropertyBag"/>.
+/// Represents a strongly typed key in a <see cref="IPropertyBag"/>.
 /// </summary>
 /// <typeparam name="T">The type of the value in the property bag.</typeparam>
 public readonly struct PropertyBagKey<T> : IPropertyBagKey

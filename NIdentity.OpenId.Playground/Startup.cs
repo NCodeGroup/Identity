@@ -55,7 +55,7 @@ internal class Startup
         services.AddTransient<ISecretSerializer, SecretSerializer>();
         services.AddTransient<IClientStore, NullClientStore>();
 
-        services.AddSingleton<IMediator, MediatorImpl>();
+        services.AddScoped<IMediator, MediatorImpl>();
         services.AddSingleton<IOpenIdEndpointFactory, OpenIdEndpointFactory>();
         services.AddSingleton<IOpenIdEndpointCollectionProvider, OpenIdEndpointCollectionProvider>();
 

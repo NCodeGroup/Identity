@@ -38,9 +38,9 @@ public class ValidateJwtContext
     public DecodedJwt DecodedJwt { get; }
 
     /// <summary>
-    /// Gets a <see cref="PropertyBag"/> that can be used to store custom state information.
+    /// Gets an <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
     /// </summary>
-    public PropertyBag PropertyBag { get; }
+    public IPropertyBag PropertyBag { get; }
 
     /// <summary>
     /// Gets an <see cref="IServiceProvider"/> that can be used to resolve services.
@@ -63,7 +63,7 @@ public class ValidateJwtContext
     public ValidateJwtContext(
         SecretKey secretKey,
         DecodedJwt decodedJwt,
-        PropertyBag propertyBag,
+        IPropertyBag propertyBag,
         IServiceProvider serviceProvider,
         ISystemClock systemClock)
     {

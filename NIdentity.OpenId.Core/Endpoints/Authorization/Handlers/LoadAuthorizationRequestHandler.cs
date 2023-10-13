@@ -77,7 +77,7 @@ internal class LoadAuthorizationRequestHandler : ICommandResponseHandler<LoadAut
 
         var authorizationRequest = new AuthorizationRequest(requestMessage, requestObject);
 
-        return new AuthorizationContext(client, authorizationRequest);
+        return new DefaultAuthorizationContext(client, authorizationRequest);
     }
 
     private async ValueTask<Client> GetClientAsync(

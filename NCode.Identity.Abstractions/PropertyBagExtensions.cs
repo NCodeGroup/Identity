@@ -19,21 +19,21 @@
 
 using System.Runtime.CompilerServices;
 
-namespace NCode.Identity.JsonWebTokens;
+namespace NCode.Identity;
 
 /// <summary>
-/// Contains extension methods for the <see cref="PropertyBag"/> class.
+/// Contains extension methods for the <see cref="IPropertyBag"/> abstraction.
 /// </summary>
 public static class PropertyBagExtensions
 {
     /// <summary>
     /// Sets a strongly typed value in the property bag by inferring the name of key using <see cref="CallerArgumentExpressionAttribute"/>.
     /// </summary>
-    /// <param name="bag">The <see cref="PropertyBag"/> instance.</param>
+    /// <param name="bag">The <see cref="IPropertyBag"/> instance.</param>
     /// <param name="value">The strongly typed value to set in the property bag.</param>
     /// <param name="name">The <see cref="string"/> name of the value in the property bag.</param>
     /// <typeparam name="T">The type of the value in the property bag.</typeparam>
-    /// <returns>The <see cref="PropertyBag"/> instance for method chaining.</returns>
-    public static PropertyBag Set<T>(this PropertyBag bag, T value, [CallerArgumentExpression("value")] string? name = null) =>
+    /// <returns>The <see cref="IPropertyBag"/> instance for method chaining.</returns>
+    public static IPropertyBag Set<T>(this IPropertyBag bag, T value, [CallerArgumentExpression("value")] string? name = null) =>
         bag.Set(new PropertyBagKey<T>(name ?? string.Empty), value);
 }

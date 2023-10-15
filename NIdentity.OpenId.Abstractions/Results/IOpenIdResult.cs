@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using NIdentity.OpenId.Endpoints;
@@ -33,5 +35,5 @@ public interface IOpenIdResult
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask ExecuteResultAsync(OpenIdEndpointContext context, CancellationToken cancellationToken);
+    ValueTask ExecuteResultAsync(OpenIdContext context, CancellationToken cancellationToken);
 }

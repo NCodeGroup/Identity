@@ -30,11 +30,4 @@ public class OpenIdEndpointDescriptor
     /// Gets or set the friendly name for this <see cref="OpenIdEndpointDescriptor"/>.
     /// </summary>
     public string DisplayName { get; init; } = string.Empty;
-
-    // TODO: remove?
-
-    /// <summary>
-    /// Stores arbitrary metadata properties associated with the <see cref="OpenIdEndpointDescriptor"/>.
-    /// </summary>
-    public IDictionary<object, object?> Properties { get; } = new Dictionary<object, object?>();
 }

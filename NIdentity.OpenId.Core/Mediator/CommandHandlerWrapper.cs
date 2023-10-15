@@ -32,24 +32,32 @@ internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper
     private delegate ValueTask MiddlewareChainDelegate(TCommand command, CancellationToken cancellationToken);
 
     public CommandHandlerWrapper(
-        ICommandHandler<TCommand> handler,
+        IEnumerable<ICommandHandler<TCommand>> handlers,
         IEnumerable<ICommandMiddleware<TCommand>> middlewares)
     {
-        ValueTask RootHandler(TCommand command, CancellationToken token) =>
-            handler.HandleAsync(command, token);
-
-        static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> CreateFactory(
-            ICommandMiddleware<TCommand> middleware) =>
-            next => (command, token) =>
-            {
-                ValueTask SimpleNext() => next(command, token);
-                return middleware.HandleAsync(command, SimpleNext, token);
-            };
-
-        MiddlewareChain = middlewares.Select(CreateFactory).Aggregate(
-            (MiddlewareChainDelegate)RootHandler,
+        MiddlewareChain = middlewares.Select(WrapMiddleware).Aggregate(
+            WrapRoot(handlers),
             (next, factory) => factory(next));
     }
+
+    private static MiddlewareChainDelegate WrapRoot(IEnumerable<ICommandHandler<TCommand>> handlers)
+    {
+        return async (command, cancellationToken) =>
+        {
+            foreach (var handler in handlers)
+            {
+                await handler.HandleAsync(command, cancellationToken);
+            }
+        };
+    }
+
+    private static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> WrapMiddleware(
+        ICommandMiddleware<TCommand> middleware) =>
+        next => (command, token) =>
+        {
+            ValueTask SimpleNext() => next(command, token);
+            return middleware.HandleAsync(command, SimpleNext, token);
+        };
 
     public ValueTask HandleAsync(ICommand command, CancellationToken cancellationToken) =>
         MiddlewareChain((TCommand)command, cancellationToken);

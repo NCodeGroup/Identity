@@ -35,21 +35,18 @@ internal class CommandResponseHandlerWrapper<TCommand, TResponse> : ICommandResp
         ICommandResponseHandler<TCommand, TResponse> handler,
         IEnumerable<ICommandResponseMiddleware<TCommand, TResponse>> middlewares)
     {
-        ValueTask<TResponse> RootHandler(TCommand command, CancellationToken token) =>
-            handler.HandleAsync(command, token);
-
-        static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> CreateFactory(
-            ICommandResponseMiddleware<TCommand, TResponse> middleware) =>
-            next => (command, token) =>
-            {
-                ValueTask<TResponse> SimpleNext() => next(command, token);
-                return middleware.HandleAsync(command, SimpleNext, token);
-            };
-
-        MiddlewareChain = middlewares.Select(CreateFactory).Aggregate(
-            (MiddlewareChainDelegate)RootHandler,
+        MiddlewareChain = middlewares.Select(WrapMiddleware).Aggregate(
+            (MiddlewareChainDelegate)handler.HandleAsync,
             (next, factory) => factory(next));
     }
+
+    private static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> WrapMiddleware(
+        ICommandResponseMiddleware<TCommand, TResponse> middleware) =>
+        next => (command, token) =>
+        {
+            ValueTask<TResponse> SimpleNext() => next(command, token);
+            return middleware.HandleAsync(command, SimpleNext, token);
+        };
 
     public ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken) =>
         MiddlewareChain((TCommand)command, cancellationToken);

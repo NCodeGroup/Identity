@@ -29,7 +29,7 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
 internal class AuthorizationResultExecutor : IOpenIdResultExecutor<AuthorizationResult>
 {
-    public async ValueTask ExecuteResultAsync(OpenIdEndpointContext context, AuthorizationResult result, CancellationToken cancellationToken)
+    public async ValueTask ExecuteResultAsync(OpenIdContext context, AuthorizationResult result, CancellationToken cancellationToken)
     {
         var httpContext = context.HttpContext;
         var httpResponse = httpContext.Response;

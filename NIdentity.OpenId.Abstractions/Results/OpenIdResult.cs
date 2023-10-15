@@ -31,7 +31,7 @@ public abstract class OpenIdResult : IOpenIdResult
     /// <summary>
     /// Executes the result of the <c>OAuth</c> or <c>OpenID Connect</c> operation asynchronously.
     /// This method is called by the framework to process the result of an <c>OAuth</c> or <c>OpenID Connect</c> operation.
-    /// The default implementation of this method calls the <see cref="ExecuteResult(OpenIdEndpointContext)"/> method and
+    /// The default implementation of this method calls the <see cref="ExecuteResult(OpenIdContext)"/> method and
     /// returns a completed task.
     /// </summary>
     /// <param name="context">The context in which the operation is executed. The context includes information about the
@@ -39,7 +39,7 @@ public abstract class OpenIdResult : IOpenIdResult
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    public virtual ValueTask ExecuteResultAsync(OpenIdEndpointContext context, CancellationToken cancellationToken)
+    public virtual ValueTask ExecuteResultAsync(OpenIdContext context, CancellationToken cancellationToken)
     {
         ExecuteResult(context);
         return ValueTask.CompletedTask;
@@ -51,7 +51,7 @@ public abstract class OpenIdResult : IOpenIdResult
     /// </summary>
     /// <param name="context">The context in which the operation is executed. The context includes information about the
     /// operation that was executed and request information.</param>
-    protected virtual void ExecuteResult(OpenIdEndpointContext context)
+    protected virtual void ExecuteResult(OpenIdContext context)
     {
         // nothing
     }
@@ -59,11 +59,11 @@ public abstract class OpenIdResult : IOpenIdResult
     /// <summary>
     /// Helper method to get the <see cref="IOpenIdResultExecutor{T}"/> for the current <see cref="IOpenIdResult"/>.
     /// </summary>
-    /// <param name="context"><see cref="OpenIdEndpointContext"/></param>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <typeparam name="T">The type of <see cref="IOpenIdResult"/>.</typeparam>
     /// <returns><see cref="IOpenIdResultExecutor{T}"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static IOpenIdResultExecutor<T> GetExecutor<T>(OpenIdEndpointContext context) where T : IOpenIdResult
+    protected static IOpenIdResultExecutor<T> GetExecutor<T>(OpenIdContext context) where T : IOpenIdResult
         => context.HttpContext.RequestServices.GetRequiredService<IOpenIdResultExecutor<T>>();
 }
 
@@ -83,6 +83,6 @@ public abstract class OpenIdResult<T> : OpenIdResult
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    public override async ValueTask ExecuteResultAsync(OpenIdEndpointContext context, CancellationToken cancellationToken) =>
+    public override async ValueTask ExecuteResultAsync(OpenIdContext context, CancellationToken cancellationToken) =>
         await GetExecutor<T>(context).ExecuteResultAsync(context, (T)this, cancellationToken);
 }

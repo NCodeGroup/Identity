@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,12 +14,14 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 
@@ -34,12 +37,12 @@ public class JsonParser<T> : ParameterParser<T?>
     /// Gets the <see cref="JsonConverter{T}"/> that is used to (de)serialize the JSON payload.
     /// The default implementation retrieves the <see cref="JsonConverter{T}"/> from the <see cref="JsonSerializerOptions"/>.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use when parsing the value.</param>
+    /// <param name="context">The <see cref="OpenIdContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to be parsed.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     /// <returns>The <see cref="JsonConverter{T}"/> to (de)serialize the JSON payload.</returns>
     protected virtual JsonConverter<T?> GetJsonConverter(
-        IOpenIdMessageContext context,
+        OpenIdContext context,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options
     ) => (JsonConverter<T?>)options.GetConverter(typeof(T));
@@ -47,7 +50,7 @@ public class JsonParser<T> : ParameterParser<T?>
     /// <inheritdoc/>
     public override Parameter Read(
         ref Utf8JsonReader reader,
-        IOpenIdMessageContext context,
+        OpenIdContext context,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
@@ -62,7 +65,7 @@ public class JsonParser<T> : ParameterParser<T?>
     /// <inheritdoc/>
     public override void Write(
         Utf8JsonWriter writer,
-        IOpenIdMessageContext context,
+        OpenIdContext context,
         Parameter parameter,
         JsonSerializerOptions options)
     {
@@ -76,14 +79,14 @@ public class JsonParser<T> : ParameterParser<T?>
     }
 
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdMessageContext context, T? value)
+    public override StringValues Serialize(OpenIdContext context, T? value)
     {
         return JsonSerializer.Serialize(value, context.JsonSerializerOptions);
     }
 
     /// <inheritdoc/>
     public override T? Parse(
-        IOpenIdMessageContext context,
+        OpenIdContext context,
         ParameterDescriptor descriptor,
         StringValues stringValues,
         bool ignoreErrors = false)
@@ -112,7 +115,10 @@ public class JsonParser<T> : ParameterParser<T?>
         catch (Exception exception)
         {
             if (ignoreErrors) return default;
-            throw context.ErrorFactory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest).WithException(exception).AsException();
+            throw context.ErrorFactory
+                .FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest)
+                .WithException(exception)
+                .AsException();
         }
     }
 }
@@ -128,7 +134,7 @@ public class JsonParser<T, TConverter> : JsonParser<T>
 {
     /// <inheritdoc />
     protected override JsonConverter<T?> GetJsonConverter(
-        IOpenIdMessageContext context,
+        OpenIdContext context,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options
     ) => new TConverter();

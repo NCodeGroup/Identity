@@ -24,7 +24,7 @@ namespace NIdentity.OpenId.Results;
 internal class OpenIdErrorResultExecutor : IOpenIdResultExecutor<OpenIdErrorResult>
 {
     public ValueTask ExecuteResultAsync(
-        OpenIdEndpointContext context,
+        OpenIdContext context,
         OpenIdErrorResult result,
         CancellationToken cancellationToken)
     {

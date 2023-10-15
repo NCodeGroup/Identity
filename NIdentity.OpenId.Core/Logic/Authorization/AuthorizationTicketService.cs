@@ -138,7 +138,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         IAuthorizationRequest authorizationRequest,
         CancellationToken cancellationToken)
     {
-        var jsonSerializerOptions = authorizationRequest.OpenIdMessageContext.JsonSerializerOptions;
+        var jsonSerializerOptions = authorizationRequest.OpenIdContext.JsonSerializerOptions;
 
         var authorizationRequestJson = JsonSerializer.Serialize(
             authorizationRequest,
@@ -164,15 +164,15 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         CancellationToken cancellationToken)
     {
         var createdWhen = ticket.CreatedWhen;
-        var endpointContext = command.EndpointContext;
         var authorizationContext = command.AuthorizationContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
+        var openIdContext = authorizationRequest.OpenIdContext;
         var authenticationTicket = command.AuthenticationTicket;
 
         var client = authorizationContext.Client;
         var tokenConfiguration = client.AccessTokenConfiguration;
 
-        var tenant = endpointContext.Tenant;
+        var tenant = openIdContext.Tenant;
         var secretKeys = tenant.SecretKeyProvider.SecretKeys;
 
         var signingCredentials = GetSigningCredentials(
@@ -244,9 +244,9 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         CancellationToken cancellationToken)
     {
         var createdWhen = ticket.CreatedWhen;
-        var endpointContext = command.EndpointContext;
         var authorizationContext = command.AuthorizationContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
+        var openIdContext = authorizationRequest.OpenIdContext;
         var authenticationTicket = command.AuthenticationTicket;
 
         // References:
@@ -257,7 +257,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         var client = authorizationContext.Client;
         var tokenConfiguration = client.IdTokenConfiguration;
 
-        var tenant = endpointContext.Tenant;
+        var tenant = openIdContext.Tenant;
         var secretKeys = tenant.SecretKeyProvider.SecretKeys;
 
         var signingCredentials = GetSigningCredentials(

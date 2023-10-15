@@ -19,7 +19,6 @@
 
 using System.Collections;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
@@ -46,7 +45,7 @@ internal class AuthorizationRequest : IAuthorizationRequest
 
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 
-    public IOpenIdMessageContext OpenIdMessageContext => OriginalRequestMessage.OpenIdMessageContext;
+    public OpenIdContext OpenIdContext => OriginalRequestMessage.OpenIdContext;
 
     public IAuthorizationRequestMessage OriginalRequestMessage { get; }
 
@@ -77,7 +76,9 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public string ClientId =>
         OriginalRequestObject?.ClientId ??
         OriginalRequestMessage.ClientId ??
-        throw OpenIdMessageContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ClientId).AsException();
+        throw OpenIdContext.ErrorFactory
+            .MissingParameter(OpenIdConstants.Parameters.ClientId)
+            .AsException();
 
     public string? CodeChallenge =>
         OriginalRequestObject?.CodeChallenge ??
@@ -124,7 +125,9 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public Uri RedirectUri =>
         OriginalRequestObject?.RedirectUri ??
         OriginalRequestMessage.RedirectUri ??
-        throw OpenIdMessageContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri).AsException();
+        throw OpenIdContext.ErrorFactory
+            .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+            .AsException();
 
     public ResponseMode ResponseMode =>
         OriginalRequestObject?.ResponseMode ??
@@ -134,12 +137,16 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public ResponseTypes ResponseType =>
         OriginalRequestObject?.ResponseType ??
         OriginalRequestMessage.ResponseType ??
-        throw OpenIdMessageContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
+        throw OpenIdContext.ErrorFactory
+            .MissingParameter(OpenIdConstants.Parameters.ResponseType)
+            .AsException();
 
     public IReadOnlyCollection<string> Scopes =>
         OriginalRequestObject?.Scopes ??
         OriginalRequestMessage.Scopes ??
-        throw OpenIdMessageContext.ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
+        throw OpenIdContext.ErrorFactory
+            .MissingParameter(OpenIdConstants.Parameters.Scope)
+            .AsException();
 
     public string? State =>
         OriginalRequestObject?.State ??

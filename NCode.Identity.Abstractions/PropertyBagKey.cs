@@ -20,51 +20,86 @@
 namespace NCode.Identity;
 
 /// <summary>
-/// Base interface for a strongly typed key in a <see cref="IPropertyBag"/>.
+/// Represents a strongly typed key in a <see cref="IPropertyBag"/>.
 /// </summary>
-public interface IPropertyBagKey : IEquatable<IPropertyBagKey>
+public readonly struct PropertyBagKey : IEquatable<PropertyBagKey>
 {
     /// <summary>
     /// Gets the <see cref="Type"/> of the value in the property bag.
     /// </summary>
-    Type Type { get; }
+    public Type Type { get; }
 
     /// <summary>
     /// Gets the <see cref="string"/> name of the value in the property bag.
     /// </summary>
-    string Name { get; }
-}
+    public string Name { get; }
 
-// TODO: using a struct might be a bad idea, should we always use a class?
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PropertyBagKey"/> struct.
+    /// </summary>
+    /// <param name="type">The <see cref="Type"/> of the value in the property bag.</param>
+    /// <param name="name">The <see cref="string"/> name of the value in the property bag.</param>
+    public PropertyBagKey(Type type, string name)
+    {
+        Type = type;
+        Name = name;
+    }
+
+    /// <inheritdoc/>
+    public bool Equals(PropertyBagKey other) =>
+        Type == other.Type && Name == other.Name;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) =>
+        obj is PropertyBagKey other && Equals(other);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() =>
+        HashCode.Combine(Type, Name);
+
+    /// <summary>
+    /// The equality operator that returns <c>true</c> if the two operands are equal.
+    /// </summary>
+    public static bool operator ==(PropertyBagKey left, PropertyBagKey right) =>
+        left.Equals(right);
+
+    /// <summary>
+    /// The inequality operator that returns <c>true</c> if the two operands aren't equal.
+    /// </summary>
+    public static bool operator !=(PropertyBagKey left, PropertyBagKey right) =>
+        !(left == right);
+}
 
 /// <summary>
 /// Represents a strongly typed key in a <see cref="IPropertyBag"/>.
 /// </summary>
 /// <typeparam name="T">The type of the value in the property bag.</typeparam>
-public readonly struct PropertyBagKey<T> : IPropertyBagKey
+public readonly struct PropertyBagKey<T> : IEquatable<PropertyBagKey<T>>
 {
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the <see cref="Type"/> of the value in the property bag.
+    /// </summary>
     public Type Type => typeof(T);
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the <see cref="string"/> name of the value in the property bag.
+    /// </summary>
     public string Name { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyBagKey{T}"/> struct with the supplied <paramref name="name"/> value.
     /// </summary>
     /// <param name="name">The <see cref="string"/> name of the value in the property bag.</param>
-    public PropertyBagKey(string name)
-    {
+    public PropertyBagKey(string name) =>
         Name = name;
-    }
 
     /// <inheritdoc/>
-    public bool Equals(IPropertyBagKey? other) =>
-        other != null && Type == other.Type && Name == other.Name;
+    public bool Equals(PropertyBagKey<T> other) =>
+        Type == other.Type && Name == other.Name;
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) =>
-        obj is IPropertyBagKey other && Equals(other);
+        obj is PropertyBagKey<T> other && Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode() =>
@@ -81,4 +116,10 @@ public readonly struct PropertyBagKey<T> : IPropertyBagKey
     /// </summary>
     public static bool operator !=(PropertyBagKey<T> left, PropertyBagKey<T> right) =>
         !(left == right);
+
+    /// <summary>
+    /// Implicitly converts a <see cref="PropertyBagKey{T}"/> to a <see cref="PropertyBagKey"/>.
+    /// </summary>
+    public static implicit operator PropertyBagKey(PropertyBagKey<T> key) =>
+        new(key.Type, key.Name);
 }

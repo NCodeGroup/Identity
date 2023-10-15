@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -18,28 +18,11 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Messages;
+namespace NIdentity.OpenId.Messages.Parameters;
 
-/// <summary>
-/// Provides common services when handling <c>OAuth</c> or <c>OpenId Connect</c> messages.
-/// </summary>
-public interface IOpenIdMessageContext
+public interface IKnownParameterCollection : IReadOnlyCollection<KnownParameter>
 {
-    /// <summary>
-    /// Gets an <see cref="IOpenIdErrorFactory"/> that can be used to create error responses
-    /// for <c>OAuth</c> or<c>OpenId Connect</c> operations.
-    /// </summary>
-    IOpenIdErrorFactory ErrorFactory { get; }
-
-    /// <summary>
-    /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.
-    /// </summary>
-    JsonSerializerOptions JsonSerializerOptions { get; }
-
     /// <summary>
     /// Attempts to get a <see cref="KnownParameter"/> that has the specified name.
     /// </summary>
@@ -48,5 +31,5 @@ public interface IOpenIdMessageContext
     /// name, if found; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if the <see cref="KnownParameter"/> with the specified name was found; otherwise,
     /// <c>false</c>.</returns>
-    bool TryGetKnownParameter(string parameterName, [NotNullWhen(true)] out KnownParameter? knownParameter);
+    bool TryGet(string parameterName, [MaybeNullWhen(false)] out KnownParameter knownParameter);
 }

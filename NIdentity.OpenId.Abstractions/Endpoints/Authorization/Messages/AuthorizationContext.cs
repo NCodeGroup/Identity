@@ -38,7 +38,7 @@ public abstract class AuthorizationContext
     public abstract IAuthorizationRequest AuthorizationRequest { get; }
 
     /// <summary>
-    /// Gets an <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
+    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
 }

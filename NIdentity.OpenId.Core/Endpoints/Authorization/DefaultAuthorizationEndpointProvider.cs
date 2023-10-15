@@ -19,16 +19,16 @@ using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Endpoints.Authorization;
 
-internal class AuthorizationEndpointProvider : IOpenIdEndpointProvider
+internal class DefaultAuthorizationEndpointProvider : IOpenIdEndpointProvider
 {
     private IOpenIdEndpointFactory EndpointFactory { get; }
 
-    public AuthorizationEndpointProvider(IOpenIdEndpointFactory endpointFactory)
+    public DefaultAuthorizationEndpointProvider(IOpenIdEndpointFactory endpointFactory)
     {
         EndpointFactory = endpointFactory;
     }
 
-    private static AuthorizationEndpointCommand CreateAuthorizationEndpointCommand(OpenIdEndpointContext context)
+    private static AuthorizationEndpointCommand CreateAuthorizationEndpointCommand(OpenIdContext context)
     {
         return new AuthorizationEndpointCommand(context);
     }

@@ -1,4 +1,5 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,22 +14,19 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Results;
-using NIdentity.OpenId.Serialization;
 
-namespace NIdentity.OpenId.Messages;
+namespace NIdentity.OpenId.Messages.Parameters;
 
-// TODO: register in DI (but we have a circular dependency)
-
-internal class OpenIdMessageContext : IOpenIdMessageContext
+internal class KnownParameterCollection : IKnownParameterCollection
 {
+    public static KnownParameterCollection Default { get; } = new();
+
+    // TODO: allow for additional/custom known parameters to be added/registered
     private static readonly IReadOnlyDictionary<string, KnownParameter> StaticKnownParameters = new Dictionary<string, KnownParameter>(StringComparer.OrdinalIgnoreCase)
     {
         [KnownParameters.AcrValues.Name] = KnownParameters.AcrValues,
@@ -54,36 +52,18 @@ internal class OpenIdMessageContext : IOpenIdMessageContext
         [KnownParameters.UiLocales.Name] = KnownParameters.UiLocales,
     };
 
-    public IOpenIdErrorFactory ErrorFactory { get; }
+    /// <inheritdoc />
+    public int Count =>
+        StaticKnownParameters.Count;
 
-    public JsonSerializerOptions JsonSerializerOptions { get; }
+    /// <inheritdoc />
+    public bool TryGet(string parameterName, [MaybeNullWhen(false)] out KnownParameter knownParameter) =>
+        StaticKnownParameters.TryGetValue(parameterName, out knownParameter);
 
-    public OpenIdMessageContext(IOpenIdErrorFactory errorFactory)
-    {
-        ErrorFactory = errorFactory;
+    /// <inheritdoc />
+    public IEnumerator<KnownParameter> GetEnumerator() =>
+        StaticKnownParameters.Values.GetEnumerator();
 
-        JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        {
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-
-            Converters =
-            {
-                new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(this),
-
-                new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
-                new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
-
-                new AuthorizationRequestJsonConverter(),
-                new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
-                new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
-            }
-        };
-    }
-
-    public bool TryGetKnownParameter(string parameterName, [NotNullWhen(true)] out KnownParameter? knownParameter)
-    {
-        return StaticKnownParameters.TryGetValue(parameterName, out knownParameter);
-    }
+    IEnumerator IEnumerable.GetEnumerator() =>
+        GetEnumerator();
 }

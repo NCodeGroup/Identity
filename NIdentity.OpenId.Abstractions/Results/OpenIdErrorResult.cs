@@ -20,7 +20,7 @@
 namespace NIdentity.OpenId.Results;
 
 /// <summary>
-/// An implementation of <see cref="IOpenIdResult"/> that when executed, will render an <see cref="IOpenIdError"/>.
+/// Provides an implementation of <see cref="IOpenIdResult"/> that when executed, will render an <see cref="IOpenIdError"/>.
 /// </summary>
 public class OpenIdErrorResult : OpenIdResult<OpenIdErrorResult>
 {

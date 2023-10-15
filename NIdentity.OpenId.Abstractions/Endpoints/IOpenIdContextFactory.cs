@@ -17,13 +17,14 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Options;
+using Microsoft.AspNetCore.Http;
 
-public class TenantOptions
+namespace NIdentity.OpenId.Endpoints;
+
+public interface IOpenIdContextFactory
 {
-    public string TenantId { get; set; } = string.Empty;
-
-    public string DisplayName { get; set; } = string.Empty;
-
-    public UriDescriptor BaseAddress { get; set; } = default;
+    ValueTask<OpenIdContext> CreateAsync(
+        HttpContext httpContext,
+        OpenIdEndpointDescriptor endpointDescriptor,
+        CancellationToken cancellationToken);
 }

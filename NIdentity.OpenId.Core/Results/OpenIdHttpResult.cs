@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using Microsoft.AspNetCore.Http;
@@ -20,23 +22,28 @@ using NIdentity.OpenId.Endpoints;
 
 namespace NIdentity.OpenId.Results;
 
-public class HttpResult : OpenIdResult
+/// <summary>
+/// Provides an implementation of <see cref="IOpenIdResult"/> that when executed, will render an <see cref="IResult"/>
+/// that contains a HTTP result.
+/// </summary>
+public class OpenIdHttpResult : OpenIdResult
 {
     /// <summary>
-    /// Gets or sets the <see cref="IResult"/>.
+    /// Gets the <see cref="IResult"/> that contains the HTTP result.
     /// </summary>
-    public IResult Result { get; set; }
+    public IResult Result { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HttpResult"/> class.
+    /// Initializes a new instance of the <see cref="OpenIdHttpResult"/> class with an <see cref="IResult"/>
+    /// that contains a HTTP result.
     /// </summary>
-    /// <param name="result"><see cref="IResult"/></param>
-    public HttpResult(IResult result)
+    /// <param name="result">The <see cref="IResult"/> that contains a HTTP result.</param>
+    public OpenIdHttpResult(IResult result)
     {
         Result = result;
     }
 
     /// <inheritdoc />
-    public override async ValueTask ExecuteResultAsync(OpenIdEndpointContext context, CancellationToken cancellationToken) =>
+    public override async ValueTask ExecuteResultAsync(OpenIdContext context, CancellationToken cancellationToken) =>
         await Result.ExecuteAsync(context.HttpContext);
 }

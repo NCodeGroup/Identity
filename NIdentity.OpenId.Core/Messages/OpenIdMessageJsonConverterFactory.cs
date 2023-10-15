@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,17 +17,18 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NIdentity.OpenId.Endpoints;
 
 namespace NIdentity.OpenId.Messages;
 
 internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
 {
-    private IOpenIdMessageContext OpenIdMessageContext { get; }
+    private OpenIdContext OpenIdContext { get; }
 
     /// <inheritdoc />
-    public OpenIdMessageJsonConverterFactory(IOpenIdMessageContext context)
+    public OpenIdMessageJsonConverterFactory(OpenIdContext context)
     {
-        OpenIdMessageContext = context;
+        OpenIdContext = context;
     }
 
     /// <inheritdoc />
@@ -40,6 +41,6 @@ internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
     public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
         var typeOfConverter = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
-        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, OpenIdMessageContext);
+        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, OpenIdContext);
     }
 }

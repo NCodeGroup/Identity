@@ -21,13 +21,14 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages;
 
 /// <summary>
 /// Provides a default implementation of <see cref="IOpenIdMessage"/> that uses strongly-typed <see cref="Parameter"/> and
-/// <see cref="KnownParameter"/> objects for <c>OAuth</c> or <c>OpenId Connect</c> parameters.
+/// <see cref="KnownParameter"/> objects for <c>OAuth</c> or <c>OpenID Connect</c> parameters.
 /// </summary>
 public class OpenIdMessage : IOpenIdMessage
 {
@@ -36,36 +37,39 @@ public class OpenIdMessage : IOpenIdMessage
     [MemberNotNullWhen(true, nameof(ContextOrNull))]
     private bool IsInitialized { get; set; }
 
-    private IOpenIdMessageContext? ContextOrNull { get; set; }
+    private OpenIdContext? ContextOrNull { get; set; }
 
     private Dictionary<string, Parameter> ParameterStore { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenId Connect</c> parameters.
+    /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenID Connect</c> parameters.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
     public IReadOnlyDictionary<string, Parameter> Parameters => ParameterStore;
 
     /// <summary>
-    /// Gets the <see cref="IOpenIdMessageContext"/> for the current instance.
+    /// Gets the <see cref="OpenIdContext"/> for the current instance.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
-    public IOpenIdMessageContext OpenIdMessageContext => ContextOrNull ?? throw NotInitializedException;
+    public OpenIdContext OpenIdContext => ContextOrNull ?? throw NotInitializedException;
 
     /// <summary>
-    /// Creates an uninitialized new instance of the <see cref="OpenIdMessage"/> class.
+    /// Creates an uninitialized new instance of the <see cref="OpenIdMessage"/> class with optional default parameters.
     /// </summary>
-    public OpenIdMessage()
+    public OpenIdMessage(params Parameter[] parameters)
     {
-        // nothing
+        foreach (var parameter in parameters)
+        {
+            ParameterStore.Add(parameter.Descriptor.ParameterName, parameter);
+        }
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
-    public OpenIdMessage(IOpenIdMessageContext context, params Parameter[] parameters)
+    public OpenIdMessage(OpenIdContext context, params Parameter[] parameters)
     {
         Initialize(context, parameters.AsEnumerable());
     }
@@ -73,38 +77,40 @@ public class OpenIdMessage : IOpenIdMessage
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
-    public OpenIdMessage(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
+    public OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters)
     {
         Initialize(context, parameters);
     }
 
     /// <summary>
-    /// Initializes the current instance with an <see cref="IOpenIdMessageContext"/> and collection of <see cref="Parameter"/> values.
+    /// Initializes the current instance with an <see cref="OpenIdContext"/> and collection of <see cref="Parameter"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
-    public void Initialize(IOpenIdMessageContext context, params Parameter[] parameters)
+    public void Initialize(OpenIdContext context, params Parameter[] parameters)
     {
         Initialize(context, parameters.AsEnumerable());
     }
 
     /// <summary>
-    /// Initializes the current instance with an <see cref="IOpenIdMessageContext"/> and collection of <see cref="Parameter"/> values.
+    /// Initializes the current instance with an <see cref="OpenIdContext"/> and collection of <see cref="Parameter"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
+    /// <param name="cloneParameters"><c>true</c> if the <see cref="Parameter"/> instances should be deep-cloned; otherwise,
+    /// <c>false</c>. The default value is <c>false</c>.</param>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
-    public void Initialize(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
+    public void Initialize(OpenIdContext context, IEnumerable<Parameter> parameters, bool cloneParameters = false)
     {
         if (IsInitialized) throw new InvalidOperationException("Already initialized");
 
         ContextOrNull = context;
         ParameterStore = parameters.ToDictionary(
             parameter => parameter.Descriptor.ParameterName,
-            parameter => parameter,
+            parameter => cloneParameters ? parameter.Clone() : parameter,
             StringComparer.OrdinalIgnoreCase);
 
         IsInitialized = true;
@@ -117,8 +123,7 @@ public class OpenIdMessage : IOpenIdMessage
     public IEnumerable<string> Keys => ParameterStore.Keys;
 
     /// <inheritdoc />
-    public IEnumerable<StringValues> Values =>
-        ParameterStore.Values.Select(parameter => parameter.StringValues);
+    public IEnumerable<StringValues> Values => ParameterStore.Values.Select(parameter => parameter.StringValues);
 
     /// <inheritdoc />
     public StringValues this[string key] => ParameterStore[key].StringValues;
@@ -193,36 +198,37 @@ public class OpenIdMessage : IOpenIdMessage
 /// <summary>
 /// Provides a generic implementation of <see cref="OpenIdMessage"/>.
 /// </summary>
-/// <typeparam name="T">The type of <c>OAuth</c> or <c>OpenId Connect</c> message.</typeparam>
+/// <typeparam name="T">The type of <c>OAuth</c> or <c>OpenID Connect</c> message.</typeparam>
 public abstract class OpenIdMessage<T> : OpenIdMessage
-    where T : OpenIdMessage, new()
+    where T : OpenIdMessage<T>, new()
 {
     /// <inheritdoc />
-    protected OpenIdMessage()
+    protected OpenIdMessage(params Parameter[] parameters)
+        : base(parameters)
     {
         // nothing
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(IOpenIdMessageContext context, params Parameter[] parameters)
+    protected OpenIdMessage(OpenIdContext context, params Parameter[] parameters)
         : base(context, parameters)
     {
         // nothing
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
+    protected OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters)
         : base(context, parameters)
     {
         // nothing
     }
 
     /// <summary>
-    /// Create an empty <c>OAuth</c> or <c>OpenId Connect</c> message.
+    /// Create an empty <c>OAuth</c> or <c>OpenID Connect</c> message.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Create(IOpenIdMessageContext context)
+    public static T Create(OpenIdContext context)
     {
         var message = new T();
         message.Initialize(context);
@@ -230,49 +236,82 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     }
 
     /// <summary>
-    /// Create and loads an <c>OAuth</c> or <c>OpenId Connect</c> message by using a collection of <see cref="Parameter{T}"/> values.
+    /// Create and loads an <c>OAuth</c> or <c>OpenID Connect</c> message by using a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
+    /// <param name="cloneParameters"><c>true</c> if the <see cref="Parameter"/> instances should be deep-cloned; otherwise,
+    /// <c>false</c>. The default value is <c>false</c>.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(IOpenIdMessageContext context, IEnumerable<Parameter> parameters)
+    public static T Load(OpenIdContext context, IEnumerable<Parameter> parameters, bool cloneParameters = false)
     {
         var message = new T();
-        message.Initialize(context, parameters);
+        message.Initialize(context, parameters, cloneParameters);
         return message;
     }
 
     /// <summary>
-    /// Create and loads an <c>OAuth</c> or <c>OpenId Connect</c> message by parsing <see cref="StringValues"/> key-value pairs into a collection of <see cref="Parameter{T}"/> values.
+    /// Create and loads an <c>OAuth</c> or <c>OpenID Connect</c> message by parsing <see cref="StringValues"/> key-value pairs into a collection of <see cref="Parameter{T}"/> values.
     /// </summary>
-    /// <param name="context"><see cref="IOpenIdMessageContext"/></param>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <param name="properties">The collection of <see cref="StringValues"/> key-value pairs to be parsed into <see cref="Parameter{T}"/> values.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(IOpenIdMessageContext context, IEnumerable<KeyValuePair<string, StringValues>> properties) =>
+    public static T Load(OpenIdContext context, IEnumerable<KeyValuePair<string, StringValues>> properties) =>
         Load(context, properties.Select(property => Parameter.Load(context, property.Key, property.Value)));
 
     /// <summary>
-    /// Create and loads an <c>OAuth</c> or <c>OpenId Connect</c> message by cloning an existing message.
+    /// Create and loads an <c>OAuth</c> or <c>OpenID Connect</c> message by cloning an existing message.
+    /// </summary>
+    /// <param name="other">The <see cref="OpenIdMessage"/> to clone.</param>
+    /// <returns>A new instance of <typeparamref name="T"/>.</returns>
+    public static T Load(OpenIdMessage other) =>
+        Load(other.OpenIdContext, other.Parameters.Values, cloneParameters: true);
+
+    /// <summary>
+    /// Create and loads an <c>OAuth</c> or <c>OpenID Connect</c> message by cloning an existing message.
     /// </summary>
     /// <param name="other">The <see cref="IOpenIdMessage"/> to clone.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
     public static T Load(IOpenIdMessage other) =>
-        Load(other.OpenIdMessageContext, other);
+        other is OpenIdMessage typedMessage ?
+            Load(typedMessage) :
+            Load(other.OpenIdContext, other);
 }
 
 /// <summary>
 /// Provides a generic implementation of <see cref="OpenIdMessage"/> that has additional properties to be included in JSON serialization.
 /// </summary>
-/// <typeparam name="T">The type of <c>OAuth</c> or <c>OpenId Connect</c> message.</typeparam>
+/// <typeparam name="T">The type of <c>OAuth</c> or <c>OpenID Connect</c> message.</typeparam>
 /// <typeparam name="TProperties">The type that contains the additional properties for JSON serialization.</typeparam>
 public abstract class OpenIdMessage<T, TProperties> : OpenIdMessage<T>, ISupportProperties
-    where T : OpenIdMessage, new()
+    where T : OpenIdMessage<T, TProperties>, new()
     where TProperties : class, new()
 {
     /// <summary>
     /// Provides storage for any properties that are to be included in JSON serialization.
     /// </summary>
     protected TProperties Properties { get; private set; } = new();
+
+    /// <inheritdoc />
+    protected OpenIdMessage(params Parameter[] parameters)
+        : base(parameters)
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
+    protected OpenIdMessage(OpenIdContext context, params Parameter[] parameters)
+        : base(context, parameters)
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
+    protected OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters)
+        : base(context, parameters)
+    {
+        // nothing
+    }
 
     void ISupportProperties.SerializeProperties(Utf8JsonWriter writer, JsonSerializerOptions options)
     {

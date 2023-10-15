@@ -27,11 +27,11 @@ namespace NIdentity.OpenId.Endpoints.Discovery.Results;
 public class DiscoveryResult : OpenIdResult
 {
     /// <summary>
-    /// Gets the metadata collection for an <c>OAuth</c> or<c>OpenId Connect</c> authorization server.
+    /// Gets the metadata collection for an <c>OAuth</c> or<c>OpenID Connect</c> authorization server.
     /// </summary>
     public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />
-    public override async ValueTask ExecuteResultAsync(OpenIdEndpointContext context, CancellationToken cancellationToken) =>
+    public override async ValueTask ExecuteResultAsync(OpenIdContext context, CancellationToken cancellationToken) =>
         await GetExecutor<DiscoveryResult>(context).ExecuteResultAsync(context, this, cancellationToken);
 }

@@ -1,21 +1,24 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Endpoints;
 
 namespace NIdentity.OpenId.Messages.Parameters;
 
@@ -46,14 +49,24 @@ public abstract class Parameter
     }
 
     /// <summary>
+    /// Clones this <see cref="Parameter"/> instance.
+    /// </summary>
+    /// <returns>The newly cloned <see cref="Parameter"/> instance.</returns>
+    public abstract Parameter Clone();
+
+    /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use while loading the parameter.</param>
+    /// <param name="context">The <see cref="OpenIdContext"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public static Parameter Load(IOpenIdMessageContext context, string parameterName, IEnumerable<string> stringValues, bool ignoreErrors = false)
+    public static Parameter Load(
+        OpenIdContext context,
+        string parameterName,
+        IEnumerable<string> stringValues,
+        bool ignoreErrors = false)
     {
         return Load(context, parameterName, stringValues.ToArray(), ignoreErrors);
     }
@@ -61,14 +74,18 @@ public abstract class Parameter
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="IOpenIdMessageContext"/> to use while loading the parameter.</param>
+    /// <param name="context">The <see cref="OpenIdContext"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public static Parameter Load(IOpenIdMessageContext context, string parameterName, StringValues stringValues, bool ignoreErrors = false)
+    public static Parameter Load(
+        OpenIdContext context,
+        string parameterName,
+        StringValues stringValues,
+        bool ignoreErrors = false)
     {
-        var descriptor = context.TryGetKnownParameter(parameterName, out var knownParameter) ?
+        var descriptor = context.KnownParameters.TryGet(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
 
@@ -98,4 +115,7 @@ public class Parameter<T> : Parameter
     {
         ParsedValue = parsedValue;
     }
+
+    /// <inheritdoc />
+    public override Parameter Clone() => new Parameter<T>(Descriptor, StringValues, ParsedValue);
 }

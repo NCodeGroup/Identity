@@ -1,23 +1,26 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 
@@ -29,20 +32,20 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
     private const string TypeKey = "$type";
     private const string PropertiesKey = "$properties";
 
-    private IOpenIdMessageContext OpenIdMessageContext { get; }
+    private OpenIdContext OpenIdContext { get; }
 
-    public OpenIdMessageJsonConverter(IOpenIdMessageContext context)
+    public OpenIdMessageJsonConverter(OpenIdContext openIdContext)
     {
-        OpenIdMessageContext = context;
+        OpenIdContext = openIdContext;
     }
 
     internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
-        var descriptor = OpenIdMessageContext.TryGetKnownParameter(parameterName, out var knownParameter) ?
+        var descriptor = OpenIdContext.KnownParameters.TryGet(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
-        var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
-        return jsonParser.Read(ref reader, OpenIdMessageContext, descriptor, options);
+        var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Singleton;
+        return jsonParser.Read(ref reader, OpenIdContext, descriptor, options);
     }
 
     private static T CreateMessage(Type messageType)
@@ -87,7 +90,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             {
                 case JsonTokenType.EndObject:
                     messageOrNull ??= CreateMessage(messageType);
-                    messageOrNull.Initialize(OpenIdMessageContext, parameters);
+                    messageOrNull.Initialize(OpenIdContext, parameters);
                     return messageOrNull;
 
                 case JsonTokenType.PropertyName:
@@ -161,8 +164,8 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
 
         foreach (var parameter in message.Parameters.Values)
         {
-            var jsonParser = parameter.Descriptor.Loader as IJsonParser ?? DefaultJsonParser.Instance;
-            jsonParser.Write(writer, OpenIdMessageContext, parameter, options);
+            var jsonParser = parameter.Descriptor.Loader as IJsonParser ?? DefaultJsonParser.Singleton;
+            jsonParser.Write(writer, OpenIdContext, parameter, options);
         }
 
         writer.WriteEndObject();

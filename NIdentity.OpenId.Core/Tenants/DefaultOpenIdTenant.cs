@@ -20,6 +20,7 @@
 using Microsoft.AspNetCore.Http.Features;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.Features;
+using NIdentity.OpenId.Options;
 
 namespace NIdentity.OpenId.Tenants;
 
@@ -60,6 +61,9 @@ public class DefaultOpenIdTenant : OpenIdTenant
 
     /// <inheritdoc />
     public override ISecretKeyProvider SecretKeyProvider => TenantFeature.SecretKeyProvider;
+
+    /// <inheritdoc />
+    public override TenantOptions Options => throw new NotImplementedException();
 
     private struct FeatureInterfaces
     {

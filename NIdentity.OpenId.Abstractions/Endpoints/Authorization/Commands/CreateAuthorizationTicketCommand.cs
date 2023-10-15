@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
@@ -22,8 +24,7 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
-public record struct CreateAuthorizationTicketCommand(
-    OpenIdEndpointContext EndpointContext,
+public record CreateAuthorizationTicketCommand(
     AuthorizationContext AuthorizationContext,
     AuthenticationTicket AuthenticationTicket
 ) : ICommand<IAuthorizationTicket>;

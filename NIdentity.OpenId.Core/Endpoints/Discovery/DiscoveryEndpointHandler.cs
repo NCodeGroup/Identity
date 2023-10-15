@@ -38,7 +38,7 @@ internal class DiscoveryEndpointHandler : ICommandResponseHandler<DiscoveryEndpo
     public ValueTask<IOpenIdResult> HandleAsync(DiscoveryEndpointCommand command, CancellationToken cancellationToken)
     {
         var routeValues = new { };
-        var httpContext = command.EndpointContext.HttpContext;
+        var httpContext = command.OpenIdContext.HttpContext;
 
         var result = new DiscoveryResult();
         var metadata = result.Metadata;

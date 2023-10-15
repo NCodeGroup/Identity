@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,21 +14,21 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-using NIdentity.OpenId.Messages;
+namespace NIdentity.OpenId.Options;
 
-namespace NIdentity.OpenId.Results;
-
-// TODO: register in DI (but we have a circular dependency)
-
-internal class OpenIdErrorFactory : IOpenIdErrorFactory
+public class TenantOptions
 {
-    private IOpenIdMessageContext OpenIdMessageContext { get; }
+    /// <summary>
+    /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.
+    /// The default is <c>300</c> seconds (5 minutes).
+    /// </summary>
+    public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5);
 
-    public OpenIdErrorFactory(IOpenIdMessageContext openIdMessageContext) =>
-        OpenIdMessageContext = openIdMessageContext;
-
-    public IOpenIdError Create(string errorCode) =>
-        new OpenIdError(OpenIdMessageContext, errorCode);
+    /// <summary>
+    /// Gets or set the <see cref="AuthorizationOptions"/> for the <c>OpenID Connect</c> authorization handler.
+    /// </summary>
+    public AuthorizationOptions Authorization { get; set; } = new();
 }

@@ -34,16 +34,18 @@ public class DefaultAuthorizationContext : AuthorizationContext
     public override IAuthorizationRequest AuthorizationRequest { get; }
 
     /// <inheritdoc />
-    public override IPropertyBag PropertyBag { get; } = new PropertyBag();
+    public override IPropertyBag PropertyBag { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultAuthorizationContext"/> class.
     /// </summary>
     /// <param name="client"><see cref="Client"/></param>
     /// <param name="authorizationRequest"><see cref="IAuthorizationRequest"/></param>
-    public DefaultAuthorizationContext(Client client, IAuthorizationRequest authorizationRequest)
+    /// <param name="propertyBag"><see cref="IPropertyBag"/></param>
+    public DefaultAuthorizationContext(Client client, IAuthorizationRequest authorizationRequest, IPropertyBag propertyBag)
     {
         Client = client;
         AuthorizationRequest = authorizationRequest;
+        PropertyBag = propertyBag;
     }
 }

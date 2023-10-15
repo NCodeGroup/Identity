@@ -1,4 +1,5 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,18 +14,18 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
 
 namespace NIdentity.OpenId.Options;
 
-public class IdentityServerOptions
+/// <summary>
+/// Contains configurable options for the <c>OpenID Connect</c> authorization handler.
+/// </summary>
+public class AuthorizationOptions
 {
-    public IdentityServerEvents Events { get; } = new();
-
-    public string AuthenticationScheme { get; set; } = "TODO";
-
     /// <summary>
     /// Gets or sets the authentication scheme corresponding to the middleware
     /// responsible of persisting user's identity after a successful authentication.
@@ -34,8 +35,7 @@ public class IdentityServerOptions
     public string? SignInScheme { get; set; }
 
     /// <summary>
-    /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.
-    /// The default is <c>300</c> seconds (5 minutes).
+    /// Contains configurable options for dealing with request objects in the <c>OpenID Connect</c> authorization handler.
     /// </summary>
-    public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5.0);
+    public AuthorizationRequestObjectOptions RequestObject { get; set; } = new();
 }

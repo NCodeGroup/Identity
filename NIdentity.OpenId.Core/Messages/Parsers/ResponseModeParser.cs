@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,10 +14,12 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 
@@ -28,7 +31,9 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class ResponseModeParser : ParameterParser<ResponseMode?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(IOpenIdMessageContext context, ResponseMode? value)
+    public override StringValues Serialize(
+        OpenIdContext context,
+        ResponseMode? value)
     {
         return value switch
         {
@@ -40,7 +45,11 @@ public class ResponseModeParser : ParameterParser<ResponseMode?>
     }
 
     /// <inheritdoc/>
-    public override ResponseMode? Parse(IOpenIdMessageContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override ResponseMode? Parse(
+        OpenIdContext context,
+        ParameterDescriptor descriptor,
+        StringValues stringValues,
+        bool ignoreErrors = false)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 

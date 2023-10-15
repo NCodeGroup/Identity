@@ -25,11 +25,11 @@ namespace NCode.Identity;
 /// <summary>
 /// Provides a default implementation of the <see cref="IPropertyBag"/> abstraction.
 /// </summary>
-public class PropertyBag : IPropertyBag, IReadOnlyDictionary<IPropertyBagKey, object?>
+public class PropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagKey, object?>
 {
-    private IDictionary<IPropertyBagKey, object?>? ItemsOrNull { get; set; }
+    private IDictionary<PropertyBagKey, object?>? ItemsOrNull { get; set; }
 
-    private IDictionary<IPropertyBagKey, object?> Items => ItemsOrNull ??= new Dictionary<IPropertyBagKey, object?>();
+    private IDictionary<PropertyBagKey, object?> Items => ItemsOrNull ??= new Dictionary<PropertyBagKey, object?>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyBag"/> class.
@@ -47,7 +47,7 @@ public class PropertyBag : IPropertyBag, IReadOnlyDictionary<IPropertyBagKey, ob
         var items = ItemsOrNull;
         if (items is { Count: > 0 })
         {
-            newBag.ItemsOrNull = new Dictionary<IPropertyBagKey, object?>(items);
+            newBag.ItemsOrNull = new Dictionary<PropertyBagKey, object?>(items);
         }
 
         return newBag;
@@ -63,7 +63,7 @@ public class PropertyBag : IPropertyBag, IReadOnlyDictionary<IPropertyBagKey, ob
     /// <inheritdoc />
     public bool TryGetValue<T>(PropertyBagKey<T> key, [MaybeNullWhen(false)] out T value)
     {
-        if (TryGetValue(key, out object? baseValue) && baseValue is T typedValue)
+        if (TryGetBase(key, out var baseValue) && baseValue is T typedValue)
         {
             value = typedValue;
             return true;
@@ -73,7 +73,7 @@ public class PropertyBag : IPropertyBag, IReadOnlyDictionary<IPropertyBagKey, ob
         return false;
     }
 
-    private bool TryGetValue(IPropertyBagKey key, out object? value)
+    private bool TryGetBase(PropertyBagKey key, out object? value)
     {
         if (ItemsOrNull?.TryGetValue(key, out var baseValue) ?? false)
         {
@@ -88,26 +88,26 @@ public class PropertyBag : IPropertyBag, IReadOnlyDictionary<IPropertyBagKey, ob
     //
 
     IEnumerator IEnumerable.GetEnumerator() =>
-        (ItemsOrNull ?? Enumerable.Empty<KeyValuePair<IPropertyBagKey, object?>>()).GetEnumerator();
+        (ItemsOrNull ?? Enumerable.Empty<KeyValuePair<PropertyBagKey, object?>>()).GetEnumerator();
 
-    IEnumerator<KeyValuePair<IPropertyBagKey, object?>> IEnumerable<KeyValuePair<IPropertyBagKey, object?>>.GetEnumerator() =>
-        (ItemsOrNull ?? Enumerable.Empty<KeyValuePair<IPropertyBagKey, object?>>()).GetEnumerator();
+    IEnumerator<KeyValuePair<PropertyBagKey, object?>> IEnumerable<KeyValuePair<PropertyBagKey, object?>>.GetEnumerator() =>
+        (ItemsOrNull ?? Enumerable.Empty<KeyValuePair<PropertyBagKey, object?>>()).GetEnumerator();
 
-    int IReadOnlyCollection<KeyValuePair<IPropertyBagKey, object?>>.Count =>
+    int IReadOnlyCollection<KeyValuePair<PropertyBagKey, object?>>.Count =>
         ItemsOrNull?.Count ?? 0;
 
-    IEnumerable<IPropertyBagKey> IReadOnlyDictionary<IPropertyBagKey, object?>.Keys =>
-        ItemsOrNull?.Keys ?? Array.Empty<IPropertyBagKey>();
+    IEnumerable<PropertyBagKey> IReadOnlyDictionary<PropertyBagKey, object?>.Keys =>
+        ItemsOrNull?.Keys ?? Array.Empty<PropertyBagKey>();
 
-    IEnumerable<object?> IReadOnlyDictionary<IPropertyBagKey, object?>.Values =>
+    IEnumerable<object?> IReadOnlyDictionary<PropertyBagKey, object?>.Values =>
         ItemsOrNull?.Values ?? Array.Empty<object?>();
 
-    object? IReadOnlyDictionary<IPropertyBagKey, object?>.this[IPropertyBagKey key] =>
-        TryGetValue(key, out var value) ? value : default;
+    object? IReadOnlyDictionary<PropertyBagKey, object?>.this[PropertyBagKey key] =>
+        TryGetBase(key, out var value) ? value : default;
 
-    bool IReadOnlyDictionary<IPropertyBagKey, object?>.ContainsKey(IPropertyBagKey key) =>
+    bool IReadOnlyDictionary<PropertyBagKey, object?>.ContainsKey(PropertyBagKey key) =>
         ItemsOrNull?.ContainsKey(key) ?? false;
 
-    bool IReadOnlyDictionary<IPropertyBagKey, object?>.TryGetValue(IPropertyBagKey key, out object? value) =>
-        TryGetValue(key, out value);
+    bool IReadOnlyDictionary<PropertyBagKey, object?>.TryGetValue(PropertyBagKey key, out object? value) =>
+        TryGetBase(key, out value);
 }

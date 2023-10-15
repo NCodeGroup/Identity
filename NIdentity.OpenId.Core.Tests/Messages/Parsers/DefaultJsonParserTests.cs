@@ -44,9 +44,9 @@ public class DefaultJsonParserTests : IDisposable
     [Fact]
     public void Singleton()
     {
-        var parser = DefaultJsonParser.Instance;
+        var parser = DefaultJsonParser.Singleton;
 
-        Assert.Same(DefaultJsonParser.Instance, parser);
+        Assert.Same(DefaultJsonParser.Singleton, parser);
     }
 
     [Fact]

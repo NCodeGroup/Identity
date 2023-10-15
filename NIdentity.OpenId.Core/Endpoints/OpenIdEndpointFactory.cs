@@ -31,17 +31,19 @@ public interface IOpenIdEndpointFactory
         string name,
         string path,
         IEnumerable<string> httpMethods,
-        Func<OpenIdEndpointContext, OpenIdEndpointCommand> commandFactory,
+        Func<OpenIdContext, OpenIdEndpointCommand> commandFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default);
 }
 
 public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 {
     private IMediator Mediator { get; }
+    private IOpenIdContextFactory OpenIdContextFactory { get; }
 
-    public OpenIdEndpointFactory(IMediator mediator)
+    public OpenIdEndpointFactory(IMediator mediator, IOpenIdContextFactory openIdContextFactory)
     {
         Mediator = mediator;
+        OpenIdContextFactory = openIdContextFactory;
     }
 
     /// <inheritdoc />
@@ -49,7 +51,7 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         string name,
         string path,
         IEnumerable<string> httpMethods,
-        Func<OpenIdEndpointContext, OpenIdEndpointCommand> commandFactory,
+        Func<OpenIdContext, OpenIdEndpointCommand> commandFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default)
     {
         var conventions = new List<Action<EndpointBuilder>>();
@@ -74,14 +76,11 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 
         async Task RequestDelegate(HttpContext httpContext)
         {
-            var context = new DefaultOpenIdEndpointContext(httpContext, descriptor);
-
-            // TODO: should we provide a convenience method to get the endpoint?
-            //var endpoint = httpContext.GetEndpoint();
-
-            var command = commandFactory(context);
-            var result = await Mediator.SendAsync(command, httpContext.RequestAborted);
-            await result.ExecuteResultAsync(context, httpContext.RequestAborted);
+            var cancellationToken = httpContext.RequestAborted;
+            var openIdContext = await OpenIdContextFactory.CreateAsync(httpContext, descriptor, cancellationToken);
+            var openIdCommand = commandFactory(openIdContext);
+            var openIdResult = await Mediator.SendAsync(openIdCommand, cancellationToken);
+            await openIdResult.ExecuteResultAsync(openIdContext, cancellationToken);
         }
 
         const int defaultOrder = 0;

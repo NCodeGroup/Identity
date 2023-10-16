@@ -17,8 +17,6 @@
 
 #endregion
 
-using NIdentity.OpenId.Endpoints;
-
 namespace NIdentity.OpenId.Results;
 
 /// <summary>

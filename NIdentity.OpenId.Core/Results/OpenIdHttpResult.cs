@@ -18,7 +18,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Endpoints;
 
 namespace NIdentity.OpenId.Results;
 

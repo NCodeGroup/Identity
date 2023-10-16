@@ -21,6 +21,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
@@ -28,7 +29,7 @@ using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Serialization;
 using NIdentity.OpenId.Tenants;
 
-namespace NIdentity.OpenId.Endpoints;
+namespace NIdentity.OpenId;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdContext"/> abstraction.

@@ -19,7 +19,6 @@
 
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
-using NIdentity.OpenId.Endpoints;
 
 namespace NIdentity.OpenId.Results;
 

@@ -23,6 +23,12 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
+/// <summary>
+/// Defines an <see cref="ICommand"/> contract that accepts <see cref="AuthorizationContext"/> and
+/// <see cref="AuthenticationTicket"/> as input arguments and doesn't return a value.
+/// </summary>
+/// <param name="AuthorizationContext">The <see cref="AuthorizationContext"/> input argument for the command contract.</param>
+/// <param name="AuthenticationTicket">The <see cref="AuthenticationTicket"/> input argument for the command contract.</param>
 public record ValidateUserIsActiveCommand(
     AuthorizationContext AuthorizationContext,
     AuthenticationTicket AuthenticationTicket

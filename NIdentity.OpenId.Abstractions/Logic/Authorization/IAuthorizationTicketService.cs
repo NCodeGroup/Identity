@@ -22,18 +22,42 @@ using NIdentity.OpenId.Endpoints.Authorization.Results;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
+/// <summary>
+/// Provides the ability for the authorization server to generate grants in response to authorization requests.
+/// </summary>
 public interface IAuthorizationTicketService
 {
+    /// <summary>
+    /// Generates the authorization code for an authorization request.
+    /// </summary>
+    /// <param name="command">The <see cref="CreateAuthorizationTicketCommand"/> for the current authorization request.</param>
+    /// <param name="ticket">The <see cref="IAuthorizationTicket"/> where the authorization code will be stored.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask CreateAuthorizationCodeAsync(
         CreateAuthorizationTicketCommand command,
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Generates the access token for an authorization request.
+    /// </summary>
+    /// <param name="command">The <see cref="CreateAuthorizationTicketCommand"/> for the current authorization request.</param>
+    /// <param name="ticket">The <see cref="IAuthorizationTicket"/> where the access token will be stored.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask CreateAccessTokenAsync(
         CreateAuthorizationTicketCommand command,
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Generates the ID token for an authorization request.
+    /// </summary>
+    /// <param name="command">The <see cref="CreateAuthorizationTicketCommand"/> for the current authorization request.</param>
+    /// <param name="ticket">The <see cref="IAuthorizationTicket"/> where the ID token will be stored.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask CreateIdTokenAsync(
         CreateAuthorizationTicketCommand command,
         IAuthorizationTicket ticket,

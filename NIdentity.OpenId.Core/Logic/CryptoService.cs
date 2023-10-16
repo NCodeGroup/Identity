@@ -28,7 +28,7 @@ using NCode.Jose.Infrastructure;
 namespace NIdentity.OpenId.Logic;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ICryptoService"/> abstraction.
+/// Provides a default implementation for the <see cref="ICryptoService"/> abstraction.
 /// </summary>
 public class CryptoService : ICryptoService
 {

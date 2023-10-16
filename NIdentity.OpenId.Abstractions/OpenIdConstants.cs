@@ -31,31 +31,77 @@ public static partial class OpenIdConstants
     /// </summary>
     public const string ParameterSeparator = " ";
 
+    /// <summary>
+    /// Contains the names for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
+    /// </summary>
     public static class EndpointNames
     {
+        /// <summary>
+        /// Contains the name for the discovery endpoint.
+        /// </summary>
         public const string Discovery = "discovery_endpoint";
+
+        /// <summary>
+        /// Contains the name for the authorization endpoint.
+        /// </summary>
         public const string Authorization = "authorization_endpoint";
     }
 
+    /// <summary>
+    /// Contains the relative paths for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
+    /// </summary>
     public static class EndpointPaths
     {
+        /// <summary>
+        /// Contains the common prefix for all endpoints and routes.
+        /// </summary>
         private const string Prefix = "oauth2";
 
+        /// <summary>
+        /// Contains the relative path for the discovery endpoint.
+        /// </summary>
         public const string Discovery = ".well-known/openid-configuration";
+
+        /// <summary>
+        /// Contains the relative path for the authorization endpoint.
+        /// </summary>
         public const string Authorization = $"{Prefix}/authorize";
     }
 
+    /// <summary>
+    /// Contains constants for various type of the <c>OAuth</c> and <c>OpenID Connect</c> tokens.
+    /// </summary>
     public static class TokenTypes
     {
+        /// <summary>
+        /// Contains the <c>Bearer</c> constant value.
+        /// </summary>
         public const string Bearer = "Bearer";
 
+        /// <summary>
+        /// Contains the <c>id_token</c> constant value.
+        /// </summary>
         public const string IdToken = "id_token";
+
+        /// <summary>
+        /// Contains the <c>access_token</c> constant value.
+        /// </summary>
         public const string AccessToken = "access_token";
+
+        /// <summary>
+        /// Contains the <c>refresh_token</c> constant value.
+        /// </summary>
         public const string RefreshToken = "refresh_token";
     }
 
+    /// <summary>
+    /// Contains the standard claims that are included in various <c>OpenID Connect</c> scopes.
+    /// </summary>
     public static class ClaimsByScope
     {
+        /// <summary>
+        /// Contains the standard claims that are included in the <c>profile</c> scope.
+        /// </summary>
         public static IReadOnlyCollection<string> Profile { get; } = new HashSet<string>
         {
             JoseClaimNames.Payload.Name,
@@ -74,17 +120,26 @@ public static partial class OpenIdConstants
             JoseClaimNames.Payload.UpdatedAt
         };
 
+        /// <summary>
+        /// Contains the standard claims that are included in the <c>email</c> scope.
+        /// </summary>
         public static IReadOnlyCollection<string> Email { get; } = new HashSet<string>
         {
             JoseClaimNames.Payload.Email,
             JoseClaimNames.Payload.EmailVerified
         };
 
+        /// <summary>
+        /// Contains the standard claims that are included in the <c>address</c> scope.
+        /// </summary>
         public static IReadOnlyCollection<string> Address { get; } = new HashSet<string>
         {
             JoseClaimNames.Payload.Address
         };
 
+        /// <summary>
+        /// Contains the standard claims that are included in the <c>phone</c> scope.
+        /// </summary>
         public static IReadOnlyCollection<string> Phone { get; } = new HashSet<string>
         {
             JoseClaimNames.Payload.PhoneNumber,

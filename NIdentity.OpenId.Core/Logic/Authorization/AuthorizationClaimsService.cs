@@ -23,22 +23,23 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using NCode.Jose;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IAuthorizationClaimsService"/> abstraction.
+/// Provides a default implementation for the <see cref="IAuthorizationClaimsService"/> abstraction.
 /// </summary>
 public class AuthorizationClaimsService : IAuthorizationClaimsService
 {
     /// <inheritdoc />
     public async IAsyncEnumerable<Claim> GetAccessTokenClaimsAsync(
-        OpenIdTenant tenant,
-        IAuthorizationRequest authorizationRequest,
+        AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
+        var tenant = authorizationRequest.OpenIdContext.Tenant;
+
         var subject = authenticationTicket.Principal.Identity as ClaimsIdentity ??
                       throw new InvalidOperationException("The AuthenticationTicket must contain a ClaimsIdentity.");
 
@@ -79,11 +80,13 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
 
     /// <inheritdoc />
     public async IAsyncEnumerable<Claim> GetIdTokenClaimsAsync(
-        OpenIdTenant tenant,
-        IAuthorizationRequest authorizationRequest,
+        AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
+        var tenant = authorizationRequest.OpenIdContext.Tenant;
+
         // required: sub, auth_time, idp, amr
         // optional: acr
         // add identity resource user claims

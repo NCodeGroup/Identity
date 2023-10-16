@@ -21,8 +21,18 @@ using NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
+/// <summary>
+/// Provides the ability for the authorization server to generate return URLs for authorization requests.
+/// </summary>
 public interface IAuthorizationCallbackService
 {
+    /// <summary>
+    /// Gets the URL that a user-agent, after successfully authenticating an end-user, may return to the authorization server.
+    /// </summary>
+    /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the current authorization request.</param>
+    /// <param name="reason">The <see cref="string"/> that describes the reason for the authorization request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the return URL.</returns>
     ValueTask<string> GetReturnUrlAsync(
         AuthorizationContext authorizationContext,
         string reason,

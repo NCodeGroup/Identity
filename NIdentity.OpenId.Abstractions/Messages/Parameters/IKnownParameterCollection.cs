@@ -21,6 +21,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace NIdentity.OpenId.Messages.Parameters;
 
+/// <summary>
+/// Provides a readonly collection of <see cref="KnownParameter"/> instances that can be accessed by name.
+/// </summary>
 public interface IKnownParameterCollection : IReadOnlyCollection<KnownParameter>
 {
     /// <summary>

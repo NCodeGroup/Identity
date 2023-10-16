@@ -20,21 +20,35 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
+/// <summary>
+/// Provides the ability for the authorization server to generate claims for authorization requests.
+/// </summary>
 public interface IAuthorizationClaimsService
 {
+    /// <summary>
+    /// Gets the claims that should be included in access tokens.
+    /// </summary>
+    /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the authentication request.</param>
+    /// <param name="authenticationTicket">The <see cref="AuthorizationContext"/> for the authentication request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IAsyncEnumerable{T}"/> collection that contains <see cref="Claim"/> instances.</returns>
     IAsyncEnumerable<Claim> GetAccessTokenClaimsAsync(
-        OpenIdTenant tenant,
-        IAuthorizationRequest authorizationRequest,
+        AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Gets the claims that should be included in ID tokens.
+    /// </summary>
+    /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the authentication request.</param>
+    /// <param name="authenticationTicket">The <see cref="AuthorizationContext"/> for the authentication request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IAsyncEnumerable{T}"/> collection that contains <see cref="Claim"/> instances.</returns>
     IAsyncEnumerable<Claim> GetIdTokenClaimsAsync(
-        OpenIdTenant tenant,
-        IAuthorizationRequest authorizationRequest,
+        AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken);
 }

@@ -25,8 +25,20 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints;
 
+/// <summary>
+/// Provides the ability to create <see cref="Endpoint"/> instances for <c>OAuth</c> or <c>OpenID Connect</c> routes.
+/// </summary>
 public interface IOpenIdEndpointFactory
 {
+    /// <summary>
+    /// Creates a new <see cref="Endpoint"/> instance for the specified <c>OAuth</c> or <c>OpenID Connect</c> route.
+    /// </summary>
+    /// <param name="name">The name for the endpoint.</param>
+    /// <param name="path">The route pattern for the endpoint.</param>
+    /// <param name="httpMethods">The HTTP methods for the endpoint.</param>
+    /// <param name="commandFactory">A delegate that is used to create the <see cref="OpenIdEndpointCommand"/> to dispatch requests for the endpoint.</param>
+    /// <param name="configureRouteHandlerBuilder">A delegate to configure the <see cref="RouteHandlerBuilder"/> for the endpoint.</param>
+    /// <returns>The newly created <see cref="Endpoint"/> for the <c>OAuth</c> or <c>OpenID Connect</c> route.</returns>
     Endpoint CreateEndpoint(
         string name,
         string path,
@@ -35,11 +47,17 @@ public interface IOpenIdEndpointFactory
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default);
 }
 
+/// <summary>
+/// Provides a default implementation of the <see cref="IOpenIdEndpointFactory"/> abstraction.
+/// </summary>
 public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 {
     private IMediator Mediator { get; }
     private IOpenIdContextFactory OpenIdContextFactory { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenIdEndpointFactory"/> class.
+    /// </summary>
     public OpenIdEndpointFactory(IMediator mediator, IOpenIdContextFactory openIdContextFactory)
     {
         Mediator = mediator;
@@ -56,9 +74,9 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
     {
         var conventions = new List<Action<EndpointBuilder>>();
         var endpointConventionBuilder = new EndpointConventionBuilder(conventions);
-        var httpMethodArray = httpMethods as string[] ?? httpMethods.ToArray();
+        var httpMethodCollection = httpMethods as IReadOnlyCollection<string> ?? httpMethods.ToList();
 
-        var displayName = $"{path} HTTP: {string.Join(", ", httpMethodArray)}";
+        var displayName = $"{path} HTTP: {string.Join(", ", httpMethodCollection)}";
 
         var descriptor = new OpenIdEndpointDescriptor
         {
@@ -69,7 +87,7 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         endpointConventionBuilder.WithName(name);
         endpointConventionBuilder.WithGroupName("OpenId"); // TODO
         endpointConventionBuilder.WithDisplayName(displayName);
-        endpointConventionBuilder.WithMetadata(new HttpMethodMetadata(httpMethodArray));
+        endpointConventionBuilder.WithMetadata(new HttpMethodMetadata(httpMethodCollection));
 
         var routeHandlerBuilder = new RouteHandlerBuilder(new[] { endpointConventionBuilder });
         configureRouteHandlerBuilder?.Invoke(routeHandlerBuilder);

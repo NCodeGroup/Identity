@@ -21,8 +21,19 @@ using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Endpoints;
 
+/// <summary>
+/// Provides factory methods to create <see cref="OpenIdContext"/> instances.
+/// </summary>
 public interface IOpenIdContextFactory
 {
+    /// <summary>
+    /// Factory method to create <see cref="OpenIdContext"/> instances.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the associated request.</param>
+    /// <param name="endpointDescriptor">The <see cref="OpenIdEndpointDescriptor"/> for the endpoint that is to process the request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
+    /// <see cref="OpenIdContext"/> instance.</returns>
     ValueTask<OpenIdContext> CreateAsync(
         HttpContext httpContext,
         OpenIdEndpointDescriptor endpointDescriptor,

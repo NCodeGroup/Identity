@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Authentication;
 namespace NIdentity.OpenId.Options;
 
 /// <summary>
-/// Contains configurable options for the <c>OpenID Connect</c> authorization handler.
+/// Contains the configurable options for an <c>OAuth</c> or <c>OpenID Connect</c> authorization handler.
 /// </summary>
 public class AuthorizationOptions
 {

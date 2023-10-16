@@ -18,7 +18,6 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
 
 namespace NIdentity.OpenId.Messages.Parameters;
 

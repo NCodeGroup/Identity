@@ -18,8 +18,9 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Endpoints;
 
-namespace NIdentity.OpenId.Endpoints;
+namespace NIdentity.OpenId;
 
 /// <summary>
 /// Provides factory methods to create <see cref="OpenIdContext"/> instances.

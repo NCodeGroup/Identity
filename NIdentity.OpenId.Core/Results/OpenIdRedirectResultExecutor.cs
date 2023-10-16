@@ -18,7 +18,6 @@
 #endregion
 
 using Microsoft.Net.Http.Headers;
-using NIdentity.OpenId.Endpoints;
 
 namespace NIdentity.OpenId.Results;
 

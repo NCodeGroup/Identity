@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,17 +17,23 @@
 
 #endregion
 
-using Microsoft.Extensions.Primitives;
+using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Endpoints;
 
-namespace NIdentity.OpenId.Messages;
+namespace NIdentity.OpenId;
 
 /// <summary>
-/// Represents the base interface for <c>OAuth</c> or <c>OpenID Connect</c> request and response messages.
+/// Provides a default implementation for the <see cref="IOpenIdContextFactory"/> abstraction.
 /// </summary>
-public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
+public class DefaultOpenIdContextFactory : IOpenIdContextFactory
 {
-    /// <summary>
-    /// Gets the <see cref="OpenIdContext"/> for the current instance.
-    /// </summary>
-    OpenIdContext OpenIdContext { get; }
+    /// <inheritdoc />
+    public ValueTask<OpenIdContext> CreateAsync(
+        HttpContext httpContext,
+        OpenIdEndpointDescriptor endpointDescriptor,
+        CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult<OpenIdContext>(
+            new DefaultOpenIdContext(httpContext, endpointDescriptor));
+    }
 }

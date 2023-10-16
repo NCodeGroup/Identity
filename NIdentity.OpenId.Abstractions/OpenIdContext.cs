@@ -20,11 +20,12 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Tenants;
 
-namespace NIdentity.OpenId.Endpoints;
+namespace NIdentity.OpenId;
 
 /// <summary>
 /// Encapsulates all OpenID-specific information about an individual OpenID request.

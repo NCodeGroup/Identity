@@ -19,6 +19,9 @@
 
 namespace NIdentity.OpenId.Options;
 
+/// <summary>
+/// Contains the configurable options for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
+/// </summary>
 public class TenantOptions
 {
     /// <summary>
@@ -28,7 +31,7 @@ public class TenantOptions
     public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
-    /// Gets or set the <see cref="AuthorizationOptions"/> for the <c>OpenID Connect</c> authorization handler.
+    /// Gets or set the <see cref="AuthorizationOptions"/> for the <c>OAuth</c> or <c>OpenID Connect</c> authorization handler.
     /// </summary>
     public AuthorizationOptions Authorization { get; set; } = new();
 }

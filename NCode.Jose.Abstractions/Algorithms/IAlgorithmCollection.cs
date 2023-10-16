@@ -71,11 +71,11 @@ public interface IAlgorithmCollection : IReadOnlyCollection<Algorithm>
         [MaybeNullWhen(false)] out AuthenticatedEncryptionAlgorithm algorithm);
 
     /// <summary>
-    /// Gets an <see cref="ICompressionAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
+    /// Gets an <see cref="CompressionAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
     /// </summary>
-    /// <param name="algorithmCode">The code of the <see cref="ICompressionAlgorithm"/> to get.</param>
-    /// <param name="algorithm">When this method returns, an <see cref="ICompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/>, if found; otherwise, <c>null</c>.</param>
-    /// <returns><c>true</c> if an <see cref="ICompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
+    /// <param name="algorithmCode">The code of the <see cref="CompressionAlgorithm"/> to get.</param>
+    /// <param name="algorithm">When this method returns, an <see cref="CompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/>, if found; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if an <see cref="CompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
     bool TryGetCompressionAlgorithm(
         string algorithmCode,
         [MaybeNullWhen(false)] out CompressionAlgorithm algorithm);

@@ -22,6 +22,11 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
+/// <summary>
+/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="OpenIdContext"/> as an
+/// input argument and expects <see cref="AuthenticateResult"/> as a response.
+/// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> input argument for the command contract.</param>
 public record AuthenticateCommand(
     OpenIdContext OpenIdContext
 ) : ICommand<AuthenticateResult>;

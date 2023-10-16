@@ -19,6 +19,9 @@
 
 namespace NIdentity.OpenId.Endpoints;
 
+/// <summary>
+/// Contains information about an <c>OAuth</c> or <c>OpenID Connect</c> endpoint.
+/// </summary>
 public class OpenIdEndpointDescriptor
 {
     /// <summary>

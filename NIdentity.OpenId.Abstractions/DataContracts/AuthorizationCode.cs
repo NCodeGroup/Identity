@@ -20,6 +20,9 @@ using NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NIdentity.OpenId.DataContracts;
 
+/// <summary>
+/// Represents a persisted <c>Authorization Code</c> grant for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request.
+/// </summary>
 public class AuthorizationCode : ISupportId
 {
     /// <summary>

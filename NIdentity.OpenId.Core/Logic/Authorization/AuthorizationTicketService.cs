@@ -39,7 +39,7 @@ using NIdentity.OpenId.Stores;
 namespace NIdentity.OpenId.Logic.Authorization;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IAuthorizationTicketService"/> abstraction.
+/// Provides a default implementation for the <see cref="IAuthorizationTicketService"/> abstraction.
 /// </summary>
 public class AuthorizationTicketService : IAuthorizationTicketService
 {
@@ -206,8 +206,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
 
         var subjectClaims = await AuthorizationClaimsService
             .GetAccessTokenClaimsAsync(
-                tenant,
-                authorizationRequest,
+                authorizationContext,
                 authenticationTicket,
                 cancellationToken)
             .ToListAsync(cancellationToken);
@@ -288,8 +287,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
 
         var subjectClaims = await AuthorizationClaimsService
             .GetIdTokenClaimsAsync(
-                tenant,
-                authorizationRequest,
+                authorizationContext,
                 authenticationTicket,
                 cancellationToken)
             .ToListAsync(cancellationToken);

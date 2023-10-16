@@ -665,6 +665,7 @@ internal class DefaultAuthorizationEndpointHandler :
                 cancellationToken);
 
             var redirectUrl = await LoginService.GetRedirectUrlAsync(
+                authorizationContext,
                 returnUrl,
                 cancellationToken);
 
@@ -687,6 +688,7 @@ internal class DefaultAuthorizationEndpointHandler :
                 cancellationToken);
 
             var redirectUrl = await LoginService.GetRedirectUrlAsync(
+                authorizationContext,
                 returnUrl,
                 cancellationToken);
 
@@ -704,6 +706,7 @@ internal class DefaultAuthorizationEndpointHandler :
                 cancellationToken);
 
             var redirectUrl = await LoginService.GetRedirectUrlAsync(
+                authorizationContext,
                 returnUrl,
                 cancellationToken);
 
@@ -725,6 +728,7 @@ internal class DefaultAuthorizationEndpointHandler :
                 cancellationToken);
 
             var redirectUrl = await LoginService.GetRedirectUrlAsync(
+                authorizationContext,
                 returnUrl,
                 cancellationToken);
 

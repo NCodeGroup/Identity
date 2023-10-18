@@ -78,11 +78,7 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 
         var displayName = $"{path} HTTP: {string.Join(", ", httpMethodCollection)}";
 
-        var descriptor = new OpenIdEndpointDescriptor
-        {
-            Name = name,
-            DisplayName = displayName
-        };
+        var descriptor = new DefaultOpenIdEndpointDescriptor(name, displayName);
 
         endpointConventionBuilder.WithName(name);
         endpointConventionBuilder.WithGroupName("OpenId"); // TODO

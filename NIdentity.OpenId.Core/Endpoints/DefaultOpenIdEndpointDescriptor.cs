@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,27 +17,30 @@
 
 #endregion
 
-using NCode.Jose.SecretKeys;
+using NCode.Identity;
 
-namespace NIdentity.OpenId.Features;
+namespace NIdentity.OpenId.Endpoints;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdTenantFeature"/> abstraction.
+/// Provides a default implementation of the <see cref="OpenIdEndpointDescriptor"/> abstraction.
 /// </summary>
-public class DefaultOpenIdTenantFeature : IOpenIdTenantFeature
+public class DefaultOpenIdEndpointDescriptor : OpenIdEndpointDescriptor
 {
     /// <inheritdoc />
-    public string TenantId => string.Empty;
+    public override IPropertyBag PropertyBag { get; } = new PropertyBag();
 
     /// <inheritdoc />
-    public string DisplayName => string.Empty;
+    public override string Name { get; }
 
     /// <inheritdoc />
-    public string Issuer => string.Empty;
+    public override string DisplayName { get; }
 
-    /// <inheritdoc />
-    public UriDescriptor BaseAddress => default;
-
-    /// <inheritdoc />
-    public ISecretKeyProvider SecretKeyProvider => EmptySecretKeyProvider.Singleton;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultOpenIdEndpointDescriptor"/> class.
+    /// </summary>
+    public DefaultOpenIdEndpointDescriptor(string name, string displayName)
+    {
+        Name = name;
+        DisplayName = displayName;
+    }
 }

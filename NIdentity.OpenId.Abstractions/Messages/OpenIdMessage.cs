@@ -33,12 +33,12 @@ public class OpenIdMessage : IOpenIdMessage
 {
     private static Exception NotInitializedException => new InvalidOperationException("Not initialized");
 
-    [MemberNotNullWhen(true, nameof(ContextOrNull))]
+    [MemberNotNullWhen(true, nameof(ContextOrNull), nameof(ParameterStoreOrNull))]
     private bool IsInitialized { get; set; }
 
     private OpenIdContext? ContextOrNull { get; set; }
-
-    private Dictionary<string, Parameter> ParameterStore { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, Parameter>? ParameterStoreOrNull { get; set; }
+    private Dictionary<string, Parameter> ParameterStore => ParameterStoreOrNull ??= new Dictionary<string, Parameter>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenID Connect</c> parameters.
@@ -53,14 +53,20 @@ public class OpenIdMessage : IOpenIdMessage
     public OpenIdContext OpenIdContext => ContextOrNull ?? throw NotInitializedException;
 
     /// <summary>
-    /// Creates an uninitialized new instance of the <see cref="OpenIdMessage"/> class with optional default parameters.
+    /// Initializes a new instance of the <see cref="OpenIdMessage"/> class.
     /// </summary>
-    public OpenIdMessage(params Parameter[] parameters)
+    public OpenIdMessage()
     {
-        foreach (var parameter in parameters)
-        {
-            ParameterStore.Add(parameter.Descriptor.ParameterName, parameter);
-        }
+        // nothing
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenIdMessage"/> class.
+    /// </summary>
+    /// <param name="context"><see cref="OpenIdContext"/></param>
+    public OpenIdMessage(OpenIdContext context)
+    {
+        Initialize(context);
     }
 
     /// <summary>
@@ -68,30 +74,26 @@ public class OpenIdMessage : IOpenIdMessage
     /// </summary>
     /// <param name="context"><see cref="OpenIdContext"/></param>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
-    public OpenIdMessage(OpenIdContext context, params Parameter[] parameters)
+    /// <param name="cloneParameters"><c>true</c> if the <see cref="Parameter"/> instances should be deep-cloned; otherwise,
+    /// <c>false</c>. The default value is <c>false</c>.</param>
+    public OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters, bool cloneParameters = false)
     {
-        Initialize(context, parameters.AsEnumerable());
+        Initialize(context, parameters, cloneParameters);
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdMessage"/> class by using a collection of <see cref="Parameter{T}"/> values.
+    /// Initializes the current instance with an <see cref="OpenIdContext"/>.
     /// </summary>
     /// <param name="context"><see cref="OpenIdContext"/></param>
-    /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
-    public OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters)
-    {
-        Initialize(context, parameters);
-    }
-
-    /// <summary>
-    /// Initializes the current instance with an <see cref="OpenIdContext"/> and collection of <see cref="Parameter"/> values.
-    /// </summary>
-    /// <param name="context"><see cref="OpenIdContext"/></param>
-    /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
-    public void Initialize(OpenIdContext context, params Parameter[] parameters)
+    public void Initialize(OpenIdContext context)
     {
-        Initialize(context, parameters.AsEnumerable());
+        if (IsInitialized)
+            throw new InvalidOperationException("Already initialized");
+
+        ContextOrNull = context;
+
+        IsInitialized = true;
     }
 
     /// <summary>
@@ -104,10 +106,11 @@ public class OpenIdMessage : IOpenIdMessage
     /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
     public void Initialize(OpenIdContext context, IEnumerable<Parameter> parameters, bool cloneParameters = false)
     {
-        if (IsInitialized) throw new InvalidOperationException("Already initialized");
+        if (IsInitialized)
+            throw new InvalidOperationException("Already initialized");
 
         ContextOrNull = context;
-        ParameterStore = parameters.ToDictionary(
+        ParameterStoreOrNull = parameters.ToDictionary(
             parameter => parameter.Descriptor.ParameterName,
             parameter => cloneParameters ? parameter.Clone() : parameter,
             StringComparer.OrdinalIgnoreCase);
@@ -202,22 +205,21 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     where T : OpenIdMessage<T>, new()
 {
     /// <inheritdoc />
-    protected OpenIdMessage(params Parameter[] parameters)
-        : base(parameters)
+    protected OpenIdMessage()
     {
         // nothing
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(OpenIdContext context, params Parameter[] parameters)
-        : base(context, parameters)
+    protected OpenIdMessage(OpenIdContext context)
+        : base(context)
     {
         // nothing
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters)
-        : base(context, parameters)
+    protected OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters, bool cloneParameters = false)
+        : base(context, parameters, cloneParameters)
     {
         // nothing
     }
@@ -292,22 +294,21 @@ public abstract class OpenIdMessage<T, TProperties> : OpenIdMessage<T>, ISupport
     protected TProperties Properties { get; private set; } = new();
 
     /// <inheritdoc />
-    protected OpenIdMessage(params Parameter[] parameters)
-        : base(parameters)
+    protected OpenIdMessage()
     {
         // nothing
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(OpenIdContext context, params Parameter[] parameters)
-        : base(context, parameters)
+    protected OpenIdMessage(OpenIdContext context)
+        : base(context)
     {
         // nothing
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters)
-        : base(context, parameters)
+    protected OpenIdMessage(OpenIdContext context, IEnumerable<Parameter> parameters, bool cloneParameters = false)
+        : base(context, parameters, cloneParameters)
     {
         // nothing
     }

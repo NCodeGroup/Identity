@@ -20,9 +20,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using NCode.Identity;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Features;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
@@ -36,6 +38,11 @@ namespace NIdentity.OpenId;
 /// </summary>
 public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
 {
+    private static IOpenIdTenantFeature MissingTenantFeature(IFeatureCollection _) =>
+        throw new InvalidOperationException("The OpenIdTenant is not available.");
+
+    private FeatureReferences<FeatureInterfaces> _features;
+
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
     /// <summary>
@@ -45,14 +52,19 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
     /// <param name="endpointDescriptor">The <see cref="OpenIdEndpointDescriptor"/> instance.</param>
     public DefaultOpenIdContext(HttpContext httpContext, OpenIdEndpointDescriptor endpointDescriptor)
     {
+        PropertyBag = endpointDescriptor.PropertyBag.Clone();
+
         HttpContext = httpContext;
         EndpointDescriptor = endpointDescriptor;
 
-        Tenant = new DefaultOpenIdTenant(httpContext.Features);
+        _features.Initalize(httpContext.Features);
     }
 
+    private IOpenIdTenantFeature? TenantFeature =>
+        _features.Fetch(ref _features.Cache.Tenant, MissingTenantFeature);
+
     /// <inheritdoc />
-    public override IPropertyBag PropertyBag => new PropertyBag(); // TODO: clone from descriptor
+    public override IPropertyBag PropertyBag { get; }
 
     /// <inheritdoc />
     public override HttpContext HttpContext { get; }
@@ -61,10 +73,13 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
     public override OpenIdEndpointDescriptor EndpointDescriptor { get; }
 
     /// <inheritdoc />
-    public override JsonSerializerOptions JsonSerializerOptions => JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
+    public override JsonSerializerOptions JsonSerializerOptions =>
+        JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
 
     /// <inheritdoc />
-    public override OpenIdTenant Tenant { get; }
+    public override OpenIdTenant Tenant =>
+        TenantFeature?.Tenant ??
+        throw new InvalidOperationException();
 
     /// <inheritdoc />
     public override IOpenIdErrorFactory ErrorFactory => this;
@@ -75,9 +90,8 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
 
-    private JsonSerializerOptions CreateJsonSerializerOptions()
-    {
-        return new JsonSerializerOptions(JsonSerializerDefaults.Web)
+    private JsonSerializerOptions CreateJsonSerializerOptions() =>
+        new(JsonSerializerDefaults.Web)
         {
             ReadCommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true,
@@ -86,14 +100,16 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
             {
                 new JsonStringEnumConverter(),
                 new OpenIdMessageJsonConverterFactory(this),
-
+                new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
-
-                new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
             }
         };
+
+    private struct FeatureInterfaces
+    {
+        public IOpenIdTenantFeature? Tenant;
     }
 }

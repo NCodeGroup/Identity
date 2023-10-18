@@ -17,20 +17,27 @@
 
 #endregion
 
+using NCode.Identity;
+
 namespace NIdentity.OpenId.Endpoints;
 
 /// <summary>
 /// Contains information about an <c>OAuth</c> or <c>OpenID Connect</c> endpoint.
 /// </summary>
-public class OpenIdEndpointDescriptor
+public abstract class OpenIdEndpointDescriptor
 {
     /// <summary>
-    /// Gets or set the internal name for this <see cref="OpenIdEndpointDescriptor"/>.
+    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current endpoint.
     /// </summary>
-    public string Name { get; init; } = string.Empty;
+    public abstract IPropertyBag PropertyBag { get; }
 
     /// <summary>
-    /// Gets or set the friendly name for this <see cref="OpenIdEndpointDescriptor"/>.
+    /// Gets the internal name for this <see cref="OpenIdEndpointDescriptor"/>.
     /// </summary>
-    public string DisplayName { get; init; } = string.Empty;
+    public abstract string Name { get; }
+
+    /// <summary>
+    /// Gets the friendly name for this <see cref="OpenIdEndpointDescriptor"/>.
+    /// </summary>
+    public abstract string DisplayName { get; }
 }

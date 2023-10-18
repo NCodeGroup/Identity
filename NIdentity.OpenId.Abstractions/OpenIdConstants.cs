@@ -49,6 +49,7 @@ public static partial class OpenIdConstants
 
     /// <summary>
     /// Contains the relative paths for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
+    /// Be aware that these paths may be relative to the base address of the current tenant.
     /// </summary>
     public static class EndpointPaths
     {

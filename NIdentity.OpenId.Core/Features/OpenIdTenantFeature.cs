@@ -22,12 +22,7 @@ using NIdentity.OpenId.Tenants;
 namespace NIdentity.OpenId.Features;
 
 /// <summary>
-/// Provides the ability to get the <see cref="OpenIdTenant"/> for the current request.
+/// Provides a default implementation of the <see cref="IOpenIdTenantFeature"/> abstraction.
 /// </summary>
-public interface IOpenIdTenantFeature
-{
-    /// <summary>
-    /// Gets the <see cref="OpenIdTenant"/> for the current request.
-    /// </summary>
-    OpenIdTenant Tenant { get; }
-}
+/// <param name="Tenant">The <see cref="OpenIdTenant"/> for the associated feature.</param>
+public record OpenIdTenantFeature(OpenIdTenant Tenant) : IOpenIdTenantFeature;

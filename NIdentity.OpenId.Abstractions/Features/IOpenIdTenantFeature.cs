@@ -17,19 +17,17 @@
 
 #endregion
 
-using NCode.Jose.SecretKeys;
+using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Features;
 
+/// <summary>
+/// Provides the ability to get the <see cref="OpenIdTenant"/> for the current request.
+/// </summary>
 public interface IOpenIdTenantFeature
 {
-    string TenantId { get; }
-
-    string DisplayName { get; }
-
-    string Issuer { get; }
-
-    UriDescriptor BaseAddress { get; }
-
-    ISecretKeyProvider SecretKeyProvider { get; }
+    /// <summary>
+    /// Gets the <see cref="OpenIdTenant"/> for the current request.
+    /// </summary>
+    OpenIdTenant Tenant { get; }
 }

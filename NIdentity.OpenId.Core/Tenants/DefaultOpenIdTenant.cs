@@ -17,9 +17,7 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http.Features;
 using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.Features;
 using NIdentity.OpenId.Options;
 
 namespace NIdentity.OpenId.Tenants;
@@ -29,44 +27,17 @@ namespace NIdentity.OpenId.Tenants;
 /// </summary>
 public class DefaultOpenIdTenant : OpenIdTenant
 {
-    private FeatureReferences<FeatureInterfaces> _features;
+    // TODO
 
-    private static readonly Func<IFeatureCollection, IOpenIdTenantFeature> TenantFeatureFactory =
-        _ => new DefaultOpenIdTenantFeature();
+    public override string TenantId => throw new NotImplementedException();
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultOpenIdTenant"/> class.
-    /// </summary>
-    /// <param name="features">The <see cref="IFeatureCollection"/> instance.</param>
-    public DefaultOpenIdTenant(IFeatureCollection features)
-    {
-        _features.Initalize(features);
-    }
+    public override string DisplayName => throw new NotImplementedException();
 
-    private IOpenIdTenantFeature TenantFeature =>
-        _features.Fetch(ref _features.Cache.Tenant, TenantFeatureFactory) ??
-        throw new InvalidOperationException();
+    public override string Issuer => throw new NotImplementedException();
 
-    /// <inheritdoc />
-    public override string TenantId => TenantFeature.TenantId;
+    public override UriDescriptor BaseAddress => throw new NotImplementedException();
 
-    /// <inheritdoc />
-    public override string DisplayName => TenantFeature.DisplayName;
+    public override ISecretKeyProvider SecretKeyProvider => throw new NotImplementedException();
 
-    /// <inheritdoc />
-    public override string Issuer => TenantFeature.Issuer;
-
-    /// <inheritdoc />
-    public override UriDescriptor BaseAddress => TenantFeature.BaseAddress;
-
-    /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeyProvider => TenantFeature.SecretKeyProvider;
-
-    /// <inheritdoc />
     public override TenantOptions Options => throw new NotImplementedException();
-
-    private struct FeatureInterfaces
-    {
-        public IOpenIdTenantFeature? Tenant;
-    }
 }

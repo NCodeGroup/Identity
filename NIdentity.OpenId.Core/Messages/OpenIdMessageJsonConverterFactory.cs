@@ -27,9 +27,9 @@ internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
     private OpenIdContext OpenIdContext { get; }
 
     /// <inheritdoc />
-    public OpenIdMessageJsonConverterFactory(OpenIdContext context)
+    public OpenIdMessageJsonConverterFactory(OpenIdContext openIdContext)
     {
-        OpenIdContext = context;
+        OpenIdContext = openIdContext;
     }
 
     /// <inheritdoc />

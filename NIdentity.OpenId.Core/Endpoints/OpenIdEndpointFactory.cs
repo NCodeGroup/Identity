@@ -19,9 +19,17 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.AspNetCore.Routing.Template;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Options;
+using NIdentity.OpenId.Stores;
+using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Endpoints;
 
@@ -52,14 +60,19 @@ public interface IOpenIdEndpointFactory
 /// </summary>
 public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 {
+    private OpenIdHostOptions HostOptions { get; }
     private IMediator Mediator { get; }
     private IOpenIdContextFactory OpenIdContextFactory { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdEndpointFactory"/> class.
     /// </summary>
-    public OpenIdEndpointFactory(IMediator mediator, IOpenIdContextFactory openIdContextFactory)
+    public OpenIdEndpointFactory(
+        IOptions<OpenIdHostOptions> hostOptionsAccessor,
+        IMediator mediator,
+        IOpenIdContextFactory openIdContextFactory)
     {
+        HostOptions = hostOptionsAccessor.Value;
         Mediator = mediator;
         OpenIdContextFactory = openIdContextFactory;
     }
@@ -88,6 +101,8 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         var routeHandlerBuilder = new RouteHandlerBuilder(new[] { endpointConventionBuilder });
         configureRouteHandlerBuilder?.Invoke(routeHandlerBuilder);
 
+        var tenantSelector = GetTenantSelector();
+
         async Task RequestDelegate(HttpContext httpContext)
         {
             var cancellationToken = httpContext.RequestAborted;
@@ -97,8 +112,12 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
             await openIdResult.ExecuteResultAsync(openIdContext, cancellationToken);
         }
 
+        var relativePathRoute = RoutePatternFactory.Parse(path);
+        var routePattern = RoutePatternFactory.Combine(
+            tenantSelector.BaseRoute,
+            relativePathRoute);
+
         const int defaultOrder = 0;
-        var routePattern = RoutePatternFactory.Parse(path);
         var routeEndpointBuilder = new RouteEndpointBuilder(RequestDelegate, routePattern, defaultOrder);
 
         foreach (var convention in conventions)
@@ -107,5 +126,122 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         }
 
         return routeEndpointBuilder.Build();
+    }
+
+    private TenantSelector GetTenantSelector()
+    {
+        switch (HostOptions.Tenant.Mode)
+        {
+            case TenantMode.Static:
+                return GetStaticSingleTenantRoute();
+
+            case TenantMode.DynamicByPath:
+                return GetDynamicByPathTenantRoute();
+
+            case TenantMode.DynamicByHost:
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+
+    private static Exception MissingTenancyConfigurationException(TenantMode mode) =>
+        new InvalidOperationException($"Tenancy Mode is {mode} but the corresponding configuration is missing.");
+
+    private StaticTenantSelector GetStaticSingleTenantRoute()
+    {
+        var tenantOptions = HostOptions.Tenant.StaticSingle ??
+                            throw MissingTenancyConfigurationException(TenantMode.Static);
+
+        RoutePattern? baseRoute = null;
+        var basePath = tenantOptions.BasePath;
+        if (basePath is { HasValue: true, Value: not ['/'] })
+            baseRoute = RoutePatternFactory.Parse(basePath);
+
+        return new StaticTenantSelector(baseRoute, tenantOptions);
+    }
+
+    private DynamicByPathTenantSelector GetDynamicByPathTenantRoute()
+    {
+        var tenantOptions = HostOptions.Tenant.DynamicByPath ??
+                            throw MissingTenancyConfigurationException(TenantMode.DynamicByPath);
+
+        var tenantIdRouteParameterName = tenantOptions.TenantIdRouteParameterName;
+
+        var basePath = tenantOptions.BasePath;
+        if (!basePath.HasValue)
+            basePath = $"/{tenantIdRouteParameterName}";
+
+        var baseRoute = RoutePatternFactory.Parse(basePath);
+
+        // TODO: better exception/message
+
+        if (baseRoute.Parameters.Count == 0)
+            throw new InvalidOperationException();
+
+        if (baseRoute.Parameters.Count > 1)
+            throw new InvalidOperationException();
+
+        if (baseRoute.Parameters[0].Name != tenantIdRouteParameterName)
+            throw new InvalidOperationException();
+
+        return new DynamicByPathTenantSelector(
+            baseRoute,
+            tenantIdRouteParameterName);
+    }
+
+    private void GetDynamicByHostTenantRoute(ICollection<RoutePattern> routePatterns)
+    {
+        var options = HostOptions.Tenant.DynamicByHost ??
+                      throw new InvalidOperationException("Tenancy Mode is DynamicByHost but the corresponding configuration is missing.");
+
+        var basePath = options.BasePath;
+        if (string.IsNullOrEmpty(basePath) || basePath is ['/'])
+            return;
+
+        var routePattern = RoutePatternFactory.Parse(basePath);
+        routePatterns.Add(routePattern);
+    }
+
+    private RoutePattern GetBaseRoutePattern()
+    {
+        var effectivePath = PathString.Empty;
+
+        switch (HostOptions.Tenant.Mode)
+        {
+            case TenantMode.Static:
+                //effectivePath.Add(HostOptions.Tenancy.StaticSingle)
+                break;
+
+            case TenantMode.DynamicByPath:
+                if (HostOptions.Tenant.DynamicByPath == null)
+                    // TODO: better exception/message
+                    throw new InvalidOperationException();
+                effectivePath.Add(HostOptions.Tenant.DynamicByPath.RoutePattern);
+                var tenantPattern = RoutePatternFactory.Parse(HostOptions.Tenant.DynamicByPath.RoutePattern);
+                if (tenantPattern.Parameters.All(parameter => parameter.Name != HostOptions.Tenant.DynamicByPath.TenantIdRouteParameterName))
+                    // TODO: better exception/message
+                    throw new InvalidOperationException();
+                break;
+
+            case TenantMode.DynamicByHost:
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        var endpointBasePath = HostOptions.EndpointBasePath;
+        if (!string.IsNullOrEmpty(endpointBasePath))
+        {
+            if (endpointBasePath[0] != '/')
+                endpointBasePath = '/' + endpointBasePath;
+
+            effectivePath.Add(endpointBasePath);
+        }
+
+        RoutePatternFactory.Parse()
     }
 }

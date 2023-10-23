@@ -34,7 +34,6 @@ using NIdentity.OpenId.Endpoints.Authorization.Results;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Logic.Authorization;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Stores;
 using ISystemClock = NIdentity.OpenId.Logic.ISystemClock;
@@ -300,7 +299,7 @@ internal class DefaultAuthorizationEndpointHandler :
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
-        AuthorizationRequestObjectOptions options,
+        AuthorizationRequestObjectConfiguration configuration,
         IAuthorizationRequestMessage requestMessage,
         Client client,
         CancellationToken cancellationToken)
@@ -322,17 +321,17 @@ internal class DefaultAuthorizationEndpointHandler :
                     .InvalidRequest("Both the 'request' and 'request_uri' parameters cannot be present at the same time.", errorCode)
                     .AsException();
 
-            if (!options.RequestUriEnabled)
+            if (!configuration.RequestUriEnabled)
                 throw errorFactory.RequestUriNotSupported().AsException();
 
-            var requestUriMaxLength = options.RequestUriMaxLength;
+            var requestUriMaxLength = configuration.RequestUriMaxLength;
             if (requestUri.OriginalString.Length > requestUriMaxLength)
                 throw errorFactory
                     .InvalidRequest($"The 'request_uri' parameter must not exceed {requestUriMaxLength} characters.", errorCode)
                     .AsException();
 
             requestJwt = await FetchRequestUriAsync(
-                options,
+                configuration,
                 errorFactory,
                 client,
                 requestUri,
@@ -343,7 +342,7 @@ internal class DefaultAuthorizationEndpointHandler :
             requestObjectSource = RequestObjectSource.Inline;
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
-            if (!options.RequestJwtEnabled)
+            if (!configuration.RequestJwtEnabled)
                 throw errorFactory.RequestJwtNotSupported().AsException();
         }
         else if (client.RequireRequestObject)
@@ -367,7 +366,7 @@ internal class DefaultAuthorizationEndpointHandler :
             var parameters = new ValidateJwtParameters()
                 .UseValidationKeys(secretKeys)
                 .ValidateIssuer(client.ClientId)
-                .ValidateAudience(options.Audience)
+                .ValidateAudience(configuration.Audience)
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();
 
@@ -408,7 +407,7 @@ internal class DefaultAuthorizationEndpointHandler :
     }
 
     private async ValueTask<string> FetchRequestUriAsync(
-        AuthorizationRequestObjectOptions options,
+        AuthorizationRequestObjectConfiguration configuration,
         IOpenIdErrorFactory errorFactory,
         Client client,
         Uri requestUri,
@@ -429,8 +428,8 @@ internal class DefaultAuthorizationEndpointHandler :
                     .AsException();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            var expectedContentType = options.ExpectedContentType;
-            if (options.StrictContentType && contentType != expectedContentType)
+            var expectedContentType = configuration.ExpectedContentType;
+            if (configuration.StrictContentType && contentType != expectedContentType)
                 throw errorFactory
                     .InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.")
                     .AsException();

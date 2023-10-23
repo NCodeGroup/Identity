@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using NIdentity.OpenId.DataContracts;
@@ -20,7 +22,7 @@ using NIdentity.OpenId.DataContracts;
 namespace NIdentity.OpenId.Stores;
 
 /// <summary>
-/// Provides an abstraction for a store which manages <see cref="Client"/> instances.
+/// Provides an abstraction for a store which persists <see cref="Client"/> instances.
 /// </summary>
 public interface IClientStore : IStore<Client>
 {

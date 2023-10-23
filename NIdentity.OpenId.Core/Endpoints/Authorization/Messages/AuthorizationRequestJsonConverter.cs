@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -31,14 +32,17 @@ internal class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationR
 
     public override IAuthorizationRequest? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        // FYI, the messages will already be initialized with the context
         var envelope = JsonSerializer.Deserialize<AuthorizationRequestJsonEnvelope>(ref reader, options);
 
         var requestMessage = envelope?.OriginalRequestMessage;
         if (requestMessage == null)
             return null;
 
+        Debug.Assert(requestMessage.OpenIdContext != null);
+
         var requestObject = envelope?.OriginalRequestObject;
+
+        Debug.Assert(requestObject == null || requestObject.OpenIdContext == requestMessage.OpenIdContext);
 
         return new AuthorizationRequest(requestMessage, requestObject);
     }

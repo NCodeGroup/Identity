@@ -38,8 +38,11 @@ namespace NIdentity.OpenId;
 /// </summary>
 public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
 {
+    private static Exception MissingTenantException() =>
+        new InvalidOperationException("The OpenIdTenant is not available.");
+
     private static IOpenIdTenantFeature MissingTenantFeature(IFeatureCollection _) =>
-        throw new InvalidOperationException("The OpenIdTenant is not available.");
+        throw MissingTenantException();
 
     private FeatureReferences<FeatureInterfaces> _features;
 
@@ -78,8 +81,7 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
 
     /// <inheritdoc />
     public override OpenIdTenant Tenant =>
-        TenantFeature?.Tenant ??
-        throw new InvalidOperationException();
+        TenantFeature?.Tenant ?? throw MissingTenantException();
 
     /// <inheritdoc />
     public override IOpenIdErrorFactory ErrorFactory => this;
@@ -96,6 +98,7 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
             ReadCommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true,
 
+            // TODO: provide a way to customize this list
             Converters =
             {
                 new JsonStringEnumConverter(),

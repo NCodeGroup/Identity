@@ -19,19 +19,27 @@
 
 namespace NIdentity.OpenId.Options;
 
-/// <summary>
-/// Contains the configurable options for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
-/// </summary>
-public class TenantOptions
+public class StaticSingleOpenIdTenantOptions : CommonOpenIdTenantOptions
 {
     /// <summary>
-    /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.
-    /// The default is <c>300</c> seconds (5 minutes).
+    /// Contains the default value for the <see cref="TenantId"/> property.
     /// </summary>
-    public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5);
+    public const string DefaultTenantId = "default";
 
     /// <summary>
-    /// Gets or set the <see cref="AuthorizationOptions"/> for the <c>OAuth</c> or <c>OpenID Connect</c> authorization handler.
+    /// Contains the default value for the <see cref="DisplayName"/> property.
     /// </summary>
-    public AuthorizationOptions Authorization { get; set; } = new();
+    public const string DefaultDisplayName = "Default Tenant";
+
+    /// <summary>
+    /// Gets or sets the identifier for the single-tenant.
+    /// The default value is 'default'.
+    /// </summary>
+    public string? TenantId { get; set; } = DefaultTenantId;
+
+    /// <summary>
+    /// Gets or sets the display name for the single-tenant.
+    /// The default value is 'Default Tenant'.
+    /// </summary>
+    public string? DisplayName { get; set; } = DefaultDisplayName;
 }

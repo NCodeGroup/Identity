@@ -17,25 +17,25 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
-
 namespace NIdentity.OpenId.Options;
 
 /// <summary>
-/// Contains the configurable options for an <c>OAuth</c> or <c>OpenID Connect</c> authorization handler.
+/// Specifies how multi-tenancy is configured.
 /// </summary>
-public class AuthorizationOptions
+public enum TenantMode
 {
     /// <summary>
-    /// Gets or sets the authentication scheme corresponding to the middleware
-    /// responsible of persisting user's identity after a successful authentication.
-    /// This value typically corresponds to a cookie middleware registered in the Startup class.
-    /// When omitted, <see cref="AuthenticationOptions.DefaultSignInScheme"/> is used as a fallback value.
+    /// Indicates that multi-tenancy is disabled and information about the single tenant must be explicitly configured.
     /// </summary>
-    public string? SignInScheme { get; set; }
+    Static,
 
     /// <summary>
-    /// Contains configurable options for dealing with request objects in the <c>OpenID Connect</c> authorization handler.
+    /// Indicates that multi-tenancy is enabled and tenants are discovered by the request path.
     /// </summary>
-    public AuthorizationRequestObjectOptions RequestObject { get; set; } = new();
+    DynamicByPath,
+
+    /// <summary>
+    /// Indicates that multi-tenancy is enabled and tenants are discovered by the host address.
+    /// </summary>
+    DynamicByHost
 }

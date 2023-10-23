@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <RootNamespace>NIdentity.OpenId</RootNamespace>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -28,6 +28,10 @@
     <ItemGroup>
       <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
       <ProjectReference Include="..\NCode.Jose.Abstractions\NCode.Jose.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Options\" />
     </ItemGroup>
 
 </Project>

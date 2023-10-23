@@ -32,20 +32,9 @@ namespace NIdentity.OpenId;
 public readonly struct UriDescriptor
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="UriDescriptor"/> struct.
+    /// Gets or sets the scheme (e.g. "http" or "https") component of the URI.
     /// </summary>
-    public UriDescriptor()
-    {
-        Host = default;
-        Path = default;
-        Query = default;
-    }
-
-    /// <summary>
-    /// Gets or sets scheme (e.g. "http" or "https") component of the URI.
-    /// If unspecified, the default value "https" is used.
-    /// </summary>
-    public string Scheme { get; init; } = Uri.UriSchemeHttps;
+    public required string Scheme { get; init; }
 
     /// <summary>
     /// Gets or sets the host component of the URI.
@@ -53,14 +42,14 @@ public readonly struct UriDescriptor
     /// IPv4 and IPv6 addresses are also allowed, and also may have ports.
     /// Use <c>IdnMapping.GetUnicode(value)</c> if you have a punycode host value.
     /// </summary>
-    public HostString Host { get; init; }
+    public required HostString Host { get; init; }
 
     /// <summary>
     /// Gets or sets the path component of the URI.
     /// This value must be in unescaped format. Use <c>PathString.FromUriComponent(value)</c>
     /// if you have a path value which is in an escaped format.
     /// </summary>
-    public PathString Path { get; init; }
+    public required PathString Path { get; init; }
 
     /// <summary>
     /// Gets or sets the query component of the URI.

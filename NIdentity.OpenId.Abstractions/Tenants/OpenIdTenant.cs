@@ -18,7 +18,7 @@
 #endregion
 
 using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.Options;
+using NIdentity.OpenId.DataContracts;
 
 namespace NIdentity.OpenId.Tenants;
 
@@ -53,7 +53,7 @@ public abstract class OpenIdTenant
     public abstract ISecretKeyProvider SecretKeyProvider { get; }
 
     /// <summary>
-    /// Gets the <see cref="TenantOptions"/> for the tenant.
+    /// Gets the <see cref="TenantConfiguration"/> for the tenant.
     /// </summary>
-    public abstract TenantOptions Options { get; }
+    public abstract TenantConfiguration Configuration { get; }
 }

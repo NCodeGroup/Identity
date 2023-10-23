@@ -22,7 +22,7 @@ using NIdentity.OpenId.DataContracts;
 namespace NIdentity.OpenId.Stores;
 
 /// <summary>
-/// Provides an abstraction for a store which manages <see cref="AuthorizationCode"/> instances.
+/// Provides an abstraction for a store which persists <see cref="AuthorizationCode"/> instances.
 /// </summary>
 public interface IAuthorizationCodeStore : IStore<AuthorizationCode>
 {

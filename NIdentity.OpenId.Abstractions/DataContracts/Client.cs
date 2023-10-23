@@ -89,7 +89,7 @@ public class Client : ISupportId, ISupportConcurrencyToken
 
     /// <summary>
     /// Gets or sets the amount of time that an authorization code is valid for.
-    /// Defaults to 5 minutes.
+    /// The default value is five minutes.
     /// </summary>
     public TimeSpan AuthorizationCodeLifetime { get; set; } = TimeSpan.FromMinutes(5.0);
 

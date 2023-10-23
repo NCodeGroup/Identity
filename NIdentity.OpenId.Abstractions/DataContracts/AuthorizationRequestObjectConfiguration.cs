@@ -17,12 +17,12 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Options;
+namespace NIdentity.OpenId.DataContracts;
 
 /// <summary>
-/// Contains the configurable options for dealing with request objects in the <c>OAuth</c> or <c>OpenID Connect</c> authorization handler.
+/// Contains the configurable settings for dealing with request objects in the <c>OAuth</c> or <c>OpenID Connect</c> authorization handler.
 /// </summary>
-public class AuthorizationRequestObjectOptions
+public class AuthorizationRequestObjectConfiguration
 {
     /// <summary>
     /// Gets or sets a value indicating whether the <c>request</c> parameter in an <c>OAuth</c> or <c>OpenID Connect</c>

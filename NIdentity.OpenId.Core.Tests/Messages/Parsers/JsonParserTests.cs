@@ -1,24 +1,25 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Buffers;
 using System.Text.Json;
 using Moq;
-using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 using NIdentity.OpenId.Results;
@@ -32,12 +33,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class JsonParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdMessageContext> MockOpenIdContext { get; }
+    private Mock<OpenIdContext> MockOpenIdContext { get; }
 
     public JsonParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<IOpenIdMessageContext>();
+        MockOpenIdContext = MockRepository.Create<OpenIdContext>();
     }
 
     public void Dispose()
@@ -83,7 +84,7 @@ public class JsonParserTests : IDisposable
         var jsonSerializerOptions = new JsonSerializerOptions();
 
         MockOpenIdContext
-            .Setup(_ => _.JsonSerializerOptions)
+            .Setup(x => x.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
 
@@ -126,27 +127,27 @@ public class JsonParserTests : IDisposable
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
         MockOpenIdContext
-            .Setup(_ => _.ErrorFactory)
+            .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
 
         var mockOpenIdError = MockRepository.Create<IOpenIdError>();
         mockOpenIdErrorFactory
-            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Setup(x => x.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
             .Returns(mockOpenIdError.Object)
             .Verifiable();
 
         mockOpenIdError
-            .Setup(_ => _.Code)
+            .Setup(x => x.Code)
             .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
             .Verifiable();
 
         mockOpenIdError
-            .SetupSet(_ => _.Description = $"The request is missing the '{parameterName}' parameter.")
+            .SetupSet(x => x.Description = $"The request is missing the '{parameterName}' parameter.")
             .Verifiable();
 
         mockOpenIdError
-            .Setup(_ => _.Exception)
+            .Setup(x => x.Exception)
             .Returns((Exception?)null)
             .Verifiable();
 
@@ -173,27 +174,27 @@ public class JsonParserTests : IDisposable
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
         MockOpenIdContext
-            .Setup(_ => _.ErrorFactory)
+            .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
 
         var mockOpenIdError = MockRepository.Create<IOpenIdError>();
         mockOpenIdErrorFactory
-            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Setup(x => x.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
             .Returns(mockOpenIdError.Object)
             .Verifiable();
 
         mockOpenIdError
-            .Setup(_ => _.Code)
+            .Setup(x => x.Code)
             .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
             .Verifiable();
 
         mockOpenIdError
-            .SetupSet(_ => _.Description = $"The request includes the '{parameterName}' parameter more than once.")
+            .SetupSet(x => x.Description = $"The request includes the '{parameterName}' parameter more than once.")
             .Verifiable();
 
         mockOpenIdError
-            .Setup(_ => _.Exception)
+            .Setup(x => x.Exception)
             .Returns((Exception?)null)
             .Verifiable();
 
@@ -217,7 +218,7 @@ public class JsonParserTests : IDisposable
         var jsonSerializerOptions = new JsonSerializerOptions();
 
         MockOpenIdContext
-            .Setup(_ => _.JsonSerializerOptions)
+            .Setup(x => x.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
 
@@ -245,7 +246,7 @@ public class JsonParserTests : IDisposable
         var jsonSerializerOptions = new JsonSerializerOptions();
 
         MockOpenIdContext
-            .Setup(_ => _.JsonSerializerOptions)
+            .Setup(x => x.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
 
@@ -254,27 +255,27 @@ public class JsonParserTests : IDisposable
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
         MockOpenIdContext
-            .Setup(_ => _.ErrorFactory)
+            .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
 
         var mockOpenIdError = MockRepository.Create<IOpenIdError>();
         mockOpenIdErrorFactory
-            .Setup(_ => _.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
+            .Setup(x => x.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
             .Returns(mockOpenIdError.Object)
             .Verifiable();
 
         mockOpenIdError
-            .Setup(_ => _.Code)
+            .Setup(x => x.Code)
             .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
             .Verifiable();
 
         mockOpenIdError
-            .SetupSet(_ => _.Description = "An error occurred while attempting to deserialize the JSON value.")
+            .SetupSet(x => x.Description = "An error occurred while attempting to deserialize the JSON value.")
             .Verifiable();
 
         mockOpenIdError
-            .SetupProperty(_ => _.Exception);
+            .SetupProperty(x => x.Exception);
 
         var knownParameter = new KnownParameter<TestNestedObject?>(
             parameterName,

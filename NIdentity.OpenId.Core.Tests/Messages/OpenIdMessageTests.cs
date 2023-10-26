@@ -1,18 +1,20 @@
 #region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Text.Json;
@@ -28,12 +30,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 public class OpenIdMessageTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdMessageContext> MockOpenIdContext { get; }
+    private Mock<OpenIdContext> MockOpenIdContext { get; }
 
     public OpenIdMessageTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<IOpenIdMessageContext>();
+        MockOpenIdContext = MockRepository.Create<OpenIdContext>();
     }
 
     public void Dispose()
@@ -50,7 +52,7 @@ public class OpenIdMessageTests : IDisposable
         message.Initialize(context, Array.Empty<Parameter>());
 
         Assert.Empty(message.Parameters);
-        Assert.Same(context, message.OpenIdMessageContext);
+        Assert.Same(context, message.OpenIdContext);
     }
 
     [Fact]
@@ -71,7 +73,7 @@ public class OpenIdMessageTests : IDisposable
         var message = new OpenIdMessage();
 
         Assert.Throws<InvalidOperationException>(() =>
-            message.OpenIdMessageContext);
+            message.OpenIdContext);
     }
 
     [Fact]
@@ -263,7 +265,7 @@ public class OpenIdMessageTests : IDisposable
         message.Initialize(context, new[] { parameter });
 
         mockParameterParser
-            .Setup(_ => _.Serialize(context, parsedValue))
+            .Setup(x => x.Serialize(context, parsedValue))
             .Returns(StringValues.Empty)
             .Verifiable();
 
@@ -298,12 +300,12 @@ public class OpenIdMessageTests : IDisposable
         var parameter = new Parameter<TestNestedObject>(descriptor, stringValues, parsedValue);
 
         mockParameterParser
-            .Setup(_ => _.Serialize(context, parsedValue))
+            .Setup(x => x.Serialize(context, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 
         mockParameterParser
-            .Setup(_ => _.Load(context, descriptor, stringValues, parsedValue))
+            .Setup(x => x.Load(context, descriptor, stringValues, parsedValue))
             .Returns(parameter)
             .Verifiable();
 
@@ -347,12 +349,12 @@ public class OpenIdMessageTests : IDisposable
         parameter = new Parameter<TestNestedObject>(descriptor, stringValues, parsedValue);
 
         mockParameterParser
-            .Setup(_ => _.Serialize(context, parsedValue))
+            .Setup(x => x.Serialize(context, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 
         mockParameterParser
-            .Setup(_ => _.Load(context, descriptor, stringValues, parsedValue))
+            .Setup(x => x.Load(context, descriptor, stringValues, parsedValue))
             .Returns(parameter)
             .Verifiable();
 

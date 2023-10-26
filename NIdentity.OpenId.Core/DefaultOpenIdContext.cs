@@ -36,7 +36,7 @@ namespace NIdentity.OpenId;
 /// </summary>
 public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
 {
-    private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
+    internal JsonSerializerOptions? JsonSerializerOptionsOrNull { get; private set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdContext"/> class.

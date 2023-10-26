@@ -17,6 +17,8 @@
 
 #endregion
 
+using System.Text.Json.Serialization;
+
 namespace NIdentity.OpenId.DataContracts;
 
 /// <summary>
@@ -25,13 +27,42 @@ namespace NIdentity.OpenId.DataContracts;
 public class TenantConfiguration
 {
     /// <summary>
+    /// Gets or sets the identifier for the tenant.
+    /// </summary>
+    public string TenantId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the domain name for the tenant.
+    /// This value is optional and can be used to find tenants by domain name.
+    /// </summary>
+    public string? DomainName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the display name for the tenant.
+    /// </summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the issuer identifier for the tenant.
+    /// If specified, the host address must be in unicode and not punycode.
+    /// If unspecified, the default value will be determined by the host address and tenant path.
+    /// </summary>
+    public string? Issuer { get; set; }
+
+    /// <summary>
     /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.
     /// The default is <c>300</c> seconds (5 minutes).
     /// </summary>
     public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
-    /// Gets or set the <see cref="AuthorizationConfiguration"/> for the <c>OAuth</c> or <c>OpenID Connect</c> authorization handler.
+    /// Gets or set the <see cref="AuthorizationConfiguration"/> for the authorization handler.
     /// </summary>
     public AuthorizationConfiguration Authorization { get; set; } = new();
+
+    /// <summary>
+    /// Gets the <see cref="IDictionary{TKey, TValue}"/> for extension members.
+    /// </summary>
+    [JsonExtensionData]
+    public IDictionary<string, object?> ExtensionData { get; set; } = new Dictionary<string, object?>(StringComparer.Ordinal);
 }

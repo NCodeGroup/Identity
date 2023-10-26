@@ -259,7 +259,7 @@ internal class DefaultAuthorizationEndpointHandler :
         var authorizationSource = command.AuthorizationSource;
         var openIdContext = authorizationSource.OpenIdContext;
         var errorFactory = openIdContext.ErrorFactory;
-        var options = openIdContext.Tenant.Options.Authorization.RequestObject;
+        var configuration = openIdContext.Tenant.Configuration.Authorization.RequestObject;
 
         var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
         requestMessage.AuthorizationSourceType = authorizationSource.AuthorizationSourceType;
@@ -270,7 +270,7 @@ internal class DefaultAuthorizationEndpointHandler :
             cancellationToken);
 
         var requestObject = await LoadRequestObjectAsync(
-            options,
+            configuration,
             requestMessage,
             client,
             cancellationToken);
@@ -610,7 +610,7 @@ internal class DefaultAuthorizationEndpointHandler :
         AuthenticateCommand command,
         CancellationToken cancellationToken)
     {
-        var signInSchemeName = command.OpenIdContext.Tenant.Options.Authorization.SignInScheme;
+        var signInSchemeName = command.OpenIdContext.Tenant.Configuration.Authorization.SignInScheme;
 
         if (string.IsNullOrEmpty(signInSchemeName))
         {
@@ -641,7 +641,7 @@ internal class DefaultAuthorizationEndpointHandler :
         var authorizationRequest = authorizationContext.AuthorizationRequest;
         var openIdContext = authorizationRequest.OpenIdContext;
         var errorFactory = openIdContext.ErrorFactory;
-        var tenantOptions = openIdContext.Tenant.Options;
+        var configuration = openIdContext.Tenant.Configuration;
 
         var promptType = authorizationRequest.PromptType;
 
@@ -719,7 +719,7 @@ internal class DefaultAuthorizationEndpointHandler :
         // TODO: check IdP
 
         // check MaxAge
-        if (!ValidateMaxAge(subject, authorizationRequest.MaxAge, tenantOptions.ClockSkew))
+        if (!ValidateMaxAge(subject, authorizationRequest.MaxAge, configuration.ClockSkew))
         {
             var returnUrl = await CallbackService.GetReturnUrlAsync(
                 authorizationContext,

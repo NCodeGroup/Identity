@@ -38,14 +38,14 @@ public abstract class OpenIdTenant
     public abstract string DisplayName { get; }
 
     /// <summary>
-    /// Gets the issuer identifier for the tenant.
-    /// </summary>
-    public abstract string Issuer { get; }
-
-    /// <summary>
     /// Gets the base address for the tenant.
     /// </summary>
     public abstract UriDescriptor BaseAddress { get; }
+
+    /// <summary>
+    /// Gets the issuer identifier for the tenant.
+    /// </summary>
+    public abstract string Issuer { get; }
 
     /// <summary>
     /// Gets the <see cref="ISecretKeyProvider"/> for the tenant.

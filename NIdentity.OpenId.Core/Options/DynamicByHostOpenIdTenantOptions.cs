@@ -19,6 +19,11 @@
 
 namespace NIdentity.OpenId.Options;
 
-public class DynamicByHostOpenIdTenantOptions : CommonOpenIdTenantOptions
+public class DynamicByHostOpenIdTenantOptions
 {
+    /// <summary>
+    /// Gets or sets the regex pattern to extract the domain name.
+    /// The default pattern uses the entire value.
+    /// </summary>
+    public string RegexPattern { get; set; } = ".*";
 }

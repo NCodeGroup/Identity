@@ -19,7 +19,7 @@
 
 namespace NIdentity.OpenId.Options;
 
-public class DynamicByPathOpenIdTenantOptions : CommonOpenIdTenantOptions
+public class DynamicByPathOpenIdTenantOptions
 {
     /// <summary>
     /// Contains the name of the route parameter that will be used to determine the tenant identifier.

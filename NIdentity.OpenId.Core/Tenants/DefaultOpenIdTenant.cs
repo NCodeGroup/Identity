@@ -23,36 +23,35 @@ using NIdentity.OpenId.DataContracts;
 namespace NIdentity.OpenId.Tenants;
 
 /// <summary>
-/// Provides an implementation of the <see cref="OpenIdTenant"/> abstraction that uses static tenant configuration.
+/// Provides a default implementation of the <see cref="OpenIdTenant"/> abstraction.
 /// </summary>
-public class StaticOpenIdTenant : OpenIdTenant
+public class DefaultOpenIdTenant : OpenIdTenant
 {
     /// <inheritdoc />
-    public override string TenantId { get; }
+    public override string TenantId => Configuration.TenantId;
 
     /// <inheritdoc />
-    public override string DisplayName { get; }
-
-    /// <inheritdoc />
-    public override string Issuer { get; }
+    public override string DisplayName => Configuration.DisplayName;
 
     /// <inheritdoc />
     public override UriDescriptor BaseAddress { get; }
 
     /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeyProvider => throw new NotImplementedException(); // TODO
+    public override string Issuer { get; }
 
     /// <inheritdoc />
-    public override TenantConfiguration Configuration => throw new NotImplementedException(); // TODO
+    public override ISecretKeyProvider SecretKeyProvider => throw new NotImplementedException();
+
+    /// <inheritdoc />
+    public override TenantConfiguration Configuration { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="StaticOpenIdTenant"/> class.
+    /// Initializes a new instance of the <see cref="DefaultOpenIdTenant"/> class.
     /// </summary>
-    public StaticOpenIdTenant(string tenantId, string displayName, string issuer, UriDescriptor baseAddress)
+    public DefaultOpenIdTenant(TenantConfiguration configuration, UriDescriptor baseAddress, string issuer)
     {
-        TenantId = tenantId;
-        DisplayName = displayName;
-        Issuer = issuer;
+        Configuration = configuration;
         BaseAddress = baseAddress;
+        Issuer = issuer;
     }
 }

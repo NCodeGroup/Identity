@@ -18,22 +18,15 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Endpoints;
+using Microsoft.AspNetCore.Routing.Patterns;
+using NCode.Identity;
+using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Mediator;
 
-namespace NIdentity.OpenId;
+namespace NIdentity.OpenId.Tenants.Commands;
 
-/// <summary>
-/// Provides a default implementation for the <see cref="IOpenIdContextFactory"/> abstraction.
-/// </summary>
-public class DefaultOpenIdContextFactory : IOpenIdContextFactory
-{
-    /// <inheritdoc />
-    public ValueTask<OpenIdContext> CreateAsync(
-        HttpContext httpContext,
-        OpenIdEndpointDescriptor endpointDescriptor,
-        CancellationToken cancellationToken)
-    {
-        return ValueTask.FromResult<OpenIdContext>(
-            new DefaultOpenIdContext(httpContext, endpointDescriptor));
-    }
-}
+public record GetTenantConfigurationCommand(
+    HttpContext HttpContext,
+    RoutePattern? TenantRoute,
+    IPropertyBag PropertyBag
+) : ICommand<TenantConfiguration>;

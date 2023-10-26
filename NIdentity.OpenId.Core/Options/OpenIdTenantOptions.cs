@@ -17,6 +17,8 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+
 namespace NIdentity.OpenId.Options;
 
 public class OpenIdTenantOptions
@@ -26,9 +28,25 @@ public class OpenIdTenantOptions
     /// </summary>
     public TenantMode Mode { get; set; }
 
+    /// <summary>
+    /// Gets or sets the relative path for the tenant.
+    /// When the path is used to determine the tenant, this value must be set to a route pattern that
+    /// includes the identifier as a route parameter (ex. '/{tenantId}') with a leading slash.
+    /// </summary>
+    public PathString TenantPath { get; set; }
+
+    /// <summary>
+    /// Gets or set the tenant options that are used when <see cref="Mode"/> is set to <see cref="TenantMode.StaticSingle"/>.
+    /// </summary>
     public StaticSingleOpenIdTenantOptions? StaticSingle { get; set; }
 
-    public DynamicByPathOpenIdTenantOptions? DynamicByPath { get; set; }
-
+    /// <summary>
+    /// Gets or set the tenant options that are used when <see cref="Mode"/> is set to <see cref="TenantMode.DynamicByHost"/>.
+    /// </summary>
     public DynamicByHostOpenIdTenantOptions? DynamicByHost { get; set; }
+
+    /// <summary>
+    /// Gets or set the tenant options that are used when <see cref="Mode"/> is set to <see cref="TenantMode.DynamicByPath"/>.
+    /// </summary>
+    public DynamicByPathOpenIdTenantOptions? DynamicByPath { get; set; }
 }

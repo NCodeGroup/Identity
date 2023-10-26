@@ -56,12 +56,12 @@ public static partial class OpenIdConstants
         /// <summary>
         /// Contains the common prefix for all endpoints and routes.
         /// </summary>
-        private const string Prefix = "oauth2";
+        private const string Prefix = "/oauth2";
 
         /// <summary>
         /// Contains the relative path for the discovery endpoint.
         /// </summary>
-        public const string Discovery = ".well-known/openid-configuration";
+        public const string Discovery = "/.well-known/openid-configuration";
 
         /// <summary>
         /// Contains the relative path for the authorization endpoint.

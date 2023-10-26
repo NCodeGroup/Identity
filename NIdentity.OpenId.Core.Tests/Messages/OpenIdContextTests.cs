@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,15 +14,20 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 using Moq;
+using NCode.Identity;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
-using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Serialization;
+using NIdentity.OpenId.Tenants;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
@@ -29,12 +35,18 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 public class OpenIdContextTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdErrorFactory> MockOpenIdErrorFactory { get; }
+    private Mock<HttpContext> MockHttpContext { get; }
+    private Mock<OpenIdTenant> MockOpenIdTenant { get; }
+    private Mock<OpenIdEndpointDescriptor> MockOpenIdEndpointDescriptor { get; }
+    private Mock<IPropertyBag> MockPropertyBag { get; }
 
     public OpenIdContextTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        MockHttpContext = MockRepository.Create<HttpContext>();
+        MockOpenIdTenant = MockRepository.Create<OpenIdTenant>();
+        MockOpenIdEndpointDescriptor = MockRepository.Create<OpenIdEndpointDescriptor>();
+        MockPropertyBag = MockRepository.Create<IPropertyBag>();
     }
 
     public void Dispose()
@@ -45,9 +57,33 @@ public class OpenIdContextTests : IDisposable
     [Fact]
     public void Constructor_ThenValid()
     {
-        var context = new OpenIdMessageContext(MockOpenIdErrorFactory.Object);
+        var context = new DefaultOpenIdContext(
+            MockHttpContext.Object,
+            MockOpenIdTenant.Object,
+            MockOpenIdEndpointDescriptor.Object,
+            MockPropertyBag.Object
+        );
 
-        Assert.Same(MockOpenIdErrorFactory.Object, context.ErrorFactory);
+        Assert.Same(MockHttpContext.Object, context.HttpContext);
+        Assert.Same(MockOpenIdTenant.Object, context.Tenant);
+        Assert.Same(MockOpenIdEndpointDescriptor.Object, context.Descriptor);
+        Assert.Null(context.JsonSerializerOptionsOrNull);
+        Assert.Same(context, context.ErrorFactory);
+        Assert.Same(KnownParameterCollection.Default, context.KnownParameters);
+        Assert.Same(MockPropertyBag.Object, context.PropertyBag);
+    }
+
+    [Fact]
+    public void JsonSerializerOptions_Valid()
+    {
+        var context = new DefaultOpenIdContext(
+            MockHttpContext.Object,
+            MockOpenIdTenant.Object,
+            MockOpenIdEndpointDescriptor.Object,
+            MockPropertyBag.Object
+        );
+
+        Assert.Same(context.JsonSerializerOptions, context.JsonSerializerOptions);
 
         Assert.True(context.JsonSerializerOptions.PropertyNameCaseInsensitive);
         Assert.Equal(JsonNamingPolicy.CamelCase, context.JsonSerializerOptions.PropertyNamingPolicy);

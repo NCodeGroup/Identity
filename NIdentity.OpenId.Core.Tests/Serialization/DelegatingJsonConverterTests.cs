@@ -1,18 +1,20 @@
 ﻿#region Copyright Preamble
-// 
+
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Text.Json;
@@ -21,7 +23,6 @@ using Moq;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Serialization;
 using Xunit;
 
@@ -30,14 +31,12 @@ namespace NIdentity.OpenId.Core.Tests.Serialization;
 public class DelegatingJsonConverterTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<IOpenIdErrorFactory> MockOpenIdErrorFactory { get; }
-    private OpenIdMessageContext OpenIdMessageContext { get; }
+    private Mock<OpenIdContext> MockOpenIdContext { get; }
 
     public DelegatingJsonConverterTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        OpenIdMessageContext = new OpenIdMessageContext(MockOpenIdErrorFactory.Object);
+        MockOpenIdContext = MockRepository.Create<OpenIdContext>();
     }
 
     public void Dispose()
@@ -48,18 +47,23 @@ public class DelegatingJsonConverterTests : IDisposable
     [Fact]
     public void AuthorizationRequestMessage_RoundTrip()
     {
+        MockOpenIdContext
+            .Setup(x => x.KnownParameters)
+            .Returns(KnownParameterCollection.Default)
+            .Verifiable();
+
         var jsonSerializerOptions = new JsonSerializerOptions
         {
             Converters =
             {
                 new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(OpenIdMessageContext),
+                new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>()
             }
         };
 
         var inputMessage = new AuthorizationRequestMessage();
-        inputMessage.Initialize(OpenIdMessageContext, Array.Empty<Parameter>());
+        inputMessage.Initialize(MockOpenIdContext.Object, Array.Empty<Parameter>());
 
         inputMessage.AuthorizationSourceType = AuthorizationSourceType.Union;
         inputMessage.Nonce = "nonce";
@@ -80,19 +84,24 @@ public class DelegatingJsonConverterTests : IDisposable
     [Fact]
     public void AuthorizationRequest_RoundTrip()
     {
+        MockOpenIdContext
+            .Setup(x => x.KnownParameters)
+            .Returns(KnownParameterCollection.Default)
+            .Verifiable();
+
         var jsonSerializerOptions = new JsonSerializerOptions
         {
             Converters =
             {
                 new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(OpenIdMessageContext),
+                new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object),
                 new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
             }
         };
 
-        var requestMessage = AuthorizationRequestMessage.Load(OpenIdMessageContext, Array.Empty<Parameter>());
+        var requestMessage = AuthorizationRequestMessage.Load(MockOpenIdContext.Object, Array.Empty<Parameter>());
         requestMessage.AuthorizationSourceType = AuthorizationSourceType.Query;
         requestMessage.Nonce = "!nonce!";
         requestMessage.DisplayType = DisplayType.Touch;
@@ -100,7 +109,7 @@ public class DelegatingJsonConverterTests : IDisposable
         requestMessage.Scopes = new[] { "!scope1!", "!scope2!" };
         requestMessage.RedirectUri = new Uri("https://localhost/test");
 
-        var requestObject = AuthorizationRequestObject.Load(OpenIdMessageContext, Array.Empty<Parameter>());
+        var requestObject = AuthorizationRequestObject.Load(MockOpenIdContext.Object, Array.Empty<Parameter>());
         requestObject.RequestObjectSource = RequestObjectSource.Remote;
         requestObject.Nonce = "nonce";
         requestObject.DisplayType = DisplayType.Popup;

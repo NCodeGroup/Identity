@@ -42,7 +42,13 @@ public class Tenant : ISupportId, ISupportConcurrencyToken
     public string TenantId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the display name for this entity.
+    /// Gets or sets the domain name for this entity.
+    /// This value is optional and can be used to find tenants by domain name.
+    /// </summary>
+    public string? DomainName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the display name for the tenant.
     /// </summary>
     public string DisplayName { get; set; } = string.Empty;
 
@@ -50,4 +56,9 @@ public class Tenant : ISupportId, ISupportConcurrencyToken
     /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
     public bool IsDisabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the configuration for the tenant.
+    /// </summary>
+    public TenantConfiguration Configuration { get; set; } = new();
 }

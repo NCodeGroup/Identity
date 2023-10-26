@@ -35,4 +35,14 @@ public interface ITenantStore : IStore<Tenant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="Tenant"/> instance matching the specified <paramref name="tenantId"/> if it exists.</returns>
     ValueTask<Tenant?> TryGetByTenantIdAsync(string tenantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Attempts to get a <see cref="Tenant"/> instance by using its domain name.
+    /// </summary>
+    /// <param name="domainName">The domain name of the <see cref="Tenant"/> instance to retrieve.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="Tenant"/> instance matching the specified <paramref name="domainName"/> if it exists.</returns>
+    ValueTask<Tenant?> TryGetByDomainNameAsync(string domainName, CancellationToken cancellationToken);
 }

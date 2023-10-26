@@ -17,17 +17,12 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-
 namespace NIdentity.OpenId.Options;
 
 public class OpenIdHostOptions
 {
     /// <summary>
-    /// Gets or sets the relative base path for all OpenID endpoints.
-    /// The default value is '/oauth2'.
+    /// Gets or sets the options that indicate how the host will determine the tenant.
     /// </summary>
-    public PathString EndpointBasePath { get; set; } = "/oauth2";
-
     public OpenIdTenantOptions Tenant { get; set; } = new();
 }

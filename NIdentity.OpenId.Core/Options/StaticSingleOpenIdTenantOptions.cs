@@ -17,29 +17,24 @@
 
 #endregion
 
+using NIdentity.OpenId.DataContracts;
+
 namespace NIdentity.OpenId.Options;
 
-public class StaticSingleOpenIdTenantOptions : CommonOpenIdTenantOptions
+public class StaticSingleOpenIdTenantOptions
 {
     /// <summary>
-    /// Contains the default value for the <see cref="TenantId"/> property.
+    /// Contains the default value for the tenant's identifier.
     /// </summary>
     public const string DefaultTenantId = "default";
 
     /// <summary>
-    /// Contains the default value for the <see cref="DisplayName"/> property.
+    /// Contains the default value for the tenant's display name.
     /// </summary>
     public const string DefaultDisplayName = "Default Tenant";
 
     /// <summary>
-    /// Gets or sets the identifier for the single-tenant.
-    /// The default value is 'default'.
+    /// Gets or sets the configuration for the tenant.
     /// </summary>
-    public string? TenantId { get; set; } = DefaultTenantId;
-
-    /// <summary>
-    /// Gets or sets the display name for the single-tenant.
-    /// The default value is 'Default Tenant'.
-    /// </summary>
-    public string? DisplayName { get; set; } = DefaultDisplayName;
+    public TenantConfiguration TenantConfiguration { get; set; } = new();
 }

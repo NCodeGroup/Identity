@@ -27,15 +27,15 @@ public enum TenantMode
     /// <summary>
     /// Indicates that multi-tenancy is disabled and information about the single tenant must be explicitly configured.
     /// </summary>
-    Static,
-
-    /// <summary>
-    /// Indicates that multi-tenancy is enabled and tenants are discovered by the request path.
-    /// </summary>
-    DynamicByPath,
+    StaticSingle,
 
     /// <summary>
     /// Indicates that multi-tenancy is enabled and tenants are discovered by the host address.
     /// </summary>
-    DynamicByHost
+    DynamicByHost,
+
+    /// <summary>
+    /// Indicates that multi-tenancy is enabled and tenants are discovered by the request path.
+    /// </summary>
+    DynamicByPath
 }

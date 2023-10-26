@@ -33,29 +33,24 @@ namespace NIdentity.OpenId;
 public abstract class OpenIdContext
 {
     /// <summary>
-    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current request.
-    /// </summary>
-    public abstract IPropertyBag PropertyBag { get; }
-
-    /// <summary>
     /// Gets the <see cref="HttpContext"/> associated with the current request.
     /// </summary>
     public abstract HttpContext HttpContext { get; }
 
     /// <summary>
+    /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
+    /// </summary>
+    public abstract OpenIdTenant Tenant { get; }
+
+    /// <summary>
     /// Gets the <see cref="OpenIdEndpointDescriptor"/> associated with the current request.
     /// </summary>
-    public abstract OpenIdEndpointDescriptor EndpointDescriptor { get; }
+    public abstract OpenIdEndpointDescriptor Descriptor { get; }
 
     /// <summary>
     /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.
     /// </summary>
     public abstract JsonSerializerOptions JsonSerializerOptions { get; }
-
-    /// <summary>
-    /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
-    /// </summary>
-    public abstract OpenIdTenant Tenant { get; }
 
     /// <summary>
     /// Gets the <see cref="IOpenIdErrorFactory"/> that can be used to create error responses
@@ -67,4 +62,9 @@ public abstract class OpenIdContext
     /// Gets the <see cref="IKnownParameterCollection"/> which contains all known parameters.
     /// </summary>
     public abstract IKnownParameterCollection KnownParameters { get; }
+
+    /// <summary>
+    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current request.
+    /// </summary>
+    public abstract IPropertyBag PropertyBag { get; }
 }

@@ -10,10 +10,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- https://learn.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="IdGen.DependencyInjection" Version="3.0.0" />
         <PackageReference Include="JetBrains.Annotations" Version="2023.2.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.Abstractions" Version="2.2.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.20" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="6.0.20" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
@@ -33,7 +36,6 @@
         <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj" />
         <ProjectReference Include="..\NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj" />
     </ItemGroup>
-
 
 
 </Project>

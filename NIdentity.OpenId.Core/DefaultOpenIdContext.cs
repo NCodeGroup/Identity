@@ -20,11 +20,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 using NCode.Identity;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
-using NIdentity.OpenId.Features;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
@@ -38,56 +36,44 @@ namespace NIdentity.OpenId;
 /// </summary>
 public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
 {
-    private static Exception MissingTenantException() =>
-        new InvalidOperationException("The OpenIdTenant is not available.");
-
-    private static IOpenIdTenantFeature MissingTenantFeature(IFeatureCollection _) =>
-        throw MissingTenantException();
-
-    private FeatureReferences<FeatureInterfaces> _features;
-
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdContext"/> class.
     /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> instance.</param>
-    /// <param name="endpointDescriptor">The <see cref="OpenIdEndpointDescriptor"/> instance.</param>
-    public DefaultOpenIdContext(HttpContext httpContext, OpenIdEndpointDescriptor endpointDescriptor)
+    public DefaultOpenIdContext(
+        HttpContext httpContext,
+        OpenIdTenant tenant,
+        OpenIdEndpointDescriptor descriptor,
+        IPropertyBag propertyBag)
     {
-        PropertyBag = endpointDescriptor.PropertyBag.Clone();
-
         HttpContext = httpContext;
-        EndpointDescriptor = endpointDescriptor;
-
-        _features.Initalize(httpContext.Features);
+        Tenant = tenant;
+        Descriptor = descriptor;
+        PropertyBag = propertyBag;
     }
-
-    private IOpenIdTenantFeature? TenantFeature =>
-        _features.Fetch(ref _features.Cache.Tenant, MissingTenantFeature);
-
-    /// <inheritdoc />
-    public override IPropertyBag PropertyBag { get; }
 
     /// <inheritdoc />
     public override HttpContext HttpContext { get; }
 
     /// <inheritdoc />
-    public override OpenIdEndpointDescriptor EndpointDescriptor { get; }
+    public override OpenIdTenant Tenant { get; }
+
+    /// <inheritdoc />
+    public override OpenIdEndpointDescriptor Descriptor { get; }
 
     /// <inheritdoc />
     public override JsonSerializerOptions JsonSerializerOptions =>
         JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
 
     /// <inheritdoc />
-    public override OpenIdTenant Tenant =>
-        TenantFeature?.Tenant ?? throw MissingTenantException();
-
-    /// <inheritdoc />
     public override IOpenIdErrorFactory ErrorFactory => this;
 
     /// <inheritdoc />
     public override IKnownParameterCollection KnownParameters => KnownParameterCollection.Default;
+
+    /// <inheritdoc />
+    public override IPropertyBag PropertyBag { get; }
 
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
@@ -110,9 +96,4 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
             }
         };
-
-    private struct FeatureInterfaces
-    {
-        public IOpenIdTenantFeature? Tenant;
-    }
 }

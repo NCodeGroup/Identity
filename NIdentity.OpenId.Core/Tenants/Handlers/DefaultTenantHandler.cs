@@ -17,11 +17,10 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing.Patterns;
-using Microsoft.Extensions.DependencyInjection;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
-using NCode.Jose.SecretKeys;
+using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Stores;
@@ -31,13 +30,15 @@ namespace NIdentity.OpenId.Tenants.Handlers;
 
 internal class DefaultTenantHandler :
     ICommandResponseHandler<GetOpenIdTenantCommand, OpenIdTenant>,
-    ICommandResponseHandler<GetTenantIdCommand, string>,
-    ICommandResponseHandler<GetTenantIssuerCommand, string>,
-    ICommandResponseHandler<GetTenantBaseAddressCommand, UriDescriptor>
+    ICommandResponseHandler<GetTenantConfigurationCommand, TenantConfiguration>,
+    ICommandResponseHandler<GetTenantBaseAddressCommand, UriDescriptor>,
+    ICommandResponseHandler<GetTenantIssuerCommand, string>
 {
+    private Regex? DomainNameRegex { get; set; }
     private OpenIdHostOptions HostOptions { get; }
     private IMediator Mediator { get; }
     private ITenantStore TenantStore { get; }
+    private TemplateBinderFactory TemplateBinderFactory { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultTenantHandler"/> class.
@@ -45,166 +46,194 @@ internal class DefaultTenantHandler :
     public DefaultTenantHandler(
         IOptions<OpenIdHostOptions> hostOptionsAccessor,
         IMediator mediator,
-        ITenantStore tenantStore)
+        ITenantStore tenantStore,
+        TemplateBinderFactory templateBinderFactory)
     {
         HostOptions = hostOptionsAccessor.Value;
         Mediator = mediator;
         TenantStore = tenantStore;
+        TemplateBinderFactory = templateBinderFactory;
     }
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdTenant> HandleAsync(GetOpenIdTenantCommand command, CancellationToken cancellationToken) =>
-        HostOptions.Tenant.Mode switch
+    public async ValueTask<OpenIdTenant> HandleAsync(GetOpenIdTenantCommand command, CancellationToken cancellationToken)
+    {
+        var (httpContext, tenantRoute, propertyBag) = command;
+
+        var configuration = await Mediator.SendAsync(
+            new GetTenantConfigurationCommand(
+                httpContext,
+                tenantRoute,
+                propertyBag),
+            cancellationToken);
+
+        var baseAddress = await Mediator.SendAsync(
+            new GetTenantBaseAddressCommand(
+                httpContext,
+                tenantRoute,
+                configuration,
+                propertyBag),
+            cancellationToken);
+
+        var issuer = await Mediator.SendAsync(
+            new GetTenantIssuerCommand(
+                httpContext,
+                baseAddress,
+                configuration,
+                propertyBag),
+            cancellationToken);
+
+        return new DefaultOpenIdTenant(configuration, baseAddress, issuer);
+    }
+
+    #region GetTenantConfigurationCommand
+
+    /// <inheritdoc />
+    public async ValueTask<TenantConfiguration> HandleAsync(
+        GetTenantConfigurationCommand command,
+        CancellationToken cancellationToken)
+    {
+        return HostOptions.Tenant.Mode switch
         {
-            TenantMode.Static => await GetStaticSingleTenantAsync(command.HttpContext, cancellationToken),
-            TenantMode.DynamicByPath => await GetDynamicByPathTenantAsync(command.HttpContext, cancellationToken),
-            TenantMode.DynamicByHost => await GetDynamicByHostTenantAsync(command.HttpContext, cancellationToken),
-            _ => throw new InvalidOperationException("Invalid tenancy mode.")
+            TenantMode.StaticSingle => GetTenantFromOptions(),
+            TenantMode.DynamicByHost => await GetTenantFromHostAsync(command, cancellationToken),
+            TenantMode.DynamicByPath => await GetTenantFromPathAsync(command, cancellationToken),
+            _ => throw new InvalidOperationException($"Unsupported tenant mode: {HostOptions.Tenant.Mode}")
         };
+    }
 
-    // var tenantId = await Mediator.SendAsync(new GetTenantIdCommand(httpContext), cancellationToken);
-    // if (string.IsNullOrEmpty(tenantId))
-    //     // TODO: better exception
-    //     throw new InvalidOperationException();
-    //
-    // var tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
-    // if (tenant == null)
-    //     // TODO: better exception
-    //     throw new InvalidOperationException();
-    //
-    // var issuer = await Mediator.SendAsync(new GetTenantIssuerCommand(httpContext, tenant), cancellationToken);
-    // var baseAddress = await Mediator.SendAsync(new GetTenantBaseAddressCommand(httpContext, tenant), cancellationToken);
-    //
-    // return new DefaultOpenIdTenant(tenant, issuer, baseAddress);
+    private static Exception MissingTenantOptionsException(TenantMode mode) =>
+        new InvalidOperationException($"Tenant Mode is {mode} but the corresponding options are missing.");
 
-    private ValueTask<OpenIdTenant> GetStaticSingleTenantAsync(HttpContext httpContext, CancellationToken cancellationToken)
+    private TenantConfiguration GetTenantFromOptions()
     {
         var options = HostOptions.Tenant.StaticSingle;
+        if (options == null)
+            throw MissingTenantOptionsException(TenantMode.StaticSingle);
 
-        var tenantId = options.TenantId;
-        if (string.IsNullOrEmpty(tenantId))
-            tenantId = StaticSingleOpenIdTenantOptions.DefaultTenantId;
+        var configuration = options.TenantConfiguration;
 
-        var displayName = options.DisplayName;
-        if (string.IsNullOrEmpty(displayName))
-            displayName = StaticSingleOpenIdTenantOptions.DefaultDisplayName;
+        if (string.IsNullOrEmpty(configuration.TenantId))
+            configuration.TenantId = StaticSingleOpenIdTenantOptions.DefaultTenantId;
 
-        var basePath = options.BasePath;
-        if (!string.IsNullOrEmpty(basePath) && basePath[0] != '/')
-            basePath = '/' + basePath;
+        if (string.IsNullOrEmpty(configuration.DisplayName))
+            configuration.DisplayName = StaticSingleOpenIdTenantOptions.DefaultDisplayName;
 
-        var request = httpContext.Request;
-        var baseAddress = new UriDescriptor
-        {
-            Scheme = request.Scheme,
-            Host = request.Host,
-            Path = request.PathBase.Add(basePath)
-        };
-
-        var issuer = options.Issuer;
-        if (string.IsNullOrEmpty(issuer))
-            issuer = baseAddress.ToString();
-
-        var endpointBasePath = HostOptions.EndpointBasePath;
-        if (string.IsNullOrEmpty(endpointBasePath))
-            endpointBasePath = "/";
-        else if (endpointBasePath[0] != '/')
-            endpointBasePath = '/' + endpointBasePath;
-
-        var endpointBaseRoute = RoutePatternFactory.Parse(endpointBasePath);
-
-        var descriptor = new OpenIdTenantDescriptor
-        {
-            TenantId = tenantId,
-            DisplayName = displayName,
-            Issuer = issuer,
-            BaseAddress = baseAddress,
-            EndpointBaseRoute = endpointBaseRoute,
-            TenantIdRouteParameterName = null
-        };
-
-        var secretKeyProvider = httpContext.RequestServices.GetRequiredService<ISecretKeyProvider>();
-
-        var tenant = new StaticOpenIdTenant(
-            descriptor,
-            secretKeyProvider,
-            options.Configuration);
-
-        return ValueTask.FromResult<OpenIdTenant>(tenant);
+        return configuration;
     }
 
-    private async ValueTask<OpenIdTenant> GetDynamicByPathTenantAsync(HttpContext httpContext, CancellationToken cancellationToken)
+    private async ValueTask<TenantConfiguration> GetTenantFromHostAsync(
+        GetTenantConfigurationCommand command,
+        CancellationToken cancellationToken)
+    {
+        var options = HostOptions.Tenant.DynamicByHost;
+        if (options == null)
+            throw MissingTenantOptionsException(TenantMode.DynamicByHost);
+
+        var regex = DomainNameRegex ??= new Regex(
+            options.RegexPattern,
+            RegexOptions.Compiled |
+            RegexOptions.CultureInvariant |
+            RegexOptions.Singleline);
+
+        var host = command.HttpContext.Request.Host.Host;
+        var match = regex.Match(host);
+        var domainName = match.Success ? match.Value : host;
+
+        var tenant = await TenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
+        if (tenant == null)
+            throw new InvalidOperationException();
+
+        return tenant.Configuration;
+    }
+
+    private async ValueTask<TenantConfiguration> GetTenantFromPathAsync(
+        GetTenantConfigurationCommand command,
+        CancellationToken cancellationToken)
     {
         var options = HostOptions.Tenant.DynamicByPath;
+        if (options == null)
+            throw MissingTenantOptionsException(TenantMode.DynamicByPath);
 
-        // RoutePatternFactory.Combine();
-
-        var routePattern = RoutePatternFactory.Parse(options.RoutePattern);
-
-        throw new NotImplementedException();
-    }
-
-    private async ValueTask<OpenIdTenant> GetDynamicByHostTenantAsync(HttpContext httpContext, CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public ValueTask<string> HandleAsync(GetTenantIdCommand command, CancellationToken cancellationToken)
-    {
         var httpContext = command.HttpContext;
+        var tenantRoute = command.TenantRoute;
 
-        // EnableMultiTenancy: true, false
-        // TenantDiscoveryMode: none, path, host
+        // TODO better exception/message
 
-        // examples:
-        //
-        // https://anything.com/oauth2/token
-        // - TenantId=tenantid
-        // - BaseAddress=https://anything.com
-        // - Issuer=https://something.com
-        //
-        // https://tenantid.nauth0.com/oauth2/token
-        // - TenantId=tenantid
-        // - BaseAddress=https://tenantid.nauth0.com
-        // - Issuer=https://tenantid.nauth0.com
-        //
-        // https://login.nauth0.com/tenantid/oauth2/token
-        // - TenantId=tenantid
-        // - BaseAddress=https://login.nauth0.com/tenantid
-        // - Issuer=https://login.nauth0.com/tenantid
+        if (tenantRoute == null)
+            throw new InvalidOperationException();
 
-        throw new NotImplementedException();
+        if (tenantRoute.Parameters.Count == 0)
+            throw new InvalidOperationException();
+
+        var httpRequest = httpContext.Request;
+        var routeValues = httpRequest.RouteValues;
+
+        if (!routeValues.TryGetValue(options.TenantIdRouteParameterName, out var routeValue))
+            throw new InvalidOperationException();
+
+        if (routeValue is not string tenantId)
+            throw new InvalidOperationException();
+
+        if (string.IsNullOrEmpty(tenantId))
+            throw new InvalidOperationException();
+
+        var tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        if (tenant == null)
+            throw new InvalidOperationException();
+
+        return tenant.Configuration;
     }
 
-    /// <inheritdoc />
-    public ValueTask<string> HandleAsync(GetTenantIssuerCommand command, CancellationToken cancellationToken)
-    {
-        var (httpContext, tenant) = command;
+    #endregion
 
-        throw new NotImplementedException();
-    }
+    #region GetTenantBaseAddressCommand
 
     /// <inheritdoc />
     public ValueTask<UriDescriptor> HandleAsync(GetTenantBaseAddressCommand command, CancellationToken cancellationToken)
     {
-        var (httpContext, tenant) = command;
+        var httpContext = command.HttpContext;
+        var tenantRoute = command.TenantRoute;
 
-        var request = httpContext.Request;
-        var fullPath = GetFullPath(request.PathBase, request.Path);
+        var httpRequest = httpContext.Request;
+        var basePath = httpRequest.PathBase;
 
-        var uriDescriptor = new UriDescriptor
+        if (tenantRoute is not null)
         {
-            Scheme = request.Scheme,
-            Host = request.Host,
-            Path = fullPath
+            var templateBinder = TemplateBinderFactory.Create(tenantRoute);
+            var tenantRouteUrl = templateBinder.BindValues(httpRequest.RouteValues);
+            if (!string.IsNullOrEmpty(tenantRouteUrl))
+            {
+                basePath.Add(tenantRouteUrl);
+            }
+        }
+
+        var baseAddress = new UriDescriptor
+        {
+            Scheme = httpRequest.Scheme,
+            Host = httpRequest.Host,
+            Path = basePath
         };
 
-        return ValueTask.FromResult(uriDescriptor);
+        return ValueTask.FromResult(baseAddress);
     }
 
-    private static PathString GetFullPath(PathString basePath, PathString path) =>
-        basePath.HasValue && (basePath.Value.Length > 1 || basePath.Value[0] != '/') ?
-            basePath.Add(path) :
-            path;
+    #endregion
+
+    #region GetTenantIssuerCommand
+
+    /// <inheritdoc />
+    public ValueTask<string> HandleAsync(GetTenantIssuerCommand command, CancellationToken cancellationToken)
+    {
+        var baseAddress = command.BaseAddress;
+        var tenantConfiguration = command.Configuration;
+
+        var issuer = tenantConfiguration.Issuer;
+        if (string.IsNullOrEmpty(issuer))
+            issuer = baseAddress.ToString();
+
+        return ValueTask.FromResult(issuer);
+    }
+
+    #endregion
 }

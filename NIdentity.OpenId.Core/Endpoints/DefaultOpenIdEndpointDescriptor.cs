@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -35,12 +36,24 @@ public class DefaultOpenIdEndpointDescriptor : OpenIdEndpointDescriptor
     /// <inheritdoc />
     public override string DisplayName { get; }
 
+    /// <inheritdoc />
+    public override RoutePattern? TenantRoute { get; }
+
+    /// <inheritdoc />
+    public override OpenIdEndpointCommandFactory CommandFactory { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdEndpointDescriptor"/> class.
     /// </summary>
-    public DefaultOpenIdEndpointDescriptor(string name, string displayName)
+    public DefaultOpenIdEndpointDescriptor(
+        string name,
+        string displayName,
+        RoutePattern? tenantRoute,
+        OpenIdEndpointCommandFactory commandFactory)
     {
         Name = name;
         DisplayName = displayName;
+        TenantRoute = tenantRoute;
+        CommandFactory = commandFactory;
     }
 }

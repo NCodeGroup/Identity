@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
@@ -46,7 +47,7 @@ public interface IOpenIdEndpointFactory
         string name,
         PathString path,
         IEnumerable<string> httpMethods,
-        Func<OpenIdContext, OpenIdEndpointCommand> commandFactory,
+        OpenIdEndpointCommandFactory commandFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default);
 }
 
@@ -56,17 +57,13 @@ public interface IOpenIdEndpointFactory
 public class OpenIdEndpointFactory : IOpenIdEndpointFactory
 {
     private OpenIdHostOptions HostOptions { get; }
-    private IMediator Mediator { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdEndpointFactory"/> class.
     /// </summary>
-    public OpenIdEndpointFactory(
-        IOptions<OpenIdHostOptions> hostOptionsAccessor,
-        IMediator mediator)
+    public OpenIdEndpointFactory(IOptions<OpenIdHostOptions> hostOptionsAccessor)
     {
         HostOptions = hostOptionsAccessor.Value;
-        Mediator = mediator;
     }
 
     /// <inheritdoc />
@@ -74,7 +71,7 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         string name,
         PathString path,
         IEnumerable<string> httpMethods,
-        Func<OpenIdContext, OpenIdEndpointCommand> commandFactory,
+        OpenIdEndpointCommandFactory commandFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default)
     {
         var tenantOptions = HostOptions.Tenant;
@@ -83,8 +80,6 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
         var httpMethodCollection = httpMethods as IReadOnlyCollection<string> ?? httpMethods.ToList();
 
         var displayName = $"{path} HTTP: {string.Join(", ", httpMethodCollection)}";
-
-        var descriptor = new DefaultOpenIdEndpointDescriptor(name, displayName);
 
         endpointConventionBuilder.WithName(name);
         endpointConventionBuilder.WithGroupName("OpenId"); // TODO
@@ -101,15 +96,39 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
             tenantRoute = RoutePatternFactory.Parse(tenantPath.Value);
         }
 
-        async Task RequestDelegate(HttpContext httpContext)
+        var descriptor = new DefaultOpenIdEndpointDescriptor(
+            name,
+            displayName,
+            tenantRoute,
+            commandFactory);
+
+        var requestDelegate = CreateRequestDelegate(descriptor);
+
+        var relativeRoute = RoutePatternFactory.Parse(path);
+        var endpointRoute = RoutePatternFactory.Combine(tenantRoute, relativeRoute);
+
+        const int defaultOrder = 0;
+        var routeEndpointBuilder = new RouteEndpointBuilder(requestDelegate, endpointRoute, defaultOrder);
+
+        foreach (var convention in conventions)
         {
+            convention(routeEndpointBuilder);
+        }
+
+        return routeEndpointBuilder.Build();
+    }
+
+    private static RequestDelegate CreateRequestDelegate(OpenIdEndpointDescriptor descriptor) =>
+        async httpContext =>
+        {
+            var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
             var cancellationToken = httpContext.RequestAborted;
             var propertyBag = descriptor.PropertyBag;
 
-            var openIdTenant = await Mediator.SendAsync(
+            var openIdTenant = await mediator.SendAsync(
                 new GetOpenIdTenantCommand(
                     httpContext,
-                    tenantRoute,
+                    descriptor.TenantRoute,
                     propertyBag.Clone()),
                 cancellationToken);
 
@@ -119,22 +138,8 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
                 descriptor,
                 propertyBag.Clone());
 
-            var openIdCommand = commandFactory(openIdContext);
-            var openIdResult = await Mediator.SendAsync(openIdCommand, cancellationToken);
+            var openIdCommand = descriptor.CommandFactory(openIdContext);
+            var openIdResult = await mediator.SendAsync(openIdCommand, cancellationToken);
             await openIdResult.ExecuteResultAsync(openIdContext, cancellationToken);
-        }
-
-        var relativeRoute = RoutePatternFactory.Parse(path);
-        var endpointRoute = RoutePatternFactory.Combine(tenantRoute, relativeRoute);
-
-        const int defaultOrder = 0;
-        var routeEndpointBuilder = new RouteEndpointBuilder(RequestDelegate, endpointRoute, defaultOrder);
-
-        foreach (var convention in conventions)
-        {
-            convention(routeEndpointBuilder);
-        }
-
-        return routeEndpointBuilder.Build();
-    }
+        };
 }

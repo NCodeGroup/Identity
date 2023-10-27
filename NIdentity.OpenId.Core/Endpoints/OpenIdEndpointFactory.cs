@@ -23,7 +23,9 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using NIdentity.OpenId.Exceptions;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Mediator.Middleware;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Tenants;
@@ -56,7 +58,10 @@ public interface IOpenIdEndpointFactory
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdEndpointFactory"/> abstraction.
 /// </summary>
-public class OpenIdEndpointFactory : IOpenIdEndpointFactory
+public class OpenIdEndpointFactory :
+    IOpenIdEndpointFactory,
+    ICommandHandler<DispatchOpenIdEndpointCommand>,
+    ICommandExceptionHandler<DispatchOpenIdEndpointCommand, HttpResultException>
 {
     private OpenIdHostOptions HostOptions { get; }
 
@@ -123,28 +128,56 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
     private static RequestDelegate CreateRequestDelegate(OpenIdEndpointDescriptor descriptor) =>
         async httpContext =>
         {
-            var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
             var cancellationToken = httpContext.RequestAborted;
-            var propertyBag = descriptor.PropertyBag;
+            var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
 
-            var openIdTenant = await mediator.SendAsync<GetOpenIdTenantCommand, OpenIdTenant>(
-                new GetOpenIdTenantCommand(
+            await mediator.SendAsync(
+                new DispatchOpenIdEndpointCommand(
                     httpContext,
-                    descriptor.TenantRoute,
-                    propertyBag.Clone()),
+                    descriptor,
+                    mediator),
                 cancellationToken);
-
-            var openIdContext = new DefaultOpenIdContext(
-                httpContext,
-                openIdTenant,
-                descriptor,
-                propertyBag.Clone());
-
-            var openIdCommand = descriptor.CommandFactory(openIdContext);
-            var openIdResult = await mediator.SendAsync<OpenIdEndpointCommand, IOpenIdResult>(
-                openIdCommand,
-                cancellationToken);
-
-            await openIdResult.ExecuteResultAsync(openIdContext, cancellationToken);
         };
+
+    /// <inheritdoc />
+    public async ValueTask HandleAsync(
+        DispatchOpenIdEndpointCommand command,
+        CancellationToken cancellationToken)
+    {
+        var (httpContext, descriptor, mediator) = command;
+        var propertyBag = descriptor.PropertyBag;
+
+        var openIdTenant = await mediator.SendAsync<GetOpenIdTenantCommand, OpenIdTenant>(
+            new GetOpenIdTenantCommand(
+                httpContext,
+                descriptor.TenantRoute,
+                propertyBag.Clone()),
+            cancellationToken);
+
+        var openIdContext = new DefaultOpenIdContext(
+            httpContext,
+            openIdTenant,
+            descriptor,
+            propertyBag.Clone());
+
+        var openIdCommand = descriptor.CommandFactory(openIdContext);
+        var openIdResult = await mediator.SendAsync<OpenIdEndpointCommand, IOpenIdResult>(
+            openIdCommand,
+            cancellationToken);
+
+        await openIdResult.ExecuteResultAsync(openIdContext, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask HandleAsync(
+        DispatchOpenIdEndpointCommand command,
+        HttpResultException exception,
+        CommandExceptionHandlerState state,
+        CancellationToken cancellationToken)
+    {
+        var httpContext = command.HttpContext;
+        var httpResult = exception.HttpResult;
+        await httpResult.ExecuteAsync(httpContext);
+        state.SetHandled();
+    }
 }

@@ -23,7 +23,24 @@ using Microsoft.Extensions.DependencyInjection;
 namespace NIdentity.OpenId.Results;
 
 /// <summary>
-/// Provides a default implementation of <see cref="IOpenIdResult"/>.
+/// Defines a contract that represents the result of an <c>OAuth</c> or <c>OpenID Connect</c> operation.
+/// </summary>
+public interface IOpenIdResult
+{
+    /// <summary>
+    /// Executes the result of the <c>OAuth</c> or <c>OpenID Connect</c> operation asynchronously.
+    /// This method is called by the framework to process the result of an <c>OAuth</c> or <c>OpenID Connect</c> operation.
+    /// </summary>
+    /// <param name="context">The context in which the operation is executed. The context includes information about the
+    /// operation that was executed and request information.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask ExecuteResultAsync(OpenIdContext context, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Provides a base implementation for the <see cref="IOpenIdResult"/> abstraction.
 /// </summary>
 public abstract class OpenIdResult : IOpenIdResult
 {
@@ -67,7 +84,7 @@ public abstract class OpenIdResult : IOpenIdResult
 }
 
 /// <summary>
-/// Provides a default implementation of <see cref="IOpenIdResult"/>.
+/// Provides a base implementation for the <see cref="IOpenIdResult"/> abstraction.
 /// </summary>
 public abstract class OpenIdResult<T> : OpenIdResult
     where T : OpenIdResult<T>

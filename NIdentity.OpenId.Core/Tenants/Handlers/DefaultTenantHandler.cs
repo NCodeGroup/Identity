@@ -18,11 +18,13 @@
 #endregion
 
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
+using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Stores;
 using NIdentity.OpenId.Tenants.Commands;
 
@@ -142,8 +144,7 @@ internal class DefaultTenantHandler :
 
         var tenant = await TenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
         if (tenant == null)
-            // TODO better exception/message
-            throw new InvalidOperationException();
+            throw TypedResults.NotFound().AsException($"A tenant with domain '{domainName}' could not be found.");
 
         return tenant.Configuration;
     }
@@ -179,8 +180,7 @@ internal class DefaultTenantHandler :
 
         var tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
         if (tenant == null)
-            // TODO better exception/message
-            throw new InvalidOperationException();
+            throw TypedResults.NotFound().AsException($"A tenant with identifier '{tenantId}' could not be found.");
 
         return tenant.Configuration;
     }

@@ -19,6 +19,7 @@
 
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NIdentity.OpenId.Exceptions;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 using Xunit;

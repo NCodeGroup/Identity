@@ -20,8 +20,8 @@
 namespace NIdentity.OpenId.Results;
 
 /// <summary>
-/// Provides an implementation of <see cref="IOpenIdResult"/> that redirects an HTTP client to a specified URL
-/// and is <c>AJAX</c> aware.
+/// Provides an implementation of the <see cref="IOpenIdResult"/> abstraction that redirects an HTTP client to a specified
+/// URL and is <c>AJAX</c> aware.
 /// </summary>
 public class OpenIdRedirectResult : OpenIdResult<OpenIdRedirectResult>
 {

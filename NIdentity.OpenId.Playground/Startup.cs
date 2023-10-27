@@ -56,9 +56,9 @@ internal class Startup
         services.AddTransient<ISecretSerializer, SecretSerializer>();
         services.AddTransient<IClientStore, NullClientStore>();
 
-        services.AddSingleton<IMediator, DefaultMediator>();
-        services.AddSingleton(typeof(ICommandMiddleware<>), typeof(StandardCommandMiddleware<>));
-        services.AddSingleton(typeof(ICommandResponseMiddleware<,>), typeof(StandardCommandResponseMiddleware<,>));
+        services.AddScoped<IMediator, DefaultMediator>();
+        services.AddTransient(typeof(ICommandMiddleware<>), typeof(StandardCommandMiddleware<>));
+        services.AddTransient(typeof(ICommandResponseMiddleware<,>), typeof(StandardCommandResponseMiddleware<,>));
 
         services.AddSingleton<IOpenIdEndpointFactory, OpenIdEndpointFactory>();
         services.AddSingleton<IOpenIdEndpointCollectionProvider, OpenIdEndpointCollectionProvider>();

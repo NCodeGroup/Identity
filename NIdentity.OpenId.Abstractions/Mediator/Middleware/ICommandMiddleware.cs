@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,22 +17,32 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Mediator;
+namespace NIdentity.OpenId.Mediator.Middleware;
 
 /// <summary>
-/// Defines a handler that accepts an input value and doesn't return anything.
+/// Represents a function that can process the remaining middleware in the command-only pipeline.
+/// </summary>
+/// <remarks>
+/// Declared without arguments so that <see cref="ICommandMiddleware{TRequest}"/> can be contravariant in DI.
+/// </remarks>
+public delegate ValueTask CommandMiddlewareDelegate();
+
+/// <summary>
+/// Defines a middleware component that can be added to a command-only pipeline.
 /// </summary>
 /// <typeparam name="TCommand">The type of the input value.</typeparam>
-public interface ICommandHandler<in TCommand>
+public interface ICommandMiddleware<in TCommand>
     where TCommand : ICommand
 {
     /// <summary>
-    /// Handles a command given an input value.
+    /// Middleware method handler.
     /// </summary>
     /// <param name="command">The input value to handle.</param>
+    /// <param name="next">The delegate representing the remaining middleware in the request pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask HandleAsync(
         TCommand command,
+        CommandMiddlewareDelegate next,
         CancellationToken cancellationToken);
 }

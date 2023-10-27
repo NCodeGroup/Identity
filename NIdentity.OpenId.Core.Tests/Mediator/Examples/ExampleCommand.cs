@@ -17,19 +17,8 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Playground;
+using NIdentity.OpenId.Mediator;
 
-internal static class Program
-{
-    public static void Main(string[] args)
-    {
-        CreateHostBuilder(args).Build().Run();
-    }
+namespace NIdentity.OpenId.Core.Tests.Mediator.Examples;
 
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host
-        .CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder =>
-        {
-            webBuilder.UseStartup<Startup>();
-        });
-}
+public record ExampleCommand : ICommand;

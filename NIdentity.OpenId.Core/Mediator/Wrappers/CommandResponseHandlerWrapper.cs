@@ -17,48 +17,39 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Mediator.Middleware;
 
-internal interface ICommandHandlerWrapper
+namespace NIdentity.OpenId.Mediator.Wrappers;
+
+internal interface ICommandResponseHandlerWrapper<TResponse>
 {
-    ValueTask HandleAsync(ICommand command, CancellationToken cancellationToken);
+    ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken);
 }
 
-internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper
-    where TCommand : ICommand
+internal class CommandResponseHandlerWrapper<TCommand, TResponse> : ICommandResponseHandlerWrapper<TResponse>
+    where TCommand : ICommand<TResponse>
 {
     private MiddlewareChainDelegate MiddlewareChain { get; }
 
-    private delegate ValueTask MiddlewareChainDelegate(TCommand command, CancellationToken cancellationToken);
+    private delegate ValueTask<TResponse> MiddlewareChainDelegate(TCommand command, CancellationToken cancellationToken);
 
-    public CommandHandlerWrapper(
-        IEnumerable<ICommandHandler<TCommand>> handlers,
-        IEnumerable<ICommandMiddleware<TCommand>> middlewares)
+    public CommandResponseHandlerWrapper(
+        ICommandResponseHandler<TCommand, TResponse> handler,
+        IEnumerable<ICommandResponseMiddleware<TCommand, TResponse>> middlewares)
     {
         MiddlewareChain = middlewares.Select(WrapMiddleware).Aggregate(
-            WrapRoot(handlers),
+            (MiddlewareChainDelegate)handler.HandleAsync,
             (next, factory) => factory(next));
     }
 
-    private static MiddlewareChainDelegate WrapRoot(IEnumerable<ICommandHandler<TCommand>> handlers)
-    {
-        return async (command, cancellationToken) =>
-        {
-            foreach (var handler in handlers)
-            {
-                await handler.HandleAsync(command, cancellationToken);
-            }
-        };
-    }
-
     private static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> WrapMiddleware(
-        ICommandMiddleware<TCommand> middleware) =>
+        ICommandResponseMiddleware<TCommand, TResponse> middleware) =>
         next => (command, token) =>
         {
-            ValueTask SimpleNext() => next(command, token);
+            ValueTask<TResponse> SimpleNext() => next(command, token);
             return middleware.HandleAsync(command, SimpleNext, token);
         };
 
-    public ValueTask HandleAsync(ICommand command, CancellationToken cancellationToken) =>
+    public ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken) =>
         MiddlewareChain((TCommand)command, cancellationToken);
 }

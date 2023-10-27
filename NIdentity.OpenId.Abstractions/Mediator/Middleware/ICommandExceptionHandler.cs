@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,22 +17,29 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Mediator;
+namespace NIdentity.OpenId.Mediator.Middleware;
 
 /// <summary>
-/// Defines a handler that accepts an input value and doesn't return anything.
+/// Defines an exception handler that accepts the original input value, the corresponding exception, doesn't return anything,
+/// and possibly swallows the exception.
 /// </summary>
-/// <typeparam name="TCommand">The type of the input value.</typeparam>
-public interface ICommandHandler<in TCommand>
+/// <typeparam name="TCommand">The type of the original input value.</typeparam>
+/// <typeparam name="TException">The type of the exception to handle.</typeparam>
+public interface ICommandExceptionHandler<in TCommand, in TException>
     where TCommand : ICommand
+    where TException : Exception
 {
     /// <summary>
-    /// Handles a command given an input value.
+    /// Handles an exception given the original input value and the corresponding exception.
     /// </summary>
-    /// <param name="command">The input value to handle.</param>
+    /// <param name="command">The original input value.</param>
+    /// <param name="exception">The exception to handle.</param>
+    /// <param name="state">The resulting state for handling the exception.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask HandleAsync(
         TCommand command,
+        TException exception,
+        CommandExceptionHandlerState state,
         CancellationToken cancellationToken);
 }

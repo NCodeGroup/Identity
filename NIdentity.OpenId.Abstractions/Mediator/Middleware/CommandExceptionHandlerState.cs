@@ -1,14 +1,14 @@
 #region Copyright Preamble
 
-//
+// 
 //    Copyright @ 2023 NCode Group
-//
+// 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-//
+// 
 //        http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,19 +17,20 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Playground;
+namespace NIdentity.OpenId.Mediator.Middleware;
 
-internal static class Program
+/// <summary>
+/// Contains the resulting state when handling an error in an exception handler that doesn't return a response.
+/// </summary>
+public class CommandExceptionHandlerState
 {
-    public static void Main(string[] args)
-    {
-        CreateHostBuilder(args).Build().Run();
-    }
+    /// <summary>
+    /// Gets a value indicating whether the exception has been handled.
+    /// </summary>
+    public bool IsHandled { get; private set; }
 
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host
-        .CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder =>
-        {
-            webBuilder.UseStartup<Startup>();
-        });
+    /// <summary>
+    /// Sets the exception as handled so that it's not re-thrown.
+    /// </summary>
+    public void SetHandled() => IsHandled = true;
 }

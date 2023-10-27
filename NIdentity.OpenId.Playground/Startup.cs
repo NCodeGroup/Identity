@@ -24,6 +24,7 @@ using NIdentity.OpenId.Endpoints.Authorization;
 using NIdentity.OpenId.Endpoints.Discovery;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Mediator.Middleware;
 using NIdentity.OpenId.Playground.Stores;
 using NIdentity.OpenId.Stores;
 
@@ -55,7 +56,10 @@ internal class Startup
         services.AddTransient<ISecretSerializer, SecretSerializer>();
         services.AddTransient<IClientStore, NullClientStore>();
 
-        services.AddScoped<IMediator, MediatorImpl>();
+        services.AddSingleton<IMediator, DefaultMediator>();
+        services.AddSingleton(typeof(ICommandMiddleware<>), typeof(StandardCommandMiddleware<>));
+        services.AddSingleton(typeof(ICommandResponseMiddleware<,>), typeof(StandardCommandResponseMiddleware<,>));
+
         services.AddSingleton<IOpenIdEndpointFactory, OpenIdEndpointFactory>();
         services.AddSingleton<IOpenIdEndpointCollectionProvider, OpenIdEndpointCollectionProvider>();
 

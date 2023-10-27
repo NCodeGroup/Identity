@@ -19,35 +19,36 @@
 
 using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
+using NIdentity.OpenId.Mediator.Wrappers;
 
 namespace NIdentity.OpenId.Mediator;
 
-internal class MediatorImpl : IMediator
+internal class DefaultMediator : IMediator
 {
     private IServiceProvider ServiceProvider { get; }
     private ConcurrentDictionary<Type, object> HandlerCache { get; } = new();
 
-    public MediatorImpl(IServiceProvider serviceProvider)
+    public DefaultMediator(IServiceProvider serviceProvider)
     {
         ServiceProvider = serviceProvider;
     }
 
     public ValueTask SendAsync(ICommand command, CancellationToken cancellationToken)
     {
-        var wrapper = (ICommandHandlerWrapper)HandlerCache.GetOrAdd(command.GetType(), typeOfCommand =>
+        var wrapper = (ICommandHandlerWrapper)HandlerCache.GetOrAdd(command.GetType(), commandType =>
         {
-            var typeOfWrapper = typeof(CommandHandlerWrapper<>).MakeGenericType(typeOfCommand);
-            return ActivatorUtilities.CreateInstance(ServiceProvider, typeOfWrapper);
+            var wrapperType = typeof(CommandHandlerWrapper<>).MakeGenericType(commandType);
+            return ActivatorUtilities.CreateInstance(ServiceProvider, wrapperType);
         });
         return wrapper.HandleAsync(command, cancellationToken);
     }
 
     public ValueTask<TResponse> SendAsync<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken)
     {
-        var wrapper = (ICommandResponseHandlerWrapper<TResponse>)HandlerCache.GetOrAdd(command.GetType(), typeOfCommand =>
+        var wrapper = (ICommandResponseHandlerWrapper<TResponse>)HandlerCache.GetOrAdd(command.GetType(), commandType =>
         {
-            var typeOfWrapper = typeof(CommandResponseHandlerWrapper<,>).MakeGenericType(typeOfCommand, typeof(TResponse));
-            return ActivatorUtilities.CreateInstance(ServiceProvider, typeOfWrapper);
+            var wrapperType = typeof(CommandResponseHandlerWrapper<,>).MakeGenericType(commandType, typeof(TResponse));
+            return ActivatorUtilities.CreateInstance(ServiceProvider, wrapperType);
         });
         return wrapper.HandleAsync(command, cancellationToken);
     }

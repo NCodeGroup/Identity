@@ -28,5 +28,6 @@ public record struct GetTenantIssuerCommand(
     HttpContext HttpContext,
     UriDescriptor BaseAddress,
     TenantConfiguration Configuration,
+    IMediator Mediator,
     IPropertyBag PropertyBag
 ) : ICommand<string>;

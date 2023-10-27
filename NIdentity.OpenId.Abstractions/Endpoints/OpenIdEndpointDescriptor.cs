@@ -17,7 +17,6 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -41,16 +40,4 @@ public abstract class OpenIdEndpointDescriptor
     /// Gets the friendly name for this <see cref="OpenIdEndpointDescriptor"/>.
     /// </summary>
     public abstract string DisplayName { get; }
-
-    /// <summary>
-    /// Gets optional the <see cref="RoutePattern"/> for the <c>OAuth</c> or <c>OpenID Connect</c> tenant.
-    /// </summary>
-    public abstract RoutePattern? TenantRoute { get; }
-
-    /// <summary>
-    /// Gets the delegate that is used to create <see cref="OpenIdEndpointCommand"/> instances when dispatching HTTP requests
-    /// for the <c>OAuth</c> or <c>OpenID Connect</c> endpoint.
-    /// </summary>
-    /// <returns></returns>
-    public abstract OpenIdEndpointCommandFactory CommandFactory { get; }
 }

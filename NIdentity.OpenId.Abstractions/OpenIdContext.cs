@@ -37,6 +37,8 @@ public abstract class OpenIdContext
     /// </summary>
     public abstract HttpContext HttpContext { get; }
 
+    // TODO: should we also have IMediator here?
+
     /// <summary>
     /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
     /// </summary>

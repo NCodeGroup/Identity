@@ -28,5 +28,6 @@ namespace NIdentity.OpenId.Tenants.Commands;
 public record struct GetTenantConfigurationCommand(
     HttpContext HttpContext,
     RoutePattern? TenantRoute,
+    IMediator Mediator,
     IPropertyBag PropertyBag
 ) : ICommand<TenantConfiguration>;

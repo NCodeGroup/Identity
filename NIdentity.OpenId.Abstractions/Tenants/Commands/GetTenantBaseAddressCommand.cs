@@ -29,5 +29,6 @@ public record struct GetTenantBaseAddressCommand(
     HttpContext HttpContext,
     RoutePattern? TenantRoute,
     TenantConfiguration Configuration,
+    IMediator Mediator,
     IPropertyBag PropertyBag
 ) : ICommand<UriDescriptor>;

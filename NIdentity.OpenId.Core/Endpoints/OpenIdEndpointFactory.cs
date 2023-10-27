@@ -34,28 +34,6 @@ using NIdentity.OpenId.Tenants.Commands;
 namespace NIdentity.OpenId.Endpoints;
 
 /// <summary>
-/// Provides the ability to create <see cref="Endpoint"/> instances for <c>OAuth</c> or <c>OpenID Connect</c> routes.
-/// </summary>
-public interface IOpenIdEndpointFactory
-{
-    /// <summary>
-    /// Creates a new <see cref="Endpoint"/> instance for the specified <c>OAuth</c> or <c>OpenID Connect</c> handler.
-    /// </summary>
-    /// <param name="name">The name for the endpoint.</param>
-    /// <param name="path">The path for the endpoint.</param>
-    /// <param name="httpMethods">The HTTP methods for the endpoint.</param>
-    /// <param name="commandFactory">A delegate that is used to create the <see cref="OpenIdEndpointCommand"/> to dispatch requests for the endpoint.</param>
-    /// <param name="configureRouteHandlerBuilder">A delegate to configure the <see cref="RouteHandlerBuilder"/> for the endpoint.</param>
-    /// <returns>The newly created <see cref="Endpoint"/> for the <c>OAuth</c> or <c>OpenID Connect</c> handler.</returns>
-    Endpoint CreateEndpoint(
-        string name,
-        PathString path,
-        IEnumerable<string> httpMethods,
-        OpenIdEndpointCommandFactory commandFactory,
-        Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default);
-}
-
-/// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdEndpointFactory"/> abstraction.
 /// </summary>
 public class OpenIdEndpointFactory :

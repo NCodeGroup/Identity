@@ -25,6 +25,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
+using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Tenants;
 using NIdentity.OpenId.Tenants.Commands;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -125,7 +127,7 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
             var cancellationToken = httpContext.RequestAborted;
             var propertyBag = descriptor.PropertyBag;
 
-            var openIdTenant = await mediator.SendAsync(
+            var openIdTenant = await mediator.SendAsync<GetOpenIdTenantCommand, OpenIdTenant>(
                 new GetOpenIdTenantCommand(
                     httpContext,
                     descriptor.TenantRoute,
@@ -139,7 +141,10 @@ public class OpenIdEndpointFactory : IOpenIdEndpointFactory
                 propertyBag.Clone());
 
             var openIdCommand = descriptor.CommandFactory(openIdContext);
-            var openIdResult = await mediator.SendAsync(openIdCommand, cancellationToken);
+            var openIdResult = await mediator.SendAsync<OpenIdEndpointCommand, IOpenIdResult>(
+                openIdCommand,
+                cancellationToken);
+
             await openIdResult.ExecuteResultAsync(openIdContext, cancellationToken);
         };
 }

@@ -33,9 +33,12 @@ internal class DefaultMediator : IMediator
         ServiceProvider = serviceProvider;
     }
 
-    public ValueTask SendAsync(ICommand command, CancellationToken cancellationToken)
+    public ValueTask SendAsync<TCommand>(
+        TCommand command,
+        CancellationToken cancellationToken
+    ) where TCommand : ICommand
     {
-        var wrapper = (ICommandHandlerWrapper)HandlerCache.GetOrAdd(command.GetType(), commandType =>
+        var wrapper = (ICommandHandlerWrapper<TCommand>)HandlerCache.GetOrAdd(typeof(TCommand), commandType =>
         {
             var wrapperType = typeof(CommandHandlerWrapper<>).MakeGenericType(commandType);
             return ActivatorUtilities.CreateInstance(ServiceProvider, wrapperType);
@@ -43,9 +46,12 @@ internal class DefaultMediator : IMediator
         return wrapper.HandleAsync(command, cancellationToken);
     }
 
-    public ValueTask<TResponse> SendAsync<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken)
+    public ValueTask<TResponse> SendAsync<TCommand, TResponse>(
+        TCommand command,
+        CancellationToken cancellationToken
+    ) where TCommand : ICommand<TResponse>
     {
-        var wrapper = (ICommandResponseHandlerWrapper<TResponse>)HandlerCache.GetOrAdd(command.GetType(), commandType =>
+        var wrapper = (ICommandResponseHandlerWrapper<TCommand, TResponse>)HandlerCache.GetOrAdd(typeof(TCommand), commandType =>
         {
             var wrapperType = typeof(CommandResponseHandlerWrapper<,>).MakeGenericType(commandType, typeof(TResponse));
             return ActivatorUtilities.CreateInstance(ServiceProvider, wrapperType);

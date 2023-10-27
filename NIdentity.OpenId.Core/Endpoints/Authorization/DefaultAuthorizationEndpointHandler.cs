@@ -100,7 +100,7 @@ internal class DefaultAuthorizationEndpointHandler :
         var openIdContext = command.OpenIdContext;
         var errorFactory = openIdContext.ErrorFactory;
 
-        var authorizationSource = await Mediator.SendAsync(
+        var authorizationSource = await Mediator.SendAsync<LoadAuthorizationSourceCommand, IAuthorizationSource>(
             new LoadAuthorizationSourceCommand(openIdContext),
             cancellationToken);
 
@@ -110,7 +110,7 @@ internal class DefaultAuthorizationEndpointHandler :
         AuthorizationContext authorizationContext;
         try
         {
-            authorizationContext = await Mediator.SendAsync(
+            authorizationContext = await Mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationContext>(
                 new LoadAuthorizationRequestCommand(authorizationSource),
                 cancellationToken);
         }
@@ -137,7 +137,7 @@ internal class DefaultAuthorizationEndpointHandler :
                 new ValidateAuthorizationRequestCommand(authorizationContext),
                 cancellationToken);
 
-            var authenticateResult = await Mediator.SendAsync(
+            var authenticateResult = await Mediator.SendAsync<AuthenticateCommand, AuthenticateResult>(
                 new AuthenticateCommand(openIdContext),
                 cancellationToken);
 
@@ -158,7 +158,7 @@ internal class DefaultAuthorizationEndpointHandler :
 
             var authenticationTicket = authenticateResult.Ticket;
 
-            var authorizeResult = await Mediator.SendAsync(
+            var authorizeResult = await Mediator.SendAsync<AuthorizeCommand, IOpenIdResult?>(
                 new AuthorizeCommand(
                     authorizationContext,
                     authenticationTicket),
@@ -167,7 +167,7 @@ internal class DefaultAuthorizationEndpointHandler :
             if (authorizeResult != null)
                 return authorizeResult;
 
-            var authorizationTicket = await Mediator.SendAsync(
+            var authorizationTicket = await Mediator.SendAsync<CreateAuthorizationTicketCommand, IAuthorizationTicket>(
                 new CreateAuthorizationTicketCommand(
                     authorizationContext,
                     authenticationTicket),

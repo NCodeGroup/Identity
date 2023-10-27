@@ -25,6 +25,6 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 /// input argument and doesn't return a value.
 /// </summary>
 /// <param name="AuthorizationContext">The <see cref="AuthorizationContext"/> input argument for the command contract.</param>
-public record ValidateAuthorizationRequestCommand(
+public record struct ValidateAuthorizationRequestCommand(
     AuthorizationContext AuthorizationContext
 ) : ICommand;

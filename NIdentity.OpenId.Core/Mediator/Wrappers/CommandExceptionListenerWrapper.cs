@@ -21,16 +21,17 @@ using NIdentity.OpenId.Mediator.Middleware;
 
 namespace NIdentity.OpenId.Mediator.Wrappers;
 
-internal interface ICommandExceptionListenerWrapper
+internal interface ICommandExceptionListenerWrapper<in TCommand>
+    where TCommand : notnull
 {
     ValueTask ListenAsync(
-        object command,
+        TCommand command,
         Exception exception,
         CancellationToken cancellationToken);
 }
 
 internal class CommandExceptionListenerWrapper<TCommand, TException> :
-    ICommandExceptionListenerWrapper
+    ICommandExceptionListenerWrapper<TCommand>
     where TCommand : notnull
     where TException : Exception
 {
@@ -43,14 +44,14 @@ internal class CommandExceptionListenerWrapper<TCommand, TException> :
     }
 
     public async ValueTask ListenAsync(
-        object command,
+        TCommand command,
         Exception exception,
         CancellationToken cancellationToken)
     {
         foreach (var listener in Listeners)
         {
             await listener.ListenAsync(
-                (TCommand)command,
+                command,
                 (TException)exception,
                 cancellationToken);
         }

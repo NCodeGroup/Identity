@@ -60,14 +60,14 @@ internal class DefaultTenantHandler :
     {
         var (httpContext, tenantRoute, propertyBag) = command;
 
-        var configuration = await Mediator.SendAsync(
+        var configuration = await Mediator.SendAsync<GetTenantConfigurationCommand, TenantConfiguration>(
             new GetTenantConfigurationCommand(
                 httpContext,
                 tenantRoute,
                 propertyBag),
             cancellationToken);
 
-        var baseAddress = await Mediator.SendAsync(
+        var baseAddress = await Mediator.SendAsync<GetTenantBaseAddressCommand, UriDescriptor>(
             new GetTenantBaseAddressCommand(
                 httpContext,
                 tenantRoute,
@@ -75,7 +75,7 @@ internal class DefaultTenantHandler :
                 propertyBag),
             cancellationToken);
 
-        var issuer = await Mediator.SendAsync(
+        var issuer = await Mediator.SendAsync<GetTenantIssuerCommand, string>(
             new GetTenantIssuerCommand(
                 httpContext,
                 baseAddress,
@@ -98,17 +98,17 @@ internal class DefaultTenantHandler :
             TenantMode.StaticSingle => GetTenantFromOptions(),
             TenantMode.DynamicByHost => await GetTenantFromHostAsync(command, cancellationToken),
             TenantMode.DynamicByPath => await GetTenantFromPathAsync(command, cancellationToken),
-            _ => throw new InvalidOperationException($"Unsupported tenant mode: {HostOptions.Tenant.Mode}")
+            _ => throw new InvalidOperationException($"Unsupported TenantMode: {HostOptions.Tenant.Mode}")
         };
     }
 
     private static Exception MissingTenantOptionsException(TenantMode mode) =>
-        new InvalidOperationException($"Tenant Mode is {mode} but the corresponding options are missing.");
+        new InvalidOperationException($"The TenantMode is '{mode}' but the corresponding options are missing.");
 
     private TenantConfiguration GetTenantFromOptions()
     {
         var options = HostOptions.Tenant.StaticSingle;
-        if (options == null)
+        if (options is null)
             throw MissingTenantOptionsException(TenantMode.StaticSingle);
 
         var configuration = options.TenantConfiguration;
@@ -127,7 +127,7 @@ internal class DefaultTenantHandler :
         CancellationToken cancellationToken)
     {
         var options = HostOptions.Tenant.DynamicByHost;
-        if (options == null)
+        if (options is null)
             throw MissingTenantOptionsException(TenantMode.DynamicByHost);
 
         var regex = DomainNameRegex ??= new Regex(
@@ -142,6 +142,7 @@ internal class DefaultTenantHandler :
 
         var tenant = await TenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
         if (tenant == null)
+            // TODO better exception/message
             throw new InvalidOperationException();
 
         return tenant.Configuration;
@@ -158,28 +159,27 @@ internal class DefaultTenantHandler :
         var httpContext = command.HttpContext;
         var tenantRoute = command.TenantRoute;
 
-        // TODO better exception/message
-
-        if (tenantRoute == null)
-            throw new InvalidOperationException();
+        if (tenantRoute is null)
+            throw new InvalidOperationException("The TenantRoute is null.");
 
         if (tenantRoute.Parameters.Count == 0)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The TenantRoute has no parameters.");
 
         var httpRequest = httpContext.Request;
         var routeValues = httpRequest.RouteValues;
 
         if (!routeValues.TryGetValue(options.TenantIdRouteParameterName, out var routeValue))
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' could not be found.");
 
         if (routeValue is not string tenantId)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' is not a string.");
 
         if (string.IsNullOrEmpty(tenantId))
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' is empty.");
 
         var tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
         if (tenant == null)
+            // TODO better exception/message
             throw new InvalidOperationException();
 
         return tenant.Configuration;

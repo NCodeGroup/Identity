@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 /// </summary>
 /// <param name="AuthorizationContext">The <see cref="AuthorizationContext"/> input argument for the command contract.</param>
 /// <param name="AuthenticationTicket">The <see cref="AuthenticationTicket"/> input argument for the command contract.</param>
-public record CreateAuthorizationTicketCommand(
+public record struct CreateAuthorizationTicketCommand(
     AuthorizationContext AuthorizationContext,
     AuthenticationTicket AuthenticationTicket
 ) : ICommand<IAuthorizationTicket>;

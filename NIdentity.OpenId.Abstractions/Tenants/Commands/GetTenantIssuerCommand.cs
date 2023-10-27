@@ -24,7 +24,7 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Tenants.Commands;
 
-public record GetTenantIssuerCommand(
+public record struct GetTenantIssuerCommand(
     HttpContext HttpContext,
     UriDescriptor BaseAddress,
     TenantConfiguration Configuration,

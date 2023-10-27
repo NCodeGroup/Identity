@@ -21,17 +21,22 @@ using NIdentity.OpenId.Mediator.Middleware;
 
 namespace NIdentity.OpenId.Mediator.Wrappers;
 
-internal interface ICommandHandlerWrapper
+internal interface ICommandHandlerWrapper<in TCommand>
+    where TCommand : ICommand
 {
-    ValueTask HandleAsync(ICommand command, CancellationToken cancellationToken);
+    ValueTask HandleAsync(
+        TCommand command,
+        CancellationToken cancellationToken);
 }
 
-internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper
+internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper<TCommand>
     where TCommand : ICommand
 {
     private MiddlewareChainDelegate MiddlewareChain { get; }
 
-    private delegate ValueTask MiddlewareChainDelegate(TCommand command, CancellationToken cancellationToken);
+    private delegate ValueTask MiddlewareChainDelegate(
+        TCommand command,
+        CancellationToken cancellationToken);
 
     public CommandHandlerWrapper(
         IEnumerable<ICommandHandler<TCommand>> handlers,
@@ -62,6 +67,8 @@ internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper
             return middleware.HandleAsync(command, SimpleNext, token);
         };
 
-    public ValueTask HandleAsync(ICommand command, CancellationToken cancellationToken) =>
-        MiddlewareChain((TCommand)command, cancellationToken);
+    public ValueTask HandleAsync(
+        TCommand command,
+        CancellationToken cancellationToken) =>
+        MiddlewareChain(command, cancellationToken);
 }

@@ -21,17 +21,18 @@ using NIdentity.OpenId.Mediator.Middleware;
 
 namespace NIdentity.OpenId.Mediator.Wrappers;
 
-internal interface ICommandResponseExceptionHandlerWrapper<TResponse>
+internal interface ICommandResponseExceptionHandlerWrapper<in TCommand, TResponse>
+    where TCommand : ICommand<TResponse>
 {
     ValueTask HandleAsync(
-        ICommand<TResponse> command,
+        TCommand command,
         Exception exception,
         CommandResponseExceptionHandlerState<TResponse> state,
         CancellationToken cancellationToken);
 }
 
 internal class CommandResponseExceptionHandlerWrapper<TCommand, TException, TResponse> :
-    ICommandResponseExceptionHandlerWrapper<TResponse>
+    ICommandResponseExceptionHandlerWrapper<TCommand, TResponse>
     where TCommand : ICommand<TResponse>
     where TException : Exception
 {
@@ -44,7 +45,7 @@ internal class CommandResponseExceptionHandlerWrapper<TCommand, TException, TRes
     }
 
     public async ValueTask HandleAsync(
-        ICommand<TResponse> command,
+        TCommand command,
         Exception exception,
         CommandResponseExceptionHandlerState<TResponse> state,
         CancellationToken cancellationToken)
@@ -52,7 +53,7 @@ internal class CommandResponseExceptionHandlerWrapper<TCommand, TException, TRes
         foreach (var handler in Handlers)
         {
             await handler.HandleAsync(
-                (TCommand)command,
+                command,
                 (TException)exception,
                 state,
                 cancellationToken);

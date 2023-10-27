@@ -102,10 +102,10 @@ internal class StandardCommandMiddleware<TCommand> : ICommandMiddleware<TCommand
         CancellationToken cancellationToken)
     {
         var wrapperType = typeof(CommandExceptionListenerWrapper<,>).MakeGenericType(
-            command.GetType(),
+            typeof(TCommand),
             exception.GetType());
 
-        var wrapper = (ICommandExceptionListenerWrapper)ServiceProvider.GetRequiredService(wrapperType);
+        var wrapper = (ICommandExceptionListenerWrapper<TCommand>)ServiceProvider.GetRequiredService(wrapperType);
 
         await wrapper.ListenAsync(
             command,
@@ -121,10 +121,10 @@ internal class StandardCommandMiddleware<TCommand> : ICommandMiddleware<TCommand
         var state = new CommandExceptionHandlerState();
 
         var wrapperType = typeof(CommandExceptionHandlerWrapper<,>).MakeGenericType(
-            command.GetType(),
+            typeof(TCommand),
             exception.GetType());
 
-        var wrapper = (ICommandExceptionHandlerWrapper)ServiceProvider.GetRequiredService(wrapperType);
+        var wrapper = (ICommandExceptionHandlerWrapper<TCommand>)ServiceProvider.GetRequiredService(wrapperType);
 
         await wrapper.HandleAsync(
             command,

@@ -17,7 +17,7 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Mediator;
+namespace NIdentity.OpenId.Mediator.Middleware;
 
 /// <summary>
 /// Defines a method for post-processing a command-response pipeline.
@@ -35,5 +35,8 @@ public interface ICommandResponsePostProcessor<in TCommand, in TResponse>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask PostProcessAsync(TCommand command, TResponse response, CancellationToken cancellationToken);
+    ValueTask PostProcessAsync(
+        TCommand command,
+        TResponse response,
+        CancellationToken cancellationToken);
 }

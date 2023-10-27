@@ -24,14 +24,10 @@ namespace NIdentity.OpenId.Endpoints.Discovery.Results;
 /// <summary>
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server metadata discovery response.
 /// </summary>
-public class DiscoveryResult : OpenIdResult
+public class DiscoveryResult : OpenIdResult<DiscoveryResult>
 {
     /// <summary>
     /// Gets the metadata collection for an <c>OAuth</c> or<c>OpenID Connect</c> authorization server.
     /// </summary>
     public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-
-    /// <inheritdoc />
-    public override async ValueTask ExecuteResultAsync(OpenIdContext context, CancellationToken cancellationToken) =>
-        await GetExecutor<DiscoveryResult>(context).ExecuteResultAsync(context, this, cancellationToken);
 }

@@ -38,7 +38,6 @@ internal class DefaultTenantHandler :
 {
     private Regex? DomainNameRegex { get; set; }
     private OpenIdHostOptions HostOptions { get; }
-    private IMediator Mediator { get; }
     private ITenantStore TenantStore { get; }
     private TemplateBinderFactory TemplateBinderFactory { get; }
 
@@ -47,12 +46,10 @@ internal class DefaultTenantHandler :
     /// </summary>
     public DefaultTenantHandler(
         IOptions<OpenIdHostOptions> hostOptionsAccessor,
-        IMediator mediator,
         ITenantStore tenantStore,
         TemplateBinderFactory templateBinderFactory)
     {
         HostOptions = hostOptionsAccessor.Value;
-        Mediator = mediator;
         TenantStore = tenantStore;
         TemplateBinderFactory = templateBinderFactory;
     }
@@ -60,28 +57,31 @@ internal class DefaultTenantHandler :
     /// <inheritdoc />
     public async ValueTask<OpenIdTenant> HandleAsync(GetOpenIdTenantCommand command, CancellationToken cancellationToken)
     {
-        var (httpContext, tenantRoute, propertyBag) = command;
+        var (httpContext, tenantRoute, mediator, propertyBag) = command;
 
-        var configuration = await Mediator.SendAsync<GetTenantConfigurationCommand, TenantConfiguration>(
+        var configuration = await mediator.SendAsync<GetTenantConfigurationCommand, TenantConfiguration>(
             new GetTenantConfigurationCommand(
                 httpContext,
                 tenantRoute,
+                mediator,
                 propertyBag),
             cancellationToken);
 
-        var baseAddress = await Mediator.SendAsync<GetTenantBaseAddressCommand, UriDescriptor>(
+        var baseAddress = await mediator.SendAsync<GetTenantBaseAddressCommand, UriDescriptor>(
             new GetTenantBaseAddressCommand(
                 httpContext,
                 tenantRoute,
                 configuration,
+                mediator,
                 propertyBag),
             cancellationToken);
 
-        var issuer = await Mediator.SendAsync<GetTenantIssuerCommand, string>(
+        var issuer = await mediator.SendAsync<GetTenantIssuerCommand, string>(
             new GetTenantIssuerCommand(
                 httpContext,
                 baseAddress,
                 configuration,
+                mediator,
                 propertyBag),
             cancellationToken);
 

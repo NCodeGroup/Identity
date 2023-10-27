@@ -103,13 +103,8 @@ public class OpenIdEndpointFactory :
             tenantRoute = RoutePatternFactory.Parse(tenantPath.Value);
         }
 
-        var descriptor = new DefaultOpenIdEndpointDescriptor(
-            name,
-            displayName,
-            tenantRoute,
-            commandFactory);
-
-        var requestDelegate = CreateRequestDelegate(descriptor);
+        var descriptor = new DefaultOpenIdEndpointDescriptor(name, displayName);
+        var requestDelegate = CreateRequestDelegate(tenantRoute, descriptor, commandFactory);
 
         var relativeRoute = RoutePatternFactory.Parse(path);
         var endpointRoute = RoutePatternFactory.Combine(tenantRoute, relativeRoute);
@@ -125,18 +120,22 @@ public class OpenIdEndpointFactory :
         return routeEndpointBuilder.Build();
     }
 
-    private static RequestDelegate CreateRequestDelegate(OpenIdEndpointDescriptor descriptor) =>
+    private static RequestDelegate CreateRequestDelegate(
+        RoutePattern? tenantRoute,
+        OpenIdEndpointDescriptor descriptor,
+        OpenIdEndpointCommandFactory commandFactory
+    ) =>
         async httpContext =>
         {
-            var cancellationToken = httpContext.RequestAborted;
             var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
-
             await mediator.SendAsync(
                 new DispatchOpenIdEndpointCommand(
                     httpContext,
+                    tenantRoute,
                     descriptor,
+                    commandFactory,
                     mediator),
-                cancellationToken);
+                httpContext.RequestAborted);
         };
 
     /// <inheritdoc />
@@ -144,13 +143,14 @@ public class OpenIdEndpointFactory :
         DispatchOpenIdEndpointCommand command,
         CancellationToken cancellationToken)
     {
-        var (httpContext, descriptor, mediator) = command;
+        var (httpContext, tenantRoute, descriptor, commandFactory, mediator) = command;
         var propertyBag = descriptor.PropertyBag;
 
         var openIdTenant = await mediator.SendAsync<GetOpenIdTenantCommand, OpenIdTenant>(
             new GetOpenIdTenantCommand(
                 httpContext,
-                descriptor.TenantRoute,
+                tenantRoute,
+                mediator,
                 propertyBag.Clone()),
             cancellationToken);
 
@@ -160,7 +160,7 @@ public class OpenIdEndpointFactory :
             descriptor,
             propertyBag.Clone());
 
-        var openIdCommand = descriptor.CommandFactory(openIdContext);
+        var openIdCommand = commandFactory(openIdContext);
         var openIdResult = await mediator.SendAsync<OpenIdEndpointCommand, IOpenIdResult>(
             openIdCommand,
             cancellationToken);

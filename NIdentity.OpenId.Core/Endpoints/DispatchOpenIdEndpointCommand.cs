@@ -18,12 +18,15 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing.Patterns;
 using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints;
 
 public record struct DispatchOpenIdEndpointCommand(
     HttpContext HttpContext,
+    RoutePattern? TenantRoute,
     OpenIdEndpointDescriptor Descriptor,
+    OpenIdEndpointCommandFactory CommandFactory,
     IMediator Mediator
 ) : ICommand;

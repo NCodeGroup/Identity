@@ -134,6 +134,7 @@ public class OpenIdEndpointFactory :
 
         var openIdContext = new DefaultOpenIdContext(
             httpContext,
+            mediator,
             openIdTenant,
             descriptor,
             propertyBag.Clone());

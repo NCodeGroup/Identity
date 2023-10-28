@@ -20,8 +20,13 @@
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using NCode.Identity;
+using NCode.Jose.Extensions;
+using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
@@ -33,25 +38,29 @@ namespace NIdentity.OpenId.Tenants.Handlers;
 internal class DefaultTenantHandler :
     ICommandResponseHandler<GetOpenIdTenantCommand, OpenIdTenant>,
     ICommandResponseHandler<GetTenantConfigurationCommand, TenantConfiguration>,
+    ICommandResponseHandler<GetTenantSecretsCommand, ISecretKeyProvider>,
     ICommandResponseHandler<GetTenantBaseAddressCommand, UriDescriptor>,
     ICommandResponseHandler<GetTenantIssuerCommand, string>
 {
     private Regex? DomainNameRegex { get; set; }
     private OpenIdHostOptions HostOptions { get; }
-    private ITenantStore TenantStore { get; }
     private TemplateBinderFactory TemplateBinderFactory { get; }
+    private ITenantStore TenantStore { get; }
+    private ISecretSerializer SecretSerializer { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultTenantHandler"/> class.
     /// </summary>
     public DefaultTenantHandler(
         IOptions<OpenIdHostOptions> hostOptionsAccessor,
+        TemplateBinderFactory templateBinderFactory,
         ITenantStore tenantStore,
-        TemplateBinderFactory templateBinderFactory)
+        ISecretSerializer secretSerializer)
     {
         HostOptions = hostOptionsAccessor.Value;
-        TenantStore = tenantStore;
         TemplateBinderFactory = templateBinderFactory;
+        TenantStore = tenantStore;
+        SecretSerializer = secretSerializer;
     }
 
     /// <inheritdoc />
@@ -85,7 +94,21 @@ internal class DefaultTenantHandler :
                 propertyBag),
             cancellationToken);
 
-        return new DefaultOpenIdTenant(configuration, baseAddress, issuer);
+        var secretKeyProvider = await mediator.SendAsync<GetTenantSecretsCommand, ISecretKeyProvider>(
+            new GetTenantSecretsCommand(
+                httpContext,
+                configuration,
+                mediator,
+                propertyBag),
+            cancellationToken);
+
+        httpContext.Response.RegisterForDispose(secretKeyProvider);
+
+        return new DefaultOpenIdTenant(
+            configuration,
+            secretKeyProvider,
+            baseAddress,
+            issuer);
     }
 
     #region GetTenantConfigurationCommand
@@ -143,8 +166,10 @@ internal class DefaultTenantHandler :
         var domainName = match.Success ? match.Value : host;
 
         var tenant = await TenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
-        if (tenant == null)
+        if (tenant is null)
             throw TypedResults.NotFound().AsException($"A tenant with domain '{domainName}' could not be found.");
+
+        command.PropertyBag.Set(tenant);
 
         return tenant.Configuration;
     }
@@ -179,10 +204,57 @@ internal class DefaultTenantHandler :
             throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' is empty.");
 
         var tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
-        if (tenant == null)
+        if (tenant is null)
             throw TypedResults.NotFound().AsException($"A tenant with identifier '{tenantId}' could not be found.");
 
+        command.PropertyBag.Set(tenant);
+
         return tenant.Configuration;
+    }
+
+    #endregion
+
+    #region GetTenantSecretsCommand
+
+    /// <inheritdoc />
+    public async ValueTask<ISecretKeyProvider> HandleAsync(
+        GetTenantSecretsCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (command.PropertyBag.TryGet<Tenant>(out var tenant))
+        {
+            return DeserializeSecrets(tenant.Secrets);
+        }
+
+        if (HostOptions.Tenant.Mode == TenantMode.StaticSingle)
+        {
+            var serviceProvider = command.HttpContext.RequestServices;
+            return serviceProvider.GetRequiredService<ISecretKeyProvider>();
+        }
+
+        var tenantId = command.Configuration.TenantId;
+        tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        if (tenant is null)
+            throw TypedResults.NotFound().AsException($"A tenant with identifier '{tenantId}' could not be found.");
+
+        return DeserializeSecrets(tenant.Secrets);
+    }
+
+    private ISecretKeyProvider DeserializeSecrets(IEnumerable<Secret> secrets)
+    {
+        var secretKeys = SecretSerializer.DeserializeSecrets(secrets);
+        try
+        {
+            // TODO: add support for a dynamic data source that re-fetches secrets from the store
+            var dataSource = new StaticSecretKeyDataSource(secretKeys);
+            var provider = SecretKeyProvider.Create(dataSource);
+            return provider;
+        }
+        catch
+        {
+            secretKeys.DisposeAll(ignoreExceptions: true);
+            throw;
+        }
     }
 
     #endregion

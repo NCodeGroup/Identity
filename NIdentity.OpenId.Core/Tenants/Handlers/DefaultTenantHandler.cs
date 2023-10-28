@@ -35,7 +35,10 @@ using NIdentity.OpenId.Tenants.Commands;
 
 namespace NIdentity.OpenId.Tenants.Handlers;
 
-internal class DefaultTenantHandler :
+/// <summary>
+/// Provides the default implementation of various handlers for tenant services.
+/// </summary>
+public class DefaultTenantHandler :
     ICommandResponseHandler<GetOpenIdTenantCommand, OpenIdTenant>,
     ICommandResponseHandler<GetTenantConfigurationCommand, TenantConfiguration>,
     ICommandResponseHandler<GetTenantSecretsCommand, ISecretKeyProvider>,

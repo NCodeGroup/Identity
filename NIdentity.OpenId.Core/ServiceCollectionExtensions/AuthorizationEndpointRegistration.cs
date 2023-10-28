@@ -19,16 +19,26 @@
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
+using NIdentity.OpenId.Endpoints;
+using NIdentity.OpenId.Endpoints.Authorization;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Endpoints.Authorization;
+namespace NIdentity.OpenId.ServiceCollectionExtensions;
 
-public static class AuthorizationEndpointServiceCollectionExtensions
+/// <summary>
+/// Provides extension methods for <see cref="IServiceCollection"/> to register required services and handlers for the authorization endpoint.
+/// </summary>
+public static class AuthorizationEndpointRegistration
 {
+    /// <summary>
+    /// Registers the required services and handlers for the authorization endpoint into the provided <see cref="IServiceCollection"/> instance.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/> instance.</param>
+    /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddAuthorizationEndpoint(this IServiceCollection services)
     {
         services.AddSingleton<DefaultAuthorizationEndpointProvider>();

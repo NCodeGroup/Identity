@@ -34,9 +34,9 @@ using NIdentity.OpenId.Tenants.Commands;
 namespace NIdentity.OpenId.Endpoints;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdEndpointFactory"/> abstraction.
+/// Provides a default implementation for the <see cref="IOpenIdEndpointFactory"/> abstraction.
 /// </summary>
-public class OpenIdEndpointFactory :
+public class DefaultOpenIdEndpointFactory :
     IOpenIdEndpointFactory,
     ICommandHandler<DispatchOpenIdEndpointCommand>,
     ICommandExceptionHandler<DispatchOpenIdEndpointCommand, HttpResultException>
@@ -44,9 +44,9 @@ public class OpenIdEndpointFactory :
     private OpenIdHostOptions HostOptions { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdEndpointFactory"/> class.
+    /// Initializes a new instance of the <see cref="DefaultOpenIdEndpointFactory"/> class.
     /// </summary>
-    public OpenIdEndpointFactory(IOptions<OpenIdHostOptions> hostOptionsAccessor)
+    public DefaultOpenIdEndpointFactory(IOptions<OpenIdHostOptions> hostOptionsAccessor)
     {
         HostOptions = hostOptionsAccessor.Value;
     }

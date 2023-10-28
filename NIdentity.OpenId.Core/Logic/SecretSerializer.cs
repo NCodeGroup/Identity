@@ -84,8 +84,8 @@ internal class SecretSerializer : ISecretSerializer
     {
         var metadata = new KeyMetadata
         {
-            KeyId = secret.SecretId,
             TenantId = secret.TenantId,
+            KeyId = secret.SecretId,
             Use = secret.Use,
             Algorithm = secret.Algorithm,
             ExpiresWhen = secret.ExpiresWhen

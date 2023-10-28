@@ -23,16 +23,23 @@ using NIdentity.OpenId.Mediator.Wrappers;
 
 namespace NIdentity.OpenId.Mediator;
 
-internal class DefaultMediator : IMediator
+/// <summary>
+/// Provides a default implementation for the <see cref="IMediator"/> abstraction.
+/// </summary>
+public class DefaultMediator : IMediator
 {
     private IServiceProvider ServiceProvider { get; }
     private ConcurrentDictionary<Type, object> HandlerCache { get; } = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultMediator"/> class.
+    /// </summary>
     public DefaultMediator(IServiceProvider serviceProvider)
     {
         ServiceProvider = serviceProvider;
     }
 
+    /// <inheritdoc />
     public ValueTask SendAsync<TCommand>(
         TCommand command,
         CancellationToken cancellationToken
@@ -46,6 +53,7 @@ internal class DefaultMediator : IMediator
         return wrapper.HandleAsync(command, cancellationToken);
     }
 
+    /// <inheritdoc />
     public ValueTask<TResponse> SendAsync<TCommand, TResponse>(
         TCommand command,
         CancellationToken cancellationToken

@@ -33,11 +33,13 @@ public interface IAuthorizationClaimsService
     /// </summary>
     /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the authentication request.</param>
     /// <param name="authenticationTicket">The <see cref="AuthorizationContext"/> for the authentication request.</param>
+    /// <param name="timestamp">The <see cref="DateTimeOffset"/> when authorization occured.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IAsyncEnumerable{T}"/> collection that contains <see cref="Claim"/> instances.</returns>
     IAsyncEnumerable<Claim> GetAccessTokenClaimsAsync(
         AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
+        DateTimeOffset timestamp,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -45,10 +47,12 @@ public interface IAuthorizationClaimsService
     /// </summary>
     /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the authentication request.</param>
     /// <param name="authenticationTicket">The <see cref="AuthorizationContext"/> for the authentication request.</param>
+    /// <param name="timestamp">The <see cref="DateTimeOffset"/> when authorization occured.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IAsyncEnumerable{T}"/> collection that contains <see cref="Claim"/> instances.</returns>
     IAsyncEnumerable<Claim> GetIdTokenClaimsAsync(
         AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
+        DateTimeOffset timestamp,
         CancellationToken cancellationToken);
 }

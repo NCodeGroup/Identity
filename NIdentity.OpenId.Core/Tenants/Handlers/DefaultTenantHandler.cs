@@ -36,7 +36,7 @@ using NIdentity.OpenId.Tenants.Commands;
 namespace NIdentity.OpenId.Tenants.Handlers;
 
 /// <summary>
-/// Provides the default implementation of various handlers for tenant services.
+/// Provides a default implementation of the required services and handlers for <see cref="OpenIdTenant"/>.
 /// </summary>
 public class DefaultTenantHandler :
     ICommandResponseHandler<GetOpenIdTenantCommand, OpenIdTenant>,

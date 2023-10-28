@@ -33,8 +33,4 @@
         <ProjectReference Include="..\NCode.Jose.Abstractions\NCode.Jose.Abstractions.csproj"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <Folder Include="Options\"/>
-    </ItemGroup>
-
 </Project>

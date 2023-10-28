@@ -20,19 +20,19 @@
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Contains common metadata for a secret key such as <c>KeyId</c>, <c>TenantId</c>, <c>Use</c>, and <c>Algorithm</c>.
+/// Contains common metadata for a secret key such as <c>TenantId</c>, <c>KeyId</c>, <c>Use</c>, and <c>Algorithm</c>.
 /// </summary>
 public readonly struct KeyMetadata
 {
     /// <summary>
-    /// Gets or sets the <c>Key ID (KID)</c> for the secret key.
-    /// </summary>
-    public string? KeyId { get; init; }
-
-    /// <summary>
     /// Gets or sets the <c>Tenant ID</c> for the secret key.
     /// </summary>
     public string? TenantId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the <c>Key ID (KID)</c> for the secret key.
+    /// </summary>
+    public string? KeyId { get; init; }
 
     /// <summary>
     /// Gets or sets the intended use for the secret key. This value is optional and may be <c>null</c> to

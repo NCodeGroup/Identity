@@ -266,6 +266,7 @@ internal class DefaultAuthorizationEndpointHandler :
         requestMessage.AuthorizationSourceType = authorizationSource.AuthorizationSourceType;
 
         var client = await GetClientAsync(
+            openIdContext.Tenant.TenantId,
             requestMessage.ClientId,
             errorFactory,
             cancellationToken);
@@ -285,6 +286,7 @@ internal class DefaultAuthorizationEndpointHandler :
     }
 
     private async ValueTask<Client> GetClientAsync(
+        string tenantId,
         string? clientId,
         IOpenIdErrorFactory errorFactory,
         CancellationToken cancellationToken)
@@ -292,7 +294,7 @@ internal class DefaultAuthorizationEndpointHandler :
         if (string.IsNullOrEmpty(clientId))
             throw errorFactory.MissingParameter(OpenIdConstants.Parameters.ClientId).AsException();
 
-        var client = await ClientStore.TryGetByClientIdAsync(clientId, cancellationToken);
+        var client = await ClientStore.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
         if (client == null)
             throw errorFactory.InvalidRequest("The 'client_id' parameter is invalid.").AsException();
 
@@ -867,7 +869,11 @@ internal class DefaultAuthorizationEndpointHandler :
             return new OpenIdErrorResult(openIdError);
         }
 
-        var client = await ClientStore.TryGetByClientIdAsync(clientId.ToString(), cancellationToken);
+        var client = await ClientStore.TryGetByClientIdAsync(
+            authorizationSource.OpenIdContext.Tenant.TenantId,
+            clientId.ToString(),
+            cancellationToken);
+
         if (client == null)
         {
             return new OpenIdErrorResult(openIdError);

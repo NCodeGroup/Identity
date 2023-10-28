@@ -29,19 +29,27 @@ public interface IAuthorizationCodeStore : IStore<AuthorizationCode>
     /// <summary>
     /// Removes an <c>Authentication Code</c> grant from the store using its hashed representation.
     /// </summary>
+    /// <param name="tenantId">The tenant identifier of the <c>Authentication Code</c> grant.</param>
     /// <param name="hashedCode">The hashed representation of an <c>Authentication Code</c> grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RemoveByHashedCodeAsync(string hashedCode, CancellationToken cancellationToken);
+    ValueTask RemoveByHashedCodeAsync(
+        string tenantId,
+        string hashedCode,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Attempts to get an <see cref="AuthorizationCode"/> instance by using the hashed representation of an <c>Authentication Code</c> grant.
     /// </summary>
+    /// <param name="tenantId">The tenant identifier of the <c>Authentication Code</c> grant.</param>
     /// <param name="hashedCode">The hashed representation of an <c>Authentication Code</c> grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="AuthorizationCode"/> instance matching the specified <paramref name="hashedCode"/> if it exists.</returns>
-    ValueTask<AuthorizationCode?> TryGetByHashedCodeAsync(string hashedCode, CancellationToken cancellationToken);
+    ValueTask<AuthorizationCode?> TryGetByHashedCodeAsync(
+        string tenantId,
+        string hashedCode,
+        CancellationToken cancellationToken);
 }

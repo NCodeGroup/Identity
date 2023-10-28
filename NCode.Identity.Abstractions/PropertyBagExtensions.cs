@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace NCode.Identity;
@@ -34,6 +35,20 @@ public static class PropertyBagExtensions
     /// <param name="name">The <see cref="string"/> name of the value in the property bag.</param>
     /// <typeparam name="T">The type of the value in the property bag.</typeparam>
     /// <returns>The <see cref="IPropertyBag"/> instance for method chaining.</returns>
-    public static IPropertyBag Set<T>(this IPropertyBag bag, T value, [CallerArgumentExpression("value")] string? name = null) =>
+    public static IPropertyBag Set<T>(this IPropertyBag bag, T value, [CallerArgumentExpression(nameof(value))] string? name = null) =>
         bag.Set(new PropertyBagKey<T>(name ?? string.Empty), value);
+
+    /// <summary>
+    /// Attempts to get a strongly typed value from the property bag by inferring the name of key using <see cref="CallerArgumentExpressionAttribute"/>.
+    /// </summary>
+    /// <param name="bag">The <see cref="IPropertyBag"/> instance.</param>
+    /// <param name="value">When this method returns, contains the strongly typed value associated with the specified key,
+    /// it the key is found; otherwise, the default value for the type of the <paramref name="value"/> parameter.
+    /// This parameter is passed uninitialized.</param>
+    /// <param name="name">The <see cref="string"/> name of the value in the property bag.</param>
+    /// <typeparam name="T">The type of the value to get from the property bag.</typeparam>
+    /// <returns><c>true</c> if the <see cref="IPropertyBag"/> contains an element with the specified key; otherwise,
+    /// <c>false</c>.</returns>
+    public static bool TryGet<T>(this IPropertyBag bag, [MaybeNullWhen(false)] out T value, [CallerArgumentExpression(nameof(value))] string? name = null) =>
+        bag.TryGetValue(new PropertyBagKey<T>(name ?? string.Empty), out value);
 }

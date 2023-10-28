@@ -29,42 +29,27 @@ using NIdentity.OpenId.DataContracts;
 namespace NIdentity.OpenId.Logic;
 
 /// <summary>
-/// Provides the ability to serialize and deserialize secrets.
+/// Provides a default implementation for the <see cref="ISecretSerializer"/> abstraction.
 /// </summary>
-public interface ISecretSerializer
-{
-    /// <summary>
-    /// Deserializes a collection of <see cref="Secret"/> instances by loading and converting them into a disposable collection of <see cref="SecretKey"/> instances.
-    /// </summary>
-    /// <param name="secrets">The <see cref="Secret"/> instances to deserialize into <see cref="SecretKey"/> instances.</param>
-    /// <returns>The collection of <see cref="SecretKey"/> instances.</returns>
-    ISecretKeyCollection DeserializeSecrets(IEnumerable<Secret> secrets);
-
-    /// <summary>
-    /// Deserializes a <see cref="Secret"/> instance by loading and converting it into a disposable <see cref="SecretKey"/> instance.
-    /// </summary>
-    /// <param name="secret">The <see cref="Secret"/> instance to deserialize into an <see cref="SecretKey"/> instance.</param>
-    /// <returns>The deserialized <see cref="SecretKey"/> instance.</returns>
-    SecretKey DeserializeSecret(Secret secret);
-}
-
-internal class SecretSerializer : ISecretSerializer
+public class SecretSerializer : ISecretSerializer
 {
     private ISecretKeyFactory SecretKeyFactory { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SecretSerializer"/> class.
+    /// </summary>
+    /// <param name="secretKeyFactory">The <see cref="ISecretKeyFactory"/> instance.</param>
     public SecretSerializer(ISecretKeyFactory secretKeyFactory)
     {
         SecretKeyFactory = secretKeyFactory;
     }
 
     /// <inheritdoc />
-    public ISecretKeyCollection DeserializeSecrets(IEnumerable<Secret> secrets)
+    public IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<Secret> secrets)
     {
         var results = new SortedSet<SecretKey>(SecretKeyExpiresWhenComparer.Singleton);
         try
         {
-            // ReSharper disable once LoopCanBeConvertedToQuery
-            // Nope, that is not equivalent. The try/catch is important.
             foreach (var secret in secrets)
             {
                 results.Add(DeserializeSecret(secret));
@@ -76,7 +61,7 @@ internal class SecretSerializer : ISecretSerializer
             throw;
         }
 
-        return new SecretKeyCollection(results);
+        return results;
     }
 
     /// <inheritdoc />

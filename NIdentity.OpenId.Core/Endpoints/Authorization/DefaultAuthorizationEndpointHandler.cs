@@ -27,6 +27,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.JsonWebTokens;
 using NCode.Jose;
+using NCode.Jose.Extensions;
+using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
@@ -358,11 +360,10 @@ internal class DefaultAuthorizationEndpointHandler :
         }
 
         JsonElement jwtPayload;
+        IReadOnlyCollection<SecretKey> secretKeys = Array.Empty<SecretKey>();
         try
         {
-            // TODO: configure how expired secrets are handled
-            var secrets = client.Secrets.Where(secret => secret.ExpiresWhen < DateTimeOffset.UtcNow);
-            using var secretKeys = SecretSerializer.DeserializeSecrets(secrets);
+            secretKeys = SecretSerializer.DeserializeSecrets(client.Secrets);
 
             var parameters = new ValidateJwtParameters()
                 .UseValidationKeys(secretKeys)
@@ -387,6 +388,10 @@ internal class DefaultAuthorizationEndpointHandler :
         {
             Logger.LogWarning(exception, "Failed to decode JWT");
             throw errorFactory.FailedToDecodeJwt(errorCode).WithException(exception).AsException();
+        }
+        finally
+        {
+            secretKeys.DisposeAll(ignoreExceptions: true);
         }
 
         try

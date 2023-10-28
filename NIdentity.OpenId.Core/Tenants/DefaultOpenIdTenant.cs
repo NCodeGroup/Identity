@@ -40,7 +40,7 @@ public class DefaultOpenIdTenant : OpenIdTenant
     public override string Issuer { get; }
 
     /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeyProvider => throw new NotImplementedException();
+    public override ISecretKeyProvider SecretKeyProvider { get; }
 
     /// <inheritdoc />
     public override TenantConfiguration Configuration { get; }
@@ -48,9 +48,15 @@ public class DefaultOpenIdTenant : OpenIdTenant
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdTenant"/> class.
     /// </summary>
-    public DefaultOpenIdTenant(TenantConfiguration configuration, UriDescriptor baseAddress, string issuer)
+    public DefaultOpenIdTenant(
+        TenantConfiguration configuration,
+        ISecretKeyProvider secretKeyProvider,
+        UriDescriptor baseAddress,
+        string issuer)
     {
         Configuration = configuration;
+        SecretKeyProvider = secretKeyProvider;
+
         BaseAddress = baseAddress;
         Issuer = issuer;
     }

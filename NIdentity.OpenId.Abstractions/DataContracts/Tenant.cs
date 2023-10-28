@@ -61,4 +61,9 @@ public class Tenant : ISupportId, ISupportConcurrencyToken
     /// Gets or sets the configuration for the tenant.
     /// </summary>
     public TenantConfiguration Configuration { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the collection of secrets only known to the tenant.
+    /// </summary>
+    public IList<Secret> Secrets { get; set; } = new List<Secret>();
 }

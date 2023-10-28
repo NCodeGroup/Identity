@@ -138,16 +138,19 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         IAuthorizationRequest authorizationRequest,
         CancellationToken cancellationToken)
     {
-        var jsonSerializerOptions = authorizationRequest.OpenIdContext.JsonSerializerOptions;
+        var openIdContext = authorizationRequest.OpenIdContext;
+        var jsonSerializerOptions = openIdContext.JsonSerializerOptions;
 
         var authorizationRequestJson = JsonSerializer.Serialize(
             authorizationRequest,
             jsonSerializerOptions);
 
         var id = IdGenerator.CreateId();
+        var tenantId = openIdContext.Tenant.TenantId;
         var authorizationCode = new AuthorizationCode
         {
             Id = id,
+            TenantId = tenantId,
             HashedCode = hashedCode,
             CreatedWhen = createdWhen,
             ExpiresWhen = expiresWhen,

@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.ComponentModel.DataAnnotations;
@@ -29,6 +31,12 @@ public class AuthorizationCode : ISupportId
     /// Gets or sets the surrogate key for this entity.
     /// </summary>
     public long Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the tenant identifier for this entity.
+    /// </summary>
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public string TenantId { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the SHA-256 hash of the natural key that uniquely identifies this entity.

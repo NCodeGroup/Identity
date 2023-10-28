@@ -20,7 +20,10 @@
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Provides an implementation of <see cref="IComparer{SecretKey}"/> that compares <see cref="SecretKey"/> instances using the <see cref="KeyMetadata.ExpiresWhen"/> property.
+/// Provides an implementation of <see cref="IComparer{SecretKey}"/> that compares <see cref="SecretKey"/> instances using
+/// the <see cref="KeyMetadata.ExpiresWhen"/> property descending and then the <see cref="SecretKey.GetHashCode"/> property
+/// ascending. If any compared doesn't have a <see cref="KeyMetadata.ExpiresWhen"/> value, then it is treated as
+/// <see cref="DateTimeOffset.MaxValue"/>.
 /// </summary>
 public class SecretKeyExpiresWhenComparer : IComparer<SecretKey>
 {
@@ -41,7 +44,7 @@ public class SecretKeyExpiresWhenComparer : IComparer<SecretKey>
 
         var xExpiresWhen = x?.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue;
         var yExpiresWhen = y?.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue;
-        var result = xExpiresWhen.CompareTo(yExpiresWhen);
+        var result = yExpiresWhen.CompareTo(xExpiresWhen); // notice that y then x
         if (result != 0) return result;
 
         var xHashCode = x?.GetHashCode() ?? 0;

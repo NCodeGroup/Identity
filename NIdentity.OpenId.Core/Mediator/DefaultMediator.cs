@@ -23,7 +23,7 @@ using NIdentity.OpenId.Mediator.Wrappers;
 namespace NIdentity.OpenId.Mediator;
 
 /// <summary>
-/// Provides a default implementation for the <see cref="IMediator"/> abstraction.
+/// Provides a default implementation of the <see cref="IMediator"/> abstraction.
 /// </summary>
 public class DefaultMediator : IMediator
 {

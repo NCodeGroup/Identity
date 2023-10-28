@@ -34,7 +34,7 @@ using NIdentity.OpenId.Tenants.Commands;
 namespace NIdentity.OpenId.Endpoints;
 
 /// <summary>
-/// Provides a default implementation for the <see cref="IOpenIdEndpointFactory"/> abstraction.
+/// Provides a default implementation of the <see cref="IOpenIdEndpointFactory"/> abstraction.
 /// </summary>
 public class DefaultOpenIdEndpointFactory :
     IOpenIdEndpointFactory,

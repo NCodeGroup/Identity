@@ -43,7 +43,10 @@ using ISystemClock = NIdentity.OpenId.Logic.ISystemClock;
 
 namespace NIdentity.OpenId.Endpoints.Authorization;
 
-internal class DefaultAuthorizationEndpointHandler :
+/// <summary>
+/// Provides a default implementation of the required services and handlers used by the authorization endpoint.
+/// </summary>
+public class DefaultAuthorizationEndpointHandler :
     ICommandResponseHandler<AuthorizationEndpointCommand, IOpenIdResult>,
     ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>,
     ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationContext>,
@@ -66,6 +69,9 @@ internal class DefaultAuthorizationEndpointHandler :
     private IAuthorizationLoginService LoginService { get; }
     private IAuthorizationTicketService TicketService { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultAuthorizationEndpointHandler"/> class.
+    /// </summary>
     public DefaultAuthorizationEndpointHandler(
         ILogger<DefaultAuthorizationEndpointHandler> logger,
         ISystemClock systemClock,

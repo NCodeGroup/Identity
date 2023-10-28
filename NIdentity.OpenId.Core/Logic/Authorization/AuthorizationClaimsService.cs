@@ -35,6 +35,7 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
     public async IAsyncEnumerable<Claim> GetAccessTokenClaimsAsync(
         AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
+        DateTimeOffset timestamp,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var authorizationRequest = authorizationContext.AuthorizationRequest;
@@ -65,7 +66,7 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
 
         if (!hasAuthTime)
         {
-            var authTime = authenticationTicket.Properties.IssuedUtc ?? DateTimeOffset.UtcNow;
+            var authTime = authenticationTicket.Properties.IssuedUtc ?? timestamp;
 
             yield return new Claim(
                 JoseClaimNames.Payload.AuthTime,
@@ -82,6 +83,7 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
     public async IAsyncEnumerable<Claim> GetIdTokenClaimsAsync(
         AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
+        DateTimeOffset timestamp,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var authorizationRequest = authorizationContext.AuthorizationRequest;
@@ -154,7 +156,7 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
 
         if (!hasAuthTime)
         {
-            var authTime = authenticationTicket.Properties.IssuedUtc ?? DateTimeOffset.UtcNow;
+            var authTime = authenticationTicket.Properties.IssuedUtc ?? timestamp;
 
             yield return new Claim(
                 JoseClaimNames.Payload.AuthTime,

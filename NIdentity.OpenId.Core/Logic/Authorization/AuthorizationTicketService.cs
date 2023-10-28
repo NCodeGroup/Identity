@@ -211,6 +211,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
             .GetAccessTokenClaimsAsync(
                 authorizationContext,
                 authenticationTicket,
+                createdWhen,
                 cancellationToken)
             .ToListAsync(cancellationToken);
 
@@ -292,6 +293,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
             .GetIdTokenClaimsAsync(
                 authorizationContext,
                 authenticationTicket,
+                createdWhen,
                 cancellationToken)
             .ToListAsync(cancellationToken);
 

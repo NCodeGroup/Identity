@@ -24,6 +24,7 @@ using Moq;
 using NCode.Identity;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Serialization;
@@ -36,6 +37,7 @@ public class OpenIdContextTests : IDisposable
 {
     private MockRepository MockRepository { get; }
     private Mock<HttpContext> MockHttpContext { get; }
+    private Mock<IMediator> MockMediator { get; }
     private Mock<OpenIdTenant> MockOpenIdTenant { get; }
     private Mock<OpenIdEndpointDescriptor> MockOpenIdEndpointDescriptor { get; }
     private Mock<IPropertyBag> MockPropertyBag { get; }
@@ -44,6 +46,7 @@ public class OpenIdContextTests : IDisposable
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockHttpContext = MockRepository.Create<HttpContext>();
+        MockMediator = MockRepository.Create<IMediator>();
         MockOpenIdTenant = MockRepository.Create<OpenIdTenant>();
         MockOpenIdEndpointDescriptor = MockRepository.Create<OpenIdEndpointDescriptor>();
         MockPropertyBag = MockRepository.Create<IPropertyBag>();
@@ -59,12 +62,14 @@ public class OpenIdContextTests : IDisposable
     {
         var context = new DefaultOpenIdContext(
             MockHttpContext.Object,
+            MockMediator.Object,
             MockOpenIdTenant.Object,
             MockOpenIdEndpointDescriptor.Object,
             MockPropertyBag.Object
         );
 
         Assert.Same(MockHttpContext.Object, context.HttpContext);
+        Assert.Same(MockMediator.Object, context.Mediator);
         Assert.Same(MockOpenIdTenant.Object, context.Tenant);
         Assert.Same(MockOpenIdEndpointDescriptor.Object, context.Descriptor);
         Assert.Null(context.JsonSerializerOptionsOrNull);
@@ -78,6 +83,7 @@ public class OpenIdContextTests : IDisposable
     {
         var context = new DefaultOpenIdContext(
             MockHttpContext.Object,
+            MockMediator.Object,
             MockOpenIdTenant.Object,
             MockOpenIdEndpointDescriptor.Object,
             MockPropertyBag.Object

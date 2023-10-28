@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
@@ -43,11 +44,13 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
     /// </summary>
     public DefaultOpenIdContext(
         HttpContext httpContext,
+        IMediator mediator,
         OpenIdTenant tenant,
         OpenIdEndpointDescriptor descriptor,
         IPropertyBag propertyBag)
     {
         HttpContext = httpContext;
+        Mediator = mediator;
         Tenant = tenant;
         Descriptor = descriptor;
         PropertyBag = propertyBag;
@@ -55,6 +58,9 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
 
     /// <inheritdoc />
     public override HttpContext HttpContext { get; }
+
+    /// <inheritdoc />
+    public override IMediator Mediator { get; }
 
     /// <inheritdoc />
     public override OpenIdTenant Tenant { get; }

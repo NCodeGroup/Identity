@@ -55,7 +55,6 @@ internal class DefaultAuthorizationEndpointHandler :
 
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; }
     private ISystemClock SystemClock { get; }
-    private IMediator Mediator { get; }
     private IHttpClientFactory HttpClientFactory { get; }
     private ISecretSerializer SecretSerializer { get; }
     private IJsonWebTokenService JsonWebTokenService { get; }
@@ -68,7 +67,6 @@ internal class DefaultAuthorizationEndpointHandler :
     public DefaultAuthorizationEndpointHandler(
         ILogger<DefaultAuthorizationEndpointHandler> logger,
         ISystemClock systemClock,
-        IMediator mediator,
         IHttpClientFactory httpClientFactory,
         ISecretSerializer secretSerializer,
         IJsonWebTokenService jsonWebTokenService,
@@ -80,7 +78,6 @@ internal class DefaultAuthorizationEndpointHandler :
     {
         Logger = logger;
         SystemClock = systemClock;
-        Mediator = mediator;
         HttpClientFactory = httpClientFactory;
         SecretSerializer = secretSerializer;
         JsonWebTokenService = jsonWebTokenService;
@@ -99,9 +96,10 @@ internal class DefaultAuthorizationEndpointHandler :
         CancellationToken cancellationToken)
     {
         var openIdContext = command.OpenIdContext;
+        var mediator = openIdContext.Mediator;
         var errorFactory = openIdContext.ErrorFactory;
 
-        var authorizationSource = await Mediator.SendAsync<LoadAuthorizationSourceCommand, IAuthorizationSource>(
+        var authorizationSource = await mediator.SendAsync<LoadAuthorizationSourceCommand, IAuthorizationSource>(
             new LoadAuthorizationSourceCommand(openIdContext),
             cancellationToken);
 
@@ -111,7 +109,7 @@ internal class DefaultAuthorizationEndpointHandler :
         AuthorizationContext authorizationContext;
         try
         {
-            authorizationContext = await Mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationContext>(
+            authorizationContext = await mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationContext>(
                 new LoadAuthorizationRequestCommand(authorizationSource),
                 cancellationToken);
         }
@@ -134,11 +132,11 @@ internal class DefaultAuthorizationEndpointHandler :
 
         try
         {
-            await Mediator.SendAsync(
+            await mediator.SendAsync(
                 new ValidateAuthorizationRequestCommand(authorizationContext),
                 cancellationToken);
 
-            var authenticateResult = await Mediator.SendAsync<AuthenticateCommand, AuthenticateResult>(
+            var authenticateResult = await mediator.SendAsync<AuthenticateCommand, AuthenticateResult>(
                 new AuthenticateCommand(openIdContext),
                 cancellationToken);
 
@@ -159,7 +157,7 @@ internal class DefaultAuthorizationEndpointHandler :
 
             var authenticationTicket = authenticateResult.Ticket;
 
-            var authorizeResult = await Mediator.SendAsync<AuthorizeCommand, IOpenIdResult?>(
+            var authorizeResult = await mediator.SendAsync<AuthorizeCommand, IOpenIdResult?>(
                 new AuthorizeCommand(
                     authorizationContext,
                     authenticationTicket),
@@ -168,7 +166,7 @@ internal class DefaultAuthorizationEndpointHandler :
             if (authorizeResult != null)
                 return authorizeResult;
 
-            var authorizationTicket = await Mediator.SendAsync<CreateAuthorizationTicketCommand, IAuthorizationTicket>(
+            var authorizationTicket = await mediator.SendAsync<CreateAuthorizationTicketCommand, IAuthorizationTicket>(
                 new CreateAuthorizationTicketCommand(
                     authorizationContext,
                     authenticationTicket),
@@ -752,8 +750,9 @@ internal class DefaultAuthorizationEndpointHandler :
         AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken)
     {
+        var mediator = authorizationContext.AuthorizationRequest.OpenIdContext.Mediator;
         var command = new ValidateUserIsActiveCommand(authorizationContext, authenticationTicket);
-        await Mediator.SendAsync(command, cancellationToken);
+        await mediator.SendAsync(command, cancellationToken);
         return command.IsActive;
     }
 

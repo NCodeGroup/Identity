@@ -21,6 +21,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity;
 using NIdentity.OpenId.Endpoints;
+using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Tenants;
@@ -37,7 +38,10 @@ public abstract class OpenIdContext
     /// </summary>
     public abstract HttpContext HttpContext { get; }
 
-    // TODO: should we also have IMediator here?
+    /// <summary>
+    /// Gets the <see cref="IMediator"/> instance that is scoped with the current request.
+    /// </summary>
+    public abstract IMediator Mediator { get; }
 
     /// <summary>
     /// Gets the <see cref="OpenIdTenant"/> associated with the current request.

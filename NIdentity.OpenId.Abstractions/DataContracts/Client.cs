@@ -36,6 +36,12 @@ public class Client : ISupportId, ISupportConcurrencyToken
     public string ConcurrencyToken { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the tenant identifier for this entity.
+    /// </summary>
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public string TenantId { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the natural key for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
@@ -53,7 +59,7 @@ public class Client : ISupportId, ISupportConcurrencyToken
     public bool AllowUnsafeTokenResponse { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to the application and the authorization server.
+    /// Gets or sets the collection of secrets only known to the client.
     /// </summary>
     public IList<Secret> Secrets { get; set; } = new List<Secret>();
 

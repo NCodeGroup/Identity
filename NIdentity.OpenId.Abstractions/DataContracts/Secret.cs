@@ -33,15 +33,15 @@ public class Secret : ISupportId
     public long Id { get; set; }
 
     /// <summary>
+    /// Gets or sets the tenant identifier for this entity.
+    /// </summary>
+    public string TenantId { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the natural key for this entity.
     /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
     public string SecretId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the tenant identifier for this entity.
-    /// </summary>
-    public string? TenantId { get; set; }
 
     /// <summary>
     /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to

@@ -104,8 +104,8 @@ internal class DefaultTenantHandler :
         };
     }
 
-    private static Exception MissingTenantOptionsException(TenantMode mode) =>
-        new InvalidOperationException($"The TenantMode is '{mode}' but the corresponding options are missing.");
+    private static InvalidOperationException MissingTenantOptionsException(TenantMode mode) =>
+        new($"The TenantMode is '{mode}' but the corresponding options are missing.");
 
     private TenantConfiguration GetTenantFromOptions()
     {

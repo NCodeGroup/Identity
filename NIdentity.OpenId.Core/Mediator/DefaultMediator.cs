@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Mediator.Wrappers;
 
@@ -29,7 +28,6 @@ namespace NIdentity.OpenId.Mediator;
 public class DefaultMediator : IMediator
 {
     private IServiceProvider ServiceProvider { get; }
-    private ConcurrentDictionary<Type, object> HandlerCache { get; } = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultMediator"/> class.
@@ -45,11 +43,7 @@ public class DefaultMediator : IMediator
         CancellationToken cancellationToken
     ) where TCommand : ICommand
     {
-        var wrapper = (ICommandHandlerWrapper<TCommand>)HandlerCache.GetOrAdd(typeof(TCommand), commandType =>
-        {
-            var wrapperType = typeof(CommandHandlerWrapper<>).MakeGenericType(commandType);
-            return ActivatorUtilities.CreateInstance(ServiceProvider, wrapperType);
-        });
+        var wrapper = ServiceProvider.GetRequiredService<ICommandHandlerWrapper<TCommand>>();
         return wrapper.HandleAsync(command, cancellationToken);
     }
 
@@ -59,11 +53,7 @@ public class DefaultMediator : IMediator
         CancellationToken cancellationToken
     ) where TCommand : ICommand<TResponse>
     {
-        var wrapper = (ICommandResponseHandlerWrapper<TCommand, TResponse>)HandlerCache.GetOrAdd(typeof(TCommand), commandType =>
-        {
-            var wrapperType = typeof(CommandResponseHandlerWrapper<,>).MakeGenericType(commandType, typeof(TResponse));
-            return ActivatorUtilities.CreateInstance(ServiceProvider, wrapperType);
-        });
+        var wrapper = ServiceProvider.GetRequiredService<ICommandResponseHandlerWrapper<TCommand, TResponse>>();
         return wrapper.HandleAsync(command, cancellationToken);
     }
 }

@@ -114,7 +114,7 @@ internal class StandardCommandResponseMiddleware<TCommand, TResponse> : ICommand
             exception.GetType());
 
         var wrapper = (ICommandExceptionListenerWrapper<TCommand>)
-            ActivatorUtilities.CreateInstance(ServiceProvider, wrapperType);
+            ServiceProvider.GetRequiredService(wrapperType);
 
         await wrapper.ListenAsync(
             command,
@@ -135,7 +135,7 @@ internal class StandardCommandResponseMiddleware<TCommand, TResponse> : ICommand
             typeof(TResponse));
 
         var wrapper = (ICommandResponseExceptionHandlerWrapper<TCommand, TResponse>)
-            ActivatorUtilities.CreateInstance(ServiceProvider, wrapperType);
+            ServiceProvider.GetRequiredService(wrapperType);
 
         await wrapper.HandleAsync(
             command,

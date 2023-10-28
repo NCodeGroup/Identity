@@ -20,6 +20,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Mediator.Middleware;
+using NIdentity.OpenId.Mediator.Wrappers;
 
 namespace NIdentity.OpenId.ServiceCollectionExtensions;
 
@@ -35,10 +36,17 @@ public static class CoreMediatorRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddCoreMediatorServices(this IServiceCollection services)
     {
-        services.AddScoped<IMediator, DefaultMediator>();
+        services.AddScoped(typeof(ICommandHandlerWrapper<>), typeof(CommandHandlerWrapper<>));
+        services.AddScoped(typeof(ICommandResponseHandlerWrapper<,>), typeof(CommandResponseHandlerWrapper<,>));
+
+        services.AddScoped(typeof(CommandExceptionListenerWrapper<,>));
+        services.AddScoped(typeof(CommandExceptionHandlerWrapper<,>));
+        services.AddScoped(typeof(CommandResponseExceptionHandlerWrapper<,,>));
 
         services.AddScoped(typeof(ICommandMiddleware<>), typeof(StandardCommandMiddleware<>));
         services.AddScoped(typeof(ICommandResponseMiddleware<,>), typeof(StandardCommandResponseMiddleware<,>));
+
+        services.AddScoped<IMediator, DefaultMediator>();
 
         return services;
     }

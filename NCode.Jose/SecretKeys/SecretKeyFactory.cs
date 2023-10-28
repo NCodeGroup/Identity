@@ -150,7 +150,7 @@ public class SecretKeyFactory : ISecretKeyFactory
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<char> password)
     {
         var byteCount = Encoding.UTF8.GetByteCount(password);
-        var _ = CryptoPool.Rent(byteCount, isSensitive: true, out Span<byte> bytes);
+        using var _ = CryptoPool.Rent(byteCount, isSensitive: true, out Span<byte> bytes);
 
         var bytesWritten = Encoding.UTF8.GetBytes(password, bytes);
         Debug.Assert(bytesWritten == byteCount);

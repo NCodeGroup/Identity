@@ -105,8 +105,8 @@ public class DefaultAuthorizationEndpointHandler :
         CancellationToken cancellationToken)
     {
         var openIdContext = command.OpenIdContext;
-        var mediator = openIdContext.Mediator;
         var errorFactory = openIdContext.ErrorFactory;
+        var mediator = openIdContext.Mediator;
 
         var authorizationSource = await mediator.SendAsync<LoadAuthorizationSourceCommand, IAuthorizationSource>(
             new LoadAuthorizationSourceCommand(openIdContext),

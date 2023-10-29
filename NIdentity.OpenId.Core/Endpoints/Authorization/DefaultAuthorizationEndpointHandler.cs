@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using System.Text.Json;
@@ -129,14 +130,13 @@ public class DefaultAuthorizationEndpointHandler :
                     .Create(OpenIdConstants.ErrorCodes.ServerError)
                     .WithException(exception);
 
-            return await DetermineErrorResultAsync(
+            var clientRedirectContext = await GetClientRedirectContextAsync(
                 openIdError,
                 authorizationSource,
                 cancellationToken);
-        }
 
-        var client = authorizationContext.Client;
-        var authorizationRequest = authorizationContext.AuthorizationRequest;
+            return GetErrorResult(openIdError, clientRedirectContext);
+        }
 
         try
         {
@@ -154,13 +154,7 @@ public class DefaultAuthorizationEndpointHandler :
                     .AccessDenied("An error occured while attempting to authenticate the end-user.")
                     .WithException(authenticateResult.Failure);
 
-                return DetermineErrorResult(
-                    openIdError,
-                    authorizationRequest.State,
-                    authorizationRequest.RedirectUri,
-                    authorizationRequest.ResponseMode,
-                    client.RedirectUris,
-                    client.AllowLoopback);
+                return GetErrorResult(openIdError, authorizationContext.ClientRedirectContext);
             }
 
             var authenticationTicket = authenticateResult.Ticket;
@@ -180,6 +174,8 @@ public class DefaultAuthorizationEndpointHandler :
                     authenticationTicket),
                 cancellationToken);
 
+            var authorizationRequest = authorizationContext.AuthorizationRequest;
+
             return new AuthorizationResult(
                 authorizationRequest.RedirectUri,
                 authorizationRequest.ResponseMode,
@@ -193,13 +189,7 @@ public class DefaultAuthorizationEndpointHandler :
                     .Create(OpenIdConstants.ErrorCodes.ServerError)
                     .WithException(exception);
 
-            return DetermineErrorResult(
-                openIdError,
-                authorizationRequest.State,
-                authorizationRequest.RedirectUri,
-                authorizationRequest.ResponseMode,
-                client.RedirectUris,
-                client.AllowLoopback);
+            return GetErrorResult(openIdError, authorizationContext.ClientRedirectContext);
         }
     }
 
@@ -277,18 +267,46 @@ public class DefaultAuthorizationEndpointHandler :
             errorFactory,
             cancellationToken);
 
-        var requestObject = await LoadRequestObjectAsync(
-            configuration,
-            requestMessage,
-            client,
-            cancellationToken);
+        var isClientRedirectSafe = IsClientRedirectSafe(
+            requestMessage.RedirectUri,
+            client.AllowLoopback,
+            client.RedirectUris);
 
-        var authorizationRequest = new AuthorizationRequest(
-            requestMessage,
-            requestObject);
+        var clientRedirectContext = new ClientRedirectContext
+        {
+            IsSafe = isClientRedirectSafe,
+            RedirectUri = isClientRedirectSafe ? requestMessage.RedirectUri : null,
+            ResponseMode = isClientRedirectSafe ? requestMessage.ResponseMode ?? ResponseMode.Query : null
+        };
 
-        var propertyBag = openIdContext.PropertyBag.Clone();
-        return new DefaultAuthorizationContext(client, authorizationRequest, propertyBag);
+        try
+        {
+            var requestObject = await LoadRequestObjectAsync(
+                configuration,
+                requestMessage,
+                client,
+                cancellationToken);
+
+            var authorizationRequest = new AuthorizationRequest(
+                requestMessage,
+                requestObject);
+
+            var propertyBag = openIdContext.PropertyBag.Clone();
+            return new DefaultAuthorizationContext(client, authorizationRequest, clientRedirectContext, propertyBag);
+        }
+        catch (OpenIdException exception)
+        {
+            exception.Error.ClientRedirectContext = clientRedirectContext;
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw errorFactory
+                .Create(OpenIdConstants.ErrorCodes.ServerError)
+                .WithException(exception)
+                .WithClientRedirectContext(clientRedirectContext)
+                .AsException();
+        }
     }
 
     private async ValueTask<Client> GetClientAsync(
@@ -298,11 +316,17 @@ public class DefaultAuthorizationEndpointHandler :
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(clientId))
-            throw errorFactory.MissingParameter(OpenIdConstants.Parameters.ClientId).AsException();
+            throw errorFactory
+                .MissingParameter(OpenIdConstants.Parameters.ClientId)
+                .WithClientRedirectContext(new ClientRedirectContext { IsSafe = false })
+                .AsException();
 
         var client = await ClientStore.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
         if (client == null)
-            throw errorFactory.InvalidRequest("The 'client_id' parameter is invalid.").AsException();
+            throw errorFactory
+                .InvalidRequest("The 'client_id' parameter is invalid.")
+                .WithClientRedirectContext(new ClientRedirectContext { IsSafe = false })
+                .AsException();
 
         return client;
     }
@@ -331,7 +355,9 @@ public class DefaultAuthorizationEndpointHandler :
                     .AsException();
 
             if (!configuration.RequestUriEnabled)
-                throw errorFactory.RequestUriNotSupported().AsException();
+                throw errorFactory
+                    .RequestUriNotSupported()
+                    .AsException();
 
             var requestUriMaxLength = configuration.RequestUriMaxLength;
             if (requestUri.OriginalString.Length > requestUriMaxLength)
@@ -352,7 +378,9 @@ public class DefaultAuthorizationEndpointHandler :
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
             if (!configuration.RequestJwtEnabled)
-                throw errorFactory.RequestJwtNotSupported().AsException();
+                throw errorFactory
+                    .RequestJwtNotSupported()
+                    .AsException();
         }
         else if (client.RequireRequestObject)
         {
@@ -393,7 +421,10 @@ public class DefaultAuthorizationEndpointHandler :
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to decode JWT");
-            throw errorFactory.FailedToDecodeJwt(errorCode).WithException(exception).AsException();
+            throw errorFactory
+                .FailedToDecodeJwt(errorCode)
+                .WithException(exception)
+                .AsException();
         }
         finally
         {
@@ -405,7 +436,7 @@ public class DefaultAuthorizationEndpointHandler :
             // this will deserialize the object using: OpenIdMessageJsonConverterFactory => OpenIdMessageJsonConverter => OpenIdMessage.Load
             var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(requestMessage.OpenIdContext.JsonSerializerOptions);
             if (requestObject == null)
-                throw new JsonException("TODO");
+                throw new InvalidOperationException("JSON deserialization returned null.");
 
             requestObject.RequestObjectSource = requestObjectSource;
 
@@ -414,7 +445,10 @@ public class DefaultAuthorizationEndpointHandler :
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to deserialize JSON");
-            throw errorFactory.FailedToDeserializeJson(errorCode).WithException(exception).AsException();
+            throw errorFactory
+                .FailedToDeserializeJson(errorCode)
+                .WithException(exception)
+                .AsException();
         }
     }
 
@@ -470,18 +504,19 @@ public class DefaultAuthorizationEndpointHandler :
         var authorizationContext = command.AuthorizationContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
 
-        ValidateRequestMessage(authorizationRequest.OriginalRequestMessage);
+        var requestMessage = authorizationRequest.OriginalRequestMessage;
+        var requestObject = authorizationRequest.OriginalRequestObject;
+        var client = authorizationContext.Client;
 
-        if (authorizationRequest.OriginalRequestObject != null)
-            ValidateRequestObject(
-                authorizationRequest.OriginalRequestMessage,
-                authorizationRequest.OriginalRequestObject);
+        ValidateRequestMessage(requestMessage);
 
-        ValidateRequest(authorizationContext.Client, authorizationRequest);
+        if (requestObject != null)
+            ValidateRequestObject(requestMessage, requestObject);
+
+        ValidateRequest(client, authorizationRequest);
 
         return ValueTask.CompletedTask;
     }
-
 
     [AssertionMethod]
     private static void ValidateRequestMessage(
@@ -556,11 +591,9 @@ public class DefaultAuthorizationEndpointHandler :
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
         var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
 
-        var redirectUris = client.RedirectUris;
-        if (!redirectUris.Contains(request.RedirectUri) && !(client.AllowLoopback && request.RedirectUri.IsLoopback))
+        // TODO: remove?
+        if (!IsClientRedirectSafe(request.RedirectUri, client.AllowLoopback, client.RedirectUris))
             throw errorFactory.InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.").AsException();
-
-        // TODO: error messages must now use redirection
 
         if (client.IsDisabled)
             throw errorFactory.UnauthorizedClient("The client is disabled.").AsException();
@@ -854,69 +887,76 @@ public class DefaultAuthorizationEndpointHandler :
 
     #region Error Handling
 
-    private async ValueTask<IOpenIdResult> DetermineErrorResultAsync(
+    private static bool IsClientRedirectSafe(
+        [NotNullWhen(true)] Uri? redirectUri,
+        bool allowLoopback,
+        ICollection<Uri> validRedirectUris
+    ) =>
+        redirectUri is not null &&
+        (
+            (allowLoopback && redirectUri.IsLoopback) ||
+            validRedirectUris.Contains(redirectUri)
+        );
+
+    private static IOpenIdResult GetErrorResult(IOpenIdError error, ClientRedirectContext context) =>
+        context.IsSafe ?
+            new AuthorizationResult(
+                context.RedirectUri,
+                context.ResponseMode.Value,
+                error) :
+            new OpenIdErrorResult(error);
+
+    private async ValueTask<ClientRedirectContext> GetClientRedirectContextAsync(
         IOpenIdError openIdError,
         IAuthorizationSource authorizationSource,
         CancellationToken cancellationToken)
     {
-        if (authorizationSource.TryGetValue(OpenIdConstants.Parameters.State, out var state) && !StringValues.IsNullOrEmpty(state))
+        if (openIdError.ClientRedirectContext.HasValue)
+            return openIdError.ClientRedirectContext.Value;
+
+        try
         {
-            openIdError.State = state;
-        }
+            if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues) || !Enum.TryParse(responseModeStringValues, out ResponseMode responseMode))
+            {
+                responseMode = ResponseMode.Query;
+            }
 
-        if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues) || !Enum.TryParse(responseModeStringValues, out ResponseMode responseMode))
+            if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl) || !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
+            {
+                return new ClientRedirectContext { IsSafe = false };
+            }
+
+            if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId) || StringValues.IsNullOrEmpty(clientId))
+            {
+                return new ClientRedirectContext { IsSafe = false };
+            }
+
+            var client = await ClientStore.TryGetByClientIdAsync(
+                authorizationSource.OpenIdContext.Tenant.TenantId,
+                clientId.ToString(),
+                cancellationToken);
+
+            if (client == null)
+            {
+                return new ClientRedirectContext { IsSafe = false };
+            }
+
+            if (!IsClientRedirectSafe(redirectUri, client.AllowLoopback, client.RedirectUris))
+            {
+                return new ClientRedirectContext { IsSafe = false };
+            }
+
+            return new ClientRedirectContext
+            {
+                IsSafe = true,
+                RedirectUri = redirectUri,
+                ResponseMode = responseMode
+            };
+        }
+        catch
         {
-            responseMode = ResponseMode.Query;
+            return new ClientRedirectContext { IsSafe = false };
         }
-
-        if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl) || !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
-        {
-            return new OpenIdErrorResult(openIdError);
-        }
-
-        if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId) || StringValues.IsNullOrEmpty(clientId))
-        {
-            return new OpenIdErrorResult(openIdError);
-        }
-
-        var client = await ClientStore.TryGetByClientIdAsync(
-            authorizationSource.OpenIdContext.Tenant.TenantId,
-            clientId.ToString(),
-            cancellationToken);
-
-        if (client == null)
-        {
-            return new OpenIdErrorResult(openIdError);
-        }
-
-        return DetermineErrorResult(
-            openIdError,
-            state,
-            redirectUri,
-            responseMode,
-            client.RedirectUris,
-            client.AllowLoopback);
-    }
-
-    private static IOpenIdResult DetermineErrorResult(
-        IOpenIdError openIdError,
-        string? state,
-        Uri redirectUri,
-        ResponseMode responseMode,
-        ICollection<Uri> validRedirectUris,
-        bool allowLoopback)
-    {
-        if (!string.IsNullOrEmpty(state))
-        {
-            openIdError.State = state;
-        }
-
-        if (!validRedirectUris.Contains(redirectUri) && !(allowLoopback && redirectUri.IsLoopback))
-        {
-            return new OpenIdErrorResult(openIdError);
-        }
-
-        return new AuthorizationResult(redirectUri, responseMode, openIdError);
     }
 
     #endregion

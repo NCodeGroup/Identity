@@ -287,6 +287,11 @@ public class DefaultAuthorizationEndpointHandler :
                 client,
                 cancellationToken);
 
+            if (requestObject?.ResponseMode is not null && requestObject.ResponseMode.Value != clientRedirectContext.ResponseMode)
+            {
+                clientRedirectContext = clientRedirectContext with { ResponseMode = requestObject.ResponseMode.Value };
+            }
+
             var authorizationRequest = new AuthorizationRequest(
                 requestMessage,
                 requestObject);

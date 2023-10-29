@@ -19,7 +19,6 @@
 
 using NCode.Identity;
 using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
@@ -37,12 +36,6 @@ public abstract class AuthorizationContext
     /// Gets the <see cref="IAuthorizationRequest"/> that contains the <c>OAuth</c> or <c>OpenID Connect</c> authorization parameters.
     /// </summary>
     public abstract IAuthorizationRequest AuthorizationRequest { get; }
-
-    /// <summary>
-    /// Gets the <see cref="ClientRedirectContext"/> that describes whether the <c>redirect_uri</c> has been verified
-    /// and that responses can be safely returned to the client.
-    /// </summary>
-    public abstract ClientRedirectContext ClientRedirectContext { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.

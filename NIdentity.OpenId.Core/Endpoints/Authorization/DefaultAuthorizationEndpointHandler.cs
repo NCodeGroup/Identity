@@ -135,8 +135,19 @@ public class DefaultAuthorizationEndpointHandler :
                 authorizationSource,
                 cancellationToken);
 
-            return GetErrorResult(openIdError, clientRedirectContext);
+            return clientRedirectContext.IsSafe ?
+                new AuthorizationResult(
+                    clientRedirectContext.RedirectUri,
+                    clientRedirectContext.ResponseMode.Value,
+                    openIdError) :
+                new OpenIdErrorResult(openIdError);
         }
+
+        // everything after this point is safe to redirect to the client
+
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
+        var redirectUri = authorizationRequest.RedirectUri;
+        var responseMode = authorizationRequest.ResponseMode;
 
         try
         {
@@ -154,7 +165,7 @@ public class DefaultAuthorizationEndpointHandler :
                     .AccessDenied("An error occured while attempting to authenticate the end-user.")
                     .WithException(authenticateResult.Failure);
 
-                return GetErrorResult(openIdError, authorizationContext.ClientRedirectContext);
+                return new AuthorizationResult(redirectUri, responseMode, openIdError);
             }
 
             var authenticationTicket = authenticateResult.Ticket;
@@ -174,12 +185,7 @@ public class DefaultAuthorizationEndpointHandler :
                     authenticationTicket),
                 cancellationToken);
 
-            var authorizationRequest = authorizationContext.AuthorizationRequest;
-
-            return new AuthorizationResult(
-                authorizationRequest.RedirectUri,
-                authorizationRequest.ResponseMode,
-                authorizationTicket);
+            return new AuthorizationResult(redirectUri, responseMode, authorizationTicket);
         }
         catch (Exception exception)
         {
@@ -189,7 +195,7 @@ public class DefaultAuthorizationEndpointHandler :
                     .Create(OpenIdConstants.ErrorCodes.ServerError)
                     .WithException(exception);
 
-            return GetErrorResult(openIdError, authorizationContext.ClientRedirectContext);
+            return new AuthorizationResult(redirectUri, responseMode, openIdError);
         }
     }
 
@@ -272,11 +278,17 @@ public class DefaultAuthorizationEndpointHandler :
             client.AllowLoopback,
             client.RedirectUris);
 
+        if (!isClientRedirectSafe)
+            throw errorFactory
+                .InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.")
+                .WithClientRedirectContext(new ClientRedirectContext { IsSafe = false })
+                .AsException();
+
         var clientRedirectContext = new ClientRedirectContext
         {
-            IsSafe = isClientRedirectSafe,
-            RedirectUri = isClientRedirectSafe ? requestMessage.RedirectUri : null,
-            ResponseMode = isClientRedirectSafe ? requestMessage.ResponseMode ?? ResponseMode.Query : null
+            IsSafe = true,
+            RedirectUri = requestMessage.RedirectUri,
+            ResponseMode = requestMessage.ResponseMode ?? ResponseMode.Query
         };
 
         try
@@ -297,7 +309,7 @@ public class DefaultAuthorizationEndpointHandler :
                 requestObject);
 
             var propertyBag = openIdContext.PropertyBag.Clone();
-            return new DefaultAuthorizationContext(client, authorizationRequest, clientRedirectContext, propertyBag);
+            return new DefaultAuthorizationContext(client, authorizationRequest, propertyBag);
         }
         catch (OpenIdException exception)
         {
@@ -903,14 +915,6 @@ public class DefaultAuthorizationEndpointHandler :
             validRedirectUris.Contains(redirectUri)
         );
 
-    private static IOpenIdResult GetErrorResult(IOpenIdError error, ClientRedirectContext context) =>
-        context.IsSafe ?
-            new AuthorizationResult(
-                context.RedirectUri,
-                context.ResponseMode.Value,
-                error) :
-            new OpenIdErrorResult(error);
-
     private async ValueTask<ClientRedirectContext> GetClientRedirectContextAsync(
         IOpenIdError openIdError,
         IAuthorizationSource authorizationSource,
@@ -919,6 +923,7 @@ public class DefaultAuthorizationEndpointHandler :
         if (openIdError.ClientRedirectContext.HasValue)
             return openIdError.ClientRedirectContext.Value;
 
+        var notSafeContext = new ClientRedirectContext { IsSafe = false };
         try
         {
             if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues) || !Enum.TryParse(responseModeStringValues, out ResponseMode responseMode))
@@ -928,12 +933,14 @@ public class DefaultAuthorizationEndpointHandler :
 
             if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl) || !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
             {
-                return new ClientRedirectContext { IsSafe = false };
+                openIdError.ClientRedirectContext = notSafeContext;
+                return notSafeContext;
             }
 
             if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId) || StringValues.IsNullOrEmpty(clientId))
             {
-                return new ClientRedirectContext { IsSafe = false };
+                openIdError.ClientRedirectContext = notSafeContext;
+                return notSafeContext;
             }
 
             var client = await ClientStore.TryGetByClientIdAsync(
@@ -943,12 +950,14 @@ public class DefaultAuthorizationEndpointHandler :
 
             if (client == null)
             {
-                return new ClientRedirectContext { IsSafe = false };
+                openIdError.ClientRedirectContext = notSafeContext;
+                return notSafeContext;
             }
 
             if (!IsClientRedirectSafe(redirectUri, client.AllowLoopback, client.RedirectUris))
             {
-                return new ClientRedirectContext { IsSafe = false };
+                openIdError.ClientRedirectContext = notSafeContext;
+                return notSafeContext;
             }
 
             return new ClientRedirectContext
@@ -960,7 +969,8 @@ public class DefaultAuthorizationEndpointHandler :
         }
         catch
         {
-            return new ClientRedirectContext { IsSafe = false };
+            openIdError.ClientRedirectContext = notSafeContext;
+            return notSafeContext;
         }
     }
 

@@ -608,10 +608,6 @@ public class DefaultAuthorizationEndpointHandler :
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
         var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
 
-        // TODO: remove?
-        if (!IsClientRedirectSafe(request.RedirectUri, client.AllowLoopback, client.RedirectUris))
-            throw errorFactory.InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.").AsException();
-
         if (client.IsDisabled)
             throw errorFactory.UnauthorizedClient("The client is disabled.").AsException();
 

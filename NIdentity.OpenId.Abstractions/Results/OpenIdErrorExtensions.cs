@@ -21,6 +21,8 @@ using NIdentity.OpenId.Exceptions;
 
 namespace NIdentity.OpenId.Results;
 
+// TODO: rename 'With...' to 'Set...'
+
 /// <summary>
 /// Provides extension methods for <see cref="IOpenIdError"/>.
 /// </summary>
@@ -78,6 +80,20 @@ public static class OpenIdErrorExtensions
     public static IOpenIdError WithException(this IOpenIdError error, Exception? exception)
     {
         error.Exception = exception;
+        return error;
+    }
+
+    /// <summary>
+    /// Sets the <see cref="ClientRedirectContext"/> that describes whether the <c>redirect_uri</c> has
+    /// been verified and that responses can be safely returned to the client. If this property is <c>null</c>,
+    /// then this determination has not yet been made.
+    /// </summary>
+    /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>
+    /// <param name="value">The value to set.</param>
+    /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+    public static IOpenIdError WithClientRedirectContext(this IOpenIdError error, ClientRedirectContext? value)
+    {
+        error.ClientRedirectContext = value;
         return error;
     }
 

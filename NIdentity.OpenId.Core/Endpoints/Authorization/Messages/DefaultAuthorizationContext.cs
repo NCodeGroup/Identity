@@ -19,6 +19,7 @@
 
 using NCode.Identity;
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
@@ -34,18 +35,19 @@ public class DefaultAuthorizationContext : AuthorizationContext
     public override IAuthorizationRequest AuthorizationRequest { get; }
 
     /// <inheritdoc />
+    public override ClientRedirectContext ClientRedirectContext { get; }
+
+    /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultAuthorizationContext"/> class.
     /// </summary>
-    /// <param name="client"><see cref="Client"/></param>
-    /// <param name="authorizationRequest"><see cref="IAuthorizationRequest"/></param>
-    /// <param name="propertyBag"><see cref="IPropertyBag"/></param>
-    public DefaultAuthorizationContext(Client client, IAuthorizationRequest authorizationRequest, IPropertyBag propertyBag)
+    public DefaultAuthorizationContext(Client client, IAuthorizationRequest authorizationRequest, ClientRedirectContext clientRedirectContext, IPropertyBag propertyBag)
     {
         Client = client;
         AuthorizationRequest = authorizationRequest;
+        ClientRedirectContext = clientRedirectContext;
         PropertyBag = propertyBag;
     }
 }

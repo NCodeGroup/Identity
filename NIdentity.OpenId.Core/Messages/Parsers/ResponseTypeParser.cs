@@ -97,7 +97,7 @@ public class ResponseTypeParser : ParameterParser<ResponseTypes?>
             {
                 responseType |= ResponseTypes.Token;
             }
-            else
+            else if (!descriptor.IgnoreUnrecognizedValues)
             {
                 throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
             }

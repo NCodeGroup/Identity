@@ -67,24 +67,19 @@ public class DisplayTypeParser : ParameterParser<DisplayType?>
         var stringValue = stringValues[0];
 
         if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Page, StringComparison))
-        {
             return DisplayType.Page;
-        }
 
         if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Popup, StringComparison))
-        {
             return DisplayType.Popup;
-        }
 
         if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Touch, StringComparison))
-        {
             return DisplayType.Touch;
-        }
 
         if (string.Equals(stringValue, OpenIdConstants.DisplayTypes.Wap, StringComparison))
-        {
             return DisplayType.Wap;
-        }
+
+        if (descriptor.IgnoreUnrecognizedValues)
+            return null;
 
         throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
     }

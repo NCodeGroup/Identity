@@ -38,13 +38,6 @@ public interface IOpenIdError : IOpenIdMessage
     Exception? Exception { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="ClientRedirectContext"/> that describes whether the <c>redirect_uri</c> has
-    /// been verified and that responses can be safely returned to the client. If this property is <c>null</c>,
-    /// then this determination has not yet been made.
-    /// </summary>
-    ClientRedirectContext? ClientRedirectContext { get; set; }
-
-    /// <summary>
     /// Gets or sets the <c>error</c> parameter.
     /// </summary>
     string Code { get; set; }

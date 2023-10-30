@@ -17,16 +17,18 @@
 
 #endregion
 
+using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="IAuthorizationSource"/> as an
-/// input argument and expects <see cref="AuthorizationContext"/> as a response.
+/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="IAuthorizationSource"/> and
+/// a <see cref="Client"/> as input argument and expects <see cref="AuthorizationContext"/> as a response.
 /// </summary>
 /// <param name="AuthorizationSource">The <see cref="IAuthorizationSource"/> input argument for the command contract.</param>
 public record struct LoadAuthorizationRequestCommand(
-    IAuthorizationSource AuthorizationSource
+    IAuthorizationSource AuthorizationSource,
+    Client Client
 ) : ICommand<AuthorizationContext>;

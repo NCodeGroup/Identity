@@ -53,9 +53,6 @@ public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError
     public Exception? Exception { get; set; }
 
     /// <inheritdoc />
-    public ClientRedirectContext? ClientRedirectContext { get; set; }
-
-    /// <inheritdoc />
     public string Code
     {
         get => GetKnownParameter(KnownParameters.ErrorCode) ?? OpenIdConstants.ErrorCodes.ServerError;

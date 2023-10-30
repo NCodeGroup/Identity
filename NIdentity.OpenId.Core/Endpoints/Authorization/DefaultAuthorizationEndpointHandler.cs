@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using System.Text.Json;
@@ -38,6 +37,8 @@ using NIdentity.OpenId.Exceptions;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Logic.Authorization;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Stores;
 using ISystemClock = NIdentity.OpenId.Logic.ISystemClock;
@@ -108,49 +109,41 @@ public class DefaultAuthorizationEndpointHandler :
         var errorFactory = openIdContext.ErrorFactory;
         var mediator = openIdContext.Mediator;
 
+        // for errors, before we redirect, we must validate the client_id and redirect_uri
+        // otherwise we must return a failure HTTP status code
+
+        // the following tries its best to not throw for OpenID protocol errors
         var authorizationSource = await mediator.SendAsync<LoadAuthorizationSourceCommand, IAuthorizationSource>(
             new LoadAuthorizationSourceCommand(openIdContext),
             cancellationToken);
 
-        // for errors, before we redirect, we must validate the client_id and redirect_uri
-        // otherwise we must return a failure HTTP status code
-
-        AuthorizationContext authorizationContext;
-        try
-        {
-            authorizationContext = await mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationContext>(
-                new LoadAuthorizationRequestCommand(authorizationSource),
-                cancellationToken);
-        }
-        catch (Exception exception)
-        {
-            var openIdError = exception is OpenIdException openIdException ?
-                openIdException.Error :
-                errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.ServerError)
-                    .WithException(exception);
-
-            var clientRedirectContext = await GetClientRedirectContextAsync(
-                openIdError,
-                authorizationSource,
-                cancellationToken);
-
-            return clientRedirectContext.IsSafe ?
-                new AuthorizationResult(
-                    clientRedirectContext.RedirectUri,
-                    clientRedirectContext.ResponseMode.Value,
-                    openIdError) :
-                new OpenIdErrorResult(openIdError);
-        }
+        // this will throw if client_id or redirect_uri are invalid
+        var clientRedirectContext = await GetClientRedirectContextAsync(
+            errorFactory,
+            authorizationSource,
+            cancellationToken);
 
         // everything after this point is safe to redirect to the client
 
-        var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var redirectUri = authorizationRequest.RedirectUri;
-        var responseMode = authorizationRequest.ResponseMode;
+        var client = clientRedirectContext.Client;
+        var redirectUri = clientRedirectContext.RedirectUri;
+        var responseMode = clientRedirectContext.ResponseMode;
 
         try
         {
+            var authorizationContext = await mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationContext>(
+                new LoadAuthorizationRequestCommand(
+                    authorizationSource,
+                    client),
+                cancellationToken);
+
+            // the request object may have changed the response mode
+            var requestObject = authorizationContext.AuthorizationRequest.OriginalRequestObject;
+            if (requestObject?.ResponseMode is not null && requestObject.ResponseMode.Value != responseMode)
+            {
+                responseMode = requestObject.ResponseMode.Value;
+            }
+
             await mediator.SendAsync(
                 new ValidateAuthorizationRequestCommand(authorizationContext),
                 cancellationToken);
@@ -163,6 +156,7 @@ public class DefaultAuthorizationEndpointHandler :
             {
                 var openIdError = errorFactory
                     .AccessDenied("An error occured while attempting to authenticate the end-user.")
+                    .WithState(clientRedirectContext.State)
                     .WithException(authenticateResult.Failure);
 
                 return new AuthorizationResult(redirectUri, responseMode, openIdError);
@@ -193,10 +187,95 @@ public class DefaultAuthorizationEndpointHandler :
                 openIdException.Error :
                 errorFactory
                     .Create(OpenIdConstants.ErrorCodes.ServerError)
+                    .WithState(clientRedirectContext.State)
                     .WithException(exception);
 
             return new AuthorizationResult(redirectUri, responseMode, openIdError);
         }
+    }
+
+    private async ValueTask<ClientRedirectContext> GetClientRedirectContextAsync(
+        IOpenIdErrorFactory errorFactory,
+        IOpenIdMessage authorizationSource,
+        CancellationToken cancellationToken)
+    {
+        var hasState = authorizationSource.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
+        var state = hasState && !StringValues.IsNullOrEmpty(stateStringValues) ? stateStringValues.ToString() : null;
+
+        var hasResponseMode = !authorizationSource.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
+        if (!hasResponseMode || !Enum.TryParse(responseModeStringValues, out ResponseMode responseMode))
+        {
+            responseMode = ResponseMode.Query;
+        }
+
+        if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
+        {
+            throw errorFactory
+                .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        if (!Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
+        {
+            throw errorFactory
+                .InvalidRequest("The specified 'redirect_uri' is not valid absolute URI.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId))
+        {
+            throw errorFactory
+                .MissingParameter(OpenIdConstants.Parameters.ClientId)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        if (StringValues.IsNullOrEmpty(clientId))
+        {
+            throw errorFactory
+                .InvalidRequest("The specified 'client_id' cannot be null or empty.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        var tenantId = authorizationSource.OpenIdContext.Tenant.TenantId;
+        var client = await ClientStore.TryGetByClientIdAsync(
+            tenantId,
+            clientId.ToString(),
+            cancellationToken);
+
+        if (client == null)
+        {
+            throw errorFactory
+                .InvalidRequest("The specified 'client_id' is invalid.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        var isSafe = (client.AllowLoopback && redirectUri.IsLoopback) || client.RedirectUris.Contains(redirectUri);
+        if (!isSafe)
+        {
+            throw errorFactory
+                .InvalidRequest("The specified 'redirect_uri' is not valid for the associated 'client_id'.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        return new ClientRedirectContext
+        {
+            State = state,
+            Client = client,
+            RedirectUri = redirectUri,
+            ResponseMode = responseMode
+        };
     }
 
     #endregion
@@ -245,8 +324,16 @@ public class DefaultAuthorizationEndpointHandler :
                 .AsException();
         }
 
-        var message = AuthorizationSource.Load(openIdContext, properties);
+        // we manually load the parameters without parsing because that will occur later
+        var parameters = properties.Select(property =>
+        {
+            var descriptor = new ParameterDescriptor(property.Key);
+            return descriptor.Loader.Load(openIdContext, descriptor, property.Value);
+        });
+
+        var message = AuthorizationSource.Load(openIdContext, parameters);
         message.AuthorizationSourceType = sourceType;
+
         return message;
     }
 
@@ -260,92 +347,27 @@ public class DefaultAuthorizationEndpointHandler :
         CancellationToken cancellationToken)
     {
         var authorizationSource = command.AuthorizationSource;
+        var client = command.Client;
+
         var openIdContext = authorizationSource.OpenIdContext;
-        var errorFactory = openIdContext.ErrorFactory;
         var configuration = openIdContext.Tenant.Configuration.Authorization.RequestObject;
 
+        // the following will parse string-values into strongly-typed parameters and may throw
         var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
         requestMessage.AuthorizationSourceType = authorizationSource.AuthorizationSourceType;
 
-        var client = await GetClientAsync(
-            openIdContext.Tenant.TenantId,
-            requestMessage.ClientId,
-            errorFactory,
+        var requestObject = await LoadRequestObjectAsync(
+            configuration,
+            requestMessage,
+            client,
             cancellationToken);
 
-        var isClientRedirectSafe = IsClientRedirectSafe(
-            requestMessage.RedirectUri,
-            client.AllowLoopback,
-            client.RedirectUris);
+        var authorizationRequest = new AuthorizationRequest(
+            requestMessage,
+            requestObject);
 
-        if (!isClientRedirectSafe)
-            throw errorFactory
-                .InvalidRequest($"The specified '{OpenIdConstants.Parameters.RedirectUri}' is not valid for this client application.")
-                .WithClientRedirectContext(new ClientRedirectContext { IsSafe = false })
-                .AsException();
-
-        var clientRedirectContext = new ClientRedirectContext
-        {
-            IsSafe = true,
-            RedirectUri = requestMessage.RedirectUri,
-            ResponseMode = requestMessage.ResponseMode ?? ResponseMode.Query
-        };
-
-        try
-        {
-            var requestObject = await LoadRequestObjectAsync(
-                configuration,
-                requestMessage,
-                client,
-                cancellationToken);
-
-            if (requestObject?.ResponseMode is not null && requestObject.ResponseMode.Value != clientRedirectContext.ResponseMode)
-            {
-                clientRedirectContext = clientRedirectContext with { ResponseMode = requestObject.ResponseMode.Value };
-            }
-
-            var authorizationRequest = new AuthorizationRequest(
-                requestMessage,
-                requestObject);
-
-            var propertyBag = openIdContext.PropertyBag.Clone();
-            return new DefaultAuthorizationContext(client, authorizationRequest, propertyBag);
-        }
-        catch (OpenIdException exception)
-        {
-            exception.Error.ClientRedirectContext = clientRedirectContext;
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw errorFactory
-                .Create(OpenIdConstants.ErrorCodes.ServerError)
-                .WithException(exception)
-                .WithClientRedirectContext(clientRedirectContext)
-                .AsException();
-        }
-    }
-
-    private async ValueTask<Client> GetClientAsync(
-        string tenantId,
-        string? clientId,
-        IOpenIdErrorFactory errorFactory,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(clientId))
-            throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.ClientId)
-                .WithClientRedirectContext(new ClientRedirectContext { IsSafe = false })
-                .AsException();
-
-        var client = await ClientStore.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
-        if (client == null)
-            throw errorFactory
-                .InvalidRequest("The 'client_id' parameter is invalid.")
-                .WithClientRedirectContext(new ClientRedirectContext { IsSafe = false })
-                .AsException();
-
-        return client;
+        var propertyBag = openIdContext.PropertyBag.Clone();
+        return new DefaultAuthorizationContext(client, authorizationRequest, propertyBag);
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
@@ -646,6 +668,10 @@ public class DefaultAuthorizationEndpointHandler :
         if (hasCodeChallenge && codeChallengeMethodIsPlain && !client.AllowPlainCodeChallengeMethod)
             throw errorFactory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.").AsException();
 
+        // TODO
+        // request.ResponseMode
+        var foo = request.ResponseMode;
+
         // TODO: check allowed grant types from client configuration
 
         // TODO: check allowed scopes from client configuration
@@ -894,80 +920,6 @@ public class DefaultAuthorizationEndpointHandler :
         }
 
         return ticket;
-    }
-
-    #endregion
-
-    #region Error Handling
-
-    private static bool IsClientRedirectSafe(
-        [NotNullWhen(true)] Uri? redirectUri,
-        bool allowLoopback,
-        ICollection<Uri> validRedirectUris
-    ) =>
-        redirectUri is not null &&
-        (
-            (allowLoopback && redirectUri.IsLoopback) ||
-            validRedirectUris.Contains(redirectUri)
-        );
-
-    private async ValueTask<ClientRedirectContext> GetClientRedirectContextAsync(
-        IOpenIdError openIdError,
-        IAuthorizationSource authorizationSource,
-        CancellationToken cancellationToken)
-    {
-        if (openIdError.ClientRedirectContext.HasValue)
-            return openIdError.ClientRedirectContext.Value;
-
-        var notSafeContext = new ClientRedirectContext { IsSafe = false };
-        try
-        {
-            if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues) || !Enum.TryParse(responseModeStringValues, out ResponseMode responseMode))
-            {
-                responseMode = ResponseMode.Query;
-            }
-
-            if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl) || !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
-            {
-                openIdError.ClientRedirectContext = notSafeContext;
-                return notSafeContext;
-            }
-
-            if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId) || StringValues.IsNullOrEmpty(clientId))
-            {
-                openIdError.ClientRedirectContext = notSafeContext;
-                return notSafeContext;
-            }
-
-            var client = await ClientStore.TryGetByClientIdAsync(
-                authorizationSource.OpenIdContext.Tenant.TenantId,
-                clientId.ToString(),
-                cancellationToken);
-
-            if (client == null)
-            {
-                openIdError.ClientRedirectContext = notSafeContext;
-                return notSafeContext;
-            }
-
-            if (!IsClientRedirectSafe(redirectUri, client.AllowLoopback, client.RedirectUris))
-            {
-                openIdError.ClientRedirectContext = notSafeContext;
-                return notSafeContext;
-            }
-
-            return new ClientRedirectContext
-            {
-                IsSafe = true,
-                RedirectUri = redirectUri,
-                ResponseMode = responseMode
-            };
-        }
-        catch
-        {
-            openIdError.ClientRedirectContext = notSafeContext;
-            return notSafeContext;
-        }
     }
 
     #endregion

@@ -74,7 +74,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
         StringValues stringValues)
     {
         var parsedValue = Parse(context, descriptor, stringValues);
-        return new Parameter<T>(descriptor, stringValues, parsedValue);
+        return Load(context, descriptor, stringValues, parsedValue);
     }
 
     /// <inheritdoc />

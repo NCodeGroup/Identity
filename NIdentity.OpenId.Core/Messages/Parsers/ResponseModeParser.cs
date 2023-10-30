@@ -74,6 +74,9 @@ public class ResponseModeParser : ParameterParser<ResponseMode?>
         if (string.Equals(stringValue, OpenIdConstants.ResponseModes.FormPost, StringComparison))
             return ResponseMode.FormPost;
 
+        if (descriptor.IgnoreUnrecognizedValues)
+            return null;
+
         throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
     }
 }

@@ -69,6 +69,12 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public bool AllowMultipleValues => KnownParameter?.AllowMultipleValues ?? true;
 
     /// <summary>
+    /// Gets a value indicating whether unrecognized values should be ignored when parsing. Returns the result from
+    /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>true</c>.
+    /// </summary>
+    public bool IgnoreUnrecognizedValues => KnownParameter?.IgnoreUnrecognizedValues ?? true;
+
+    /// <summary>
     /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given
     /// <see cref="StringValues"/>. Uses the result from <see cref="KnownParameter"/> if one was provided; otherwise
     /// always returns <see cref="ParameterLoader.Default"/>.

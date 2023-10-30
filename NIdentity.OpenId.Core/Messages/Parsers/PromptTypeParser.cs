@@ -104,9 +104,8 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
             {
                 promptType |= PromptTypes.CreateAccount;
             }
-            else
+            else if (!descriptor.IgnoreUnrecognizedValues)
             {
-                // TODO: ignore unsupported values
                 throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
             }
         }

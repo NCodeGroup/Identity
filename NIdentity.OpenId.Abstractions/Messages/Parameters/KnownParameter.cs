@@ -31,18 +31,14 @@ public abstract class KnownParameter
     /// Initializes a new instance of the <see cref="KnownParameter"/> class.
     /// </summary>
     /// <param name="name">The name of the parameter.</param>
-    /// <param name="optional">A value indicating whether the parameter is optional or required when parsing.</param>
-    /// <param name="allowMultipleValues">A value indicating whether the parameter allows multiple values when parsing.</param>
     /// <param name="loader">The <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <c>null</c> or empty.</exception>
-    protected KnownParameter(string name, bool optional, bool allowMultipleValues, ParameterLoader loader)
+    protected KnownParameter(string name, ParameterLoader loader)
     {
         if (string.IsNullOrEmpty(name))
             throw new ArgumentNullException(nameof(name));
 
         Name = name;
-        Optional = optional;
-        AllowMultipleValues = allowMultipleValues;
         Loader = loader;
     }
 
@@ -58,13 +54,21 @@ public abstract class KnownParameter
 
     /// <summary>
     /// Gets a value indicating whether the parameter is optional or required when parsing.
+    /// The default value is <c>false</c>.
     /// </summary>
-    public bool Optional { get; }
+    public bool Optional { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the parameter allows multiple values when parsing.
+    /// The default value is <c>false</c>.
     /// </summary>
-    public bool AllowMultipleValues { get; }
+    public bool AllowMultipleValues { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the parameter allows unrecognized values when parsing.
+    /// The default value is <c>false</c>.
+    /// </summary>
+    public bool IgnoreUnrecognizedValues { get; init; }
 
     /// <summary>
     /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.
@@ -82,11 +86,9 @@ public class KnownParameter<T> : KnownParameter
     /// Initializes a new instance of the <see cref="KnownParameter{T}"/> class.
     /// </summary>
     /// <param name="name">The name of the parameter.</param>
-    /// <param name="optional">A value indicating whether the parameter is optional or required when parsing.</param>
-    /// <param name="allowMultipleValues">A value indicating whether the parameter allows multiple values when parsing.</param>
     /// <param name="parser">The <see cref="ParameterParser{T}"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.</param>
-    public KnownParameter(string name, bool optional, bool allowMultipleValues, ParameterParser<T> parser)
-        : base(name, optional, allowMultipleValues, parser)
+    public KnownParameter(string name, ParameterParser<T> parser)
+        : base(name, parser)
     {
         Parser = parser;
     }

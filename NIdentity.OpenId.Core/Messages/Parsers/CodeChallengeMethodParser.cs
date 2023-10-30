@@ -65,14 +65,13 @@ public class CodeChallengeMethodParser : ParameterParser<CodeChallengeMethod?>
         var stringValue = stringValues[0];
 
         if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.Plain, StringComparison))
-        {
             return CodeChallengeMethod.Plain;
-        }
 
         if (string.Equals(stringValue, OpenIdConstants.CodeChallengeMethods.S256, StringComparison))
-        {
             return CodeChallengeMethod.Sha256;
-        }
+
+        if (descriptor.IgnoreUnrecognizedValues)
+            return null;
 
         throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
     }

@@ -60,20 +60,19 @@ public class ResponseTypeParser : ParameterParser<ResponseTypes?>
     public override ResponseTypes? Parse(
         OpenIdContext context,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
-        bool ignoreErrors = false)
+        StringValues stringValues)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional || ignoreErrors:
+            case 0 when descriptor.Optional:
                 return null;
 
             case 0:
                 throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
-            case > 1 when !ignoreErrors:
+            case > 1:
                 throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
@@ -98,7 +97,7 @@ public class ResponseTypeParser : ParameterParser<ResponseTypes?>
             {
                 responseType |= ResponseTypes.Token;
             }
-            else if (!ignoreErrors)
+            else
             {
                 throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
             }

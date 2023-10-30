@@ -55,13 +55,11 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
     /// <param name="context">The <see cref="OpenIdContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
-    /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The parsed type-specific value.</returns>
     public abstract T Parse(
         OpenIdContext context,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
-        bool ignoreErrors = false);
+        StringValues stringValues);
 
     /// <summary>
     /// Parses and loads a <see cref="Parameter"/> given its string values.
@@ -69,15 +67,13 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
     /// <param name="context">The <see cref="OpenIdContext"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
-    /// <param name="ignoreErrors">Specifies whether errors during parsing should be ignored.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     public override Parameter Load(
         OpenIdContext context,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
-        bool ignoreErrors = false)
+        StringValues stringValues)
     {
-        var parsedValue = Parse(context, descriptor, stringValues, ignoreErrors);
+        var parsedValue = Parse(context, descriptor, stringValues);
         return new Parameter<T>(descriptor, stringValues, parsedValue);
     }
 

@@ -44,28 +44,24 @@ public class UriParser : ParameterParser<Uri?>
     public override Uri? Parse(
         OpenIdContext context,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
-        bool ignoreErrors = false)
+        StringValues stringValues)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional || ignoreErrors:
+            case 0 when descriptor.Optional:
                 return null;
 
             case 0:
                 throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
-            case > 1 when !ignoreErrors:
+            case > 1:
                 throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
         if (Uri.TryCreate(stringValues[0], UriKind.Absolute, out var uri))
             return uri;
-
-        if (ignoreErrors)
-            return null;
 
         throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
     }

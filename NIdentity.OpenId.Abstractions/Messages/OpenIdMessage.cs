@@ -261,22 +261,11 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
         Load(context, properties.Select(property => Parameter.Load(context, property.Key, property.Value)));
 
     /// <summary>
-    /// Create and loads an <c>OAuth</c> or <c>OpenID Connect</c> message by cloning an existing message.
-    /// </summary>
-    /// <param name="other">The <see cref="OpenIdMessage"/> to clone.</param>
-    /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(OpenIdMessage other) =>
-        Load(other.OpenIdContext, other.Parameters.Values, cloneParameters: true);
-
-    /// <summary>
-    /// Create and loads an <c>OAuth</c> or <c>OpenID Connect</c> message by cloning an existing message.
+    /// Clones an existing <c>OAuth</c> or <c>OpenID Connect</c> message by parsing it's parameters using their original string-values.
     /// </summary>
     /// <param name="other">The <see cref="IOpenIdMessage"/> to clone.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(IOpenIdMessage other) =>
-        other is OpenIdMessage typedMessage ?
-            Load(typedMessage) :
-            Load(other.OpenIdContext, other);
+    public static T Load(IOpenIdMessage other) => Load(other.OpenIdContext, other);
 }
 
 /// <summary>

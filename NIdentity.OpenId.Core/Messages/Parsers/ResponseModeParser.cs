@@ -47,20 +47,19 @@ public class ResponseModeParser : ParameterParser<ResponseMode?>
     public override ResponseMode? Parse(
         OpenIdContext context,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
-        bool ignoreErrors = false)
+        StringValues stringValues)
     {
         Debug.Assert(!descriptor.AllowMultipleValues);
 
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional || ignoreErrors:
+            case 0 when descriptor.Optional:
                 return null;
 
             case 0:
                 throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
-            case > 1 when !ignoreErrors:
+            case > 1:
                 throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
@@ -74,8 +73,6 @@ public class ResponseModeParser : ParameterParser<ResponseMode?>
 
         if (string.Equals(stringValue, OpenIdConstants.ResponseModes.FormPost, StringComparison))
             return ResponseMode.FormPost;
-
-        if (ignoreErrors) return null;
 
         throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
     }

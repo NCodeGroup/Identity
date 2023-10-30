@@ -1,13 +1,13 @@
 #region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +60,10 @@ public enum PromptTypes
     SelectAccount = 8,
 
     /// <summary>
-    /// TODO
+    /// A value of create indicates to the OpenID Provider that the client desires that the user be shown the account
+    /// creation UX rather than the login flow. Care must be taken if combining this value with other prompt values.
+    /// Mutually exclusive conditions can arise so it is RECOMMENDED that create not be combined with any other values.
+    /// https://openid.net/specs/openid-connect-prompt-create-1_0.html
     /// </summary>
     CreateAccount = 16,
 }

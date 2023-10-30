@@ -29,23 +29,12 @@ public abstract class Parameter
     /// <summary>
     /// Gets the <see cref="ParameterDescriptor"/> that describes this parameter.
     /// </summary>
-    public ParameterDescriptor Descriptor { get; }
+    public required ParameterDescriptor Descriptor { get; init; }
 
     /// <summary>
     /// Gets the <see cref="StringValues"/> that this parameter was loaded with.
     /// </summary>
-    public StringValues StringValues { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Parameter"/> class.
-    /// </summary>
-    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes this parameter.</param>
-    /// <param name="stringValues">The <see cref="StringValues"/> that this parameter was loaded with.</param>
-    protected Parameter(ParameterDescriptor descriptor, StringValues stringValues)
-    {
-        Descriptor = descriptor;
-        StringValues = stringValues;
-    }
+    public required StringValues StringValues { get; init; }
 
     /// <summary>
     /// Clones this <see cref="Parameter"/> instance.
@@ -97,20 +86,13 @@ public class Parameter<T> : Parameter
     /// <summary>
     /// Gets the value that this parameter was parsed with.
     /// </summary>
-    public T? ParsedValue { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Parameter"/> struct.
-    /// </summary>
-    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes this parameter.</param>
-    /// <param name="stringValues">The <see cref="StringValues"/> that this parameter was loaded with.</param>
-    /// <param name="parsedValue">The value that this parameter was parsed with.</param>
-    public Parameter(ParameterDescriptor descriptor, StringValues stringValues, T? parsedValue = default)
-        : base(descriptor, stringValues)
-    {
-        ParsedValue = parsedValue;
-    }
+    public T? ParsedValue { get; init; }
 
     /// <inheritdoc />
-    public override Parameter Clone() => new Parameter<T>(Descriptor, StringValues, ParsedValue);
+    public override Parameter Clone() => new Parameter<T>
+    {
+        Descriptor = Descriptor,
+        StringValues = StringValues,
+        ParsedValue = ParsedValue
+    };
 }

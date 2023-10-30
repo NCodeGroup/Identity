@@ -41,10 +41,8 @@ public class ParameterLoader
     public virtual Parameter Load(
         OpenIdContext context,
         ParameterDescriptor descriptor,
-        StringValues stringValues)
-    {
-        return new Parameter<StringValues>(descriptor, stringValues, stringValues);
-    }
+        StringValues stringValues
+    ) => Load(context, descriptor, stringValues, stringValues);
 
     /// <summary>
     /// Loads a <see cref="Parameter"/> given its string values and parsed value.
@@ -58,8 +56,11 @@ public class ParameterLoader
         OpenIdContext context,
         ParameterDescriptor descriptor,
         StringValues stringValues,
-        T? parsedValue)
+        T? parsedValue
+    ) => new()
     {
-        return new Parameter<T>(descriptor, stringValues, parsedValue);
-    }
+        Descriptor = descriptor,
+        StringValues = stringValues,
+        ParsedValue = parsedValue
+    };
 }

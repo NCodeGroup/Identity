@@ -30,6 +30,8 @@ using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
+using NIdentity.OpenId.Settings;
 using NIdentity.OpenId.Stores;
 using NIdentity.OpenId.Tenants.Commands;
 
@@ -46,24 +48,27 @@ public class DefaultTenantHandler :
     ICommandResponseHandler<GetTenantIssuerCommand, string>
 {
     private Regex? DomainNameRegex { get; set; }
-    private OpenIdHostOptions HostOptions { get; }
+    private OpenIdServerOptions ServerOptions { get; }
     private TemplateBinderFactory TemplateBinderFactory { get; }
     private ITenantStore TenantStore { get; }
     private ISecretSerializer SecretSerializer { get; }
+    private IOpenIdServerSettingsProvider ServerSettingsProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultTenantHandler"/> class.
     /// </summary>
     public DefaultTenantHandler(
-        IOptions<OpenIdHostOptions> hostOptionsAccessor,
+        IOptions<OpenIdServerOptions> serverOptionsAccessor,
         TemplateBinderFactory templateBinderFactory,
         ITenantStore tenantStore,
-        ISecretSerializer secretSerializer)
+        ISecretSerializer secretSerializer,
+        IOpenIdServerSettingsProvider serverSettingsProvider)
     {
-        HostOptions = hostOptionsAccessor.Value;
+        ServerOptions = serverOptionsAccessor.Value;
         TemplateBinderFactory = templateBinderFactory;
         TenantStore = tenantStore;
         SecretSerializer = secretSerializer;
+        ServerSettingsProvider = serverSettingsProvider;
     }
 
     /// <inheritdoc />
@@ -107,11 +112,16 @@ public class DefaultTenantHandler :
 
         httpContext.Response.RegisterForDispose(secretKeyProvider);
 
+        // TODO
+        var settingsBeforeMerge = new SettingCollection();
+        var settingsAfterMerge = ServerSettingsProvider.Settings.Merge(settingsBeforeMerge);
+
         return new DefaultOpenIdTenant(
+            baseAddress,
+            issuer,
             configuration,
             secretKeyProvider,
-            baseAddress,
-            issuer);
+            settingsAfterMerge);
     }
 
     #region GetTenantConfigurationCommand
@@ -121,12 +131,12 @@ public class DefaultTenantHandler :
         GetTenantConfigurationCommand command,
         CancellationToken cancellationToken)
     {
-        return HostOptions.Tenant.Mode switch
+        return ServerOptions.Tenant.Mode switch
         {
             TenantMode.StaticSingle => GetTenantFromOptions(),
             TenantMode.DynamicByHost => await GetTenantFromHostAsync(command, cancellationToken),
             TenantMode.DynamicByPath => await GetTenantFromPathAsync(command, cancellationToken),
-            _ => throw new InvalidOperationException($"Unsupported TenantMode: {HostOptions.Tenant.Mode}")
+            _ => throw new InvalidOperationException($"Unsupported TenantMode: {ServerOptions.Tenant.Mode}")
         };
     }
 
@@ -135,7 +145,7 @@ public class DefaultTenantHandler :
 
     private TenantConfiguration GetTenantFromOptions()
     {
-        var options = HostOptions.Tenant.StaticSingle;
+        var options = ServerOptions.Tenant.StaticSingle;
         if (options is null)
             throw MissingTenantOptionsException(TenantMode.StaticSingle);
 
@@ -154,7 +164,7 @@ public class DefaultTenantHandler :
         GetTenantConfigurationCommand command,
         CancellationToken cancellationToken)
     {
-        var options = HostOptions.Tenant.DynamicByHost;
+        var options = ServerOptions.Tenant.DynamicByHost;
         if (options is null)
             throw MissingTenantOptionsException(TenantMode.DynamicByHost);
 
@@ -181,7 +191,7 @@ public class DefaultTenantHandler :
         GetTenantConfigurationCommand command,
         CancellationToken cancellationToken)
     {
-        var options = HostOptions.Tenant.DynamicByPath;
+        var options = ServerOptions.Tenant.DynamicByPath;
         if (options == null)
             throw MissingTenantOptionsException(TenantMode.DynamicByPath);
 
@@ -229,7 +239,7 @@ public class DefaultTenantHandler :
             return DeserializeSecrets(tenant.Secrets);
         }
 
-        if (HostOptions.Tenant.Mode == TenantMode.StaticSingle)
+        if (ServerOptions.Tenant.Mode == TenantMode.StaticSingle)
         {
             var serviceProvider = command.HttpContext.RequestServices;
             return serviceProvider.GetRequiredService<ISecretKeyProvider>();

@@ -19,6 +19,7 @@
 
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Tenants;
 
@@ -56,4 +57,9 @@ public abstract class OpenIdTenant
     /// Gets the <see cref="TenantConfiguration"/> for the tenant.
     /// </summary>
     public abstract TenantConfiguration Configuration { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ISettingCollection"/> for the tenant.
+    /// </summary>
+    public abstract ISettingCollection Settings { get; }
 }

@@ -99,7 +99,12 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
                 new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
-                new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
+                new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
+                new CodeChallengeMethodJsonConverter(),
+                new DisplayTypeJsonConverter(),
+                new PromptTypesJsonConverter(),
+                new ResponseModeJsonConverter(),
+                new ResponseTypesJsonConverter()
             }
         };
 }

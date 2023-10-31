@@ -27,6 +27,7 @@ public readonly struct SettingKey
 }
 
 public readonly struct SettingKey<TValue>
+    where TValue : notnull
 {
     public required string SettingName { get; init; }
 

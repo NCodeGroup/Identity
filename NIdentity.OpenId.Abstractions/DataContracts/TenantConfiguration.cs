@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json.Serialization;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.DataContracts;
 
@@ -59,6 +60,11 @@ public class TenantConfiguration
     /// Gets or set the <see cref="AuthorizationConfiguration"/> for the authorization handler.
     /// </summary>
     public AuthorizationConfiguration Authorization { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the collection of <see cref="Setting"/> instances for the tenant.
+    /// </summary>
+    public IList<Setting> Settings { get; set; } = new List<Setting>();
 
     /// <summary>
     /// Gets the <see cref="IDictionary{TKey, TValue}"/> for extension members.

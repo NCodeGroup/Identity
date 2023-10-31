@@ -19,17 +19,19 @@
 
 namespace NIdentity.OpenId.Settings;
 
-public readonly struct SettingDescriptor
+public abstract class SettingDescriptor
 {
+    public SettingKey Key => this;
+
     public required string SettingName { get; init; }
 
-    public required Type ValueType { get; init; }
+    public abstract Type ValueType { get; }
 
-    public required string DefaultMergeBehavior { get; init; }
+    public bool Discoverable { get; init; }
 
-    public bool NonDiscoverable { get; init; }
+    public abstract Setting Create(object value);
 
-    public SettingKey Key => this;
+    public abstract Setting Merge(Setting current, Setting other);
 
     public static implicit operator SettingKey(SettingDescriptor descriptor) => new()
     {
@@ -38,28 +40,34 @@ public readonly struct SettingDescriptor
     };
 }
 
-public readonly struct SettingDescriptor<TValue>
+public class SettingDescriptor<TValue> : SettingDescriptor
+    where TValue : notnull
 {
-    public required string SettingName { get; init; }
+    public new SettingKey<TValue> Key => this;
 
-    public Type ValueType => typeof(TValue);
+    public override Type ValueType => typeof(TValue);
 
-    public required string DefaultMergeBehavior { get; init; }
+    public Func<SettingDescriptor<TValue>, TValue, Setting<TValue>> OnCreate { get; init; }
+        = (descriptor, value) => new Setting<TValue>(descriptor, value);
 
-    public bool NonDiscoverable { get; init; }
+    public required Func<TValue, TValue, TValue> OnMerge { get; init; }
 
-    public SettingKey<TValue> Key => this;
+    /// <inheritdoc />
+    public override Setting Create(object value)
+        => Create((TValue)value);
+
+    public virtual Setting<TValue> Create(TValue value)
+        => OnCreate(this, value);
+
+    /// <inheritdoc />
+    public override Setting Merge(Setting current, Setting other)
+        => Merge((Setting<TValue>)current, (Setting<TValue>)other);
+
+    public virtual Setting<TValue> Merge(Setting<TValue> current, Setting<TValue> other)
+        => OnCreate(this, OnMerge(current.Value, other.Value));
 
     public static implicit operator SettingKey<TValue>(SettingDescriptor<TValue> descriptor) => new()
     {
         SettingName = descriptor.SettingName
-    };
-
-    public static implicit operator SettingDescriptor(SettingDescriptor<TValue> descriptor) => new()
-    {
-        SettingName = descriptor.SettingName,
-        ValueType = descriptor.ValueType,
-        DefaultMergeBehavior = descriptor.DefaultMergeBehavior,
-        NonDiscoverable = descriptor.NonDiscoverable
     };
 }

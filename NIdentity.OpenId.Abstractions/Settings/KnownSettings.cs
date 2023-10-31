@@ -58,17 +58,24 @@ namespace NIdentity.OpenId.Settings;
 
 public static class KnownSettings
 {
+    private static List<TValue> Intersect<TValue>(
+        IEnumerable<TValue> current,
+        IEnumerable<TValue> other
+    ) => current.Intersect(other).ToList();
+
     // scopes_supported
-    public static SettingDescriptor<IReadOnlySet<string>> ScopesSupported { get; } = new()
+    public static SettingDescriptor<IReadOnlyCollection<string>> ScopesSupported { get; } = new()
     {
         SettingName = "scopes_supported",
-        DefaultMergeBehavior = SettingMergeBehaviors.Set.Intersect
+        Discoverable = true,
+        OnMerge = Intersect
     };
 
     // response_types_supported
-    public static SettingDescriptor<IReadOnlySet<ResponseTypes>> ResponseTypesSupported { get; } = new()
+    public static SettingDescriptor<IReadOnlyCollection<ResponseTypes>> ResponseTypesSupported { get; } = new()
     {
         SettingName = "response_types_supported",
-        DefaultMergeBehavior = SettingMergeBehaviors.Set.Intersect
+        Discoverable = true,
+        OnMerge = Intersect
     };
 }

@@ -112,8 +112,7 @@ public class DefaultTenantHandler :
 
         httpContext.Response.RegisterForDispose(secretKeyProvider);
 
-        // TODO
-        var settingsBeforeMerge = new SettingCollection();
+        var settingsBeforeMerge = new SettingCollection(configuration.Settings);
         var settingsAfterMerge = ServerSettingsProvider.Settings.Merge(settingsBeforeMerge);
 
         return new DefaultOpenIdTenant(

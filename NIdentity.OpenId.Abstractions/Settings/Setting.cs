@@ -1,27 +1,31 @@
-﻿using System.Text.Json;
-
-namespace NIdentity.OpenId.Settings;
+﻿namespace NIdentity.OpenId.Settings;
 
 public abstract class Setting
 {
-    public abstract SettingDescriptor Descriptor { get; }
+    public SettingDescriptor BaseDescriptor { get; }
 
-    public abstract void Write(Utf8JsonWriter writer, JsonSerializerOptions options);
+    protected Setting(SettingDescriptor baseDescriptor)
+    {
+        BaseDescriptor = baseDescriptor;
+    }
 
-    public abstract Setting Merge(Setting other, SettingMergeOptions options = default);
+    public abstract object GetValue();
 }
 
-public abstract class Setting<TValue> : Setting
+public class Setting<TValue> : Setting
+    where TValue : notnull
 {
-    public abstract TValue Value { get; }
+    public SettingDescriptor<TValue> Descriptor { get; }
 
-    public abstract Setting<TValue> Merge(Setting<TValue> other, SettingMergeOptions options = default);
+    public TValue Value { get; }
 
-    public override Setting Merge(Setting other, SettingMergeOptions options = default)
+    public Setting(SettingDescriptor<TValue> descriptor, TValue value)
+        : base(descriptor)
     {
-        if (other is not Setting<TValue> otherSetting)
-            throw new ArgumentException("Incompatible ValueType.", nameof(other));
-
-        return Merge(otherSetting, options);
+        Descriptor = descriptor;
+        Value = value;
     }
+
+    /// <inheritdoc />
+    public override object GetValue() => Value;
 }

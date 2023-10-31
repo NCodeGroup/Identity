@@ -56,14 +56,21 @@ namespace NIdentity.OpenId.Settings;
 // https://openid.net/specs/openid-connect-prompt-create-1_0-05.html
 // prompt_values_supported (OPTIONAL)
 
+/// <summary>
+/// Contains constants for known <see cref="SettingDescriptor"/> instances.
+/// </summary>
 public static class KnownSettings
 {
+    private static bool And(bool current, bool other) => current && other;
+
     private static List<TValue> Intersect<TValue>(
         IEnumerable<TValue> current,
         IEnumerable<TValue> other
     ) => current.Intersect(other).ToList();
 
-    // scopes_supported
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'scopes_supported' setting.
+    /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> ScopesSupported { get; } = new()
     {
         SettingName = "scopes_supported",
@@ -71,11 +78,23 @@ public static class KnownSettings
         OnMerge = Intersect
     };
 
-    // response_types_supported
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'response_types_supported' setting.
+    /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<ResponseTypes>> ResponseTypesSupported { get; } = new()
     {
         SettingName = "response_types_supported",
         Discoverable = true,
         OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'claims_parameter_supported' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> ClaimsParameterSupported { get; } = new()
+    {
+        SettingName = "claims_parameter_supported",
+        Discoverable = true,
+        OnMerge = And
     };
 }

@@ -53,15 +53,19 @@ internal class TestParameterParser : ParameterParser<string>
         return InnerParser.Serialize(context, value);
     }
 
-    public override string Parse(OpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false)
+    public override string Parse(OpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
     {
-        return InnerParser.Parse(context, descriptor, stringValues, ignoreErrors);
+        return InnerParser.Parse(context, descriptor, stringValues);
     }
 
-    public override Parameter Read(ref Utf8JsonReader reader, OpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options)
-    {
-        return ReadJsonDelegate?.Invoke(ref reader, context, descriptor, options) ?? new Parameter<string>(descriptor, string.Empty);
-    }
+    public override Parameter Read(ref Utf8JsonReader reader, OpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options) =>
+        ReadJsonDelegate?.Invoke(ref reader, context, descriptor, options) ??
+        new Parameter<string>
+        {
+            Descriptor = descriptor,
+            StringValues = string.Empty,
+            ParsedValue = string.Empty
+        };
 
     public override void Write(Utf8JsonWriter writer, OpenIdContext context, Parameter parameter, JsonSerializerOptions options)
     {

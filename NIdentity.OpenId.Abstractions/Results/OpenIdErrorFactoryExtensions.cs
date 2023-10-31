@@ -164,4 +164,15 @@ public static class OpenIdErrorFactoryExtensions
     {
         return factory.Create(OpenIdConstants.ErrorCodes.AccessDenied).WithDescription(errorDescription);
     }
+
+    /// <summary>
+    /// Creates an <see cref="IOpenIdError"/> for when a parameter value is not supported.
+    /// </summary>
+    /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>
+    /// <param name="parameterName">The name of the parameter.</param>
+    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+    public static IOpenIdError NotSupported(this IOpenIdErrorFactory factory, string parameterName)
+    {
+        return factory.Create(OpenIdConstants.ErrorCodes.InvalidRequest).WithDescription($"The specified '{parameterName}' is not supported by the authorization server.");
+    }
 }

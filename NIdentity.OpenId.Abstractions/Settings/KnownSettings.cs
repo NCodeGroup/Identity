@@ -19,16 +19,56 @@
 
 namespace NIdentity.OpenId.Settings;
 
-// example:
-// response_types_supported
-// REQUIRED. JSON array containing a list of the OAuth 2.0 response_type values that this OP supports.
-// Dynamic OpenID Providers MUST support the code, id_token, and the token id_token Response Type values.
+// TODO: discovery configuration
+// https://openid.net/specs/openid-connect-discovery-1_0.html
+
+// scopes_supported (RECOMMENDED)
+// response_types_supported (REQUIRED)
+// response_modes_supported (OPTIONAL)
+// grant_types_supported (OPTIONAL)
+// acr_values_supported (OPTIONAL)
+// subject_types_supported (REQUIRED)
+// id_token_signing_alg_values_supported (REQUIRED)
+// id_token_encryption_alg_values_supported (OPTIONAL)
+// id_token_encryption_enc_values_supported (OPTIONAL)
+// userinfo_signing_alg_values_supported (OPTIONAL)
+// userinfo_encryption_alg_values_supported (OPTIONAL)
+// userinfo_encryption_enc_values_supported (OPTIONAL)
+// request_object_signing_alg_values_supported (OPTIONAL)
+// request_object_encryption_alg_values_supported (OPTIONAL)
+// request_object_encryption_enc_values_supported (OPTIONAL)
+// token_endpoint_auth_methods_supported (OPTIONAL)
+// token_endpoint_auth_signing_alg_values_supported (OPTIONAL)
+// display_values_supported (OPTIONAL)
+// claim_types_supported (OPTIONAL)
+// claims_supported (RECOMMENDED)
+// claims_locales_supported (OPTIONAL)
+// ui_locales_supported (OPTIONAL)
+// claims_parameter_supported (OPTIONAL)
+// request_parameter_supported (OPTIONAL)
+// request_uri_parameter_supported (OPTIONAL)
+// require_request_uri_registration (OPTIONAL)
+
+// service_documentation (OPTIONAL)
+// op_policy_uri (OPTIONAL)
+// op_tos_uri (OPTIONAL)
+
+// https://openid.net/specs/openid-connect-prompt-create-1_0-05.html
+// prompt_values_supported (OPTIONAL)
 
 public static class KnownSettings
 {
-    public static SettingDescriptor<IReadOnlyCollection<ResponseTypes>> ResponseTypesSupported { get; } = new()
+    // scopes_supported
+    public static SettingDescriptor<IReadOnlySet<string>> ScopesSupported { get; } = new()
+    {
+        SettingName = "scopes_supported",
+        DefaultMergeBehavior = SettingMergeBehaviors.Set.Intersect
+    };
+
+    // response_types_supported
+    public static SettingDescriptor<IReadOnlySet<ResponseTypes>> ResponseTypesSupported { get; } = new()
     {
         SettingName = "response_types_supported",
-        DefaultMergeBehavior = SettingMergeBehaviors.List.Intersect
+        DefaultMergeBehavior = SettingMergeBehaviors.Set.Intersect
     };
 }

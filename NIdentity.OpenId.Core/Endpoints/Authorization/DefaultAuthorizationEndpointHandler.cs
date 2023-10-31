@@ -40,6 +40,7 @@ using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Settings;
 using NIdentity.OpenId.Stores;
 using ISystemClock = NIdentity.OpenId.Logic.ISystemClock;
 
@@ -621,7 +622,10 @@ public class DefaultAuthorizationEndpointHandler :
         Client client,
         IAuthorizationRequest request)
     {
-        var errorFactory = request.OpenIdContext.ErrorFactory;
+        var openIdContext = request.OpenIdContext;
+        var openIdTenant = openIdContext.Tenant;
+        var openIdSettings = openIdTenant.Settings;
+        var errorFactory = openIdContext.ErrorFactory;
 
         var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
         var isImplicit = request.GrantType == GrantType.Implicit;
@@ -668,9 +672,17 @@ public class DefaultAuthorizationEndpointHandler :
         if (hasCodeChallenge && codeChallengeMethodIsPlain && !client.AllowPlainCodeChallengeMethod)
             throw errorFactory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.").AsException();
 
-        // TODO
-        // request.ResponseMode
-        var foo = request.ResponseMode;
+        if (openIdSettings.TryGet(KnownSettings.ScopesSupported.Key, out var scopesSupported))
+        {
+            if (!scopesSupported.Value.IsSupersetOf(request.Scopes))
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Scope).AsException();
+        }
+
+        if (openIdSettings.TryGet(KnownSettings.ResponseTypesSupported.Key, out var responseTypesSupported))
+        {
+            if (!responseTypesSupported.Value.Contains(request.ResponseType))
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseType).AsException();
+        }
 
         // TODO: check allowed grant types from client configuration
 

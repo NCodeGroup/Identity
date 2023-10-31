@@ -25,11 +25,14 @@ public interface ISettingCollection : IReadOnlyCollection<Setting>
 {
     bool TryGet(SettingKey key, [MaybeNullWhen(false)] out Setting setting);
 
-    bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out Setting<TValue> setting);
+    bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out Setting<TValue> setting)
+        where TValue : notnull;
 
-    void Set<TValue>(SettingKey<TValue> key, Setting<TValue> setting);
+    void Set<TValue>(SettingKey<TValue> key, Setting<TValue> setting)
+        where TValue : notnull;
 
-    bool Remove<TValue>(SettingKey<TValue> key);
+    bool Remove<TValue>(SettingKey<TValue> key)
+        where TValue : notnull;
 
-    ISettingCollection Merge(ISettingCollection otherCollection, SettingMergeOptions options = default);
+    ISettingCollection Merge(ISettingCollection otherCollection);
 }

@@ -674,7 +674,7 @@ public class DefaultAuthorizationEndpointHandler :
 
         if (openIdSettings.TryGet(KnownSettings.ScopesSupported.Key, out var scopesSupported))
         {
-            if (!scopesSupported.Value.IsSupersetOf(request.Scopes))
+            if (!request.Scopes.Except(scopesSupported.Value).Any())
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Scope).AsException();
         }
 

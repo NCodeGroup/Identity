@@ -20,6 +20,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
@@ -28,6 +29,7 @@ using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Serialization;
+using NIdentity.OpenId.Settings;
 using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId;
@@ -84,6 +86,10 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
 
+    private T GetRequiredService<T>()
+        where T : notnull
+        => HttpContext.RequestServices.GetRequiredService<T>();
+
     private JsonSerializerOptions CreateJsonSerializerOptions() =>
         new(JsonSerializerDefaults.Web)
         {
@@ -100,6 +106,7 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
+                new SettingJsonConverter(GetRequiredService<ISettingDescriptorProvider>()),
                 new CodeChallengeMethodJsonConverter(),
                 new DisplayTypeJsonConverter(),
                 new PromptTypesJsonConverter(),

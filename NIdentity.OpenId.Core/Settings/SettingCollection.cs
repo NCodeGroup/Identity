@@ -27,14 +27,37 @@ namespace NIdentity.OpenId.Settings;
 /// </summary>
 public class SettingCollection : ISettingCollection
 {
-    private Dictionary<SettingKey, Setting> Settings { get; init; } = new();
+    private Dictionary<SettingKey, Setting> Settings { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SettingCollection"/> class.
+    /// </summary>
+    public SettingCollection()
+    {
+        Settings = new Dictionary<SettingKey, Setting>();
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SettingCollection"/> class.
+    /// </summary>
+    /// <param name="settings">The collection of <see cref="Setting"/> instances.</param>
+    public SettingCollection(IEnumerable<Setting> settings)
+    {
+        Settings = settings.ToDictionary(setting => setting.BaseDescriptor.Key);
+    }
+
+    private SettingCollection(Dictionary<SettingKey, Setting> settings)
+    {
+        Settings = settings;
+    }
 
     /// <inheritdoc />
-    public bool TryGet(SettingKey key, [MaybeNullWhen(false)] out Setting setting) =>
-        Settings.TryGetValue(key, out setting);
+    public bool TryGet(SettingKey key, [MaybeNullWhen(false)] out Setting setting)
+        => Settings.TryGetValue(key, out setting);
 
     /// <inheritdoc />
     public bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out Setting<TValue> setting)
+        where TValue : notnull
     {
         if (!Settings.TryGetValue(key, out var baseSetting) || baseSetting is not Setting<TValue> typedSetting)
         {
@@ -47,15 +70,17 @@ public class SettingCollection : ISettingCollection
     }
 
     /// <inheritdoc />
-    public void Set<TValue>(SettingKey<TValue> key, Setting<TValue> setting) =>
-        Settings[key] = setting;
+    public void Set<TValue>(SettingKey<TValue> key, Setting<TValue> setting)
+        where TValue : notnull
+        => Settings[key] = setting;
 
     /// <inheritdoc />
-    public bool Remove<TValue>(SettingKey<TValue> key) =>
-        Settings.Remove(key);
+    public bool Remove<TValue>(SettingKey<TValue> key)
+        where TValue : notnull
+        => Settings.Remove(key);
 
     /// <inheritdoc />
-    public ISettingCollection Merge(ISettingCollection otherCollection, SettingMergeOptions options = default)
+    public ISettingCollection Merge(ISettingCollection otherCollection)
     {
         var currentCollection = Settings.Values;
         var newCollection = new Dictionary<SettingKey, Setting>();
@@ -64,25 +89,26 @@ public class SettingCollection : ISettingCollection
 
         foreach (var currentSetting in currentCollection)
         {
-            var key = currentSetting.Descriptor.Key;
-            var settingToAdd = currentSetting;
+            var baseDescriptor = currentSetting.BaseDescriptor;
+            var key = baseDescriptor.Key;
 
+            var newSetting = currentSetting;
             if (otherCollection.TryGet(key, out var otherSetting))
             {
-                settingToAdd = currentSetting.Merge(otherSetting, options);
+                newSetting = baseDescriptor.Merge(currentSetting, otherSetting);
             }
 
-            newCollection.Add(key, settingToAdd);
+            newCollection.Add(key, newSetting);
         }
 
         foreach (var otherSetting in otherCollection)
         {
-            var key = otherSetting.Descriptor.Key;
+            var key = otherSetting.BaseDescriptor.Key;
             if (newCollection.ContainsKey(key)) continue;
             newCollection.Add(key, otherSetting);
         }
 
-        return new SettingCollection { Settings = newCollection };
+        return new SettingCollection(newCollection);
     }
 
     /// <inheritdoc />

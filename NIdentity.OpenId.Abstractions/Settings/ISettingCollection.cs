@@ -21,18 +21,60 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace NIdentity.OpenId.Settings;
 
+/// <summary>
+/// Provides a strongly typed collection of <see cref="Setting"/> instances that can be accessed by key.
+/// </summary>
 public interface ISettingCollection : IReadOnlyCollection<Setting>
 {
+    /// <summary>
+    /// Attempts to get a strongly typed setting with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed setting to get.</param>
+    /// <param name="setting">When this method returns, contains the strongly typed setting with the specified key,
+    /// it the key is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
+    /// This parameter is passed uninitialized.</param>
+    /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise,
+    /// <c>false</c>.</returns>
     bool TryGet(SettingKey key, [MaybeNullWhen(false)] out Setting setting);
 
+    /// <summary>
+    /// Attempts to get a strongly typed setting associated with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed setting to get.</param>
+    /// <param name="setting">When this method returns, contains the strongly typed setting with the specified key,
+    /// it the key is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
+    /// This parameter is passed uninitialized.</param>
+    /// <typeparam name="TValue">The type of the setting's value.</typeparam>
+    /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise,
+    /// <c>false</c>.</returns>
     bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out Setting<TValue> setting)
         where TValue : notnull;
 
+    /// <summary>
+    /// Sets a strongly typed setting with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed setting to set.</param>
+    /// <param name="setting">The strongly typed setting to set.</param>
+    /// <typeparam name="TValue">The type of the setting's value.</typeparam>
     void Set<TValue>(SettingKey<TValue> key, Setting<TValue> setting)
         where TValue : notnull;
 
+    /// <summary>
+    /// Removes a strongly typed setting with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed setting to remove.</param>
+    /// <typeparam name="TValue">The type of the setting's value.</typeparam>
+    /// <returns><c>true</c> if the setting is successfully found and removed; otherwise, <c>false</c>.
+    /// The method returns <c>false</c> if <paramref name="key"/> is not found in the collection.</returns>
     bool Remove<TValue>(SettingKey<TValue> key)
         where TValue : notnull;
 
+    /// <summary>
+    /// Creates and returns a new <see cref="ISettingCollection"/> instance that contains the settings from both the current
+    /// instance and the <paramref name="otherCollection"/> instance by using the merge function defined by each setting's
+    /// descriptor.
+    /// </summary>
+    /// <param name="otherCollection">The other <see cref="ISettingCollection"/> instance to merge into the current instance.</param>
+    /// <returns>The new <see cref="ISettingCollection"/> instance containing the merged settings from both collections.</returns>
     ISettingCollection Merge(ISettingCollection otherCollection);
 }

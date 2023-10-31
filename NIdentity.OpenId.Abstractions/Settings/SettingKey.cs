@@ -19,20 +19,44 @@
 
 namespace NIdentity.OpenId.Settings;
 
+/// <summary>
+/// Represents a strongly typed key in a <see cref="ISettingCollection"/>.
+/// </summary>
 public readonly struct SettingKey
 {
+    /// <summary>
+    /// Gets or sets the name of the setting.
+    /// </summary>
     public required string SettingName { get; init; }
 
+    /// <summary>
+    /// Gets or sets the type of the setting's value.
+    /// </summary>
     public required Type ValueType { get; init; }
 }
 
+/// <summary>
+/// Represents a strongly typed key in a <see cref="ISettingCollection"/>.
+/// </summary>
+/// <typeparam name="TValue">The type of the setting's value.</typeparam>
 public readonly struct SettingKey<TValue>
     where TValue : notnull
 {
+    /// <summary>
+    /// Gets or sets the name of the setting.
+    /// </summary>
     public required string SettingName { get; init; }
 
+    /// <summary>
+    /// Gets the type of the setting's value.
+    /// </summary>
     public Type ValueType => typeof(TValue);
 
+    /// <summary>
+    /// Operator overload to convert a <see cref="SettingKey{TValue}"/> instance to a <see cref="SettingKey"/> instance.
+    /// </summary>
+    /// <param name="key">The <see cref="SettingKey{TValue}"/> instance.</param>
+    /// <returns>The <see cref="SettingKey"/> instance.</returns>
     public static implicit operator SettingKey(SettingKey<TValue> key) => new()
     {
         SettingName = key.SettingName,

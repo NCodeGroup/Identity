@@ -28,6 +28,7 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 /// a <see cref="Client"/> as input argument and expects <see cref="AuthorizationContext"/> as a response.
 /// </summary>
 /// <param name="AuthorizationSource">The <see cref="IAuthorizationSource"/> input argument for the command contract.</param>
+/// <param name="Client">The <see cref="Client"/> input argument for the command contract.</param>
 public record struct LoadAuthorizationRequestCommand(
     IAuthorizationSource AuthorizationSource,
     Client Client

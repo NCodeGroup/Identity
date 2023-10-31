@@ -105,11 +105,11 @@ public class JsonParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(
-            parameterName,
-            optional: true,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -152,11 +152,11 @@ public class JsonParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -199,11 +199,11 @@ public class JsonParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -227,11 +227,11 @@ public class JsonParserTests : IDisposable
         var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
         var expectedValueAsJson = JsonSerializer.Serialize(expectedValue);
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -278,11 +278,11 @@ public class JsonParserTests : IDisposable
         mockOpenIdError
             .SetupProperty(x => x.Exception);
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 

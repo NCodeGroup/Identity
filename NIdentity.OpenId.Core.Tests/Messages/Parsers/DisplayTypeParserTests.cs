@@ -94,11 +94,11 @@ public class DisplayTypeParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: true,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -141,11 +141,11 @@ public class DisplayTypeParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -187,11 +187,11 @@ public class DisplayTypeParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -208,11 +208,11 @@ public class DisplayTypeParserTests : IDisposable
         const string parameterName = "parameterName";
         const string stringValues = "page";
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false,
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -255,11 +255,11 @@ public class DisplayTypeParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false,
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -276,11 +276,11 @@ public class DisplayTypeParserTests : IDisposable
         const string parameterName = "parameterName";
         const string stringValues = "popup";
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false,
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -323,11 +323,11 @@ public class DisplayTypeParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -344,11 +344,11 @@ public class DisplayTypeParserTests : IDisposable
         const string parameterName = "parameterName";
         const string stringValues = "touch";
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -391,11 +391,11 @@ public class DisplayTypeParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -412,11 +412,11 @@ public class DisplayTypeParserTests : IDisposable
         const string parameterName = "parameterName";
         const string stringValues = "wap";
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -459,11 +459,11 @@ public class DisplayTypeParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -506,11 +506,11 @@ public class DisplayTypeParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<DisplayType?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<DisplayType?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 

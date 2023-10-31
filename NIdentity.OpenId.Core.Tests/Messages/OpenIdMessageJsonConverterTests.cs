@@ -142,7 +142,11 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var mockTestParameterParser = MockRepository.Create<ITestParameterParser>();
         var parser = new TestParameterParser(mockTestParameterParser.Object, ReadJsonValid, null);
 
-        var knownParameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, parser);
+        var knownParameter = new KnownParameter<string>(parameterName, parser)
+        {
+            Optional = optional,
+            AllowMultipleValues = allowMultipleValues
+        };
 
         KnownParameter? knownParameterBase = knownParameter;
         MockOpenIdContext
@@ -192,7 +196,12 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var json = JsonSerializer.Serialize(new Dictionary<string, object> { [parameterName] = stringValue });
         var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
 
-        return new Parameter<JsonElement>(descriptor, json, jsonElement);
+        return new Parameter<JsonElement>
+        {
+            Descriptor = descriptor,
+            StringValues = json,
+            ParsedValue = jsonElement
+        };
     }
 
     [Fact]
@@ -213,7 +222,11 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var mockTestParameterParser = MockRepository.Create<ITestParameterParser>();
         var parser = new TestParameterParser(mockTestParameterParser.Object, ReadJsonThrows, null);
 
-        var knownParameter = new KnownParameter<string>(parameterName, optional, allowMultipleValues, parser);
+        var knownParameter = new KnownParameter<string>(parameterName, parser)
+        {
+            Optional = optional,
+            AllowMultipleValues = allowMultipleValues
+        };
 
         KnownParameter? knownParameterBase = knownParameter;
         MockOpenIdContext
@@ -950,7 +963,11 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         const string stringValue = "stringValue";
 
         var message = new OpenIdMessage();
-        var parameter = new Parameter<string>(new ParameterDescriptor(parameterName), stringValue);
+        var parameter = new Parameter<string>
+        {
+            Descriptor = new ParameterDescriptor(parameterName),
+            StringValues = stringValue
+        };
         message.Initialize(context, new[] { parameter });
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);
@@ -1003,7 +1020,11 @@ public class OpenIdMessageJsonConverterTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var message = new OpenIdMessage();
-        var parameter = new Parameter<string[]>(new ParameterDescriptor(parameterName), stringValues);
+        var parameter = new Parameter<string[]>
+        {
+            Descriptor = new ParameterDescriptor(parameterName),
+            StringValues = stringValues
+        };
         message.Initialize(context, new[] { parameter });
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);

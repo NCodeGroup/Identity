@@ -65,11 +65,11 @@ public class StringParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var knownParameter = new KnownParameter<string?>(
-            parameterName,
-            optional: true,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<string?>(parameterName, parser)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -112,11 +112,11 @@ public class StringParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<string?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<string?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -134,11 +134,11 @@ public class StringParserTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
         var expectedResult = string.Join(" ", stringValues);
 
-        var knownParameter = new KnownParameter<string?>(
-            parameterName,
-            optional: true,
-            allowMultipleValues: true,
-            parser);
+        var knownParameter = new KnownParameter<string?>(parameterName, parser)
+        {
+            Optional = true,
+            AllowMultipleValues = true
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -181,11 +181,11 @@ public class StringParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<string?>(
-            parameterName,
-            optional: true,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<string?>(parameterName, parser)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -202,11 +202,11 @@ public class StringParserTests : IDisposable
         const string parameterName = "parameterName";
         const string stringValues = "value1";
 
-        var knownParameter = new KnownParameter<string?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<string?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 

@@ -76,11 +76,11 @@ public class TimeSpanParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var knownParameter = new KnownParameter<TimeSpan?>(
-            parameterName,
-            optional: true,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -123,11 +123,11 @@ public class TimeSpanParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<TimeSpan?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -170,11 +170,11 @@ public class TimeSpanParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<TimeSpan?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -192,11 +192,11 @@ public class TimeSpanParserTests : IDisposable
         var stringValues = new[] { "123", "456" };
         var expectedValue = TimeSpan.FromSeconds(123 + 456);
 
-        var knownParameter = new KnownParameter<TimeSpan?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: true,
-            parser);
+        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = true
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -214,11 +214,11 @@ public class TimeSpanParserTests : IDisposable
         var stringValues = new[] { "123" };
         var expectedValue = TimeSpan.FromSeconds(123);
 
-        var knownParameter = new KnownParameter<TimeSpan?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: true,
-            parser);
+        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = true
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 

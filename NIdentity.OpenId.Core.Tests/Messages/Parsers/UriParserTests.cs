@@ -76,11 +76,11 @@ public class UriParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var knownParameter = new KnownParameter<Uri?>(
-            parameterName,
-            optional: true,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<Uri?>(parameterName, parser)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -123,11 +123,11 @@ public class UriParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<Uri?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<Uri?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -170,11 +170,11 @@ public class UriParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<Uri?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<Uri?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -193,11 +193,11 @@ public class UriParserTests : IDisposable
         var stringValues = new[] { url };
         var expectedValue = new Uri(url);
 
-        var knownParameter = new KnownParameter<Uri?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<Uri?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 

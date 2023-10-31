@@ -78,11 +78,11 @@ public class StringSetParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-            parameterName,
-            optional: true,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -125,11 +125,11 @@ public class StringSetParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -172,11 +172,11 @@ public class StringSetParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -193,11 +193,11 @@ public class StringSetParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: true,
-            parser);
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = true
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -214,11 +214,11 @@ public class StringSetParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2", "value1", "value2" };
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: true,
-            parser);
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = true
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -236,11 +236,11 @@ public class StringSetParserTests : IDisposable
         const string stringValues = "value1 value2";
         var expectedResult = new[] { "value1", "value2" };
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
@@ -258,11 +258,11 @@ public class StringSetParserTests : IDisposable
         const string stringValues = "value1 value2 value1 value2";
         var expectedResult = new[] { "value1", "value2" };
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(
-            parameterName,
-            optional: false,
-            allowMultipleValues: false,
-            parser);
+        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        {
+            Optional = false,
+            AllowMultipleValues = false
+        };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 

@@ -33,7 +33,7 @@ public static class SettingMergeBehaviors
         public const string Append = "append";
     }
 
-    public static class List
+    public static class Set
     {
         public const string Intersect = "intersect";
         public const string Union = "union";

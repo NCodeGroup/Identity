@@ -17,12 +17,18 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Options;
+namespace NIdentity.OpenId.Settings;
 
-public class OpenIdHostOptions
+// example:
+// response_types_supported
+// REQUIRED. JSON array containing a list of the OAuth 2.0 response_type values that this OP supports.
+// Dynamic OpenID Providers MUST support the code, id_token, and the token id_token Response Type values.
+
+public static class KnownSettings
 {
-    /// <summary>
-    /// Gets or sets the options that indicate how the host will determine the tenant.
-    /// </summary>
-    public OpenIdTenantOptions Tenant { get; set; } = new();
+    public static SettingDescriptor<IReadOnlyCollection<ResponseTypes>> ResponseTypesSupported { get; } = new()
+    {
+        SettingName = "response_types_supported",
+        DefaultMergeBehavior = SettingMergeBehaviors.List.Intersect
+    };
 }

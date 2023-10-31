@@ -19,6 +19,7 @@
 
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Tenants;
 
@@ -45,19 +46,24 @@ public class DefaultOpenIdTenant : OpenIdTenant
     /// <inheritdoc />
     public override TenantConfiguration Configuration { get; }
 
+    /// <inheritdoc />
+    public override ISettingCollection Settings { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdTenant"/> class.
     /// </summary>
     public DefaultOpenIdTenant(
+        UriDescriptor baseAddress,
+        string issuer,
         TenantConfiguration configuration,
         ISecretKeyProvider secretKeyProvider,
-        UriDescriptor baseAddress,
-        string issuer)
+        ISettingCollection settings)
     {
-        Configuration = configuration;
-        SecretKeyProvider = secretKeyProvider;
-
         BaseAddress = baseAddress;
         Issuer = issuer;
+
+        Configuration = configuration;
+        SecretKeyProvider = secretKeyProvider;
+        Settings = settings;
     }
 }

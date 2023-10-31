@@ -41,14 +41,14 @@ public class DefaultOpenIdEndpointFactory :
     ICommandHandler<DispatchOpenIdEndpointCommand>,
     ICommandExceptionHandler<DispatchOpenIdEndpointCommand, HttpResultException>
 {
-    private OpenIdHostOptions HostOptions { get; }
+    private OpenIdServerOptions ServerOptions { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdEndpointFactory"/> class.
     /// </summary>
-    public DefaultOpenIdEndpointFactory(IOptions<OpenIdHostOptions> hostOptionsAccessor)
+    public DefaultOpenIdEndpointFactory(IOptions<OpenIdServerOptions> serverOptionsAccessor)
     {
-        HostOptions = hostOptionsAccessor.Value;
+        ServerOptions = serverOptionsAccessor.Value;
     }
 
     /// <inheritdoc />
@@ -59,7 +59,7 @@ public class DefaultOpenIdEndpointFactory :
         OpenIdEndpointCommandFactory commandFactory,
         Action<RouteHandlerBuilder>? configureRouteHandlerBuilder = default)
     {
-        var tenantOptions = HostOptions.Tenant;
+        var tenantOptions = ServerOptions.Tenant;
         var conventions = new List<Action<EndpointBuilder>>();
         var endpointConventionBuilder = new EndpointConventionBuilder(conventions);
         var httpMethodCollection = httpMethods as IReadOnlyCollection<string> ?? httpMethods.ToList();

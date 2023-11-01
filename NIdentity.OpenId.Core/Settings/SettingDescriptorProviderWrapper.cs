@@ -17,59 +17,85 @@
 
 #endregion
 
+using System.Text.Json;
+
 namespace NIdentity.OpenId.Settings;
 
 /// <summary>
-/// Provides a wrapper for the <see cref="ISettingDescriptorProvider"/> abstraction.
+/// Provides the ability to get a <see cref="SettingDescriptor"/> for a setting name and <see cref="JsonTokenType"/>.
 /// </summary>
-public interface ISettingDescriptorProviderWrapper
+public interface IJsonSettingDescriptorProvider
 {
     /// <summary>
-    /// Gets a strongly typed <see cref="SettingDescriptor"/> with the specified key and value type name.
+    /// Gets a strongly typed <see cref="SettingDescriptor"/> with the specified setting name and <see cref="JsonTokenType"/>.
     /// </summary>
     /// <param name="settingName">The name of the setting.</param>
-    /// <param name="valueTypeName">The value type name of the setting.</param>
+    /// <param name="jsonTokenType">The <see cref="JsonTokenType"/> value.</param>
     /// <returns>The <see cref="SettingDescriptor"/> instance.</returns>
-    SettingDescriptor GetDescriptor(string settingName, string valueTypeName);
+    SettingDescriptor GetDescriptor(string settingName, JsonTokenType jsonTokenType);
 }
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISettingDescriptorProviderWrapper"/> abstraction.
+/// Provides a default implementation of the <see cref="IJsonSettingDescriptorProvider"/> abstraction.
 /// </summary>
-public class SettingDescriptorProviderWrapper : ISettingDescriptorProviderWrapper
+public class JsonSettingDescriptorProvider : IJsonSettingDescriptorProvider
 {
     private ISettingDescriptorProvider SettingDescriptorProvider { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SettingDescriptorProviderWrapper"/> class.
+    /// Initializes a new instance of the <see cref="JsonSettingDescriptorProvider"/> class.
     /// </summary>
     /// <param name="settingDescriptorProvider">The <see cref="ISettingDescriptorProvider"/> instance.</param>
-    public SettingDescriptorProviderWrapper(ISettingDescriptorProvider settingDescriptorProvider)
+    public JsonSettingDescriptorProvider(ISettingDescriptorProvider settingDescriptorProvider)
     {
         SettingDescriptorProvider = settingDescriptorProvider;
     }
 
     /// <inheritdoc />
-    public SettingDescriptor GetDescriptor(string settingName, string valueTypeName)
+    public SettingDescriptor GetDescriptor(string settingName, JsonTokenType jsonTokenType)
     {
-        var valueType = Type.GetType(valueTypeName);
-        if (valueType == null)
-            throw new InvalidOperationException();
+        if (SettingDescriptorProvider.TryGet(settingName, out var descriptor))
+            return descriptor;
 
-        var settingKey = new SettingKey
-        {
-            SettingName = settingName,
-            ValueType = valueType
-        };
+        static bool MergeAnd(bool current, bool other) => current && other;
+        static TValue MergeOther<TValue>(TValue current, TValue other) => other;
+        static List<TItem> MergeIntersect<TItem>(IEnumerable<TItem> current, IEnumerable<TItem> other) => current.Intersect(other).ToList();
 
-        if (!SettingDescriptorProvider.TryGet(settingKey, out var descriptor))
+        switch (jsonTokenType)
         {
-            descriptor = new DefaultSettingDescriptor(valueType)
-            {
-                SettingName = settingName
-            };
+            case JsonTokenType.String:
+                return new SettingDescriptor<string>
+                {
+                    SettingName = settingName,
+                    OnMerge = MergeOther
+                };
+
+            case JsonTokenType.True or JsonTokenType.False:
+                return new SettingDescriptor<bool>
+                {
+                    SettingName = settingName,
+                    OnMerge = MergeAnd
+                };
+
+            case JsonTokenType.Number:
+                return new SettingDescriptor<double>
+                {
+                    SettingName = settingName,
+                    OnMerge = MergeOther
+                };
+
+            case JsonTokenType.StartArray:
+                return new SettingDescriptor<List<string>>
+                {
+                    SettingName = settingName,
+                    OnMerge = MergeIntersect
+                };
         }
 
-        return descriptor;
+        return new SettingDescriptor<JsonElement>
+        {
+            SettingName = settingName,
+            OnMerge = MergeOther
+        };
     }
 }

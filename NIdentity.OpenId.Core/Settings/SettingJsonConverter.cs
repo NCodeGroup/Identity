@@ -27,24 +27,18 @@ namespace NIdentity.OpenId.Settings;
 /// </summary>
 public class SettingJsonConverter : JsonConverter<Setting>
 {
-    private const string KeyPropertyName = "key";
-    private const string ValuePropertyName = "value";
+    private const string NameProperty = "name";
+    private const string ValueProperty = "value";
 
-    private ISettingDescriptorProviderWrapper SettingDescriptorProviderWrapper { get; }
+    private IJsonSettingDescriptorProvider JsonSettingDescriptorProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingJsonConverter"/> class.
     /// </summary>
-    /// <param name="settingDescriptorProviderWrapper">The <see cref="ISettingDescriptorProviderWrapper"/> instance.</param>
-    public SettingJsonConverter(ISettingDescriptorProviderWrapper settingDescriptorProviderWrapper)
+    /// <param name="jsonSettingDescriptorProvider">The <see cref="IJsonSettingDescriptorProvider"/> instance.</param>
+    public SettingJsonConverter(IJsonSettingDescriptorProvider jsonSettingDescriptorProvider)
     {
-        SettingDescriptorProviderWrapper = settingDescriptorProviderWrapper;
-    }
-
-    private readonly struct KeyEnvelope
-    {
-        public required string SettingName { get; init; }
-        public required string ValueTypeName { get; init; }
+        JsonSettingDescriptorProvider = jsonSettingDescriptorProvider;
     }
 
     /// <inheritdoc />
@@ -63,19 +57,18 @@ public class SettingJsonConverter : JsonConverter<Setting>
         if (reader.TokenType != JsonTokenType.PropertyName)
             throw new JsonException();
 
-        var keyProp = reader.GetString();
-        if (keyProp != KeyPropertyName)
+        var nameProp = reader.GetString();
+        if (nameProp != NameProperty)
             throw new JsonException();
 
         if (!reader.Read())
             throw new JsonException();
 
-        if (reader.TokenType != JsonTokenType.StartObject)
+        if (reader.TokenType != JsonTokenType.String)
             throw new JsonException();
 
-        var keyEnvelope = JsonSerializer.Deserialize<KeyEnvelope>(ref reader, options);
-
-        if (reader.TokenType != JsonTokenType.EndObject)
+        var settingName = reader.GetString();
+        if (settingName is null)
             throw new JsonException();
 
         if (!reader.Read())
@@ -85,13 +78,13 @@ public class SettingJsonConverter : JsonConverter<Setting>
             throw new JsonException();
 
         var valueProp = reader.GetString();
-        if (valueProp != ValuePropertyName)
+        if (valueProp != ValueProperty)
             throw new JsonException();
 
         if (!reader.Read())
             throw new JsonException();
 
-        var descriptor = SettingDescriptorProviderWrapper.GetDescriptor(keyEnvelope.SettingName, keyEnvelope.ValueTypeName);
+        var descriptor = JsonSettingDescriptorProvider.GetDescriptor(settingName, reader.TokenType);
         var value = JsonSerializer.Deserialize(ref reader, descriptor.ValueType, options);
         if (value == null)
             throw new JsonException();
@@ -105,27 +98,19 @@ public class SettingJsonConverter : JsonConverter<Setting>
         return descriptor.Create(value);
     }
 
+
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, Setting setting, JsonSerializerOptions options)
     {
-        var descriptor = setting.BaseDescriptor;
-
-        var value = setting.GetValue();
-        var valueTypeName = descriptor.ValueType.AssemblyQualifiedName ?? throw new InvalidOperationException();
-
-        var keyEnvelope = new KeyEnvelope
-        {
-            SettingName = descriptor.SettingName,
-            ValueTypeName = valueTypeName
-        };
+        var settingName = setting.BaseDescriptor.SettingName;
+        var settingValue = setting.GetValue();
 
         writer.WriteStartObject();
 
-        writer.WritePropertyName(KeyPropertyName);
-        JsonSerializer.Serialize(writer, keyEnvelope, options);
+        writer.WriteString(NameProperty, settingName);
 
-        writer.WritePropertyName(ValuePropertyName);
-        JsonSerializer.Serialize(writer, value, options);
+        writer.WritePropertyName(ValueProperty);
+        JsonSerializer.Serialize(writer, settingValue, options);
 
         writer.WriteEndObject();
     }

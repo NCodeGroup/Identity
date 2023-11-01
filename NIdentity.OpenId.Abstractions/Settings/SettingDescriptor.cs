@@ -25,11 +25,6 @@ namespace NIdentity.OpenId.Settings;
 public abstract class SettingDescriptor
 {
     /// <summary>
-    /// Gets a <see cref="SettingKey"/> instance for the current descriptor.
-    /// </summary>
-    public SettingKey Key => this;
-
-    /// <summary>
     /// Gets or sets the name of the setting.
     /// </summary>
     public required string SettingName { get; init; }
@@ -58,17 +53,6 @@ public abstract class SettingDescriptor
     /// <param name="other">The other <see cref="Setting"/> instance to merge.</param>
     /// <returns>The <see cref="Setting"/> instance from the result of the merge.</returns>
     public abstract Setting Merge(Setting current, Setting other);
-
-    /// <summary>
-    /// Operator overload to convert a <see cref="SettingDescriptor"/> instance to a <see cref="SettingKey"/> instance.
-    /// </summary>
-    /// <param name="descriptor">The <see cref="SettingDescriptor"/> instance.</param>
-    /// <returns>The <see cref="SettingKey"/> instance.</returns>
-    public static implicit operator SettingKey(SettingDescriptor descriptor) => new()
-    {
-        SettingName = descriptor.SettingName,
-        ValueType = descriptor.ValueType
-    };
 }
 
 /// <summary>
@@ -81,7 +65,7 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <summary>
     /// Gets a <see cref="SettingKey{TValue}"/> instance for the current descriptor.
     /// </summary>
-    public new SettingKey<TValue> Key => this;
+    public SettingKey<TValue> Key => this;
 
     /// <inheritdoc />
     public override Type ValueType => typeof(TValue);

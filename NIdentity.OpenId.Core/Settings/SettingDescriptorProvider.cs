@@ -26,21 +26,21 @@ namespace NIdentity.OpenId.Settings;
 /// </summary>
 public class SettingDescriptorProvider : ISettingDescriptorProvider
 {
-    private Dictionary<SettingKey, SettingDescriptor> Descriptors { get; } = new();
+    private Dictionary<string, SettingDescriptor> Descriptors { get; } = new(StringComparer.Ordinal);
 
     /// <inheritdoc />
     public void Register(SettingDescriptor descriptor) =>
-        Descriptors[descriptor.Key] = descriptor;
+        Descriptors[descriptor.SettingName] = descriptor;
 
     /// <inheritdoc />
-    public bool TryGet(SettingKey key, [MaybeNullWhen(false)] out SettingDescriptor descriptor) =>
-        Descriptors.TryGetValue(key, out descriptor);
+    public bool TryGet(string settingName, [MaybeNullWhen(false)] out SettingDescriptor descriptor) =>
+        Descriptors.TryGetValue(settingName, out descriptor);
 
     /// <inheritdoc />
     public bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out SettingDescriptor<TValue> descriptor)
         where TValue : notnull
     {
-        if (!Descriptors.TryGetValue(key, out var baseDescriptor) || baseDescriptor is not SettingDescriptor<TValue> typedDescriptor)
+        if (!Descriptors.TryGetValue(key.SettingName, out var baseDescriptor) || baseDescriptor is not SettingDescriptor<TValue> typedDescriptor)
         {
             descriptor = null;
             return false;

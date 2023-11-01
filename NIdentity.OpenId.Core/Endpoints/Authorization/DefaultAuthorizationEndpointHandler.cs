@@ -672,6 +672,8 @@ public class DefaultAuthorizationEndpointHandler :
         if (hasCodeChallenge && codeChallengeMethodIsPlain && !client.AllowPlainCodeChallengeMethod)
             throw errorFactory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.").AsException();
 
+        // perform configurable checks...
+
         if (openIdSettings.TryGet(KnownSettings.ScopesSupported.Key, out var scopesSupported))
         {
             if (!request.Scopes.Except(scopesSupported.Value).Any())

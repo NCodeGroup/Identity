@@ -22,27 +22,27 @@ using System.Diagnostics.CodeAnalysis;
 namespace NIdentity.OpenId.Settings;
 
 /// <summary>
-/// Provides a strongly typed collection of <see cref="Setting"/> instances that can be accessed by key.
+/// Provides a strongly typed collection of <see cref="Setting"/> instances that can be accessed by name and value type.
 /// </summary>
 public interface ISettingCollection : IReadOnlyCollection<Setting>
 {
     /// <summary>
-    /// Attempts to get a strongly typed setting with the specified key.
+    /// Attempts to get a strongly typed setting with the specified name.
     /// </summary>
-    /// <param name="key">The key of the strongly typed setting to get.</param>
-    /// <param name="setting">When this method returns, contains the strongly typed setting with the specified key,
-    /// it the key is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
+    /// <param name="settingName">The name of the strongly typed setting to get.</param>
+    /// <param name="setting">When this method returns, contains the strongly typed setting with the specified name,
+    /// it the setting is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
     /// This parameter is passed uninitialized.</param>
-    /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise,
+    /// <returns><c>true</c> if the collection contains a setting with the specified name; otherwise,
     /// <c>false</c>.</returns>
-    bool TryGet(SettingKey key, [MaybeNullWhen(false)] out Setting setting);
+    bool TryGet(string settingName, [MaybeNullWhen(false)] out Setting setting);
 
     /// <summary>
     /// Attempts to get a strongly typed setting associated with the specified key.
     /// </summary>
     /// <param name="key">The key of the strongly typed setting to get.</param>
     /// <param name="setting">When this method returns, contains the strongly typed setting with the specified key,
-    /// it the key is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
+    /// it the setting is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
     /// This parameter is passed uninitialized.</param>
     /// <typeparam name="TValue">The type of the setting's value.</typeparam>
     /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise,
@@ -53,10 +53,9 @@ public interface ISettingCollection : IReadOnlyCollection<Setting>
     /// <summary>
     /// Sets a strongly typed setting with the specified key.
     /// </summary>
-    /// <param name="key">The key of the strongly typed setting to set.</param>
     /// <param name="setting">The strongly typed setting to set.</param>
     /// <typeparam name="TValue">The type of the setting's value.</typeparam>
-    void Set<TValue>(SettingKey<TValue> key, Setting<TValue> setting)
+    void Set<TValue>(Setting<TValue> setting)
         where TValue : notnull;
 
     /// <summary>

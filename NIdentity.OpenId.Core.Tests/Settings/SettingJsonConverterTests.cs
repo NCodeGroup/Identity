@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Core.Tests.Settings;
 public class SettingJsonConverterTests : BaseTests
 {
     private ITestOutputHelper Output { get; }
-    private Mock<ISettingDescriptorProviderWrapper> MockSettingDescriptorProviderWrapper { get; }
+    private Mock<IJsonSettingDescriptorProvider> MockJsonSettingDescriptorProvider { get; }
     private SettingJsonConverter Converter { get; }
     private JsonSerializerOptions JsonSerializerOptions { get; }
 
@@ -36,8 +36,8 @@ public class SettingJsonConverterTests : BaseTests
     {
         Output = output;
 
-        MockSettingDescriptorProviderWrapper = CreatePartialMock<ISettingDescriptorProviderWrapper>();
-        Converter = new SettingJsonConverter(MockSettingDescriptorProviderWrapper.Object);
+        MockJsonSettingDescriptorProvider = CreatePartialMock<IJsonSettingDescriptorProvider>();
+        Converter = new SettingJsonConverter(MockJsonSettingDescriptorProvider.Object);
 
         JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
@@ -53,15 +53,9 @@ public class SettingJsonConverterTests : BaseTests
         public required IList<string> StringListValue { get; init; }
     }
 
-    private readonly struct SettingKeyEnvelope
-    {
-        public required string SettingName { get; init; }
-        public required string ValueTypeName { get; init; }
-    }
-
     private readonly struct SettingEnvelope<TValue>
     {
-        public required SettingKeyEnvelope Key { get; init; }
+        public required string Name { get; init; }
         public required TValue Value { get; init; }
     }
 
@@ -89,9 +83,7 @@ public class SettingJsonConverterTests : BaseTests
 
         var envelope = JsonSerializer.Deserialize<SettingEnvelope<SettingValue>>(json, JsonSerializerOptions);
 
-        Assert.Equal(settingName, envelope.Key.SettingName);
-        Assert.Equal(descriptor.ValueType.AssemblyQualifiedName, envelope.Key.ValueTypeName);
-
+        Assert.Equal(settingName, envelope.Name);
         Assert.Equal(settingValue.StringValue, envelope.Value.StringValue);
         Assert.Equal(settingValue.DateTimeOffsetValue, envelope.Value.DateTimeOffsetValue);
         Assert.Equal(settingValue.StringListValue, envelope.Value.StringListValue);
@@ -119,11 +111,8 @@ public class SettingJsonConverterTests : BaseTests
         var json = JsonSerializer.Serialize(setting, JsonSerializerOptions);
         Output.WriteLine(json);
 
-        var valueType = settingValue.GetType();
-        var valueTypeName = valueType.AssemblyQualifiedName ?? throw new InvalidOperationException();
-
-        MockSettingDescriptorProviderWrapper
-            .Setup(x => x.GetDescriptor(settingName, valueTypeName))
+        MockJsonSettingDescriptorProvider
+            .Setup(x => x.GetDescriptor(settingName, JsonTokenType.StartObject))
             .Returns(descriptor)
             .Verifiable();
 

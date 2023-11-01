@@ -30,15 +30,15 @@ public class SettingJsonConverter : JsonConverter<Setting>
     private const string KeyPropertyName = "key";
     private const string ValuePropertyName = "value";
 
-    private ISettingDescriptorProvider SettingDescriptorProvider { get; }
+    private ISettingDescriptorProviderWrapper SettingDescriptorProviderWrapper { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingJsonConverter"/> class.
     /// </summary>
-    /// <param name="settingDescriptorProvider">The <see cref="ISettingDescriptorProvider"/> instance.</param>
-    public SettingJsonConverter(ISettingDescriptorProvider settingDescriptorProvider)
+    /// <param name="settingDescriptorProviderWrapper">The <see cref="ISettingDescriptorProviderWrapper"/> instance.</param>
+    public SettingJsonConverter(ISettingDescriptorProviderWrapper settingDescriptorProviderWrapper)
     {
-        SettingDescriptorProvider = settingDescriptorProvider;
+        SettingDescriptorProviderWrapper = settingDescriptorProviderWrapper;
     }
 
     private readonly struct KeyEnvelope
@@ -46,6 +46,10 @@ public class SettingJsonConverter : JsonConverter<Setting>
         public required string SettingName { get; init; }
         public required string ValueTypeName { get; init; }
     }
+
+    /// <inheritdoc />
+    public override bool CanConvert(Type typeToConvert) =>
+        typeof(Setting).IsAssignableFrom(typeToConvert);
 
     /// <inheritdoc />
     public override Setting Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -74,11 +78,6 @@ public class SettingJsonConverter : JsonConverter<Setting>
         if (reader.TokenType != JsonTokenType.EndObject)
             throw new JsonException();
 
-        var settingName = keyEnvelope.SettingName;
-        var valueType = Type.GetType(keyEnvelope.ValueTypeName);
-        if (valueType == null)
-            throw new InvalidOperationException();
-
         if (!reader.Read())
             throw new JsonException();
 
@@ -92,29 +91,16 @@ public class SettingJsonConverter : JsonConverter<Setting>
         if (!reader.Read())
             throw new JsonException();
 
-        if (reader.TokenType != JsonTokenType.StartObject)
+        var descriptor = SettingDescriptorProviderWrapper.GetDescriptor(keyEnvelope.SettingName, keyEnvelope.ValueTypeName);
+        var value = JsonSerializer.Deserialize(ref reader, descriptor.ValueType, options);
+        if (value == null)
             throw new JsonException();
 
-        var value = JsonSerializer.Deserialize(ref reader, valueType, options);
-        if (value == null)
+        if (!reader.Read())
             throw new JsonException();
 
         if (reader.TokenType != JsonTokenType.EndObject)
             throw new JsonException();
-
-        var settingKey = new SettingKey
-        {
-            SettingName = settingName,
-            ValueType = valueType
-        };
-
-        if (!SettingDescriptorProvider.TryGet(settingKey, out var descriptor))
-        {
-            descriptor = new DefaultSettingDescriptor(valueType)
-            {
-                SettingName = settingName
-            };
-        }
 
         return descriptor.Create(value);
     }

@@ -8,15 +8,15 @@ public abstract class Setting
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> that describes this setting.
     /// </summary>
-    public SettingDescriptor BaseDescriptor { get; }
+    public SettingDescriptor Descriptor { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Setting"/> class.
     /// </summary>
-    /// <param name="baseDescriptor">The <see cref="SettingDescriptor"/> for the setting.</param>
-    protected Setting(SettingDescriptor baseDescriptor)
+    /// <param name="descriptor">The <see cref="SettingDescriptor"/> for the setting.</param>
+    protected Setting(SettingDescriptor descriptor)
     {
-        BaseDescriptor = baseDescriptor;
+        Descriptor = descriptor;
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ public class Setting<TValue> : Setting
     /// <summary>
     /// Gets the <see cref="SettingDescriptor{TValue}"/> that describes this setting.
     /// </summary>
-    public SettingDescriptor<TValue> Descriptor { get; }
+    public new SettingDescriptor<TValue> Descriptor { get; }
 
     /// <summary>
     /// Gets the type-safe value of this setting.

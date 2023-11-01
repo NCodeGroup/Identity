@@ -102,7 +102,7 @@ public class SettingJsonConverter : JsonConverter<Setting>
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, Setting setting, JsonSerializerOptions options)
     {
-        var settingName = setting.BaseDescriptor.SettingName;
+        var settingName = setting.Descriptor.SettingName;
         var settingValue = setting.GetValue();
 
         writer.WriteStartObject();

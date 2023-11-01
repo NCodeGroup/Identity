@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Core.Tests.Settings;
 public class SettingJsonConverterTests : BaseTests
 {
     private ITestOutputHelper Output { get; }
-    private Mock<IJsonSettingDescriptorProvider> MockJsonSettingDescriptorProvider { get; }
+    private Mock<IJsonSettingDescriptorCollection> MockJsonSettingDescriptorProvider { get; }
     private SettingJsonConverter Converter { get; }
     private JsonSerializerOptions JsonSerializerOptions { get; }
 
@@ -36,7 +36,7 @@ public class SettingJsonConverterTests : BaseTests
     {
         Output = output;
 
-        MockJsonSettingDescriptorProvider = CreatePartialMock<IJsonSettingDescriptorProvider>();
+        MockJsonSettingDescriptorProvider = CreatePartialMock<IJsonSettingDescriptorCollection>();
         Converter = new SettingJsonConverter(MockJsonSettingDescriptorProvider.Object);
 
         JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)

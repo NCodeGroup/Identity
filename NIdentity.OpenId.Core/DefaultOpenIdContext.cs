@@ -106,7 +106,7 @@ public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
-                new SettingJsonConverter(new JsonSettingDescriptorProvider(GetRequiredService<ISettingDescriptorProvider>())),
+                new SettingJsonConverter(new JsonSettingDescriptorCollection(GetRequiredService<ISettingDescriptorCollection>())),
                 new CodeChallengeMethodJsonConverter(),
                 new DisplayTypeJsonConverter(),
                 new PromptTypesJsonConverter(),

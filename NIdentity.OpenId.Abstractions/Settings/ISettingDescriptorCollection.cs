@@ -24,7 +24,7 @@ namespace NIdentity.OpenId.Settings;
 /// <summary>
 /// Provides a strongly typed collection of <see cref="SettingDescriptor"/> instances that can be accessed by setting name and value type.
 /// </summary>
-public interface ISettingDescriptorProvider
+public interface ISettingDescriptorCollection : IReadOnlyCollection<SettingDescriptor>
 {
     /// <summary>
     /// Adds the specified <paramref name="descriptor"/> to the collection.

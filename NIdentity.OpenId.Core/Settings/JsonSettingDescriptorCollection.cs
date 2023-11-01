@@ -24,7 +24,7 @@ namespace NIdentity.OpenId.Settings;
 /// <summary>
 /// Provides the ability to get a <see cref="SettingDescriptor"/> for a setting name and <see cref="JsonTokenType"/>.
 /// </summary>
-public interface IJsonSettingDescriptorProvider
+public interface IJsonSettingDescriptorCollection
 {
     /// <summary>
     /// Gets a strongly typed <see cref="SettingDescriptor"/> with the specified setting name and <see cref="JsonTokenType"/>.
@@ -36,25 +36,25 @@ public interface IJsonSettingDescriptorProvider
 }
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IJsonSettingDescriptorProvider"/> abstraction.
+/// Provides a default implementation of the <see cref="IJsonSettingDescriptorCollection"/> abstraction.
 /// </summary>
-public class JsonSettingDescriptorProvider : IJsonSettingDescriptorProvider
+public class JsonSettingDescriptorCollection : IJsonSettingDescriptorCollection
 {
-    private ISettingDescriptorProvider SettingDescriptorProvider { get; }
+    private ISettingDescriptorCollection SettingDescriptorCollection { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JsonSettingDescriptorProvider"/> class.
+    /// Initializes a new instance of the <see cref="JsonSettingDescriptorCollection"/> class.
     /// </summary>
-    /// <param name="settingDescriptorProvider">The <see cref="ISettingDescriptorProvider"/> instance.</param>
-    public JsonSettingDescriptorProvider(ISettingDescriptorProvider settingDescriptorProvider)
+    /// <param name="settingDescriptorCollection">The <see cref="ISettingDescriptorCollection"/> instance.</param>
+    public JsonSettingDescriptorCollection(ISettingDescriptorCollection settingDescriptorCollection)
     {
-        SettingDescriptorProvider = settingDescriptorProvider;
+        SettingDescriptorCollection = settingDescriptorCollection;
     }
 
     /// <inheritdoc />
     public SettingDescriptor GetDescriptor(string settingName, JsonTokenType jsonTokenType)
     {
-        if (SettingDescriptorProvider.TryGet(settingName, out var descriptor))
+        if (SettingDescriptorCollection.TryGet(settingName, out var descriptor))
             return descriptor;
 
         static bool MergeAnd(bool current, bool other) => current && other;

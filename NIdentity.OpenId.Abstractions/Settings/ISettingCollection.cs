@@ -51,12 +51,10 @@ public interface ISettingCollection : IReadOnlyCollection<Setting>
         where TValue : notnull;
 
     /// <summary>
-    /// Sets a strongly typed setting with the specified key.
+    /// Add or updates a strongly typed setting in the collection.
     /// </summary>
     /// <param name="setting">The strongly typed setting to set.</param>
-    /// <typeparam name="TValue">The type of the setting's value.</typeparam>
-    void Set<TValue>(Setting<TValue> setting)
-        where TValue : notnull;
+    void Set(Setting setting);
 
     /// <summary>
     /// Removes a strongly typed setting with the specified key.

@@ -30,15 +30,15 @@ public class SettingJsonConverter : JsonConverter<Setting>
     private const string NameProperty = "name";
     private const string ValueProperty = "value";
 
-    private IJsonSettingDescriptorProvider JsonSettingDescriptorProvider { get; }
+    private IJsonSettingDescriptorCollection JsonSettingDescriptorCollection { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingJsonConverter"/> class.
     /// </summary>
-    /// <param name="jsonSettingDescriptorProvider">The <see cref="IJsonSettingDescriptorProvider"/> instance.</param>
-    public SettingJsonConverter(IJsonSettingDescriptorProvider jsonSettingDescriptorProvider)
+    /// <param name="jsonSettingDescriptorCollection">The <see cref="IJsonSettingDescriptorCollection"/> instance.</param>
+    public SettingJsonConverter(IJsonSettingDescriptorCollection jsonSettingDescriptorCollection)
     {
-        JsonSettingDescriptorProvider = jsonSettingDescriptorProvider;
+        JsonSettingDescriptorCollection = jsonSettingDescriptorCollection;
     }
 
     /// <inheritdoc />
@@ -84,7 +84,7 @@ public class SettingJsonConverter : JsonConverter<Setting>
         if (!reader.Read())
             throw new JsonException();
 
-        var descriptor = JsonSettingDescriptorProvider.GetDescriptor(settingName, reader.TokenType);
+        var descriptor = JsonSettingDescriptorCollection.GetDescriptor(settingName, reader.TokenType);
         var value = JsonSerializer.Deserialize(ref reader, descriptor.ValueType, options);
         if (value == null)
             throw new JsonException();

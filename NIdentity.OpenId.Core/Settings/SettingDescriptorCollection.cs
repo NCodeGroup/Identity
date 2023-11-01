@@ -17,14 +17,15 @@
 
 #endregion
 
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
 namespace NIdentity.OpenId.Settings;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISettingDescriptorProvider"/> abstraction.
+/// Provides a default implementation of the <see cref="ISettingDescriptorCollection"/> abstraction.
 /// </summary>
-public class SettingDescriptorProvider : ISettingDescriptorProvider
+public class SettingDescriptorCollection : ISettingDescriptorCollection
 {
     private Dictionary<string, SettingDescriptor> Descriptors { get; } = new(StringComparer.Ordinal);
 
@@ -49,4 +50,12 @@ public class SettingDescriptorProvider : ISettingDescriptorProvider
         descriptor = typedDescriptor;
         return true;
     }
+
+    /// <inheritdoc />
+    public int Count => Descriptors.Count;
+
+    /// <inheritdoc />
+    public IEnumerator<SettingDescriptor> GetEnumerator() => Descriptors.Values.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

@@ -70,9 +70,8 @@ public class SettingCollection : ISettingCollection
     }
 
     /// <inheritdoc />
-    public void Set<TValue>(Setting<TValue> setting)
-        where TValue : notnull
-        => Settings[setting.Descriptor.SettingName] = setting;
+    public void Set(Setting setting)
+        => Settings[setting.BaseDescriptor.SettingName] = setting;
 
     /// <inheritdoc />
     public bool Remove<TValue>(SettingKey<TValue> key)

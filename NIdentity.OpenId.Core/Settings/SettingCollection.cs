@@ -43,7 +43,7 @@ public class SettingCollection : ISettingCollection
     /// <param name="settings">The collection of <see cref="Setting"/> instances.</param>
     public SettingCollection(IEnumerable<Setting> settings)
     {
-        Settings = settings.ToDictionary(setting => setting.BaseDescriptor.SettingName);
+        Settings = settings.ToDictionary(setting => setting.Descriptor.SettingName);
     }
 
     private SettingCollection(Dictionary<string, Setting> settings)
@@ -71,7 +71,7 @@ public class SettingCollection : ISettingCollection
 
     /// <inheritdoc />
     public void Set(Setting setting)
-        => Settings[setting.BaseDescriptor.SettingName] = setting;
+        => Settings[setting.Descriptor.SettingName] = setting;
 
     /// <inheritdoc />
     public bool Remove<TValue>(SettingKey<TValue> key)
@@ -88,7 +88,7 @@ public class SettingCollection : ISettingCollection
 
         foreach (var currentSetting in currentCollection)
         {
-            var baseDescriptor = currentSetting.BaseDescriptor;
+            var baseDescriptor = currentSetting.Descriptor;
             var settingName = baseDescriptor.SettingName;
 
             var newSetting = currentSetting;
@@ -102,7 +102,7 @@ public class SettingCollection : ISettingCollection
 
         foreach (var otherSetting in otherCollection)
         {
-            var settingName = otherSetting.BaseDescriptor.SettingName;
+            var settingName = otherSetting.Descriptor.SettingName;
             if (newCollection.ContainsKey(settingName)) continue;
             newCollection.Add(settingName, otherSetting);
         }

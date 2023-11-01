@@ -119,7 +119,7 @@ public class SettingJsonConverterTests : BaseTests
         var result = JsonSerializer.Deserialize<Setting>(json, JsonSerializerOptions);
 
         Assert.NotNull(result);
-        Assert.Same(descriptor, result.BaseDescriptor);
+        Assert.Same(descriptor, result.Descriptor);
 
         var resultValue = (SettingValue)result.GetValue();
         Assert.Equal(settingValue.StringValue, resultValue.StringValue);

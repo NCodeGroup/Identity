@@ -18,29 +18,15 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Endpoints.Discovery.Results;
 
-namespace NIdentity.OpenId.Endpoints.Discovery;
+namespace NIdentity.OpenId.Results;
 
-internal class DiscoveryEndpointProvider : IOpenIdEndpointProvider
+internal class DiscoveryResultExecutor : IOpenIdResultExecutor<DiscoveryResult>
 {
-    private IOpenIdEndpointFactory EndpointFactory { get; }
-
-    public DiscoveryEndpointProvider(IOpenIdEndpointFactory endpointFactory)
+    public async ValueTask ExecuteResultAsync(OpenIdContext context, DiscoveryResult result, CancellationToken cancellationToken)
     {
-        EndpointFactory = endpointFactory;
-    }
-
-    public Endpoint CreateEndpoint()
-    {
-        var httpMethods = new[]
-        {
-            HttpMethods.Get
-        };
-
-        return EndpointFactory.CreateEndpoint(
-            OpenIdConstants.EndpointNames.Discovery,
-            OpenIdConstants.EndpointPaths.Discovery,
-            httpMethods,
-            endpointContext => new DiscoveryEndpointCommand(endpointContext));
+        var jsonResult = TypedResults.Json(result.Metadata, context.JsonSerializerOptions);
+        await jsonResult.ExecuteAsync(context.HttpContext);
     }
 }

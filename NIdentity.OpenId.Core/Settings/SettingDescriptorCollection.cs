@@ -27,7 +27,24 @@ namespace NIdentity.OpenId.Settings;
 /// </summary>
 public class SettingDescriptorCollection : ISettingDescriptorCollection
 {
-    private Dictionary<string, SettingDescriptor> Descriptors { get; } = new(StringComparer.Ordinal);
+    private Dictionary<string, SettingDescriptor> Descriptors { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SettingDescriptorCollection"/> class.
+    /// </summary>
+    public SettingDescriptorCollection()
+    {
+        Descriptors = new Dictionary<string, SettingDescriptor>(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SettingDescriptorCollection"/> class with the specified <paramref name="descriptors"/>.
+    /// </summary>
+    /// <param name="descriptors">The collection of <see cref="SettingDescriptor"/> instances.</param>
+    public SettingDescriptorCollection(IEnumerable<SettingDescriptor> descriptors)
+    {
+        Descriptors = descriptors.ToDictionary(d => d.SettingName, StringComparer.Ordinal);
+    }
 
     /// <inheritdoc />
     public void Register(SettingDescriptor descriptor) =>

@@ -41,6 +41,9 @@ public static class CoreEndpointRegistration
 
         services.AddSingleton<DefaultOpenIdEndpointFactory>();
 
+        services.AddSingleton<IOpenIdEndpointFactory>(serviceProvider =>
+            serviceProvider.GetRequiredService<DefaultOpenIdEndpointFactory>());
+
         services.AddSingleton<ICommandHandler<DispatchOpenIdEndpointCommand>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultOpenIdEndpointFactory>());
 

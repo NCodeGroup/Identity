@@ -41,7 +41,7 @@ public class DefaultMediator : IMediator
     public ValueTask SendAsync<TCommand>(
         TCommand command,
         CancellationToken cancellationToken
-    ) where TCommand : ICommand
+    ) where TCommand : struct, ICommand
     {
         var wrapper = ServiceProvider.GetRequiredService<ICommandHandlerWrapper<TCommand>>();
         return wrapper.HandleAsync(command, cancellationToken);
@@ -51,9 +51,20 @@ public class DefaultMediator : IMediator
     public ValueTask<TResponse> SendAsync<TCommand, TResponse>(
         TCommand command,
         CancellationToken cancellationToken
-    ) where TCommand : ICommand<TResponse>
+    ) where TCommand : struct, ICommand<TResponse>
     {
         var wrapper = ServiceProvider.GetRequiredService<ICommandResponseHandlerWrapper<TCommand, TResponse>>();
+        return wrapper.HandleAsync(command, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<TResponse> SendAsync<TResponse>(
+        ICommand<TResponse> command,
+        CancellationToken cancellationToken
+    )
+    {
+        var wrapperType = typeof(ICommandResponseHandlerWrapper<,>).MakeGenericType(command.GetType(), typeof(TResponse));
+        var wrapper = (ICommandResponseHandlerWrapper<TResponse>)ServiceProvider.GetRequiredService(wrapperType);
         return wrapper.HandleAsync(command, cancellationToken);
     }
 }

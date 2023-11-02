@@ -22,10 +22,10 @@ using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Playground.Stores;
 
-internal class NullClientStore : IClientStore
+internal class EmptyTenantStore : ITenantStore
 {
     /// <inheritdoc />
-    public ValueTask AddAsync(Client client, CancellationToken cancellationToken)
+    public ValueTask AddAsync(Tenant item, CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;
     }
@@ -37,14 +37,20 @@ internal class NullClientStore : IClientStore
     }
 
     /// <inheritdoc />
-    public ValueTask<Client?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
+    public ValueTask<Tenant?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult<Client?>(null);
+        return ValueTask.FromResult<Tenant?>(null);
     }
 
     /// <inheritdoc />
-    public ValueTask<Client?> TryGetByClientIdAsync(string tenantId, string clientId, CancellationToken cancellationToken)
+    public ValueTask<Tenant?> TryGetByTenantIdAsync(string tenantId, CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult<Client?>(null);
+        return ValueTask.FromResult<Tenant?>(null);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<Tenant?> TryGetByDomainNameAsync(string domainName, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult<Tenant?>(null);
     }
 }

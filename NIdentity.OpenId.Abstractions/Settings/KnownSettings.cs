@@ -17,6 +17,8 @@
 
 #endregion
 
+using System.ComponentModel;
+
 namespace NIdentity.OpenId.Settings;
 
 // TODO: discovery configuration
@@ -61,12 +63,36 @@ namespace NIdentity.OpenId.Settings;
 /// </summary>
 public static class KnownSettings
 {
-    private static bool And(bool current, bool other) => current && other;
+    /// <summary>
+    /// Provides a merge function that returns the logical AND of the two values.
+    /// </summary>
+    public static bool And(bool current, bool other) => current && other;
 
-    private static List<TValue> Intersect<TValue>(
-        IEnumerable<TValue> current,
-        IEnumerable<TValue> other
+    /// <summary>
+    /// Provides a merge function that always returns the other value.
+    /// </summary>
+    public static TValue Replace<TValue>(TValue _, TValue other) => other;
+
+    /// <summary>
+    /// Provides a merge function that returns the intersection of the two collections.
+    /// </summary>
+    public static List<TItem> Intersect<TItem>(
+        IEnumerable<TItem> current,
+        IEnumerable<TItem> other
     ) => current.Intersect(other).ToList();
+
+    /// <summary>
+    /// Provides a format function that converts the items in a collection to their invariant string values
+    /// using <see cref="TypeConverter"/>.
+    /// </summary>
+    public static List<string> ConvertToInvariantString<TItem>(IEnumerable<TItem> collection)
+        where TItem : notnull =>
+        collection.Select(item =>
+            TypeDescriptor
+                .GetConverter(typeof(TItem))
+                .ConvertToInvariantString(item) ??
+            item.ToString()!
+        ).ToList();
 
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'scopes_supported' setting.
@@ -85,7 +111,8 @@ public static class KnownSettings
     {
         SettingName = "response_types_supported",
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Intersect,
+        OnFormat = ConvertToInvariantString
     };
 
     /// <summary>

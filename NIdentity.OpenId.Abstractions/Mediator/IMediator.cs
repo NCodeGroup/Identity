@@ -35,7 +35,7 @@ public interface IMediator
     ValueTask SendAsync<TCommand>(
         TCommand command,
         CancellationToken cancellationToken
-    ) where TCommand : ICommand;
+    ) where TCommand : struct, ICommand;
 
     /// <summary>
     /// Asynchronously send a command to a handler that returns a value.
@@ -50,5 +50,19 @@ public interface IMediator
     ValueTask<TResponse> SendAsync<TCommand, TResponse>(
         TCommand command,
         CancellationToken cancellationToken
-    ) where TCommand : ICommand<TResponse>;
+    ) where TCommand : struct, ICommand<TResponse>;
+
+    /// <summary>
+    /// Asynchronously send a command to a handler that returns a value.
+    /// </summary>
+    /// <param name="command">The input value to handle.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <typeparam name="TResponse">The type of the return value.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resulting
+    /// value from the handler.</returns>
+    ValueTask<TResponse> SendAsync<TResponse>(
+        ICommand<TResponse> command,
+        CancellationToken cancellationToken
+    );
 }

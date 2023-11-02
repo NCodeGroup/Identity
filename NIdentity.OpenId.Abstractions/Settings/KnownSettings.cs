@@ -86,13 +86,13 @@ public static class KnownSettings
     /// using <see cref="TypeConverter"/>.
     /// </summary>
     public static List<string> ConvertToInvariantString<TItem>(IEnumerable<TItem> collection)
-        where TItem : notnull =>
-        collection.Select(item =>
-            TypeDescriptor
-                .GetConverter(typeof(TItem))
-                .ConvertToInvariantString(item) ??
-            item.ToString()!
+        where TItem : notnull
+    {
+        var converter = TypeDescriptor.GetConverter(typeof(TItem));
+        return collection.Select(item =>
+            converter.ConvertToInvariantString(item) ?? item.ToString()!
         ).ToList();
+    }
 
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'scopes_supported' setting.

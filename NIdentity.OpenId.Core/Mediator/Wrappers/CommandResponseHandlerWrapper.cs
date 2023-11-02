@@ -21,6 +21,13 @@ using NIdentity.OpenId.Mediator.Middleware;
 
 namespace NIdentity.OpenId.Mediator.Wrappers;
 
+internal interface ICommandResponseHandlerWrapper<TResponse>
+{
+    ValueTask<TResponse> HandleAsync(
+        ICommand<TResponse> command,
+        CancellationToken cancellationToken);
+}
+
 internal interface ICommandResponseHandlerWrapper<in TCommand, TResponse>
     where TCommand : ICommand<TResponse>
 {
@@ -29,7 +36,9 @@ internal interface ICommandResponseHandlerWrapper<in TCommand, TResponse>
         CancellationToken cancellationToken);
 }
 
-internal class CommandResponseHandlerWrapper<TCommand, TResponse> : ICommandResponseHandlerWrapper<TCommand, TResponse>
+internal class CommandResponseHandlerWrapper<TCommand, TResponse> :
+    ICommandResponseHandlerWrapper<TResponse>,
+    ICommandResponseHandlerWrapper<TCommand, TResponse>
     where TCommand : ICommand<TResponse>
 {
     private MiddlewareChainDelegate MiddlewareChain { get; }
@@ -55,8 +64,13 @@ internal class CommandResponseHandlerWrapper<TCommand, TResponse> : ICommandResp
             return middleware.HandleAsync(command, SimpleNext, token);
         };
 
-    public ValueTask<TResponse> HandleAsync(
-        TCommand command,
-        CancellationToken cancellationToken) =>
-        MiddlewareChain(command, cancellationToken);
+    public ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken)
+    {
+        return MiddlewareChain((TCommand)command, cancellationToken);
+    }
+
+    public ValueTask<TResponse> HandleAsync(TCommand command, CancellationToken cancellationToken)
+    {
+        return MiddlewareChain(command, cancellationToken);
+    }
 }

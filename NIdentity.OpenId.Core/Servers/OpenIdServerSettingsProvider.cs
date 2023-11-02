@@ -28,16 +28,16 @@ namespace NIdentity.OpenId.Servers;
 public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
 {
     private IConfiguration Configuration { get; }
-    private ISettingDescriptorCollection SettingDescriptorCollection { get; }
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
     private ISettingCollection? SettingsOrNull { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdServerSettingsProvider"/> class.
     /// </summary>
-    public OpenIdServerSettingsProvider(IConfiguration configuration, ISettingDescriptorCollection settingDescriptorCollection)
+    public OpenIdServerSettingsProvider(IConfiguration configuration, ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider)
     {
         Configuration = configuration;
-        SettingDescriptorCollection = settingDescriptorCollection;
+        SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
     }
 
     /// <inheritdoc />
@@ -46,6 +46,7 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
     private ISettingCollection LoadServerSettings()
     {
         var settings = new SettingCollection();
+        var descriptors = SettingDescriptorCollectionProvider.Descriptors;
 
         var rootSection = Configuration.GetSection("settings");
         foreach (var settingSection in rootSection.GetChildren())
@@ -54,14 +55,14 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
             if (string.IsNullOrEmpty(settingName)) continue;
 
             var valueSection = settingSection.GetSection("value");
-            if (!SettingDescriptorCollection.TryGet(settingName, out var descriptor))
+            if (!descriptors.TryGet(settingName, out var descriptor))
             {
                 if (valueSection.GetChildren().Any())
                 {
                     descriptor = new SettingDescriptor<IReadOnlyCollection<string>>
                     {
                         SettingName = settingName,
-                        OnMerge = (current, other) => current.Intersect(other).ToList()
+                        OnMerge = KnownSettings.Intersect
                     };
                 }
                 else
@@ -69,7 +70,7 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
                     descriptor = new SettingDescriptor<string>
                     {
                         SettingName = settingName,
-                        OnMerge = (_, other) => other
+                        OnMerge = KnownSettings.Replace
                     };
                 }
             }

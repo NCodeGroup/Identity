@@ -27,7 +27,6 @@ using NIdentity.OpenId.Exceptions;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Mediator.Middleware;
 using NIdentity.OpenId.Options;
-using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Tenants;
 using NIdentity.OpenId.Tenants.Commands;
 
@@ -140,7 +139,7 @@ public class DefaultOpenIdEndpointFactory :
             propertyBag.Clone());
 
         var openIdCommand = commandFactory(openIdContext);
-        var openIdResult = await mediator.SendAsync<OpenIdEndpointCommand, IOpenIdResult>(
+        var openIdResult = await mediator.SendAsync(
             openIdCommand,
             cancellationToken);
 

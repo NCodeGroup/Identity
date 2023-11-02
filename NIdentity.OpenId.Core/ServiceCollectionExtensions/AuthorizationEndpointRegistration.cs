@@ -24,6 +24,7 @@ using NIdentity.OpenId.Endpoints.Authorization;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
+using NIdentity.OpenId.Logic.Authorization;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
 
@@ -41,6 +42,11 @@ public static class AuthorizationEndpointRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddAuthorizationEndpoint(this IServiceCollection services)
     {
+        services.AddSingleton<IAuthorizationTicketService, AuthorizationTicketService>();
+        services.AddSingleton<IAuthorizationClaimsService, AuthorizationClaimsService>();
+        services.AddSingleton<IAuthorizationLoginService, NullAuthorizationLoginService>();
+        services.AddSingleton<IAuthorizationCallbackService, NullAuthorizationCallbackService>();
+
         services.AddSingleton<DefaultAuthorizationEndpointProvider>();
         services.AddSingleton<DefaultAuthorizationEndpointHandler>();
 

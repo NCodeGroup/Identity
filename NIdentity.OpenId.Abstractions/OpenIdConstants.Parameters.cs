@@ -42,6 +42,11 @@ public static partial class OpenIdConstants
         public const string AcrValues = "acr_values";
 
         /// <summary>
+        /// Contains the name of <c>acr_values_supported</c> parameter.
+        /// </summary>
+        public const string AcrValuesSupported = "acr_values_supported";
+
+        /// <summary>
         /// Contains the name of <c>assertion</c> parameter.
         /// </summary>
         public const string Assertion = "assertion";
@@ -65,6 +70,26 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>claims_locales</c> parameter.
         /// </summary>
         public const string ClaimsLocales = "claims_locales";
+
+        /// <summary>
+        /// Contains the name of <c>claims_locales_supported</c> parameter.
+        /// </summary>
+        public const string ClaimsLocalesSupported = "claims_locales_supported";
+
+        /// <summary>
+        /// Contains the name of <c>claims_parameter_supported</c> parameter.
+        /// </summary>
+        public const string ClaimsParameterSupported = "claims_parameter_supported";
+
+        /// <summary>
+        /// Contains the name of <c>claims_supported</c> parameter.
+        /// </summary>
+        public const string ClaimsSupported = "claims_supported";
+
+        /// <summary>
+        /// Contains the name of <c>claim_types_supported</c> parameter.
+        /// </summary>
+        public const string ClaimTypesSupported = "claim_types_supported";
 
         /// <summary>
         /// Contains the name of <c>client_assertion</c> parameter.
@@ -122,6 +147,11 @@ public static partial class OpenIdConstants
         public const string Display = "display";
 
         /// <summary>
+        /// Contains the name of <c>display_values_supported</c> parameter.
+        /// </summary>
+        public const string DisplayValuesSupported = "display_values_supported";
+
+        /// <summary>
         /// Contains the name of <c>error</c> parameter.
         /// </summary>
         public const string ErrorCode = "error";
@@ -157,6 +187,11 @@ public static partial class OpenIdConstants
         public const string GrantType = "grant_type";
 
         /// <summary>
+        /// Contains the name of <c>grant_types_supported</c> parameter.
+        /// </summary>
+        public const string GrantTypesSupported = "grant_types_supported";
+
+        /// <summary>
         /// Contains the name of <c>identity_provider</c> parameter.
         /// </summary>
         public const string IdentityProvider = "identity_provider";
@@ -167,9 +202,24 @@ public static partial class OpenIdConstants
         public const string IdToken = "id_token";
 
         /// <summary>
+        /// Contains the name of <c>id_token_encryption_alg_values_supported</c> parameter.
+        /// </summary>
+        public const string IdTokenEncryptionAlgValuesSupported = "id_token_encryption_alg_values_supported";
+
+        /// <summary>
+        /// Contains the name of <c>id_token_encryption_enc_values_supported</c> parameter.
+        /// </summary>
+        public const string IdTokenEncryptionEncValuesSupported = "id_token_encryption_enc_values_supported";
+
+        /// <summary>
         /// Contains the name of <c>id_token_hint</c> parameter.
         /// </summary>
         public const string IdTokenHint = "id_token_hint";
+
+        /// <summary>
+        /// Contains the name of <c>id_token_signing_alg_values_supported</c> parameter.
+        /// </summary>
+        public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
 
         /// <summary>
         /// Contains the name of <c>iat</c> parameter.
@@ -212,6 +262,11 @@ public static partial class OpenIdConstants
         public const string Prompt = "prompt";
 
         /// <summary>
+        /// Contains the name of <c>prompt_values_supported</c> parameter.
+        /// </summary>
+        public const string PromptValuesSupported = "prompt_values_supported";
+
+        /// <summary>
         /// Contains the name of <c>redirect_uri</c> parameter.
         /// </summary>
         public const string RedirectUri = "redirect_uri";
@@ -237,9 +292,39 @@ public static partial class OpenIdConstants
         public const string RequestId = "request_id";
 
         /// <summary>
+        /// Contains the name of <c>request_object_encryption_alg_values_supported</c> parameter.
+        /// </summary>
+        public const string RequestObjectEncryptionAlgValuesSupported = "request_object_encryption_alg_values_supported";
+
+        /// <summary>
+        /// Contains the name of <c>request_object_encryption_enc_values_supported</c> parameter.
+        /// </summary>
+        public const string RequestObjectEncryptionEncValuesSupported = "request_object_encryption_enc_values_supported";
+
+        /// <summary>
+        /// Contains the name of <c>request_object_signing_alg_values_supported</c> parameter.
+        /// </summary>
+        public const string RequestObjectSigningAlgValuesSupported = "request_object_signing_alg_values_supported";
+
+        /// <summary>
+        /// Contains the name of <c>request_parameter_supported</c> parameter.
+        /// </summary>
+        public const string RequestParameterSupported = "request_parameter_supported";
+
+        /// <summary>
+        /// Contains the name of <c>require_request_uri_registration</c> parameter.
+        /// </summary>
+        public const string RequireRequestUriRegistration = "require_request_uri_registration";
+
+        /// <summary>
         /// Contains the name of <c>request_uri</c> parameter.
         /// </summary>
         public const string RequestUri = "request_uri";
+
+        /// <summary>
+        /// Contains the name of <c>request_uri_parameter_supported</c> parameter.
+        /// </summary>
+        public const string RequestUriParameterSupported = "request_uri_parameter_supported";
 
         /// <summary>
         /// Contains the name of <c>resource</c> parameter.
@@ -252,14 +337,29 @@ public static partial class OpenIdConstants
         public const string ResponseMode = "response_mode";
 
         /// <summary>
+        /// Contains the name of <c>response_modes_supported</c> parameter.
+        /// </summary>
+        public const string ResponseModesSupported = "response_modes_supported";
+
+        /// <summary>
         /// Contains the name of <c>response_type</c> parameter.
         /// </summary>
         public const string ResponseType = "response_type";
 
         /// <summary>
+        /// Contains the name of <c>response_types_supported</c> parameter.
+        /// </summary>
+        public const string ResponseTypesSupported = "response_types_supported";
+
+        /// <summary>
         /// Contains the name of <c>scope</c> parameter.
         /// </summary>
         public const string Scope = "scope";
+
+        /// <summary>
+        /// Contains the name of <c>scopes_supported</c> parameter.
+        /// </summary>
+        public const string ScopesSupported = "scopes_supported";
 
         /// <summary>
         /// Contains the name of <c>state</c> parameter.
@@ -277,9 +377,24 @@ public static partial class OpenIdConstants
         public const string Subject = "sub";
 
         /// <summary>
+        /// Contains the name of <c>subject_types_supported</c> parameter.
+        /// </summary>
+        public const string SubjectTypesSupported = "subject_types_supported";
+
+        /// <summary>
         /// Contains the name of <c>token</c> parameter.
         /// </summary>
         public const string Token = "token";
+
+        /// <summary>
+        /// Contains the name of <c>token_endpoint_auth_methods_supported</c> parameter.
+        /// </summary>
+        public const string TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported";
+
+        /// <summary>
+        /// Contains the name of <c>token_endpoint_auth_signing_alg_values_supported</c> parameter.
+        /// </summary>
+        public const string TokenEndpointAuthSigningAlgValuesSupported = "token_endpoint_auth_signing_alg_values_supported";
 
         /// <summary>
         /// Contains the name of <c>token_type</c> parameter.
@@ -297,6 +412,11 @@ public static partial class OpenIdConstants
         public const string UiLocales = "ui_locales";
 
         /// <summary>
+        /// Contains the name of <c>ui_locales_supported</c> parameter.
+        /// </summary>
+        public const string UiLocalesSupported = "ui_locales_supported";
+
+        /// <summary>
         /// Contains the name of <c>user_code</c> parameter.
         /// </summary>
         public const string UserCode = "user_code";
@@ -305,6 +425,21 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>userinfo</c> parameter.
         /// </summary>
         public const string UserInfo = "userinfo";
+
+        /// <summary>
+        /// Contains the name of <c>userinfo_encryption_alg_values_supported</c> parameter.
+        /// </summary>
+        public const string UserInfoEncryptionAlgValuesSupported = "userinfo_encryption_alg_values_supported";
+
+        /// <summary>
+        /// Contains the name of <c>userinfo_encryption_enc_values_supported</c> parameter.
+        /// </summary>
+        public const string UserInfoEncryptionEncValuesSupported = "userinfo_encryption_enc_values_supported";
+
+        /// <summary>
+        /// Contains the name of <c>userinfo_signing_alg_values_supported</c> parameter.
+        /// </summary>
+        public const string UserInfoSigningAlgValuesSupported = "userinfo_signing_alg_values_supported";
 
         /// <summary>
         /// Contains the name of <c>username</c> parameter.

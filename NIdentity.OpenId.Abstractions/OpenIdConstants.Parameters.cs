@@ -229,7 +229,12 @@ public static partial class OpenIdConstants
         /// <summary>
         /// Contains the name of <c>iss</c> parameter.
         /// </summary>
-        public const string Issuer = "iss";
+        public const string IssuerLong = "issuer";
+
+        /// <summary>
+        /// Contains the name of <c>iss</c> parameter.
+        /// </summary>
+        public const string IssuerShort = "iss";
 
         /// <summary>
         /// Contains the name of <c>login_hint</c> parameter.

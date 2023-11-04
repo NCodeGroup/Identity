@@ -26,7 +26,7 @@ internal class DiscoveryResultExecutor : IOpenIdResultExecutor<DiscoveryResult>
 {
     public async ValueTask ExecuteResultAsync(OpenIdContext context, DiscoveryResult result, CancellationToken cancellationToken)
     {
-        var jsonResult = TypedResults.Json(result.Metadata, context.JsonSerializerOptions);
-        await jsonResult.ExecuteAsync(context.HttpContext);
+        var httpResult = TypedResults.Json(result, context.JsonSerializerOptions);
+        await httpResult.ExecuteAsync(context.HttpContext);
     }
 }

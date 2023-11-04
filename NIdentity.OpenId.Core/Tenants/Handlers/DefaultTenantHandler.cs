@@ -288,7 +288,7 @@ public class DefaultTenantHandler :
             var tenantRouteUrl = templateBinder.BindValues(httpRequest.RouteValues);
             if (!string.IsNullOrEmpty(tenantRouteUrl))
             {
-                basePath.Add(tenantRouteUrl);
+                basePath = basePath.Add(tenantRouteUrl);
             }
         }
 

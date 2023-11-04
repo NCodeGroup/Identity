@@ -21,13 +21,9 @@ using IdGen.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using NCode.Identity.JsonWebTokens;
 using NIdentity.OpenId.Endpoints;
-using NIdentity.OpenId.Endpoints.Discovery;
-using NIdentity.OpenId.Endpoints.Discovery.Results;
 using NIdentity.OpenId.Logic;
-using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Playground.Stores;
-using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.ServiceCollectionExtensions;
 using NIdentity.OpenId.Settings;
@@ -76,11 +72,7 @@ internal class Startup
         services.AddSingleton<IOpenIdServerSettingsProvider, OpenIdServerSettingsProvider>();
 
         services.AddAuthorizationEndpoint();
-
-        //services.AddOpenIdEndpoint<DiscoveryEndpointProvider, DiscoveryEndpointHandler, DiscoveryEndpointCommand>();
-        services.AddSingleton<IOpenIdEndpointProvider, DiscoveryEndpointProvider>();
-        services.AddSingleton<ICommandResponseHandler<DiscoveryEndpointCommand, IOpenIdResult>, DiscoveryEndpointHandler>();
-        services.AddSingleton<IOpenIdResultExecutor<DiscoveryResult>, DiscoveryResultExecutor>();
+        services.AddDiscoveryEndpoint();
 
         services.Configure<OpenIdServerOptions>(Configuration.GetSection("server"));
 

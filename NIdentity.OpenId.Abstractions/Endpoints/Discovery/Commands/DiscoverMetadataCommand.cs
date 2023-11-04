@@ -17,16 +17,11 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-using NIdentity.OpenId.Endpoints.Discovery.Results;
+using NIdentity.OpenId.Mediator;
 
-namespace NIdentity.OpenId.Results;
+namespace NIdentity.OpenId.Endpoints.Discovery.Commands;
 
-internal class DiscoveryResultExecutor : IOpenIdResultExecutor<DiscoveryResult>
-{
-    public async ValueTask ExecuteResultAsync(OpenIdContext context, DiscoveryResult result, CancellationToken cancellationToken)
-    {
-        var httpResult = TypedResults.Json(result, context.JsonSerializerOptions);
-        await httpResult.ExecuteAsync(context.HttpContext);
-    }
-}
+public record struct DiscoverMetadataCommand(
+    OpenIdContext OpenIdContext,
+    IDictionary<string, object> Metadata
+) : ICommand;

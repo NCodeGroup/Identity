@@ -293,7 +293,7 @@ public static class KnownParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>iss</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string?> Issuer =
-        new(OpenIdConstants.Parameters.Issuer, ParameterParsers.String)
+        new(OpenIdConstants.Parameters.IssuerShort, ParameterParsers.String)
         {
             Optional = true,
             AllowMultipleValues = false

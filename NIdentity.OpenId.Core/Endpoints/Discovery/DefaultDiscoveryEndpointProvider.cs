@@ -21,11 +21,11 @@ using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
 
-internal class DiscoveryEndpointProvider : IOpenIdEndpointProvider
+internal class DefaultDiscoveryEndpointProvider : IOpenIdEndpointProvider
 {
     private IOpenIdEndpointFactory EndpointFactory { get; }
 
-    public DiscoveryEndpointProvider(IOpenIdEndpointFactory endpointFactory)
+    public DefaultDiscoveryEndpointProvider(IOpenIdEndpointFactory endpointFactory)
     {
         EndpointFactory = endpointFactory;
     }

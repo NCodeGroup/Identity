@@ -17,19 +17,24 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using NIdentity.OpenId.Endpoints.Discovery.Commands;
 using NIdentity.OpenId.Endpoints.Discovery.Results;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
 
-internal class DiscoveryEndpointHandler : ICommandResponseHandler<DiscoveryEndpointCommand, IOpenIdResult>
+internal class DefaultDiscoveryEndpointHandler :
+    ICommandResponseHandler<DiscoveryEndpointCommand, IOpenIdResult>,
+    ICommandHandler<DiscoverMetadataCommand>
 {
     private LinkGenerator LinkGenerator { get; }
     private IOpenIdEndpointCollectionProvider OpenIdEndpointCollectionProvider { get; }
 
-    public DiscoveryEndpointHandler(
+    public DefaultDiscoveryEndpointHandler(
         LinkGenerator linkGenerator,
         IOpenIdEndpointCollectionProvider openIdEndpointCollectionProvider)
     {
@@ -37,21 +42,50 @@ internal class DiscoveryEndpointHandler : ICommandResponseHandler<DiscoveryEndpo
         OpenIdEndpointCollectionProvider = openIdEndpointCollectionProvider;
     }
 
-    public ValueTask<IOpenIdResult> HandleAsync(DiscoveryEndpointCommand command, CancellationToken cancellationToken)
+    /// <inheritdoc />
+    public async ValueTask<IOpenIdResult> HandleAsync(DiscoveryEndpointCommand command, CancellationToken cancellationToken)
     {
-        var routeValues = new { };
-        var openIdContext = command.OpenIdContext;
-        var httpContext = openIdContext.HttpContext;
+        var context = command.OpenIdContext;
 
-        var result = new DiscoveryResult();
-        var metadata = result.Metadata;
+        var result = new DiscoveryResult
+        {
+            Issuer = context.Tenant.Issuer
+        };
 
-        var settings = openIdContext.Tenant.Settings.Where(setting => setting.Descriptor.Discoverable);
+        await context.Mediator.SendAsync(
+            new DiscoverMetadataCommand(context, result.ExtensionData),
+            cancellationToken
+        );
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public ValueTask HandleAsync(DiscoverMetadataCommand command, CancellationToken cancellationToken)
+    {
+        var metadata = command.Metadata;
+        var context = command.OpenIdContext;
+
+        DiscoverSettings(metadata, context.Tenant.Settings);
+
+        DiscoverEndpoints(metadata, context.HttpContext);
+
+        return ValueTask.CompletedTask;
+    }
+
+    private static void DiscoverSettings(IDictionary<string, object> metadata, ISettingCollection settingsCollection)
+    {
+        var settings = settingsCollection.Where(setting => setting.Descriptor.Discoverable);
         foreach (var setting in settings)
         {
             var value = setting.Descriptor.Format(setting);
             metadata[setting.Descriptor.SettingName] = value;
         }
+    }
+
+    private void DiscoverEndpoints(IDictionary<string, object> metadata, HttpContext httpContext)
+    {
+        var routeValues = new { };
 
         foreach (var endpoint in OpenIdEndpointCollectionProvider.OpenIdEndpoints)
         {
@@ -71,9 +105,5 @@ internal class DiscoveryEndpointHandler : ICommandResponseHandler<DiscoveryEndpo
 
             metadata[endpointName] = endpointUrl;
         }
-
-        // TODO: add other metadata
-
-        return ValueTask.FromResult<IOpenIdResult>(result);
     }
 }

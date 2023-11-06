@@ -367,6 +367,11 @@ public static partial class OpenIdConstants
         public const string ScopesSupported = "scopes_supported";
 
         /// <summary>
+        /// Contains the name of <c>service_documentation</c> parameter.
+        /// </summary>
+        public const string ServiceDocumentation = "service_documentation";
+
+        /// <summary>
         /// Contains the name of <c>state</c> parameter.
         /// </summary>
         public const string State = "state";

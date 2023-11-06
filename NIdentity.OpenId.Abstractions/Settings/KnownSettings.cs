@@ -22,10 +22,10 @@ using System.Globalization;
 
 namespace NIdentity.OpenId.Settings;
 
-// TODO: discovery configuration
+// References:
 // https://openid.net/specs/openid-connect-discovery-1_0.html
 
-// service_documentation (OPTIONAL)
+// TODO
 // op_policy_uri (OPTIONAL)
 // op_tos_uri (OPTIONAL)
 
@@ -274,6 +274,16 @@ public static class KnownSettings
         SettingName = OpenIdConstants.Parameters.ScopesSupported,
         Discoverable = true,
         OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'service_documentation' setting.
+    /// </summary>
+    public static SettingDescriptor<string> ServiceDocumentation { get; } = new()
+    {
+        SettingName = OpenIdConstants.Parameters.ServiceDocumentation,
+        Discoverable = true,
+        OnMerge = Replace
     };
 
     /// <summary>

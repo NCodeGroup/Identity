@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -22,26 +22,27 @@ using System.ComponentModel;
 namespace NIdentity.OpenId;
 
 /// <summary>
-/// Specifies which transformation to use when verifying the PKCE code challenge.
+/// Specifies the representations of Claim Values supported by the OpenID Provider.
+/// https://openid.net/specs/openid-connect-core-1_0.html#ClaimTypes
 /// </summary>
-[TypeConverter(typeof(OpenIdEnumConverter<CodeChallengeMethod>))]
-public enum CodeChallengeMethod
+[TypeConverter(typeof(OpenIdEnumConverter<ClaimType>))]
+public enum ClaimType
 {
     /// <summary>
-    /// Represents a value that hasn't been initialized yet and its value is unknown.
+    /// Claims that are directly asserted by the OpenID Provider.
     /// </summary>
-    [Browsable(false)]
-    Unspecified = 0,
+    [OpenIdLabel(OpenIdConstants.ClaimTypes.Normal)]
+    Normal = 0,
 
     /// <summary>
-    /// Specifies to use the <c>plain</c> PKCE code challenge method.
+    /// Claims that are asserted by a Claims Provider other than the OpenID Provider but are returned by OpenID Provider.
     /// </summary>
-    [OpenIdLabel(OpenIdConstants.CodeChallengeMethods.Plain)]
-    Plain,
+    [OpenIdLabel(OpenIdConstants.ClaimTypes.Aggregated)]
+    Aggregated,
 
     /// <summary>
-    /// Specifies to use the <c>S256</c> PKCE code challenge method.
+    /// Claims that are asserted by a Claims Provider other than the OpenID Provider but are returned as references by the OpenID Provider.
     /// </summary>
-    [OpenIdLabel(OpenIdConstants.CodeChallengeMethods.S256)]
-    Sha256
+    [OpenIdLabel(OpenIdConstants.ClaimTypes.Distributed)]
+    Distributed
 }

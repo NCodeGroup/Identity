@@ -50,7 +50,7 @@ public class DefaultJsonParser : IJsonParser
                 break;
 
             case JsonTokenType.String:
-                stringValues = reader.GetString()?.Split(OpenIdConstants.ParameterSeparator);
+                stringValues = reader.GetString()?.Split(OpenIdConstants.ParameterSeparatorChar);
                 break;
 
             case JsonTokenType.Number:
@@ -77,7 +77,7 @@ public class DefaultJsonParser : IJsonParser
         Parameter parameter,
         JsonSerializerOptions options)
     {
-        var stringValue = string.Join(OpenIdConstants.ParameterSeparator, parameter.StringValues.AsEnumerable());
+        var stringValue = string.Join(OpenIdConstants.ParameterSeparatorString, parameter.StringValues.AsEnumerable());
         writer.WriteString(parameter.Descriptor.ParameterName, stringValue);
     }
 }

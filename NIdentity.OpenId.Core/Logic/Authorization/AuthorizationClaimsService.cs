@@ -26,6 +26,8 @@ using NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
+// TODO: use setting: claims_supported
+
 /// <summary>
 /// Provides a default implementation for the <see cref="IAuthorizationClaimsService"/> abstraction.
 /// </summary>

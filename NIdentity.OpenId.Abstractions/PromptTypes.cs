@@ -15,6 +15,8 @@
 //    limitations under the License.
 #endregion
 
+using System.ComponentModel;
+
 namespace NIdentity.OpenId;
 
 /// <summary>
@@ -23,11 +25,13 @@ namespace NIdentity.OpenId;
 /// attention to the request. If this parameter contains <c>none</c> with any other value, an error is returned.
 /// </summary>
 [Flags]
+[TypeConverter(typeof(OpenIdEnumConverter<PromptTypes>))]
 public enum PromptTypes
 {
     /// <summary>
     /// Represents a value that hasn't been initialized yet and its value is unknown.
     /// </summary>
+    [Browsable(false)]
     Unspecified = 0,
 
     /// <summary>
@@ -37,18 +41,21 @@ public enum PromptTypes
     /// typically be <c>login_required</c>, <c>interaction_required</c>, or another code defined in Section 3.1.2.6.
     /// This can be used as a method to check for existing authentication and/or consent.
     /// </summary>
+    [OpenIdLabel(OpenIdConstants.PromptTypes.None)]
     None = 1,
 
     /// <summary>
     /// The Authorization Server SHOULD prompt the End-User for reauthentication. If it cannot reauthenticate the
     /// End-User, it MUST return an error, typically <c>login_required</c>.
     /// </summary>
+    [OpenIdLabel(OpenIdConstants.PromptTypes.Login)]
     Login = 2,
 
     /// <summary>
     /// The Authorization Server SHOULD prompt the End-User for consent before returning information to the Client.
     /// If it cannot obtain consent, it MUST return an error, typically <c>consent_required</c>.
     /// </summary>
+    [OpenIdLabel(OpenIdConstants.PromptTypes.Consent)]
     Consent = 4,
 
     /// <summary>
@@ -57,6 +64,7 @@ public enum PromptTypes
     /// have current sessions for. If it cannot obtain an account selection choice made by the End-User, it MUST
     /// return an error, typically <c>account_selection_required</c>.
     /// </summary>
+    [OpenIdLabel(OpenIdConstants.PromptTypes.SelectAccount)]
     SelectAccount = 8,
 
     /// <summary>
@@ -65,5 +73,6 @@ public enum PromptTypes
     /// Mutually exclusive conditions can arise so it is RECOMMENDED that create not be combined with any other values.
     /// https://openid.net/specs/openid-connect-prompt-create-1_0.html
     /// </summary>
+    [OpenIdLabel(OpenIdConstants.PromptTypes.CreateAccount)]
     CreateAccount = 16,
 }

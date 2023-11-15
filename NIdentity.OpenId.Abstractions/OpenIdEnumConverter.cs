@@ -20,6 +20,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 
 namespace NIdentity.OpenId;
 
@@ -30,6 +31,7 @@ namespace NIdentity.OpenId;
 public class OpenIdEnumConverter<TEnum> : EnumConverter
     where TEnum : struct, Enum
 {
+    private bool IsFlags { get; }
     private Dictionary<TEnum, string> LookupFromEnum { get; } = new();
     private Dictionary<string, TEnum> LookupFromString { get; } = new();
 
@@ -39,6 +41,8 @@ public class OpenIdEnumConverter<TEnum> : EnumConverter
     public OpenIdEnumConverter()
         : base(typeof(TEnum))
     {
+        IsFlags = EnumType.GetCustomAttribute<FlagsAttribute>() != null;
+
         var fields = EnumType.GetFields(BindingFlags.Public | BindingFlags.Static);
         foreach (var field in fields)
         {
@@ -53,18 +57,55 @@ public class OpenIdEnumConverter<TEnum> : EnumConverter
     /// <inheritdoc />
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
     {
-        if (value is string stringValue && LookupFromString.TryGetValue(stringValue, out var enumValue))
-            return enumValue;
+        if (value is not string stringValue)
+            return base.ConvertFrom(context, culture, value);
 
-        return base.ConvertFrom(context, culture, value);
+        if (!IsFlags)
+        {
+            return !LookupFromString.TryGetValue(stringValue, out var enumValue) ?
+                base.ConvertFrom(context, culture, value) :
+                enumValue;
+        }
+
+        long combinedValue = 0;
+        foreach (var part in stringValue.Split(OpenIdConstants.ParameterSeparatorChar))
+        {
+            if (LookupFromString.TryGetValue(part, out var enumValue))
+            {
+                combinedValue |= Convert.ToInt64(enumValue, culture);
+            }
+        }
+
+        return Enum.ToObject(EnumType, combinedValue);
     }
 
     /// <inheritdoc />
     public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
     {
-        if (destinationType == typeof(string) && value is TEnum enumValue && LookupFromEnum.TryGetValue(enumValue, out var label))
-            return label;
+        if (destinationType != typeof(string) || value is not TEnum enumValue)
+            return base.ConvertTo(context, culture, value, destinationType);
 
-        return base.ConvertTo(context, culture, value, destinationType);
+        if (!IsFlags)
+        {
+            return !LookupFromEnum.TryGetValue(enumValue, out var label) ?
+                base.ConvertTo(context, culture, value, destinationType) :
+                label;
+        }
+
+        var builder = new StringBuilder();
+        var valueAsLong = Convert.ToInt64(value, culture);
+        foreach (var (mask, label) in LookupFromEnum)
+        {
+            var maskAsLong = Convert.ToInt64(mask, culture);
+            if ((valueAsLong & maskAsLong) == 0)
+                continue;
+
+            if (builder.Length > 0)
+                builder.Append(OpenIdConstants.ParameterSeparatorChar);
+
+            builder.Append(label);
+        }
+
+        return builder.ToString();
     }
 }

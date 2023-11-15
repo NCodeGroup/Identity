@@ -46,7 +46,7 @@ public class ParameterParserTests : IDisposable
     {
         var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
 
-        Assert.Equal(OpenIdConstants.ParameterSeparator, parser.Separator);
+        Assert.Equal(OpenIdConstants.ParameterSeparatorString, parser.Separator);
     }
 
     [Fact]

@@ -33,7 +33,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
     /// Gets the value which is used to delimit string lists in <c>OAuth</c> and <c>OpenID Connect</c> parameters.
     /// The default value is the space ' ' character.
     /// </summary>
-    public virtual string Separator => OpenIdConstants.ParameterSeparator;
+    public virtual string Separator => OpenIdConstants.ParameterSeparatorString;
 
     /// <summary>
     /// Gets the <see cref="StringComparison"/> that should be used when comparing string values.

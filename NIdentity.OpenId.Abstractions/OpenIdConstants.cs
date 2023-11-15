@@ -29,7 +29,32 @@ public static partial class OpenIdConstants
     /// <summary>
     /// Contains the space ' ' character which is used as the separator in string lists.
     /// </summary>
-    public const string ParameterSeparator = " ";
+    public const char ParameterSeparatorChar = ' ';
+
+    /// <summary>
+    /// Contains the space ' ' character which is used as the separator in string lists.
+    /// </summary>
+    public const string ParameterSeparatorString = " ";
+
+    public static class ClaimTypes
+    {
+        public const string Normal = "normal";
+
+        public const string Aggregated = "aggregated";
+
+        public const string Distributed = "distributed";
+    }
+
+    public static class GrantTypes
+    {
+        public const string AuthorizationCode = "authorization_code";
+        public const string Implicit = "implicit";
+        public const string Hybrid = "hybrid";
+        public const string Password = "password";
+        public const string ClientCredentials = "client_credentials";
+        public const string RefreshToken = "refresh_token";
+        public const string DeviceCode = "urn:ietf:params:oauth:grant-type:device_code";
+    }
 
     /// <summary>
     /// Contains the names for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.

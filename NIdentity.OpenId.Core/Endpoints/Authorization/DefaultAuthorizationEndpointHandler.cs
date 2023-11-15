@@ -674,21 +674,102 @@ public class DefaultAuthorizationEndpointHandler :
 
         // perform configurable checks...
 
-        if (openIdSettings.TryGet(KnownSettings.ScopesSupported.Key, out var scopesSupported))
+        // acr_values_supported
+        if (openIdSettings.TryGet(KnownSettings.AcrValuesSupported.Key, out var acrValuesSupported))
         {
-            if (!request.Scopes.Except(scopesSupported.Value).Any())
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Scope).AsException();
+            var acrValues = request.AcrValues;
+            if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported.Value).Any())
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.AcrValues).AsException();
         }
 
+        // claims_locales_supported
+        if (openIdSettings.TryGet(KnownSettings.ClaimsLocalesSupported.Key, out var claimsLocalesSupported))
+        {
+            var claimsLocales = request.ClaimsLocales;
+            if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported.Value).Any())
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.ClaimsLocales).AsException();
+        }
+
+        // claims_parameter_supported
+        if (openIdSettings.TryGet(KnownSettings.ClaimsParameterSupported.Key, out var claimsParameterSupported))
+        {
+            if (request.Claims is not null && !claimsParameterSupported.Value)
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Claims).AsException();
+        }
+
+        // claims_supported
+
+        // claim_types_supported
+
+        // display_values_supported
+        if (openIdSettings.TryGet(KnownSettings.DisplayValuesSupported.Key, out var displayValuesSupported))
+        {
+            if (!displayValuesSupported.Value.Contains(request.DisplayType))
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Display).AsException();
+        }
+
+        // grant_types_supported
+        if (openIdSettings.TryGet(KnownSettings.GrantTypesSupported.Key, out var grantTypesSupported))
+        {
+            if (!grantTypesSupported.Value.Contains(request.GrantType))
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
+        }
+
+        // id_token_encryption_alg_values_supported
+        // id_token_encryption_enc_values_supported
+        // id_token_signing_alg_values_supported
+
+        // prompt_values_supported
+        if (openIdSettings.TryGet(KnownSettings.PromptValuesSupported.Key, out var promptValuesSupported))
+        {
+            if (!promptValuesSupported.Value.Contains(request.PromptType))
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Prompt).AsException();
+        }
+
+        // request_object_encryption_alg_values_supported
+        // request_object_encryption_enc_values_supported
+        // request_object_signing_alg_values_supported
+        // request_parameter_supported
+        // request_uri_parameter_supported
+        // require_request_uri_registration
+
+        // response_modes_supported
+        if (openIdSettings.TryGet(KnownSettings.ResponseModesSupported.Key, out var responseModesSupported))
+        {
+            if (!responseModesSupported.Value.Contains(request.ResponseMode))
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseMode).AsException();
+        }
+
+        // response_types_supported
         if (openIdSettings.TryGet(KnownSettings.ResponseTypesSupported.Key, out var responseTypesSupported))
         {
             if (!responseTypesSupported.Value.Contains(request.ResponseType))
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseType).AsException();
         }
 
-        // TODO: check allowed grant types from client configuration
+        // scopes_supported
+        if (openIdSettings.TryGet(KnownSettings.ScopesSupported.Key, out var scopesSupported))
+        {
+            var scopes = request.Scopes;
+            if (scopes.Count > 0 && !scopes.Except(scopesSupported.Value).Any())
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Scope).AsException();
+        }
 
-        // TODO: check allowed scopes from client configuration
+        // service_documentation
+
+        // subject_types_supported
+        // TODO: Valid types include pairwise and public.
+
+        // token_endpoint_auth_methods_supported
+        // token_endpoint_auth_signing_alg_values_supported
+
+        // ui_locales_supported
+
+        // userinfo_encryption_alg_values_supported
+        // userinfo_encryption_enc_values_supported
+        // userinfo_signing_alg_values_supported
+
+        //
 
         // TODO: check allowed IdP from client configuration
 

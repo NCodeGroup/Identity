@@ -444,7 +444,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         jsonWriter.WriteStartObject();
         jsonWriter.WritePropertyName(parameterName);
-        jsonWriter.WriteStringValue(string.Join(OpenIdConstants.ParameterSeparator, expectedValue));
+        jsonWriter.WriteStringValue(string.Join(OpenIdConstants.ParameterSeparatorString, expectedValue));
         jsonWriter.WriteEndObject();
         jsonWriter.Flush();
 
@@ -1055,7 +1055,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal(string.Join(OpenIdConstants.ParameterSeparator, stringValues), jsonReader.GetString());
+        Assert.Equal(string.Join(OpenIdConstants.ParameterSeparatorString, stringValues), jsonReader.GetString());
 
         // }
 

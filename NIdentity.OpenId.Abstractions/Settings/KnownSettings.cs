@@ -115,7 +115,7 @@ public static class KnownSettings
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'claim_types_supported' setting.
     /// </summary>
-    public static SettingDescriptor<IReadOnlyCollection<string>> ClaimTypesSupported { get; } = new()
+    public static SettingDescriptor<IReadOnlyCollection<ClaimType>> ClaimTypesSupported { get; } = new()
     {
         SettingName = OpenIdConstants.Parameters.ClaimTypesSupported,
         Discoverable = true,

@@ -34,7 +34,7 @@ public abstract class AuthorizationContext
     public abstract Client Client { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISettingCollection"/> that contains client settings merged with server settings.
+    /// Gets the <see cref="ISettingCollection"/> that contains client settings merged with tenant settings.
     /// </summary>
     public abstract IKnownSettingCollection ClientSettings { get; }
 

@@ -19,15 +19,16 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Identity;
-using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Tenants.Commands;
 
 public record struct GetTenantIssuerCommand(
     HttpContext HttpContext,
     UriDescriptor BaseAddress,
-    TenantConfiguration TenantConfiguration,
+    TenantDescriptor TenantDescriptor,
+    ISettingCollection TenantSettings,
     IMediator Mediator,
     IPropertyBag PropertyBag
 ) : ICommand<string>;

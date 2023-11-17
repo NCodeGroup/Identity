@@ -18,7 +18,6 @@
 #endregion
 
 using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Tenants;
@@ -28,42 +27,40 @@ namespace NIdentity.OpenId.Tenants;
 /// </summary>
 public class DefaultOpenIdTenant : OpenIdTenant
 {
-    /// <inheritdoc />
-    public override string TenantId => Configuration.TenantId;
+    private TenantDescriptor TenantDescriptor { get; }
 
     /// <inheritdoc />
-    public override string DisplayName => Configuration.DisplayName;
+    public override string TenantId => TenantDescriptor.TenantId;
 
     /// <inheritdoc />
-    public override UriDescriptor BaseAddress { get; }
+    public override string DisplayName => TenantDescriptor.DisplayName;
 
     /// <inheritdoc />
     public override string Issuer { get; }
 
     /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeyProvider { get; }
-
-    /// <inheritdoc />
-    public override TenantConfiguration Configuration { get; }
+    public override UriDescriptor BaseAddress { get; }
 
     /// <inheritdoc />
     public override ISettingCollection TenantSettings { get; }
+
+    /// <inheritdoc />
+    public override ISecretKeyProvider SecretKeyProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdTenant"/> class.
     /// </summary>
     public DefaultOpenIdTenant(
-        UriDescriptor baseAddress,
+        TenantDescriptor tenantDescriptor,
         string issuer,
-        TenantConfiguration configuration,
-        ISecretKeyProvider secretKeyProvider,
-        ISettingCollection tenantSettings)
+        UriDescriptor baseAddress,
+        ISettingCollection tenantSettings,
+        ISecretKeyProvider secretKeyProvider)
     {
-        BaseAddress = baseAddress;
+        TenantDescriptor = tenantDescriptor;
         Issuer = issuer;
-
-        Configuration = configuration;
-        SecretKeyProvider = secretKeyProvider;
+        BaseAddress = baseAddress;
         TenantSettings = tenantSettings;
+        SecretKeyProvider = secretKeyProvider;
     }
 }

@@ -18,7 +18,6 @@
 #endregion
 
 using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Tenants;
@@ -39,27 +38,22 @@ public abstract class OpenIdTenant
     public abstract string DisplayName { get; }
 
     /// <summary>
-    /// Gets the base address for the tenant.
-    /// </summary>
-    public abstract UriDescriptor BaseAddress { get; }
-
-    /// <summary>
     /// Gets the issuer identifier for the tenant.
     /// </summary>
     public abstract string Issuer { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyProvider"/> for the tenant.
+    /// Gets the base address for the tenant.
     /// </summary>
-    public abstract ISecretKeyProvider SecretKeyProvider { get; }
-
-    /// <summary>
-    /// Gets the <see cref="TenantConfiguration"/> for the tenant.
-    /// </summary>
-    public abstract TenantConfiguration Configuration { get; }
+    public abstract UriDescriptor BaseAddress { get; }
 
     /// <summary>
     /// Gets the <see cref="ISettingCollection"/> for the tenant.
     /// </summary>
     public abstract ISettingCollection TenantSettings { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ISecretKeyProvider"/> for the tenant.
+    /// </summary>
+    public abstract ISecretKeyProvider SecretKeyProvider { get; }
 }

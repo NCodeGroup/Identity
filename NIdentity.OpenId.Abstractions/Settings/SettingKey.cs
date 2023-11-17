@@ -23,14 +23,9 @@ namespace NIdentity.OpenId.Settings;
 /// Represents a strongly typed key in a <see cref="ISettingCollection"/>.
 /// </summary>
 /// <typeparam name="TValue">The type of the setting's value.</typeparam>
-public readonly struct SettingKey<TValue>
+public readonly record struct SettingKey<TValue>(string SettingName)
     where TValue : notnull
 {
-    /// <summary>
-    /// Gets or sets the name of the setting.
-    /// </summary>
-    public required string SettingName { get; init; }
-
     /// <summary>
     /// Gets the type of the setting's value.
     /// </summary>

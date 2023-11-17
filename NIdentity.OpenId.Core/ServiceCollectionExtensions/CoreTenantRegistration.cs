@@ -19,8 +19,8 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Settings;
 using NIdentity.OpenId.Tenants;
 using NIdentity.OpenId.Tenants.Commands;
 using NIdentity.OpenId.Tenants.Handlers;
@@ -44,7 +44,10 @@ public static class CoreTenantRegistration
         services.AddSingleton<ICommandResponseHandler<GetOpenIdTenantCommand, OpenIdTenant>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultTenantHandler>());
 
-        services.AddSingleton<ICommandResponseHandler<GetTenantConfigurationCommand, TenantConfiguration>>(serviceProvider =>
+        services.AddSingleton<ICommandResponseHandler<GetTenantDescriptorCommand, TenantDescriptor>>(serviceProvider =>
+            serviceProvider.GetRequiredService<DefaultTenantHandler>());
+
+        services.AddSingleton<ICommandResponseHandler<GetTenantSettingsCommand, ISettingCollection>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultTenantHandler>());
 
         services.AddSingleton<ICommandResponseHandler<GetTenantSecretsCommand, ISecretKeyProvider>>(serviceProvider =>

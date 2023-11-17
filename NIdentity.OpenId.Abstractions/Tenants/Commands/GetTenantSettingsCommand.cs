@@ -20,14 +20,15 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity;
-using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Tenants.Commands;
 
-public record struct GetTenantConfigurationCommand(
+public record struct GetTenantSettingsCommand(
     HttpContext HttpContext,
     RoutePattern? TenantRoute,
+    TenantDescriptor TenantDescriptor,
     IMediator Mediator,
     IPropertyBag PropertyBag
-) : ICommand<TenantConfiguration>;
+) : ICommand<ISettingCollection>;

@@ -18,6 +18,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.DataContracts;
 
@@ -58,9 +59,9 @@ public class Tenant : ISupportId, ISupportConcurrencyToken
     public bool IsDisabled { get; set; }
 
     /// <summary>
-    /// Gets or sets the configuration for the tenant.
+    /// Gets or sets the collection of <see cref="Setting"/> instances for the tenant.
     /// </summary>
-    public TenantConfiguration Configuration { get; set; } = new();
+    public IList<Setting> Settings { get; set; } = new List<Setting>();
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to the tenant.

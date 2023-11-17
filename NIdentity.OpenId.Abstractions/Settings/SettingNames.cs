@@ -235,6 +235,11 @@ public static class SettingNames
     public const string SubjectTypesSupported = "subject_types_supported";
 
     /// <summary>
+    /// Contains the name of <c>tenant_issuer</c> setting.
+    /// </summary>
+    public const string TenantIssuer = "tenant_issuer";
+
+    /// <summary>
     /// Contains the name of <c>token_endpoint_auth_methods_supported</c> setting.
     /// </summary>
     public const string TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported";

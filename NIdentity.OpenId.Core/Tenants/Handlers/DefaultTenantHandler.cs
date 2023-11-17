@@ -31,6 +31,7 @@ using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Servers;
+using NIdentity.OpenId.Settings;
 using NIdentity.OpenId.Stores;
 using NIdentity.OpenId.Tenants.Commands;
 
@@ -41,7 +42,8 @@ namespace NIdentity.OpenId.Tenants.Handlers;
 /// </summary>
 public class DefaultTenantHandler :
     ICommandResponseHandler<GetOpenIdTenantCommand, OpenIdTenant>,
-    ICommandResponseHandler<GetTenantConfigurationCommand, TenantConfiguration>,
+    ICommandResponseHandler<GetTenantDescriptorCommand, TenantDescriptor>,
+    ICommandResponseHandler<GetTenantSettingsCommand, ISettingCollection>,
     ICommandResponseHandler<GetTenantSecretsCommand, ISecretKeyProvider>,
     ICommandResponseHandler<GetTenantBaseAddressCommand, UriDescriptor>,
     ICommandResponseHandler<GetTenantIssuerCommand, string>
@@ -70,15 +72,40 @@ public class DefaultTenantHandler :
         ServerSettingsProvider = serverSettingsProvider;
     }
 
+    private async ValueTask<Tenant> GetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
+    {
+        var tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        if (tenant is null)
+            throw TypedResults.NotFound().AsException($"A tenant with identifier '{tenantId}' could not be found.");
+        return tenant;
+    }
+
+    private async ValueTask<Tenant> GetTenantByDomainAsync(string domainName, CancellationToken cancellationToken)
+    {
+        var tenant = await TenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
+        if (tenant is null)
+            throw TypedResults.NotFound().AsException($"A tenant with domain '{domainName}' could not be found.");
+        return tenant;
+    }
+
     /// <inheritdoc />
     public async ValueTask<OpenIdTenant> HandleAsync(GetOpenIdTenantCommand command, CancellationToken cancellationToken)
     {
         var (httpContext, tenantRoute, mediator, propertyBag) = command;
 
-        var tenantConfiguration = await mediator.SendAsync<GetTenantConfigurationCommand, TenantConfiguration>(
-            new GetTenantConfigurationCommand(
+        var tenantDescriptor = await mediator.SendAsync<GetTenantDescriptorCommand, TenantDescriptor>(
+            new GetTenantDescriptorCommand(
                 httpContext,
                 tenantRoute,
+                mediator,
+                propertyBag),
+            cancellationToken);
+
+        var tenantSettings = await mediator.SendAsync<GetTenantSettingsCommand, ISettingCollection>(
+            new GetTenantSettingsCommand(
+                httpContext,
+                tenantRoute,
+                tenantDescriptor,
                 mediator,
                 propertyBag),
             cancellationToken);
@@ -87,7 +114,8 @@ public class DefaultTenantHandler :
             new GetTenantBaseAddressCommand(
                 httpContext,
                 tenantRoute,
-                tenantConfiguration,
+                tenantDescriptor,
+                tenantSettings,
                 mediator,
                 propertyBag),
             cancellationToken);
@@ -96,7 +124,8 @@ public class DefaultTenantHandler :
             new GetTenantIssuerCommand(
                 httpContext,
                 baseAddress,
-                tenantConfiguration,
+                tenantDescriptor,
+                tenantSettings,
                 mediator,
                 propertyBag),
             cancellationToken);
@@ -104,35 +133,34 @@ public class DefaultTenantHandler :
         var secretKeyProvider = await mediator.SendAsync<GetTenantSecretsCommand, ISecretKeyProvider>(
             new GetTenantSecretsCommand(
                 httpContext,
-                tenantConfiguration,
+                tenantDescriptor,
+                tenantSettings,
                 mediator,
                 propertyBag),
             cancellationToken);
 
         httpContext.Response.RegisterForDispose(secretKeyProvider);
 
-        var settingsAfterMerge = ServerSettingsProvider.Settings.Merge(tenantConfiguration.Settings);
-
         return new DefaultOpenIdTenant(
-            baseAddress,
+            tenantDescriptor,
             issuer,
-            tenantConfiguration,
-            secretKeyProvider,
-            settingsAfterMerge);
+            baseAddress,
+            tenantSettings,
+            secretKeyProvider);
     }
 
-    #region GetTenantConfigurationCommand
+    #region GetTenantDescriptorCommand
 
     /// <inheritdoc />
-    public async ValueTask<TenantConfiguration> HandleAsync(
-        GetTenantConfigurationCommand command,
+    public async ValueTask<TenantDescriptor> HandleAsync(
+        GetTenantDescriptorCommand command,
         CancellationToken cancellationToken)
     {
         return ServerOptions.Tenant.Mode switch
         {
-            TenantMode.StaticSingle => GetTenantFromOptions(),
-            TenantMode.DynamicByHost => await GetTenantFromHostAsync(command, cancellationToken),
-            TenantMode.DynamicByPath => await GetTenantFromPathAsync(command, cancellationToken),
+            TenantMode.StaticSingle => GetTenantDescriptorFromOptions(),
+            TenantMode.DynamicByHost => await GetTenantDescriptorFromHostAsync(command, cancellationToken),
+            TenantMode.DynamicByPath => await GetTenantDescriptorFromPathAsync(command, cancellationToken),
             _ => throw new InvalidOperationException($"Unsupported TenantMode: {ServerOptions.Tenant.Mode}")
         };
     }
@@ -140,25 +168,29 @@ public class DefaultTenantHandler :
     private static InvalidOperationException MissingTenantOptionsException(TenantMode mode) =>
         new($"The TenantMode is '{mode}' but the corresponding options are missing.");
 
-    private TenantConfiguration GetTenantFromOptions()
+    private TenantDescriptor GetTenantDescriptorFromOptions()
     {
         var options = ServerOptions.Tenant.StaticSingle;
         if (options is null)
             throw MissingTenantOptionsException(TenantMode.StaticSingle);
 
-        var configuration = options.TenantConfiguration;
+        var tenantId = options.TenantId;
+        if (string.IsNullOrEmpty(tenantId))
+            tenantId = StaticSingleOpenIdTenantOptions.DefaultTenantId;
 
-        if (string.IsNullOrEmpty(configuration.TenantId))
-            configuration.TenantId = StaticSingleOpenIdTenantOptions.DefaultTenantId;
+        var displayName = options.DisplayName;
+        if (string.IsNullOrEmpty(displayName))
+            displayName = StaticSingleOpenIdTenantOptions.DefaultDisplayName;
 
-        if (string.IsNullOrEmpty(configuration.DisplayName))
-            configuration.DisplayName = StaticSingleOpenIdTenantOptions.DefaultDisplayName;
-
-        return configuration;
+        return new TenantDescriptor
+        {
+            TenantId = tenantId,
+            DisplayName = displayName
+        };
     }
 
-    private async ValueTask<TenantConfiguration> GetTenantFromHostAsync(
-        GetTenantConfigurationCommand command,
+    private async ValueTask<TenantDescriptor> GetTenantDescriptorFromHostAsync(
+        GetTenantDescriptorCommand command,
         CancellationToken cancellationToken)
     {
         var options = ServerOptions.Tenant.DynamicByHost;
@@ -175,17 +207,20 @@ public class DefaultTenantHandler :
         var match = regex.Match(host);
         var domainName = match.Success ? match.Value : host;
 
-        var tenant = await TenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
-        if (tenant is null)
-            throw TypedResults.NotFound().AsException($"A tenant with domain '{domainName}' could not be found.");
+        var tenant = await GetTenantByDomainAsync(domainName, cancellationToken);
 
         command.PropertyBag.Set(tenant);
 
-        return tenant.Configuration;
+        return new TenantDescriptor
+        {
+            TenantId = tenant.TenantId,
+            DisplayName = tenant.DisplayName,
+            DomainName = tenant.DomainName
+        };
     }
 
-    private async ValueTask<TenantConfiguration> GetTenantFromPathAsync(
-        GetTenantConfigurationCommand command,
+    private async ValueTask<TenantDescriptor> GetTenantDescriptorFromPathAsync(
+        GetTenantDescriptorCommand command,
         CancellationToken cancellationToken)
     {
         var options = ServerOptions.Tenant.DynamicByPath;
@@ -213,13 +248,38 @@ public class DefaultTenantHandler :
         if (string.IsNullOrEmpty(tenantId))
             throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' is empty.");
 
-        var tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
-        if (tenant is null)
-            throw TypedResults.NotFound().AsException($"A tenant with identifier '{tenantId}' could not be found.");
+        var tenant = await GetTenantByIdAsync(tenantId, cancellationToken);
 
         command.PropertyBag.Set(tenant);
 
-        return tenant.Configuration;
+        return new TenantDescriptor
+        {
+            TenantId = tenant.TenantId,
+            DisplayName = tenant.DisplayName,
+            DomainName = tenant.DomainName
+        };
+    }
+
+    #endregion
+
+    #region GetTenantSettingsCommand
+
+    /// <inheritdoc />
+    public async ValueTask<ISettingCollection> HandleAsync(GetTenantSettingsCommand command, CancellationToken cancellationToken)
+    {
+        if (command.PropertyBag.TryGet<Tenant>(out var tenant))
+        {
+            return ServerSettingsProvider.Settings.Merge(tenant.Settings);
+        }
+
+        if (ServerOptions.Tenant.Mode == TenantMode.StaticSingle)
+        {
+            return ServerSettingsProvider.Settings;
+        }
+
+        tenant = await GetTenantByIdAsync(command.TenantDescriptor.TenantId, cancellationToken);
+
+        return ServerSettingsProvider.Settings.Merge(tenant.Settings);
     }
 
     #endregion
@@ -227,9 +287,7 @@ public class DefaultTenantHandler :
     #region GetTenantSecretsCommand
 
     /// <inheritdoc />
-    public async ValueTask<ISecretKeyProvider> HandleAsync(
-        GetTenantSecretsCommand command,
-        CancellationToken cancellationToken)
+    public async ValueTask<ISecretKeyProvider> HandleAsync(GetTenantSecretsCommand command, CancellationToken cancellationToken)
     {
         if (command.PropertyBag.TryGet<Tenant>(out var tenant))
         {
@@ -242,10 +300,7 @@ public class DefaultTenantHandler :
             return serviceProvider.GetRequiredService<ISecretKeyProvider>();
         }
 
-        var tenantId = command.TenantConfiguration.TenantId;
-        tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
-        if (tenant is null)
-            throw TypedResults.NotFound().AsException($"A tenant with identifier '{tenantId}' could not be found.");
+        tenant = await GetTenantByIdAsync(command.TenantDescriptor.TenantId, cancellationToken);
 
         return DeserializeSecrets(tenant.Secrets);
     }
@@ -307,14 +362,14 @@ public class DefaultTenantHandler :
     /// <inheritdoc />
     public ValueTask<string> HandleAsync(GetTenantIssuerCommand command, CancellationToken cancellationToken)
     {
-        var baseAddress = command.BaseAddress;
-        var tenantConfiguration = command.TenantConfiguration;
+        var tenantSettings = command.TenantSettings;
+        if (tenantSettings.TryGet(new SettingKey<string>(SettingNames.TenantIssuer), out var setting) &&
+            !string.IsNullOrEmpty(setting.Value))
+        {
+            return ValueTask.FromResult(setting.Value);
+        }
 
-        var issuer = tenantConfiguration.Issuer;
-        if (string.IsNullOrEmpty(issuer))
-            issuer = baseAddress.ToString();
-
-        return ValueTask.FromResult(issuer);
+        return ValueTask.FromResult(command.BaseAddress.ToString());
     }
 
     #endregion

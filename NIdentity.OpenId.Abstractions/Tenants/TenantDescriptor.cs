@@ -1,14 +1,14 @@
 ﻿#region Copyright Preamble
 
-//
+// 
 //    Copyright @ 2023 NCode Group
-//
+// 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-//
+// 
 //        http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,27 +17,23 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Options;
+namespace NIdentity.OpenId.Tenants;
 
-public class StaticSingleOpenIdTenantOptions
+public readonly struct TenantDescriptor
 {
-    /// <summary>
-    /// Contains the default value for the tenant's identifier.
-    /// </summary>
-    public const string DefaultTenantId = "default";
-
-    /// <summary>
-    /// Contains the default value for the tenant's display name.
-    /// </summary>
-    public const string DefaultDisplayName = "Default Tenant";
-
     /// <summary>
     /// Gets or sets the identifier for the tenant.
     /// </summary>
-    public string TenantId { get; set; } = DefaultTenantId;
+    public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the display name for the tenant.
     /// </summary>
-    public string DisplayName { get; set; } = DefaultDisplayName;
+    public required string DisplayName { get; init; }
+
+    /// <summary>
+    /// Gets or sets the domain name for the tenant.
+    /// This value is optional and can be used to find tenants by domain name.
+    /// </summary>
+    public string? DomainName { get; init; }
 }

@@ -61,5 +61,5 @@ public abstract class OpenIdTenant
     /// <summary>
     /// Gets the <see cref="ISettingCollection"/> for the tenant.
     /// </summary>
-    public abstract ISettingCollection Settings { get; }
+    public abstract ISettingCollection TenantSettings { get; }
 }

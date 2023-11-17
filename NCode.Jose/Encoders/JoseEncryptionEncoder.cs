@@ -24,21 +24,21 @@ namespace NCode.Jose.Encoders;
 /// <summary>
 /// Provides an implementation of <see cref="JoseEncoder"/> that can be used to encrypt JWE tokens.
 /// </summary>
-public class JoseEncryptingEncoder : CommonJoseEncoder
+public class JoseEncryptionEncoder : CommonJoseEncoder
 {
-    private JoseEncryptingOptions EncryptingOptions { get; }
+    private JoseEncryptionOptions EncryptionOptions { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JoseEncryptingEncoder"/> class with the specified encryption credentials and options.
+    /// Initializes a new instance of the <see cref="JoseEncryptionEncoder"/> class with the specified encryption credentials and options.
     /// </summary>
     /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
-    /// <param name="encryptingOptions">The JOSE encryption credentials and options.</param>
-    public JoseEncryptingEncoder(
+    /// <param name="encryptionOptions">The JOSE encryption credentials and options.</param>
+    public JoseEncryptionEncoder(
         JoseSerializer joseSerializer,
-        JoseEncryptingOptions encryptingOptions)
+        JoseEncryptionOptions encryptionOptions)
         : base(joseSerializer)
     {
-        EncryptingOptions = encryptingOptions;
+        EncryptionOptions = encryptionOptions;
     }
 
     /// <inheritdoc />
@@ -49,6 +49,6 @@ public class JoseEncryptingEncoder : CommonJoseEncoder
         JoseSerializer.Encode(
             tokenWriter,
             payload,
-            EncryptingOptions,
+            EncryptionOptions,
             extraHeaders);
 }

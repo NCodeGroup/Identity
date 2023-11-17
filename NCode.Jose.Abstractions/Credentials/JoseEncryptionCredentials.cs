@@ -27,9 +27,9 @@ namespace NCode.Jose.Credentials;
 /// </summary>
 /// <param name="SecretKey">The Key Encryption Key (KEK) to use for encryption.</param>
 /// <param name="KeyManagementAlgorithm">The <see cref="KeyManagementAlgorithm"/> to use for key management.</param>
-/// <param name="AuthenticatedEncryptionAlgorithm">The <see cref="AuthenticatedEncryptionAlgorithm"/> to use for encryption.</param>
+/// <param name="AuthenticatedEncryptionAlgorithm">The <see cref="AuthenticatedEncryptionAlgorithm"/> to use for authenticated encryption.</param>
 /// <param name="CompressionAlgorithm">The optional <see cref="CompressionAlgorithm"/> to use for compression.</param>
-public record JoseEncryptingCredentials(
+public record JoseEncryptionCredentials(
         SecretKey SecretKey,
         KeyManagementAlgorithm KeyManagementAlgorithm,
         AuthenticatedEncryptionAlgorithm AuthenticatedEncryptionAlgorithm,

@@ -43,12 +43,12 @@ public class SettingDescriptorCollection : ISettingDescriptorCollection
     /// <param name="descriptors">The collection of <see cref="SettingDescriptor"/> instances.</param>
     public SettingDescriptorCollection(IEnumerable<SettingDescriptor> descriptors)
     {
-        Descriptors = descriptors.ToDictionary(d => d.SettingName, StringComparer.Ordinal);
+        Descriptors = descriptors.ToDictionary(d => d.Name, StringComparer.Ordinal);
     }
 
     /// <inheritdoc />
     public void Register(SettingDescriptor descriptor) =>
-        Descriptors[descriptor.SettingName] = descriptor;
+        Descriptors[descriptor.Name] = descriptor;
 
     /// <inheritdoc />
     public bool TryGet(string settingName, [MaybeNullWhen(false)] out SettingDescriptor descriptor) =>

@@ -50,16 +50,7 @@ public class TenantConfiguration
     /// </summary>
     public string? Issuer { get; set; }
 
-    /// <summary>
-    /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.
-    /// The default is <c>300</c> seconds (5 minutes).
-    /// </summary>
-    public TimeSpan ClockSkew { get; set; } = TimeSpan.FromMinutes(5);
-
-    /// <summary>
-    /// Gets or set the <see cref="AuthorizationConfiguration"/> for the authorization handler.
-    /// </summary>
-    public AuthorizationConfiguration Authorization { get; set; } = new();
+    // TODO: move settings to tenant POCO
 
     /// <summary>
     /// Gets or sets the collection of <see cref="Setting"/> instances for the tenant.

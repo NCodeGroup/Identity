@@ -66,7 +66,7 @@ public class SettingJsonConverterTests : BaseTests
 
         var descriptor = new SettingDescriptor<SettingValue>
         {
-            SettingName = settingName,
+            Name = settingName,
             OnMerge = (_, other) => other
         };
 
@@ -96,7 +96,7 @@ public class SettingJsonConverterTests : BaseTests
 
         var descriptor = new SettingDescriptor<SettingValue>
         {
-            SettingName = settingName,
+            Name = settingName,
             OnMerge = (_, other) => other
         };
 

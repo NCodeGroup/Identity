@@ -251,13 +251,13 @@ public class JoseSerializerTests : BaseTests
                 out var compressionAlgorithm))
             compressionAlgorithm = null;
 
-        var encryptingCredentials = new JoseEncryptingCredentials(
+        var encryptingCredentials = new JoseEncryptionCredentials(
             secretKey,
             keyManagementAlgorithm,
             encryptionAlgorithm,
             compressionAlgorithm);
 
-        var encryptingOptions = new JoseEncryptingOptions(encryptingCredentials);
+        var encryptingOptions = new JoseEncryptionOptions(encryptingCredentials);
 
         var token = JoseSerializer.Encode(
             originalPayload,

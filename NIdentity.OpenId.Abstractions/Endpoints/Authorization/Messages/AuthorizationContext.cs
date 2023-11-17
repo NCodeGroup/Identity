@@ -19,6 +19,7 @@
 
 using NCode.Identity;
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
@@ -31,6 +32,11 @@ public abstract class AuthorizationContext
     /// Gets the <see cref="Client"/> instance that was loaded using the <see cref="IAuthorizationRequest.ClientId"/> parameter.
     /// </summary>
     public abstract Client Client { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ISettingCollection"/> that contains client settings merged with server settings.
+    /// </summary>
+    public abstract IKnownSettingCollection ClientSettings { get; }
 
     /// <summary>
     /// Gets the <see cref="IAuthorizationRequest"/> that contains the <c>OAuth</c> or <c>OpenID Connect</c> authorization parameters.

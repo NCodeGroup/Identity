@@ -43,7 +43,7 @@ public class SettingCollection : ISettingCollection
     /// <param name="settings">The collection of <see cref="Setting"/> instances.</param>
     public SettingCollection(IEnumerable<Setting> settings)
     {
-        Settings = settings.ToDictionary(setting => setting.Descriptor.SettingName);
+        Settings = settings.ToDictionary(setting => setting.Descriptor.Name);
     }
 
     private SettingCollection(Dictionary<string, Setting> settings)
@@ -71,7 +71,7 @@ public class SettingCollection : ISettingCollection
 
     /// <inheritdoc />
     public void Set(Setting setting)
-        => Settings[setting.Descriptor.SettingName] = setting;
+        => Settings[setting.Descriptor.Name] = setting;
 
     /// <inheritdoc />
     public bool Remove<TValue>(SettingKey<TValue> key)
@@ -79,20 +79,19 @@ public class SettingCollection : ISettingCollection
         => Settings.Remove(key.SettingName);
 
     /// <inheritdoc />
-    public ISettingCollection Merge(ISettingCollection otherCollection)
+    public ISettingCollection Merge(IEnumerable<Setting> otherCollection)
     {
-        var currentCollection = Settings.Values;
         var newCollection = new Dictionary<string, Setting>(StringComparer.Ordinal);
 
         // TL;DR: Full Outer Join
 
-        foreach (var currentSetting in currentCollection)
+        foreach (var otherSetting in otherCollection)
         {
-            var baseDescriptor = currentSetting.Descriptor;
-            var settingName = baseDescriptor.SettingName;
+            var baseDescriptor = otherSetting.Descriptor;
+            var settingName = baseDescriptor.Name;
 
-            var newSetting = currentSetting;
-            if (otherCollection.TryGet(settingName, out var otherSetting))
+            var newSetting = otherSetting;
+            if (TryGet(settingName, out var currentSetting))
             {
                 newSetting = baseDescriptor.Merge(currentSetting, otherSetting);
             }
@@ -100,11 +99,11 @@ public class SettingCollection : ISettingCollection
             newCollection.Add(settingName, newSetting);
         }
 
-        foreach (var otherSetting in otherCollection)
+        foreach (var currentSetting in Settings.Values)
         {
-            var settingName = otherSetting.Descriptor.SettingName;
+            var settingName = currentSetting.Descriptor.Name;
             if (newCollection.ContainsKey(settingName)) continue;
-            newCollection.Add(settingName, otherSetting);
+            newCollection.Add(settingName, currentSetting);
         }
 
         return new SettingCollection(newCollection);

@@ -24,22 +24,22 @@ namespace NCode.Jose;
 /// <summary>
 /// Contains the credentials and set of options that are required when encrypting a JWE token.
 /// </summary>
-public class JoseEncryptingOptions : JoseEncodingOptions
+public class JoseEncryptionOptions : JoseEncodingOptions
 {
     /// <inheritdoc />
-    public override JoseCredentials Credentials => EncryptingCredentials;
+    public override JoseCredentials Credentials => EncryptionCredentials;
 
     /// <summary>
-    /// Gets the <see cref="JoseEncryptingCredentials"/> that are used to encrypt the JWE token.
+    /// Gets the <see cref="JoseEncryptionCredentials"/> that are used to encrypt the JWE token.
     /// </summary>
-    public JoseEncryptingCredentials EncryptingCredentials { get; }
+    public JoseEncryptionCredentials EncryptionCredentials { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JoseEncryptingOptions"/> class.
+    /// Initializes a new instance of the <see cref="JoseEncryptionOptions"/> class.
     /// </summary>
-    /// <param name="encryptingCredentials">The <see cref="JoseEncryptingCredentials"/> that are used to encrypt the JWE token.</param>
-    public JoseEncryptingOptions(JoseEncryptingCredentials encryptingCredentials)
+    /// <param name="encryptionCredentials">The <see cref="JoseEncryptionCredentials"/> that are used to encrypt the JWE token.</param>
+    public JoseEncryptionOptions(JoseEncryptionCredentials encryptionCredentials)
     {
-        EncryptingCredentials = encryptingCredentials;
+        EncryptionCredentials = encryptionCredentials;
     }
 }

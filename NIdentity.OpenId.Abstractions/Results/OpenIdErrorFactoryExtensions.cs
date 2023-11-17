@@ -91,7 +91,7 @@ public static class OpenIdErrorFactoryExtensions
     /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>
     /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.RequestNotSupported"/>.</param>
     /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-    public static IOpenIdError RequestJwtNotSupported(this IOpenIdErrorFactory factory, string errorCode = OpenIdConstants.ErrorCodes.RequestNotSupported)
+    public static IOpenIdError RequestParameterNotSupported(this IOpenIdErrorFactory factory, string errorCode = OpenIdConstants.ErrorCodes.RequestNotSupported)
     {
         return factory.Create(errorCode).WithDescription("The 'request' parameter is not supported.");
     }
@@ -104,7 +104,7 @@ public static class OpenIdErrorFactoryExtensions
     /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
     public static IOpenIdError RequestUriNotSupported(this IOpenIdErrorFactory factory, string errorCode = OpenIdConstants.ErrorCodes.RequestUriNotSupported)
     {
-        return factory.Create(errorCode).WithDescription("The request_uri parameter is not supported.");
+        return factory.Create(errorCode).WithDescription("The 'request_uri' parameter is not supported.");
     }
 
     /// <summary>

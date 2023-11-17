@@ -72,7 +72,7 @@ public class CredentialSelector : ICredentialSelector
         IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredAlgorithms,
         IReadOnlyCollection<SecretKey> candidateKeys,
-        [MaybeNullWhen(false)] out Tuple<SecretKey, T> credentials)
+        out (SecretKey SecretKey, T Algorithm) credentials)
         where T : KeyedAlgorithm
     {
         foreach (var algorithmCode in preferredAlgorithms)
@@ -82,7 +82,7 @@ public class CredentialSelector : ICredentialSelector
 
             foreach (var secretKey in candidateKeys.Where(secretKey => IsSecretKeyCompatible(secretKey, algorithm, expectedUse)))
             {
-                credentials = Tuple.Create(secretKey, algorithm);
+                credentials = (secretKey, algorithm);
                 return true;
             }
         }
@@ -103,24 +103,27 @@ public class CredentialSelector : ICredentialSelector
                 AlgorithmType.DigitalSignature,
                 candidateAlgorithms,
                 preferredSignatureAlgorithms,
-                candidateKeys, out var tuple))
+                candidateKeys,
+                out var signing))
         {
             credentials = null;
             return false;
         }
 
-        credentials = new JoseSigningCredentials(tuple.Item1, tuple.Item2);
+        credentials = new JoseSigningCredentials(
+            signing.SecretKey,
+            signing.Algorithm);
         return true;
     }
 
     /// <inheritdoc />
-    public bool TryGetEncryptingCredentials(
+    public bool TryGetEncryptionCredentials(
         IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredKeyManagementAlgorithms,
-        IEnumerable<string> preferredEncryptionAlgorithms,
+        IEnumerable<string> preferredAuthenticatedEncryptionAlgorithms,
         IEnumerable<string> preferredCompressionAlgorithms,
         IReadOnlyCollection<SecretKey> candidateKeys,
-        [MaybeNullWhen(false)] out JoseEncryptingCredentials credentials)
+        [MaybeNullWhen(false)] out JoseEncryptionCredentials credentials)
     {
         if (!TryGetCredential<KeyManagementAlgorithm>(
                 SecretKeyUses.Encryption,
@@ -128,7 +131,7 @@ public class CredentialSelector : ICredentialSelector
                 candidateAlgorithms,
                 preferredKeyManagementAlgorithms,
                 candidateKeys,
-                out var tuple))
+                out var keyManagement))
         {
             credentials = null;
             return false;
@@ -137,8 +140,8 @@ public class CredentialSelector : ICredentialSelector
         if (!TryGetAlgorithm<AuthenticatedEncryptionAlgorithm>(
                 AlgorithmType.AuthenticatedEncryption,
                 candidateAlgorithms,
-                preferredEncryptionAlgorithms,
-                out var encryptionAlgorithm))
+                preferredAuthenticatedEncryptionAlgorithms,
+                out var authenticatedEncryptionAlgorithm))
         {
             credentials = null;
             return false;
@@ -150,10 +153,10 @@ public class CredentialSelector : ICredentialSelector
             preferredCompressionAlgorithms,
             out var compressionAlgorithm);
 
-        credentials = new JoseEncryptingCredentials(
-            tuple.Item1,
-            tuple.Item2,
-            encryptionAlgorithm,
+        credentials = new JoseEncryptionCredentials(
+            keyManagement.SecretKey,
+            keyManagement.Algorithm,
+            authenticatedEncryptionAlgorithm,
             compressionAlgorithm);
         return true;
     }

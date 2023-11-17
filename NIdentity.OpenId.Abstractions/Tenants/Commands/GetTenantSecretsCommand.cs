@@ -27,7 +27,7 @@ namespace NIdentity.OpenId.Tenants.Commands;
 
 public record struct GetTenantSecretsCommand(
     HttpContext HttpContext,
-    TenantConfiguration Configuration,
+    TenantConfiguration TenantConfiguration,
     IMediator Mediator,
     IPropertyBag PropertyBag
 ) : ICommand<ISecretKeyProvider>;

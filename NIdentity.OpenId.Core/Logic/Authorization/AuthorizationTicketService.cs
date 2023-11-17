@@ -81,7 +81,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         var context = command.AuthorizationContext;
 
         var createdWhen = ticket.CreatedWhen;
-        var expiresWhen = createdWhen + context.Client.AuthorizationCodeLifetime;
+        var expiresWhen = createdWhen + context.ClientSettings.AuthorizationCodeLifetime;
 
         var (code, hashedCode) = GenerateAuthorizationCode();
         Debug.Assert(hashedCode.Length <= DataConstants.MaxIndexLength);
@@ -172,20 +172,22 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         var openIdContext = authorizationRequest.OpenIdContext;
         var authenticationTicket = command.AuthenticationTicket;
 
-        var client = authorizationContext.Client;
-        var tokenConfiguration = client.AccessTokenConfiguration;
+        var clientSettings = authorizationContext.ClientSettings;
 
         var tenant = openIdContext.Tenant;
         var secretKeys = tenant.SecretKeyProvider.SecretKeys;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmProvider.Algorithms,
-            tokenConfiguration,
+            clientSettings.AccessTokenSigningAlgValuesSupported,
             secretKeys);
 
-        var encryptingCredentials = GetEncryptingCredentials(
+        var encryptionCredentials = GetEncryptionCredentials(
             AlgorithmProvider.Algorithms,
-            tokenConfiguration,
+            clientSettings.AccessTokenEncryptionRequired,
+            clientSettings.AccessTokenEncryptionAlgValuesSupported,
+            clientSettings.AccessTokenEncryptionEncValuesSupported,
+            clientSettings.AccessTokenEncryptionZipValuesSupported,
             secretKeys);
 
         var tokenId = GenerateTokenId();
@@ -215,17 +217,21 @@ public class AuthorizationTicketService : IAuthorizationTicketService
                 cancellationToken)
             .ToListAsync(cancellationToken);
 
+        var lifetime = clientSettings.AccessTokenLifetime;
+
         var parameters = new EncodeJwtParameters
         {
+            TokenType = clientSettings.AccessTokenType,
+
             SigningCredentials = signingCredentials,
-            EncryptingCredentials = encryptingCredentials,
+            EncryptionCredentials = encryptionCredentials,
 
             Issuer = tenant.Issuer,
             Audience = authorizationRequest.ClientId,
 
             IssuedAt = createdWhen,
             NotBefore = createdWhen,
-            Expires = createdWhen + tokenConfiguration.Lifetime,
+            Expires = createdWhen + lifetime,
 
             SubjectClaims = subjectClaims,
             ExtraPayloadClaims = payload
@@ -237,7 +243,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
 
         ticket.AccessToken = accessToken;
         ticket.TokenType = OpenIdConstants.TokenTypes.Bearer;
-        ticket.ExpiresIn = tokenConfiguration.Lifetime;
+        ticket.ExpiresIn = lifetime;
     }
 
     /// <inheritdoc />
@@ -257,20 +263,22 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
         // https://learn.microsoft.com/en-us/azure/active-directory/develop/id-token-claims-reference
 
-        var client = authorizationContext.Client;
-        var tokenConfiguration = client.IdTokenConfiguration;
+        var clientSettings = authorizationContext.ClientSettings;
 
         var tenant = openIdContext.Tenant;
         var secretKeys = tenant.SecretKeyProvider.SecretKeys;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmProvider.Algorithms,
-            tokenConfiguration,
+            clientSettings.IdTokenSigningAlgValuesSupported,
             secretKeys);
 
-        var encryptingCredentials = GetEncryptingCredentials(
+        var encryptionCredentials = GetEncryptionCredentials(
             AlgorithmProvider.Algorithms,
-            tokenConfiguration,
+            clientSettings.IdTokenEncryptionRequired,
+            clientSettings.IdTokenEncryptionAlgValuesSupported,
+            clientSettings.IdTokenEncryptionEncValuesSupported,
+            clientSettings.IdTokenEncryptionZipValuesSupported,
             secretKeys);
 
         var payload = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -300,14 +308,14 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         var parameters = new EncodeJwtParameters
         {
             SigningCredentials = signingCredentials,
-            EncryptingCredentials = encryptingCredentials,
+            EncryptionCredentials = encryptionCredentials,
 
             Issuer = tenant.Issuer,
             Audience = authorizationRequest.ClientId,
 
             IssuedAt = createdWhen,
             NotBefore = createdWhen,
-            Expires = createdWhen + tokenConfiguration.Lifetime,
+            Expires = createdWhen + clientSettings.IdTokenLifetime,
 
             SubjectClaims = subjectClaims,
             ExtraPayloadClaims = payload
@@ -320,35 +328,44 @@ public class AuthorizationTicketService : IAuthorizationTicketService
 
     private JoseSigningCredentials GetSigningCredentials(
         IAlgorithmCollection candidateAlgorithms,
-        TokenConfiguration tokenConfiguration,
+        IEnumerable<string> signingAlgValuesSupported,
         ISecretKeyCollection secretKeys)
     {
         if (!CredentialSelector.TryGetSigningCredentials(
                 candidateAlgorithms,
-                tokenConfiguration.SignatureAlgorithms,
+                signingAlgValuesSupported,
                 secretKeys,
                 out var signingCredentials))
+        {
             throw new JoseCredentialsNotFoundException("Unable to locate signing credentials.");
+        }
+
         return signingCredentials;
     }
 
-    private JoseEncryptingCredentials? GetEncryptingCredentials(
+    private JoseEncryptionCredentials? GetEncryptionCredentials(
         IAlgorithmCollection candidateAlgorithms,
-        TokenConfiguration tokenConfiguration,
+        bool encryptionRequired,
+        IEnumerable<string> encryptionAlgValuesSupported,
+        IEnumerable<string> encryptionEncValuesSupported,
+        IEnumerable<string> encryptionZipValuesSupported,
         ISecretKeyCollection secretKeys)
     {
-        JoseEncryptingCredentials? encryptingCredentials = null;
-        var requireEncryption = tokenConfiguration.RequireEncryption;
-        if (requireEncryption &&
-            !CredentialSelector.TryGetEncryptingCredentials(
+        if (!encryptionRequired)
+            return null;
+
+        if (!CredentialSelector.TryGetEncryptionCredentials(
                 candidateAlgorithms,
-                tokenConfiguration.KeyManagementAlgorithms,
-                tokenConfiguration.EncryptionAlgorithms,
-                tokenConfiguration.CompressionAlgorithms,
+                encryptionAlgValuesSupported,
+                encryptionEncValuesSupported,
+                encryptionZipValuesSupported,
                 secretKeys,
-                out encryptingCredentials))
-            throw new JoseCredentialsNotFoundException("Unable to locate encrypting credentials.");
-        return encryptingCredentials;
+                out var encryptionCredentials))
+        {
+            throw new JoseCredentialsNotFoundException("Unable to locate encryption credentials.");
+        }
+
+        return encryptionCredentials;
     }
 
     private static void GenerateParameterHashes(

@@ -66,7 +66,7 @@ internal class DefaultDiscoveryEndpointHandler :
         var metadata = command.Metadata;
         var context = command.OpenIdContext;
 
-        DiscoverSettings(metadata, context.Tenant.Settings);
+        DiscoverSettings(metadata, context.Tenant.TenantSettings);
 
         DiscoverEndpoints(metadata, context.HttpContext);
 
@@ -79,7 +79,7 @@ internal class DefaultDiscoveryEndpointHandler :
         foreach (var setting in settings)
         {
             var value = setting.Descriptor.Format(setting);
-            metadata[setting.Descriptor.SettingName] = value;
+            metadata[setting.Descriptor.Name] = value;
         }
     }
 

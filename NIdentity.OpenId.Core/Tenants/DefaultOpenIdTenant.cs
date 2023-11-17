@@ -47,7 +47,7 @@ public class DefaultOpenIdTenant : OpenIdTenant
     public override TenantConfiguration Configuration { get; }
 
     /// <inheritdoc />
-    public override ISettingCollection Settings { get; }
+    public override ISettingCollection TenantSettings { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultOpenIdTenant"/> class.
@@ -57,13 +57,13 @@ public class DefaultOpenIdTenant : OpenIdTenant
         string issuer,
         TenantConfiguration configuration,
         ISecretKeyProvider secretKeyProvider,
-        ISettingCollection settings)
+        ISettingCollection tenantSettings)
     {
         BaseAddress = baseAddress;
         Issuer = issuer;
 
         Configuration = configuration;
         SecretKeyProvider = secretKeyProvider;
-        Settings = settings;
+        TenantSettings = tenantSettings;
     }
 }

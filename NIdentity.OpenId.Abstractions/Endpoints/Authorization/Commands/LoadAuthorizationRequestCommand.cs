@@ -20,6 +20,7 @@
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
@@ -29,7 +30,9 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 /// </summary>
 /// <param name="AuthorizationSource">The <see cref="IAuthorizationSource"/> input argument for the command contract.</param>
 /// <param name="Client">The <see cref="Client"/> input argument for the command contract.</param>
+/// <param name="ClientSettings">The <see cref="IKnownSettingCollection"/> input argument for the command contract.</param>
 public record struct LoadAuthorizationRequestCommand(
     IAuthorizationSource AuthorizationSource,
-    Client Client
+    Client Client,
+    IKnownSettingCollection ClientSettings
 ) : ICommand<AuthorizationContext>;

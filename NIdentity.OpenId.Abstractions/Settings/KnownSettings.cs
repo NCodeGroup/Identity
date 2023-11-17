@@ -19,6 +19,8 @@
 
 using System.ComponentModel;
 using System.Globalization;
+using NCode.Jose;
+using NCode.Jose.Algorithms;
 
 namespace NIdentity.OpenId.Settings;
 
@@ -73,13 +75,155 @@ public static class KnownSettings
     //
 
     /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'access_token_encryption_alg_values_supported' setting.
+    /// </summary>
+    public static SettingDescriptor<IReadOnlyCollection<string>> AccessTokenEncryptionAlgValuesSupported { get; } = new()
+    {
+        Name = SettingNames.AccessTokenEncryptionAlgValuesSupported,
+
+        Discoverable = false,
+        OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'access_token_encryption_enc_values_supported' setting.
+    /// </summary>
+    public static SettingDescriptor<IReadOnlyCollection<string>> AccessTokenEncryptionEncValuesSupported { get; } = new()
+    {
+        Name = SettingNames.AccessTokenEncryptionEncValuesSupported,
+
+        Discoverable = false,
+        OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'access_token_encryption_required' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> AccessTokenEncryptionRequired { get; } = new()
+    {
+        Name = SettingNames.AccessTokenEncryptionRequired,
+        Default = false,
+
+        Discoverable = false,
+        OnMerge = Or
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'access_token_encryption_zip_values_supported' setting.
+    /// </summary>
+    public static SettingDescriptor<IReadOnlyCollection<string>> AccessTokenEncryptionZipValuesSupported { get; } = new()
+    {
+        Name = SettingNames.AccessTokenEncryptionZipValuesSupported,
+        Default = new[] { AlgorithmCodes.Compression.Deflate },
+
+        Discoverable = false,
+        OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'access_token_lifetime' setting.
+    /// </summary>
+    public static SettingDescriptor<TimeSpan> AccessTokenLifetime { get; } = new()
+    {
+        Name = SettingNames.AccessTokenLifetime,
+        Default = TimeSpan.FromMinutes(5.0),
+
+        Discoverable = false,
+        OnMerge = Replace
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'access_token_signing_alg_values_supported' setting.
+    /// </summary>
+    public static SettingDescriptor<IReadOnlyCollection<string>> AccessTokenSigningAlgValuesSupported { get; } = new()
+    {
+        Name = SettingNames.AccessTokenSigningAlgValuesSupported,
+
+        Discoverable = false,
+        OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'access_token_type' setting.
+    /// </summary>
+    public static SettingDescriptor<string> AccessTokenType { get; } = new()
+    {
+        Name = SettingNames.AccessTokenType,
+        Default = JoseTokenTypes.Jwt,
+
+        Discoverable = false,
+        OnMerge = Replace
+    };
+
+    /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'acr_values_supported' setting.
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> AcrValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.AcrValuesSupported,
+        Name = SettingNames.AcrValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'allow_loopback_redirect' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> AllowLoopbackRedirect { get; } = new()
+    {
+        Name = SettingNames.AllowLoopbackRedirect,
+        Default = true,
+
+        Discoverable = false,
+        OnMerge = And
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'allow_plain_code_challenge_method' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> AllowPlainCodeChallengeMethod { get; } = new()
+    {
+        Name = SettingNames.AllowPlainCodeChallengeMethod,
+        Default = true,
+
+        Discoverable = false,
+        OnMerge = And,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'allow_unsafe_token_response' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> AllowUnsafeTokenResponse { get; } = new()
+    {
+        Name = SettingNames.AllowUnsafeTokenResponse,
+        Default = true,
+
+        Discoverable = false,
+        OnMerge = And
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'authorization_code_lifetime' setting.
+    /// </summary>
+    public static SettingDescriptor<TimeSpan> AuthorizationCodeLifetime { get; } = new()
+    {
+        Name = SettingNames.AuthorizationCodeLifetime,
+        Default = TimeSpan.FromMinutes(5.0),
+
+        Discoverable = false,
+        OnMerge = Replace
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'authorization_sign_in_scheme' setting.
+    /// </summary>
+    public static SettingDescriptor<string> AuthorizationSignInScheme { get; } = new()
+    {
+        Name = SettingNames.AuthorizationSignInScheme,
+        Default = string.Empty,
+
+        Discoverable = false,
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -87,7 +231,7 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> ClaimsLocalesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.ClaimsLocalesSupported,
+        Name = SettingNames.ClaimsLocalesSupported,
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -97,7 +241,7 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<bool> ClaimsParameterSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.ClaimsParameterSupported,
+        Name = SettingNames.ClaimsParameterSupported,
         Discoverable = true,
         OnMerge = And
     };
@@ -107,7 +251,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> ClaimsSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.ClaimsSupported,
+        Name = SettingNames.ClaimsSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -117,9 +262,22 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<ClaimType>> ClaimTypesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.ClaimTypesSupported,
+        Name = SettingNames.ClaimTypesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'clock_skew' setting.
+    /// </summary>
+    public static SettingDescriptor<TimeSpan> ClockSkew { get; } = new()
+    {
+        Name = SettingNames.ClockSkew,
+        Default = TimeSpan.FromMinutes(5),
+
+        Discoverable = true,
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -127,7 +285,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<DisplayType>> DisplayValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.DisplayValuesSupported,
+        Name = SettingNames.DisplayValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect,
         OnFormat = ConvertToInvariantString
@@ -138,7 +297,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<GrantType>> GrantTypesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.GrantTypesSupported,
+        Name = SettingNames.GrantTypesSupported,
+
         Discoverable = true,
         OnMerge = Intersect,
         OnFormat = ConvertToInvariantString
@@ -149,7 +309,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> IdTokenEncryptionAlgValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.IdTokenEncryptionAlgValuesSupported,
+        Name = SettingNames.IdTokenEncryptionAlgValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -159,9 +320,46 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> IdTokenEncryptionEncValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.IdTokenEncryptionEncValuesSupported,
+        Name = SettingNames.IdTokenEncryptionEncValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'id_token_encryption_required' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> IdTokenEncryptionRequired { get; } = new()
+    {
+        Name = SettingNames.IdTokenEncryptionRequired,
+        Default = false,
+
+        Discoverable = false,
+        OnMerge = Or
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'id_token_encryption_zip_values_supported' setting.
+    /// </summary>
+    public static SettingDescriptor<IReadOnlyCollection<string>> IdTokenEncryptionZipValuesSupported { get; } = new()
+    {
+        Name = SettingNames.IdTokenEncryptionZipValuesSupported,
+        Default = new[] { AlgorithmCodes.Compression.Deflate },
+
+        Discoverable = false,
+        OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'id_token_lifetime' setting.
+    /// </summary>
+    public static SettingDescriptor<TimeSpan> IdTokenLifetime { get; } = new()
+    {
+        Name = SettingNames.IdTokenLifetime,
+        Default = TimeSpan.FromMinutes(5.0),
+
+        Discoverable = false,
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -169,7 +367,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> IdTokenSigningAlgValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.IdTokenSigningAlgValuesSupported,
+        Name = SettingNames.IdTokenSigningAlgValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -179,7 +378,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<PromptTypes>> PromptValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.PromptValuesSupported,
+        Name = SettingNames.PromptValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -189,7 +389,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> RequestObjectEncryptionAlgValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.RequestObjectEncryptionAlgValuesSupported,
+        Name = SettingNames.RequestObjectEncryptionAlgValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -199,7 +400,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> RequestObjectEncryptionEncValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.RequestObjectEncryptionEncValuesSupported,
+        Name = SettingNames.RequestObjectEncryptionEncValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -209,9 +411,22 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> RequestObjectSigningAlgValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.RequestObjectSigningAlgValuesSupported,
+        Name = SettingNames.RequestObjectSigningAlgValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'request_object_expected_audience' setting.
+    /// </summary>
+    public static SettingDescriptor<string> RequestObjectExpectedAudience { get; } = new()
+    {
+        Name = SettingNames.RequestObjectExpectedAudience,
+        Default = string.Empty,
+
+        Discoverable = false,
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -219,7 +434,9 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<bool> RequestParameterSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.RequestParameterSupported,
+        Name = SettingNames.RequestParameterSupported,
+        Default = true,
+
         Discoverable = true,
         OnMerge = And
     };
@@ -229,9 +446,47 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<bool> RequestUriParameterSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.RequestUriParameterSupported,
+        Name = SettingNames.RequestUriParameterSupported,
+        Default = true,
+
         Discoverable = true,
         OnMerge = And
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'request_uri_require_strict_content_type' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> RequestUriRequireStrictContentType { get; } = new()
+    {
+        Name = SettingNames.RequestUriRequireStrictContentType,
+        Default = false,
+
+        Discoverable = false,
+        OnMerge = Or
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'request_uri_expected_content_type' setting.
+    /// </summary>
+    public static SettingDescriptor<string> RequestUriExpectedContentType { get; } = new()
+    {
+        Name = SettingNames.RequestUriExpectedContentType,
+        Default = "falseapplication/oauth-authz-req+jwt",
+
+        Discoverable = false,
+        OnMerge = Replace
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'require_pkce' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> RequireCodeChallenge { get; } = new()
+    {
+        Name = SettingNames.RequireCodeChallenge,
+        Default = false,
+
+        Discoverable = false,
+        OnMerge = Or
     };
 
     /// <summary>
@@ -239,7 +494,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<bool> RequireRequestUriRegistration { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.RequireRequestUriRegistration,
+        Name = SettingNames.RequireRequestUriRegistration,
+
         Discoverable = true,
         OnMerge = Or
     };
@@ -249,7 +505,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<ResponseMode>> ResponseModesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.ResponseModesSupported,
+        Name = SettingNames.ResponseModesSupported,
+
         Discoverable = true,
         OnMerge = Intersect,
         OnFormat = ConvertToInvariantString
@@ -260,7 +517,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<ResponseTypes>> ResponseTypesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.ResponseTypesSupported,
+        Name = SettingNames.ResponseTypesSupported,
+
         Discoverable = true,
         OnMerge = Intersect,
         OnFormat = ConvertToInvariantString
@@ -271,7 +529,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> ScopesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.ScopesSupported,
+        Name = SettingNames.ScopesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -281,7 +540,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<string> ServiceDocumentation { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.ServiceDocumentation,
+        Name = SettingNames.ServiceDocumentation,
+
         Discoverable = true,
         OnMerge = Replace
     };
@@ -291,7 +551,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> SubjectTypesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.SubjectTypesSupported,
+        Name = SettingNames.SubjectTypesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -301,7 +562,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> TokenEndpointAuthMethodsSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.TokenEndpointAuthMethodsSupported,
+        Name = SettingNames.TokenEndpointAuthMethodsSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -311,7 +573,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> TokenEndpointAuthSigningAlgValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.TokenEndpointAuthSigningAlgValuesSupported,
+        Name = SettingNames.TokenEndpointAuthSigningAlgValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -321,7 +584,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> UiLocalesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.UiLocalesSupported,
+        Name = SettingNames.UiLocalesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -331,7 +595,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> UserInfoEncryptionAlgValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.UserInfoEncryptionAlgValuesSupported,
+        Name = SettingNames.UserInfoEncryptionAlgValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -341,7 +606,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> UserInfoEncryptionEncValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.UserInfoEncryptionEncValuesSupported,
+        Name = SettingNames.UserInfoEncryptionEncValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -351,7 +617,8 @@ public static class KnownSettings
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> UserInfoSigningAlgValuesSupported { get; } = new()
     {
-        SettingName = OpenIdConstants.Parameters.UserInfoSigningAlgValuesSupported,
+        Name = SettingNames.UserInfoSigningAlgValuesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };

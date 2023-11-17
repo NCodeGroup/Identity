@@ -43,17 +43,17 @@ public class EncodeJwtParameters
 
     /// <summary>
     /// Gets or sets the <see cref="JoseSigningCredentials"/> that is used to sign the token.
-    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptingCredentials"/> are specified,
+    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptionCredentials"/> are specified,
     /// then the result will be a nested JWS+JWE token. Both credentials cannot be <c>null</c>.
     /// </summary>
     public JoseSigningCredentials? SigningCredentials { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="JoseEncryptingCredentials"/> that is used to encrypt the token.
-    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptingCredentials"/> are specified,
+    /// Gets or sets the <see cref="JoseEncryptionCredentials"/> that is used to encrypt the token.
+    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptionCredentials"/> are specified,
     /// then the result will be a nested JWS+JWE token. Both credentials cannot be <c>null</c>.
     /// </summary>
-    public JoseEncryptingCredentials? EncryptingCredentials { get; set; }
+    public JoseEncryptionCredentials? EncryptionCredentials { get; set; }
 
     /// <summary>
     /// Gets or sets the value of the <c>iss</c> claim.

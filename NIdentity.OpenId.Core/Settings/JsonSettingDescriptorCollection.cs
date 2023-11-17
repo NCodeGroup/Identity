@@ -66,35 +66,35 @@ public class JsonSettingDescriptorCollection : IJsonSettingDescriptorCollection
             case JsonTokenType.String:
                 return new SettingDescriptor<string>
                 {
-                    SettingName = settingName,
+                    Name = settingName,
                     OnMerge = MergeOther
                 };
 
             case JsonTokenType.True or JsonTokenType.False:
                 return new SettingDescriptor<bool>
                 {
-                    SettingName = settingName,
+                    Name = settingName,
                     OnMerge = MergeAnd
                 };
 
             case JsonTokenType.Number:
                 return new SettingDescriptor<double>
                 {
-                    SettingName = settingName,
+                    Name = settingName,
                     OnMerge = MergeOther
                 };
 
             case JsonTokenType.StartArray:
                 return new SettingDescriptor<List<string>>
                 {
-                    SettingName = settingName,
+                    Name = settingName,
                     OnMerge = MergeIntersect
                 };
         }
 
         return new SettingDescriptor<JsonElement>
         {
-            SettingName = settingName,
+            Name = settingName,
             OnMerge = MergeOther
         };
     }

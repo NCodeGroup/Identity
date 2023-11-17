@@ -27,7 +27,7 @@ public abstract class SettingDescriptor
     /// <summary>
     /// Gets or sets the name of the setting.
     /// </summary>
-    public required string SettingName { get; init; }
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets the type of the setting's value.
@@ -78,6 +78,20 @@ public class SettingDescriptor<TValue> : SettingDescriptor
 
     /// <inheritdoc />
     public override Type ValueType => typeof(TValue);
+
+    /// <summary>
+    /// Gets or sets the default value for the setting.
+    /// </summary>
+    private TValue? DefaultOrNull { get; init; }
+
+    /// <summary>
+    /// Gets the default value for the setting or throws an <see cref="InvalidOperationException"/> if the default value is not set.
+    /// </summary>
+    public TValue Default
+    {
+        get => DefaultOrNull ?? throw new InvalidOperationException();
+        init => DefaultOrNull = value;
+    }
 
     /// <summary>
     /// Gets or sets the factory method used to create a new <see cref="Setting{TValue}"/> instance with the specified <paramref name="value"/>.
@@ -147,6 +161,6 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <returns>The <see cref="SettingKey{TValue}"/> instance.</returns>
     public static implicit operator SettingKey<TValue>(SettingDescriptor<TValue> descriptor) => new()
     {
-        SettingName = descriptor.SettingName
+        SettingName = descriptor.Name
     };
 }

@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Tenants.Commands;
 public record struct GetTenantBaseAddressCommand(
     HttpContext HttpContext,
     RoutePattern? TenantRoute,
-    TenantConfiguration Configuration,
+    TenantConfiguration TenantConfiguration,
     IMediator Mediator,
     IPropertyBag PropertyBag
 ) : ICommand<UriDescriptor>;

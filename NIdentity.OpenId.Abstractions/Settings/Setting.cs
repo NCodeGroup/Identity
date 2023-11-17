@@ -20,7 +20,7 @@ public abstract class Setting
     }
 
     /// <summary>
-    /// Gets the value of this setting.
+    /// Gets the boxed value of this setting.
     /// </summary>
     public abstract object GetValue();
 }

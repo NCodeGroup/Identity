@@ -24,7 +24,7 @@ using NCode.Jose.SecretKeys;
 namespace NCode.Jose.Credentials;
 
 /// <summary>
-/// Provides the ability to retrieve <see cref="JoseSigningCredentials"/> and <see cref="JoseEncryptingCredentials"/> instances
+/// Provides the ability to retrieve <see cref="JoseSigningCredentials"/> and <see cref="JoseEncryptionCredentials"/> instances
 /// based on criteria that specify preferred algorithms and secret keys.
 /// </summary>
 public interface ICredentialSelector
@@ -44,20 +44,20 @@ public interface ICredentialSelector
         [MaybeNullWhen(false)] out JoseSigningCredentials credentials);
 
     /// <summary>
-    /// Attempts to retrieve <see cref="JoseEncryptingCredentials"/> based on the specified criteria.
+    /// Attempts to retrieve <see cref="JoseEncryptionCredentials"/> based on the specified criteria.
     /// </summary>
     /// <param name="candidateAlgorithms">The composite collection of <see cref="Algorithm"/> instances to consider.</param>
     /// <param name="preferredKeyManagementAlgorithms">The ordered collection of key management algorithms that are preferred.</param>
-    /// <param name="preferredEncryptionAlgorithms">The ordered collection of encryption algorithms that are preferred.</param>
+    /// <param name="preferredAuthenticatedEncryptionAlgorithms">The ordered collection of authenticated encryption algorithms that are preferred.</param>
     /// <param name="preferredCompressionAlgorithms">The ordered collection of compression algorithms that are preferred.</param>
     /// <param name="candidateKeys">The ordered composite collection of <see cref="SecretKey"/> instances to consider.</param>
-    /// <param name="credentials">When this method returns, contains the <see cref="JoseEncryptingCredentials"/> that meet the specified criteria.</param>
+    /// <param name="credentials">When this method returns, contains the <see cref="JoseEncryptionCredentials"/> that meet the specified criteria.</param>
     /// <returns><c>true</c> if encryption credentials were found that match the specified criteria; otherwise, <c>false</c>.</returns>
-    bool TryGetEncryptingCredentials(
+    bool TryGetEncryptionCredentials(
         IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredKeyManagementAlgorithms,
-        IEnumerable<string> preferredEncryptionAlgorithms,
+        IEnumerable<string> preferredAuthenticatedEncryptionAlgorithms,
         IEnumerable<string> preferredCompressionAlgorithms,
         IReadOnlyCollection<SecretKey> candidateKeys,
-        [MaybeNullWhen(false)] out JoseEncryptingCredentials credentials);
+        [MaybeNullWhen(false)] out JoseEncryptionCredentials credentials);
 }

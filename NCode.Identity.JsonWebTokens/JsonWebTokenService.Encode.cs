@@ -54,9 +54,9 @@ partial class JsonWebTokenService
             valueToEncode = encodedToken;
         }
 
-        if (parameters.EncryptingCredentials is not null)
+        if (parameters.EncryptionCredentials is not null)
         {
-            var encryptingOptions = new JoseEncryptingOptions(parameters.EncryptingCredentials)
+            var encryptingOptions = new JoseEncryptionOptions(parameters.EncryptionCredentials)
             {
                 TokenType = parameters.TokenType,
                 AddKeyIdHeader = parameters.AddKeyIdHeader

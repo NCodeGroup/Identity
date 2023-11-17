@@ -27,7 +27,7 @@ namespace NIdentity.OpenId.Tenants.Commands;
 public record struct GetTenantIssuerCommand(
     HttpContext HttpContext,
     UriDescriptor BaseAddress,
-    TenantConfiguration Configuration,
+    TenantConfiguration TenantConfiguration,
     IMediator Mediator,
     IPropertyBag PropertyBag
 ) : ICommand<string>;

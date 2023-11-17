@@ -31,7 +31,6 @@ using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Servers;
-using NIdentity.OpenId.Settings;
 using NIdentity.OpenId.Stores;
 using NIdentity.OpenId.Tenants.Commands;
 
@@ -76,7 +75,7 @@ public class DefaultTenantHandler :
     {
         var (httpContext, tenantRoute, mediator, propertyBag) = command;
 
-        var configuration = await mediator.SendAsync<GetTenantConfigurationCommand, TenantConfiguration>(
+        var tenantConfiguration = await mediator.SendAsync<GetTenantConfigurationCommand, TenantConfiguration>(
             new GetTenantConfigurationCommand(
                 httpContext,
                 tenantRoute,
@@ -88,7 +87,7 @@ public class DefaultTenantHandler :
             new GetTenantBaseAddressCommand(
                 httpContext,
                 tenantRoute,
-                configuration,
+                tenantConfiguration,
                 mediator,
                 propertyBag),
             cancellationToken);
@@ -97,7 +96,7 @@ public class DefaultTenantHandler :
             new GetTenantIssuerCommand(
                 httpContext,
                 baseAddress,
-                configuration,
+                tenantConfiguration,
                 mediator,
                 propertyBag),
             cancellationToken);
@@ -105,20 +104,19 @@ public class DefaultTenantHandler :
         var secretKeyProvider = await mediator.SendAsync<GetTenantSecretsCommand, ISecretKeyProvider>(
             new GetTenantSecretsCommand(
                 httpContext,
-                configuration,
+                tenantConfiguration,
                 mediator,
                 propertyBag),
             cancellationToken);
 
         httpContext.Response.RegisterForDispose(secretKeyProvider);
 
-        var settingsBeforeMerge = new SettingCollection(configuration.Settings);
-        var settingsAfterMerge = ServerSettingsProvider.Settings.Merge(settingsBeforeMerge);
+        var settingsAfterMerge = ServerSettingsProvider.Settings.Merge(tenantConfiguration.Settings);
 
         return new DefaultOpenIdTenant(
             baseAddress,
             issuer,
-            configuration,
+            tenantConfiguration,
             secretKeyProvider,
             settingsAfterMerge);
     }
@@ -244,7 +242,7 @@ public class DefaultTenantHandler :
             return serviceProvider.GetRequiredService<ISecretKeyProvider>();
         }
 
-        var tenantId = command.Configuration.TenantId;
+        var tenantId = command.TenantConfiguration.TenantId;
         tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
         if (tenant is null)
             throw TypedResults.NotFound().AsException($"A tenant with identifier '{tenantId}' could not be found.");
@@ -310,7 +308,7 @@ public class DefaultTenantHandler :
     public ValueTask<string> HandleAsync(GetTenantIssuerCommand command, CancellationToken cancellationToken)
     {
         var baseAddress = command.BaseAddress;
-        var tenantConfiguration = command.Configuration;
+        var tenantConfiguration = command.TenantConfiguration;
 
         var issuer = tenantConfiguration.Issuer;
         if (string.IsNullOrEmpty(issuer))

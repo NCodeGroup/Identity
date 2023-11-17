@@ -127,6 +127,7 @@ public class DefaultAuthorizationEndpointHandler :
         // everything after this point is safe to redirect to the client
 
         var client = clientRedirectContext.Client;
+        var clientSettings = clientRedirectContext.ClientSettings;
         var redirectUri = clientRedirectContext.RedirectUri;
         var responseMode = clientRedirectContext.ResponseMode;
 
@@ -135,7 +136,8 @@ public class DefaultAuthorizationEndpointHandler :
             var authorizationContext = await mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationContext>(
                 new LoadAuthorizationRequestCommand(
                     authorizationSource,
-                    client),
+                    client,
+                    clientSettings),
                 cancellationToken);
 
             // the request object may have changed the response mode
@@ -150,7 +152,7 @@ public class DefaultAuthorizationEndpointHandler :
                 cancellationToken);
 
             var authenticateResult = await mediator.SendAsync<AuthenticateCommand, AuthenticateResult>(
-                new AuthenticateCommand(openIdContext),
+                new AuthenticateCommand(authorizationContext),
                 cancellationToken);
 
             if (!authenticateResult.Succeeded)
@@ -260,7 +262,10 @@ public class DefaultAuthorizationEndpointHandler :
                 .AsException();
         }
 
-        var isSafe = (client.AllowLoopback && redirectUri.IsLoopback) || client.RedirectUris.Contains(redirectUri);
+        var mergedSettings = authorizationSource.OpenIdContext.Tenant.TenantSettings.Merge(client.Settings);
+        var clientSettings = new KnownSettingCollection(mergedSettings);
+
+        var isSafe = (clientSettings.AllowLoopbackRedirect && redirectUri.IsLoopback) || client.RedirectUris.Contains(redirectUri);
         if (!isSafe)
         {
             throw errorFactory
@@ -274,6 +279,7 @@ public class DefaultAuthorizationEndpointHandler :
         {
             State = state,
             Client = client,
+            ClientSettings = clientSettings,
             RedirectUri = redirectUri,
             ResponseMode = responseMode
         };
@@ -349,32 +355,31 @@ public class DefaultAuthorizationEndpointHandler :
     {
         var authorizationSource = command.AuthorizationSource;
         var client = command.Client;
+        var clientSettings = command.ClientSettings;
 
         var openIdContext = authorizationSource.OpenIdContext;
-        var configuration = openIdContext.Tenant.Configuration.Authorization.RequestObject;
 
         // the following will parse string-values into strongly-typed parameters and may throw
         var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
         requestMessage.AuthorizationSourceType = authorizationSource.AuthorizationSourceType;
 
         var requestObject = await LoadRequestObjectAsync(
-            configuration,
             requestMessage,
             client,
-            cancellationToken);
+            clientSettings, cancellationToken);
 
         var authorizationRequest = new AuthorizationRequest(
             requestMessage,
             requestObject);
 
         var propertyBag = openIdContext.PropertyBag.Clone();
-        return new DefaultAuthorizationContext(client, authorizationRequest, propertyBag);
+        return new DefaultAuthorizationContext(client, clientSettings, authorizationRequest, propertyBag);
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
-        AuthorizationRequestObjectConfiguration configuration,
         IAuthorizationRequestMessage requestMessage,
         Client client,
+        IKnownSettingCollection clientSettings,
         CancellationToken cancellationToken)
     {
         var requestJwt = requestMessage.RequestJwt;
@@ -394,21 +399,15 @@ public class DefaultAuthorizationEndpointHandler :
                     .InvalidRequest("Both the 'request' and 'request_uri' parameters cannot be present at the same time.", errorCode)
                     .AsException();
 
-            if (!configuration.RequestUriEnabled)
+            if (!clientSettings.RequestUriParameterSupported)
                 throw errorFactory
                     .RequestUriNotSupported()
                     .AsException();
 
-            var requestUriMaxLength = configuration.RequestUriMaxLength;
-            if (requestUri.OriginalString.Length > requestUriMaxLength)
-                throw errorFactory
-                    .InvalidRequest($"The 'request_uri' parameter must not exceed {requestUriMaxLength} characters.", errorCode)
-                    .AsException();
-
             requestJwt = await FetchRequestUriAsync(
-                configuration,
                 errorFactory,
                 client,
+                clientSettings,
                 requestUri,
                 cancellationToken);
         }
@@ -417,16 +416,10 @@ public class DefaultAuthorizationEndpointHandler :
             requestObjectSource = RequestObjectSource.Inline;
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
-            if (!configuration.RequestJwtEnabled)
+            if (!clientSettings.RequestParameterSupported)
                 throw errorFactory
-                    .RequestJwtNotSupported()
+                    .RequestParameterNotSupported()
                     .AsException();
-        }
-        else if (client.RequireRequestObject)
-        {
-            throw errorFactory
-                .InvalidRequest("Client configuration requires the use of 'request' or 'request_uri' parameters.")
-                .AsException();
         }
         else
         {
@@ -442,9 +435,12 @@ public class DefaultAuthorizationEndpointHandler :
             var parameters = new ValidateJwtParameters()
                 .UseValidationKeys(secretKeys)
                 .ValidateIssuer(client.ClientId)
-                .ValidateAudience(configuration.Audience)
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();
+
+            var expectedAudience = clientSettings.RequestObjectExpectedAudience;
+            if (!string.IsNullOrEmpty(expectedAudience))
+                parameters.ValidateAudience(expectedAudience);
 
             var result = await JsonWebTokenService.ValidateJwtAsync(
                 requestJwt,
@@ -493,9 +489,9 @@ public class DefaultAuthorizationEndpointHandler :
     }
 
     private async ValueTask<string> FetchRequestUriAsync(
-        AuthorizationRequestObjectConfiguration configuration,
         IOpenIdErrorFactory errorFactory,
         Client client,
+        IKnownSettingCollection clientSettings,
         Uri requestUri,
         CancellationToken cancellationToken)
     {
@@ -514,8 +510,8 @@ public class DefaultAuthorizationEndpointHandler :
                     .AsException();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            var expectedContentType = configuration.ExpectedContentType;
-            if (configuration.StrictContentType && contentType != expectedContentType)
+            var expectedContentType = clientSettings.RequestUriExpectedContentType;
+            if (clientSettings.RequestUriRequireStrictContentType && !string.Equals(contentType, expectedContentType, StringComparison.Ordinal))
                 throw errorFactory
                     .InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.")
                     .AsException();
@@ -547,13 +543,14 @@ public class DefaultAuthorizationEndpointHandler :
         var requestMessage = authorizationRequest.OriginalRequestMessage;
         var requestObject = authorizationRequest.OriginalRequestObject;
         var client = authorizationContext.Client;
+        var clientSettings = authorizationContext.ClientSettings;
 
         ValidateRequestMessage(requestMessage);
 
         if (requestObject != null)
             ValidateRequestObject(requestMessage, requestObject);
 
-        ValidateRequest(client, authorizationRequest);
+        ValidateRequest(client, clientSettings, authorizationRequest);
 
         return ValueTask.CompletedTask;
     }
@@ -620,11 +617,12 @@ public class DefaultAuthorizationEndpointHandler :
     [AssertionMethod]
     private static void ValidateRequest(
         Client client,
+        IKnownSettingCollection clientSettings,
         IAuthorizationRequest request)
     {
         var openIdContext = request.OpenIdContext;
         var openIdTenant = openIdContext.Tenant;
-        var openIdSettings = openIdTenant.Settings;
+        var openIdSettings = openIdTenant.TenantSettings;
         var errorFactory = openIdContext.ErrorFactory;
 
         var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
@@ -662,15 +660,15 @@ public class DefaultAuthorizationEndpointHandler :
             throw errorFactory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.").AsException();
 
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
-        if (request.ResponseType.HasFlag(ResponseTypes.Token) && !client.AllowUnsafeTokenResponse)
-            throw errorFactory.UnauthorizedClient("The client configuration prohibits the use of unsafe token responses.").AsException();
+        if (request.ResponseType.HasFlag(ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
+            throw errorFactory.UnauthorizedClient("The configuration prohibits the use of unsafe token responses.").AsException();
 
         // ReSharper disable once ConvertIfStatementToSwitchStatement
-        if (!hasCodeChallenge && client.RequirePkce)
-            throw errorFactory.UnauthorizedClient("The client configuration requires the use of PKCE parameters.").AsException();
+        if (!hasCodeChallenge && clientSettings.RequireCodeChallenge)
+            throw errorFactory.UnauthorizedClient("The configuration requires the use of PKCE parameters.").AsException();
 
-        if (hasCodeChallenge && codeChallengeMethodIsPlain && !client.AllowPlainCodeChallengeMethod)
-            throw errorFactory.UnauthorizedClient("The client configuration prohibits the plain PKCE method.").AsException();
+        if (hasCodeChallenge && codeChallengeMethodIsPlain && !clientSettings.AllowPlainCodeChallengeMethod)
+            throw errorFactory.UnauthorizedClient("The configuration prohibits the plain PKCE method.").AsException();
 
         // perform configurable checks...
 
@@ -717,6 +715,7 @@ public class DefaultAuthorizationEndpointHandler :
 
         // id_token_encryption_alg_values_supported
         // id_token_encryption_enc_values_supported
+        // id_token_encryption_zip_value
         // id_token_signing_alg_values_supported
 
         // prompt_values_supported
@@ -729,6 +728,7 @@ public class DefaultAuthorizationEndpointHandler :
         // request_object_encryption_alg_values_supported
         // request_object_encryption_enc_values_supported
         // request_object_signing_alg_values_supported
+
         // request_parameter_supported
         // request_uri_parameter_supported
         // require_request_uri_registration
@@ -789,8 +789,11 @@ public class DefaultAuthorizationEndpointHandler :
         AuthenticateCommand command,
         CancellationToken cancellationToken)
     {
-        var signInSchemeName = command.OpenIdContext.Tenant.Configuration.Authorization.SignInScheme;
+        var authorizationContext = command.AuthorizationContext;
+        var clientSettings = authorizationContext.ClientSettings;
+        var httpContext = authorizationContext.AuthorizationRequest.OpenIdContext.HttpContext;
 
+        var signInSchemeName = clientSettings.AuthorizationSignInScheme;
         if (string.IsNullOrEmpty(signInSchemeName))
         {
             if (!DefaultSignInSchemeFetched)
@@ -803,7 +806,7 @@ public class DefaultAuthorizationEndpointHandler :
             signInSchemeName = DefaultSignInSchemeName;
         }
 
-        return await command.OpenIdContext.HttpContext.AuthenticateAsync(signInSchemeName);
+        return await httpContext.AuthenticateAsync(signInSchemeName);
     }
 
     #endregion
@@ -819,8 +822,8 @@ public class DefaultAuthorizationEndpointHandler :
         var authenticationTicket = command.AuthenticationTicket;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
         var openIdContext = authorizationRequest.OpenIdContext;
+        var clientSettings = authorizationContext.ClientSettings;
         var errorFactory = openIdContext.ErrorFactory;
-        var configuration = openIdContext.Tenant.Configuration;
 
         var promptType = authorizationRequest.PromptType;
 
@@ -898,7 +901,7 @@ public class DefaultAuthorizationEndpointHandler :
         // TODO: check IdP
 
         // check MaxAge
-        if (!ValidateMaxAge(subject, authorizationRequest.MaxAge, configuration.ClockSkew))
+        if (!ValidateMaxAge(subject, authorizationRequest.MaxAge, clientSettings.ClockSkew))
         {
             var returnUrl = await CallbackService.GetReturnUrlAsync(
                 authorizationContext,

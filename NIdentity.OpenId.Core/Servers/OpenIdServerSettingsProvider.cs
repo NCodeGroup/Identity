@@ -61,7 +61,7 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
                 {
                     descriptor = new SettingDescriptor<IReadOnlyCollection<string>>
                     {
-                        SettingName = settingName,
+                        Name = settingName,
                         OnMerge = KnownSettings.Intersect
                     };
                 }
@@ -69,7 +69,7 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
                 {
                     descriptor = new SettingDescriptor<string>
                     {
-                        SettingName = settingName,
+                        Name = settingName,
                         OnMerge = KnownSettings.Replace
                     };
                 }

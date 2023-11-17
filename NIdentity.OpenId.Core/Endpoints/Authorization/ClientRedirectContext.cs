@@ -18,6 +18,7 @@
 #endregion
 
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Endpoints.Authorization;
 
@@ -35,6 +36,11 @@ public readonly struct ClientRedirectContext
     /// Gets or sets the <see cref="Client"/> instance associated with the authorization request.
     /// </summary>
     public required Client Client { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="IKnownSettingCollection"/> that contains client settings merged with server settings.
+    /// </summary>
+    public required IKnownSettingCollection ClientSettings { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>redirect_uri</c> that should be used to return responses to the user-agent.

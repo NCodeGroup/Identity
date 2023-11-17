@@ -54,6 +54,24 @@ public class SettingJsonConverter : JsonConverter<Setting>
         if (!reader.Read())
             throw new JsonException();
 
+        var settingName = ReadSettingName(ref reader);
+
+        if (!reader.Read())
+            throw new JsonException();
+
+        var (descriptor, value) = ReadSettingValue(ref reader, options, settingName);
+
+        if (!reader.Read())
+            throw new JsonException();
+
+        if (reader.TokenType != JsonTokenType.EndObject)
+            throw new JsonException();
+
+        return descriptor.Create(value);
+    }
+
+    private static string ReadSettingName(ref Utf8JsonReader reader)
+    {
         if (reader.TokenType != JsonTokenType.PropertyName)
             throw new JsonException();
 
@@ -68,12 +86,14 @@ public class SettingJsonConverter : JsonConverter<Setting>
             throw new JsonException();
 
         var settingName = reader.GetString();
-        if (settingName is null)
-            throw new JsonException();
+        if (string.IsNullOrEmpty(settingName))
+            throw new InvalidOperationException();
 
-        if (!reader.Read())
-            throw new JsonException();
+        return settingName;
+    }
 
+    private (SettingDescriptor Descriptor, object Value) ReadSettingValue(ref Utf8JsonReader reader, JsonSerializerOptions options, string settingName)
+    {
         if (reader.TokenType != JsonTokenType.PropertyName)
             throw new JsonException();
 
@@ -87,22 +107,15 @@ public class SettingJsonConverter : JsonConverter<Setting>
         var descriptor = JsonSettingDescriptorCollection.GetDescriptor(settingName, reader.TokenType);
         var value = JsonSerializer.Deserialize(ref reader, descriptor.ValueType, options);
         if (value == null)
-            throw new JsonException();
+            throw new InvalidOperationException();
 
-        if (!reader.Read())
-            throw new JsonException();
-
-        if (reader.TokenType != JsonTokenType.EndObject)
-            throw new JsonException();
-
-        return descriptor.Create(value);
+        return (descriptor, value);
     }
-
 
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, Setting setting, JsonSerializerOptions options)
     {
-        var settingName = setting.Descriptor.SettingName;
+        var settingName = setting.Descriptor.Name;
         var settingValue = setting.GetValue();
 
         writer.WriteStartObject();

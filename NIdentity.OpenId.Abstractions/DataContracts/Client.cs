@@ -18,6 +18,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.DataContracts;
 
@@ -53,10 +54,9 @@ public class Client : ISupportId, ISupportConcurrencyToken
     public bool IsDisabled { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the client is allowed to use unsafe token responses.
-    /// See https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16 for more information.
+    /// Gets or sets the collection of settings associated with the client.
     /// </summary>
-    public bool AllowUnsafeTokenResponse { get; set; }
+    public IList<Setting> Settings { get; set; } = new List<Setting>();
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to the client.
@@ -67,45 +67,4 @@ public class Client : ISupportId, ISupportConcurrencyToken
     /// Gets or sets the collection of redirect addresses registered for this client.
     /// </summary>
     public IList<Uri> RedirectUris { get; set; } = new List<Uri>();
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the loopback address (i.e. 127.0.0.1 or localhost) is allowed to be
-    /// used as a redirect address without being explicitly registered.
-    /// </summary>
-    public bool AllowLoopback { get; set; }
-
-    //public bool RequireSecret { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the client requires the presence of the <c>request</c> or
-    /// <c>request_uri</c> parameters during authorization.
-    /// </summary>
-    public bool RequireRequestObject { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the use of PKCE is required during authorization.
-    /// </summary>
-    public bool RequirePkce { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the use of the 'plain' PKCE challenge method is allowed during
-    /// authorization.
-    /// </summary>
-    public bool AllowPlainCodeChallengeMethod { get; set; }
-
-    /// <summary>
-    /// Gets or sets the amount of time that an authorization code is valid for.
-    /// The default value is five minutes.
-    /// </summary>
-    public TimeSpan AuthorizationCodeLifetime { get; set; } = TimeSpan.FromMinutes(5.0);
-
-    /// <summary>
-    /// Gets or sets the configuration that specifies how access tokens should be generated.
-    /// </summary>
-    public AccessTokenConfiguration AccessTokenConfiguration { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets the configuration that specifies how ID tokens should be generated.
-    /// </summary>
-    public TokenConfiguration IdTokenConfiguration { get; set; } = new();
 }

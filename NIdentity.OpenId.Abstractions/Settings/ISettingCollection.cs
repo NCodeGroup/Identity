@@ -68,10 +68,9 @@ public interface ISettingCollection : IReadOnlyCollection<Setting>
 
     /// <summary>
     /// Creates and returns a new <see cref="ISettingCollection"/> instance that contains the settings from both the current
-    /// instance and the <paramref name="otherCollection"/> instance by using the merge function defined by each setting's
-    /// descriptor.
+    /// instance and the <paramref name="otherCollection"/> by using the merge function defined by each setting's descriptor.
     /// </summary>
-    /// <param name="otherCollection">The other <see cref="ISettingCollection"/> instance to merge into the current instance.</param>
+    /// <param name="otherCollection">The other collection to merge into the current collection.</param>
     /// <returns>The new <see cref="ISettingCollection"/> instance containing the merged settings from both collections.</returns>
-    ISettingCollection Merge(ISettingCollection otherCollection);
+    ISettingCollection Merge(IEnumerable<Setting> otherCollection);
 }

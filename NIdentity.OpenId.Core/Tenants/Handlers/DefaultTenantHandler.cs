@@ -19,6 +19,7 @@
 
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -104,7 +105,6 @@ public class DefaultTenantHandler :
         var tenantSettings = await mediator.SendAsync<GetTenantSettingsCommand, ISettingCollection>(
             new GetTenantSettingsCommand(
                 httpContext,
-                tenantRoute,
                 tenantDescriptor,
                 mediator,
                 propertyBag),
@@ -113,7 +113,6 @@ public class DefaultTenantHandler :
         var baseAddress = await mediator.SendAsync<GetTenantBaseAddressCommand, UriDescriptor>(
             new GetTenantBaseAddressCommand(
                 httpContext,
-                tenantRoute,
                 tenantDescriptor,
                 tenantSettings,
                 mediator,
@@ -158,7 +157,7 @@ public class DefaultTenantHandler :
     {
         return ServerOptions.Tenant.Mode switch
         {
-            TenantMode.StaticSingle => GetTenantDescriptorFromOptions(),
+            TenantMode.StaticSingle => GetTenantDescriptorFromOptions(command.TenantRoute),
             TenantMode.DynamicByHost => await GetTenantDescriptorFromHostAsync(command, cancellationToken),
             TenantMode.DynamicByPath => await GetTenantDescriptorFromPathAsync(command, cancellationToken),
             _ => throw new InvalidOperationException($"Unsupported TenantMode: {ServerOptions.Tenant.Mode}")
@@ -168,7 +167,7 @@ public class DefaultTenantHandler :
     private static InvalidOperationException MissingTenantOptionsException(TenantMode mode) =>
         new($"The TenantMode is '{mode}' but the corresponding options are missing.");
 
-    private TenantDescriptor GetTenantDescriptorFromOptions()
+    private TenantDescriptor GetTenantDescriptorFromOptions(RoutePattern? route)
     {
         var options = ServerOptions.Tenant.StaticSingle;
         if (options is null)
@@ -185,7 +184,8 @@ public class DefaultTenantHandler :
         return new TenantDescriptor
         {
             TenantId = tenantId,
-            DisplayName = displayName
+            DisplayName = displayName,
+            Route = route
         };
     }
 
@@ -215,7 +215,8 @@ public class DefaultTenantHandler :
         {
             TenantId = tenant.TenantId,
             DisplayName = tenant.DisplayName,
-            DomainName = tenant.DomainName
+            DomainName = tenant.DomainName,
+            Route = command.TenantRoute
         };
     }
 
@@ -256,7 +257,8 @@ public class DefaultTenantHandler :
         {
             TenantId = tenant.TenantId,
             DisplayName = tenant.DisplayName,
-            DomainName = tenant.DomainName
+            DomainName = tenant.DomainName,
+            Route = command.TenantRoute
         };
     }
 
@@ -265,7 +267,9 @@ public class DefaultTenantHandler :
     #region GetTenantSettingsCommand
 
     /// <inheritdoc />
-    public async ValueTask<ISettingCollection> HandleAsync(GetTenantSettingsCommand command, CancellationToken cancellationToken)
+    public async ValueTask<ISettingCollection> HandleAsync(
+        GetTenantSettingsCommand command,
+        CancellationToken cancellationToken)
     {
         if (command.PropertyBag.TryGet<Tenant>(out var tenant))
         {
@@ -287,7 +291,9 @@ public class DefaultTenantHandler :
     #region GetTenantSecretsCommand
 
     /// <inheritdoc />
-    public async ValueTask<ISecretKeyProvider> HandleAsync(GetTenantSecretsCommand command, CancellationToken cancellationToken)
+    public async ValueTask<ISecretKeyProvider> HandleAsync(
+        GetTenantSecretsCommand command,
+        CancellationToken cancellationToken)
     {
         if (command.PropertyBag.TryGet<Tenant>(out var tenant))
         {
@@ -327,10 +333,12 @@ public class DefaultTenantHandler :
     #region GetTenantBaseAddressCommand
 
     /// <inheritdoc />
-    public ValueTask<UriDescriptor> HandleAsync(GetTenantBaseAddressCommand command, CancellationToken cancellationToken)
+    public ValueTask<UriDescriptor> HandleAsync(
+        GetTenantBaseAddressCommand command,
+        CancellationToken cancellationToken)
     {
         var httpContext = command.HttpContext;
-        var tenantRoute = command.TenantRoute;
+        var tenantRoute = command.TenantDescriptor.Route;
 
         var httpRequest = httpContext.Request;
         var basePath = httpRequest.PathBase;
@@ -360,7 +368,9 @@ public class DefaultTenantHandler :
     #region GetTenantIssuerCommand
 
     /// <inheritdoc />
-    public ValueTask<string> HandleAsync(GetTenantIssuerCommand command, CancellationToken cancellationToken)
+    public ValueTask<string> HandleAsync(
+        GetTenantIssuerCommand command,
+        CancellationToken cancellationToken)
     {
         var tenantSettings = command.TenantSettings;
         if (tenantSettings.TryGet(new SettingKey<string>(SettingNames.TenantIssuer), out var setting) &&

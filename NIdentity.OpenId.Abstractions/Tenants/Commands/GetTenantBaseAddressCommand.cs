@@ -18,7 +18,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Settings;
@@ -27,7 +26,6 @@ namespace NIdentity.OpenId.Tenants.Commands;
 
 public record struct GetTenantBaseAddressCommand(
     HttpContext HttpContext,
-    RoutePattern? TenantRoute,
     TenantDescriptor TenantDescriptor,
     ISettingCollection TenantSettings,
     IMediator Mediator,

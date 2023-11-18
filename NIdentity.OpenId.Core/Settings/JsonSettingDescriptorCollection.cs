@@ -57,45 +57,41 @@ public class JsonSettingDescriptorCollection : IJsonSettingDescriptorCollection
         if (SettingDescriptorCollection.TryGet(settingName, out var descriptor))
             return descriptor;
 
-        static bool MergeAnd(bool current, bool other) => current && other;
-        static TValue MergeOther<TValue>(TValue current, TValue other) => other;
-        static List<TItem> MergeIntersect<TItem>(IEnumerable<TItem> current, IEnumerable<TItem> other) => current.Intersect(other).ToList();
-
         switch (jsonTokenType)
         {
             case JsonTokenType.String:
                 return new SettingDescriptor<string>
                 {
                     Name = settingName,
-                    OnMerge = MergeOther
+                    OnMerge = KnownSettings.Replace
                 };
 
             case JsonTokenType.True or JsonTokenType.False:
                 return new SettingDescriptor<bool>
                 {
                     Name = settingName,
-                    OnMerge = MergeAnd
+                    OnMerge = KnownSettings.Replace
                 };
 
             case JsonTokenType.Number:
                 return new SettingDescriptor<double>
                 {
                     Name = settingName,
-                    OnMerge = MergeOther
+                    OnMerge = KnownSettings.Replace
                 };
 
             case JsonTokenType.StartArray:
-                return new SettingDescriptor<List<string>>
+                return new SettingDescriptor<IReadOnlyCollection<string>>
                 {
                     Name = settingName,
-                    OnMerge = MergeIntersect
+                    OnMerge = KnownSettings.Replace
                 };
         }
 
         return new SettingDescriptor<JsonElement>
         {
             Name = settingName,
-            OnMerge = MergeOther
+            OnMerge = KnownSettings.Replace
         };
     }
 }

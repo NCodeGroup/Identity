@@ -41,28 +41,24 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
     }
 
     /// <inheritdoc />
-    public ISettingCollection Settings => SettingsOrNull ??= LoadServerSettings();
+    public ISettingCollection Settings => SettingsOrNull ??= LoadFromConfiguration(Configuration.GetSection("settings"));
 
-    private ISettingCollection LoadServerSettings()
+    private SettingCollection LoadFromConfiguration(IConfiguration settingsSection)
     {
         var settings = new SettingCollection();
         var descriptors = SettingDescriptorCollectionProvider.Descriptors;
 
-        var rootSection = Configuration.GetSection("settings");
-        foreach (var settingSection in rootSection.GetChildren())
+        foreach (var settingSection in settingsSection.GetChildren())
         {
-            var settingName = settingSection.GetValue<string>("name");
-            if (string.IsNullOrEmpty(settingName)) continue;
-
-            var valueSection = settingSection.GetSection("value");
+            var settingName = settingSection.Key;
             if (!descriptors.TryGet(settingName, out var descriptor))
             {
-                if (valueSection.GetChildren().Any())
+                if (settingSection.GetChildren().Count() > 1)
                 {
                     descriptor = new SettingDescriptor<IReadOnlyCollection<string>>
                     {
                         Name = settingName,
-                        OnMerge = KnownSettings.Intersect
+                        OnMerge = KnownSettings.Replace
                     };
                 }
                 else
@@ -75,7 +71,7 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
                 }
             }
 
-            var value = valueSection.Get(descriptor.ValueType);
+            var value = settingSection.Get(descriptor.ValueType);
             if (value is null) continue;
 
             var setting = descriptor.Create(value);

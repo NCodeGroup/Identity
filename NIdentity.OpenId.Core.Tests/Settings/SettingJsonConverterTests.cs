@@ -21,109 +21,115 @@ using System.Text.Json;
 using Moq;
 using NIdentity.OpenId.Settings;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace NIdentity.OpenId.Core.Tests.Settings;
 
 public class SettingJsonConverterTests : BaseTests
 {
-    private ITestOutputHelper Output { get; }
     private Mock<IJsonSettingDescriptorCollection> MockJsonSettingDescriptorProvider { get; }
-    private SettingJsonConverter Converter { get; }
+    private SettingCollectionJsonConverter Converter { get; }
     private JsonSerializerOptions JsonSerializerOptions { get; }
 
-    public SettingJsonConverterTests(ITestOutputHelper output)
+    public SettingJsonConverterTests()
     {
-        Output = output;
-
         MockJsonSettingDescriptorProvider = CreatePartialMock<IJsonSettingDescriptorCollection>();
-        Converter = new SettingJsonConverter(MockJsonSettingDescriptorProvider.Object);
+        Converter = new SettingCollectionJsonConverter(MockJsonSettingDescriptorProvider.Object);
 
         JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
-            WriteIndented = true,
+            WriteIndented = false,
             Converters = { Converter }
         };
-    }
-
-    private readonly struct SettingValue
-    {
-        public required string StringValue { get; init; }
-        public required DateTimeOffset DateTimeOffsetValue { get; init; }
-        public required IList<string> StringListValue { get; init; }
-    }
-
-    private readonly struct SettingEnvelope<TValue>
-    {
-        public required string Name { get; init; }
-        public required TValue Value { get; init; }
-    }
-
-    [Fact]
-    public void Serialize()
-    {
-        const string settingName = nameof(settingName);
-
-        var descriptor = new SettingDescriptor<SettingValue>
-        {
-            Name = settingName,
-            OnMerge = (_, other) => other
-        };
-
-        var settingValue = new SettingValue
-        {
-            StringValue = "stringValue",
-            DateTimeOffsetValue = DateTimeOffset.Now,
-            StringListValue = new List<string> { "One", "Two" }
-        };
-        var setting = new Setting<SettingValue>(descriptor, settingValue);
-
-        var json = JsonSerializer.Serialize(setting, JsonSerializerOptions);
-        Output.WriteLine(json);
-
-        var envelope = JsonSerializer.Deserialize<SettingEnvelope<SettingValue>>(json, JsonSerializerOptions);
-
-        Assert.Equal(settingName, envelope.Name);
-        Assert.Equal(settingValue.StringValue, envelope.Value.StringValue);
-        Assert.Equal(settingValue.DateTimeOffsetValue, envelope.Value.DateTimeOffsetValue);
-        Assert.Equal(settingValue.StringListValue, envelope.Value.StringListValue);
     }
 
     [Fact]
     public void RoundTrip()
     {
-        const string settingName = nameof(settingName);
-
-        var descriptor = new SettingDescriptor<SettingValue>
+        var descriptorScalarString = new SettingDescriptor<string>
         {
-            Name = settingName,
+            Name = "scalar_string_setting",
             OnMerge = (_, other) => other
         };
 
-        var settingValue = new SettingValue
+        var descriptorScalarNumber = new SettingDescriptor<double>
         {
-            StringValue = "stringValue",
-            DateTimeOffsetValue = DateTimeOffset.Now,
-            StringListValue = new List<string> { "One", "Two" }
+            Name = "scalar_double_setting",
+            OnMerge = (_, other) => other
         };
-        var setting = new Setting<SettingValue>(descriptor, settingValue);
 
-        var json = JsonSerializer.Serialize(setting, JsonSerializerOptions);
-        Output.WriteLine(json);
+        var descriptorScalarBoolean = new SettingDescriptor<bool>
+        {
+            Name = "scalar_bool_setting",
+            OnMerge = (_, other) => other
+        };
+
+        var descriptorScalarDateTimeOffset = new SettingDescriptor<DateTimeOffset>
+        {
+            Name = "scalar_datetimeoffset_setting",
+            OnMerge = (_, other) => other
+        };
+
+        var descriptorListString = new SettingDescriptor<IReadOnlyCollection<string>>
+        {
+            Name = "list_string_setting",
+            OnMerge = (_, other) => other
+        };
+
+        var now = DateTimeOffset.Now;
+        var settings = new List<Setting>
+        {
+            descriptorScalarString.Create("scalar_string_value"),
+            descriptorScalarNumber.Create(3.14),
+            descriptorScalarBoolean.Create(true),
+            descriptorScalarDateTimeOffset.Create(now),
+            descriptorListString.Create(new[] { "one", "two" })
+        };
+
+        var expected = JsonSerializer.Serialize(new
+        {
+            scalar_string_setting = "scalar_string_value",
+            scalar_double_setting = 3.14,
+            scalar_bool_setting = true,
+            scalar_datetimeoffset_setting = now,
+            list_string_setting = new[] { "one", "two" }
+        });
+
+        var json = JsonSerializer.Serialize(settings, JsonSerializerOptions);
+        Assert.Equal(expected, json);
 
         MockJsonSettingDescriptorProvider
-            .Setup(x => x.GetDescriptor(settingName, JsonTokenType.StartObject))
-            .Returns(descriptor)
+            .Setup(x => x.GetDescriptor(descriptorScalarString.Name, JsonTokenType.String))
+            .Returns(descriptorScalarString)
             .Verifiable();
 
-        var result = JsonSerializer.Deserialize<Setting>(json, JsonSerializerOptions);
+        MockJsonSettingDescriptorProvider
+            .Setup(x => x.GetDescriptor(descriptorScalarNumber.Name, JsonTokenType.Number))
+            .Returns(descriptorScalarNumber)
+            .Verifiable();
 
-        Assert.NotNull(result);
-        Assert.Same(descriptor, result.Descriptor);
+        MockJsonSettingDescriptorProvider
+            .Setup(x => x.GetDescriptor(descriptorScalarBoolean.Name, JsonTokenType.True))
+            .Returns(descriptorScalarBoolean)
+            .Verifiable();
 
-        var resultValue = (SettingValue)result.GetValue();
-        Assert.Equal(settingValue.StringValue, resultValue.StringValue);
-        Assert.Equal(settingValue.DateTimeOffsetValue, resultValue.DateTimeOffsetValue);
-        Assert.Equal(settingValue.StringListValue, resultValue.StringListValue);
+        MockJsonSettingDescriptorProvider
+            .Setup(x => x.GetDescriptor(descriptorScalarDateTimeOffset.Name, JsonTokenType.String))
+            .Returns(descriptorScalarDateTimeOffset)
+            .Verifiable();
+
+        MockJsonSettingDescriptorProvider
+            .Setup(x => x.GetDescriptor(descriptorListString.Name, JsonTokenType.StartArray))
+            .Returns(descriptorListString)
+            .Verifiable();
+
+        var results = JsonSerializer.Deserialize<IList<Setting>>(json, JsonSerializerOptions);
+        Assert.Equal(settings, results, AreSettingsEqual);
+    }
+
+    private static bool AreSettingsEqual(Setting x, Setting y)
+    {
+        var xJson = JsonSerializer.Serialize(new { x.Descriptor.Name, Value = x.GetValue() });
+        var yJson = JsonSerializer.Serialize(new { y.Descriptor.Name, Value = y.GetValue() });
+        return xJson == yJson;
     }
 }

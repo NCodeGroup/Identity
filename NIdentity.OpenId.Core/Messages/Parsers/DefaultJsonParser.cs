@@ -54,7 +54,7 @@ public class DefaultJsonParser : IJsonParser
                 break;
 
             case JsonTokenType.Number:
-                stringValues = reader.GetDecimal().ToString(CultureInfo.InvariantCulture);
+                stringValues = reader.GetDouble().ToString(CultureInfo.InvariantCulture);
                 break;
 
             case JsonTokenType.True:

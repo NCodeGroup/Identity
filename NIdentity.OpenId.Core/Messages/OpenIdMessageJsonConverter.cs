@@ -53,18 +53,18 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             messageType = typeof(OpenIdMessage);
 
         if (!typeof(T).IsAssignableFrom(messageType))
-            throw new JsonException("TODO");
+            throw new InvalidOperationException();
 
         if (!typeof(OpenIdMessage).IsAssignableFrom(messageType))
-            throw new JsonException("TODO");
+            throw new InvalidOperationException();
 
         const BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         var hasDefaultConstructor = messageType.GetConstructor(bindingFlags, Type.EmptyTypes) != null;
         if (!hasDefaultConstructor)
-            throw new JsonException("TODO");
+            throw new InvalidOperationException();
 
         const bool nonPublic = true;
-        return (T)(Activator.CreateInstance(messageType, nonPublic) ?? throw new JsonException("TODO"));
+        return (T)(Activator.CreateInstance(messageType, nonPublic) ?? throw new InvalidOperationException());
     }
 
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -76,7 +76,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             return default;
 
         if (reader.TokenType != JsonTokenType.StartObject)
-            throw new JsonException("TODO");
+            throw new JsonException();
 
         var parameters = new List<Parameter>();
 
@@ -93,27 +93,28 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
                     return messageOrNull;
 
                 case JsonTokenType.PropertyName:
-                    parameterName = reader.GetString() ?? throw new JsonException("TODO");
+                    parameterName = reader.GetString() ?? throw new InvalidOperationException();
                     break;
 
                 default:
-                    throw new JsonException("TODO");
+                    throw new JsonException();
             }
 
             if (!reader.Read())
-                throw new JsonException("TODO");
+                throw new JsonException();
 
+            // ReSharper disable once ConvertIfStatementToSwitchStatement
             if (parameterName == TypeKey)
             {
                 if (reader.TokenType != JsonTokenType.String)
-                    throw new JsonException("TODO");
+                    throw new JsonException();
 
                 var messageTypeName = reader.GetString();
                 if (string.IsNullOrEmpty(messageTypeName))
-                    throw new JsonException("TODO");
+                    throw new JsonException();
 
                 const bool throwOnError = false;
-                messageType = Type.GetType(messageTypeName, throwOnError) ?? throw new JsonException("TODO");
+                messageType = Type.GetType(messageTypeName, throwOnError) ?? throw new InvalidOperationException();
 
                 continue;
             }
@@ -126,8 +127,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
 
                 if (messageOrNull is not ISupportProperties supportProperties)
                 {
-                    // TODO: maybe we can skip instead?
-                    throw new JsonException("TODO");
+                    throw new InvalidOperationException();
                 }
 
                 supportProperties.DeserializeProperties(ref reader, options);
@@ -139,7 +139,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             parameters.Add(parameter);
         }
 
-        throw new JsonException("TODO");
+        throw new JsonException();
     }
 
     public override void Write(Utf8JsonWriter writer, T? message, JsonSerializerOptions options)

@@ -38,7 +38,7 @@ public readonly struct ClientRedirectContext
     public required Client Client { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="IKnownSettingCollection"/> that contains client settings merged with server settings.
+    /// Gets the <see cref="IKnownSettingCollection"/> that contains client settings merged with tenant settings.
     /// </summary>
     public required IKnownSettingCollection ClientSettings { get; init; }
 

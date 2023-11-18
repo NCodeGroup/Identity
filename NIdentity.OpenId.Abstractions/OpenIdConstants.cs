@@ -17,8 +17,6 @@
 
 #endregion
 
-using NCode.Jose;
-
 namespace NIdentity.OpenId;
 
 /// <summary>
@@ -32,29 +30,9 @@ public static partial class OpenIdConstants
     public const char ParameterSeparatorChar = ' ';
 
     /// <summary>
-    /// Contains the space ' ' character which is used as the separator in string lists.
+    /// Contains the space ' ' character (as a string) which is used as the separator in string lists.
     /// </summary>
     public const string ParameterSeparatorString = " ";
-
-    public static class ClaimTypes
-    {
-        public const string Normal = "normal";
-
-        public const string Aggregated = "aggregated";
-
-        public const string Distributed = "distributed";
-    }
-
-    public static class GrantTypes
-    {
-        public const string AuthorizationCode = "authorization_code";
-        public const string Implicit = "implicit";
-        public const string Hybrid = "hybrid";
-        public const string Password = "password";
-        public const string ClientCredentials = "client_credentials";
-        public const string RefreshToken = "refresh_token";
-        public const string DeviceCode = "urn:ietf:params:oauth:grant-type:device_code";
-    }
 
     /// <summary>
     /// Contains the names for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
@@ -92,84 +70,5 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the authorization endpoint.
         /// </summary>
         public const string Authorization = $"{Prefix}/authorize";
-    }
-
-    /// <summary>
-    /// Contains constants for various type of the <c>OAuth</c> and <c>OpenID Connect</c> tokens.
-    /// </summary>
-    public static class TokenTypes
-    {
-        /// <summary>
-        /// Contains the <c>Bearer</c> constant value.
-        /// </summary>
-        public const string Bearer = "Bearer";
-
-        /// <summary>
-        /// Contains the <c>id_token</c> constant value.
-        /// </summary>
-        public const string IdToken = "id_token";
-
-        /// <summary>
-        /// Contains the <c>access_token</c> constant value.
-        /// </summary>
-        public const string AccessToken = "access_token";
-
-        /// <summary>
-        /// Contains the <c>refresh_token</c> constant value.
-        /// </summary>
-        public const string RefreshToken = "refresh_token";
-    }
-
-    /// <summary>
-    /// Contains the standard claims that are included in various <c>OpenID Connect</c> scopes.
-    /// </summary>
-    public static class ClaimsByScope
-    {
-        /// <summary>
-        /// Contains the standard claims that are included in the <c>profile</c> scope.
-        /// </summary>
-        public static IReadOnlyCollection<string> Profile { get; } = new HashSet<string>
-        {
-            JoseClaimNames.Payload.Name,
-            JoseClaimNames.Payload.FamilyName,
-            JoseClaimNames.Payload.GivenName,
-            JoseClaimNames.Payload.MiddleName,
-            JoseClaimNames.Payload.Nickname,
-            JoseClaimNames.Payload.PreferredUsername,
-            JoseClaimNames.Payload.Profile,
-            JoseClaimNames.Payload.Picture,
-            JoseClaimNames.Payload.Website,
-            JoseClaimNames.Payload.Gender,
-            JoseClaimNames.Payload.Birthdate,
-            JoseClaimNames.Payload.Zoneinfo,
-            JoseClaimNames.Payload.Locale,
-            JoseClaimNames.Payload.UpdatedAt
-        };
-
-        /// <summary>
-        /// Contains the standard claims that are included in the <c>email</c> scope.
-        /// </summary>
-        public static IReadOnlyCollection<string> Email { get; } = new HashSet<string>
-        {
-            JoseClaimNames.Payload.Email,
-            JoseClaimNames.Payload.EmailVerified
-        };
-
-        /// <summary>
-        /// Contains the standard claims that are included in the <c>address</c> scope.
-        /// </summary>
-        public static IReadOnlyCollection<string> Address { get; } = new HashSet<string>
-        {
-            JoseClaimNames.Payload.Address
-        };
-
-        /// <summary>
-        /// Contains the standard claims that are included in the <c>phone</c> scope.
-        /// </summary>
-        public static IReadOnlyCollection<string> Phone { get; } = new HashSet<string>
-        {
-            JoseClaimNames.Payload.PhoneNumber,
-            JoseClaimNames.Payload.PhoneNumberVerified
-        };
     }
 }

@@ -21,10 +21,21 @@ using Microsoft.AspNetCore.Authentication;
 
 namespace NIdentity.OpenId.Settings;
 
+// TODO: better xmldoc descriptions
+
+/// <summary>
+/// Provides a wrapper on top of <see cref="ISettingCollection"/> that provides strongly typed access to known settings.
+/// </summary>
 public interface IKnownSettingCollection : ISettingCollection
 {
+    /// <summary>
+    /// Gets or sets the value for the 'access_token_encryption_alg_values_supported' setting.
+    /// </summary>
     IReadOnlyCollection<string> AccessTokenEncryptionAlgValuesSupported { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value for the 'access_token_encryption_enc_values_supported' setting.
+    /// </summary>
     IReadOnlyCollection<string> AccessTokenEncryptionEncValuesSupported { get; set; }
 
     /// <summary>
@@ -32,12 +43,24 @@ public interface IKnownSettingCollection : ISettingCollection
     /// </summary>
     bool AccessTokenEncryptionRequired { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value for the 'access_token_encryption_zip_values_supported' setting.
+    /// </summary>
     IReadOnlyCollection<string> AccessTokenEncryptionZipValuesSupported { get; set; }
 
+    /// <summary>
+    /// Gets or sets the lifetime of access tokens issued to clients.
+    /// </summary>
     TimeSpan AccessTokenLifetime { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value for the 'access_token_signing_alg_values_supported' setting.
+    /// </summary>
     IReadOnlyCollection<string> AccessTokenSigningAlgValuesSupported { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value for the 'access_token_type' setting.
+    /// </summary>
     string AccessTokenType { get; set; }
 
     /// <summary>
@@ -57,6 +80,9 @@ public interface IKnownSettingCollection : ISettingCollection
     /// </summary>
     bool AllowUnsafeTokenResponse { get; set; }
 
+    /// <summary>
+    /// Gets or sets the lifetime of authorization codes issued to clients.
+    /// </summary>
     TimeSpan AuthorizationCodeLifetime { get; set; }
 
     /// <summary>
@@ -73,8 +99,14 @@ public interface IKnownSettingCollection : ISettingCollection
     /// </summary>
     TimeSpan ClockSkew { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value for the 'id_token_encryption_alg_values_supported' setting.
+    /// </summary>
     IReadOnlyCollection<string> IdTokenEncryptionAlgValuesSupported { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value for the 'id_token_encryption_enc_values_supported' setting.
+    /// </summary>
     IReadOnlyCollection<string> IdTokenEncryptionEncValuesSupported { get; set; }
 
     /// <summary>
@@ -82,10 +114,19 @@ public interface IKnownSettingCollection : ISettingCollection
     /// </summary>
     bool IdTokenEncryptionRequired { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value for the 'id_token_encryption_zip_values_supported' setting.
+    /// </summary>
     IReadOnlyCollection<string> IdTokenEncryptionZipValuesSupported { get; set; }
 
+    /// <summary>
+    /// Gets or sets the lifetime of ID tokens issued to clients.
+    /// </summary>
     TimeSpan IdTokenLifetime { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value for the 'id_token_signing_alg_values_supported' setting.
+    /// </summary>
     IReadOnlyCollection<string> IdTokenSigningAlgValuesSupported { get; set; }
 
     /// <summary>
@@ -94,8 +135,14 @@ public interface IKnownSettingCollection : ISettingCollection
     /// </summary>
     string RequestObjectExpectedAudience { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value of the 'request_parameter_supported' setting.
+    /// </summary>
     bool RequestParameterSupported { get; set; }
 
+    /// <summary>
+    /// Gets or sets the value of the 'request_uri_parameter_supported' setting.
+    /// </summary>
     bool RequestUriParameterSupported { get; set; }
 
     /// <summary>

@@ -391,17 +391,17 @@ public class DefaultAuthorizationEndpointHandler :
 
         if (requestUri is not null)
         {
+            if (!clientSettings.RequestUriParameterSupported)
+                throw errorFactory
+                    .RequestUriNotSupported()
+                    .AsException();
+
             requestObjectSource = RequestObjectSource.Remote;
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri;
 
             if (!string.IsNullOrEmpty(requestJwt))
                 throw errorFactory
                     .InvalidRequest("Both the 'request' and 'request_uri' parameters cannot be present at the same time.", errorCode)
-                    .AsException();
-
-            if (!clientSettings.RequestUriParameterSupported)
-                throw errorFactory
-                    .RequestUriNotSupported()
                     .AsException();
 
             requestJwt = await FetchRequestUriAsync(
@@ -413,13 +413,13 @@ public class DefaultAuthorizationEndpointHandler :
         }
         else if (!string.IsNullOrEmpty(requestJwt))
         {
-            requestObjectSource = RequestObjectSource.Inline;
-            errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
-
             if (!clientSettings.RequestParameterSupported)
                 throw errorFactory
                     .RequestParameterNotSupported()
                     .AsException();
+
+            requestObjectSource = RequestObjectSource.Inline;
+            errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
         }
         else
         {

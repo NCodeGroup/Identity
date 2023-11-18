@@ -24,7 +24,10 @@ namespace NIdentity.OpenId.Settings;
 /// <summary>
 /// Provides the ability to get a <see cref="SettingDescriptor"/> for a setting name and <see cref="JsonTokenType"/>.
 /// </summary>
-public interface IJsonSettingDescriptorCollection
+/// <remarks>
+/// This level of indirection is needed because JSON converters are not mock friendly.
+/// </remarks>
+public interface ISettingDescriptorJsonProvider
 {
     /// <summary>
     /// Gets a strongly typed <see cref="SettingDescriptor"/> with the specified setting name and <see cref="JsonTokenType"/>.
@@ -36,17 +39,17 @@ public interface IJsonSettingDescriptorCollection
 }
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IJsonSettingDescriptorCollection"/> abstraction.
+/// Provides a default implementation of the <see cref="ISettingDescriptorJsonProvider"/> abstraction.
 /// </summary>
-public class JsonSettingDescriptorCollection : IJsonSettingDescriptorCollection
+public class SettingDescriptorJsonProvider : ISettingDescriptorJsonProvider
 {
     private ISettingDescriptorCollection SettingDescriptorCollection { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JsonSettingDescriptorCollection"/> class.
+    /// Initializes a new instance of the <see cref="SettingDescriptorJsonProvider"/> class.
     /// </summary>
     /// <param name="settingDescriptorCollection">The <see cref="ISettingDescriptorCollection"/> instance.</param>
-    public JsonSettingDescriptorCollection(ISettingDescriptorCollection settingDescriptorCollection)
+    public SettingDescriptorJsonProvider(ISettingDescriptorCollection settingDescriptorCollection)
     {
         SettingDescriptorCollection = settingDescriptorCollection;
     }

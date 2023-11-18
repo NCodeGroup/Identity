@@ -24,16 +24,16 @@ using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Settings;
 
-public class SettingJsonConverterTests : BaseTests
+public class SettingCollectionJsonConverterTests : BaseTests
 {
-    private Mock<IJsonSettingDescriptorCollection> MockJsonSettingDescriptorProvider { get; }
+    private Mock<ISettingDescriptorJsonProvider> MockSettingDescriptorJsonProvider { get; }
     private SettingCollectionJsonConverter Converter { get; }
     private JsonSerializerOptions JsonSerializerOptions { get; }
 
-    public SettingJsonConverterTests()
+    public SettingCollectionJsonConverterTests()
     {
-        MockJsonSettingDescriptorProvider = CreatePartialMock<IJsonSettingDescriptorCollection>();
-        Converter = new SettingCollectionJsonConverter(MockJsonSettingDescriptorProvider.Object);
+        MockSettingDescriptorJsonProvider = CreatePartialMock<ISettingDescriptorJsonProvider>();
+        Converter = new SettingCollectionJsonConverter(MockSettingDescriptorJsonProvider.Object);
 
         JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
@@ -97,27 +97,27 @@ public class SettingJsonConverterTests : BaseTests
         var json = JsonSerializer.Serialize(settings, JsonSerializerOptions);
         Assert.Equal(expected, json);
 
-        MockJsonSettingDescriptorProvider
+        MockSettingDescriptorJsonProvider
             .Setup(x => x.GetDescriptor(descriptorScalarString.Name, JsonTokenType.String))
             .Returns(descriptorScalarString)
             .Verifiable();
 
-        MockJsonSettingDescriptorProvider
+        MockSettingDescriptorJsonProvider
             .Setup(x => x.GetDescriptor(descriptorScalarNumber.Name, JsonTokenType.Number))
             .Returns(descriptorScalarNumber)
             .Verifiable();
 
-        MockJsonSettingDescriptorProvider
+        MockSettingDescriptorJsonProvider
             .Setup(x => x.GetDescriptor(descriptorScalarBoolean.Name, JsonTokenType.True))
             .Returns(descriptorScalarBoolean)
             .Verifiable();
 
-        MockJsonSettingDescriptorProvider
+        MockSettingDescriptorJsonProvider
             .Setup(x => x.GetDescriptor(descriptorScalarDateTimeOffset.Name, JsonTokenType.String))
             .Returns(descriptorScalarDateTimeOffset)
             .Verifiable();
 
-        MockJsonSettingDescriptorProvider
+        MockSettingDescriptorJsonProvider
             .Setup(x => x.GetDescriptor(descriptorListString.Name, JsonTokenType.StartArray))
             .Returns(descriptorListString)
             .Verifiable();

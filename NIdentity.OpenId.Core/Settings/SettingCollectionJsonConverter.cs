@@ -28,15 +28,15 @@ namespace NIdentity.OpenId.Settings;
 /// </summary>
 public class SettingCollectionJsonConverter : JsonConverter<IEnumerable<Setting>>
 {
-    private IJsonSettingDescriptorCollection JsonSettingDescriptorCollection { get; }
+    private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingCollectionJsonConverter"/> class.
     /// </summary>
-    /// <param name="jsonSettingDescriptorCollection">The <see cref="IJsonSettingDescriptorCollection"/> instance.</param>
-    public SettingCollectionJsonConverter(IJsonSettingDescriptorCollection jsonSettingDescriptorCollection)
+    /// <param name="settingDescriptorJsonProvider">The <see cref="ISettingDescriptorJsonProvider"/> instance.</param>
+    public SettingCollectionJsonConverter(ISettingDescriptorJsonProvider settingDescriptorJsonProvider)
     {
-        JsonSettingDescriptorCollection = jsonSettingDescriptorCollection;
+        SettingDescriptorJsonProvider = settingDescriptorJsonProvider;
     }
 
     /// <inheritdoc />
@@ -77,7 +77,7 @@ public class SettingCollectionJsonConverter : JsonConverter<IEnumerable<Setting>
             if (!reader.Read())
                 throw new JsonException();
 
-            var descriptor = JsonSettingDescriptorCollection.GetDescriptor(name, reader.TokenType);
+            var descriptor = SettingDescriptorJsonProvider.GetDescriptor(name, reader.TokenType);
             var value = JsonSerializer.Deserialize(ref reader, descriptor.ValueType, options);
             if (value == null)
                 throw new InvalidOperationException();

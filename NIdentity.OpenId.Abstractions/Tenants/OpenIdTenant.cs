@@ -44,11 +44,12 @@ public abstract class OpenIdTenant
 
     /// <summary>
     /// Gets the base address for the tenant.
+    /// Includes the server base address and tenant path.
     /// </summary>
     public abstract UriDescriptor BaseAddress { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISettingCollection"/> for the tenant.
+    /// Gets the <see cref="ISettingCollection"/> that contains tenant settings merged with server settings.
     /// </summary>
     public abstract ISettingCollection TenantSettings { get; }
 

@@ -63,6 +63,7 @@ internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper<TCommand
         ICommandMiddleware<TCommand> middleware) =>
         next => (command, token) =>
         {
+            // TODO: investigate if these captures are expensive on memory
             ValueTask SimpleNext() => next(command, token);
             return middleware.HandleAsync(command, SimpleNext, token);
         };

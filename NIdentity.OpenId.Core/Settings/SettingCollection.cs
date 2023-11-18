@@ -27,14 +27,14 @@ namespace NIdentity.OpenId.Settings;
 /// </summary>
 public class SettingCollection : ISettingCollection
 {
-    private Dictionary<string, Setting> Settings { get; }
+    private Dictionary<string, Setting> Store { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingCollection"/> class.
     /// </summary>
     public SettingCollection()
     {
-        Settings = new Dictionary<string, Setting>(StringComparer.Ordinal);
+        Store = new Dictionary<string, Setting>(StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -43,23 +43,23 @@ public class SettingCollection : ISettingCollection
     /// <param name="settings">The collection of <see cref="Setting"/> instances.</param>
     public SettingCollection(IEnumerable<Setting> settings)
     {
-        Settings = settings.ToDictionary(setting => setting.Descriptor.Name);
+        Store = settings.ToDictionary(setting => setting.Descriptor.Name, StringComparer.Ordinal);
     }
 
-    private SettingCollection(Dictionary<string, Setting> settings)
+    private SettingCollection(Dictionary<string, Setting> store)
     {
-        Settings = settings;
+        Store = store;
     }
 
     /// <inheritdoc />
     public bool TryGet(string settingName, [MaybeNullWhen(false)] out Setting setting)
-        => Settings.TryGetValue(settingName, out setting);
+        => Store.TryGetValue(settingName, out setting);
 
     /// <inheritdoc />
     public bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out Setting<TValue> setting)
         where TValue : notnull
     {
-        if (!Settings.TryGetValue(key.SettingName, out var baseSetting) || baseSetting is not Setting<TValue> typedSetting)
+        if (!Store.TryGetValue(key.SettingName, out var baseSetting) || baseSetting is not Setting<TValue> typedSetting)
         {
             setting = default;
             return false;
@@ -71,17 +71,17 @@ public class SettingCollection : ISettingCollection
 
     /// <inheritdoc />
     public void Set(Setting setting)
-        => Settings[setting.Descriptor.Name] = setting;
+        => Store[setting.Descriptor.Name] = setting;
 
     /// <inheritdoc />
     public bool Remove<TValue>(SettingKey<TValue> key)
         where TValue : notnull
-        => Settings.Remove(key.SettingName);
+        => Store.Remove(key.SettingName);
 
     /// <inheritdoc />
     public ISettingCollection Merge(IEnumerable<Setting> otherCollection)
     {
-        var newCollection = new Dictionary<string, Setting>(StringComparer.Ordinal);
+        var newStore = new Dictionary<string, Setting>(StringComparer.Ordinal);
 
         // TL;DR: Full Outer Join
 
@@ -96,24 +96,24 @@ public class SettingCollection : ISettingCollection
                 newSetting = baseDescriptor.Merge(currentSetting, otherSetting);
             }
 
-            newCollection.Add(settingName, newSetting);
+            newStore.Add(settingName, newSetting);
         }
 
-        foreach (var currentSetting in Settings.Values)
+        foreach (var currentSetting in Store.Values)
         {
             var settingName = currentSetting.Descriptor.Name;
-            if (newCollection.ContainsKey(settingName)) continue;
-            newCollection.Add(settingName, currentSetting);
+            if (newStore.ContainsKey(settingName)) continue;
+            newStore.Add(settingName, currentSetting);
         }
 
-        return new SettingCollection(newCollection);
+        return new SettingCollection(newStore);
     }
 
     /// <inheritdoc />
-    public int Count => Settings.Count;
+    public int Count => Store.Count;
 
     /// <inheritdoc />
-    public IEnumerator<Setting> GetEnumerator() => Settings.Values.GetEnumerator();
+    public IEnumerator<Setting> GetEnumerator() => Store.Values.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

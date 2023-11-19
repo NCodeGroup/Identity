@@ -19,6 +19,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Endpoints.Discovery.Commands;
 using NIdentity.OpenId.Endpoints.Discovery.Results;
 using NIdentity.OpenId.Mediator;
@@ -66,16 +67,23 @@ internal class DefaultDiscoveryEndpointHandler :
         var metadata = command.Metadata;
         var context = command.OpenIdContext;
 
-        DiscoverSettings(metadata, context.Tenant.TenantSettings);
+        var showAll = context.HttpContext.Request.Query.TryGetValue("showAll", out var showAllStringValues) &&
+                      StringValues.IsNullOrEmpty(showAllStringValues) ||
+                      (
+                          bool.TryParse(showAllStringValues, out var showAllParsed) &&
+                          showAllParsed
+                      );
+
+        DiscoverSettings(metadata, context.Tenant.TenantSettings, showAll);
 
         DiscoverEndpoints(metadata, context.HttpContext);
 
         return ValueTask.CompletedTask;
     }
 
-    private static void DiscoverSettings(IDictionary<string, object> metadata, ISettingCollection settingsCollection)
+    private static void DiscoverSettings(IDictionary<string, object> metadata, ISettingCollection settingsCollection, bool showAll)
     {
-        var settings = settingsCollection.Where(setting => setting.Descriptor.Discoverable);
+        var settings = settingsCollection.Where(setting => showAll || setting.Descriptor.Discoverable);
         foreach (var setting in settings)
         {
             var value = setting.Descriptor.Format(setting);

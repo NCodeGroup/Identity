@@ -20,7 +20,6 @@
 using System.ComponentModel;
 using System.Globalization;
 using NCode.Jose;
-using NCode.Jose.Algorithms;
 
 namespace NIdentity.OpenId.Settings;
 
@@ -36,6 +35,8 @@ namespace NIdentity.OpenId.Settings;
 /// </summary>
 public static class KnownSettings
 {
+    private const bool IsNonStdDiscoverable = false;
+
     /// <summary>
     /// Provides a merge function that returns the logical <c>AND</c> of the two values.
     /// </summary>
@@ -81,7 +82,7 @@ public static class KnownSettings
     {
         Name = SettingNames.AccessTokenEncryptionAlgValuesSupported,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -92,7 +93,7 @@ public static class KnownSettings
     {
         Name = SettingNames.AccessTokenEncryptionEncValuesSupported,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -104,7 +105,7 @@ public static class KnownSettings
         Name = SettingNames.AccessTokenEncryptionRequired,
         Default = false,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Or
     };
 
@@ -114,9 +115,8 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<string>> AccessTokenEncryptionZipValuesSupported { get; } = new()
     {
         Name = SettingNames.AccessTokenEncryptionZipValuesSupported,
-        Default = new[] { AlgorithmCodes.Compression.Deflate },
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -128,7 +128,7 @@ public static class KnownSettings
         Name = SettingNames.AccessTokenLifetime,
         Default = TimeSpan.FromMinutes(5.0),
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -139,7 +139,7 @@ public static class KnownSettings
     {
         Name = SettingNames.AccessTokenSigningAlgValuesSupported,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -151,7 +151,7 @@ public static class KnownSettings
         Name = SettingNames.AccessTokenType,
         Default = JoseTokenTypes.Jwt,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -174,7 +174,7 @@ public static class KnownSettings
         Name = SettingNames.AllowLoopbackRedirect,
         Default = true,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = And
     };
 
@@ -186,7 +186,7 @@ public static class KnownSettings
         Name = SettingNames.AllowPlainCodeChallengeMethod,
         Default = true,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = And,
     };
 
@@ -198,7 +198,7 @@ public static class KnownSettings
         Name = SettingNames.AllowUnsafeTokenResponse,
         Default = true,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = And
     };
 
@@ -210,7 +210,7 @@ public static class KnownSettings
         Name = SettingNames.AuthorizationCodeLifetime,
         Default = TimeSpan.FromMinutes(5.0),
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -222,7 +222,7 @@ public static class KnownSettings
         Name = SettingNames.AuthorizationSignInScheme,
         Default = string.Empty,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -232,6 +232,7 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<string>> ClaimsLocalesSupported { get; } = new()
     {
         Name = SettingNames.ClaimsLocalesSupported,
+
         Discoverable = true,
         OnMerge = Intersect
     };
@@ -242,6 +243,8 @@ public static class KnownSettings
     public static SettingDescriptor<bool> ClaimsParameterSupported { get; } = new()
     {
         Name = SettingNames.ClaimsParameterSupported,
+        Default = true,
+
         Discoverable = true,
         OnMerge = And
     };
@@ -276,7 +279,7 @@ public static class KnownSettings
         Name = SettingNames.ClockSkew,
         Default = TimeSpan.FromMinutes(5),
 
-        Discoverable = true,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -334,7 +337,7 @@ public static class KnownSettings
         Name = SettingNames.IdTokenEncryptionRequired,
         Default = false,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Or
     };
 
@@ -344,9 +347,8 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<string>> IdTokenEncryptionZipValuesSupported { get; } = new()
     {
         Name = SettingNames.IdTokenEncryptionZipValuesSupported,
-        Default = new[] { AlgorithmCodes.Compression.Deflate },
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -358,7 +360,7 @@ public static class KnownSettings
         Name = SettingNames.IdTokenLifetime,
         Default = TimeSpan.FromMinutes(5.0),
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -407,6 +409,17 @@ public static class KnownSettings
     };
 
     /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'request_object_encryption_zip_values_supported' setting.
+    /// </summary>
+    public static SettingDescriptor<IReadOnlyCollection<string>> RequestObjectEncryptionZipValuesSupported { get; } = new()
+    {
+        Name = SettingNames.RequestObjectEncryptionZipValuesSupported,
+
+        Discoverable = IsNonStdDiscoverable,
+        OnMerge = Intersect
+    };
+
+    /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'request_object_signing_alg_values_supported' setting.
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> RequestObjectSigningAlgValuesSupported { get; } = new()
@@ -425,7 +438,7 @@ public static class KnownSettings
         Name = SettingNames.RequestObjectExpectedAudience,
         Default = string.Empty,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -461,7 +474,7 @@ public static class KnownSettings
         Name = SettingNames.RequestUriRequireStrictContentType,
         Default = false,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Or
     };
 
@@ -471,9 +484,9 @@ public static class KnownSettings
     public static SettingDescriptor<string> RequestUriExpectedContentType { get; } = new()
     {
         Name = SettingNames.RequestUriExpectedContentType,
-        Default = "falseapplication/oauth-authz-req+jwt",
+        Default = "application/oauth-authz-req+jwt",
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -485,7 +498,7 @@ public static class KnownSettings
         Name = SettingNames.RequireCodeChallenge,
         Default = false,
 
-        Discoverable = false,
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Or
     };
 
@@ -609,6 +622,17 @@ public static class KnownSettings
         Name = SettingNames.UserInfoEncryptionEncValuesSupported,
 
         Discoverable = true,
+        OnMerge = Intersect
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'userinfo_encryption_zip_values_supported' setting.
+    /// </summary>
+    public static SettingDescriptor<IReadOnlyCollection<string>> UserInfoEncryptionZipValuesSupported { get; } = new()
+    {
+        Name = SettingNames.UserInfoEncryptionZipValuesSupported,
+
+        Discoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 

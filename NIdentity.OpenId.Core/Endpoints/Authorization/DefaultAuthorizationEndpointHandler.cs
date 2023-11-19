@@ -621,8 +621,6 @@ public class DefaultAuthorizationEndpointHandler :
         IAuthorizationRequest request)
     {
         var openIdContext = request.OpenIdContext;
-        var openIdTenant = openIdContext.Tenant;
-        var openIdSettings = openIdTenant.TenantSettings;
         var errorFactory = openIdContext.ErrorFactory;
 
         var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
@@ -659,6 +657,8 @@ public class DefaultAuthorizationEndpointHandler :
         if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
             throw errorFactory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.").AsException();
 
+        // perform configurable checks...
+
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
         if (request.ResponseType.HasFlag(ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
             throw errorFactory.UnauthorizedClient("The configuration prohibits the use of unsafe token responses.").AsException();
@@ -670,10 +670,8 @@ public class DefaultAuthorizationEndpointHandler :
         if (hasCodeChallenge && codeChallengeMethodIsPlain && !clientSettings.AllowPlainCodeChallengeMethod)
             throw errorFactory.UnauthorizedClient("The configuration prohibits the plain PKCE method.").AsException();
 
-        // perform configurable checks...
-
         // acr_values_supported
-        if (openIdSettings.TryGet(KnownSettings.AcrValuesSupported.Key, out var acrValuesSupported))
+        if (clientSettings.TryGet(KnownSettings.AcrValuesSupported.Key, out var acrValuesSupported))
         {
             var acrValues = request.AcrValues;
             if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported.Value).Any())
@@ -681,7 +679,7 @@ public class DefaultAuthorizationEndpointHandler :
         }
 
         // claims_locales_supported
-        if (openIdSettings.TryGet(KnownSettings.ClaimsLocalesSupported.Key, out var claimsLocalesSupported))
+        if (clientSettings.TryGet(KnownSettings.ClaimsLocalesSupported.Key, out var claimsLocalesSupported))
         {
             var claimsLocales = request.ClaimsLocales;
             if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported.Value).Any())
@@ -689,7 +687,7 @@ public class DefaultAuthorizationEndpointHandler :
         }
 
         // claims_parameter_supported
-        if (openIdSettings.TryGet(KnownSettings.ClaimsParameterSupported.Key, out var claimsParameterSupported))
+        if (clientSettings.TryGet(KnownSettings.ClaimsParameterSupported.Key, out var claimsParameterSupported))
         {
             if (request.Claims is not null && !claimsParameterSupported.Value)
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Claims).AsException();
@@ -700,14 +698,14 @@ public class DefaultAuthorizationEndpointHandler :
         // claim_types_supported
 
         // display_values_supported
-        if (openIdSettings.TryGet(KnownSettings.DisplayValuesSupported.Key, out var displayValuesSupported))
+        if (clientSettings.TryGet(KnownSettings.DisplayValuesSupported.Key, out var displayValuesSupported))
         {
             if (!displayValuesSupported.Value.Contains(request.DisplayType))
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Display).AsException();
         }
 
         // grant_types_supported
-        if (openIdSettings.TryGet(KnownSettings.GrantTypesSupported.Key, out var grantTypesSupported))
+        if (clientSettings.TryGet(KnownSettings.GrantTypesSupported.Key, out var grantTypesSupported))
         {
             if (!grantTypesSupported.Value.Contains(request.GrantType))
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
@@ -719,7 +717,7 @@ public class DefaultAuthorizationEndpointHandler :
         // id_token_signing_alg_values_supported
 
         // prompt_values_supported
-        if (openIdSettings.TryGet(KnownSettings.PromptValuesSupported.Key, out var promptValuesSupported))
+        if (clientSettings.TryGet(KnownSettings.PromptValuesSupported.Key, out var promptValuesSupported))
         {
             if (!promptValuesSupported.Value.Contains(request.PromptType))
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Prompt).AsException();
@@ -734,21 +732,21 @@ public class DefaultAuthorizationEndpointHandler :
         // require_request_uri_registration
 
         // response_modes_supported
-        if (openIdSettings.TryGet(KnownSettings.ResponseModesSupported.Key, out var responseModesSupported))
+        if (clientSettings.TryGet(KnownSettings.ResponseModesSupported.Key, out var responseModesSupported))
         {
             if (!responseModesSupported.Value.Contains(request.ResponseMode))
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseMode).AsException();
         }
 
         // response_types_supported
-        if (openIdSettings.TryGet(KnownSettings.ResponseTypesSupported.Key, out var responseTypesSupported))
+        if (clientSettings.TryGet(KnownSettings.ResponseTypesSupported.Key, out var responseTypesSupported))
         {
             if (!responseTypesSupported.Value.Contains(request.ResponseType))
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseType).AsException();
         }
 
         // scopes_supported
-        if (openIdSettings.TryGet(KnownSettings.ScopesSupported.Key, out var scopesSupported))
+        if (clientSettings.TryGet(KnownSettings.ScopesSupported.Key, out var scopesSupported))
         {
             var scopes = request.Scopes;
             if (scopes.Count > 0 && !scopes.Except(scopesSupported.Value).Any())

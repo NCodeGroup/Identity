@@ -689,13 +689,10 @@ public class DefaultAuthorizationEndpointHandler :
         // claims_parameter_supported
         if (clientSettings.TryGet(KnownSettings.ClaimsParameterSupported.Key, out var claimsParameterSupported))
         {
-            if (request.Claims is not null && !claimsParameterSupported.Value)
+            var claimCount = request.Claims?.UserInfo?.Count ?? 0 + request.Claims?.IdToken?.Count ?? 0;
+            if (claimCount > 0 && !claimsParameterSupported.Value)
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Claims).AsException();
         }
-
-        // claims_supported
-
-        // claim_types_supported
 
         // display_values_supported
         if (clientSettings.TryGet(KnownSettings.DisplayValuesSupported.Key, out var displayValuesSupported))
@@ -711,25 +708,12 @@ public class DefaultAuthorizationEndpointHandler :
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
         }
 
-        // id_token_encryption_alg_values_supported
-        // id_token_encryption_enc_values_supported
-        // id_token_encryption_zip_value
-        // id_token_signing_alg_values_supported
-
         // prompt_values_supported
         if (clientSettings.TryGet(KnownSettings.PromptValuesSupported.Key, out var promptValuesSupported))
         {
             if (!promptValuesSupported.Value.Contains(request.PromptType))
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Prompt).AsException();
         }
-
-        // request_object_encryption_alg_values_supported
-        // request_object_encryption_enc_values_supported
-        // request_object_signing_alg_values_supported
-
-        // request_parameter_supported
-        // request_uri_parameter_supported
-        // require_request_uri_registration
 
         // response_modes_supported
         if (clientSettings.TryGet(KnownSettings.ResponseModesSupported.Key, out var responseModesSupported))
@@ -753,21 +737,14 @@ public class DefaultAuthorizationEndpointHandler :
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Scope).AsException();
         }
 
-        // service_documentation
-
         // subject_types_supported
-        // TODO: Valid types include pairwise and public.
 
         // token_endpoint_auth_methods_supported
         // token_endpoint_auth_signing_alg_values_supported
 
         // ui_locales_supported
 
-        // userinfo_encryption_alg_values_supported
-        // userinfo_encryption_enc_values_supported
-        // userinfo_signing_alg_values_supported
-
-        //
+        // other checks...
 
         // TODO: check allowed IdP from client configuration
 
@@ -775,7 +752,6 @@ public class DefaultAuthorizationEndpointHandler :
         // https://datatracker.ietf.org/doc/html/rfc8707
 
         // TODO: check session cookie
-        // https://github.com/IdentityServer/IdentityServer4/blob/main/src/IdentityServer4/src/Validation/Default/AuthorizeRequestValidator.cs#L801
     }
 
     #endregion

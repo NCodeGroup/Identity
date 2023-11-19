@@ -28,17 +28,17 @@ public static partial class OpenIdConstants
     public static class ClaimTypes
     {
         /// <summary>
-        /// Specifies that Claims that are directly asserted by the OpenID Provider.
+        /// Indicates that Claims are directly asserted by the OpenID Provider.
         /// </summary>
         public const string Normal = "normal";
 
         /// <summary>
-        /// Specifies that Claims that are asserted by a Claims Provider other than the OpenID Provider but are returned by OpenID Provider.
+        /// Indicates that Claims are asserted by a Claims Provider other than the OpenID Provider but are returned by the OpenID Provider.
         /// </summary>
         public const string Aggregated = "aggregated";
 
         /// <summary>
-        /// Specifies that Claims that are asserted by a Claims Provider other than the OpenID Provider but are returned as references by the OpenID Provider.
+        /// Indicates that Claims are asserted by a Claims Provider other than the OpenID Provider but are returned as references by the OpenID Provider.
         /// </summary>
         public const string Distributed = "distributed";
     }

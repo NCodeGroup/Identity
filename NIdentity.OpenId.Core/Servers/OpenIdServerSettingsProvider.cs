@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.Extensions.Configuration;
+using NCode.Jose.Algorithms;
 using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Servers;
@@ -29,15 +30,21 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
 {
     private IConfiguration Configuration { get; }
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
+    private IAlgorithmProvider AlgorithmProvider { get; }
+
     private ISettingCollection? SettingsOrNull { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdServerSettingsProvider"/> class.
     /// </summary>
-    public OpenIdServerSettingsProvider(IConfiguration configuration, ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider)
+    public OpenIdServerSettingsProvider(
+        IConfiguration configuration,
+        ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
+        IAlgorithmProvider algorithmProvider)
     {
         Configuration = configuration;
         SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
+        AlgorithmProvider = algorithmProvider;
     }
 
     /// <inheritdoc />
@@ -47,6 +54,66 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
     {
         var settings = new SettingCollection();
         var descriptors = SettingDescriptorCollectionProvider.Descriptors;
+
+        var signingAlgValuesSupported = new List<string>();
+        var encryptionAlgValuesSupported = new List<string>();
+        var encryptionEncValuesSupported = new List<string>();
+        var encryptionZipValuesSupported = new List<string>();
+
+        foreach (var algorithm in AlgorithmProvider.Algorithms)
+        {
+            if (string.IsNullOrEmpty(algorithm.Code)) continue;
+            if (algorithm.Code == "dir") continue;
+            if (algorithm.Code == "none") continue;
+
+            switch (algorithm.Type)
+            {
+                case AlgorithmType.DigitalSignature:
+                    signingAlgValuesSupported.Add(algorithm.Code);
+                    break;
+
+                case AlgorithmType.KeyManagement:
+                    encryptionAlgValuesSupported.Add(algorithm.Code);
+                    break;
+
+                case AlgorithmType.AuthenticatedEncryption:
+                    encryptionEncValuesSupported.Add(algorithm.Code);
+                    break;
+
+                case AlgorithmType.Compression:
+                    encryptionZipValuesSupported.Add(algorithm.Code);
+                    break;
+            }
+        }
+
+        settings.Set(KnownSettings.IdTokenSigningAlgValuesSupported.Create(signingAlgValuesSupported));
+        settings.Set(KnownSettings.UserInfoSigningAlgValuesSupported.Create(signingAlgValuesSupported));
+        settings.Set(KnownSettings.AccessTokenSigningAlgValuesSupported.Create(signingAlgValuesSupported));
+        settings.Set(KnownSettings.RequestObjectSigningAlgValuesSupported.Create(signingAlgValuesSupported));
+
+        settings.Set(KnownSettings.IdTokenEncryptionAlgValuesSupported.Create(encryptionAlgValuesSupported));
+        settings.Set(KnownSettings.UserInfoEncryptionAlgValuesSupported.Create(encryptionAlgValuesSupported));
+        settings.Set(KnownSettings.AccessTokenEncryptionAlgValuesSupported.Create(encryptionAlgValuesSupported));
+        settings.Set(KnownSettings.RequestObjectEncryptionAlgValuesSupported.Create(encryptionAlgValuesSupported));
+
+        settings.Set(KnownSettings.IdTokenEncryptionEncValuesSupported.Create(encryptionEncValuesSupported));
+        settings.Set(KnownSettings.UserInfoEncryptionEncValuesSupported.Create(encryptionEncValuesSupported));
+        settings.Set(KnownSettings.AccessTokenEncryptionEncValuesSupported.Create(encryptionEncValuesSupported));
+        settings.Set(KnownSettings.RequestObjectEncryptionEncValuesSupported.Create(encryptionEncValuesSupported));
+
+        settings.Set(KnownSettings.IdTokenEncryptionZipValuesSupported.Create(encryptionZipValuesSupported));
+        settings.Set(KnownSettings.UserInfoEncryptionZipValuesSupported.Create(encryptionZipValuesSupported));
+        settings.Set(KnownSettings.AccessTokenEncryptionZipValuesSupported.Create(encryptionZipValuesSupported));
+        settings.Set(KnownSettings.RequestObjectEncryptionZipValuesSupported.Create(encryptionZipValuesSupported));
+
+        foreach (var descriptor in descriptors)
+        {
+            var defaultValue = descriptor.GetDefaultValueOrNull();
+            if (defaultValue is not null)
+            {
+                settings.Set(descriptor.Create(defaultValue));
+            }
+        }
 
         foreach (var settingSection in settingsSection.GetChildren())
         {

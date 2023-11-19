@@ -170,6 +170,11 @@ public static class SettingNames
     public const string RequestObjectEncryptionEncValuesSupported = "request_object_encryption_enc_values_supported";
 
     /// <summary>
+    /// Contains the name of <c>request_object_encryption_zip_values_supported</c> setting.
+    /// </summary>
+    public const string RequestObjectEncryptionZipValuesSupported = "request_object_encryption_zip_values_supported";
+
+    /// <summary>
     /// Contains the name of <c>request_object_signing_alg_values_supported</c> setting.
     /// </summary>
     public const string RequestObjectSigningAlgValuesSupported = "request_object_signing_alg_values_supported";
@@ -263,6 +268,11 @@ public static class SettingNames
     /// Contains the name of <c>userinfo_encryption_enc_values_supported</c> setting.
     /// </summary>
     public const string UserInfoEncryptionEncValuesSupported = "userinfo_encryption_enc_values_supported";
+
+    /// <summary>
+    /// Contains the name of <c>userinfo_encryption_zip_values_supported</c> setting.
+    /// </summary>
+    public const string UserInfoEncryptionZipValuesSupported = "userinfo_encryption_zip_values_supported";
 
     /// <summary>
     /// Contains the name of <c>userinfo_signing_alg_values_supported</c> setting.

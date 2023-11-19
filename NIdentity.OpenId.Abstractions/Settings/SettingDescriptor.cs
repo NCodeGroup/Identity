@@ -40,6 +40,11 @@ public abstract class SettingDescriptor
     public bool Discoverable { get; init; }
 
     /// <summary>
+    /// Gets the default value for the setting if set, otherwise returns <see langword="null"/>.
+    /// </summary>
+    public abstract object? GetDefaultValueOrNull();
+
+    /// <summary>
     /// Factory method used to create a new <see cref="Setting"/> instance with the specified <paramref name="value"/>.
     /// </summary>
     /// <param name="value">The value for the setting.</param>
@@ -82,7 +87,7 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <summary>
     /// Gets or sets the default value for the setting.
     /// </summary>
-    private TValue? DefaultOrNull { get; init; }
+    public TValue? DefaultOrNull { get; init; }
 
     /// <summary>
     /// Gets the default value for the setting or throws an <see cref="InvalidOperationException"/> if the default value is not set.
@@ -113,6 +118,9 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// </summary>
     public Func<TValue, object> OnFormat { get; init; }
         = value => value;
+
+    /// <inheritdoc />
+    public override object? GetDefaultValueOrNull() => DefaultOrNull;
 
     /// <inheritdoc />
     public override Setting Create(object value)

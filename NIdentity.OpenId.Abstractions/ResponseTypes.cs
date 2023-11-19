@@ -22,8 +22,7 @@ using System.ComponentModel;
 namespace NIdentity.OpenId;
 
 /// <summary>
-/// Specifies the desired authorization processing flow, including what parameters are returned from the endpoints
-/// used.
+/// Specifies the desired authorization processing flow, including what parameters are returned from the endpoints used.
 /// </summary>
 [Flags]
 [TypeConverter(typeof(OpenIdEnumConverter<ResponseTypes>))]
@@ -32,8 +31,7 @@ public enum ResponseTypes
     /// <summary>
     /// Represents a value that hasn't been initialized yet and its value is unknown.
     /// </summary>
-    [Browsable(false)]
-    Unspecified = 0,
+    [Browsable(false)] Unspecified = 0,
 
     /// <summary>
     /// Specifies that the Authorization Server SHOULD NOT return an OAuth 2.0 Authorization Code, Access Token,
@@ -50,16 +48,16 @@ public enum ResponseTypes
     Code = 2,
 
     /// <summary>
-    /// Specifies that the the Authorization Server MUST return an ID Token in a successful response to the grant
-    /// request.
-    /// </summary>
-    [OpenIdLabel(OpenIdConstants.ResponseTypes.IdToken)]
-    IdToken = 4,
-
-    /// <summary>
     /// Specifies that the the Authorization Server MUST return an Access Token in a successful response to the
     /// grant request.
     /// </summary>
     [OpenIdLabel(OpenIdConstants.ResponseTypes.Token)]
-    Token = 8
+    Token = 4,
+
+    /// <summary>
+    /// Specifies that the the Authorization Server MUST return an ID Token in a successful response to the grant
+    /// request.
+    /// </summary>
+    [OpenIdLabel(OpenIdConstants.ResponseTypes.IdToken)]
+    IdToken = 8
 }

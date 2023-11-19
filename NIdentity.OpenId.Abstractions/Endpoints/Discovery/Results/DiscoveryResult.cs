@@ -36,5 +36,5 @@ public class DiscoveryResult : OpenIdResult<DiscoveryResult>
     /// Gets or sets the additional properties for an <c>OAuth</c> or<c>OpenID Connect</c> response.
     /// </summary>
     [JsonExtensionData]
-    public Dictionary<string, object> ExtensionData { get; set; } = new(StringComparer.Ordinal);
+    public IDictionary<string, object> ExtensionData { get; set; } = new SortedDictionary<string, object>(StringComparer.Ordinal);
 }

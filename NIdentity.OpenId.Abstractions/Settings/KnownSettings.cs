@@ -106,7 +106,7 @@ public static class KnownSettings
         Default = false,
 
         Discoverable = IsNonStdDiscoverable,
-        OnMerge = Or
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -163,7 +163,7 @@ public static class KnownSettings
         Name = SettingNames.AcrValuesSupported,
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -175,7 +175,7 @@ public static class KnownSettings
         Default = true,
 
         Discoverable = IsNonStdDiscoverable,
-        OnMerge = And
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -187,7 +187,7 @@ public static class KnownSettings
         Default = true,
 
         Discoverable = IsNonStdDiscoverable,
-        OnMerge = And,
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -199,7 +199,7 @@ public static class KnownSettings
         Default = true,
 
         Discoverable = IsNonStdDiscoverable,
-        OnMerge = And
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -234,7 +234,7 @@ public static class KnownSettings
         Name = SettingNames.ClaimsLocalesSupported,
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -246,7 +246,7 @@ public static class KnownSettings
         Default = true,
 
         Discoverable = true,
-        OnMerge = And
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -257,18 +257,19 @@ public static class KnownSettings
         Name = SettingNames.ClaimsSupported,
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'claim_types_supported' setting.
     /// </summary>
-    public static SettingDescriptor<IReadOnlyCollection<ClaimType>> ClaimTypesSupported { get; } = new()
+    public static SettingDescriptor<IReadOnlyCollection<string>> ClaimTypesSupported { get; } = new()
     {
         Name = SettingNames.ClaimTypesSupported,
+        Default = new[] { OpenIdConstants.ClaimTypes.Normal },
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -289,9 +290,10 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<DisplayType>> DisplayValuesSupported { get; } = new()
     {
         Name = SettingNames.DisplayValuesSupported,
+        // TODO: Default
 
         Discoverable = true,
-        OnMerge = Intersect,
+        OnMerge = Replace,
         OnFormat = ConvertToInvariantString
     };
 
@@ -301,9 +303,10 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<GrantType>> GrantTypesSupported { get; } = new()
     {
         Name = SettingNames.GrantTypesSupported,
+        // TODO: Default
 
         Discoverable = true,
-        OnMerge = Intersect,
+        OnMerge = Replace,
         OnFormat = ConvertToInvariantString
     };
 
@@ -338,7 +341,7 @@ public static class KnownSettings
         Default = false,
 
         Discoverable = IsNonStdDiscoverable,
-        OnMerge = Or
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -381,9 +384,10 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<PromptTypes>> PromptValuesSupported { get; } = new()
     {
         Name = SettingNames.PromptValuesSupported,
+        // TODO: Default
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -451,7 +455,7 @@ public static class KnownSettings
         Default = true,
 
         Discoverable = true,
-        OnMerge = And
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -463,7 +467,7 @@ public static class KnownSettings
         Default = true,
 
         Discoverable = true,
-        OnMerge = And
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -475,7 +479,7 @@ public static class KnownSettings
         Default = false,
 
         Discoverable = IsNonStdDiscoverable,
-        OnMerge = Or
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -499,7 +503,7 @@ public static class KnownSettings
         Default = false,
 
         Discoverable = IsNonStdDiscoverable,
-        OnMerge = Or
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -510,7 +514,7 @@ public static class KnownSettings
         Name = SettingNames.RequireRequestUriRegistration,
 
         Discoverable = true,
-        OnMerge = Or
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -519,9 +523,15 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<ResponseMode>> ResponseModesSupported { get; } = new()
     {
         Name = SettingNames.ResponseModesSupported,
+        Default = new[]
+        {
+            ResponseMode.Query,
+            ResponseMode.Fragment,
+            ResponseMode.FormPost
+        },
 
         Discoverable = true,
-        OnMerge = Intersect,
+        OnMerge = Replace,
         OnFormat = ConvertToInvariantString
     };
 
@@ -531,9 +541,17 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<ResponseTypes>> ResponseTypesSupported { get; } = new()
     {
         Name = SettingNames.ResponseTypesSupported,
+        Default = new[]
+        {
+            ResponseTypes.None,
+            ResponseTypes.Code,
+            ResponseTypes.IdToken,
+            ResponseTypes.Code | ResponseTypes.IdToken,
+            ResponseTypes.Token | ResponseTypes.IdToken
+        },
 
         Discoverable = true,
-        OnMerge = Intersect,
+        OnMerge = Replace,
         OnFormat = ConvertToInvariantString
     };
 
@@ -543,9 +561,18 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<string>> ScopesSupported { get; } = new()
     {
         Name = SettingNames.ScopesSupported,
+        Default = new[]
+        {
+            OpenIdConstants.ScopeTypes.OpenId,
+            OpenIdConstants.ScopeTypes.Profile,
+            OpenIdConstants.ScopeTypes.Email,
+            OpenIdConstants.ScopeTypes.Address,
+            OpenIdConstants.ScopeTypes.Phone,
+            OpenIdConstants.ScopeTypes.OfflineAccess
+        },
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -565,9 +592,10 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<string>> SubjectTypesSupported { get; } = new()
     {
         Name = SettingNames.SubjectTypesSupported,
+        // TODO: Default
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -578,7 +606,7 @@ public static class KnownSettings
         Name = SettingNames.TokenEndpointAuthMethodsSupported,
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>
@@ -600,7 +628,7 @@ public static class KnownSettings
         Name = SettingNames.UiLocalesSupported,
 
         Discoverable = true,
-        OnMerge = Intersect
+        OnMerge = Replace
     };
 
     /// <summary>

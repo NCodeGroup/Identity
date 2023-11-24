@@ -24,7 +24,7 @@ namespace NIdentity.OpenId.Results;
 // TODO: rename 'With...' to 'Set...'
 
 /// <summary>
-/// Provides extension methods for <see cref="IOpenIdError"/>.
+/// Provides extension methods for the <see cref="IOpenIdError"/> abstraction.
 /// </summary>
 public static class OpenIdErrorExtensions
 {

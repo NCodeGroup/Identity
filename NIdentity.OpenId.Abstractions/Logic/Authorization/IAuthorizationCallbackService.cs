@@ -27,14 +27,18 @@ namespace NIdentity.OpenId.Logic.Authorization;
 public interface IAuthorizationCallbackService
 {
     /// <summary>
-    /// Gets the URL that a user-agent, after successfully authenticating an end-user, may return to the authorization server.
+    /// Gets the URL that a user-agent, after successfully authenticating an end-user, may return to
+    /// the authorization server and continue the authorization flow.
     /// </summary>
     /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the current authorization request.</param>
-    /// <param name="reason">The <see cref="string"/> that describes the reason for the authorization request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the return URL.</returns>
-    ValueTask<string> GetReturnUrlAsync(
+    ValueTask<string> GetContinueUrlAsync(
         AuthorizationContext authorizationContext,
-        string reason,
+        CancellationToken cancellationToken);
+
+    ValueTask<IAuthorizationRequest?> TryGetAuthorizationRequestAsync(
+        OpenIdContext openIdContext,
+        string state,
         CancellationToken cancellationToken);
 }

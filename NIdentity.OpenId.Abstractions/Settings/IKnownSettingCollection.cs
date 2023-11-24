@@ -100,6 +100,12 @@ public interface IKnownSettingCollection : ISettingCollection
     TimeSpan ClockSkew { get; set; }
 
     /// <summary>
+    /// Gets or sets the amount of time to allow for the authorization flow to complete after user interaction is initiated.
+    /// The default is <c>900</c> seconds (15 minutes).
+    /// </summary>
+    TimeSpan ContinueAuthorizationTimeout { get; set; }
+
+    /// <summary>
     /// Gets or sets the value for the 'id_token_encryption_alg_values_supported' setting.
     /// </summary>
     IReadOnlyCollection<string> IdTokenEncryptionAlgValuesSupported { get; set; }

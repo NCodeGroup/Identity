@@ -127,6 +127,13 @@ public class KnownSettingCollection : IKnownSettingCollection
     }
 
     /// <inheritdoc />
+    public TimeSpan ContinueAuthorizationTimeout
+    {
+        get => Get(KnownSettings.ContinueAuthorizationTimeout);
+        set => Store.Set(KnownSettings.ContinueAuthorizationTimeout.Create(value));
+    }
+
+    /// <inheritdoc />
     public IReadOnlyCollection<string> IdTokenEncryptionAlgValuesSupported
     {
         get => Get(KnownSettings.IdTokenEncryptionAlgValuesSupported);

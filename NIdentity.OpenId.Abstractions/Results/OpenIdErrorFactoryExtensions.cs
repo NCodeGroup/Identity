@@ -173,6 +173,6 @@ public static class OpenIdErrorFactoryExtensions
     /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
     public static IOpenIdError NotSupported(this IOpenIdErrorFactory factory, string parameterName)
     {
-        return factory.Create(OpenIdConstants.ErrorCodes.InvalidRequest).WithDescription($"The specified '{parameterName}' is not supported by the authorization server.");
+        return factory.Create(OpenIdConstants.ErrorCodes.InvalidRequest).WithDescription($"The supplied value in the '{parameterName}' parameter is not supported by the authorization server.");
     }
 }

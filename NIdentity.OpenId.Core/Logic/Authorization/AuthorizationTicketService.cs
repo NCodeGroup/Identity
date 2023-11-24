@@ -110,16 +110,11 @@ public class AuthorizationTicketService : IAuthorizationTicketService
     /// <summary>
     /// Generates a new authorization code and its hashed value.
     /// The default implementation generates a strong cryptographic random 256-bit value that is Base64Url encoded,
-    /// the hashed value uses the SHA-256 algorithm and is Base64 encoded.
+    /// then hashed using the SHA-256 algorithm and Base64 encoded.
     /// </summary>
     /// <returns>The newly generated authorization code and its hashed value.</returns>
-    protected virtual (string code, string hashedCode) GenerateAuthorizationCode()
-    {
-        const int byteLength = 32; // aka 256 bits
-        var code = CryptoService.GenerateKey(byteLength, BinaryEncodingType.Base64Url);
-        var hashedCode = CryptoService.HashValue(code, HashAlgorithmType.Sha256, BinaryEncodingType.Base64);
-        return (code, hashedCode);
-    }
+    protected virtual PersistedKey GenerateAuthorizationCode() =>
+        CryptoService.GeneratePersistedUrlSafeKey();
 
     /// <summary>
     /// Persists the authorization request to the <see cref="IAuthorizationCodeStore"/>

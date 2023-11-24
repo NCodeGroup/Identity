@@ -285,6 +285,18 @@ public static class KnownSettings
     };
 
     /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'continue_authorization_timeout' setting.
+    /// </summary>
+    public static SettingDescriptor<TimeSpan> ContinueAuthorizationTimeout { get; } = new()
+    {
+        Name = SettingNames.ContinueAuthorizationTimeout,
+        Default = TimeSpan.FromMinutes(15),
+
+        Discoverable = IsNonStdDiscoverable,
+        OnMerge = Replace
+    };
+
+    /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'display_values_supported' setting.
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<DisplayType>> DisplayValuesSupported { get; } = new()

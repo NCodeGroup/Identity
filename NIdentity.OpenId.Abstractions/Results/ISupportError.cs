@@ -17,15 +17,9 @@
 
 #endregion
 
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
+namespace NIdentity.OpenId.Results;
 
-namespace NIdentity.OpenId.Logic.Authorization;
-
-internal class NullAuthorizationLoginService : IAuthorizationLoginService
+public interface ISupportError
 {
-    /// <inheritdoc />
-    public ValueTask<string> GetRedirectUrlAsync(AuthorizationContext authorizationContext, string returnUrl, CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
-    }
+    IOpenIdError? Error { get; }
 }

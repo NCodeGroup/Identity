@@ -34,9 +34,20 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
         var httpContext = context.HttpContext;
         var httpResponse = httpContext.Response;
 
+        // If an error occurred with an explicit HTTP status code,
+        // then return a JSON response with the corresponding status code
+        // instead of returning a redirect response.
+        var statusCode = result.Error?.StatusCode;
+        if (statusCode is not null)
+        {
+            var httpResult = TypedResults.Json(result.Error, context.JsonSerializerOptions, statusCode: statusCode);
+            await httpResult.ExecuteAsync(httpContext);
+            return;
+        }
+
         IOpenIdMessage? error = result.Error;
         IOpenIdMessage? ticket = result.Ticket;
-        var message = error ?? ticket ?? throw new InvalidOperationException("TODO");
+        var message = error ?? ticket ?? throw new InvalidOperationException("Both error and ticket are null.");
 
         // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (result.ResponseMode)
@@ -52,7 +63,7 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
                 break;
 
             default:
-                throw new InvalidOperationException("TODO");
+                throw new InvalidOperationException("Unsupported response mode.");
         }
     }
 
@@ -88,7 +99,7 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
         }
         else
         {
-            throw new InvalidOperationException("TODO");
+            throw new InvalidOperationException("Unsupported response mode.");
         }
 
         return uriBuilder.Uri;
@@ -145,8 +156,8 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
 
     private static void ExecuteUsingRedirect(HttpResponse httpResponse, Uri redirectUri)
     {
-        httpResponse.Headers.Add("Pragma", "no-cache");
-        httpResponse.Headers.Add("Cache-Control", "no-store, no-cache, max-age=0");
+        httpResponse.Headers.Pragma = "no-cache";
+        httpResponse.Headers.CacheControl = "no-store, no-cache, max-age=0";
 
         httpResponse.Redirect(redirectUri.AbsoluteUri);
     }
@@ -158,13 +169,13 @@ internal class AuthorizationResultExecutor : IOpenIdResultExecutor<Authorization
 
     private static async ValueTask ExecuteUsingFormPostAsync(HttpResponse httpResponse, Uri redirectUri, IOpenIdMessage message, CancellationToken cancellationToken)
     {
-        httpResponse.Headers.Add("Pragma", "no-cache");
-        httpResponse.Headers.Add("Cache-Control", "no-store, no-cache, max-age=0");
+        httpResponse.Headers.Pragma = "no-cache";
+        httpResponse.Headers.CacheControl = "no-store, no-cache, max-age=0";
 
         var scriptHash = Convert.ToBase64String(SHA256.HashData(Encoding.ASCII.GetBytes(FormPostJavascript)));
 
-        httpResponse.Headers.Add("Referrer-Policy", "no-referrer");
-        httpResponse.Headers.Add("Content-Security-Policy", $"default-src 'none'; script-src 'sha256-{scriptHash}'");
+        httpResponse.Headers["Referrer-Policy"] = "no-referrer";
+        httpResponse.Headers.ContentSecurityPolicy = $"default-src 'none'; script-src 'sha256-{scriptHash}'";
 
         var html = GetFormPostHtml(redirectUri, message);
 

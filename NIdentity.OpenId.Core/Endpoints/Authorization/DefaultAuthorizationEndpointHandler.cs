@@ -69,7 +69,7 @@ public class DefaultAuthorizationEndpointHandler :
     private IClientStore ClientStore { get; }
     private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; }
     private IAuthorizationCallbackService CallbackService { get; }
-    private IAuthorizationLoginService LoginService { get; }
+    private IAuthorizationInteractionService InteractionService { get; }
     private IAuthorizationTicketService TicketService { get; }
 
     /// <summary>
@@ -84,7 +84,7 @@ public class DefaultAuthorizationEndpointHandler :
         IClientStore clientStore,
         IAuthenticationSchemeProvider authenticationSchemeProvider,
         IAuthorizationCallbackService callbackService,
-        IAuthorizationLoginService loginService,
+        IAuthorizationInteractionService interactionService,
         IAuthorizationTicketService ticketService)
     {
         Logger = logger;
@@ -95,7 +95,7 @@ public class DefaultAuthorizationEndpointHandler :
         ClientStore = clientStore;
         AuthenticationSchemeProvider = authenticationSchemeProvider;
         CallbackService = callbackService;
-        LoginService = loginService;
+        InteractionService = interactionService;
         TicketService = ticketService;
     }
 
@@ -362,6 +362,9 @@ public class DefaultAuthorizationEndpointHandler :
         // the following will parse string-values into strongly-typed parameters and may throw
         var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
         requestMessage.AuthorizationSourceType = authorizationSource.AuthorizationSourceType;
+
+        // TODO: add support for OAuth 2.0 Pushed Authorization Requests (PAR)
+        // https://datatracker.ietf.org/doc/html/rfc9126
 
         var requestObject = await LoadRequestObjectAsync(
             requestMessage,
@@ -711,8 +714,19 @@ public class DefaultAuthorizationEndpointHandler :
         // prompt_values_supported
         if (clientSettings.TryGet(KnownSettings.PromptValuesSupported.Key, out var promptValuesSupported))
         {
+            /*
+             * https://openid.net/specs/openid-connect-prompt-create-1_0.html#section-4.1
+             *
+             * If the OpenID Provider receives a prompt value that it does not support (not declared in the
+             * prompt_values_supported metadata field) the OP SHOULD respond with an HTTP 400 (Bad Request)
+             * status code and an error value of invalid_request. It is RECOMMENDED that the OP return an
+             * error_description value identifying the invalid parameter value.
+             */
             if (!promptValuesSupported.Value.Contains(request.PromptType))
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Prompt).AsException();
+                throw errorFactory
+                    .NotSupported(OpenIdConstants.Parameters.Prompt)
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .AsException();
         }
 
         // response_modes_supported
@@ -801,7 +815,6 @@ public class DefaultAuthorizationEndpointHandler :
 
         var promptType = authorizationRequest.PromptType;
 
-        // TODO: check if supported
         if (promptType.HasFlag(PromptTypes.CreateAccount))
         {
             // TODO: redirect to create account page
@@ -812,19 +825,22 @@ public class DefaultAuthorizationEndpointHandler :
             promptType.HasFlag(PromptTypes.Login) ||
             promptType.HasFlag(PromptTypes.SelectAccount);
 
+        // TODO: remove 'prompt' parameter to prevent infinite loop
+
         if (reAuthenticate)
         {
-            var returnUrl = await CallbackService.GetReturnUrlAsync(
+            Logger.LogInformation("Client requested re-authentication.");
+
+            var continueUrl = await CallbackService.GetContinueUrlAsync(
                 authorizationContext,
-                "Client requested re-authentication.",
                 cancellationToken);
 
-            var redirectUrl = await LoginService.GetRedirectUrlAsync(
+            var loginUrl = await InteractionService.GetLoginUrlAsync(
                 authorizationContext,
-                returnUrl,
+                continueUrl,
                 cancellationToken);
 
-            return new OpenIdRedirectResult(redirectUrl);
+            return new OpenIdRedirectResult(loginUrl);
         }
 
         if (authenticationTicket is not { Principal.Identity.IsAuthenticated: true })
@@ -837,14 +853,15 @@ public class DefaultAuthorizationEndpointHandler :
                 return new AuthorizationResult(redirectUri, responseMode, error);
             }
 
-            var returnUrl = await CallbackService.GetReturnUrlAsync(
+            Logger.LogInformation("User not authenticated.");
+
+            var continueUrl = await CallbackService.GetContinueUrlAsync(
                 authorizationContext,
-                "User not authenticated.",
                 cancellationToken);
 
-            var redirectUrl = await LoginService.GetRedirectUrlAsync(
+            var redirectUrl = await InteractionService.GetLoginUrlAsync(
                 authorizationContext,
-                returnUrl,
+                continueUrl,
                 cancellationToken);
 
             return new OpenIdRedirectResult(redirectUrl);
@@ -855,36 +872,39 @@ public class DefaultAuthorizationEndpointHandler :
 
         if (!await ValidateUserIsActiveAsync(authorizationContext, authenticationTicket, cancellationToken))
         {
-            var returnUrl = await CallbackService.GetReturnUrlAsync(
+            Logger.LogInformation("User not active.");
+
+            var continueUrl = await CallbackService.GetContinueUrlAsync(
                 authorizationContext,
-                "User not active.",
                 cancellationToken);
 
-            var redirectUrl = await LoginService.GetRedirectUrlAsync(
+            var redirectUrl = await InteractionService.GetLoginUrlAsync(
                 authorizationContext,
-                returnUrl,
+                continueUrl,
                 cancellationToken);
 
             return new OpenIdRedirectResult(redirectUrl);
         }
 
+        // TODO: check that tenant from subject matches the current tenant
+
+        // TODO: check that IdP from subject matches the request's ACR
+        // example acr value: urn:ncode:oidc:idp:google
+
         // TODO: check consent
-
-        // TODO: check tenant
-
-        // TODO: check IdP
 
         // check MaxAge
         if (!ValidateMaxAge(subject, authorizationRequest.MaxAge, clientSettings.ClockSkew))
         {
-            var returnUrl = await CallbackService.GetReturnUrlAsync(
+            Logger.LogInformation("MaxAge exceeded.");
+
+            var continueUrl = await CallbackService.GetContinueUrlAsync(
                 authorizationContext,
-                "MaxAge exceeded.",
                 cancellationToken);
 
-            var redirectUrl = await LoginService.GetRedirectUrlAsync(
+            var redirectUrl = await InteractionService.GetLoginUrlAsync(
                 authorizationContext,
-                returnUrl,
+                continueUrl,
                 cancellationToken);
 
             return new OpenIdRedirectResult(redirectUrl);

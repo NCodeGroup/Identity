@@ -24,17 +24,17 @@ namespace NIdentity.OpenId.Logic.Authorization;
 /// <summary>
 /// Provides the ability for the authorization server to generate redirect URLs that are used to authenticate an end-user.
 /// </summary>
-public interface IAuthorizationLoginService
+public interface IAuthorizationInteractionService
 {
     /// <summary>
     /// Gets the URL that the authorization server may redirect the user-agent in order to authenticate an end-user.
     /// </summary>
     /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the current authorization request.</param>
-    /// <param name="returnUrl">The URL that the user-agent may return to the authorization server after successfully authenticating the end-user.</param>
+    /// <param name="continueUrl">The URL that the user-agent may return to the authorization server after successfully authenticating the end-user and continue the authorization flow.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the redirect URL.</returns>
-    ValueTask<string> GetRedirectUrlAsync(
+    ValueTask<string> GetLoginUrlAsync(
         AuthorizationContext authorizationContext,
-        string returnUrl,
+        string continueUrl,
         CancellationToken cancellationToken);
 }

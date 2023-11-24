@@ -21,10 +21,10 @@ using NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
-internal class NullAuthorizationCallbackService : IAuthorizationCallbackService
+internal class NullAuthorizationInteractionService : IAuthorizationInteractionService
 {
     /// <inheritdoc />
-    public ValueTask<string> GetReturnUrlAsync(AuthorizationContext authorizationContext, string reason, CancellationToken cancellationToken)
+    public ValueTask<string> GetLoginUrlAsync(AuthorizationContext authorizationContext, string continueUrl, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }

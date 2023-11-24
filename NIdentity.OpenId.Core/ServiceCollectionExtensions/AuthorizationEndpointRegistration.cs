@@ -44,8 +44,8 @@ public static class AuthorizationEndpointRegistration
     {
         services.AddSingleton<IAuthorizationTicketService, AuthorizationTicketService>();
         services.AddSingleton<IAuthorizationClaimsService, AuthorizationClaimsService>();
-        services.AddSingleton<IAuthorizationLoginService, NullAuthorizationLoginService>();
-        services.AddSingleton<IAuthorizationCallbackService, NullAuthorizationCallbackService>();
+        services.AddSingleton<IAuthorizationInteractionService, NullAuthorizationInteractionService>();
+        services.AddSingleton<IAuthorizationCallbackService, DefaultAuthorizationCallbackService>();
 
         services.AddSingleton<DefaultAuthorizationEndpointProvider>();
         services.AddSingleton<DefaultAuthorizationEndpointHandler>();

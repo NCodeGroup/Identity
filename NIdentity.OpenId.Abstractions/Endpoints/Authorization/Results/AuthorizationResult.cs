@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 /// request has been validated, specifically the <c>client_id</c> and <c>redirect_uri</c> parameters
 /// from the request have been validated and it is safe to redirect the user agent back to the client.
 /// </summary>
-public class AuthorizationResult : OpenIdResult<AuthorizationResult>
+public class AuthorizationResult : OpenIdResult<AuthorizationResult>, ISupportError
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizationResult"/> class.

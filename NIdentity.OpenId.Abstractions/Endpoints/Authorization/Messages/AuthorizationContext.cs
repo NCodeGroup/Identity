@@ -29,12 +29,12 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 public abstract class AuthorizationContext
 {
     /// <summary>
-    /// Gets the <see cref="Client"/> instance that was loaded using the <see cref="IAuthorizationRequest.ClientId"/> parameter.
+    /// Gets the <see cref="Client"/> instance that was loaded using the 'client_id' parameter.
     /// </summary>
     public abstract Client Client { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISettingCollection"/> that contains client settings merged with tenant settings.
+    /// Gets the <see cref="IKnownSettingCollection"/> that contains client settings merged with tenant settings.
     /// </summary>
     public abstract IKnownSettingCollection ClientSettings { get; }
 

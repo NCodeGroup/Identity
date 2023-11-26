@@ -17,7 +17,6 @@
 
 #endregion
 
-using NCode.Identity;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Settings;
 
@@ -47,9 +46,4 @@ public abstract class AuthorizationContext
     /// Gets the <see cref="IAuthorizationRequest"/> that contains the <c>OAuth</c> or <c>OpenID Connect</c> authorization parameters.
     /// </summary>
     public abstract IAuthorizationRequest AuthorizationRequest { get; }
-
-    /// <summary>
-    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
-    /// </summary>
-    public abstract IPropertyBag PropertyBag { get; }
 }

@@ -25,13 +25,16 @@ using NIdentity.OpenId.Settings;
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="IAuthorizationSource"/> and
-/// a <see cref="Client"/> as input argument and expects <see cref="AuthorizationContext"/> as a response.
+/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="OpenIdContext"/>,
+/// <see cref="IAuthorizationSource"/>, and a <see cref="Client"/> as input arguments and expects
+/// <see cref="AuthorizationContext"/> as a response.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> input argument for the command contract.</param>
 /// <param name="AuthorizationSource">The <see cref="IAuthorizationSource"/> input argument for the command contract.</param>
 /// <param name="Client">The <see cref="Client"/> input argument for the command contract.</param>
 /// <param name="ClientSettings">The <see cref="IKnownSettingCollection"/> input argument for the command contract.</param>
 public record struct LoadAuthorizationRequestCommand(
+    OpenIdContext OpenIdContext,
     IAuthorizationSource AuthorizationSource,
     Client Client,
     IKnownSettingCollection ClientSettings

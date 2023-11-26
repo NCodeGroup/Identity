@@ -17,12 +17,10 @@
 
 #endregion
 
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -32,6 +30,16 @@ namespace NIdentity.OpenId.Endpoints;
 /// </summary>
 public abstract class OpenIdContext
 {
+    /// <summary>
+    /// Gets the <see cref="Servers.OpenIdServer"/> associated with the current request.
+    /// </summary>
+    public abstract OpenIdServer OpenIdServer { get; }
+
+    /// <summary>
+    /// Gets the <see cref="Tenants.OpenIdTenant"/> associated with the current request.
+    /// </summary>
+    public abstract OpenIdTenant OpenIdTenant { get; }
+
     /// <summary>
     /// Gets the <see cref="HttpContext"/> associated with the current request.
     /// </summary>
@@ -43,28 +51,7 @@ public abstract class OpenIdContext
     public abstract IMediator Mediator { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
-    /// </summary>
-    public abstract OpenIdTenant Tenant { get; }
-
-    /// <summary>
-    /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.
-    /// </summary>
-    public abstract JsonSerializerOptions JsonSerializerOptions { get; }
-
-    /// <summary>
-    /// Gets the <see cref="IOpenIdErrorFactory"/> that can be used to create error responses
-    /// for <c>OAuth</c> or<c>OpenID Connect</c> operations.
-    /// </summary>
-    public abstract IOpenIdErrorFactory ErrorFactory { get; }
-
-    /// <summary>
-    /// Gets the <see cref="IKnownParameterCollection"/> which contains all known parameters.
-    /// </summary>
-    public abstract IKnownParameterCollection KnownParameters { get; }
-
-    /// <summary>
-    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current request.
+    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
 }

@@ -24,11 +24,16 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
-internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
+internal class AuthorizationResultExecutor(
+    OpenIdServer openIdServer
+) : IResultExecutor<AuthorizationResult>
 {
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
+
     public async ValueTask ExecuteAsync(HttpContext httpContext, AuthorizationResult result, CancellationToken cancellationToken)
     {
         var httpResponse = httpContext.Response;
@@ -38,8 +43,7 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
         // instead of returning a redirect response.
         if (result.Error is { StatusCode: not null })
         {
-            var options = result.Error.OpenIdContext.JsonSerializerOptions;
-            var httpResult = TypedResults.Json(result.Error, options, statusCode: result.Error.StatusCode);
+            var httpResult = TypedResults.Json(result.Error, OpenIdServer.JsonSerializerOptions, statusCode: result.Error.StatusCode);
             await httpResult.ExecuteAsync(httpContext);
             return;
         }

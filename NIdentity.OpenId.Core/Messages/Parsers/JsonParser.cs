@@ -21,9 +21,9 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -37,12 +37,12 @@ public class JsonParser<T> : ParameterParser<T?>
     /// Gets the <see cref="JsonConverter{T}"/> that is used to (de)serialize the JSON payload.
     /// The default implementation retrieves the <see cref="JsonConverter{T}"/> from the <see cref="JsonSerializerOptions"/>.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> to use when parsing the value.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to be parsed.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     /// <returns>The <see cref="JsonConverter{T}"/> to (de)serialize the JSON payload.</returns>
     protected virtual JsonConverter<T?> GetJsonConverter(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options
     ) => (JsonConverter<T?>)options.GetConverter(typeof(T));
@@ -50,14 +50,14 @@ public class JsonParser<T> : ParameterParser<T?>
     /// <inheritdoc/>
     public override Parameter Read(
         ref Utf8JsonReader reader,
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
-        var converter = GetJsonConverter(context, descriptor, options);
+        var converter = GetJsonConverter(openIdServer, descriptor, options);
         var parsedValue = converter.Read(ref reader, typeof(T), options);
         var stringValues = JsonSerializer.Serialize(parsedValue, options);
-        return descriptor.Loader.Load(context, descriptor, stringValues, parsedValue);
+        return descriptor.Loader.Load(openIdServer, descriptor, stringValues, parsedValue);
     }
 
     // TODO: unit tests for Write
@@ -65,7 +65,7 @@ public class JsonParser<T> : ParameterParser<T?>
     /// <inheritdoc/>
     public override void Write(
         Utf8JsonWriter writer,
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         Parameter parameter,
         JsonSerializerOptions options)
     {
@@ -73,20 +73,20 @@ public class JsonParser<T> : ParameterParser<T?>
         writer.WritePropertyName(descriptor.ParameterName);
 
         var typedParameter = (Parameter<T>)parameter;
-        var converter = GetJsonConverter(context, descriptor, options);
+        var converter = GetJsonConverter(openIdServer, descriptor, options);
 
         converter.Write(writer, typedParameter.ParsedValue, options);
     }
 
     /// <inheritdoc/>
-    public override StringValues Serialize(OpenIdContext context, T? value)
+    public override StringValues Serialize(OpenIdServer openIdServer, T? value)
     {
-        return JsonSerializer.Serialize(value, context.JsonSerializerOptions);
+        return JsonSerializer.Serialize(value, openIdServer.JsonSerializerOptions);
     }
 
     /// <inheritdoc/>
     public override T? Parse(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
@@ -98,10 +98,10 @@ public class JsonParser<T> : ParameterParser<T?>
                 return default;
 
             case 0:
-                throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
+                throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
             case > 1:
-                throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
+                throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
         var json = stringValues[0];
@@ -109,11 +109,11 @@ public class JsonParser<T> : ParameterParser<T?>
 
         try
         {
-            return JsonSerializer.Deserialize<T>(json, context.JsonSerializerOptions);
+            return JsonSerializer.Deserialize<T>(json, openIdServer.JsonSerializerOptions);
         }
         catch (Exception exception)
         {
-            throw context.ErrorFactory
+            throw openIdServer.ErrorFactory
                 .FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest)
                 .WithException(exception)
                 .AsException();
@@ -132,7 +132,7 @@ public class JsonParser<T, TConverter> : JsonParser<T>
 {
     /// <inheritdoc />
     protected override JsonConverter<T?> GetJsonConverter(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options
     ) => new TConverter();

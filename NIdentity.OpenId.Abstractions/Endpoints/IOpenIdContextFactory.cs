@@ -18,7 +18,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity;
 using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -28,6 +27,5 @@ public interface IOpenIdContextFactory
     ValueTask<OpenIdContext> CreateContextAsync(
         HttpContext httpContext,
         IMediator mediator,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken);
 }

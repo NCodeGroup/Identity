@@ -20,8 +20,8 @@
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -38,7 +38,7 @@ public class DefaultJsonParser : IJsonParser
     /// <inheritdoc/>
     public Parameter Read(
         ref Utf8JsonReader reader,
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
@@ -65,16 +65,16 @@ public class DefaultJsonParser : IJsonParser
 
             default:
                 var jsonElement = JsonSerializer.Deserialize<JsonElement>(ref reader, options);
-                return descriptor.Loader.Load(context, descriptor, jsonElement.GetRawText(), jsonElement);
+                return descriptor.Loader.Load(openIdServer, descriptor, jsonElement.GetRawText(), jsonElement);
         }
 
-        return descriptor.Loader.Load(context, descriptor, stringValues);
+        return descriptor.Loader.Load(openIdServer, descriptor, stringValues);
     }
 
     /// <inheritdoc/>
     public void Write(
         Utf8JsonWriter writer,
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         Parameter parameter,
         JsonSerializerOptions options)
     {

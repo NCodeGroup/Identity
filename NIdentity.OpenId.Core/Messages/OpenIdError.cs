@@ -17,9 +17,9 @@
 
 #endregion
 
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages;
 
@@ -37,12 +37,12 @@ public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdError"/> class with the specified <see cref="OpenIdContext"/> and error code.
+    /// Initializes a new instance of the <see cref="OpenIdError"/> class with the specified <see cref="OpenIdServer"/> and error code.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> associated with the current instance.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> associated with the current instance.</param>
     /// <param name="errorCode">The value for the <c>error</c> parameter.</param>
-    public OpenIdError(OpenIdContext context, string errorCode)
-        : base(context)
+    public OpenIdError(OpenIdServer openIdServer, string errorCode)
+        : base(openIdServer)
     {
         Code = errorCode;
     }

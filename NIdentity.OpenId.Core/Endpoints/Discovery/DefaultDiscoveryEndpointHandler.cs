@@ -22,10 +22,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity;
 using NIdentity.OpenId.Endpoints.Discovery.Commands;
 using NIdentity.OpenId.Endpoints.Discovery.Results;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
@@ -36,12 +36,14 @@ namespace NIdentity.OpenId.Endpoints.Discovery;
 public class DefaultDiscoveryEndpointHandler(
     EndpointDataSource endpointDataSource,
     LinkGenerator linkGenerator,
-    IOpenIdContextFactory contextFactory
+    IOpenIdContextFactory contextFactory,
+    OpenIdServer openIdServer
 ) : IOpenIdEndpointProvider, ICommandHandler<DiscoverMetadataCommand>
 {
     private EndpointDataSource EndpointDataSource { get; } = endpointDataSource;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -55,25 +57,22 @@ public class DefaultDiscoveryEndpointHandler(
         [FromQuery] bool? showAll,
         CancellationToken cancellationToken)
     {
-        var propertyBag = new PropertyBag();
-
-        var context = await ContextFactory.CreateContextAsync(
+        var openIdContext = await ContextFactory.CreateContextAsync(
             httpContext,
             mediator,
-            propertyBag,
             cancellationToken);
 
         var result = new DiscoveryResult
         {
-            Issuer = context.Tenant.Issuer
+            Issuer = openIdContext.OpenIdTenant.Issuer
         };
 
         await mediator.SendAsync(
-            new DiscoverMetadataCommand(context, result.Metadata, showAll ?? false),
+            new DiscoverMetadataCommand(openIdContext, result.Metadata, showAll ?? false),
             cancellationToken
         );
 
-        return TypedResults.Json(result, context.JsonSerializerOptions);
+        return TypedResults.Json(result, OpenIdServer.JsonSerializerOptions);
     }
 
     /// <inheritdoc />
@@ -83,7 +82,7 @@ public class DefaultDiscoveryEndpointHandler(
     {
         var (context, metadata, showAll) = command;
 
-        DiscoverSettings(metadata, context.Tenant.TenantSettings, showAll);
+        DiscoverSettings(metadata, context.OpenIdTenant.TenantSettings, showAll);
 
         DiscoverEndpoints(metadata, context.HttpContext);
 

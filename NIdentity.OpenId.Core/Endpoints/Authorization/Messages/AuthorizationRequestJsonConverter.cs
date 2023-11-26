@@ -38,11 +38,11 @@ internal class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationR
         if (requestMessage == null)
             return null;
 
-        Debug.Assert(requestMessage.OpenIdContext != null);
+        Debug.Assert(requestMessage.OpenIdServer != null);
 
         var requestObject = envelope?.OriginalRequestObject;
 
-        Debug.Assert(requestObject == null || requestObject.OpenIdContext == requestMessage.OpenIdContext);
+        Debug.Assert(requestObject == null || requestObject.OpenIdServer == requestMessage.OpenIdServer);
 
         return new AuthorizationRequest(requestMessage, requestObject);
     }

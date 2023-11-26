@@ -33,9 +33,22 @@ namespace NIdentity.OpenId.Tenants.Providers;
 /// <summary>
 /// Provides a default implementation of <see cref="IOpenIdTenantProvider"/> that uses a static single tenant configuration.
 /// </summary>
-public class DefaultStaticSingleOpenIdTenantProvider : OpenIdTenantProvider
+public class DefaultStaticSingleOpenIdTenantProvider(
+    TemplateBinderFactory templateBinderFactory,
+    IOptions<OpenIdServerOptions> serverOptionsAccessor,
+    OpenIdServer openIdServer,
+    ISecretKeyProvider secretKeyProvider,
+    ITenantStore tenantStore,
+    ISecretSerializer secretSerializer
+) : OpenIdTenantProvider(
+    templateBinderFactory,
+    serverOptionsAccessor.Value,
+    openIdServer,
+    tenantStore,
+    secretSerializer
+)
 {
-    private ISecretKeyProvider SecretKeyProvider { get; }
+    private ISecretKeyProvider SecretKeyProvider { get; } = secretKeyProvider;
 
     private StaticSingleOpenIdTenantOptions TenantOptions =>
         ServerOptions.Tenant.StaticSingle ?? throw MissingTenantOptionsException();
@@ -45,27 +58,6 @@ public class DefaultStaticSingleOpenIdTenantProvider : OpenIdTenantProvider
 
     /// <inheritdoc />
     protected override PathString TenantPath => TenantOptions.TenantPath;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultStaticSingleOpenIdTenantProvider"/> class.
-    /// </summary>
-    public DefaultStaticSingleOpenIdTenantProvider(
-        TemplateBinderFactory templateBinderFactory,
-        IOptions<OpenIdServerOptions> serverOptionsAccessor,
-        IOpenIdServerSettingsProvider serverSettingsProvider,
-        ISecretKeyProvider secretKeyProvider,
-        ITenantStore tenantStore,
-        ISecretSerializer secretSerializer
-    ) : base(
-        templateBinderFactory,
-        serverOptionsAccessor.Value,
-        serverSettingsProvider,
-        tenantStore,
-        secretSerializer
-    )
-    {
-        SecretKeyProvider = secretKeyProvider;
-    }
 
     /// <inheritdoc />
     protected override ValueTask<TenantDescriptor> GetTenantDescriptorAsync(
@@ -100,7 +92,7 @@ public class DefaultStaticSingleOpenIdTenantProvider : OpenIdTenantProvider
         CancellationToken cancellationToken)
     {
         // we use the same settings as the server
-        return ValueTask.FromResult(ServerSettingsProvider.Settings);
+        return ValueTask.FromResult(OpenIdServer.ServerSettings);
     }
 
     /// <inheritdoc />

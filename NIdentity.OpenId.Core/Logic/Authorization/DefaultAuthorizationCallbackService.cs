@@ -51,9 +51,9 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
         CancellationToken cancellationToken)
     {
         var authorizationRequest = authorizationContext.AuthorizationRequest;
+        var openIdContext = authorizationContext.OpenIdContext;
         var clientSettings = authorizationContext.ClientSettings;
-        var openIdContext = authorizationRequest.OpenIdContext;
-        var jsonSerializerOptions = openIdContext.JsonSerializerOptions;
+        var jsonSerializerOptions = openIdContext.OpenIdServer.JsonSerializerOptions;
         var httpContext = openIdContext.HttpContext;
 
         var grantKey = CryptoService.GenerateUrlSafeKey();
@@ -67,7 +67,7 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
             throw new InvalidOperationException("Unable to determine continue url.");
 
         await PersistedGrantService.AddAsync(
-            openIdContext.Tenant.TenantId,
+            openIdContext.OpenIdTenant.TenantId,
             OpenIdConstants.PersistedGrantTypes.ContinueAuthorization,
             grantKey,
             authorizationRequest.ClientId,
@@ -87,12 +87,12 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
         CancellationToken cancellationToken)
     {
         var authorizationRequest = await PersistedGrantService.TryGetAsync<IAuthorizationRequest>(
-            openIdContext.Tenant.TenantId,
+            openIdContext.OpenIdTenant.TenantId,
             OpenIdConstants.PersistedGrantTypes.ContinueAuthorization,
             grantKey: state,
             singleUse: true,
             setConsumed: true,
-            openIdContext.JsonSerializerOptions,
+            openIdContext.OpenIdServer.JsonSerializerOptions,
             cancellationToken);
 
         return authorizationRequest;

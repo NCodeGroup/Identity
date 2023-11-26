@@ -28,7 +28,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using NCode.Identity;
 using NCode.Identity.JsonWebTokens;
 using NCode.Jose;
 using NCode.Jose.Extensions;
@@ -44,6 +43,7 @@ using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Settings;
 using NIdentity.OpenId.Stores;
 using ISystemClock = NIdentity.OpenId.Logic.ISystemClock;
@@ -53,7 +53,20 @@ namespace NIdentity.OpenId.Endpoints.Authorization;
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the authorization endpoint.
 /// </summary>
-public class DefaultAuthorizationEndpointHandler :
+public class DefaultAuthorizationEndpointHandler(
+    ILogger<DefaultAuthorizationEndpointHandler> logger,
+    ISystemClock systemClock,
+    IHttpClientFactory httpClientFactory,
+    ISecretSerializer secretSerializer,
+    IJsonWebTokenService jsonWebTokenService,
+    IClientStore clientStore,
+    IAuthenticationSchemeProvider authenticationSchemeProvider,
+    IAuthorizationCallbackService callbackService,
+    IAuthorizationInteractionService interactionService,
+    IAuthorizationTicketService ticketService,
+    IOpenIdContextFactory contextFactory,
+    OpenIdServer openIdServer
+) :
     IOpenIdEndpointProvider,
     ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>,
     ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationContext>,
@@ -65,46 +78,18 @@ public class DefaultAuthorizationEndpointHandler :
     private bool DefaultSignInSchemeFetched { get; set; }
     private string? DefaultSignInSchemeName { get; set; }
 
-    private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; }
-    private ISystemClock SystemClock { get; }
-    private IHttpClientFactory HttpClientFactory { get; }
-    private ISecretSerializer SecretSerializer { get; }
-    private IJsonWebTokenService JsonWebTokenService { get; }
-    private IClientStore ClientStore { get; }
-    private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; }
-    private IAuthorizationCallbackService CallbackService { get; }
-    private IAuthorizationInteractionService InteractionService { get; }
-    private IAuthorizationTicketService TicketService { get; }
-    private IOpenIdContextFactory ContextFactory { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultAuthorizationEndpointHandler"/> class.
-    /// </summary>
-    public DefaultAuthorizationEndpointHandler(
-        ILogger<DefaultAuthorizationEndpointHandler> logger,
-        ISystemClock systemClock,
-        IHttpClientFactory httpClientFactory,
-        ISecretSerializer secretSerializer,
-        IJsonWebTokenService jsonWebTokenService,
-        IClientStore clientStore,
-        IAuthenticationSchemeProvider authenticationSchemeProvider,
-        IAuthorizationCallbackService callbackService,
-        IAuthorizationInteractionService interactionService,
-        IAuthorizationTicketService ticketService,
-        IOpenIdContextFactory contextFactory)
-    {
-        Logger = logger;
-        SystemClock = systemClock;
-        HttpClientFactory = httpClientFactory;
-        SecretSerializer = secretSerializer;
-        JsonWebTokenService = jsonWebTokenService;
-        ClientStore = clientStore;
-        AuthenticationSchemeProvider = authenticationSchemeProvider;
-        CallbackService = callbackService;
-        InteractionService = interactionService;
-        TicketService = ticketService;
-        ContextFactory = contextFactory;
-    }
+    private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
+    private ISystemClock SystemClock { get; } = systemClock;
+    private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
+    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IClientStore ClientStore { get; } = clientStore;
+    private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; } = authenticationSchemeProvider;
+    private IAuthorizationCallbackService CallbackService { get; } = callbackService;
+    private IAuthorizationInteractionService InteractionService { get; } = interactionService;
+    private IAuthorizationTicketService TicketService { get; } = ticketService;
+    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -120,15 +105,12 @@ public class DefaultAuthorizationEndpointHandler :
         [FromServices] IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var propertyBag = new PropertyBag();
-
         var openIdContext = await ContextFactory.CreateContextAsync(
             httpContext,
             mediator,
-            propertyBag,
             cancellationToken);
 
-        var errorFactory = openIdContext.ErrorFactory;
+        var errorFactory = OpenIdServer.ErrorFactory;
 
         // for errors, before we redirect, we must validate the client_id and redirect_uri
         // otherwise we must return a failure HTTP status code
@@ -140,7 +122,7 @@ public class DefaultAuthorizationEndpointHandler :
 
         // this will throw if client_id or redirect_uri are invalid
         var clientRedirectContext = await GetClientRedirectContextAsync(
-            errorFactory,
+            openIdContext,
             authorizationSource,
             cancellationToken);
 
@@ -155,6 +137,7 @@ public class DefaultAuthorizationEndpointHandler :
         {
             var authorizationContext = await mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationContext>(
                 new LoadAuthorizationRequestCommand(
+                    openIdContext,
                     authorizationSource,
                     client,
                     clientSettings),
@@ -218,10 +201,13 @@ public class DefaultAuthorizationEndpointHandler :
     }
 
     private async ValueTask<ClientRedirectContext> GetClientRedirectContextAsync(
-        IOpenIdErrorFactory errorFactory,
+        OpenIdContext context,
         IOpenIdMessage authorizationSource,
         CancellationToken cancellationToken)
     {
+        var openIdTenant = context.OpenIdTenant;
+        var errorFactory = OpenIdServer.ErrorFactory;
+
         var hasState = authorizationSource.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
         var state = hasState && !StringValues.IsNullOrEmpty(stateStringValues) ? stateStringValues.ToString() : null;
 
@@ -267,7 +253,7 @@ public class DefaultAuthorizationEndpointHandler :
                 .AsException();
         }
 
-        var tenantId = authorizationSource.OpenIdContext.Tenant.TenantId;
+        var tenantId = openIdTenant.TenantId;
         var client = await ClientStore.TryGetByClientIdAsync(
             tenantId,
             clientId.ToString(),
@@ -282,7 +268,7 @@ public class DefaultAuthorizationEndpointHandler :
                 .AsException();
         }
 
-        var mergedSettings = authorizationSource.OpenIdContext.Tenant.TenantSettings.Merge(client.Settings);
+        var mergedSettings = openIdTenant.TenantSettings.Merge(client.Settings);
         var clientSettings = new KnownSettingCollection(mergedSettings);
 
         var isSafe = (clientSettings.AllowLoopbackRedirect && redirectUri.IsLoopback) || client.RedirectUris.Contains(redirectUri);
@@ -313,7 +299,7 @@ public class DefaultAuthorizationEndpointHandler :
         CancellationToken cancellationToken)
     {
         var openIdContext = command.OpenIdContext;
-        var errorFactory = openIdContext.ErrorFactory;
+        var errorFactory = OpenIdServer.ErrorFactory;
 
         var httpContext = openIdContext.HttpContext;
         var httpRequest = httpContext.Request;
@@ -353,10 +339,10 @@ public class DefaultAuthorizationEndpointHandler :
         var parameters = properties.Select(property =>
         {
             var descriptor = new ParameterDescriptor(property.Key);
-            return descriptor.Loader.Load(openIdContext, descriptor, property.Value);
+            return descriptor.Loader.Load(OpenIdServer, descriptor, property.Value);
         });
 
-        var message = AuthorizationSource.Load(openIdContext, parameters);
+        var message = AuthorizationSource.Load(OpenIdServer, parameters);
         message.AuthorizationSourceType = sourceType;
 
         return message;
@@ -372,10 +358,9 @@ public class DefaultAuthorizationEndpointHandler :
         CancellationToken cancellationToken)
     {
         var authorizationSource = command.AuthorizationSource;
+        var openIdContext = command.OpenIdContext;
         var client = command.Client;
         var clientSettings = command.ClientSettings;
-
-        var openIdContext = authorizationSource.OpenIdContext;
 
         // the following will parse string-values into strongly-typed parameters and may throw
         var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
@@ -394,7 +379,13 @@ public class DefaultAuthorizationEndpointHandler :
             requestObject);
 
         var propertyBag = openIdContext.PropertyBag.Clone();
-        return new DefaultAuthorizationContext(client, clientSettings, authorizationRequest, propertyBag);
+
+        return new DefaultAuthorizationContext(
+            openIdContext,
+            client,
+            clientSettings,
+            authorizationRequest,
+            propertyBag);
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
@@ -405,7 +396,7 @@ public class DefaultAuthorizationEndpointHandler :
     {
         var requestJwt = requestMessage.RequestJwt;
         var requestUri = requestMessage.RequestUri;
-        var errorFactory = requestMessage.OpenIdContext.ErrorFactory;
+        var errorFactory = OpenIdServer.ErrorFactory;
 
         RequestObjectSource requestObjectSource;
         string errorCode;
@@ -491,7 +482,7 @@ public class DefaultAuthorizationEndpointHandler :
         try
         {
             // this will deserialize the object using: OpenIdMessageJsonConverterFactory => OpenIdMessageJsonConverter => OpenIdMessage.Load
-            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(requestMessage.OpenIdContext.JsonSerializerOptions);
+            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(OpenIdServer.JsonSerializerOptions);
             if (requestObject == null)
                 throw new InvalidOperationException("JSON deserialization returned null.");
 
@@ -577,10 +568,10 @@ public class DefaultAuthorizationEndpointHandler :
     }
 
     [AssertionMethod]
-    private static void ValidateRequestMessage(
+    private void ValidateRequestMessage(
         IAuthorizationRequestMessage requestMessage)
     {
-        var errorFactory = requestMessage.OpenIdContext.ErrorFactory;
+        var errorFactory = OpenIdServer.ErrorFactory;
 
         var responseType = requestMessage.ResponseType ?? ResponseTypes.Unspecified;
         if (responseType == ResponseTypes.Unspecified)
@@ -595,11 +586,11 @@ public class DefaultAuthorizationEndpointHandler :
     }
 
     [AssertionMethod]
-    private static void ValidateRequestObject(
+    private void ValidateRequestObject(
         IAuthorizationRequestMessage requestMessage,
         IAuthorizationRequestObject requestObject)
     {
-        var errorFactory = requestMessage.OpenIdContext.ErrorFactory;
+        var errorFactory = OpenIdServer.ErrorFactory;
 
         var errorCode = requestObject.RequestObjectSource == RequestObjectSource.Remote ?
             OpenIdConstants.ErrorCodes.InvalidRequestUri :
@@ -636,13 +627,12 @@ public class DefaultAuthorizationEndpointHandler :
     }
 
     [AssertionMethod]
-    private static void ValidateRequest(
+    private void ValidateRequest(
         Client client,
         IKnownSettingCollection clientSettings,
         IAuthorizationRequest request)
     {
-        var openIdContext = request.OpenIdContext;
-        var errorFactory = openIdContext.ErrorFactory;
+        var errorFactory = OpenIdServer.ErrorFactory;
 
         var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
         var isImplicit = request.GrantType == GrantType.Implicit;
@@ -797,7 +787,7 @@ public class DefaultAuthorizationEndpointHandler :
     {
         var authorizationContext = command.AuthorizationContext;
         var clientSettings = authorizationContext.ClientSettings;
-        var httpContext = authorizationContext.AuthorizationRequest.OpenIdContext.HttpContext;
+        var httpContext = authorizationContext.OpenIdContext.HttpContext;
 
         var signInSchemeName = clientSettings.AuthorizationSignInScheme;
         if (string.IsNullOrEmpty(signInSchemeName))
@@ -827,9 +817,8 @@ public class DefaultAuthorizationEndpointHandler :
         var authorizationContext = command.AuthorizationContext;
         var authenticationTicket = command.AuthenticationTicket;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var openIdContext = authorizationRequest.OpenIdContext;
         var clientSettings = authorizationContext.ClientSettings;
-        var errorFactory = openIdContext.ErrorFactory;
+        var errorFactory = OpenIdServer.ErrorFactory;
 
         var promptType = authorizationRequest.PromptType;
 
@@ -943,7 +932,7 @@ public class DefaultAuthorizationEndpointHandler :
         AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken)
     {
-        var mediator = authorizationContext.AuthorizationRequest.OpenIdContext.Mediator;
+        var mediator = authorizationContext.OpenIdContext.Mediator;
         var command = new ValidateUserIsActiveCommand(authorizationContext, authenticationTicket);
         await mediator.SendAsync(command, cancellationToken);
         return command.IsActive;
@@ -995,15 +984,15 @@ public class DefaultAuthorizationEndpointHandler :
         CancellationToken cancellationToken)
     {
         var authorizationContext = command.AuthorizationContext;
+        var openIdContext = authorizationContext.OpenIdContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var openIdContext = authorizationRequest.OpenIdContext;
         var responseType = authorizationRequest.ResponseType;
 
-        var ticket = AuthorizationTicket.Create(openIdContext);
+        var ticket = AuthorizationTicket.Create(OpenIdServer);
 
         ticket.CreatedWhen = SystemClock.UtcNow;
         ticket.State = authorizationRequest.State;
-        ticket.Issuer = openIdContext.Tenant.Issuer;
+        ticket.Issuer = openIdContext.OpenIdTenant.Issuer;
 
         if (responseType.HasFlag(ResponseTypes.Code))
         {

@@ -43,8 +43,8 @@ public static class AuthorizationEndpointRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddAuthorizationEndpoint(this IServiceCollection services)
     {
-        services.AddSingleton<IAuthorizationTicketService, AuthorizationTicketService>();
-        services.AddSingleton<IAuthorizationClaimsService, AuthorizationClaimsService>();
+        services.AddSingleton<IAuthorizationTicketService, DefaultAuthorizationTicketService>();
+        services.AddSingleton<IAuthorizationClaimsService, DefaultAuthorizationClaimsService>();
         services.AddSingleton<IAuthorizationInteractionService, NullAuthorizationInteractionService>();
         services.AddSingleton<IAuthorizationCallbackService, DefaultAuthorizationCallbackService>();
 

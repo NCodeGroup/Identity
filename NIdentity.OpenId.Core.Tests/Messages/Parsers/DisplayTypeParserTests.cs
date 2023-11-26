@@ -19,11 +19,11 @@
 
 using Microsoft.Extensions.Primitives;
 using Moq;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Exceptions;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
@@ -33,12 +33,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class DisplayTypeParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<OpenIdContext> MockOpenIdContext { get; }
+    private Mock<OpenIdServer> MockOpenIdServer { get; }
 
     public DisplayTypeParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<OpenIdContext>();
+        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
     }
 
     public void Dispose()
@@ -50,7 +50,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenPage_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(MockOpenIdContext.Object, DisplayType.Page);
+        var result = parser.Serialize(MockOpenIdServer.Object, DisplayType.Page);
         Assert.Equal("page", result);
     }
 
@@ -58,7 +58,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenPopup_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(MockOpenIdContext.Object, DisplayType.Popup);
+        var result = parser.Serialize(MockOpenIdServer.Object, DisplayType.Popup);
         Assert.Equal("popup", result);
     }
 
@@ -66,7 +66,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenTouch_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(MockOpenIdContext.Object, DisplayType.Touch);
+        var result = parser.Serialize(MockOpenIdServer.Object, DisplayType.Touch);
         Assert.Equal("touch", result);
     }
 
@@ -74,7 +74,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenWap_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(MockOpenIdContext.Object, DisplayType.Wap);
+        var result = parser.Serialize(MockOpenIdServer.Object, DisplayType.Wap);
         Assert.Equal("wap", result);
     }
 
@@ -82,7 +82,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Serialize_GivenUnknown_ThenEmpty()
     {
         var parser = new DisplayTypeParser();
-        var result = parser.Serialize(MockOpenIdContext.Object, DisplayType.Unspecified);
+        var result = parser.Serialize(MockOpenIdServer.Object, DisplayType.Unspecified);
         Assert.Equal(StringValues.Empty, result);
     }
 
@@ -90,7 +90,7 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -103,7 +103,7 @@ public class DisplayTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(context, descriptor, stringValues);
+        var result = parser.Parse(server, descriptor, stringValues);
         Assert.Null(result);
     }
 
@@ -111,13 +111,13 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -150,20 +150,20 @@ public class DisplayTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        Assert.Throws<OpenIdException>(() => { parser.Parse(context, descriptor, stringValues); });
+        Assert.Throws<OpenIdException>(() => { parser.Parse(server, descriptor, stringValues); });
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "page", "wap" };
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -197,14 +197,14 @@ public class DisplayTypeParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(context, descriptor, stringValues));
+            parser.Parse(server, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenPageWithValidCase_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "page";
@@ -217,7 +217,7 @@ public class DisplayTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(context, descriptor, stringValues);
+        var result = parser.Parse(server, descriptor, stringValues);
         Assert.Equal(DisplayType.Page, result);
     }
 
@@ -225,13 +225,13 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenPageWithInvalidCase_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "PAGE";
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -265,14 +265,14 @@ public class DisplayTypeParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(context, descriptor, stringValues));
+            parser.Parse(server, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenPopupWithValidCase_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "popup";
@@ -285,7 +285,7 @@ public class DisplayTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(context, descriptor, stringValues);
+        var result = parser.Parse(server, descriptor, stringValues);
         Assert.Equal(DisplayType.Popup, result);
     }
 
@@ -293,13 +293,13 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenPopupWithInvalidCase_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "POPUP";
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -333,14 +333,14 @@ public class DisplayTypeParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(context, descriptor, stringValues));
+            parser.Parse(server, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenTouchWithValidCase_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "touch";
@@ -353,7 +353,7 @@ public class DisplayTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(context, descriptor, stringValues);
+        var result = parser.Parse(server, descriptor, stringValues);
         Assert.Equal(DisplayType.Touch, result);
     }
 
@@ -361,13 +361,13 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenTouchWithInvalidCase_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "TOUCH";
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -401,14 +401,14 @@ public class DisplayTypeParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(context, descriptor, stringValues));
+            parser.Parse(server, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenWapWithValidCase_ThenValid()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "wap";
@@ -421,7 +421,7 @@ public class DisplayTypeParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(context, descriptor, stringValues);
+        var result = parser.Parse(server, descriptor, stringValues);
         Assert.Equal(DisplayType.Wap, result);
     }
 
@@ -429,13 +429,13 @@ public class DisplayTypeParserTests : IDisposable
     public void Parse_GivenWapWithInvalidCase_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "WAP";
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -469,20 +469,20 @@ public class DisplayTypeParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(context, descriptor, stringValues));
+            parser.Parse(server, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenInvalidValue_ThenThrows()
     {
         var parser = new DisplayTypeParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "invalid_value";
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -516,6 +516,6 @@ public class DisplayTypeParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(context, descriptor, stringValues));
+            parser.Parse(server, descriptor, stringValues));
     }
 }

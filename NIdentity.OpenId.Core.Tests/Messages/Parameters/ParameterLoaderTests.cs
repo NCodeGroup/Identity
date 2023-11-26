@@ -18,8 +18,8 @@
 #endregion
 
 using Moq;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Servers;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
@@ -47,10 +47,10 @@ public class ParameterLoaderTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var descriptor = new ParameterDescriptor(parameterName);
-        var mockOpenIdContext = MockRepository.Create<OpenIdContext>();
-        var context = mockOpenIdContext.Object;
+        var mockOpenIdServer = MockRepository.Create<OpenIdServer>();
+        var server = mockOpenIdServer.Object;
 
-        var parameter = loader.Load(context, descriptor, stringValues);
+        var parameter = loader.Load(server, descriptor, stringValues);
 
         Assert.Equal(descriptor, parameter.Descriptor);
         Assert.Equal(stringValues, parameter.StringValues);
@@ -65,10 +65,10 @@ public class ParameterLoaderTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var descriptor = new ParameterDescriptor(parameterName);
-        var mockOpenIdContext = MockRepository.Create<OpenIdContext>();
-        var context = mockOpenIdContext.Object;
+        var mockOpenIdServer = MockRepository.Create<OpenIdServer>();
+        var server = mockOpenIdServer.Object;
 
-        var parameter = loader.Load(context, descriptor, stringValues, stringValues);
+        var parameter = loader.Load(server, descriptor, stringValues, stringValues);
 
         Assert.Equal(descriptor, parameter.Descriptor);
         Assert.Equal(stringValues, parameter.StringValues);

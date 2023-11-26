@@ -19,6 +19,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
+using Microsoft.Extensions.Options;
 using NCode.Identity;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Options;
@@ -31,7 +32,19 @@ namespace NIdentity.OpenId.Tenants.Providers;
 /// Provides a default implementation of <see cref="IOpenIdTenantProvider"/> that dynamically loads the tenant
 /// configuration using a route parameter (aka path) from a HTTP request.
 /// </summary>
-public class DefaultDynamicByPathOpenIdTenantProvider : OpenIdTenantProvider
+public class DefaultDynamicByPathOpenIdTenantProvider(
+    TemplateBinderFactory templateBinderFactory,
+    IOptions<OpenIdServerOptions> serverOptionsAccessor,
+    OpenIdServer openIdServer,
+    ITenantStore tenantStore,
+    ISecretSerializer secretSerializer
+) : OpenIdTenantProvider(
+    templateBinderFactory,
+    serverOptionsAccessor.Value,
+    openIdServer,
+    tenantStore,
+    secretSerializer
+)
 {
     private DynamicByPathOpenIdTenantOptions TenantOptions =>
         ServerOptions.Tenant.DynamicByPath ?? throw MissingTenantOptionsException();
@@ -41,26 +54,6 @@ public class DefaultDynamicByPathOpenIdTenantProvider : OpenIdTenantProvider
 
     /// <inheritdoc />
     protected override PathString TenantPath => TenantOptions.TenantPath;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultDynamicByPathOpenIdTenantProvider"/> class.
-    /// </summary>
-    public DefaultDynamicByPathOpenIdTenantProvider(
-        TemplateBinderFactory templateBinderFactory,
-        OpenIdServerOptions serverOptions,
-        IOpenIdServerSettingsProvider serverSettingsProvider,
-        ITenantStore tenantStore,
-        ISecretSerializer secretSerializer
-    ) : base(
-        templateBinderFactory,
-        serverOptions,
-        serverSettingsProvider,
-        tenantStore,
-        secretSerializer
-    )
-    {
-        // nothing
-    }
 
     /// <inheritdoc />
     protected override async ValueTask<TenantDescriptor> GetTenantDescriptorAsync(

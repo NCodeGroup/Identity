@@ -29,6 +29,11 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 public abstract class AuthorizationContext
 {
     /// <summary>
+    /// Gets the <see cref="OpenIdContext"/> instance associated with the current request.
+    /// </summary>
+    public abstract OpenIdContext OpenIdContext { get; }
+
+    /// <summary>
     /// Gets the <see cref="Client"/> instance that was loaded using the 'client_id' parameter.
     /// </summary>
     public abstract Client Client { get; }
@@ -44,7 +49,7 @@ public abstract class AuthorizationContext
     public abstract IAuthorizationRequest AuthorizationRequest { get; }
 
     /// <summary>
-    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
+    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
 }

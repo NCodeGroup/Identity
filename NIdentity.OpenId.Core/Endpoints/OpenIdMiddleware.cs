@@ -19,11 +19,14 @@
 
 using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Exceptions;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Endpoints;
 
-internal class OpenIdMiddleware
+internal class OpenIdMiddleware(OpenIdServer openIdServer)
 {
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
+
     public async Task InvokeAsync(HttpContext httpContext, RequestDelegate next)
     {
         try
@@ -35,7 +38,7 @@ internal class OpenIdMiddleware
             var error = exception.Error;
             var result = TypedResults.Json(
                 error,
-                error.OpenIdContext.JsonSerializerOptions,
+                OpenIdServer.JsonSerializerOptions,
                 statusCode: error.StatusCode);
 
             await result.ExecuteAsync(httpContext);

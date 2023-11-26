@@ -18,11 +18,11 @@
 #endregion
 
 using Moq;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Exceptions;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
@@ -32,12 +32,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class StringParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<OpenIdContext> MockOpenIdContext { get; }
+    private Mock<OpenIdServer> MockOpenIdServer { get; }
 
     public StringParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<OpenIdContext>();
+        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
     }
 
     public void Dispose()
@@ -49,11 +49,11 @@ public class StringParserTests : IDisposable
     public void Serialize_ThenValid()
     {
         var parser = new StringParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parsedValue = "parsedValue";
 
-        var stringValue = parser.Serialize(context, parsedValue);
+        var stringValue = parser.Serialize(server, parsedValue);
         Assert.Equal(parsedValue, stringValue);
     }
 
@@ -61,7 +61,7 @@ public class StringParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new StringParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -74,7 +74,7 @@ public class StringParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(context, descriptor, stringValues);
+        var result = parser.Parse(server, descriptor, stringValues);
         Assert.Null(result);
     }
 
@@ -82,13 +82,13 @@ public class StringParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new StringParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -122,14 +122,14 @@ public class StringParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(context, descriptor, stringValues));
+            parser.Parse(server, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_WhenAllowMultipleValues_ThenValid()
     {
         var parser = new StringParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
@@ -143,7 +143,7 @@ public class StringParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(context, descriptor, stringValues);
+        var result = parser.Parse(server, descriptor, stringValues);
         Assert.Equal(expectedResult, result);
     }
 
@@ -151,13 +151,13 @@ public class StringParserTests : IDisposable
     public void Parse_GivenMultipleValues_WhenDisallowMultipleValues_ThenThrows()
     {
         var parser = new StringParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -191,14 +191,14 @@ public class StringParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(context, descriptor, stringValues));
+            parser.Parse(server, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenSingleStringValue_ThenValid()
     {
         var parser = new StringParser();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const string parameterName = "parameterName";
         const string stringValues = "value1";
@@ -211,7 +211,7 @@ public class StringParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(context, descriptor, stringValues);
+        var result = parser.Parse(server, descriptor, stringValues);
         Assert.Equal(stringValues, result);
     }
 }

@@ -18,9 +18,9 @@
 #endregion
 
 using Moq;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
+using NIdentity.OpenId.Servers;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parameters;
@@ -65,7 +65,7 @@ public class ParameterTests : IDisposable
     public void Load_GivenEnumerable_ThenValid()
     {
         var mockParser = MockRepository.Create<ParameterParser<string>>();
-        var mockOpenIdContext = MockRepository.Create<OpenIdContext>();
+        var mockOpenIdServer = MockRepository.Create<OpenIdServer>();
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
@@ -76,7 +76,7 @@ public class ParameterTests : IDisposable
             AllowMultipleValues = false
         };
 
-        var context = mockOpenIdContext.Object;
+        var server = mockOpenIdServer.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
         var expectedParameter = new Parameter<string[]>
         {
@@ -86,17 +86,17 @@ public class ParameterTests : IDisposable
         };
 
         mockParser
-            .Setup(x => x.Load(context, descriptor, stringValues))
+            .Setup(x => x.Load(server, descriptor, stringValues))
             .Returns(expectedParameter)
             .Verifiable();
 
         KnownParameter? knownParameterBase = knownParameter;
-        mockOpenIdContext
+        mockOpenIdServer
             .Setup(x => x.KnownParameters.TryGet(parameterName, out knownParameterBase))
             .Returns(true)
             .Verifiable();
 
-        var actualParameter = Parameter.Load(context, parameterName, stringValues.AsEnumerable());
+        var actualParameter = Parameter.Load(server, parameterName, stringValues.AsEnumerable());
         var typedParameter = Assert.IsType<Parameter<string[]>>(actualParameter);
 
         Assert.Equal(expectedParameter.Descriptor, typedParameter.Descriptor);

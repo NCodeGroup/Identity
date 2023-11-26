@@ -17,18 +17,10 @@
 
 #endregion
 
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Messages;
-using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Results;
-using NIdentity.OpenId.Serialization;
-using NIdentity.OpenId.Settings;
+using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -36,78 +28,26 @@ namespace NIdentity.OpenId.Endpoints;
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdContext"/> abstraction.
 /// </summary>
-public class DefaultOpenIdContext : OpenIdContext, IOpenIdErrorFactory
+public class DefaultOpenIdContext(
+    OpenIdServer openIdServer,
+    OpenIdTenant openIdTenant,
+    HttpContext httpContext,
+    IMediator mediator,
+    IPropertyBag propertyBag
+) : OpenIdContext
 {
-    internal JsonSerializerOptions? JsonSerializerOptionsOrNull { get; private set; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultOpenIdContext"/> class.
-    /// </summary>
-    public DefaultOpenIdContext(
-        HttpContext httpContext,
-        IMediator mediator,
-        OpenIdTenant tenant,
-        IPropertyBag propertyBag)
-    {
-        HttpContext = httpContext;
-        Mediator = mediator;
-        Tenant = tenant;
-        PropertyBag = propertyBag;
-    }
+    /// <inheritdoc />
+    public override OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <inheritdoc />
-    public override HttpContext HttpContext { get; }
+    public override OpenIdTenant OpenIdTenant { get; } = openIdTenant;
 
     /// <inheritdoc />
-    public override IMediator Mediator { get; }
+    public override HttpContext HttpContext { get; } = httpContext;
 
     /// <inheritdoc />
-    public override OpenIdTenant Tenant { get; }
+    public override IMediator Mediator { get; } = mediator;
 
     /// <inheritdoc />
-    public override JsonSerializerOptions JsonSerializerOptions =>
-        JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
-
-    /// <inheritdoc />
-    public override IOpenIdErrorFactory ErrorFactory => this;
-
-    /// <inheritdoc />
-    public override IKnownParameterCollection KnownParameters => KnownParameterCollection.Default;
-
-    /// <inheritdoc />
-    public override IPropertyBag PropertyBag { get; }
-
-    /// <inheritdoc />
-    public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
-
-    private T GetRequiredService<T>()
-        where T : notnull
-        => HttpContext.RequestServices.GetRequiredService<T>();
-
-    private JsonSerializerOptions CreateJsonSerializerOptions() =>
-        new(JsonSerializerDefaults.Web)
-        {
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-
-            // TODO: provide a way to customize this list
-            Converters =
-            {
-                new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(this),
-                new AuthorizationRequestJsonConverter(),
-                new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
-                new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
-                new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
-                new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
-                // TODO make this better
-                new SettingCollectionJsonConverter(new SettingDescriptorJsonProvider(GetRequiredService<ISettingDescriptorCollectionProvider>().Descriptors)),
-                // TODO remove these
-                new CodeChallengeMethodJsonConverter(),
-                new DisplayTypeJsonConverter(),
-                new PromptTypesJsonConverter(),
-                new ResponseModeJsonConverter(),
-                new ResponseTypesJsonConverter()
-            }
-        };
+    public override IPropertyBag PropertyBag { get; } = propertyBag;
 }

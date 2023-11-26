@@ -19,8 +19,8 @@
 
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -45,55 +45,55 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
     /// <summary>
     /// Returns the specified <paramref name="value"/> formatted as <see cref="StringValues"/>.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> to use when serializing the value.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when serializing the value.</param>
     /// <param name="value">The value to serialize.</param>
     /// <returns>The value formatted as <see cref="StringValues"/>.</returns>
-    public abstract StringValues Serialize(OpenIdContext context, T? value);
+    public abstract StringValues Serialize(OpenIdServer openIdServer, T? value);
 
     /// <summary>
     /// Parses the specified string values into a type-specific value.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> to use when parsing the value.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <returns>The parsed type-specific value.</returns>
     public abstract T Parse(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         StringValues stringValues);
 
     /// <summary>
     /// Parses and loads a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> to use when parsing the value.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     public override Parameter Load(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
-        var parsedValue = Parse(context, descriptor, stringValues);
-        return Load(context, descriptor, stringValues, parsedValue);
+        var parsedValue = Parse(openIdServer, descriptor, stringValues);
+        return Load(openIdServer, descriptor, stringValues, parsedValue);
     }
 
     /// <inheritdoc />
     public virtual Parameter Read(
         ref Utf8JsonReader reader,
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
         var parsedValue = JsonSerializer.Deserialize<T>(ref reader, options);
-        var stringValues = Serialize(context, parsedValue);
-        return descriptor.Loader.Load(context, descriptor, stringValues, parsedValue);
+        var stringValues = Serialize(openIdServer, parsedValue);
+        return descriptor.Loader.Load(openIdServer, descriptor, stringValues, parsedValue);
     }
 
     /// <inheritdoc />
     public virtual void Write(
         Utf8JsonWriter writer,
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         Parameter parameter,
         JsonSerializerOptions options)
     {

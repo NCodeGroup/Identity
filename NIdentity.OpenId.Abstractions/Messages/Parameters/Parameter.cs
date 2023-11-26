@@ -18,7 +18,7 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages.Parameters;
 
@@ -46,35 +46,35 @@ public abstract class Parameter
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> to use while loading the parameter.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     public static Parameter Load(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         string parameterName,
         IEnumerable<string> stringValues)
     {
-        return Load(context, parameterName, stringValues.ToArray());
+        return Load(openIdServer, parameterName, stringValues.ToArray());
     }
 
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> to use while loading the parameter.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     public static Parameter Load(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         string parameterName,
         StringValues stringValues)
     {
-        var descriptor = context.KnownParameters.TryGet(parameterName, out var knownParameter) ?
+        var descriptor = openIdServer.KnownParameters.TryGet(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
 
-        return descriptor.Loader.Load(context, descriptor, stringValues);
+        return descriptor.Loader.Load(openIdServer, descriptor, stringValues);
     }
 }
 

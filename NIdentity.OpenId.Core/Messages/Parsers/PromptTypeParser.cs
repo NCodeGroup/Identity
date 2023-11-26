@@ -19,9 +19,9 @@
 
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -32,7 +32,7 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
 {
     /// <inheritdoc/>
     public override StringValues Serialize(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         PromptTypes? value)
     {
         if (value is null or PromptTypes.Unspecified)
@@ -62,7 +62,7 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
 
     /// <inheritdoc/>
     public override PromptTypes? Parse(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
@@ -74,10 +74,10 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
                 return null;
 
             case 0:
-                throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
+                throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
             case > 1:
-                throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
+                throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 
         stringValues = stringValues[0]!.Split(Separator);
@@ -107,7 +107,7 @@ public class PromptTypeParser : ParameterParser<PromptTypes?>
             }
             else if (!descriptor.IgnoreUnrecognizedValues)
             {
-                throw context.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
+                throw openIdServer.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
             }
         }
 

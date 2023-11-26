@@ -20,32 +20,29 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages;
 
-internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
+internal class OpenIdMessageJsonConverter<T>(
+    OpenIdServer openIdServer
+) : JsonConverter<T?>
     where T : OpenIdMessage
 {
     private const string TypeKey = "$type";
     private const string PropertiesKey = "$properties";
 
-    private OpenIdContext OpenIdContext { get; }
-
-    public OpenIdMessageJsonConverter(OpenIdContext openIdContext)
-    {
-        OpenIdContext = openIdContext;
-    }
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
-        var descriptor = OpenIdContext.KnownParameters.TryGet(parameterName, out var knownParameter) ?
+        var descriptor = OpenIdServer.KnownParameters.TryGet(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
         var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Singleton;
-        return jsonParser.Read(ref reader, OpenIdContext, descriptor, options);
+        return jsonParser.Read(ref reader, OpenIdServer, descriptor, options);
     }
 
     private static T CreateMessage(Type messageType)
@@ -90,7 +87,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
             {
                 case JsonTokenType.EndObject:
                     messageOrNull ??= CreateMessage(messageType);
-                    messageOrNull.Initialize(OpenIdContext, parameters);
+                    messageOrNull.Initialize(OpenIdServer, parameters);
                     return messageOrNull;
 
                 case JsonTokenType.PropertyName:
@@ -165,7 +162,7 @@ internal class OpenIdMessageJsonConverter<T> : JsonConverter<T?>
         foreach (var parameter in message.Parameters.Values)
         {
             var jsonParser = parameter.Descriptor.Loader as IJsonParser ?? DefaultJsonParser.Singleton;
-            jsonParser.Write(writer, OpenIdContext, parameter, options);
+            jsonParser.Write(writer, OpenIdServer, parameter, options);
         }
 
         writer.WriteEndObject();

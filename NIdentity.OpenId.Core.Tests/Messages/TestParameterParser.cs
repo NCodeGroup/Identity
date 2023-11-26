@@ -19,21 +19,21 @@
 
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
 
-internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, OpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options);
+internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, OpenIdServer server, ParameterDescriptor descriptor, JsonSerializerOptions options);
 
-internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, OpenIdContext context, Parameter parameter, JsonSerializerOptions options);
+internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, OpenIdServer server, Parameter parameter, JsonSerializerOptions options);
 
 internal interface ITestParameterParser
 {
-    StringValues Serialize(OpenIdContext context, string? value);
+    StringValues Serialize(OpenIdServer server, string? value);
 
-    string Parse(OpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
+    string Parse(OpenIdServer server, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
 }
 
 internal class TestParameterParser : ParameterParser<string>
@@ -49,18 +49,18 @@ internal class TestParameterParser : ParameterParser<string>
         WriteJsonDelegate = writeJsonDelegate;
     }
 
-    public override StringValues Serialize(OpenIdContext context, string? value)
+    public override StringValues Serialize(OpenIdServer openIdServer, string? value)
     {
-        return InnerParser.Serialize(context, value);
+        return InnerParser.Serialize(openIdServer, value);
     }
 
-    public override string Parse(OpenIdContext context, ParameterDescriptor descriptor, StringValues stringValues)
+    public override string Parse(OpenIdServer openIdServer, ParameterDescriptor descriptor, StringValues stringValues)
     {
-        return InnerParser.Parse(context, descriptor, stringValues);
+        return InnerParser.Parse(openIdServer, descriptor, stringValues);
     }
 
-    public override Parameter Read(ref Utf8JsonReader reader, OpenIdContext context, ParameterDescriptor descriptor, JsonSerializerOptions options) =>
-        ReadJsonDelegate?.Invoke(ref reader, context, descriptor, options) ??
+    public override Parameter Read(ref Utf8JsonReader reader, OpenIdServer openIdServer, ParameterDescriptor descriptor, JsonSerializerOptions options) =>
+        ReadJsonDelegate?.Invoke(ref reader, openIdServer, descriptor, options) ??
         new Parameter<string>
         {
             Descriptor = descriptor,
@@ -68,8 +68,8 @@ internal class TestParameterParser : ParameterParser<string>
             ParsedValue = string.Empty
         };
 
-    public override void Write(Utf8JsonWriter writer, OpenIdContext context, Parameter parameter, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, OpenIdServer openIdServer, Parameter parameter, JsonSerializerOptions options)
     {
-        WriteJsonDelegate?.Invoke(writer, context, parameter, options);
+        WriteJsonDelegate?.Invoke(writer, openIdServer, parameter, options);
     }
 }

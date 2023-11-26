@@ -20,10 +20,10 @@
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using Moq;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Messages.Parsers;
+using NIdentity.OpenId.Servers;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
@@ -31,12 +31,12 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 public class OpenIdMessageTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<OpenIdContext> MockOpenIdContext { get; }
+    private Mock<OpenIdServer> MockOpenIdServer { get; }
 
     public OpenIdMessageTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<OpenIdContext>();
+        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
     }
 
     public void Dispose()
@@ -47,25 +47,25 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void Initialize_WhenNotInitialized_ThenValid()
     {
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var message = new OpenIdMessage();
 
-        message.Initialize(context, Array.Empty<Parameter>());
+        message.Initialize(server, Array.Empty<Parameter>());
 
         Assert.Empty(message.Parameters);
-        Assert.Same(context, message.OpenIdContext);
+        Assert.Same(server, message.OpenIdServer);
     }
 
     [Fact]
     public void Initialize_WhenAlreadyInitialized_ThenThrows()
     {
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var message = new OpenIdMessage();
 
-        message.Initialize(context, Array.Empty<Parameter>());
+        message.Initialize(server, Array.Empty<Parameter>());
 
         Assert.Throws<InvalidOperationException>(() =>
-            message.Initialize(context, Array.Empty<Parameter>()));
+            message.Initialize(server, Array.Empty<Parameter>()));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class OpenIdMessageTests : IDisposable
         var message = new OpenIdMessage();
 
         Assert.Throws<InvalidOperationException>(() =>
-            message.OpenIdContext);
+            message.OpenIdServer);
     }
 
     [Fact]
@@ -88,9 +88,9 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void TryGetValue_WhenNotFound_ThenReturnsEmpty()
     {
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var message = new OpenIdMessage();
-        message.Initialize(context, Array.Empty<Parameter>());
+        message.Initialize(server, Array.Empty<Parameter>());
 
         var success = message.TryGetValue("non-existent-key", out var stringValues);
         Assert.False(success);
@@ -105,13 +105,13 @@ public class OpenIdMessageTests : IDisposable
         const string parameterName = "parameterName";
         var expectedValue = new[] { "value1", "value2" };
 
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var parameter = new Parameter<string[]>
         {
             Descriptor = new ParameterDescriptor(parameterName),
             StringValues = expectedValue
         };
-        message.Initialize(context, new[] { parameter });
+        message.Initialize(server, new[] { parameter });
 
         var getSuccess = message.TryGetValue(parameterName, out var actualValue);
         Assert.True(getSuccess);
@@ -132,8 +132,8 @@ public class OpenIdMessageTests : IDisposable
         };
 
         var message = new OpenIdMessage();
-        var context = MockOpenIdContext.Object;
-        message.Initialize(context, Array.Empty<Parameter>());
+        var server = MockOpenIdServer.Object;
+        message.Initialize(server, Array.Empty<Parameter>());
 
         var result = message.GetKnownParameter(knownParameter);
         Assert.Null(result);
@@ -155,7 +155,7 @@ public class OpenIdMessageTests : IDisposable
         };
 
         var message = new OpenIdMessage();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = new Parameter<TestNestedObject>
         {
@@ -163,7 +163,7 @@ public class OpenIdMessageTests : IDisposable
             StringValues = stringValues,
             ParsedValue = parsedValue
         };
-        message.Initialize(context, new[] { parameter });
+        message.Initialize(server, new[] { parameter });
 
         var result = message.GetKnownParameter(knownParameter);
         Assert.Same(parsedValue, result);
@@ -188,14 +188,14 @@ public class OpenIdMessageTests : IDisposable
         };
 
         var message = new OpenIdMessage();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = new Parameter<TestNestedObject>
         {
             Descriptor = descriptor,
             StringValues = stringValues
         };
-        message.Initialize(context, new[] { parameter });
+        message.Initialize(server, new[] { parameter });
 
         var result = message.GetKnownParameter(knownParameter);
         Assert.Null(result);
@@ -244,7 +244,7 @@ public class OpenIdMessageTests : IDisposable
         };
 
         var message = new OpenIdMessage();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = new Parameter<TestNestedObject>
         {
@@ -252,7 +252,7 @@ public class OpenIdMessageTests : IDisposable
             StringValues = stringValues,
             ParsedValue = parsedValue
         };
-        message.Initialize(context, new[] { parameter });
+        message.Initialize(server, new[] { parameter });
 
         message.SetKnownParameter(knownParameter, null);
 
@@ -278,17 +278,17 @@ public class OpenIdMessageTests : IDisposable
         };
 
         var message = new OpenIdMessage();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = new Parameter<TestNestedObject>
         {
             Descriptor = descriptor,
             StringValues = stringValues
         };
-        message.Initialize(context, new[] { parameter });
+        message.Initialize(server, new[] { parameter });
 
         mockParameterParser
-            .Setup(x => x.Serialize(context, parsedValue))
+            .Setup(x => x.Serialize(server, parsedValue))
             .Returns(StringValues.Empty)
             .Verifiable();
 
@@ -316,8 +316,8 @@ public class OpenIdMessageTests : IDisposable
         };
 
         var message = new OpenIdMessage();
-        var context = MockOpenIdContext.Object;
-        message.Initialize(context, Array.Empty<Parameter>());
+        var server = MockOpenIdServer.Object;
+        message.Initialize(server, Array.Empty<Parameter>());
 
         var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = new Parameter<TestNestedObject>
@@ -328,12 +328,12 @@ public class OpenIdMessageTests : IDisposable
         };
 
         mockParameterParser
-            .Setup(x => x.Serialize(context, parsedValue))
+            .Setup(x => x.Serialize(server, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 
         mockParameterParser
-            .Setup(x => x.Load(context, descriptor, stringValues, parsedValue))
+            .Setup(x => x.Load(server, descriptor, stringValues, parsedValue))
             .Returns(parameter)
             .Verifiable();
 
@@ -367,7 +367,7 @@ public class OpenIdMessageTests : IDisposable
         };
 
         var message = new OpenIdMessage();
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = new Parameter<TestNestedObject>
         {
@@ -375,7 +375,7 @@ public class OpenIdMessageTests : IDisposable
             StringValues = stringValues,
             ParsedValue = parsedValue
         };
-        message.Initialize(context, new[] { parameter });
+        message.Initialize(server, new[] { parameter });
 
         parsedValue.NestedPropertyName1 = "NestedPropertyValue2";
         stringValues = JsonSerializer.Serialize(parsedValue);
@@ -387,12 +387,12 @@ public class OpenIdMessageTests : IDisposable
         };
 
         mockParameterParser
-            .Setup(x => x.Serialize(context, parsedValue))
+            .Setup(x => x.Serialize(server, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 
         mockParameterParser
-            .Setup(x => x.Load(context, descriptor, stringValues, parsedValue))
+            .Setup(x => x.Load(server, descriptor, stringValues, parsedValue))
             .Returns(parameter)
             .Verifiable();
 

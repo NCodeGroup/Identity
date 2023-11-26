@@ -20,6 +20,7 @@
 using Microsoft.AspNetCore.Http;
 using NCode.Identity;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Tenants;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -27,31 +28,34 @@ namespace NIdentity.OpenId.Endpoints;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdContextFactory"/> abstraction.
 /// </summary>
-/// <param name="tenantFactory"></param>
 public class DefaultOpenIdContextFactory(
-    IOpenIdTenantFactory tenantFactory
+    OpenIdServer openIdServer,
+    IOpenIdTenantFactory openIdTenantFactory
 ) : IOpenIdContextFactory
 {
-    private IOpenIdTenantFactory TenantFactory { get; } = tenantFactory;
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
+    private IOpenIdTenantFactory OpenIdTenantFactory { get; } = openIdTenantFactory;
 
     /// <inheritdoc />
     public async ValueTask<OpenIdContext> CreateContextAsync(
         HttpContext httpContext,
         IMediator mediator,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
-        var tenant = await TenantFactory.CreateTenantAsync(
+        var propertyBag = OpenIdServer.PropertyBag.Clone();
+
+        var openIdTenant = await OpenIdTenantFactory.CreateTenantAsync(
             httpContext,
             propertyBag,
             cancellationToken);
 
-        var context = new DefaultOpenIdContext(
+        var openIdContext = new DefaultOpenIdContext(
+            OpenIdServer,
+            openIdTenant,
             httpContext,
             mediator,
-            tenant,
             propertyBag);
 
-        return context;
+        return openIdContext;
     }
 }

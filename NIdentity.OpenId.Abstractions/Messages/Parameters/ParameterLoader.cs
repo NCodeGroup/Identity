@@ -18,7 +18,7 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages.Parameters;
 
@@ -35,26 +35,26 @@ public class ParameterLoader
     /// <summary>
     /// Loads a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> to use while loading the parameter.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use while loading the parameter.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to load.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly loaded parameter.</returns>
     public virtual Parameter Load(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         StringValues stringValues
-    ) => Load(context, descriptor, stringValues, stringValues);
+    ) => Load(openIdServer, descriptor, stringValues, stringValues);
 
     /// <summary>
     /// Loads a <see cref="Parameter"/> given its string values and parsed value.
     /// </summary>
-    /// <param name="context">The <see cref="OpenIdContext"/> to use while loading the parameter.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use while loading the parameter.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to load.</param>
     /// <param name="stringValues">The string values for the parameter.</param>
     /// <param name="parsedValue">The parsed value for the parameter.</param>
     /// <returns>The newly loaded parameter.</returns>
     public virtual Parameter<T> Load<T>(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         StringValues stringValues,
         T? parsedValue

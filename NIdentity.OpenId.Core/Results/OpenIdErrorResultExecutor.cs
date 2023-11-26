@@ -17,12 +17,14 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+
 namespace NIdentity.OpenId.Results;
 
-internal class OpenIdErrorResultExecutor : IOpenIdResultExecutor<OpenIdErrorResult>
+internal class OpenIdErrorResultExecutor : IResultExecutor<OpenIdErrorResult>
 {
-    public ValueTask ExecuteResultAsync(
-        OpenIdContext context,
+    public ValueTask ExecuteAsync(
+        HttpContext httpContext,
         OpenIdErrorResult result,
         CancellationToken cancellationToken)
     {

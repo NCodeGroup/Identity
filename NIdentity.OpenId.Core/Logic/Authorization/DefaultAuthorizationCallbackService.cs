@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Routing;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NIdentity.OpenId.Logic.Authorization;
@@ -63,8 +64,7 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
             new { state = grantKey });
 
         if (string.IsNullOrEmpty(continueUrl))
-            // TODO: exception message
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Unable to determine continue url.");
 
         await PersistedGrantService.AddAsync(
             openIdContext.Tenant.TenantId,

@@ -23,5 +23,6 @@ namespace NIdentity.OpenId.Endpoints.Discovery.Commands;
 
 public record struct DiscoverMetadataCommand(
     OpenIdContext OpenIdContext,
-    IDictionary<string, object> Metadata
+    IDictionary<string, object> Metadata,
+    bool ShowAll
 ) : ICommand;

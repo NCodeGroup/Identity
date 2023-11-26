@@ -17,6 +17,8 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+
 namespace NIdentity.OpenId.Options;
 
 public class StaticSingleOpenIdTenantOptions
@@ -40,4 +42,11 @@ public class StaticSingleOpenIdTenantOptions
     /// Gets or sets the display name for the tenant.
     /// </summary>
     public string DisplayName { get; set; } = DefaultDisplayName;
+
+    /// <summary>
+    /// Gets or sets the relative base path for the tenant.
+    /// When specified, this value must include a leading slash.
+    /// The default value is undefined (aka empty).
+    /// </summary>
+    public PathString TenantPath { get; set; }
 }

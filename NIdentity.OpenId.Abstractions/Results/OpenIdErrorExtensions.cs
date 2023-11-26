@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Exceptions;
 
 namespace NIdentity.OpenId.Results;
@@ -29,13 +30,13 @@ namespace NIdentity.OpenId.Results;
 public static class OpenIdErrorExtensions
 {
     /// <summary>
-    /// Wraps the <see cref="IOpenIdError"/> in an <see cref="IOpenIdResult"/>.
+    /// Wraps the <see cref="IOpenIdError"/> in an <see cref="IResult"/>.
     /// </summary>
     /// <param name="error">The <see cref="IOpenIdError"/> to wrap.</param>
-    /// <returns>The <see cref="IOpenIdResult"/> instance.</returns>
-    public static IOpenIdResult AsResult(this IOpenIdError error)
+    /// <returns>The <see cref="IResult"/> instance.</returns>
+    public static IResult AsResult(this IOpenIdError error)
     {
-        return new OpenIdErrorResult(error);
+        return new OpenIdErrorResult { Error = error };
     }
 
     /// <summary>

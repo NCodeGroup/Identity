@@ -82,6 +82,13 @@ public static partial class OpenIdConstants
         public const string Continue = $"{Prefix}/continue";
     }
 
+    public static class TenantProviderCodes
+    {
+        public const string StaticSingle = "StaticSingle";
+        public const string DynamicByHost = "DynamicByHost";
+        public const string DynamicByPath = "DynamicByPath";
+    }
+
     public static class PersistedGrantTypes
     {
         public const string ContinueAuthorization = "continue_authorization";

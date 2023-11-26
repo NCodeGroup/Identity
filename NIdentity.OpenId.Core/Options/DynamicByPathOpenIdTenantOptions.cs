@@ -17,13 +17,23 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+
 namespace NIdentity.OpenId.Options;
 
 public class DynamicByPathOpenIdTenantOptions
 {
     /// <summary>
     /// Contains the name of the route parameter that will be used to determine the tenant identifier.
+    /// This value must be contained within the <see cref="TenantPath"/> route pattern.
     /// The default value is 'tenantId'.
     /// </summary>
     public string TenantIdRouteParameterName { get; set; } = "tenantId";
+
+    /// <summary>
+    /// Gets or sets the relative base path for the tenant.
+    /// This value must be set to a route pattern that includes the tenant identifier as a route parameter with a leading slash.
+    /// The default value is '/{tenantId}'.
+    /// </summary>
+    public PathString TenantPath { get; set; } = "/{tenantId}";
 }

@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 

@@ -18,19 +18,19 @@
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
 /// Defines an <see cref="ICommand{TResponse}"/> contract that accepts <see cref="AuthorizationContext"/> and
-/// <see cref="AuthenticationTicket"/> as input arguments and expects <see cref="IOpenIdResult"/> as a response.
+/// <see cref="AuthenticationTicket"/> as input arguments and expects <see cref="IResult"/> as a response.
 /// </summary>
 /// <param name="AuthorizationContext">The <see cref="AuthorizationContext"/> input argument for the command contract.</param>
 /// <param name="AuthenticationTicket">The <see cref="AuthenticationTicket"/> input argument for the command contract.</param>
 public record struct AuthorizeCommand(
     AuthorizationContext AuthorizationContext,
     AuthenticationTicket AuthenticationTicket
-) : ICommand<IOpenIdResult?>;
+) : ICommand<IResult?>;

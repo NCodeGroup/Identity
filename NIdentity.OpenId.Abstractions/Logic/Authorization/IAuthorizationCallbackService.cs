@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NIdentity.OpenId.Logic.Authorization;

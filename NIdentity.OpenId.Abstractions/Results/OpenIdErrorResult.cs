@@ -17,24 +17,25 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace NIdentity.OpenId.Results;
 
 /// <summary>
-/// Provides an implementation of <see cref="IOpenIdResult"/> that when executed, will render an <see cref="IOpenIdError"/>.
+/// Provides an implementation of <see cref="IResult"/> that when executed, will render an <see cref="IOpenIdError"/>.
 /// </summary>
-public class OpenIdErrorResult : OpenIdResult<OpenIdErrorResult>
+public class OpenIdErrorResult : IResult
 {
     /// <summary>
-    /// Gets the <see cref="IOpenIdError"/>.
+    /// Gets or sets the <see cref="IOpenIdError"/>.
     /// </summary>
-    public IOpenIdError Error { get; }
+    public required IOpenIdError Error { get; init; }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdErrorResult"/> class.
-    /// </summary>
-    /// <param name="error"><see cref="IOpenIdError"/></param>
-    public OpenIdErrorResult(IOpenIdError error)
+    /// <inheritdoc />
+    public async Task ExecuteAsync(HttpContext httpContext)
     {
-        Error = error;
+        var executor = httpContext.RequestServices.GetRequiredService<IResultExecutor<OpenIdErrorResult>>();
+        await executor.ExecuteAsync(httpContext, this, httpContext.RequestAborted);
     }
 }

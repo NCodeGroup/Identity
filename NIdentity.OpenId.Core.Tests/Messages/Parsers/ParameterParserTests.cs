@@ -18,6 +18,7 @@
 #endregion
 
 using Moq;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using Xunit;
 

@@ -22,8 +22,22 @@ using NIdentity.OpenId.Mediator;
 
 namespace NIdentity.OpenId.Endpoints;
 
+/// <summary>
+/// Provides the ability to create an <see cref="OpenIdContext"/> instance that encapsulates all
+/// OpenID-specific information about an individual OpenID request.
+/// </summary>
 public interface IOpenIdContextFactory
 {
+    /// <summary>
+    /// Creates an <see cref="OpenIdContext"/> instance that encapsulates all OpenID-specific information
+    /// about an individual OpenID request.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> associated with the current request.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> instance that is scoped with the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
+    /// <see cref="OpenIdContext"/> instance.</returns>
     ValueTask<OpenIdContext> CreateContextAsync(
         HttpContext httpContext,
         IMediator mediator,

@@ -23,7 +23,7 @@ using NIdentity.OpenId.Settings;
 namespace NIdentity.OpenId.Tenants;
 
 /// <summary>
-/// Provides configuration details about an OpenID tenant.
+/// Provides configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
 /// </summary>
 public abstract class OpenIdTenant
 {

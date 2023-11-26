@@ -21,7 +21,17 @@ using NCode.Identity;
 
 namespace NIdentity.OpenId.Tenants.Providers;
 
+/// <summary>
+/// Provides the ability to select an <see cref="IOpenIdTenantProvider"/> instance that the authorization server
+/// will use to create <see cref="OpenIdTenant"/> instances.
+/// </summary>
 public interface IOpenIdTenantProviderSelector
 {
+    /// <summary>
+    /// Gets the <see cref="IOpenIdTenantProvider"/> instance that the authorization server will use to
+    /// create <see cref="OpenIdTenant"/> instances.
+    /// </summary>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.</param>
+    /// <returns>The <see cref="IOpenIdTenantProvider"/> instance that will be used to create <see cref="OpenIdTenant"/> instances.</returns>
     IOpenIdTenantProvider GetTenantProvider(IPropertyBag propertyBag);
 }

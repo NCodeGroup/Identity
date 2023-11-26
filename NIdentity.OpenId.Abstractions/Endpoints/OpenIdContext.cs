@@ -31,12 +31,12 @@ namespace NIdentity.OpenId.Endpoints;
 public abstract class OpenIdContext
 {
     /// <summary>
-    /// Gets the <see cref="Servers.OpenIdServer"/> associated with the current request.
+    /// Gets the <see cref="OpenIdServer"/> associated with the current request.
     /// </summary>
     public abstract OpenIdServer OpenIdServer { get; }
 
     /// <summary>
-    /// Gets the <see cref="Tenants.OpenIdTenant"/> associated with the current request.
+    /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
     /// </summary>
     public abstract OpenIdTenant OpenIdTenant { get; }
 

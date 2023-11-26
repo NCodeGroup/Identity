@@ -378,14 +378,11 @@ public class DefaultAuthorizationEndpointHandler(
             requestMessage,
             requestObject);
 
-        var propertyBag = openIdContext.PropertyBag.Clone();
-
         return new DefaultAuthorizationContext(
             openIdContext,
             client,
             clientSettings,
-            authorizationRequest,
-            propertyBag);
+            authorizationRequest);
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(

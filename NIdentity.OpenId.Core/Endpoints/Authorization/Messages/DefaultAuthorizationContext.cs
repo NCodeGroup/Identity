@@ -17,7 +17,6 @@
 
 #endregion
 
-using NCode.Identity;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Settings;
 
@@ -30,8 +29,7 @@ public class DefaultAuthorizationContext(
     OpenIdContext openIdContext,
     Client client,
     IKnownSettingCollection clientSettings,
-    IAuthorizationRequest authorizationRequest,
-    IPropertyBag propertyBag
+    IAuthorizationRequest authorizationRequest
 ) : AuthorizationContext
 {
     /// <inheritdoc />
@@ -45,7 +43,4 @@ public class DefaultAuthorizationContext(
 
     /// <inheritdoc />
     public override IAuthorizationRequest AuthorizationRequest { get; } = authorizationRequest;
-
-    /// <inheritdoc />
-    public override IPropertyBag PropertyBag { get; } = propertyBag;
 }

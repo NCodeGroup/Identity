@@ -21,7 +21,14 @@ using Microsoft.AspNetCore.Routing;
 
 namespace NIdentity.OpenId.Endpoints;
 
+/// <summary>
+/// Provides the ability for providers to configure <c>OAuth</c> or <c>OpenID Connect</c> endpoints.
+/// </summary>
 public interface IOpenIdEndpointProvider
 {
+    /// <summary>
+    /// Adds a <see cref="RouteEndpoint"/> to the <see cref="IEndpointRouteBuilder"/> for a specific <c>OAuth</c> or <c>OpenID Connect</c> endpoint.
+    /// </summary>
+    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance.</param>
     void Map(IEndpointRouteBuilder endpoints);
 }

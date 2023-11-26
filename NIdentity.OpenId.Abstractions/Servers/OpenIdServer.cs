@@ -25,6 +25,9 @@ using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Servers;
 
+/// <summary>
+/// Provides configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.
+/// </summary>
 public abstract class OpenIdServer
 {
     /// <summary>

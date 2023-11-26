@@ -20,6 +20,7 @@
 using System.Text.Json;
 using IdGen;
 using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Logic;
@@ -33,6 +34,7 @@ public class DefaultPersistedGrantService : IPersistedGrantService
     private ICryptoService CryptoService { get; }
     private IIdGenerator<long> IdGenerator { get; }
     private IPersistedGrantStore PersistedGrantStore { get; }
+    private OpenIdServer OpenIdServer { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultPersistedGrantService"/> class.
@@ -41,12 +43,14 @@ public class DefaultPersistedGrantService : IPersistedGrantService
         ISystemClock systemClock,
         ICryptoService cryptoService,
         IIdGenerator<long> idGenerator,
-        IPersistedGrantStore persistedGrantStore)
+        IPersistedGrantStore persistedGrantStore,
+        OpenIdServer openIdServer)
     {
         SystemClock = systemClock;
         CryptoService = cryptoService;
         IdGenerator = idGenerator;
         PersistedGrantStore = persistedGrantStore;
+        OpenIdServer = openIdServer;
     }
 
     private string GetHashedKey(string grantKey) =>
@@ -64,16 +68,16 @@ public class DefaultPersistedGrantService : IPersistedGrantService
         string? subjectId,
         TimeSpan lifetime,
         TPayload payload,
-        JsonSerializerOptions jsonSerializerOptions,
         CancellationToken cancellationToken)
     {
         var id = IdGenerator.CreateId();
         var hashedKey = GetHashedKey(grantKey);
         var createdWhen = SystemClock.UtcNow;
         var expiresWhen = createdWhen.Add(lifetime);
+
         var payloadJson = JsonSerializer.Serialize(
             payload,
-            jsonSerializerOptions);
+            OpenIdServer.JsonSerializerOptions);
 
         var persistedGrant = new PersistedGrant
         {
@@ -98,7 +102,6 @@ public class DefaultPersistedGrantService : IPersistedGrantService
         string grantKey,
         bool singleUse,
         bool setConsumed,
-        JsonSerializerOptions jsonSerializerOptions,
         CancellationToken cancellationToken)
     {
         var utcNow = SystemClock.UtcNow;
@@ -133,7 +136,7 @@ public class DefaultPersistedGrantService : IPersistedGrantService
 
         var payload = JsonSerializer.Deserialize<TPayload>(
             persistedGrant.PayloadJson,
-            jsonSerializerOptions);
+            OpenIdServer.JsonSerializerOptions);
 
         return payload;
     }

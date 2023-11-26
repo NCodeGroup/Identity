@@ -23,15 +23,16 @@ using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Endpoints;
 
-internal class OpenIdMiddleware(OpenIdServer openIdServer)
+internal class OpenIdMiddleware(RequestDelegate next, OpenIdServer openIdServer)
 {
+    private RequestDelegate Next { get; } = next;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
 
-    public async Task InvokeAsync(HttpContext httpContext, RequestDelegate next)
+    public async Task InvokeAsync(HttpContext httpContext)
     {
         try
         {
-            await next(httpContext);
+            await Next(httpContext);
         }
         catch (OpenIdException exception)
         {

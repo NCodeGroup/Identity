@@ -57,6 +57,8 @@ internal class Startup
         services.AddHttpClient();
         services.AddJsonWebTokenService();
 
+        services.AddHttpLogging(options => { options.LoggingFields = HttpLoggingFields.All; });
+
         services.AddSingleton<ISystemClock, SystemClock>();
         services.AddSingleton<ISecretSerializer, SecretSerializer>();
         services.AddSingleton<ICryptoService, CryptoService>();
@@ -64,6 +66,9 @@ internal class Startup
         services.AddSingleton<IClientStore, EmptyClientStore>();
         services.AddSingleton<ITenantStore, EmptyTenantStore>();
         services.AddSingleton<IAuthorizationCodeStore, EmptyAuthorizationCodeStore>();
+        services.AddSingleton<IPersistedGrantStore, EmptyPersistedGrantStore>();
+
+        services.AddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
 
         services.AddCoreMediatorServices();
         services.AddCoreTenantServices();
@@ -102,10 +107,7 @@ internal class Startup
 
         app.UseEndpoints(endpoints =>
         {
-            endpoints
-                .MapOpenId()
-                .WithHttpLogging(HttpLoggingFields.All, requestBodyLogLimit: -1, responseBodyLogLimit: -1);
-
+            endpoints.MapOpenId().WithHttpLogging(HttpLoggingFields.All);
             endpoints.MapControllers();
         });
     }

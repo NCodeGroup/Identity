@@ -17,8 +17,6 @@
 
 #endregion
 
-using System.Text.Json;
-
 namespace NIdentity.OpenId.Logic;
 
 /// <summary>
@@ -36,7 +34,6 @@ public interface IPersistedGrantService
     /// <param name="subjectId">The identifier of the subject that is associated with the grant.</param>
     /// <param name="lifetime">The lifetime of the grant.</param>
     /// <param name="payload">The payload of the grant that is to be persisted.</param>
-    /// <param name="jsonSerializerOptions">The <see cref="JsonSerializerOptions"/> instance to serialize the payload.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the grant.</typeparam>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
@@ -48,7 +45,6 @@ public interface IPersistedGrantService
         string? subjectId,
         TimeSpan lifetime,
         TPayload payload,
-        JsonSerializerOptions jsonSerializerOptions,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -59,7 +55,6 @@ public interface IPersistedGrantService
     /// <param name="grantKey">The unique identifier of the grant.</param>
     /// <param name="singleUse">Indicates whether the grant should be checked whether it has already been consumed.</param>
     /// <param name="setConsumed">Indicates whether the grant should be marked as consumed if it has not already been consumed.</param>
-    /// <param name="jsonSerializerOptions">The <see cref="JsonSerializerOptions"/> instance to deserialize the payload.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the grant.</typeparam>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the grant.</returns>
@@ -69,7 +64,6 @@ public interface IPersistedGrantService
         string grantKey,
         bool singleUse,
         bool setConsumed,
-        JsonSerializerOptions jsonSerializerOptions,
         CancellationToken cancellationToken);
 
     /// <summary>

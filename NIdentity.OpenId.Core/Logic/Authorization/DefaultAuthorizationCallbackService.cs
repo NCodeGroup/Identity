@@ -53,7 +53,6 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
         var authorizationRequest = authorizationContext.AuthorizationRequest;
         var openIdContext = authorizationContext.OpenIdContext;
         var clientSettings = authorizationContext.ClientSettings;
-        var jsonSerializerOptions = openIdContext.OpenIdServer.JsonSerializerOptions;
         var httpContext = openIdContext.HttpContext;
 
         var grantKey = CryptoService.GenerateUrlSafeKey();
@@ -74,7 +73,6 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
             subjectId: null,
             clientSettings.ContinueAuthorizationTimeout,
             authorizationRequest,
-            jsonSerializerOptions,
             cancellationToken);
 
         return continueUrl;
@@ -92,7 +90,6 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
             grantKey: state,
             singleUse: true,
             setConsumed: true,
-            openIdContext.OpenIdServer.JsonSerializerOptions,
             cancellationToken);
 
         return authorizationRequest;

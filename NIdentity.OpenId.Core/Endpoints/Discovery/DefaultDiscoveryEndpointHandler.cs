@@ -17,62 +17,71 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Primitives;
+using NCode.Identity;
 using NIdentity.OpenId.Endpoints.Discovery.Commands;
 using NIdentity.OpenId.Endpoints.Discovery.Results;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Endpoints.Discovery;
 
-internal class DefaultDiscoveryEndpointHandler :
-    ICommandResponseHandler<DiscoveryEndpointCommand, IOpenIdResult>,
-    ICommandHandler<DiscoverMetadataCommand>
+/// <summary>
+/// Provides a default implementation of the required services and handlers used by the discovery endpoint.
+/// </summary>
+public class DefaultDiscoveryEndpointHandler(
+    EndpointDataSource endpointDataSource,
+    LinkGenerator linkGenerator,
+    IOpenIdContextFactory contextFactory
+) : IOpenIdEndpointProvider, ICommandHandler<DiscoverMetadataCommand>
 {
-    private LinkGenerator LinkGenerator { get; }
-    private IOpenIdEndpointCollectionProvider OpenIdEndpointCollectionProvider { get; }
-
-    public DefaultDiscoveryEndpointHandler(
-        LinkGenerator linkGenerator,
-        IOpenIdEndpointCollectionProvider openIdEndpointCollectionProvider)
-    {
-        LinkGenerator = linkGenerator;
-        OpenIdEndpointCollectionProvider = openIdEndpointCollectionProvider;
-    }
+    private EndpointDataSource EndpointDataSource { get; } = endpointDataSource;
+    private LinkGenerator LinkGenerator { get; } = linkGenerator;
+    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
 
     /// <inheritdoc />
-    public async ValueTask<IOpenIdResult> HandleAsync(DiscoveryEndpointCommand command, CancellationToken cancellationToken)
+    public void Map(IEndpointRouteBuilder endpoints) => endpoints
+        .MapGet(OpenIdConstants.EndpointPaths.Discovery, HandleRouteAsync)
+        .WithName(OpenIdConstants.EndpointNames.Discovery)
+        .OpenIdDiscoverable();
+
+    private async ValueTask<JsonHttpResult<DiscoveryResult>> HandleRouteAsync(
+        HttpContext httpContext,
+        [FromServices] IMediator mediator,
+        [FromQuery] bool? showAll,
+        CancellationToken cancellationToken)
     {
-        var context = command.OpenIdContext;
+        var propertyBag = new PropertyBag();
+
+        var context = await ContextFactory.CreateContextAsync(
+            httpContext,
+            mediator,
+            propertyBag,
+            cancellationToken);
 
         var result = new DiscoveryResult
         {
             Issuer = context.Tenant.Issuer
         };
 
-        await context.Mediator.SendAsync(
-            new DiscoverMetadataCommand(context, result.ExtensionData),
+        await mediator.SendAsync(
+            new DiscoverMetadataCommand(context, result.Metadata, showAll ?? false),
             cancellationToken
         );
 
-        return result;
+        return TypedResults.Json(result, context.JsonSerializerOptions);
     }
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(DiscoverMetadataCommand command, CancellationToken cancellationToken)
+    public ValueTask HandleAsync(
+        DiscoverMetadataCommand command,
+        CancellationToken cancellationToken)
     {
-        var metadata = command.Metadata;
-        var context = command.OpenIdContext;
-
-        var showAll = context.HttpContext.Request.Query.TryGetValue("showAll", out var showAllStringValues) &&
-                      StringValues.IsNullOrEmpty(showAllStringValues) ||
-                      (
-                          bool.TryParse(showAllStringValues, out var showAllParsed) &&
-                          showAllParsed
-                      );
+        var (context, metadata, showAll) = command;
 
         DiscoverSettings(metadata, context.Tenant.TenantSettings, showAll);
 
@@ -81,7 +90,10 @@ internal class DefaultDiscoveryEndpointHandler :
         return ValueTask.CompletedTask;
     }
 
-    private static void DiscoverSettings(IDictionary<string, object> metadata, ISettingCollection settingsCollection, bool showAll)
+    private static void DiscoverSettings(
+        IDictionary<string, object> metadata,
+        ISettingCollection settingsCollection,
+        bool showAll)
     {
         var settings = settingsCollection.Where(setting => showAll || setting.Descriptor.Discoverable);
         foreach (var setting in settings)
@@ -91,16 +103,20 @@ internal class DefaultDiscoveryEndpointHandler :
         }
     }
 
-    private void DiscoverEndpoints(IDictionary<string, object> metadata, HttpContext httpContext)
+    private void DiscoverEndpoints(
+        IDictionary<string, object> metadata,
+        HttpContext httpContext)
     {
         var routeValues = new { };
 
-        foreach (var endpoint in OpenIdEndpointCollectionProvider.OpenIdEndpoints)
+        foreach (var endpoint in EndpointDataSource.Endpoints)
         {
-            if (endpoint.Metadata.GetMetadata<ISuppressDiscoveryMetadata>()?.SuppressDiscovery == true)
+            var discoverable = endpoint.Metadata.GetMetadata<IOpenIdEndpointDiscoverableMetadata>()?.Discoverable ?? false;
+            if (!discoverable)
                 continue;
 
-            if (endpoint.Metadata.GetMetadata<ISuppressLinkGenerationMetadata>()?.SuppressLinkGeneration == true)
+            var suppressLinkGeneration = endpoint.Metadata.GetMetadata<ISuppressLinkGenerationMetadata>()?.SuppressLinkGeneration ?? false;
+            if (suppressLinkGeneration)
                 continue;
 
             var endpointName = endpoint.Metadata.GetMetadata<EndpointNameMetadata>()?.EndpointName;

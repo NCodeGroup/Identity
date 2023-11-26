@@ -27,20 +27,19 @@ using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
-internal class AuthorizationResultExecutor : IOpenIdResultExecutor<AuthorizationResult>
+internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
 {
-    public async ValueTask ExecuteResultAsync(OpenIdContext context, AuthorizationResult result, CancellationToken cancellationToken)
+    public async ValueTask ExecuteAsync(HttpContext httpContext, AuthorizationResult result, CancellationToken cancellationToken)
     {
-        var httpContext = context.HttpContext;
         var httpResponse = httpContext.Response;
 
         // If an error occurred with an explicit HTTP status code,
         // then return a JSON response with the corresponding status code
         // instead of returning a redirect response.
-        var statusCode = result.Error?.StatusCode;
-        if (statusCode is not null)
+        if (result.Error is { StatusCode: not null })
         {
-            var httpResult = TypedResults.Json(result.Error, context.JsonSerializerOptions, statusCode: statusCode);
+            var options = result.Error.OpenIdContext.JsonSerializerOptions;
+            var httpResult = TypedResults.Json(result.Error, options, statusCode: result.Error.StatusCode);
             await httpResult.ExecuteAsync(httpContext);
             return;
         }

@@ -19,6 +19,7 @@
 
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages.Parsers;

@@ -19,6 +19,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NIdentity.OpenId.Endpoints;
 
 namespace NIdentity.OpenId.Messages;
 

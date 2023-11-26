@@ -18,14 +18,13 @@
 #endregion
 
 using System.Text.Json.Serialization;
-using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Discovery.Results;
 
 /// <summary>
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server metadata discovery response.
 /// </summary>
-public class DiscoveryResult : OpenIdResult<DiscoveryResult>
+public class DiscoveryResult
 {
     /// <summary>
     /// Gets or sets the issuer identifier.
@@ -36,5 +35,5 @@ public class DiscoveryResult : OpenIdResult<DiscoveryResult>
     /// Gets or sets the additional properties for an <c>OAuth</c> or<c>OpenID Connect</c> response.
     /// </summary>
     [JsonExtensionData]
-    public IDictionary<string, object> ExtensionData { get; set; } = new SortedDictionary<string, object>(StringComparer.Ordinal);
+    public Dictionary<string, object> Metadata { get; set; } = new(StringComparer.Ordinal);
 }

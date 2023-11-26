@@ -23,7 +23,7 @@ using NIdentity.OpenId.Settings;
 namespace NIdentity.OpenId.Endpoints.Authorization;
 
 /// <summary>
-/// Provides contextual information about redirects and responses can be safely returned to the user-agent.
+/// Provides contextual information about redirects and responses that can be safely returned to the user-agent.
 /// </summary>
 public readonly struct ClientRedirectContext
 {

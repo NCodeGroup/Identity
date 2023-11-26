@@ -18,14 +18,15 @@
 #endregion
 
 using IdGen.DependencyInjection;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.OpenApi.Models;
 using NCode.Identity.JsonWebTokens;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Playground.Stores;
+using NIdentity.OpenId.Registration;
 using NIdentity.OpenId.Servers;
-using NIdentity.OpenId.ServiceCollectionExtensions;
 using NIdentity.OpenId.Settings;
 using NIdentity.OpenId.Stores;
 
@@ -89,6 +90,7 @@ internal class Startup
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "NIdentity.OpenId.Playground v1"));
         }
 
+        app.UseHttpLogging();
         app.UseHttpsRedirection();
 
         app.UseRouting();
@@ -96,9 +98,14 @@ internal class Startup
         app.UseAuthentication();
         app.UseAuthorization();
 
+        app.UseMiddleware<OpenIdMiddleware>();
+
         app.UseEndpoints(endpoints =>
         {
-            endpoints.MapOpenId();
+            endpoints
+                .MapOpenId()
+                .WithHttpLogging(HttpLoggingFields.All, requestBodyLogLimit: -1, responseBodyLogLimit: -1);
+
             endpoints.MapControllers();
         });
     }

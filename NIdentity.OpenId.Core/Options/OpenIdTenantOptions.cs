@@ -17,36 +17,31 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
+using NIdentity.OpenId.Tenants.Providers;
 
 namespace NIdentity.OpenId.Options;
 
 public class OpenIdTenantOptions
 {
     /// <summary>
-    /// Gets or sets a value that indicates how multi-tenancy is configured.
+    /// Gets or sets the provider code that is used to configure multi-tenancy.
+    /// This value is used to find the corresponding <see cref="IOpenIdTenantProvider"/>.
+    /// The default value is <see cref="StaticSingle"/>.
     /// </summary>
-    public TenantMode Mode { get; set; }
+    public string ProviderCode { get; set; } = OpenIdConstants.TenantProviderCodes.StaticSingle;
 
     /// <summary>
-    /// Gets or sets the relative path for the tenant.
-    /// When the path is used to determine the tenant, this value must be set to a route pattern that
-    /// includes the identifier as a route parameter (ex. '/{tenantId}') with a leading slash.
-    /// </summary>
-    public PathString TenantPath { get; set; }
-
-    /// <summary>
-    /// Gets or set the tenant options that are used when <see cref="Mode"/> is set to <see cref="TenantMode.StaticSingle"/>.
+    /// Gets or set the tenant options that are used when <see cref="ProviderCode"/> is set to <see cref="StaticSingle"/>.
     /// </summary>
     public StaticSingleOpenIdTenantOptions? StaticSingle { get; set; }
 
     /// <summary>
-    /// Gets or set the tenant options that are used when <see cref="Mode"/> is set to <see cref="TenantMode.DynamicByHost"/>.
+    /// Gets or set the tenant options that are used when <see cref="ProviderCode"/> is set to <see cref="DynamicByHost"/>.
     /// </summary>
     public DynamicByHostOpenIdTenantOptions? DynamicByHost { get; set; }
 
     /// <summary>
-    /// Gets or set the tenant options that are used when <see cref="Mode"/> is set to <see cref="TenantMode.DynamicByPath"/>.
+    /// Gets or set the tenant options that are used when <see cref="ProviderCode"/> is set to <see cref="DynamicByPath"/>.
     /// </summary>
     public DynamicByPathOpenIdTenantOptions? DynamicByPath { get; set; }
 }

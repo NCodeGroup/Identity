@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Messages.Parsers;

@@ -22,9 +22,13 @@ using System.Security.Claims;
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity;
 using NCode.Identity.JsonWebTokens;
 using NCode.Jose;
 using NCode.Jose.Extensions;
@@ -50,12 +54,12 @@ namespace NIdentity.OpenId.Endpoints.Authorization;
 /// Provides a default implementation of the required services and handlers used by the authorization endpoint.
 /// </summary>
 public class DefaultAuthorizationEndpointHandler :
-    ICommandResponseHandler<AuthorizationEndpointCommand, IOpenIdResult>,
+    IOpenIdEndpointProvider,
     ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>,
     ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationContext>,
     ICommandHandler<ValidateAuthorizationRequestCommand>,
     ICommandResponseHandler<AuthenticateCommand, AuthenticateResult>,
-    ICommandResponseHandler<AuthorizeCommand, IOpenIdResult?>,
+    ICommandResponseHandler<AuthorizeCommand, IResult?>,
     ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>
 {
     private bool DefaultSignInSchemeFetched { get; set; }
@@ -71,6 +75,7 @@ public class DefaultAuthorizationEndpointHandler :
     private IAuthorizationCallbackService CallbackService { get; }
     private IAuthorizationInteractionService InteractionService { get; }
     private IAuthorizationTicketService TicketService { get; }
+    private IOpenIdContextFactory ContextFactory { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultAuthorizationEndpointHandler"/> class.
@@ -85,7 +90,8 @@ public class DefaultAuthorizationEndpointHandler :
         IAuthenticationSchemeProvider authenticationSchemeProvider,
         IAuthorizationCallbackService callbackService,
         IAuthorizationInteractionService interactionService,
-        IAuthorizationTicketService ticketService)
+        IAuthorizationTicketService ticketService,
+        IOpenIdContextFactory contextFactory)
     {
         Logger = logger;
         SystemClock = systemClock;
@@ -97,18 +103,32 @@ public class DefaultAuthorizationEndpointHandler :
         CallbackService = callbackService;
         InteractionService = interactionService;
         TicketService = ticketService;
+        ContextFactory = contextFactory;
     }
 
-    #region AuthorizationEndpointCommand
-
     /// <inheritdoc />
-    public async ValueTask<IOpenIdResult> HandleAsync(
-        AuthorizationEndpointCommand command,
+    public void Map(IEndpointRouteBuilder endpoints) => endpoints
+        .MapMethods(
+            OpenIdConstants.EndpointPaths.Authorization,
+            new[] { HttpMethods.Get, HttpMethods.Post },
+            HandleRouteAsync)
+        .WithName(OpenIdConstants.EndpointNames.Authorization)
+        .OpenIdDiscoverable();
+
+    private async ValueTask<IResult> HandleRouteAsync(
+        HttpContext httpContext,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var openIdContext = command.OpenIdContext;
+        var propertyBag = new PropertyBag();
+
+        var openIdContext = await ContextFactory.CreateContextAsync(
+            httpContext,
+            mediator,
+            propertyBag,
+            cancellationToken);
+
         var errorFactory = openIdContext.ErrorFactory;
-        var mediator = openIdContext.Mediator;
 
         // for errors, before we redirect, we must validate the client_id and redirect_uri
         // otherwise we must return a failure HTTP status code
@@ -167,7 +187,7 @@ public class DefaultAuthorizationEndpointHandler :
 
             var authenticationTicket = authenticateResult.Ticket;
 
-            var authorizeResult = await mediator.SendAsync<AuthorizeCommand, IOpenIdResult?>(
+            var authorizeResult = await mediator.SendAsync<AuthorizeCommand, IResult?>(
                 new AuthorizeCommand(
                     authorizationContext,
                     authenticationTicket),
@@ -284,8 +304,6 @@ public class DefaultAuthorizationEndpointHandler :
             ResponseMode = responseMode
         };
     }
-
-    #endregion
 
     #region LoadAuthorizationSourceCommand
 
@@ -802,7 +820,7 @@ public class DefaultAuthorizationEndpointHandler :
     #region AuthorizeCommand
 
     /// <inheritdoc />
-    public async ValueTask<IOpenIdResult?> HandleAsync(
+    public async ValueTask<IResult?> HandleAsync(
         AuthorizeCommand command,
         CancellationToken cancellationToken)
     {
@@ -840,7 +858,7 @@ public class DefaultAuthorizationEndpointHandler :
                 continueUrl,
                 cancellationToken);
 
-            return new OpenIdRedirectResult(loginUrl);
+            return new OpenIdRedirectResult { RedirectUrl = loginUrl };
         }
 
         if (authenticationTicket is not { Principal.Identity.IsAuthenticated: true })
@@ -864,7 +882,7 @@ public class DefaultAuthorizationEndpointHandler :
                 continueUrl,
                 cancellationToken);
 
-            return new OpenIdRedirectResult(redirectUrl);
+            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
         var subject = authenticationTicket.Principal.Identity as ClaimsIdentity ??
@@ -883,7 +901,7 @@ public class DefaultAuthorizationEndpointHandler :
                 continueUrl,
                 cancellationToken);
 
-            return new OpenIdRedirectResult(redirectUrl);
+            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
         // TODO: check that tenant from subject matches the current tenant
@@ -907,7 +925,7 @@ public class DefaultAuthorizationEndpointHandler :
                 continueUrl,
                 cancellationToken);
 
-            return new OpenIdRedirectResult(redirectUrl);
+            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
         // TODO: check local idp restrictions

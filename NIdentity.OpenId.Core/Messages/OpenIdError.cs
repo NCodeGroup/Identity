@@ -17,6 +17,7 @@
 
 #endregion
 
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 

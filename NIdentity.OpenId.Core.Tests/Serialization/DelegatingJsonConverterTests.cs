@@ -20,6 +20,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Moq;
+using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;

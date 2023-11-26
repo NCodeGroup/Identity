@@ -17,6 +17,8 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+
 namespace NIdentity.OpenId.Options;
 
 public class DynamicByHostOpenIdTenantOptions
@@ -26,4 +28,11 @@ public class DynamicByHostOpenIdTenantOptions
     /// The default pattern uses the entire value.
     /// </summary>
     public string RegexPattern { get; set; } = ".*";
+
+    /// <summary>
+    /// Gets or sets the relative base path for the tenant.
+    /// When specified, this value must include a leading slash.
+    /// The default value is undefined (aka empty).
+    /// </summary>
+    public PathString TenantPath { get; set; }
 }

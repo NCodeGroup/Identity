@@ -17,37 +17,36 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 
 namespace NIdentity.OpenId.Results;
 
-// TODO: register in DI
-
-internal class OpenIdRedirectResultExecutor : IOpenIdResultExecutor<OpenIdRedirectResult>
+internal class OpenIdRedirectResultExecutor : IResultExecutor<OpenIdRedirectResult>
 {
     private const string AjaxHeaderValue = "XMLHttpRequest";
 
-    private static bool IsAjaxRequest(OpenIdContext context) =>
-        string.Equals(context.HttpContext.Request.Query[HeaderNames.XRequestedWith], AjaxHeaderValue, StringComparison.Ordinal) ||
-        string.Equals(context.HttpContext.Request.Headers.XRequestedWith, AjaxHeaderValue, StringComparison.Ordinal);
+    private static bool IsAjaxRequest(HttpContext httpContext) =>
+        string.Equals(httpContext.Request.Query[HeaderNames.XRequestedWith], AjaxHeaderValue, StringComparison.Ordinal) ||
+        string.Equals(httpContext.Request.Headers.XRequestedWith, AjaxHeaderValue, StringComparison.Ordinal);
 
     /// <inheritdoc />
-    public ValueTask ExecuteResultAsync(
-        OpenIdContext context,
+    public ValueTask ExecuteAsync(
+        HttpContext httpContext,
         OpenIdRedirectResult result,
         CancellationToken cancellationToken)
     {
         var isAjaxRequest = result.IsAjaxRequest ?? IsAjaxRequest;
-        if (isAjaxRequest(context))
+        if (isAjaxRequest(httpContext))
         {
-            context.HttpContext.Response.Headers.Location = result.RedirectUrl;
+            httpContext.Response.Headers.Location = result.RedirectUrl;
 
             if (result.AjaxStatusCode.HasValue)
-                context.HttpContext.Response.StatusCode = result.AjaxStatusCode.Value;
+                httpContext.Response.StatusCode = result.AjaxStatusCode.Value;
         }
         else
         {
-            context.HttpContext.Response.Redirect(result.RedirectUrl);
+            httpContext.Response.Redirect(result.RedirectUrl);
         }
 
         return ValueTask.CompletedTask;

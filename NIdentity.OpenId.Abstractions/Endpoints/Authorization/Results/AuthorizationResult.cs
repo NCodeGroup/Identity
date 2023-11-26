@@ -18,17 +18,19 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Results;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Results;
 
 /// <summary>
-/// An implementation of <see cref="IOpenIdResult"/> that when executed, issues the response for an
+/// An implementation of <see cref="IResult"/> that when executed, issues the response for an
 /// <c>OAuth</c> or <c>OpenID Connect</c> authorization operation. This result is only used when the
 /// request has been validated, specifically the <c>client_id</c> and <c>redirect_uri</c> parameters
 /// from the request have been validated and it is safe to redirect the user agent back to the client.
 /// </summary>
-public class AuthorizationResult : OpenIdResult<AuthorizationResult>, ISupportError
+public class AuthorizationResult : IResult, ISupportError
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizationResult"/> class.
@@ -90,4 +92,11 @@ public class AuthorizationResult : OpenIdResult<AuthorizationResult>, ISupportEr
     /// <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
     /// </summary>
     public IAuthorizationTicket? Ticket { get; }
+
+    /// <inheritdoc />
+    public async Task ExecuteAsync(HttpContext httpContext)
+    {
+        var executor = httpContext.RequestServices.GetRequiredService<IResultExecutor<AuthorizationResult>>();
+        await executor.ExecuteAsync(httpContext, this, httpContext.RequestAborted);
+    }
 }

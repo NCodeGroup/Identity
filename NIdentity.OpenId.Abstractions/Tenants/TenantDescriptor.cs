@@ -17,10 +17,11 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Routing.Patterns;
-
 namespace NIdentity.OpenId.Tenants;
 
+/// <summary>
+/// Contains identifying information about a tenant.
+/// </summary>
 public readonly struct TenantDescriptor
 {
     /// <summary>
@@ -38,9 +39,4 @@ public readonly struct TenantDescriptor
     /// This value is optional and can be used to find tenants by domain name.
     /// </summary>
     public string? DomainName { get; init; }
-
-    /// <summary>
-    /// Gets or sets the route pattern for the tenant.
-    /// </summary>
-    public RoutePattern? Route { get; init; }
 }

@@ -89,9 +89,14 @@ public static partial class OpenIdConstants
         public const string DynamicByPath = "DynamicByPath";
     }
 
+    public static class ContinueCodes
+    {
+        public const string Authorization = "continue_authorization";
+    }
+
     public static class PersistedGrantTypes
     {
+        public const string Continue = "continue";
         public const string AuthorizationCode = "authorization_code";
-        public const string ContinueAuthorization = "continue_authorization";
     }
 }

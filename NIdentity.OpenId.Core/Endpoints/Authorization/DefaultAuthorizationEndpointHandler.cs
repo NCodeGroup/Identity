@@ -36,6 +36,7 @@ using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
+using NIdentity.OpenId.Endpoints.Continue;
 using NIdentity.OpenId.Exceptions;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Logic.Authorization;
@@ -68,6 +69,7 @@ public class DefaultAuthorizationEndpointHandler(
     OpenIdServer openIdServer
 ) :
     IOpenIdEndpointProvider,
+    IContinueProvider,
     ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>,
     ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationContext>,
     ICommandHandler<ValidateAuthorizationRequestCommand>,
@@ -143,49 +145,11 @@ public class DefaultAuthorizationEndpointHandler(
                     clientSettings),
                 cancellationToken);
 
-            // the request object may have changed the response mode
-            var requestObject = authorizationContext.AuthorizationRequest.OriginalRequestObject;
-            if (requestObject?.ResponseMode is not null && requestObject.ResponseMode.Value != responseMode)
-            {
-                responseMode = requestObject.ResponseMode.Value;
-            }
-
-            await mediator.SendAsync(
-                new ValidateAuthorizationRequestCommand(authorizationContext),
+            return await ProcessAuthorizationContextAsync(
+                openIdContext,
+                authorizationContext,
+                clientRedirectContext,
                 cancellationToken);
-
-            var authenticateResult = await mediator.SendAsync<AuthenticateCommand, AuthenticateResult>(
-                new AuthenticateCommand(authorizationContext),
-                cancellationToken);
-
-            if (!authenticateResult.Succeeded)
-            {
-                var openIdError = errorFactory
-                    .AccessDenied("An error occured while attempting to authenticate the end-user.")
-                    .WithState(clientRedirectContext.State)
-                    .WithException(authenticateResult.Failure);
-
-                return new AuthorizationResult(redirectUri, responseMode, openIdError);
-            }
-
-            var authenticationTicket = authenticateResult.Ticket;
-
-            var authorizeResult = await mediator.SendAsync<AuthorizeCommand, IResult?>(
-                new AuthorizeCommand(
-                    authorizationContext,
-                    authenticationTicket),
-                cancellationToken);
-
-            if (authorizeResult != null)
-                return authorizeResult;
-
-            var authorizationTicket = await mediator.SendAsync<CreateAuthorizationTicketCommand, IAuthorizationTicket>(
-                new CreateAuthorizationTicketCommand(
-                    authorizationContext,
-                    authenticationTicket),
-                cancellationToken);
-
-            return new AuthorizationResult(redirectUri, responseMode, authorizationTicket);
         }
         catch (Exception exception)
         {
@@ -201,11 +165,11 @@ public class DefaultAuthorizationEndpointHandler(
     }
 
     private async ValueTask<ClientRedirectContext> GetClientRedirectContextAsync(
-        OpenIdContext context,
+        OpenIdContext openIdContext,
         IOpenIdMessage authorizationSource,
         CancellationToken cancellationToken)
     {
-        var openIdTenant = context.OpenIdTenant;
+        var openIdTenant = openIdContext.OpenIdTenant;
         var errorFactory = OpenIdServer.ErrorFactory;
 
         var hasState = authorizationSource.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
@@ -253,9 +217,8 @@ public class DefaultAuthorizationEndpointHandler(
                 .AsException();
         }
 
-        var tenantId = openIdTenant.TenantId;
         var client = await ClientStore.TryGetByClientIdAsync(
-            tenantId,
+            openIdTenant.TenantId,
             clientId.ToString(),
             cancellationToken);
 
@@ -290,6 +253,105 @@ public class DefaultAuthorizationEndpointHandler(
             ResponseMode = responseMode
         };
     }
+
+    private async ValueTask<IResult> ProcessAuthorizationContextAsync(
+        OpenIdContext openIdContext,
+        AuthorizationContext authorizationContext,
+        ClientRedirectContext clientRedirectContext,
+        CancellationToken cancellationToken)
+    {
+        var mediator = openIdContext.Mediator;
+        var errorFactory = OpenIdServer.ErrorFactory;
+
+        var responseMode = clientRedirectContext.ResponseMode;
+        var redirectUri = clientRedirectContext.RedirectUri;
+
+        // the request object may have changed the response mode
+        var requestObject = authorizationContext.AuthorizationRequest.OriginalRequestObject;
+        if (requestObject?.ResponseMode is not null && requestObject.ResponseMode.Value != responseMode)
+        {
+            responseMode = requestObject.ResponseMode.Value;
+        }
+
+        await mediator.SendAsync(
+            new ValidateAuthorizationRequestCommand(authorizationContext),
+            cancellationToken);
+
+        var authenticateResult = await mediator.SendAsync<AuthenticateCommand, AuthenticateResult>(
+            new AuthenticateCommand(authorizationContext),
+            cancellationToken);
+
+        if (!authenticateResult.Succeeded)
+        {
+            var openIdError = errorFactory
+                .AccessDenied("An error occured while attempting to authenticate the end-user.")
+                .WithState(clientRedirectContext.State)
+                .WithException(authenticateResult.Failure);
+
+            return new AuthorizationResult(redirectUri, responseMode, openIdError);
+        }
+
+        var authenticationTicket = authenticateResult.Ticket;
+
+        var authorizeResult = await mediator.SendAsync<AuthorizeCommand, IResult?>(
+            new AuthorizeCommand(
+                authorizationContext,
+                authenticationTicket),
+            cancellationToken);
+
+        if (authorizeResult != null)
+            return authorizeResult;
+
+        var authorizationTicket = await mediator.SendAsync<CreateAuthorizationTicketCommand, IAuthorizationTicket>(
+            new CreateAuthorizationTicketCommand(
+                authorizationContext,
+                authenticationTicket),
+            cancellationToken);
+
+        return new AuthorizationResult(redirectUri, responseMode, authorizationTicket);
+    }
+
+    #region IContinueProvider
+
+    /// <inheritdoc />
+    public string ContinueCode => OpenIdConstants.ContinueCodes.Authorization;
+
+    /// <inheritdoc />
+    public async ValueTask<IResult> ContinueAsync(
+        OpenIdContext openIdContext,
+        JsonElement continuePayload,
+        CancellationToken cancellationToken)
+    {
+        // TODO: extract additional parameters from the HTTP request
+
+        var authorizationRequest = continuePayload.Deserialize<IAuthorizationRequest>(OpenIdServer.JsonSerializerOptions);
+        if (authorizationRequest == null)
+            throw new InvalidOperationException("JSON deserialization returned null.");
+
+        var clientRedirectContext = await GetClientRedirectContextAsync(
+            openIdContext,
+            authorizationRequest,
+            cancellationToken);
+
+        const bool isContinuation = true;
+
+        var authorizationContext = new DefaultAuthorizationContext(
+            openIdContext,
+            clientRedirectContext.Client,
+            clientRedirectContext.ClientSettings,
+            authorizationRequest,
+            isContinuation);
+
+        var result = await ProcessAuthorizationContextAsync(
+            openIdContext,
+            authorizationContext,
+            clientRedirectContext,
+            cancellationToken);
+
+        return result;
+    }
+
+    #endregion
 
     #region LoadAuthorizationSourceCommand
 
@@ -378,11 +440,14 @@ public class DefaultAuthorizationEndpointHandler(
             requestMessage,
             requestObject);
 
+        const bool isContinuation = false;
+
         return new DefaultAuthorizationContext(
             openIdContext,
             client,
             clientSettings,
-            authorizationRequest);
+            authorizationRequest,
+            isContinuation);
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
@@ -817,7 +882,10 @@ public class DefaultAuthorizationEndpointHandler(
         var clientSettings = authorizationContext.ClientSettings;
         var errorFactory = OpenIdServer.ErrorFactory;
 
-        var promptType = authorizationRequest.PromptType;
+        var isContinuation = authorizationContext.IsContinuation;
+        var promptType = isContinuation ?
+            PromptTypes.None :
+            authorizationRequest.PromptType;
 
         if (promptType.HasFlag(PromptTypes.CreateAccount))
         {
@@ -828,8 +896,6 @@ public class DefaultAuthorizationEndpointHandler(
         var reAuthenticate =
             promptType.HasFlag(PromptTypes.Login) ||
             promptType.HasFlag(PromptTypes.SelectAccount);
-
-        // TODO: remove 'prompt' parameter to prevent infinite loop
 
         if (reAuthenticate)
         {

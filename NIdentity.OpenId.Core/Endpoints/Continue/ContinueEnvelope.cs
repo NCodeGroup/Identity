@@ -17,16 +17,13 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Playground;
+using System.Text.Json;
 
-internal static class Program
+namespace NIdentity.OpenId.Endpoints.Continue;
+
+internal class ContinueEnvelope
 {
-    public static void Main(string[] args)
-    {
-        CreateHostBuilder(args).Build().Run();
-    }
+    public required string Code { get; init; }
 
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host
-        .CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+    public required JsonElement Payload { get; init; }
 }

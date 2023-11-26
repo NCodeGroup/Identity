@@ -17,7 +17,6 @@
 
 #endregion
 
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NIdentity.OpenId.Logic.Authorization;
@@ -36,10 +35,5 @@ public interface IAuthorizationCallbackService
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the return URL.</returns>
     ValueTask<string> GetContinueUrlAsync(
         AuthorizationContext authorizationContext,
-        CancellationToken cancellationToken);
-
-    ValueTask<IAuthorizationRequest?> TryGetAuthorizationRequestAsync(
-        OpenIdContext openIdContext,
-        string state,
         CancellationToken cancellationToken);
 }

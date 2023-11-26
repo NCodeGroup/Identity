@@ -29,7 +29,8 @@ public class DefaultAuthorizationContext(
     OpenIdContext openIdContext,
     Client client,
     IKnownSettingCollection clientSettings,
-    IAuthorizationRequest authorizationRequest
+    IAuthorizationRequest authorizationRequest,
+    bool isContinuation
 ) : AuthorizationContext
 {
     /// <inheritdoc />
@@ -43,4 +44,7 @@ public class DefaultAuthorizationContext(
 
     /// <inheritdoc />
     public override IAuthorizationRequest AuthorizationRequest { get; } = authorizationRequest;
+
+    /// <inheritdoc />
+    public override bool IsContinuation { get; } = isContinuation;
 }

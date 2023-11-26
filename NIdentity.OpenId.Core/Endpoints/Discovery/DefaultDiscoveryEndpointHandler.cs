@@ -84,7 +84,7 @@ public class DefaultDiscoveryEndpointHandler(
 
         DiscoverSettings(metadata, context.OpenIdTenant.TenantSettings, showAll);
 
-        DiscoverEndpoints(metadata, context.HttpContext);
+        DiscoverEndpoints(metadata, context.HttpContext, showAll);
 
         return ValueTask.CompletedTask;
     }
@@ -104,14 +104,15 @@ public class DefaultDiscoveryEndpointHandler(
 
     private void DiscoverEndpoints(
         IDictionary<string, object> metadata,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        bool showAll)
     {
         var routeValues = new { };
 
         foreach (var endpoint in EndpointDataSource.Endpoints)
         {
             var discoverable = endpoint.Metadata.GetMetadata<IOpenIdEndpointDiscoverableMetadata>()?.Discoverable ?? false;
-            if (!discoverable)
+            if (!discoverable && !showAll)
                 continue;
 
             var suppressLinkGeneration = endpoint.Metadata.GetMetadata<ISuppressLinkGenerationMetadata>()?.SuppressLinkGeneration ?? false;

@@ -17,16 +17,17 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Playground;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 
-internal static class Program
+namespace NIdentity.OpenId.Endpoints.Continue;
+
+public interface IContinueProvider
 {
-    public static void Main(string[] args)
-    {
-        CreateHostBuilder(args).Build().Run();
-    }
+    string ContinueCode { get; }
 
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host
-        .CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+    ValueTask<IResult> ContinueAsync(
+        OpenIdContext openIdContext,
+        JsonElement continuePayload,
+        CancellationToken cancellationToken);
 }

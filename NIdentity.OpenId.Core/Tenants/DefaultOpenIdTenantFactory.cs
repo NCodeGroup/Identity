@@ -38,9 +38,9 @@ public class DefaultOpenIdTenantFactory(
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
-        var tenantProvider = TenantProviderSelector.GetTenantProvider(propertyBag);
+        var provider = TenantProviderSelector.SelectProvider(propertyBag);
 
-        var tenant = await tenantProvider.GetTenantAsync(
+        var tenant = await provider.GetTenantAsync(
             httpContext,
             propertyBag,
             cancellationToken);

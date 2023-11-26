@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,16 +17,16 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Playground;
+namespace NIdentity.OpenId.Endpoints.Continue.Logic;
 
-internal static class Program
+/// <summary>
+/// Provides a default implementation of the <see cref="IContinueProviderSelector"/> abstraction.
+/// </summary>
+public class DefaultContinueProviderSelector : IContinueProviderSelector
 {
-    public static void Main(string[] args)
+    /// <inheritdoc />
+    public IContinueProvider SelectProvider(string continueCode)
     {
-        CreateHostBuilder(args).Build().Run();
+        throw new NotImplementedException();
     }
-
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host
-        .CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
 }

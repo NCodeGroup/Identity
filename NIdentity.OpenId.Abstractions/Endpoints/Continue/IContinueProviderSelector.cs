@@ -17,16 +17,9 @@
 
 #endregion
 
-namespace NIdentity.OpenId.Playground;
+namespace NIdentity.OpenId.Endpoints.Continue;
 
-internal static class Program
+public interface IContinueProviderSelector
 {
-    public static void Main(string[] args)
-    {
-        CreateHostBuilder(args).Build().Run();
-    }
-
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host
-        .CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+    IContinueProvider SelectProvider(string continueCode);
 }

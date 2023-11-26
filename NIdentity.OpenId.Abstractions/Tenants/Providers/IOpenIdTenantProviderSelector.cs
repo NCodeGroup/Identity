@@ -33,5 +33,5 @@ public interface IOpenIdTenantProviderSelector
     /// </summary>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.</param>
     /// <returns>The <see cref="IOpenIdTenantProvider"/> instance that will be used to create <see cref="OpenIdTenant"/> instances.</returns>
-    IOpenIdTenantProvider GetTenantProvider(IPropertyBag propertyBag);
+    IOpenIdTenantProvider SelectProvider(IPropertyBag propertyBag);
 }

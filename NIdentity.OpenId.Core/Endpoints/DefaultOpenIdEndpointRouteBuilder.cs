@@ -41,7 +41,7 @@ public class DefaultOpenIdEndpointRouteBuilder(
     {
         var propertyBag = new PropertyBag();
 
-        var tenantProvider = TenantProviderSelector.GetTenantProvider(propertyBag);
+        var tenantProvider = TenantProviderSelector.SelectProvider(propertyBag);
 
         var tenantRoute = tenantProvider.GetTenantRoute(propertyBag);
 
@@ -52,9 +52,9 @@ public class DefaultOpenIdEndpointRouteBuilder(
 
         // other conventions may be added by the caller using the RouteGroupBuilder return value
 
-        foreach (var provider in EndpointProviders)
+        foreach (var endpointProvider in EndpointProviders)
         {
-            provider.Map(openIdEndpoints);
+            endpointProvider.Map(openIdEndpoints);
         }
 
         return openIdEndpoints;

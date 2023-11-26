@@ -17,9 +17,11 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Endpoints.Continue;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
@@ -31,6 +33,7 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
     private LinkGenerator LinkGenerator { get; }
     private ICryptoService CryptoService { get; }
     private IPersistedGrantService PersistedGrantService { get; }
+    private OpenIdServer OpenIdServer { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultAuthorizationCallbackService"/> class.
@@ -38,11 +41,13 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
     public DefaultAuthorizationCallbackService(
         LinkGenerator linkGenerator,
         ICryptoService cryptoService,
-        IPersistedGrantService persistedGrantService)
+        IPersistedGrantService persistedGrantService,
+        OpenIdServer openIdServer)
     {
         LinkGenerator = linkGenerator;
         CryptoService = cryptoService;
         PersistedGrantService = persistedGrantService;
+        OpenIdServer = openIdServer;
     }
 
     /// <inheritdoc />
@@ -65,33 +70,26 @@ public class DefaultAuthorizationCallbackService : IAuthorizationCallbackService
         if (string.IsNullOrEmpty(continueUrl))
             throw new InvalidOperationException("Unable to determine continue url.");
 
+        var continuePayload = JsonSerializer.SerializeToElement(
+            authorizationRequest,
+            OpenIdServer.JsonSerializerOptions);
+
+        var continueEnvelope = new ContinueEnvelope
+        {
+            Code = OpenIdConstants.ContinueCodes.Authorization,
+            Payload = continuePayload
+        };
+
         await PersistedGrantService.AddAsync(
             openIdContext.OpenIdTenant.TenantId,
-            OpenIdConstants.PersistedGrantTypes.ContinueAuthorization,
+            OpenIdConstants.PersistedGrantTypes.Continue,
             grantKey,
             authorizationRequest.ClientId,
             subjectId: null,
             clientSettings.ContinueAuthorizationTimeout,
-            authorizationRequest,
+            payload: continueEnvelope,
             cancellationToken);
 
         return continueUrl;
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<IAuthorizationRequest?> TryGetAuthorizationRequestAsync(
-        OpenIdContext openIdContext,
-        string state,
-        CancellationToken cancellationToken)
-    {
-        var authorizationRequest = await PersistedGrantService.TryGetAsync<IAuthorizationRequest>(
-            openIdContext.OpenIdTenant.TenantId,
-            OpenIdConstants.PersistedGrantTypes.ContinueAuthorization,
-            grantKey: state,
-            singleUse: true,
-            setConsumed: true,
-            cancellationToken);
-
-        return authorizationRequest;
     }
 }

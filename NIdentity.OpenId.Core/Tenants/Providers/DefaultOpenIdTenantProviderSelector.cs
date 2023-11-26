@@ -42,7 +42,7 @@ public class DefaultOpenIdTenantProviderSelector(
     private IEnumerable<IOpenIdTenantProvider> TenantProviders { get; } = tenantProviders;
 
     /// <inheritdoc />
-    public IOpenIdTenantProvider GetTenantProvider(IPropertyBag propertyBag)
+    public IOpenIdTenantProvider SelectProvider(IPropertyBag propertyBag)
     {
         if (TenantProviderHasValue)
             return TenantProviderOrNull;

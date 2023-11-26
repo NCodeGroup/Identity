@@ -37,9 +37,5 @@
         <ProjectReference Include="..\NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Endpoints\Continue\" />
-    </ItemGroup>
-
 
 </Project>

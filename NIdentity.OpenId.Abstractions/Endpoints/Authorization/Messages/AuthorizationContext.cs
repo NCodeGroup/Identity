@@ -46,4 +46,9 @@ public abstract class AuthorizationContext
     /// Gets the <see cref="IAuthorizationRequest"/> that contains the <c>OAuth</c> or <c>OpenID Connect</c> authorization parameters.
     /// </summary>
     public abstract IAuthorizationRequest AuthorizationRequest { get; }
+
+    /// <summary>
+    /// Gets a boolean indicating whether the current authorization request has been continued from user interaction.
+    /// </summary>
+    public abstract bool IsContinuation { get; }
 }

@@ -17,36 +17,36 @@
 
 #endregion
 
+using System.Text.Json;
 using NCode.Identity;
-using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Settings;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
+namespace NIdentity.OpenId.Servers;
 
-/// <summary>
-/// Provides additional contextual information when handling an authorization request.
-/// </summary>
-public abstract class AuthorizationContext
+public abstract class OpenIdServer
 {
     /// <summary>
-    /// Gets the <see cref="OpenIdContext"/> instance associated with the current request.
+    /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.
     /// </summary>
-    public abstract OpenIdContext OpenIdContext { get; }
+    public abstract JsonSerializerOptions JsonSerializerOptions { get; }
 
     /// <summary>
-    /// Gets the <see cref="Client"/> instance that was loaded using the 'client_id' parameter.
+    /// Gets the <see cref="IOpenIdErrorFactory"/> that can be used to create error responses
+    /// for <c>OAuth</c> or<c>OpenID Connect</c> operations.
     /// </summary>
-    public abstract Client Client { get; }
+    public abstract IOpenIdErrorFactory ErrorFactory { get; }
 
     /// <summary>
-    /// Gets the <see cref="IKnownSettingCollection"/> that contains client settings merged with tenant settings.
+    /// Gets the <see cref="IKnownParameterCollection"/> which contains all known parameters.
     /// </summary>
-    public abstract IKnownSettingCollection ClientSettings { get; }
+    public abstract IKnownParameterCollection KnownParameters { get; }
 
     /// <summary>
-    /// Gets the <see cref="IAuthorizationRequest"/> that contains the <c>OAuth</c> or <c>OpenID Connect</c> authorization parameters.
+    /// Gets the <see cref="ISettingCollection"/> which contains settings scoped to the server.
     /// </summary>
-    public abstract IAuthorizationRequest AuthorizationRequest { get; }
+    public abstract ISettingCollection ServerSettings { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

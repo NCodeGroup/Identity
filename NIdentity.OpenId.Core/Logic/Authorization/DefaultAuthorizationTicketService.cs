@@ -34,43 +34,33 @@ using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
+using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
 /// <summary>
-/// Provides a default implementation for the <see cref="IAuthorizationTicketService"/> abstraction.
+/// Provides a default implementation of the <see cref="IAuthorizationTicketService"/> abstraction.
 /// </summary>
-public class AuthorizationTicketService : IAuthorizationTicketService
+public class DefaultAuthorizationTicketService(
+    IIdGenerator<long> idGenerator,
+    ICryptoService cryptoService,
+    IAlgorithmProvider algorithmProvider,
+    ICredentialSelector credentialSelector,
+    IJsonWebTokenService jsonWebTokenService,
+    IAuthorizationClaimsService authorizationClaimsService,
+    IAuthorizationCodeStore authorizationCodeStore,
+    OpenIdServer openIdServer
+) : IAuthorizationTicketService
 {
-    private IIdGenerator<long> IdGenerator { get; }
-    private ICryptoService CryptoService { get; }
-    private IAlgorithmProvider AlgorithmProvider { get; }
-    private ICredentialSelector CredentialSelector { get; }
-    private IJsonWebTokenService JsonWebTokenService { get; }
-    private IAuthorizationClaimsService AuthorizationClaimsService { get; }
-    private IAuthorizationCodeStore AuthorizationCodeStore { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AuthorizationTicketService"/> class.
-    /// </summary>
-    public AuthorizationTicketService(
-        IIdGenerator<long> idGenerator,
-        ICryptoService cryptoService,
-        IAlgorithmProvider algorithmProvider,
-        ICredentialSelector credentialSelector,
-        IJsonWebTokenService jsonWebTokenService,
-        IAuthorizationClaimsService authorizationClaimsService,
-        IAuthorizationCodeStore authorizationCodeStore)
-    {
-        IdGenerator = idGenerator;
-        CryptoService = cryptoService;
-        AlgorithmProvider = algorithmProvider;
-        CredentialSelector = credentialSelector;
-        JsonWebTokenService = jsonWebTokenService;
-        AuthorizationClaimsService = authorizationClaimsService;
-        AuthorizationCodeStore = authorizationCodeStore;
-    }
+    private IIdGenerator<long> IdGenerator { get; } = idGenerator;
+    private ICryptoService CryptoService { get; } = cryptoService;
+    private IAlgorithmProvider AlgorithmProvider { get; } = algorithmProvider;
+    private ICredentialSelector CredentialSelector { get; } = credentialSelector;
+    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IAuthorizationClaimsService AuthorizationClaimsService { get; } = authorizationClaimsService;
+    private IAuthorizationCodeStore AuthorizationCodeStore { get; } = authorizationCodeStore;
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <inheritdoc />
     public virtual async ValueTask CreateAuthorizationCodeAsync(
@@ -78,19 +68,21 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken)
     {
-        var context = command.AuthorizationContext;
+        var authorizationContext = command.AuthorizationContext;
+        var tenantId = authorizationContext.OpenIdContext.OpenIdTenant.TenantId;
 
         var createdWhen = ticket.CreatedWhen;
-        var expiresWhen = createdWhen + context.ClientSettings.AuthorizationCodeLifetime;
+        var expiresWhen = createdWhen + authorizationContext.ClientSettings.AuthorizationCodeLifetime;
 
         var (code, hashedCode) = GenerateAuthorizationCode();
         Debug.Assert(hashedCode.Length <= DataConstants.MaxIndexLength);
 
         await SaveAuthorizationRequestAsync(
+            tenantId,
             hashedCode,
             createdWhen,
             expiresWhen,
-            context.AuthorizationRequest,
+            authorizationContext.AuthorizationRequest,
             cancellationToken);
 
         ticket.Code = code;
@@ -120,6 +112,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
     /// Persists the authorization request to the <see cref="IAuthorizationCodeStore"/>
     /// by using the hashed authorization code as the key.
     /// </summary>
+    /// <param name="tenantId">The tenant identifier for the current request.</param>
     /// <param name="hashedCode">The hashed authorization code.</param>
     /// <param name="createdWhen">The <see cref="DateTimeOffset"/> when the authorization ticket was created.</param>
     /// <param name="expiresWhen">The <see cref="DateTimeOffset"/> when the authorization ticker expires.</param>
@@ -127,21 +120,18 @@ public class AuthorizationTicketService : IAuthorizationTicketService
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     protected virtual async ValueTask SaveAuthorizationRequestAsync(
+        string tenantId,
         string hashedCode,
         DateTimeOffset createdWhen,
         DateTimeOffset expiresWhen,
         IAuthorizationRequest authorizationRequest,
         CancellationToken cancellationToken)
     {
-        var openIdContext = authorizationRequest.OpenIdContext;
-        var jsonSerializerOptions = openIdContext.JsonSerializerOptions;
-
         var authorizationRequestJson = JsonSerializer.Serialize(
             authorizationRequest,
-            jsonSerializerOptions);
+            OpenIdServer.JsonSerializerOptions);
 
         var id = IdGenerator.CreateId();
-        var tenantId = openIdContext.Tenant.TenantId;
         var authorizationCode = new AuthorizationCode
         {
             Id = id,
@@ -161,16 +151,14 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken)
     {
-        var createdWhen = ticket.CreatedWhen;
         var authorizationContext = command.AuthorizationContext;
+        var openIdContext = authorizationContext.OpenIdContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var openIdContext = authorizationRequest.OpenIdContext;
+        var clientSettings = authorizationContext.ClientSettings;
         var authenticationTicket = command.AuthenticationTicket;
 
-        var clientSettings = authorizationContext.ClientSettings;
-
-        var tenant = openIdContext.Tenant;
-        var secretKeys = tenant.SecretKeyProvider.SecretKeys;
+        var openIdTenant = openIdContext.OpenIdTenant;
+        var secretKeys = openIdTenant.SecretKeyProvider.SecretKeys;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmProvider.Algorithms,
@@ -186,6 +174,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
             secretKeys);
 
         var tokenId = GenerateTokenId();
+        var createdWhen = ticket.CreatedWhen;
 
         var payload = new Dictionary<string, object>(StringComparer.Ordinal)
         {
@@ -221,7 +210,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
             SigningCredentials = signingCredentials,
             EncryptionCredentials = encryptionCredentials,
 
-            Issuer = tenant.Issuer,
+            Issuer = openIdTenant.Issuer,
             Audience = authorizationRequest.ClientId,
 
             IssuedAt = createdWhen,
@@ -247,10 +236,10 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken)
     {
-        var createdWhen = ticket.CreatedWhen;
         var authorizationContext = command.AuthorizationContext;
+        var openIdContext = authorizationContext.OpenIdContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var openIdContext = authorizationRequest.OpenIdContext;
+        var clientSettings = authorizationContext.ClientSettings;
         var authenticationTicket = command.AuthenticationTicket;
 
         // References:
@@ -258,10 +247,8 @@ public class AuthorizationTicketService : IAuthorizationTicketService
         // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
         // https://learn.microsoft.com/en-us/azure/active-directory/develop/id-token-claims-reference
 
-        var clientSettings = authorizationContext.ClientSettings;
-
-        var tenant = openIdContext.Tenant;
-        var secretKeys = tenant.SecretKeyProvider.SecretKeys;
+        var openIdTenant = openIdContext.OpenIdTenant;
+        var secretKeys = openIdTenant.SecretKeyProvider.SecretKeys;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmProvider.Algorithms,
@@ -276,6 +263,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
             clientSettings.IdTokenEncryptionZipValuesSupported,
             secretKeys);
 
+        var createdWhen = ticket.CreatedWhen;
         var payload = new Dictionary<string, object>(StringComparer.Ordinal);
 
         // nonce
@@ -305,7 +293,7 @@ public class AuthorizationTicketService : IAuthorizationTicketService
             SigningCredentials = signingCredentials,
             EncryptionCredentials = encryptionCredentials,
 
-            Issuer = tenant.Issuer,
+            Issuer = openIdTenant.Issuer,
             Audience = authorizationRequest.ClientId,
 
             IssuedAt = createdWhen,

@@ -18,8 +18,8 @@
 #endregion
 
 using Moq;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Servers;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
@@ -27,13 +27,13 @@ namespace NIdentity.OpenId.Core.Tests.Messages.Parsers;
 public class ParameterParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<OpenIdContext> MockOpenIdContext { get; }
+    private Mock<OpenIdServer> MockOpenIdServer { get; }
     private Mock<ITestParameterParser> MockTestParameterParser { get; }
 
     public ParameterParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<OpenIdContext>();
+        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
         MockTestParameterParser = MockRepository.Create<ITestParameterParser>();
     }
 
@@ -62,7 +62,7 @@ public class ParameterParserTests : IDisposable
     public void Load_ThenValid()
     {
         var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
-        var context = MockOpenIdContext.Object;
+        var server = MockOpenIdServer.Object;
 
         const bool ignoreErrors = false;
         const string parameterName = "parameterName";
@@ -72,11 +72,11 @@ public class ParameterParserTests : IDisposable
         var descriptor = new ParameterDescriptor(parameterName);
 
         MockTestParameterParser
-            .Setup(x => x.Parse(context, descriptor, stringValues, ignoreErrors))
+            .Setup(x => x.Parse(server, descriptor, stringValues, ignoreErrors))
             .Returns(parsedValue)
             .Verifiable();
 
-        var parameter = parser.Load(context, descriptor, stringValues);
+        var parameter = parser.Load(server, descriptor, stringValues);
         var typedParameter = Assert.IsType<Parameter<string>>(parameter);
         Assert.Equal(stringValues, typedParameter.StringValues);
         Assert.Same(parsedValue, typedParameter.ParsedValue);

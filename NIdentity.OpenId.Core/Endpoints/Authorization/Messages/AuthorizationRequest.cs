@@ -20,17 +20,15 @@
 using System.Collections;
 using Microsoft.Extensions.Primitives;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
-internal class AuthorizationRequest : IAuthorizationRequest
+internal class AuthorizationRequest(
+    IAuthorizationRequestMessage requestMessage,
+    IAuthorizationRequestObject? requestObject
+) : IAuthorizationRequest
 {
-    public AuthorizationRequest(IAuthorizationRequestMessage requestMessage, IAuthorizationRequestObject? requestObject)
-    {
-        OriginalRequestMessage = requestMessage;
-        OriginalRequestObject = requestObject;
-    }
-
     private static GrantType DetermineGrantType(ResponseTypes responseType) => responseType switch
     {
         ResponseTypes.Unspecified => GrantType.Unspecified,
@@ -45,11 +43,11 @@ internal class AuthorizationRequest : IAuthorizationRequest
 
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 
-    public OpenIdContext OpenIdContext => OriginalRequestMessage.OpenIdContext;
+    public OpenIdServer OpenIdServer => OriginalRequestMessage.OpenIdServer;
 
-    public IAuthorizationRequestMessage OriginalRequestMessage { get; }
+    public IAuthorizationRequestMessage OriginalRequestMessage { get; } = requestMessage;
 
-    public IAuthorizationRequestObject? OriginalRequestObject { get; }
+    public IAuthorizationRequestObject? OriginalRequestObject { get; } = requestObject;
 
     /*
      * The Authorization Server MUST assemble the set of Authorization Request parameters to be used from the Request Object value and the
@@ -76,7 +74,7 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public string ClientId =>
         OriginalRequestObject?.ClientId ??
         OriginalRequestMessage.ClientId ??
-        throw OpenIdContext.ErrorFactory
+        throw OpenIdServer.ErrorFactory
             .MissingParameter(OpenIdConstants.Parameters.ClientId)
             .AsException();
 
@@ -125,7 +123,7 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public Uri RedirectUri =>
         OriginalRequestObject?.RedirectUri ??
         OriginalRequestMessage.RedirectUri ??
-        throw OpenIdContext.ErrorFactory
+        throw OpenIdServer.ErrorFactory
             .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
             .AsException();
 
@@ -137,14 +135,14 @@ internal class AuthorizationRequest : IAuthorizationRequest
     public ResponseTypes ResponseType =>
         OriginalRequestObject?.ResponseType ??
         OriginalRequestMessage.ResponseType ??
-        throw OpenIdContext.ErrorFactory
+        throw OpenIdServer.ErrorFactory
             .MissingParameter(OpenIdConstants.Parameters.ResponseType)
             .AsException();
 
     public IReadOnlyCollection<string> Scopes =>
         OriginalRequestObject?.Scopes ??
         OriginalRequestMessage.Scopes ??
-        throw OpenIdContext.ErrorFactory
+        throw OpenIdServer.ErrorFactory
             .MissingParameter(OpenIdConstants.Parameters.Scope)
             .AsException();
 

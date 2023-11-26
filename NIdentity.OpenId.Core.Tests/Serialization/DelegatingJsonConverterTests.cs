@@ -20,11 +20,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Moq;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Serialization;
+using NIdentity.OpenId.Servers;
 using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Serialization;
@@ -32,12 +32,12 @@ namespace NIdentity.OpenId.Core.Tests.Serialization;
 public class DelegatingJsonConverterTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<OpenIdContext> MockOpenIdContext { get; }
+    private Mock<OpenIdServer> MockOpenIdServer { get; }
 
     public DelegatingJsonConverterTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdContext = MockRepository.Create<OpenIdContext>();
+        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
     }
 
     public void Dispose()
@@ -48,7 +48,7 @@ public class DelegatingJsonConverterTests : IDisposable
     [Fact]
     public void AuthorizationRequestMessage_RoundTrip()
     {
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.KnownParameters)
             .Returns(KnownParameterCollection.Default)
             .Verifiable();
@@ -58,13 +58,13 @@ public class DelegatingJsonConverterTests : IDisposable
             Converters =
             {
                 new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object),
+                new OpenIdMessageJsonConverterFactory(MockOpenIdServer.Object),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>()
             }
         };
 
         var inputMessage = new AuthorizationRequestMessage();
-        inputMessage.Initialize(MockOpenIdContext.Object, Array.Empty<Parameter>());
+        inputMessage.Initialize(MockOpenIdServer.Object, Array.Empty<Parameter>());
 
         inputMessage.AuthorizationSourceType = AuthorizationSourceType.Union;
         inputMessage.Nonce = "nonce";
@@ -85,7 +85,7 @@ public class DelegatingJsonConverterTests : IDisposable
     [Fact]
     public void AuthorizationRequest_RoundTrip()
     {
-        MockOpenIdContext
+        MockOpenIdServer
             .Setup(x => x.KnownParameters)
             .Returns(KnownParameterCollection.Default)
             .Verifiable();
@@ -95,14 +95,14 @@ public class DelegatingJsonConverterTests : IDisposable
             Converters =
             {
                 new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(MockOpenIdContext.Object),
+                new OpenIdMessageJsonConverterFactory(MockOpenIdServer.Object),
                 new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
             }
         };
 
-        var requestMessage = AuthorizationRequestMessage.Load(MockOpenIdContext.Object, Array.Empty<Parameter>());
+        var requestMessage = AuthorizationRequestMessage.Load(MockOpenIdServer.Object, Array.Empty<Parameter>());
         requestMessage.AuthorizationSourceType = AuthorizationSourceType.Query;
         requestMessage.Nonce = "!nonce!";
         requestMessage.DisplayType = DisplayType.Touch;
@@ -110,7 +110,7 @@ public class DelegatingJsonConverterTests : IDisposable
         requestMessage.Scopes = new[] { "!scope1!", "!scope2!" };
         requestMessage.RedirectUri = new Uri("https://localhost/test");
 
-        var requestObject = AuthorizationRequestObject.Load(MockOpenIdContext.Object, Array.Empty<Parameter>());
+        var requestObject = AuthorizationRequestObject.Load(MockOpenIdServer.Object, Array.Empty<Parameter>());
         requestObject.RequestObjectSource = RequestObjectSource.Remote;
         requestObject.Nonce = "nonce";
         requestObject.DisplayType = DisplayType.Popup;

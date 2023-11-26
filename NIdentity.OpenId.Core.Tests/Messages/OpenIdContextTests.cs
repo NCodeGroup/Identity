@@ -17,17 +17,12 @@
 
 #endregion
 
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity;
 using NIdentity.OpenId.Endpoints;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Mediator;
-using NIdentity.OpenId.Messages;
-using NIdentity.OpenId.Messages.Parameters;
-using NIdentity.OpenId.Serialization;
+using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Tenants;
 using Xunit;
 
@@ -36,17 +31,19 @@ namespace NIdentity.OpenId.Core.Tests.Messages;
 public class OpenIdContextTests : IDisposable
 {
     private MockRepository MockRepository { get; }
+    private Mock<OpenIdServer> MockOpenIdServer { get; }
+    private Mock<OpenIdTenant> MockOpenIdTenant { get; }
     private Mock<HttpContext> MockHttpContext { get; }
     private Mock<IMediator> MockMediator { get; }
-    private Mock<OpenIdTenant> MockOpenIdTenant { get; }
     private Mock<IPropertyBag> MockPropertyBag { get; }
 
     public OpenIdContextTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
+        MockOpenIdTenant = MockRepository.Create<OpenIdTenant>();
         MockHttpContext = MockRepository.Create<HttpContext>();
         MockMediator = MockRepository.Create<IMediator>();
-        MockOpenIdTenant = MockRepository.Create<OpenIdTenant>();
         MockPropertyBag = MockRepository.Create<IPropertyBag>();
     }
 
@@ -58,48 +55,47 @@ public class OpenIdContextTests : IDisposable
     [Fact]
     public void Constructor_ThenValid()
     {
-        var context = new DefaultOpenIdContext(
+        var openIdContext = new DefaultOpenIdContext(
+            MockOpenIdServer.Object,
+            MockOpenIdTenant.Object,
             MockHttpContext.Object,
             MockMediator.Object,
-            MockOpenIdTenant.Object,
             MockPropertyBag.Object
         );
 
-        Assert.Same(MockHttpContext.Object, context.HttpContext);
-        Assert.Same(MockMediator.Object, context.Mediator);
-        Assert.Same(MockOpenIdTenant.Object, context.Tenant);
-        Assert.Null(context.JsonSerializerOptionsOrNull);
-        Assert.Same(context, context.ErrorFactory);
-        Assert.Same(KnownParameterCollection.Default, context.KnownParameters);
-        Assert.Same(MockPropertyBag.Object, context.PropertyBag);
+        Assert.Same(MockOpenIdTenant.Object, openIdContext.OpenIdTenant);
+        Assert.Same(MockOpenIdServer.Object, openIdContext.OpenIdServer);
+        Assert.Same(MockHttpContext.Object, openIdContext.HttpContext);
+        Assert.Same(MockMediator.Object, openIdContext.Mediator);
     }
 
-    [Fact]
-    public void JsonSerializerOptions_Valid()
-    {
-        var context = new DefaultOpenIdContext(
-            MockHttpContext.Object,
-            MockMediator.Object,
-            MockOpenIdTenant.Object,
-            MockPropertyBag.Object
-        );
-
-        Assert.Same(context.JsonSerializerOptions, context.JsonSerializerOptions);
-
-        Assert.True(context.JsonSerializerOptions.PropertyNameCaseInsensitive);
-        Assert.Equal(JsonNamingPolicy.CamelCase, context.JsonSerializerOptions.PropertyNamingPolicy);
-        Assert.Equal(JsonNumberHandling.AllowReadingFromString, context.JsonSerializerOptions.NumberHandling);
-
-        Assert.Equal(JsonCommentHandling.Skip, context.JsonSerializerOptions.ReadCommentHandling);
-        Assert.True(context.JsonSerializerOptions.AllowTrailingCommas);
-
-        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is OpenIdMessageJsonConverterFactory);
-
-        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IRequestClaim, RequestClaim>);
-        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IRequestClaims, RequestClaims>);
-
-        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is AuthorizationRequestJsonConverter);
-        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>);
-        Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>);
-    }
+    // TODO: move to OpenIdServerTests
+    // [Fact]
+    // public void JsonSerializerOptions_Valid()
+    // {
+    //     var context = new DefaultOpenIdContext(
+    //         MockHttpContext.Object,
+    //         MockMediator.Object,
+    //         MockOpenIdTenant.Object,
+    //         MockPropertyBag.Object
+    //     );
+    //
+    //     Assert.Same(context.JsonSerializerOptions, context.JsonSerializerOptions);
+    //
+    //     Assert.True(context.JsonSerializerOptions.PropertyNameCaseInsensitive);
+    //     Assert.Equal(JsonNamingPolicy.CamelCase, context.JsonSerializerOptions.PropertyNamingPolicy);
+    //     Assert.Equal(JsonNumberHandling.AllowReadingFromString, context.JsonSerializerOptions.NumberHandling);
+    //
+    //     Assert.Equal(JsonCommentHandling.Skip, context.JsonSerializerOptions.ReadCommentHandling);
+    //     Assert.True(context.JsonSerializerOptions.AllowTrailingCommas);
+    //
+    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is OpenIdMessageJsonConverterFactory);
+    //
+    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IRequestClaim, RequestClaim>);
+    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IRequestClaims, RequestClaims>);
+    //
+    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is AuthorizationRequestJsonConverter);
+    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>);
+    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>);
+    // }
 }

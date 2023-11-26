@@ -17,41 +17,59 @@
 
 #endregion
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
+using NCode.Identity;
 using NCode.Jose.Algorithms;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Messages;
+using NIdentity.OpenId.Messages.Parameters;
+using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Serialization;
 using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Servers;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdServerSettingsProvider"/> abstraction.
+/// Provides a default implementation of the <see cref="OpenIdServer"/> abstraction.
 /// </summary>
-public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
+public class DefaultOpenIdServer(
+    IConfiguration configuration,
+    IAlgorithmProvider algorithmProvider,
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
+) : OpenIdServer, IOpenIdErrorFactory
 {
-    private IConfiguration Configuration { get; }
-    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
-    private IAlgorithmProvider AlgorithmProvider { get; }
-
     private ISettingCollection? SettingsOrNull { get; set; }
+    private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdServerSettingsProvider"/> class.
-    /// </summary>
-    public OpenIdServerSettingsProvider(
-        IConfiguration configuration,
-        ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
-        IAlgorithmProvider algorithmProvider)
-    {
-        Configuration = configuration;
-        SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
-        AlgorithmProvider = algorithmProvider;
-    }
+    private IConfiguration Configuration { get; } = configuration;
+    private IAlgorithmProvider AlgorithmProvider { get; } = algorithmProvider;
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
-    public ISettingCollection Settings => SettingsOrNull ??= LoadFromConfiguration(Configuration.GetSection("settings"));
+    public override JsonSerializerOptions JsonSerializerOptions =>
+        JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
 
-    private SettingCollection LoadFromConfiguration(IConfiguration settingsSection)
+    /// <inheritdoc />
+    public override IOpenIdErrorFactory ErrorFactory => this;
+
+    /// <inheritdoc />
+    public override IKnownParameterCollection KnownParameters => KnownParameterCollection.Default;
+
+    /// <inheritdoc />
+    public override ISettingCollection ServerSettings => SettingsOrNull ??= LoadSettings();
+
+    /// <inheritdoc />
+    public override IPropertyBag PropertyBag { get; } = new PropertyBag();
+
+    /// <inheritdoc />
+    public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
+
+    private SettingCollection LoadSettings()
     {
+        var settingsSection = Configuration.GetSection("settings");
+
         var settings = new SettingCollection();
         var descriptors = SettingDescriptorCollectionProvider.Descriptors;
 
@@ -147,4 +165,31 @@ public class OpenIdServerSettingsProvider : IOpenIdServerSettingsProvider
 
         return settings;
     }
+
+    private JsonSerializerOptions CreateJsonSerializerOptions() =>
+        new(JsonSerializerDefaults.Web)
+        {
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+
+            // TODO: provide a way to customize this list
+            Converters =
+            {
+                new JsonStringEnumConverter(),
+                new OpenIdMessageJsonConverterFactory(this),
+                new AuthorizationRequestJsonConverter(),
+                new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
+                new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
+                new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
+                new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
+                // TODO make this better
+                new SettingCollectionJsonConverter(new SettingDescriptorJsonProvider(SettingDescriptorCollectionProvider.Descriptors)),
+                // TODO remove these
+                new CodeChallengeMethodJsonConverter(),
+                new DisplayTypeJsonConverter(),
+                new PromptTypesJsonConverter(),
+                new ResponseModeJsonConverter(),
+                new ResponseTypesJsonConverter()
+            }
+        };
 }

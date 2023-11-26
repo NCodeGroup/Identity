@@ -26,32 +26,26 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="AuthorizationContext"/> abstraction.
 /// </summary>
-public class DefaultAuthorizationContext : AuthorizationContext
+public class DefaultAuthorizationContext(
+    OpenIdContext openIdContext,
+    Client client,
+    IKnownSettingCollection clientSettings,
+    IAuthorizationRequest authorizationRequest,
+    IPropertyBag propertyBag
+) : AuthorizationContext
 {
     /// <inheritdoc />
-    public override Client Client { get; }
+    public override OpenIdContext OpenIdContext { get; } = openIdContext;
 
     /// <inheritdoc />
-    public override IKnownSettingCollection ClientSettings { get; }
+    public override Client Client { get; } = client;
 
     /// <inheritdoc />
-    public override IAuthorizationRequest AuthorizationRequest { get; }
+    public override IKnownSettingCollection ClientSettings { get; } = clientSettings;
 
     /// <inheritdoc />
-    public override IPropertyBag PropertyBag { get; }
+    public override IAuthorizationRequest AuthorizationRequest { get; } = authorizationRequest;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultAuthorizationContext"/> class.
-    /// </summary>
-    public DefaultAuthorizationContext(
-        Client client,
-        IKnownSettingCollection clientSettings,
-        IAuthorizationRequest authorizationRequest,
-        IPropertyBag propertyBag)
-    {
-        Client = client;
-        ClientSettings = clientSettings;
-        AuthorizationRequest = authorizationRequest;
-        PropertyBag = propertyBag;
-    }
+    /// <inheritdoc />
+    public override IPropertyBag PropertyBag { get; } = propertyBag;
 }

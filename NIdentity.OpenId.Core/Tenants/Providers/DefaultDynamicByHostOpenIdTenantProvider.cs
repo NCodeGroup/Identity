@@ -20,6 +20,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
+using Microsoft.Extensions.Options;
 using NCode.Identity;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Logic;
@@ -34,7 +35,19 @@ namespace NIdentity.OpenId.Tenants.Providers;
 /// Provides a default implementation of <see cref="IOpenIdTenantProvider"/> that dynamically loads the tenant
 /// configuration using the host name from a HTTP request.
 /// </summary>
-public class DefaultDynamicByHostOpenIdTenantProvider : OpenIdTenantProvider
+public class DefaultDynamicByHostOpenIdTenantProvider(
+    TemplateBinderFactory templateBinderFactory,
+    IOptions<OpenIdServerOptions> serverOptionsAccessor,
+    OpenIdServer openIdServer,
+    ITenantStore tenantStore,
+    ISecretSerializer secretSerializer
+) : OpenIdTenantProvider(
+    templateBinderFactory,
+    serverOptionsAccessor.Value,
+    openIdServer,
+    tenantStore,
+    secretSerializer
+)
 {
     private Regex? DomainNameRegex { get; set; }
 
@@ -46,26 +59,6 @@ public class DefaultDynamicByHostOpenIdTenantProvider : OpenIdTenantProvider
 
     /// <inheritdoc />
     protected override PathString TenantPath => TenantOptions.TenantPath;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultDynamicByHostOpenIdTenantProvider"/> class.
-    /// </summary>
-    public DefaultDynamicByHostOpenIdTenantProvider(
-        TemplateBinderFactory templateBinderFactory,
-        OpenIdServerOptions serverOptions,
-        IOpenIdServerSettingsProvider serverSettingsProvider,
-        ITenantStore tenantStore,
-        ISecretSerializer secretSerializer
-    ) : base(
-        templateBinderFactory,
-        serverOptions,
-        serverSettingsProvider,
-        tenantStore,
-        secretSerializer
-    )
-    {
-        // nothing
-    }
 
     private async ValueTask<Tenant> GetTenantByDomainAsync(string domainName, CancellationToken cancellationToken)
     {

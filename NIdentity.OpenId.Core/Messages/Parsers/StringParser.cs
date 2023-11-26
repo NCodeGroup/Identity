@@ -18,9 +18,9 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages.Parsers;
 
@@ -30,22 +30,22 @@ namespace NIdentity.OpenId.Messages.Parsers;
 public class StringParser : ParameterParser<string?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(OpenIdContext context, string? value)
+    public override StringValues Serialize(OpenIdServer openIdServer, string? value)
     {
         return value;
     }
 
     /// <inheritdoc/>
     public override string? Parse(
-        OpenIdContext context,
+        OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
         StringValues stringValues) =>
         stringValues.Count switch
         {
             0 when descriptor.Optional => null,
-            0 => throw context.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
+            0 => throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
             > 1 when descriptor.AllowMultipleValues => string.Join(Separator, stringValues!),
-            > 1 => throw context.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
+            > 1 => throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
             _ => stringValues[0]
         };
 }

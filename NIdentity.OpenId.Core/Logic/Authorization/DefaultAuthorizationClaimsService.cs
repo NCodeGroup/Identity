@@ -29,9 +29,9 @@ namespace NIdentity.OpenId.Logic.Authorization;
 // TODO: use setting: claims_supported
 
 /// <summary>
-/// Provides a default implementation for the <see cref="IAuthorizationClaimsService"/> abstraction.
+/// Provides a default implementation of the <see cref="IAuthorizationClaimsService"/> abstraction.
 /// </summary>
-public class AuthorizationClaimsService : IAuthorizationClaimsService
+public class DefaultAuthorizationClaimsService : IAuthorizationClaimsService
 {
     /// <inheritdoc />
     public async IAsyncEnumerable<Claim> GetAccessTokenClaimsAsync(
@@ -40,8 +40,7 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
         DateTimeOffset timestamp,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var tenant = authorizationRequest.OpenIdContext.Tenant;
+        var openIdTenant = authorizationContext.OpenIdContext.OpenIdTenant;
 
         var subject = authenticationTicket.Principal.Identity as ClaimsIdentity ??
                       throw new InvalidOperationException("The AuthenticationTicket must contain a ClaimsIdentity.");
@@ -74,8 +73,8 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
                 JoseClaimNames.Payload.AuthTime,
                 authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
                 ClaimValueTypes.Integer64,
-                tenant.Issuer,
-                tenant.Issuer);
+                openIdTenant.Issuer,
+                openIdTenant.Issuer);
         }
 
         await ValueTask.CompletedTask;
@@ -89,7 +88,7 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var tenant = authorizationRequest.OpenIdContext.Tenant;
+        var openIdTenant = authorizationContext.OpenIdContext.OpenIdTenant;
 
         // required: sub, auth_time, idp, amr
         // optional: acr
@@ -164,8 +163,8 @@ public class AuthorizationClaimsService : IAuthorizationClaimsService
                 JoseClaimNames.Payload.AuthTime,
                 authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
                 ClaimValueTypes.Integer64,
-                tenant.Issuer,
-                tenant.Issuer);
+                openIdTenant.Issuer,
+                openIdTenant.Issuer);
         }
 
         await ValueTask.CompletedTask;

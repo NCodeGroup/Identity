@@ -38,7 +38,13 @@ namespace NIdentity.OpenId.Tenants.Providers;
 /// <summary>
 /// Provides a common base implementation of the <see cref="IOpenIdTenantProvider"/> abstraction.
 /// </summary>
-public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
+public abstract class OpenIdTenantProvider(
+    TemplateBinderFactory templateBinderFactory,
+    OpenIdServerOptions serverOptions,
+    OpenIdServer openIdServer,
+    ITenantStore tenantStore,
+    ISecretSerializer secretSerializer
+) : IOpenIdTenantProvider
 {
     [MemberNotNullWhen(true, nameof(TenantRouteOrNull))]
     private bool TenantRouteHasValue { get; set; }
@@ -48,27 +54,27 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     /// <summary>
     /// Gets the <see cref="TemplateBinderFactory"/> used to bind route templates.
     /// </summary>
-    protected TemplateBinderFactory TemplateBinderFactory { get; }
+    protected TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
 
     /// <summary>
     /// Gets the <see cref="OpenIdServerOptions"/> used to configure the OpenID server.
     /// </summary>
-    protected OpenIdServerOptions ServerOptions { get; }
+    protected OpenIdServerOptions ServerOptions { get; } = serverOptions;
 
     /// <summary>
-    /// Gets the <see cref="IOpenIdServerSettingsProvider"/> used to provide OpenID server settings.
+    /// Gets the <see cref="OpenIdServer"/> used to provide OpenID server functionality.
     /// </summary>
-    protected IOpenIdServerSettingsProvider ServerSettingsProvider { get; }
+    protected OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <summary>
     /// Gets the <see cref="ITenantStore"/> used to provide tenant information.
     /// </summary>
-    protected ITenantStore TenantStore { get; }
+    protected ITenantStore TenantStore { get; } = tenantStore;
 
     /// <summary>
     /// Gets the <see cref="ISecretSerializer"/> used to serialize/deserialize secrets.
     /// </summary>
-    protected ISecretSerializer SecretSerializer { get; }
+    protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <inheritdoc />
     public abstract string ProviderCode { get; }
@@ -77,23 +83,6 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     /// Gets the relative base path for the tenant.
     /// </summary>
     protected abstract PathString TenantPath { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdTenantProvider"/> class.
-    /// </summary>
-    protected OpenIdTenantProvider(
-        TemplateBinderFactory templateBinderFactory,
-        OpenIdServerOptions serverOptions,
-        IOpenIdServerSettingsProvider serverSettingsProvider,
-        ITenantStore tenantStore,
-        ISecretSerializer secretSerializer)
-    {
-        TemplateBinderFactory = templateBinderFactory;
-        ServerOptions = serverOptions;
-        ServerSettingsProvider = serverSettingsProvider;
-        TenantStore = tenantStore;
-        SecretSerializer = secretSerializer;
-    }
 
     /// <summary>
     /// Loads the tenant using the specified <paramref name="tenantId"/> from the <see cref="TenantStore"/>.
@@ -219,7 +208,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
             propertyBag.Set(tenant);
         }
 
-        return ServerSettingsProvider.Settings.Merge(tenant.Settings);
+        return OpenIdServer.ServerSettings.Merge(tenant.Settings);
     }
 
     /// <summary>

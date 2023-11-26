@@ -69,8 +69,8 @@ internal class Startup
         services.AddCoreTenantServices();
         services.AddCoreEndpointServices();
 
+        services.AddSingleton<OpenIdServer, DefaultOpenIdServer>();
         services.AddSingleton<ISettingDescriptorCollectionProvider, SettingDescriptorCollectionProvider>();
-        services.AddSingleton<IOpenIdServerSettingsProvider, OpenIdServerSettingsProvider>();
 
         services.AddAuthorizationEndpoint();
         services.AddDiscoveryEndpoint();

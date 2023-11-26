@@ -19,19 +19,15 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using NIdentity.OpenId.Endpoints;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages;
 
-internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
+internal class OpenIdMessageJsonConverterFactory(
+    OpenIdServer openIdServer
+) : JsonConverterFactory
 {
-    private OpenIdContext OpenIdContext { get; }
-
-    /// <inheritdoc />
-    public OpenIdMessageJsonConverterFactory(OpenIdContext openIdContext)
-    {
-        OpenIdContext = openIdContext;
-    }
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <inheritdoc />
     public override bool CanConvert(Type typeToConvert)
@@ -43,6 +39,6 @@ internal class OpenIdMessageJsonConverterFactory : JsonConverterFactory
     public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
         var typeOfConverter = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
-        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, OpenIdContext);
+        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, OpenIdServer);
     }
 }

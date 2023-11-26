@@ -18,7 +18,7 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
-using NIdentity.OpenId.Endpoints;
+using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Messages;
 
@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Messages;
 public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
 {
     /// <summary>
-    /// Gets the <see cref="OpenIdContext"/> for the current instance.
+    /// Gets the <see cref="OpenIdServer"/> for the current instance.
     /// </summary>
-    OpenIdContext OpenIdContext { get; }
+    OpenIdServer OpenIdServer { get; }
 }

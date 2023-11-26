@@ -18,9 +18,8 @@
 #endregion
 
 using System.Diagnostics;
+using System.Security.Claims;
 using System.Text;
-using System.Text.Json;
-using IdGen;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Identity.JsonWebTokens;
@@ -30,12 +29,8 @@ using NCode.Jose.Credentials;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
-using NIdentity.OpenId.Servers;
-using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Logic.Authorization;
 
@@ -43,24 +38,20 @@ namespace NIdentity.OpenId.Logic.Authorization;
 /// Provides a default implementation of the <see cref="IAuthorizationTicketService"/> abstraction.
 /// </summary>
 public class DefaultAuthorizationTicketService(
-    IIdGenerator<long> idGenerator,
     ICryptoService cryptoService,
     IAlgorithmProvider algorithmProvider,
     ICredentialSelector credentialSelector,
     IJsonWebTokenService jsonWebTokenService,
     IAuthorizationClaimsService authorizationClaimsService,
-    IAuthorizationCodeStore authorizationCodeStore,
-    OpenIdServer openIdServer
+    IPersistedGrantService persistedGrantService
 ) : IAuthorizationTicketService
 {
-    private IIdGenerator<long> IdGenerator { get; } = idGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IAlgorithmProvider AlgorithmProvider { get; } = algorithmProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IAuthorizationClaimsService AuthorizationClaimsService { get; } = authorizationClaimsService;
-    private IAuthorizationCodeStore AuthorizationCodeStore { get; } = authorizationCodeStore;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
+    private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
     /// <inheritdoc />
     public virtual async ValueTask CreateAuthorizationCodeAsync(
@@ -70,79 +61,22 @@ public class DefaultAuthorizationTicketService(
     {
         var authorizationContext = command.AuthorizationContext;
         var tenantId = authorizationContext.OpenIdContext.OpenIdTenant.TenantId;
+        var clientId = authorizationContext.Client.ClientId;
+        var subjectId = command.AuthenticationTicket.Principal.FindFirstValue(JoseClaimNames.Payload.Sub);
 
-        var createdWhen = ticket.CreatedWhen;
-        var expiresWhen = createdWhen + authorizationContext.ClientSettings.AuthorizationCodeLifetime;
+        var grantKey = CryptoService.GenerateUrlSafeKey();
 
-        var (code, hashedCode) = GenerateAuthorizationCode();
-        Debug.Assert(hashedCode.Length <= DataConstants.MaxIndexLength);
-
-        await SaveAuthorizationRequestAsync(
+        await PersistedGrantService.AddAsync(
             tenantId,
-            hashedCode,
-            createdWhen,
-            expiresWhen,
-            authorizationContext.AuthorizationRequest,
+            OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
+            grantKey,
+            clientId,
+            subjectId,
+            authorizationContext.ClientSettings.AuthorizationCodeLifetime,
+            payload: authorizationContext.AuthorizationRequest,
             cancellationToken);
 
-        ticket.Code = code;
-    }
-
-    /// <summary>
-    /// Generates a new token identifier (aka <c>jti</c>).
-    /// The default implementation generates a strong cryptographic random 128-bit value that is Base64Url encoded.
-    /// </summary>
-    /// <returns>The newly generated token identifier.</returns>
-    protected virtual string GenerateTokenId()
-    {
-        const int byteLength = 16; // aka 128 bits which is larger than the entropy of GUID v4 (122 bits)
-        return CryptoService.GenerateKey(byteLength, BinaryEncodingType.Base64Url);
-    }
-
-    /// <summary>
-    /// Generates a new authorization code and its hashed value.
-    /// The default implementation generates a strong cryptographic random 256-bit value that is Base64Url encoded,
-    /// then hashed using the SHA-256 algorithm and Base64 encoded.
-    /// </summary>
-    /// <returns>The newly generated authorization code and its hashed value.</returns>
-    protected virtual PersistedKey GenerateAuthorizationCode() =>
-        CryptoService.GeneratePersistedUrlSafeKey();
-
-    /// <summary>
-    /// Persists the authorization request to the <see cref="IAuthorizationCodeStore"/>
-    /// by using the hashed authorization code as the key.
-    /// </summary>
-    /// <param name="tenantId">The tenant identifier for the current request.</param>
-    /// <param name="hashedCode">The hashed authorization code.</param>
-    /// <param name="createdWhen">The <see cref="DateTimeOffset"/> when the authorization ticket was created.</param>
-    /// <param name="expiresWhen">The <see cref="DateTimeOffset"/> when the authorization ticker expires.</param>
-    /// <param name="authorizationRequest">The <see cref="IAuthorizationRequest"/> to persist in the store.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    protected virtual async ValueTask SaveAuthorizationRequestAsync(
-        string tenantId,
-        string hashedCode,
-        DateTimeOffset createdWhen,
-        DateTimeOffset expiresWhen,
-        IAuthorizationRequest authorizationRequest,
-        CancellationToken cancellationToken)
-    {
-        var authorizationRequestJson = JsonSerializer.Serialize(
-            authorizationRequest,
-            OpenIdServer.JsonSerializerOptions);
-
-        var id = IdGenerator.CreateId();
-        var authorizationCode = new AuthorizationCode
-        {
-            Id = id,
-            TenantId = tenantId,
-            HashedCode = hashedCode,
-            CreatedWhen = createdWhen,
-            ExpiresWhen = expiresWhen,
-            AuthorizationRequestJson = authorizationRequestJson
-        };
-
-        await AuthorizationCodeStore.AddAsync(authorizationCode, cancellationToken);
+        ticket.Code = grantKey;
     }
 
     /// <inheritdoc />
@@ -173,7 +107,8 @@ public class DefaultAuthorizationTicketService(
             clientSettings.AccessTokenEncryptionZipValuesSupported,
             secretKeys);
 
-        var tokenId = GenerateTokenId();
+        const int byteLength = 16; // aka 128 bits which is larger than the entropy of GUID v4 (122 bits)
+        var tokenId = CryptoService.GenerateUrlSafeKey(byteLength);
         var createdWhen = ticket.CreatedWhen;
 
         var payload = new Dictionary<string, object>(StringComparer.Ordinal)

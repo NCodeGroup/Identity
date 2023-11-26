@@ -65,7 +65,6 @@ internal class Startup
 
         services.AddSingleton<IClientStore, EmptyClientStore>();
         services.AddSingleton<ITenantStore, EmptyTenantStore>();
-        services.AddSingleton<IAuthorizationCodeStore, EmptyAuthorizationCodeStore>();
         services.AddSingleton<IPersistedGrantStore, EmptyPersistedGrantStore>();
 
         services.AddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();

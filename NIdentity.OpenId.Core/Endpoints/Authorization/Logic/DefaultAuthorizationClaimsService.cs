@@ -23,8 +23,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using NCode.Jose;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Logic.Authorization;
 
-namespace NIdentity.OpenId.Logic.Authorization;
+namespace NIdentity.OpenId.Endpoints.Authorization.Logic;
 
 // TODO: use setting: claims_supported
 

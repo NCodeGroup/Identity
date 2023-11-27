@@ -23,6 +23,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Authorization;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
+using NIdentity.OpenId.Endpoints.Authorization.Logic;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
 using NIdentity.OpenId.Logic.Authorization;

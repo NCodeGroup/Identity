@@ -18,8 +18,9 @@
 #endregion
 
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Logic.Authorization;
 
-namespace NIdentity.OpenId.Logic.Authorization;
+namespace NIdentity.OpenId.Endpoints.Authorization.Logic;
 
 internal class NullAuthorizationInteractionService : IAuthorizationInteractionService
 {

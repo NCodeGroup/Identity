@@ -103,7 +103,7 @@ public interface IKnownSettingCollection : ISettingCollection
     /// Gets or sets the amount of time to allow for the authorization flow to complete after user interaction is initiated.
     /// The default is <c>900</c> seconds (15 minutes).
     /// </summary>
-    TimeSpan ContinueAuthorizationTimeout { get; set; }
+    TimeSpan ContinueAuthorizationLifetime { get; set; }
 
     /// <summary>
     /// Gets or sets the value for the 'id_token_encryption_alg_values_supported' setting.

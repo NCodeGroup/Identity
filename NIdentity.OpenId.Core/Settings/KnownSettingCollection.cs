@@ -127,10 +127,10 @@ public class KnownSettingCollection : IKnownSettingCollection
     }
 
     /// <inheritdoc />
-    public TimeSpan ContinueAuthorizationTimeout
+    public TimeSpan ContinueAuthorizationLifetime
     {
-        get => Get(KnownSettings.ContinueAuthorizationTimeout);
-        set => Store.Set(KnownSettings.ContinueAuthorizationTimeout.Create(value));
+        get => Get(KnownSettings.ContinueAuthorizationLifetime);
+        set => Store.Set(KnownSettings.ContinueAuthorizationLifetime.Create(value));
     }
 
     /// <inheritdoc />

@@ -951,7 +951,7 @@ public class DefaultAuthorizationEndpointHandler(
         var subject = authenticationTicket.Principal.Identity as ClaimsIdentity ??
                       throw new InvalidOperationException("The AuthenticationTicket must contain a ClaimsIdentity.");
 
-        if (!await ValidateUserIsActive(authorizationContext, authenticationTicket, cancellationToken))
+        if (!await ValidateUserIsActiveAsync(authorizationContext, authenticationTicket, cancellationToken))
         {
             if (promptType.HasFlag(PromptTypes.None))
             {
@@ -1017,7 +1017,7 @@ public class DefaultAuthorizationEndpointHandler(
         return null;
     }
 
-    private async ValueTask<bool> ValidateUserIsActive(
+    private static async ValueTask<bool> ValidateUserIsActiveAsync(
         AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken)

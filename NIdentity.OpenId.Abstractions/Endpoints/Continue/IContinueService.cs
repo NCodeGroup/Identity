@@ -20,20 +20,20 @@
 namespace NIdentity.OpenId.Endpoints.Continue;
 
 /// <summary>
-/// Provides the ability for the authorization server to generate return URLs for external operations that need user interaction.
+/// Provides the ability for the authorization server to generate return URLs for external operations that need continuations.
 /// </summary>
 public interface IContinueService
 {
     /// <summary>
     /// Gets the URL that a user-agent, after successfully completing an external operation, may return to
-    /// the authorization server and continue an internal operation. The <paramref name="payload"/> will be
+    /// the authorization server and resume the continuation. The <paramref name="payload"/> will be
     /// persisted and available to the <see cref="IContinueProvider"/> when the user-agent returns.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
-    /// <param name="continueCode">The <see cref="string"/> <c>Continue Code</c> for the operation.</param>
-    /// <param name="clientId">The optional <see cref="string"/> <c>ClientId</c> for the operation.</param>
-    /// <param name="subjectId">The optional <see cref="string"/> <c>SubjectId</c> for the operation.</param>
-    /// <param name="lifetime">The <see cref="TimeSpan"/> that contains the maximum allowable lifetime of the operation.</param>
+    /// <param name="continueCode">The <see cref="string"/> <c>Continue Code</c> for the continuation.</param>
+    /// <param name="clientId">The optional <see cref="string"/> <c>ClientId</c> for the continuation.</param>
+    /// <param name="subjectId">The optional <see cref="string"/> <c>SubjectId</c> for the continuation.</param>
+    /// <param name="lifetime">The <see cref="TimeSpan"/> that contains the maximum allowable lifetime of the continuation.</param>
     /// <param name="payload">The payload for the continuation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the continuation.</typeparam>

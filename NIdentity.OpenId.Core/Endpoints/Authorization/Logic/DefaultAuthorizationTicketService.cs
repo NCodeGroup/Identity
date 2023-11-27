@@ -31,8 +31,10 @@ using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
+using NIdentity.OpenId.Logic;
+using NIdentity.OpenId.Logic.Authorization;
 
-namespace NIdentity.OpenId.Logic.Authorization;
+namespace NIdentity.OpenId.Endpoints.Authorization.Logic;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationTicketService"/> abstraction.

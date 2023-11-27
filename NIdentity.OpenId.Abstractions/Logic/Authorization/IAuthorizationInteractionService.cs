@@ -30,10 +30,22 @@ public interface IAuthorizationInteractionService
     /// Gets the URL that the authorization server may redirect the user-agent in order to authenticate an end-user.
     /// </summary>
     /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the current authorization request.</param>
-    /// <param name="continueUrl">The URL that the user-agent may return to the authorization server after successfully authenticating the end-user and continue the authorization flow.</param>
+    /// <param name="continueUrl">The URL that the user-agent may return to the authorization server after successfully completing the operation and continuing the authorization flow.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the redirect URL.</returns>
     ValueTask<string> GetLoginUrlAsync(
+        AuthorizationContext authorizationContext,
+        string continueUrl,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the URL that the authorization server may redirect the user-agent in order to display the account creation UI.
+    /// </summary>
+    /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the current authorization request.</param>
+    /// <param name="continueUrl">The URL that the user-agent may return to the authorization server after successfully completing the operation and continuing the authorization flow.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the redirect URL.</returns>
+    ValueTask<string> GetCreateAccountUrlAsync(
         AuthorizationContext authorizationContext,
         string continueUrl,
         CancellationToken cancellationToken);

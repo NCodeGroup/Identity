@@ -882,6 +882,7 @@ public class DefaultAuthorizationEndpointHandler(
         var clientSettings = authorizationContext.ClientSettings;
         var errorFactory = OpenIdServer.ErrorFactory;
 
+        // prevent infinite loops from continuations and user interaction
         var isContinuation = authorizationContext.IsContinuation;
         var promptType = isContinuation ?
             PromptTypes.None :
@@ -889,8 +890,18 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (promptType.HasFlag(PromptTypes.CreateAccount))
         {
-            // TODO: redirect to create account page
-            throw new NotImplementedException();
+            Logger.LogInformation("Client requested account creation.");
+
+            var continueUrl = await CallbackService.GetContinueUrlAsync(
+                authorizationContext,
+                cancellationToken);
+
+            var redirectUrl = await InteractionService.GetCreateAccountUrlAsync(
+                authorizationContext,
+                continueUrl,
+                cancellationToken);
+
+            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
         var reAuthenticate =
@@ -905,12 +916,12 @@ public class DefaultAuthorizationEndpointHandler(
                 authorizationContext,
                 cancellationToken);
 
-            var loginUrl = await InteractionService.GetLoginUrlAsync(
+            var redirectUrl = await InteractionService.GetLoginUrlAsync(
                 authorizationContext,
                 continueUrl,
                 cancellationToken);
 
-            return new OpenIdRedirectResult { RedirectUrl = loginUrl };
+            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
         if (authenticationTicket is not { Principal.Identity.IsAuthenticated: true })
@@ -940,8 +951,16 @@ public class DefaultAuthorizationEndpointHandler(
         var subject = authenticationTicket.Principal.Identity as ClaimsIdentity ??
                       throw new InvalidOperationException("The AuthenticationTicket must contain a ClaimsIdentity.");
 
-        if (!await ValidateUserIsActiveAsync(authorizationContext, authenticationTicket, cancellationToken))
+        if (!await ValidateUserIsActive(authorizationContext, authenticationTicket, cancellationToken))
         {
+            if (promptType.HasFlag(PromptTypes.None))
+            {
+                var error = errorFactory.LoginRequired();
+                var redirectUri = authorizationRequest.RedirectUri;
+                var responseMode = authorizationRequest.ResponseMode;
+                return new AuthorizationResult(redirectUri, responseMode, error);
+            }
+
             Logger.LogInformation("User not active.");
 
             var continueUrl = await CallbackService.GetContinueUrlAsync(
@@ -966,6 +985,14 @@ public class DefaultAuthorizationEndpointHandler(
         // check MaxAge
         if (!ValidateMaxAge(subject, authorizationRequest.MaxAge, clientSettings.ClockSkew))
         {
+            if (promptType.HasFlag(PromptTypes.None))
+            {
+                var error = errorFactory.LoginRequired();
+                var redirectUri = authorizationRequest.RedirectUri;
+                var responseMode = authorizationRequest.ResponseMode;
+                return new AuthorizationResult(redirectUri, responseMode, error);
+            }
+
             Logger.LogInformation("MaxAge exceeded.");
 
             var continueUrl = await CallbackService.GetContinueUrlAsync(
@@ -990,7 +1017,7 @@ public class DefaultAuthorizationEndpointHandler(
         return null;
     }
 
-    private async ValueTask<bool> ValidateUserIsActiveAsync(
+    private async ValueTask<bool> ValidateUserIsActive(
         AuthorizationContext authorizationContext,
         AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken)

@@ -24,7 +24,19 @@ namespace NIdentity.OpenId.Logic.Authorization;
 internal class NullAuthorizationInteractionService : IAuthorizationInteractionService
 {
     /// <inheritdoc />
-    public ValueTask<string> GetLoginUrlAsync(AuthorizationContext authorizationContext, string continueUrl, CancellationToken cancellationToken)
+    public ValueTask<string> GetLoginUrlAsync(
+        AuthorizationContext authorizationContext,
+        string continueUrl,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public ValueTask<string> GetCreateAccountUrlAsync(
+        AuthorizationContext authorizationContext,
+        string continueUrl,
+        CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }

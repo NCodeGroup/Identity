@@ -78,6 +78,7 @@ internal class Startup
         services.AddSingleton<OpenIdServer, DefaultOpenIdServer>();
         services.AddSingleton<ISettingDescriptorCollectionProvider, SettingDescriptorCollectionProvider>();
 
+        services.AddSingleton<IContinueService, DefaultContinueService>();
         services.AddSingleton<IContinueProviderSelector, DefaultContinueProviderSelector>();
         services.AddSingleton<IOpenIdEndpointProvider, DefaultContinueEndpointHandler>();
 

@@ -62,10 +62,10 @@ public class DefaultAuthorizationEndpointHandler(
     IJsonWebTokenService jsonWebTokenService,
     IClientStore clientStore,
     IAuthenticationSchemeProvider authenticationSchemeProvider,
-    IAuthorizationCallbackService callbackService,
     IAuthorizationInteractionService interactionService,
     IAuthorizationTicketService ticketService,
     IOpenIdContextFactory contextFactory,
+    IContinueService continueService,
     OpenIdServer openIdServer
 ) :
     IOpenIdEndpointProvider,
@@ -87,10 +87,10 @@ public class DefaultAuthorizationEndpointHandler(
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IClientStore ClientStore { get; } = clientStore;
     private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; } = authenticationSchemeProvider;
-    private IAuthorizationCallbackService CallbackService { get; } = callbackService;
     private IAuthorizationInteractionService InteractionService { get; } = interactionService;
     private IAuthorizationTicketService TicketService { get; } = ticketService;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
+    private IContinueService ContinueService { get; } = continueService;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <inheritdoc />
@@ -878,6 +878,7 @@ public class DefaultAuthorizationEndpointHandler(
     {
         var authorizationContext = command.AuthorizationContext;
         var authenticationTicket = command.AuthenticationTicket;
+        var openIdContext = authorizationContext.OpenIdContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
         var clientSettings = authorizationContext.ClientSettings;
         var errorFactory = OpenIdServer.ErrorFactory;
@@ -892,7 +893,12 @@ public class DefaultAuthorizationEndpointHandler(
         {
             Logger.LogInformation("Client requested account creation.");
 
-            var continueUrl = await CallbackService.GetContinueUrlAsync(
+            var continueUrl = await ContinueService.GetContinueUrlAsync(
+                openIdContext,
+                OpenIdConstants.ContinueCodes.Authorization,
+                authorizationRequest.ClientId,
+                subjectId: null,
+                clientSettings.ContinueAuthorizationTimeout,
                 authorizationContext,
                 cancellationToken);
 
@@ -912,7 +918,12 @@ public class DefaultAuthorizationEndpointHandler(
         {
             Logger.LogInformation("Client requested re-authentication.");
 
-            var continueUrl = await CallbackService.GetContinueUrlAsync(
+            var continueUrl = await ContinueService.GetContinueUrlAsync(
+                openIdContext,
+                OpenIdConstants.ContinueCodes.Authorization,
+                authorizationRequest.ClientId,
+                subjectId: null,
+                clientSettings.ContinueAuthorizationTimeout,
                 authorizationContext,
                 cancellationToken);
 
@@ -936,7 +947,12 @@ public class DefaultAuthorizationEndpointHandler(
 
             Logger.LogInformation("User not authenticated.");
 
-            var continueUrl = await CallbackService.GetContinueUrlAsync(
+            var continueUrl = await ContinueService.GetContinueUrlAsync(
+                openIdContext,
+                OpenIdConstants.ContinueCodes.Authorization,
+                authorizationRequest.ClientId,
+                subjectId: null,
+                clientSettings.ContinueAuthorizationTimeout,
                 authorizationContext,
                 cancellationToken);
 
@@ -963,7 +979,12 @@ public class DefaultAuthorizationEndpointHandler(
 
             Logger.LogInformation("User not active.");
 
-            var continueUrl = await CallbackService.GetContinueUrlAsync(
+            var continueUrl = await ContinueService.GetContinueUrlAsync(
+                openIdContext,
+                OpenIdConstants.ContinueCodes.Authorization,
+                authorizationRequest.ClientId,
+                subjectId: null,
+                clientSettings.ContinueAuthorizationTimeout,
                 authorizationContext,
                 cancellationToken);
 
@@ -995,7 +1016,12 @@ public class DefaultAuthorizationEndpointHandler(
 
             Logger.LogInformation("MaxAge exceeded.");
 
-            var continueUrl = await CallbackService.GetContinueUrlAsync(
+            var continueUrl = await ContinueService.GetContinueUrlAsync(
+                openIdContext,
+                OpenIdConstants.ContinueCodes.Authorization,
+                authorizationRequest.ClientId,
+                subjectId: null,
+                clientSettings.ContinueAuthorizationTimeout,
                 authorizationContext,
                 cancellationToken);
 

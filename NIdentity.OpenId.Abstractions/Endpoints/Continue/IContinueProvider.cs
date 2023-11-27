@@ -22,10 +22,23 @@ using Microsoft.AspNetCore.Http;
 
 namespace NIdentity.OpenId.Endpoints.Continue;
 
+/// <summary>
+/// Provides the ability to continue an <c>OAuth</c> or <c>OpenID Connect</c> operation from callbacks.
+/// </summary>
 public interface IContinueProvider
 {
+    /// <summary>
+    /// Gets the <see cref="string"/> <c>Continue Code</c> for the current provider.
+    /// </summary>
     string ContinueCode { get; }
 
+    /// <summary>
+    /// Continues an <c>OAuth</c> or <c>OpenID Connect</c> operation given the current HTTP request and continue payload.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="continuePayload">The <see cref="JsonElement"/> which contains the payload for the continue operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="IResult"/> for the result of the operation.</returns>
     ValueTask<IResult> ContinueAsync(
         OpenIdContext openIdContext,
         JsonElement continuePayload,

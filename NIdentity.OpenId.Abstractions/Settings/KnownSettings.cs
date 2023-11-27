@@ -285,11 +285,11 @@ public static class KnownSettings
     };
 
     /// <summary>
-    /// Gets the <see cref="SettingDescriptor"/> for the 'continue_authorization_timeout' setting.
+    /// Gets the <see cref="SettingDescriptor"/> for the 'continue_authorization_lifetime' setting.
     /// </summary>
-    public static SettingDescriptor<TimeSpan> ContinueAuthorizationTimeout { get; } = new()
+    public static SettingDescriptor<TimeSpan> ContinueAuthorizationLifetime { get; } = new()
     {
-        Name = SettingNames.ContinueAuthorizationTimeout,
+        Name = SettingNames.ContinueAuthorizationLifetime,
         Default = TimeSpan.FromMinutes(15),
 
         Discoverable = IsNonStdDiscoverable,

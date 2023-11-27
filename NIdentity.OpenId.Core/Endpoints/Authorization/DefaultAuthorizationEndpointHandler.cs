@@ -898,7 +898,7 @@ public class DefaultAuthorizationEndpointHandler(
                 OpenIdConstants.ContinueCodes.Authorization,
                 authorizationRequest.ClientId,
                 subjectId: null,
-                clientSettings.ContinueAuthorizationTimeout,
+                clientSettings.ContinueAuthorizationLifetime,
                 authorizationContext,
                 cancellationToken);
 
@@ -923,7 +923,7 @@ public class DefaultAuthorizationEndpointHandler(
                 OpenIdConstants.ContinueCodes.Authorization,
                 authorizationRequest.ClientId,
                 subjectId: null,
-                clientSettings.ContinueAuthorizationTimeout,
+                clientSettings.ContinueAuthorizationLifetime,
                 authorizationContext,
                 cancellationToken);
 
@@ -952,7 +952,7 @@ public class DefaultAuthorizationEndpointHandler(
                 OpenIdConstants.ContinueCodes.Authorization,
                 authorizationRequest.ClientId,
                 subjectId: null,
-                clientSettings.ContinueAuthorizationTimeout,
+                clientSettings.ContinueAuthorizationLifetime,
                 authorizationContext,
                 cancellationToken);
 
@@ -984,7 +984,7 @@ public class DefaultAuthorizationEndpointHandler(
                 OpenIdConstants.ContinueCodes.Authorization,
                 authorizationRequest.ClientId,
                 subjectId: null,
-                clientSettings.ContinueAuthorizationTimeout,
+                clientSettings.ContinueAuthorizationLifetime,
                 authorizationContext,
                 cancellationToken);
 
@@ -1021,7 +1021,7 @@ public class DefaultAuthorizationEndpointHandler(
                 OpenIdConstants.ContinueCodes.Authorization,
                 authorizationRequest.ClientId,
                 subjectId: null,
-                clientSettings.ContinueAuthorizationTimeout,
+                clientSettings.ContinueAuthorizationLifetime,
                 authorizationContext,
                 cancellationToken);
 

@@ -115,9 +115,9 @@ public static class SettingNames
     public const string ClockSkew = "clock_skew";
 
     /// <summary>
-    /// Contains the name of <c>continue_authorization_timeout</c> setting.
+    /// Contains the name of <c>continue_authorization_lifetime</c> setting.
     /// </summary>
-    public const string ContinueAuthorizationTimeout = "continue_authorization_timeout";
+    public const string ContinueAuthorizationLifetime = "continue_authorization_lifetime";
 
     /// <summary>
     /// Contains the name of <c>display_values_supported</c> setting.

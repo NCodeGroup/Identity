@@ -19,6 +19,7 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
+using NIdentity.OpenId.Endpoints.Continue.Models;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Servers;
 

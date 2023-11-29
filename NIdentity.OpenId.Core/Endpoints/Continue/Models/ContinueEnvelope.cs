@@ -19,7 +19,7 @@
 
 using System.Text.Json;
 
-namespace NIdentity.OpenId.Endpoints.Continue;
+namespace NIdentity.OpenId.Endpoints.Continue.Models;
 
 internal class ContinueEnvelope
 {

@@ -37,12 +37,14 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     IOptions<OpenIdServerOptions> serverOptionsAccessor,
     OpenIdServer openIdServer,
     ITenantStore tenantStore,
+    IOpenIdTenantCache tenantCache,
     ISecretSerializer secretSerializer
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
     openIdServer,
     tenantStore,
+    tenantCache,
     secretSerializer
 )
 {

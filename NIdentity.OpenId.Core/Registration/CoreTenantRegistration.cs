@@ -35,6 +35,7 @@ public static class CoreTenantRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddCoreTenantServices(this IServiceCollection services)
     {
+        services.AddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
         services.AddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
         services.AddSingleton<IOpenIdTenantProviderSelector, DefaultOpenIdTenantProviderSelector>();
 

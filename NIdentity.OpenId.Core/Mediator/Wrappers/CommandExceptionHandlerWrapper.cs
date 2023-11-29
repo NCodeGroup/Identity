@@ -31,18 +31,13 @@ internal interface ICommandExceptionHandlerWrapper<in TCommand>
         CancellationToken cancellationToken);
 }
 
-internal class CommandExceptionHandlerWrapper<TCommand, TException> :
-    ICommandExceptionHandlerWrapper<TCommand>
+internal class CommandExceptionHandlerWrapper<TCommand, TException>(
+    IEnumerable<ICommandExceptionHandler<TCommand, TException>> handlers
+) : ICommandExceptionHandlerWrapper<TCommand>
     where TCommand : ICommand
     where TException : Exception
 {
-    private IEnumerable<ICommandExceptionHandler<TCommand, TException>> Handlers { get; }
-
-    public CommandExceptionHandlerWrapper(
-        IEnumerable<ICommandExceptionHandler<TCommand, TException>> handlers)
-    {
-        Handlers = handlers;
-    }
+    private IEnumerable<ICommandExceptionHandler<TCommand, TException>> Handlers { get; } = handlers;
 
     public async ValueTask HandleAsync(
         TCommand command,

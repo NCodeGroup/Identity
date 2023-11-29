@@ -25,46 +25,40 @@ namespace NIdentity.OpenId.Mediator;
 /// <summary>
 /// Provides a default implementation of the <see cref="IMediator"/> abstraction.
 /// </summary>
-public class DefaultMediator : IMediator
+public class DefaultMediator(
+    IServiceProvider serviceProvider
+) : IMediator
 {
-    private IServiceProvider ServiceProvider { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultMediator"/> class.
-    /// </summary>
-    public DefaultMediator(IServiceProvider serviceProvider)
-    {
-        ServiceProvider = serviceProvider;
-    }
+    private IServiceProvider ServiceProvider { get; } = serviceProvider;
 
     /// <inheritdoc />
-    public ValueTask SendAsync<TCommand>(
+    public async ValueTask SendAsync<TCommand>(
         TCommand command,
         CancellationToken cancellationToken
     ) where TCommand : struct, ICommand
     {
         var wrapper = ServiceProvider.GetRequiredService<ICommandHandlerWrapper<TCommand>>();
-        return wrapper.HandleAsync(command, cancellationToken);
+        await wrapper.HandleAsync(command, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask<TResponse> SendAsync<TCommand, TResponse>(
+    public async ValueTask<TResponse> SendAsync<TCommand, TResponse>(
         TCommand command,
         CancellationToken cancellationToken
     ) where TCommand : struct, ICommand<TResponse>
     {
         var wrapper = ServiceProvider.GetRequiredService<ICommandResponseHandlerWrapper<TCommand, TResponse>>();
-        return wrapper.HandleAsync(command, cancellationToken);
+        return await wrapper.HandleAsync(command, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask<TResponse> SendAsync<TResponse>(
+    public async ValueTask<TResponse> SendAsync<TResponse>(
         ICommand<TResponse> command,
         CancellationToken cancellationToken
     )
     {
         var wrapperType = typeof(ICommandResponseHandlerWrapper<,>).MakeGenericType(command.GetType(), typeof(TResponse));
         var wrapper = (ICommandResponseHandlerWrapper<TResponse>)ServiceProvider.GetRequiredService(wrapperType);
-        return wrapper.HandleAsync(command, cancellationToken);
+        return await wrapper.HandleAsync(command, cancellationToken);
     }
 }

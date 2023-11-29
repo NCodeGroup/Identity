@@ -22,11 +22,11 @@ namespace NIdentity.OpenId.Mediator.Middleware;
 /// <summary>
 /// Represents a function that can process the remaining middleware in the command-response pipeline.
 /// </summary>
-/// <typeparam name="TCommand">The type of the return value.</typeparam>
+/// <typeparam name="TResponse">The type of the return value.</typeparam>
 /// <remarks>
 /// Declared without arguments so that <see cref="ICommandResponseMiddleware{TCommand,TResponse}"/> can be contravariant in DI.
 /// </remarks>
-public delegate ValueTask<TCommand> CommandResponseMiddlewareDelegate<TCommand>();
+public delegate ValueTask<TResponse> CommandResponseMiddlewareDelegate<TResponse>();
 
 /// <summary>
 /// Defines a middleware component that can be added to a command-response pipeline.

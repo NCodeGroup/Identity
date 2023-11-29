@@ -22,22 +22,16 @@ using NIdentity.OpenId.Mediator.Wrappers;
 
 namespace NIdentity.OpenId.Mediator.Middleware;
 
-internal class StandardCommandResponseMiddleware<TCommand, TResponse> : ICommandResponseMiddleware<TCommand, TResponse>
+internal class StandardCommandResponseMiddleware<TCommand, TResponse>(
+    IServiceProvider serviceProvider,
+    IEnumerable<ICommandPreProcessor<TCommand>> preProcessors,
+    IEnumerable<ICommandResponsePostProcessor<TCommand, TResponse>> postProcessors
+) : ICommandResponseMiddleware<TCommand, TResponse>
     where TCommand : ICommand<TResponse>
 {
-    private IServiceProvider ServiceProvider { get; }
-    private IEnumerable<ICommandPreProcessor<TCommand>> PreProcessors { get; }
-    private IEnumerable<ICommandResponsePostProcessor<TCommand, TResponse>> PostProcessors { get; }
-
-    public StandardCommandResponseMiddleware(
-        IServiceProvider serviceProvider,
-        IEnumerable<ICommandPreProcessor<TCommand>> preProcessors,
-        IEnumerable<ICommandResponsePostProcessor<TCommand, TResponse>> postProcessors)
-    {
-        ServiceProvider = serviceProvider;
-        PreProcessors = preProcessors;
-        PostProcessors = postProcessors;
-    }
+    private IServiceProvider ServiceProvider { get; } = serviceProvider;
+    private IEnumerable<ICommandPreProcessor<TCommand>> PreProcessors { get; } = preProcessors;
+    private IEnumerable<ICommandResponsePostProcessor<TCommand, TResponse>> PostProcessors { get; } = postProcessors;
 
     public async ValueTask<TResponse> HandleAsync(
         TCommand command,

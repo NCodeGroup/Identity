@@ -20,7 +20,7 @@
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Settings;
 
-namespace NIdentity.OpenId.Endpoints.Authorization;
+namespace NIdentity.OpenId.Endpoints.Authorization.Models;
 
 /// <summary>
 /// Provides contextual information about redirects and responses that can be safely returned to the user-agent.

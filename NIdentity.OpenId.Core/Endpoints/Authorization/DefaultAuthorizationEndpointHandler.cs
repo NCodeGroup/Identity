@@ -35,6 +35,7 @@ using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Endpoints.Authorization.Models;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
 using NIdentity.OpenId.Endpoints.Continue;
 using NIdentity.OpenId.Exceptions;

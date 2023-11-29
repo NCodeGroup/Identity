@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Identity;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.Settings;
 
@@ -25,9 +26,16 @@ namespace NIdentity.OpenId.Tenants;
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdTenant"/> abstraction.
 /// </summary>
-public class DefaultOpenIdTenant : OpenIdTenant
+public class DefaultOpenIdTenant(
+    TenantDescriptor tenantDescriptor,
+    string issuer,
+    UriDescriptor baseAddress,
+    ISettingCollection tenantSettings,
+    ISecretKeyProvider secretKeyProvider,
+    IPropertyBag propertyBag
+) : OpenIdTenant
 {
-    private TenantDescriptor TenantDescriptor { get; }
+    private TenantDescriptor TenantDescriptor { get; } = tenantDescriptor;
 
     /// <inheritdoc />
     public override string TenantId => TenantDescriptor.TenantId;
@@ -36,31 +44,17 @@ public class DefaultOpenIdTenant : OpenIdTenant
     public override string DisplayName => TenantDescriptor.DisplayName;
 
     /// <inheritdoc />
-    public override string Issuer { get; }
+    public override string Issuer { get; } = issuer;
 
     /// <inheritdoc />
-    public override UriDescriptor BaseAddress { get; }
+    public override UriDescriptor BaseAddress { get; } = baseAddress;
 
     /// <inheritdoc />
-    public override ISettingCollection TenantSettings { get; }
+    public override ISettingCollection TenantSettings { get; } = tenantSettings;
 
     /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeyProvider { get; }
+    public override ISecretKeyProvider SecretKeyProvider { get; } = secretKeyProvider;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultOpenIdTenant"/> class.
-    /// </summary>
-    public DefaultOpenIdTenant(
-        TenantDescriptor tenantDescriptor,
-        string issuer,
-        UriDescriptor baseAddress,
-        ISettingCollection tenantSettings,
-        ISecretKeyProvider secretKeyProvider)
-    {
-        TenantDescriptor = tenantDescriptor;
-        Issuer = issuer;
-        BaseAddress = baseAddress;
-        TenantSettings = tenantSettings;
-        SecretKeyProvider = secretKeyProvider;
-    }
+    /// <inheritdoc />
+    public override IPropertyBag PropertyBag { get; } = propertyBag;
 }

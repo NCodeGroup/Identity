@@ -36,7 +36,7 @@ public interface IOpenIdTenantProvider
     /// <summary>
     /// Gets the <see cref="RoutePattern"/> for the tenant's relative base path.
     /// </summary>
-    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <returns>The <see cref="RoutePattern"/> instance for the tenant.</returns>
     RoutePattern GetTenantRoute(IPropertyBag propertyBag);
 
@@ -44,7 +44,7 @@ public interface IOpenIdTenantProvider
     /// Gets the <see cref="OpenIdTenant"/> instance from the specified HTTP request.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
-    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OpenIdTenant"/> instance.</returns>
     ValueTask<OpenIdTenant> GetTenantAsync(

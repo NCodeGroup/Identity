@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Identity;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.Settings;
 
@@ -57,4 +58,9 @@ public abstract class OpenIdTenant
     /// Gets the <see cref="ISecretKeyProvider"/> for the tenant.
     /// </summary>
     public abstract ISecretKeyProvider SecretKeyProvider { get; }
+
+    /// <summary>
+    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
+    /// </summary>
+    public abstract IPropertyBag PropertyBag { get; }
 }

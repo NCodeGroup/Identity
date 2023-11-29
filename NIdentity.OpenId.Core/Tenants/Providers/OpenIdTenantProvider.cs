@@ -43,6 +43,7 @@ public abstract class OpenIdTenantProvider(
     OpenIdServerOptions serverOptions,
     OpenIdServer openIdServer,
     ITenantStore tenantStore,
+    IOpenIdTenantCache tenantCache,
     ISecretSerializer secretSerializer
 ) : IOpenIdTenantProvider
 {
@@ -70,6 +71,11 @@ public abstract class OpenIdTenantProvider(
     /// Gets the <see cref="ITenantStore"/> used to provide tenant information.
     /// </summary>
     protected ITenantStore TenantStore { get; } = tenantStore;
+
+    /// <summary>
+    /// Gets the <see cref="IOpenIdTenantCache"/> used to cache tenant instances.
+    /// </summary>
+    protected IOpenIdTenantCache TenantCache { get; } = tenantCache;
 
     /// <summary>
     /// Gets the <see cref="ISecretSerializer"/> used to serialize/deserialize secrets.
@@ -128,22 +134,32 @@ public abstract class OpenIdTenantProvider(
             propertyBag,
             cancellationToken);
 
+        var tenant = await TenantCache.TryGetAsync(
+            tenantDescriptor,
+            propertyBag,
+            cancellationToken);
+
+        if (tenant is not null)
+            return tenant;
+
+        var tenantPropertyBag = propertyBag.Clone();
+
         var tenantSettings = await GetTenantSettingsAsync(
             httpContext,
-            propertyBag,
+            tenantPropertyBag,
             tenantDescriptor,
             cancellationToken);
 
         var tenantBaseAddress = await GetTenantBaseAddressAsync(
             httpContext,
-            propertyBag,
+            tenantPropertyBag,
             tenantDescriptor,
             tenantSettings,
             cancellationToken);
 
         var tenantIssuer = await GetTenantIssuerAsync(
             httpContext,
-            propertyBag,
+            tenantPropertyBag,
             tenantDescriptor,
             tenantSettings,
             tenantBaseAddress,
@@ -151,22 +167,30 @@ public abstract class OpenIdTenantProvider(
 
         var tenantSecrets = await GetTenantSecretsAsync(
             httpContext,
-            propertyBag,
+            tenantPropertyBag,
             tenantDescriptor,
             tenantSettings,
             tenantBaseAddress,
             tenantIssuer,
             cancellationToken);
 
-        return await CreateTenantAsync(
+        tenant = await CreateTenantAsync(
             httpContext,
-            propertyBag,
+            tenantPropertyBag,
             tenantDescriptor,
             tenantSettings,
             tenantBaseAddress,
             tenantIssuer,
             tenantSecrets,
             cancellationToken);
+
+        await TenantCache.SetAsync(
+            tenantDescriptor,
+            tenant,
+            tenantPropertyBag,
+            cancellationToken);
+
+        return tenant;
     }
 
     /// <summary>
@@ -364,7 +388,8 @@ public abstract class OpenIdTenantProvider(
             tenantIssuer,
             tenantBaseAddress,
             tenantSettings,
-            tenantSecrets);
+            tenantSecrets,
+            propertyBag);
 
         return ValueTask.FromResult(tenant);
     }

@@ -39,15 +39,18 @@ public class DefaultStaticSingleOpenIdTenantProvider(
     OpenIdServer openIdServer,
     ISecretKeyProvider secretKeyProvider,
     ITenantStore tenantStore,
+    IOpenIdTenantCache tenantCache,
     ISecretSerializer secretSerializer
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
     openIdServer,
     tenantStore,
+    tenantCache,
     secretSerializer
 )
 {
+    private OpenIdTenant? CachedTenant { get; set; }
     private ISecretKeyProvider SecretKeyProvider { get; } = secretKeyProvider;
 
     private StaticSingleOpenIdTenantOptions TenantOptions =>
@@ -58,6 +61,18 @@ public class DefaultStaticSingleOpenIdTenantProvider(
 
     /// <inheritdoc />
     protected override PathString TenantPath => TenantOptions.TenantPath;
+
+    /// <inheritdoc />
+    public override async ValueTask<OpenIdTenant> GetTenantAsync(
+        HttpContext httpContext,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken)
+    {
+        return CachedTenant ??= await base.GetTenantAsync(
+            httpContext,
+            propertyBag,
+            cancellationToken);
+    }
 
     /// <inheritdoc />
     protected override ValueTask<TenantDescriptor> GetTenantDescriptorAsync(

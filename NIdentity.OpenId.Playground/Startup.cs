@@ -24,6 +24,7 @@ using NCode.Identity.JsonWebTokens;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Endpoints.Continue;
 using NIdentity.OpenId.Endpoints.Continue.Logic;
+using NIdentity.OpenId.Endpoints.Token;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Options;
 using NIdentity.OpenId.Playground.Stores;
@@ -81,6 +82,8 @@ internal class Startup
         services.AddSingleton<IContinueService, DefaultContinueService>();
         services.AddSingleton<IContinueProviderSelector, DefaultContinueProviderSelector>();
         services.AddSingleton<IOpenIdEndpointProvider, DefaultContinueEndpointHandler>();
+
+        services.AddSingleton<IOpenIdEndpointProvider, DefaultTokenEndpointHandler>();
 
         services.AddAuthorizationEndpoint();
         services.AddDiscoveryEndpoint();

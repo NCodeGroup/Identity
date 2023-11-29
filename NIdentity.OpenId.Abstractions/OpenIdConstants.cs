@@ -40,11 +40,6 @@ public static partial class OpenIdConstants
     public static class EndpointNames
     {
         /// <summary>
-        /// Contains the name for the <c>discovery</c> endpoint.
-        /// </summary>
-        public const string Discovery = "discovery_endpoint";
-
-        /// <summary>
         /// Contains the name for the <c>authorization</c> endpoint.
         /// </summary>
         public const string Authorization = "authorization_endpoint";
@@ -53,6 +48,16 @@ public static partial class OpenIdConstants
         /// Contains the name for the <c>continue</c> (aka callback) endpoint.
         /// </summary>
         public const string Continue = "continue_endpoint";
+
+        /// <summary>
+        /// Contains the name for the <c>discovery</c> endpoint.
+        /// </summary>
+        public const string Discovery = "discovery_endpoint";
+
+        /// <summary>
+        /// Contains the name for the <c>token</c> endpoint.
+        /// </summary>
+        public const string Token = "token_endpoint";
     }
 
     /// <summary>
@@ -67,11 +72,6 @@ public static partial class OpenIdConstants
         private const string Prefix = "/oauth2";
 
         /// <summary>
-        /// Contains the relative path for the <c>discovery</c> endpoint.
-        /// </summary>
-        public const string Discovery = "/.well-known/openid-configuration";
-
-        /// <summary>
         /// Contains the relative path for the <c>authorization</c> endpoint.
         /// </summary>
         public const string Authorization = $"{Prefix}/authorize";
@@ -80,6 +80,16 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>continue</c> (aka callback) endpoint.
         /// </summary>
         public const string Continue = $"{Prefix}/continue";
+
+        /// <summary>
+        /// Contains the relative path for the <c>discovery</c> endpoint.
+        /// </summary>
+        public const string Discovery = "/.well-known/openid-configuration";
+
+        /// <summary>
+        /// Contains the relative path for the <c>token</c> endpoint.
+        /// </summary>
+        public const string Token = $"{Prefix}/token";
     }
 
     public static class TenantProviderCodes
@@ -96,7 +106,7 @@ public static partial class OpenIdConstants
 
     public static class PersistedGrantTypes
     {
-        public const string Continue = "continue";
         public const string AuthorizationCode = "authorization_code";
+        public const string Continue = "continue";
     }
 }

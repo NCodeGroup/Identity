@@ -48,24 +48,21 @@ internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper<TCommand
     }
 
     private static MiddlewareChainDelegate WrapRoot(
-        IEnumerable<ICommandHandler<TCommand>> handlers)
-    {
-        return async (command, cancellationToken) =>
+        IEnumerable<ICommandHandler<TCommand>> handlers) =>
+        async (command, cancellationToken) =>
         {
             foreach (var handler in handlers)
             {
                 await handler.HandleAsync(command, cancellationToken);
             }
         };
-    }
 
     private static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> WrapMiddleware(
         ICommandMiddleware<TCommand> middleware) =>
-        next => (command, token) =>
+        next => async (command, cancellationToken) =>
         {
-            // TODO: investigate if these captures are expensive on memory
-            ValueTask SimpleNext() => next(command, token);
-            return middleware.HandleAsync(command, SimpleNext, token);
+            ValueTask SimpleNext() => next(command, cancellationToken);
+            await middleware.HandleAsync(command, SimpleNext, cancellationToken);
         };
 
     public ValueTask HandleAsync(

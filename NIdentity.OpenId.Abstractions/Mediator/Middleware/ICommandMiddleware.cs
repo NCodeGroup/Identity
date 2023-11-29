@@ -23,7 +23,7 @@ namespace NIdentity.OpenId.Mediator.Middleware;
 /// Represents a function that can process the remaining middleware in the command-only pipeline.
 /// </summary>
 /// <remarks>
-/// Declared without arguments so that <see cref="ICommandMiddleware{TRequest}"/> can be contravariant in DI.
+/// Declared without arguments so that <see cref="ICommandMiddleware{TCommand}"/> can be contravariant in DI.
 /// </remarks>
 public delegate ValueTask CommandMiddlewareDelegate();
 

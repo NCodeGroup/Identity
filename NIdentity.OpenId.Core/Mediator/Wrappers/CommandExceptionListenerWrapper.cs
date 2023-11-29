@@ -30,18 +30,13 @@ internal interface ICommandExceptionListenerWrapper<in TCommand>
         CancellationToken cancellationToken);
 }
 
-internal class CommandExceptionListenerWrapper<TCommand, TException> :
-    ICommandExceptionListenerWrapper<TCommand>
+internal class CommandExceptionListenerWrapper<TCommand, TException>(
+    IEnumerable<ICommandExceptionListener<TCommand, TException>> listeners
+) : ICommandExceptionListenerWrapper<TCommand>
     where TCommand : notnull
     where TException : Exception
 {
-    private IEnumerable<ICommandExceptionListener<TCommand, TException>> Listeners { get; }
-
-    public CommandExceptionListenerWrapper(
-        IEnumerable<ICommandExceptionListener<TCommand, TException>> listeners)
-    {
-        Listeners = listeners;
-    }
+    private IEnumerable<ICommandExceptionListener<TCommand, TException>> Listeners { get; } = listeners;
 
     public async ValueTask ListenAsync(
         TCommand command,

@@ -23,6 +23,8 @@ using NIdentity.OpenId.Messages.Parsers;
 
 namespace NIdentity.OpenId.Messages.Parameters;
 
+// TODO: revisit the `Optional` argument. It really should be `AllowMissingValues` or something like that.
+
 /// <summary>
 /// Contains constants for various <see cref="KnownParameters"/> used by <c>OAuth</c> and <c>OpenID Connect</c> messages.
 /// </summary>
@@ -65,6 +67,16 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.ClientId, ParameterParsers.String)
         {
             Optional = false,
+            AllowMultipleValues = false
+        };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>client_secret</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string?> ClientSecret =
+        new(OpenIdConstants.Parameters.ClientSecret, ParameterParsers.String)
+        {
+            Optional = true,
             AllowMultipleValues = false
         };
 
@@ -115,6 +127,16 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.Display, ParameterParsers.DisplayType)
         {
             Optional = true,
+            AllowMultipleValues = false
+        };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>grant_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="DisplayType"/> result.
+    /// </summary>
+    public static readonly KnownParameter<GrantType?> GrantType =
+        new(OpenIdConstants.Parameters.GrantType, ParameterParsers.GrantType)
+        {
+            Optional = false,
             AllowMultipleValues = false
         };
 
@@ -216,6 +238,16 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.RedirectUri, ParameterParsers.Uri)
         {
             Optional = false,
+            AllowMultipleValues = false
+        };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>refresh_token</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string?> RefreshToken =
+        new(OpenIdConstants.Parameters.RefreshToken, ParameterParsers.String)
+        {
+            Optional = true,
             AllowMultipleValues = false
         };
 

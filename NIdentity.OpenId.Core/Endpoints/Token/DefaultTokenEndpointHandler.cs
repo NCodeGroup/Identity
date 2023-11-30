@@ -53,6 +53,8 @@ public class DefaultTokenEndpointHandler(
             mediator,
             cancellationToken);
 
+        var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
+
         throw new NotImplementedException();
     }
 }

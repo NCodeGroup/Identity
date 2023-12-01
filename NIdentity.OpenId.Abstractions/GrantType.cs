@@ -81,6 +81,8 @@ public enum GrantType
     [OpenIdLabel(OpenIdConstants.GrantTypes.RefreshToken)]
     RefreshToken,
 
+    // TODO: since this should be on another endpoint, does it make sense to have an enum for it?
+
     /// <summary>
     /// This grant is used by devices with no browser or limited input capability to exchange a previously obtained
     /// device code for an access token.

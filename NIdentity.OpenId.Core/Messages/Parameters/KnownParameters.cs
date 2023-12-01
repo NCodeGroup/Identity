@@ -221,6 +221,16 @@ public static class KnownParameters
         };
 
     /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>password</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string?> Password =
+        new(OpenIdConstants.Parameters.Password, ParameterParsers.String)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
+
+    /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>prompt</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="PromptTypes"/> result.
     /// </summary>
     public static readonly KnownParameter<PromptTypes?> PromptType =
@@ -297,6 +307,7 @@ public static class KnownParameters
     public static readonly KnownParameter<IReadOnlyCollection<string>?> Scopes =
         new(OpenIdConstants.Parameters.Scope, ParameterParsers.StringSet)
         {
+            // TODO: should this be optional?
             Optional = false,
             AllowMultipleValues = false
         };
@@ -316,6 +327,16 @@ public static class KnownParameters
     /// </summary>
     public static readonly KnownParameter<IReadOnlyCollection<string>?> UiLocales =
         new(OpenIdConstants.Parameters.UiLocales, ParameterParsers.StringSet)
+        {
+            Optional = true,
+            AllowMultipleValues = false
+        };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>username</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string?> Username =
+        new(OpenIdConstants.Parameters.Username, ParameterParsers.String)
         {
             Optional = true,
             AllowMultipleValues = false

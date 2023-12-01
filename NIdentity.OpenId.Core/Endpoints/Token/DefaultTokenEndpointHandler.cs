@@ -17,10 +17,13 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using NIdentity.OpenId.Endpoints.Token.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Servers;
 
@@ -55,6 +58,79 @@ public class DefaultTokenEndpointHandler(
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
 
+        var tokenRequest = TokenRequest.Load(OpenIdServer, formData);
+
+        if (IsBasicAuth(httpContext, out var username, out var password))
+        {
+            if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
+                !string.Equals(tokenRequest.ClientId, username, StringComparison.Ordinal))
+            {
+                return TypedResults.BadRequest();
+            }
+
+            tokenRequest.ClientId = username;
+            tokenRequest.ClientSecret = password;
+        }
+
         throw new NotImplementedException();
+    }
+
+    private static bool IsBasicAuth(
+        HttpContext httpContext,
+        [MaybeNullWhen(false)] out string username,
+        [MaybeNullWhen(false)] out string password)
+    {
+        var authorizationHeader = httpContext.Request.Headers.Authorization;
+        if (authorizationHeader.Count != 1)
+        {
+            username = null;
+            password = null;
+            return false;
+        }
+
+        var authorizationValue = authorizationHeader[0];
+        if (string.IsNullOrEmpty(authorizationValue))
+        {
+            username = null;
+            password = null;
+            return false;
+        }
+
+        const string prefix = "Basic ";
+        if (!authorizationValue.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            username = null;
+            password = null;
+            return false;
+        }
+
+        var token = authorizationValue[prefix.Length..].Trim();
+        if (string.IsNullOrEmpty(token))
+        {
+            username = null;
+            password = null;
+            return false;
+        }
+
+        // TODO: use memory efficient decoding
+        var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(token));
+        if (string.IsNullOrEmpty(credentials))
+        {
+            username = null;
+            password = null;
+            return false;
+        }
+
+        var parts = credentials.Split(':');
+        if (parts.Length != 2)
+        {
+            username = null;
+            password = null;
+            return false;
+        }
+
+        username = parts[0];
+        password = parts[1];
+        return true;
     }
 }

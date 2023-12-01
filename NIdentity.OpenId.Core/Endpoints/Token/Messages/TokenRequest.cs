@@ -48,6 +48,12 @@ public class TokenRequest : OpenIdMessage<TokenRequest>
         set => SetKnownParameter(KnownParameters.GrantType, value);
     }
 
+    public string? Password
+    {
+        get => GetKnownParameter(KnownParameters.Password);
+        set => SetKnownParameter(KnownParameters.Password, value);
+    }
+
     public Uri? RedirectUri
     {
         get => GetKnownParameter(KnownParameters.RedirectUri);
@@ -58,5 +64,17 @@ public class TokenRequest : OpenIdMessage<TokenRequest>
     {
         get => GetKnownParameter(KnownParameters.RefreshToken);
         set => SetKnownParameter(KnownParameters.RefreshToken, value);
+    }
+
+    public IReadOnlyCollection<string>? Scopes
+    {
+        get => GetKnownParameter(KnownParameters.Scopes);
+        set => SetKnownParameter(KnownParameters.Scopes, value);
+    }
+
+    public string? Username
+    {
+        get => GetKnownParameter(KnownParameters.Username);
+        set => SetKnownParameter(KnownParameters.Username, value);
     }
 }

@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Net.Http.Headers;
 using NIdentity.OpenId.Endpoints.Token.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Servers;
@@ -46,11 +47,23 @@ public class DefaultTokenEndpointHandler(
         .WithName(OpenIdConstants.EndpointNames.Token)
         .OpenIdDiscoverable();
 
+    private static bool IsApplicationFormContentType(HttpContext httpContext) =>
+        MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header) &&
+        header.MediaType.Equals("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase);
+
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         [FromServices] IMediator mediator,
         CancellationToken cancellationToken)
     {
+        var errorFactory = OpenIdServer.ErrorFactory;
+
+        var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
+        if (!isPostVerb || !IsApplicationFormContentType(httpContext))
+        {
+            return TypedResults.BadRequest();
+        }
+
         var openIdContext = await ContextFactory.CreateContextAsync(
             httpContext,
             mediator,
@@ -59,6 +72,8 @@ public class DefaultTokenEndpointHandler(
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
 
         var tokenRequest = TokenRequest.Load(OpenIdServer, formData);
+
+        // TODO: create a pattern to parse client_id/secret from: Basic, Form, Assertion, mutual TLS, or anything else.
 
         if (IsBasicAuth(httpContext, out var username, out var password))
         {
@@ -71,6 +86,12 @@ public class DefaultTokenEndpointHandler(
             tokenRequest.ClientId = username;
             tokenRequest.ClientSecret = password;
         }
+
+        // TODO: load client
+        // TODO: validate client
+        // TODO: validate request
+        // TODO: check DPoP
+        // TODO: issue token(s)
 
         throw new NotImplementedException();
     }

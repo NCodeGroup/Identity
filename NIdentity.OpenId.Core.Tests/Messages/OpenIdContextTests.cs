@@ -56,16 +56,15 @@ public class OpenIdContextTests : IDisposable
     public void Constructor_ThenValid()
     {
         var openIdContext = new DefaultOpenIdContext(
+            MockHttpContext.Object,
             MockOpenIdServer.Object,
             MockOpenIdTenant.Object,
-            MockHttpContext.Object,
             MockMediator.Object,
-            MockPropertyBag.Object
-        );
+            MockPropertyBag.Object);
 
-        Assert.Same(MockOpenIdTenant.Object, openIdContext.OpenIdTenant);
-        Assert.Same(MockOpenIdServer.Object, openIdContext.OpenIdServer);
-        Assert.Same(MockHttpContext.Object, openIdContext.HttpContext);
+        Assert.Same(MockOpenIdTenant.Object, openIdContext.Tenant);
+        Assert.Same(MockOpenIdServer.Object, openIdContext.Server);
+        Assert.Same(MockHttpContext.Object, openIdContext.Http);
         Assert.Same(MockMediator.Object, openIdContext.Mediator);
     }
 

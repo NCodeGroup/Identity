@@ -58,15 +58,15 @@ public class SecretKeyFactory : ISecretKeyFactory
             ExpiresWhen = metadata.ExpiresWhen ?? certificate.NotAfter
         };
 
-        var rsa = certificate.GetRSAPrivateKey();
+        using var rsa = certificate.GetRSAPrivateKey();
         if (rsa != null)
             return CreateRsa(newMetadata, rsa, certificate);
 
-        var ecDsa = certificate.GetECDsaPrivateKey();
+        using var ecDsa = certificate.GetECDsaPrivateKey();
         if (ecDsa != null)
             return CreateEcc(newMetadata, ecDsa, certificate);
 
-        var ecDiffieHellman = certificate.GetECDiffieHellmanPrivateKey();
+        using var ecDiffieHellman = certificate.GetECDiffieHellmanPrivateKey();
         if (ecDiffieHellman != null)
             return CreateEcc(newMetadata, ecDiffieHellman, certificate);
 

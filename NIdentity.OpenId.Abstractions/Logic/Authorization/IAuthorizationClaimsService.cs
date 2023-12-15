@@ -31,13 +31,13 @@ public interface IAuthorizationClaimsService
     /// <summary>
     /// Gets the claims that should be included in access tokens.
     /// </summary>
-    /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the authentication request.</param>
-    /// <param name="authenticationTicket">The <see cref="AuthorizationContext"/> for the authentication request.</param>
+    /// <param name="authorizationRequestContext">The <see cref="AuthorizationRequestContext"/> for the authentication request.</param>
+    /// <param name="authenticationTicket">The <see cref="AuthorizationRequestContext"/> for the authentication request.</param>
     /// <param name="timestamp">The <see cref="DateTimeOffset"/> when authorization occured.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IAsyncEnumerable{T}"/> collection that contains <see cref="Claim"/> instances.</returns>
     IAsyncEnumerable<Claim> GetAccessTokenClaimsAsync(
-        AuthorizationContext authorizationContext,
+        AuthorizationRequestContext authorizationRequestContext,
         AuthenticationTicket authenticationTicket,
         DateTimeOffset timestamp,
         CancellationToken cancellationToken);
@@ -45,13 +45,13 @@ public interface IAuthorizationClaimsService
     /// <summary>
     /// Gets the claims that should be included in ID tokens.
     /// </summary>
-    /// <param name="authorizationContext">The <see cref="AuthorizationContext"/> for the authentication request.</param>
-    /// <param name="authenticationTicket">The <see cref="AuthorizationContext"/> for the authentication request.</param>
+    /// <param name="authorizationRequestContext">The <see cref="AuthorizationRequestContext"/> for the authentication request.</param>
+    /// <param name="authenticationTicket">The <see cref="AuthorizationRequestContext"/> for the authentication request.</param>
     /// <param name="timestamp">The <see cref="DateTimeOffset"/> when authorization occured.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IAsyncEnumerable{T}"/> collection that contains <see cref="Claim"/> instances.</returns>
     IAsyncEnumerable<Claim> GetIdTokenClaimsAsync(
-        AuthorizationContext authorizationContext,
+        AuthorizationRequestContext authorizationRequestContext,
         AuthenticationTicket authenticationTicket,
         DateTimeOffset timestamp,
         CancellationToken cancellationToken);

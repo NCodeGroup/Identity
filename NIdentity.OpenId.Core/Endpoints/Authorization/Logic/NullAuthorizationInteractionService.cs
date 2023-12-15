@@ -26,7 +26,7 @@ internal class NullAuthorizationInteractionService : IAuthorizationInteractionSe
 {
     /// <inheritdoc />
     public ValueTask<string> GetLoginUrlAsync(
-        AuthorizationContext authorizationContext,
+        AuthorizationRequestContext authorizationRequestContext,
         string continueUrl,
         CancellationToken cancellationToken)
     {
@@ -35,7 +35,7 @@ internal class NullAuthorizationInteractionService : IAuthorizationInteractionSe
 
     /// <inheritdoc />
     public ValueTask<string> GetCreateAccountUrlAsync(
-        AuthorizationContext authorizationContext,
+        AuthorizationRequestContext authorizationRequestContext,
         string continueUrl,
         CancellationToken cancellationToken)
     {

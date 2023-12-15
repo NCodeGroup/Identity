@@ -56,15 +56,15 @@ public class Client : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the collection of settings associated with the client.
     /// </summary>
-    public IList<Setting> Settings { get; set; } = new List<Setting>();
+    public List<Setting> Settings { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to the client.
     /// </summary>
-    public IList<Secret> Secrets { get; set; } = new List<Secret>();
+    public List<Secret> Secrets { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the collection of redirect addresses registered for this client.
     /// </summary>
-    public IList<Uri> RedirectUris { get; set; } = new List<Uri>();
+    public List<Uri> RedirectUris { get; set; } = [];
 }

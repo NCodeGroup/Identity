@@ -57,14 +57,14 @@ public class DefaultDiscoveryEndpointHandler(
         [FromQuery] bool? showAll,
         CancellationToken cancellationToken)
     {
-        var openIdContext = await ContextFactory.CreateContextAsync(
+        var openIdContext = await ContextFactory.CreateAsync(
             httpContext,
             mediator,
             cancellationToken);
 
         var result = new DiscoveryResult
         {
-            Issuer = openIdContext.OpenIdTenant.Issuer
+            Issuer = openIdContext.Tenant.Issuer
         };
 
         await mediator.SendAsync(
@@ -82,9 +82,9 @@ public class DefaultDiscoveryEndpointHandler(
     {
         var (context, metadata, showAll) = command;
 
-        DiscoverSettings(metadata, context.OpenIdTenant.TenantSettings, showAll);
+        DiscoverSettings(metadata, context.Tenant.TenantSettings, showAll);
 
-        DiscoverEndpoints(metadata, context.HttpContext, showAll);
+        DiscoverEndpoints(metadata, context.Http, showAll);
 
         return ValueTask.CompletedTask;
     }

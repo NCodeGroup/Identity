@@ -27,7 +27,7 @@ namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 /// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="OpenIdContext"/> as an
 /// input argument and expects <see cref="AuthenticateResult"/> as a response.
 /// </summary>
-/// <param name="AuthorizationContext">The <see cref="AuthorizationContext"/> input argument for the command contract.</param>
+/// <param name="AuthorizationRequestContext">The <see cref="AuthorizationRequestContext"/> input argument for the command contract.</param>
 public record struct AuthenticateCommand(
-    AuthorizationContext AuthorizationContext
+    AuthorizationRequestContext AuthorizationRequestContext
 ) : ICommand<AuthenticateResult>;

@@ -17,30 +17,25 @@
 
 #endregion
 
-using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Settings;
+using NIdentity.OpenId.Clients;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="AuthorizationContext"/> abstraction.
+/// Provides a default implementation of the <see cref="AuthorizationRequestContext"/> abstraction.
 /// </summary>
-public class DefaultAuthorizationContext(
+public class DefaultAuthorizationRequestContext(
     OpenIdContext openIdContext,
-    Client client,
-    IKnownSettingCollection clientSettings,
+    OpenIdClient openIdClient,
     IAuthorizationRequest authorizationRequest,
     bool isContinuation
-) : AuthorizationContext
+) : AuthorizationRequestContext
 {
     /// <inheritdoc />
     public override OpenIdContext OpenIdContext { get; } = openIdContext;
 
     /// <inheritdoc />
-    public override Client Client { get; } = client;
-
-    /// <inheritdoc />
-    public override IKnownSettingCollection ClientSettings { get; } = clientSettings;
+    public override OpenIdClient OpenIdClient { get; } = openIdClient;
 
     /// <inheritdoc />
     public override IAuthorizationRequest AuthorizationRequest { get; } = authorizationRequest;

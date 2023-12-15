@@ -34,7 +34,7 @@ public class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
     private IChangeToken? ConsumerChangeToken { get; set; }
     private IDisposable? ChangeTokenRegistration { get; set; }
     private ISecretKeyDataSource DataSource { get; }
-    private ISecretKeyCollection? Collection { get; set; }
+    private ISecretKeyCollection? CollectionOrNull { get; set; }
 
     /// <summary>
     /// Factory method that creates a new instance of the <see cref="SecretKeyProvider"/> class
@@ -56,12 +56,12 @@ public class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
     }
 
     /// <inheritdoc />
-    public ISecretKeyCollection SecretKeys
+    public ISecretKeyCollection Collection
     {
         get
         {
             EnsureCollectionInitialized();
-            return Collection;
+            return CollectionOrNull;
         }
     }
 
@@ -70,7 +70,7 @@ public class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
     {
         if (IsDisposed || !disposing) return;
 
-        List<IDisposable> disposables = new() { DataSource };
+        List<IDisposable> disposables = [DataSource];
 
         lock (SyncObj)
         {
@@ -94,13 +94,13 @@ public class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
         return ConsumerChangeToken;
     }
 
-    [MemberNotNull(nameof(Collection))]
+    [MemberNotNull(nameof(CollectionOrNull))]
     private void EnsureCollectionInitialized()
     {
-        if (Collection is not null) return;
+        if (CollectionOrNull is not null) return;
         lock (SyncObj)
         {
-            if (Collection is not null) return;
+            if (CollectionOrNull is not null) return;
 
             ThrowIfDisposed();
             EnsureChangeTokenInitialized();
@@ -140,7 +140,7 @@ public class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
             }
 
             // refresh the cached collection
-            if (Collection is not null)
+            if (CollectionOrNull is not null)
             {
                 RefreshCollection();
             }
@@ -162,9 +162,9 @@ public class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
         ConsumerChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
     }
 
-    [MemberNotNull(nameof(Collection))]
+    [MemberNotNull(nameof(CollectionOrNull))]
     private void RefreshCollection()
     {
-        Collection = new SecretKeyCollection(DataSource.SecretKeys, owns: false);
+        CollectionOrNull = new SecretKeyCollection(DataSource.SecretKeys, owns: false);
     }
 }

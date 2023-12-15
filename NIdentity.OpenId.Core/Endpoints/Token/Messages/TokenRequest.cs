@@ -30,12 +30,6 @@ public class TokenRequest : OpenIdMessage<TokenRequest>
         set => SetKnownParameter(KnownParameters.ClientId, value);
     }
 
-    public string? ClientSecret
-    {
-        get => GetKnownParameter(KnownParameters.ClientSecret);
-        set => SetKnownParameter(KnownParameters.ClientSecret, value);
-    }
-
     public string? Code
     {
         get => GetKnownParameter(KnownParameters.Code);

@@ -17,15 +17,14 @@
 
 #endregion
 
-using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Settings;
+using NIdentity.OpenId.Clients;
 
 namespace NIdentity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
 /// Provides additional contextual information when handling an authorization request.
 /// </summary>
-public abstract class AuthorizationContext
+public abstract class AuthorizationRequestContext
 {
     /// <summary>
     /// Gets the <see cref="OpenIdContext"/> instance associated with the current request.
@@ -33,14 +32,9 @@ public abstract class AuthorizationContext
     public abstract OpenIdContext OpenIdContext { get; }
 
     /// <summary>
-    /// Gets the <see cref="Client"/> instance that was loaded using the 'client_id' parameter.
+    /// Gets the <see cref="OpenIdClient"/> instance associated with the current request.
     /// </summary>
-    public abstract Client Client { get; }
-
-    /// <summary>
-    /// Gets the <see cref="IKnownSettingCollection"/> that contains client settings merged with tenant settings.
-    /// </summary>
-    public abstract IKnownSettingCollection ClientSettings { get; }
+    public abstract OpenIdClient OpenIdClient { get; }
 
     /// <summary>
     /// Gets the <see cref="IAuthorizationRequest"/> that contains the <c>OAuth</c> or <c>OpenID Connect</c> authorization parameters.

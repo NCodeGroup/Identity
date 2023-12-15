@@ -36,12 +36,12 @@ public class DefaultAuthorizationClaimsService : IAuthorizationClaimsService
 {
     /// <inheritdoc />
     public async IAsyncEnumerable<Claim> GetAccessTokenClaimsAsync(
-        AuthorizationContext authorizationContext,
+        AuthorizationRequestContext authorizationRequestContext,
         AuthenticationTicket authenticationTicket,
         DateTimeOffset timestamp,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var openIdTenant = authorizationContext.OpenIdContext.OpenIdTenant;
+        var openIdTenant = authorizationRequestContext.OpenIdContext.Tenant;
 
         var subject = authenticationTicket.Principal.Identity as ClaimsIdentity ??
                       throw new InvalidOperationException("The AuthenticationTicket must contain a ClaimsIdentity.");
@@ -83,13 +83,13 @@ public class DefaultAuthorizationClaimsService : IAuthorizationClaimsService
 
     /// <inheritdoc />
     public async IAsyncEnumerable<Claim> GetIdTokenClaimsAsync(
-        AuthorizationContext authorizationContext,
+        AuthorizationRequestContext authorizationRequestContext,
         AuthenticationTicket authenticationTicket,
         DateTimeOffset timestamp,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var openIdTenant = authorizationContext.OpenIdContext.OpenIdTenant;
+        var authorizationRequest = authorizationRequestContext.AuthorizationRequest;
+        var openIdTenant = authorizationRequestContext.OpenIdContext.Tenant;
 
         // required: sub, auth_time, idp, amr
         // optional: acr

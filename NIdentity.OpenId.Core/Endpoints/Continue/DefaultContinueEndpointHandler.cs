@@ -61,13 +61,13 @@ public class DefaultContinueEndpointHandler(
             return TypedResults.BadRequest();
         }
 
-        var openIdContext = await ContextFactory.CreateContextAsync(
+        var openIdContext = await ContextFactory.CreateAsync(
             httpContext,
             mediator,
             cancellationToken);
 
         var continueEnvelope = await PersistedGrantService.TryGetAsync<ContinueEnvelope>(
-            openIdContext.OpenIdTenant.TenantId,
+            openIdContext.Tenant.TenantId,
             OpenIdConstants.PersistedGrantTypes.Continue,
             grantKey: state,
             singleUse: true,

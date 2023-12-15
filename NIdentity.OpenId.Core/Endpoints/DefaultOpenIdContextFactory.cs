@@ -36,7 +36,7 @@ public class DefaultOpenIdContextFactory(
     private IOpenIdTenantFactory OpenIdTenantFactory { get; } = openIdTenantFactory;
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdContext> CreateContextAsync(
+    public async ValueTask<OpenIdContext> CreateAsync(
         HttpContext httpContext,
         IMediator mediator,
         CancellationToken cancellationToken)
@@ -49,9 +49,9 @@ public class DefaultOpenIdContextFactory(
             cancellationToken);
 
         var openIdContext = new DefaultOpenIdContext(
+            httpContext,
             OpenIdServer,
             openIdTenant,
-            httpContext,
             mediator,
             propertyBag);
 

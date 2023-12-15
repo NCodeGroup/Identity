@@ -26,6 +26,16 @@ namespace NIdentity.OpenId.Results;
 public static class OpenIdErrorFactoryExtensions
 {
     /// <summary>
+    /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c> message contains invalid client credentials.
+    /// </summary>
+    /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>
+    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+    public static IOpenIdError InvalidClient(this IOpenIdErrorFactory factory)
+    {
+        return factory.Create(OpenIdConstants.ErrorCodes.InvalidClient).WithDescription("The specified client and/or credentials are invalid.");
+    }
+
+    /// <summary>
     /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c> message produces an error.
     /// </summary>
     /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>

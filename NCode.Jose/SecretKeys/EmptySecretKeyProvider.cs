@@ -33,7 +33,7 @@ public sealed class EmptySecretKeyProvider : ISecretKeyProvider
     public static EmptySecretKeyProvider Singleton { get; } = new();
 
     /// <inheritdoc />
-    public ISecretKeyCollection SecretKeys => EmptySecretKeyCollection.Singleton;
+    public ISecretKeyCollection Collection => EmptySecretKeyCollection.Singleton;
 
     private EmptySecretKeyProvider()
     {

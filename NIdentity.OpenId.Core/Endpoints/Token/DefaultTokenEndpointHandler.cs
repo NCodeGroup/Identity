@@ -17,15 +17,15 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
+using NIdentity.OpenId.Clients;
 using NIdentity.OpenId.Endpoints.Token.Messages;
 using NIdentity.OpenId.Mediator;
+using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Servers;
 
 namespace NIdentity.OpenId.Endpoints.Token;
@@ -35,11 +35,13 @@ namespace NIdentity.OpenId.Endpoints.Token;
 /// </summary>
 public class DefaultTokenEndpointHandler(
     OpenIdServer openIdServer,
-    IOpenIdContextFactory contextFactory
+    IOpenIdContextFactory contextFactory,
+    IClientAuthenticationService clientAuthenticationService
 ) : IOpenIdEndpointProvider
 {
     private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
+    private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -56,102 +58,62 @@ public class DefaultTokenEndpointHandler(
         [FromServices] IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var errorFactory = OpenIdServer.ErrorFactory;
-
         var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
         if (!isPostVerb || !IsApplicationFormContentType(httpContext))
         {
             return TypedResults.BadRequest();
         }
 
-        var openIdContext = await ContextFactory.CreateContextAsync(
+        var openIdContext = await ContextFactory.CreateAsync(
             httpContext,
             mediator,
             cancellationToken);
 
-        var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
+        var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
+            openIdContext,
+            cancellationToken);
 
-        var tokenRequest = TokenRequest.Load(OpenIdServer, formData);
-
-        // TODO: create a pattern to parse client_id/secret from: Basic, Form, Assertion, mutual TLS, or anything else.
-
-        if (IsBasicAuth(httpContext, out var username, out var password))
+        if (authResult.IsError)
         {
-            if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
-                !string.Equals(tokenRequest.ClientId, username, StringComparison.Ordinal))
-            {
-                return TypedResults.BadRequest();
-            }
-
-            tokenRequest.ClientId = username;
-            tokenRequest.ClientSecret = password;
+            // TODO: add support for 401 with WWW-Authenticate header
+            return authResult.Error.AsResult();
         }
 
-        // TODO: load client
+        OpenIdClient openIdClient;
+        if (authResult.IsConfidential)
+        {
+            openIdClient = authResult.ConfidentialClient;
+        }
+        else if (authResult.IsPublic)
+        {
+            openIdClient = authResult.PublicClient;
+        }
+        else
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
+        var tokenRequest = TokenRequest.Load(OpenIdServer, formData);
+
+        var tokenRequestContext = new TokenRequestContext(openIdContext, openIdClient, tokenRequest);
+
         // TODO: validate client
+
         // TODO: validate request
+        if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
+            string.Equals(
+                tokenRequest.ClientId,
+                openIdClient.ClientId,
+                StringComparison.Ordinal))
+        {
+            return TypedResults.BadRequest();
+        }
+
         // TODO: check DPoP
+
         // TODO: issue token(s)
 
         throw new NotImplementedException();
-    }
-
-    private static bool IsBasicAuth(
-        HttpContext httpContext,
-        [MaybeNullWhen(false)] out string username,
-        [MaybeNullWhen(false)] out string password)
-    {
-        var authorizationHeader = httpContext.Request.Headers.Authorization;
-        if (authorizationHeader.Count != 1)
-        {
-            username = null;
-            password = null;
-            return false;
-        }
-
-        var authorizationValue = authorizationHeader[0];
-        if (string.IsNullOrEmpty(authorizationValue))
-        {
-            username = null;
-            password = null;
-            return false;
-        }
-
-        const string prefix = "Basic ";
-        if (!authorizationValue.StartsWith(prefix, StringComparison.Ordinal))
-        {
-            username = null;
-            password = null;
-            return false;
-        }
-
-        var token = authorizationValue[prefix.Length..].Trim();
-        if (string.IsNullOrEmpty(token))
-        {
-            username = null;
-            password = null;
-            return false;
-        }
-
-        // TODO: use memory efficient decoding
-        var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(token));
-        if (string.IsNullOrEmpty(credentials))
-        {
-            username = null;
-            password = null;
-            return false;
-        }
-
-        var parts = credentials.Split(':');
-        if (parts.Length != 2)
-        {
-            username = null;
-            password = null;
-            return false;
-        }
-
-        username = parts[0];
-        password = parts[1];
-        return true;
     }
 }

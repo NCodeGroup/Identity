@@ -61,12 +61,15 @@ public class DefaultAuthorizationTicketService(
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken)
     {
-        var authorizationContext = command.AuthorizationContext;
-        var tenantId = authorizationContext.OpenIdContext.OpenIdTenant.TenantId;
-        var clientId = authorizationContext.Client.ClientId;
+        var authorizationContext = command.AuthorizationRequestContext;
+        var openIdClient = authorizationContext.OpenIdClient;
+
+        var tenantId = authorizationContext.OpenIdContext.Tenant.TenantId;
+        var clientId = openIdClient.ClientId;
         var subjectId = command.AuthenticationTicket.Principal.FindFirstValue(JoseClaimNames.Payload.Sub);
 
         var grantKey = CryptoService.GenerateUrlSafeKey();
+        var lifetime = openIdClient.Settings.AuthorizationCodeLifetime;
 
         await PersistedGrantService.AddAsync(
             tenantId,
@@ -74,7 +77,7 @@ public class DefaultAuthorizationTicketService(
             grantKey,
             clientId,
             subjectId,
-            authorizationContext.ClientSettings.AuthorizationCodeLifetime,
+            lifetime,
             payload: authorizationContext.AuthorizationRequest,
             cancellationToken);
 
@@ -87,14 +90,17 @@ public class DefaultAuthorizationTicketService(
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken)
     {
-        var authorizationContext = command.AuthorizationContext;
-        var openIdContext = authorizationContext.OpenIdContext;
-        var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var clientSettings = authorizationContext.ClientSettings;
+        var authorizationContext = command.AuthorizationRequestContext;
         var authenticationTicket = command.AuthenticationTicket;
 
-        var openIdTenant = openIdContext.OpenIdTenant;
-        var secretKeys = openIdTenant.SecretKeyProvider.SecretKeys;
+        var openIdContext = authorizationContext.OpenIdContext;
+        var openIdClient = authorizationContext.OpenIdClient;
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
+
+        var openIdTenant = openIdContext.Tenant;
+        var secretKeys = openIdTenant.SecretKeyProvider.Collection;
+
+        var clientSettings = openIdClient.Settings;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmProvider.Algorithms,
@@ -173,19 +179,22 @@ public class DefaultAuthorizationTicketService(
         IAuthorizationTicket ticket,
         CancellationToken cancellationToken)
     {
-        var authorizationContext = command.AuthorizationContext;
-        var openIdContext = authorizationContext.OpenIdContext;
-        var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var clientSettings = authorizationContext.ClientSettings;
+        var authorizationContext = command.AuthorizationRequestContext;
         var authenticationTicket = command.AuthenticationTicket;
+
+        var openIdContext = authorizationContext.OpenIdContext;
+        var openIdClient = authorizationContext.OpenIdClient;
+        var authorizationRequest = authorizationContext.AuthorizationRequest;
+
+        var clientSettings = openIdClient.Settings;
 
         // References:
         // https://openid.net/specs/openid-connect-core-1_0.html#IDToken
         // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
         // https://learn.microsoft.com/en-us/azure/active-directory/develop/id-token-claims-reference
 
-        var openIdTenant = openIdContext.OpenIdTenant;
-        var secretKeys = openIdTenant.SecretKeyProvider.SecretKeys;
+        var openIdTenant = openIdContext.Tenant;
+        var secretKeys = openIdTenant.SecretKeyProvider.Collection;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmProvider.Algorithms,

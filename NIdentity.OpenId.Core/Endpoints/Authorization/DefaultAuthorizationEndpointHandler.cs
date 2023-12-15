@@ -30,16 +30,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.JsonWebTokens;
 using NCode.Jose;
-using NCode.Jose.Extensions;
-using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.Clients;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Models;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
 using NIdentity.OpenId.Endpoints.Continue;
 using NIdentity.OpenId.Exceptions;
-using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Logic.Authorization;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Messages;
@@ -47,7 +44,6 @@ using NIdentity.OpenId.Messages.Parameters;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Servers;
 using NIdentity.OpenId.Settings;
-using NIdentity.OpenId.Stores;
 using ISystemClock = NIdentity.OpenId.Logic.ISystemClock;
 
 namespace NIdentity.OpenId.Endpoints.Authorization;
@@ -59,9 +55,8 @@ public class DefaultAuthorizationEndpointHandler(
     ILogger<DefaultAuthorizationEndpointHandler> logger,
     ISystemClock systemClock,
     IHttpClientFactory httpClientFactory,
-    ISecretSerializer secretSerializer,
     IJsonWebTokenService jsonWebTokenService,
-    IClientStore clientStore,
+    IClientAuthenticationService clientAuthenticationService,
     IAuthenticationSchemeProvider authenticationSchemeProvider,
     IAuthorizationInteractionService interactionService,
     IAuthorizationTicketService ticketService,
@@ -72,7 +67,7 @@ public class DefaultAuthorizationEndpointHandler(
     IOpenIdEndpointProvider,
     IContinueProvider,
     ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>,
-    ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationContext>,
+    ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationRequestContext>,
     ICommandHandler<ValidateAuthorizationRequestCommand>,
     ICommandResponseHandler<AuthenticateCommand, AuthenticateResult>,
     ICommandResponseHandler<AuthorizeCommand, IResult?>,
@@ -84,15 +79,15 @@ public class DefaultAuthorizationEndpointHandler(
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private ISystemClock SystemClock { get; } = systemClock;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
-    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
-    private IClientStore ClientStore { get; } = clientStore;
+    private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
     private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; } = authenticationSchemeProvider;
     private IAuthorizationInteractionService InteractionService { get; } = interactionService;
     private IAuthorizationTicketService TicketService { get; } = ticketService;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IContinueService ContinueService { get; } = continueService;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
+    private IOpenIdErrorFactory ErrorFactory => OpenIdServer.ErrorFactory;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -108,15 +103,34 @@ public class DefaultAuthorizationEndpointHandler(
         [FromServices] IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var openIdContext = await ContextFactory.CreateContextAsync(
+        var openIdContext = await ContextFactory.CreateAsync(
             httpContext,
             mediator,
             cancellationToken);
 
-        var errorFactory = OpenIdServer.ErrorFactory;
+        var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
+            openIdContext,
+            cancellationToken);
 
         // for errors, before we redirect, we must validate the client_id and redirect_uri
         // otherwise we must return a failure HTTP status code
+
+        if (authResult.IsError)
+        {
+            return authResult.Error.AsResult();
+        }
+
+        if (authResult.IsUndefined)
+        {
+            return ErrorFactory
+                .InvalidClient()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsResult();
+        }
+
+        var openIdClient = authResult.PublicClient ??
+                           authResult.ConfidentialClient ??
+                           throw new InvalidOperationException();
 
         // the following tries its best to not throw for OpenID protocol errors
         var authorizationSource = await mediator.SendAsync<LoadAuthorizationSourceCommand, IAuthorizationSource>(
@@ -124,26 +138,22 @@ public class DefaultAuthorizationEndpointHandler(
             cancellationToken);
 
         // this will throw if client_id or redirect_uri are invalid
-        var clientRedirectContext = await GetClientRedirectContextAsync(
-            openIdContext,
-            authorizationSource,
-            cancellationToken);
+        var clientRedirectContext = GetClientRedirectContext(
+            openIdClient,
+            authorizationSource);
 
         // everything after this point is safe to redirect to the client
 
-        var client = clientRedirectContext.Client;
-        var clientSettings = clientRedirectContext.ClientSettings;
         var redirectUri = clientRedirectContext.RedirectUri;
         var responseMode = clientRedirectContext.ResponseMode;
 
         try
         {
-            var authorizationContext = await mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationContext>(
+            var authorizationContext = await mediator.SendAsync<LoadAuthorizationRequestCommand, AuthorizationRequestContext>(
                 new LoadAuthorizationRequestCommand(
                     openIdContext,
-                    authorizationSource,
-                    client,
-                    clientSettings),
+                    openIdClient,
+                    authorizationSource),
                 cancellationToken);
 
             return await ProcessAuthorizationContextAsync(
@@ -156,7 +166,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var openIdError = exception is OpenIdException openIdException ?
                 openIdException.Error :
-                errorFactory
+                ErrorFactory
                     .Create(OpenIdConstants.ErrorCodes.ServerError)
                     .WithState(clientRedirectContext.State)
                     .WithException(exception);
@@ -165,14 +175,8 @@ public class DefaultAuthorizationEndpointHandler(
         }
     }
 
-    private async ValueTask<ClientRedirectContext> GetClientRedirectContextAsync(
-        OpenIdContext openIdContext,
-        IOpenIdMessage authorizationSource,
-        CancellationToken cancellationToken)
+    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IOpenIdMessage authorizationSource)
     {
-        var openIdTenant = openIdContext.OpenIdTenant;
-        var errorFactory = OpenIdServer.ErrorFactory;
-
         var hasState = authorizationSource.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
         var state = hasState && !StringValues.IsNullOrEmpty(stateStringValues) ? stateStringValues.ToString() : null;
 
@@ -184,7 +188,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
         {
-            throw errorFactory
+            throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
@@ -193,53 +197,21 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (!Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
         {
-            throw errorFactory
+            throw ErrorFactory
                 .InvalidRequest("The specified 'redirect_uri' is not valid absolute URI.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
                 .AsException();
         }
 
-        if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId))
-        {
-            throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.ClientId)
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
+        var clientSettings = openIdClient.Settings;
+        var redirectUris = openIdClient.RedirectUris;
 
-        if (StringValues.IsNullOrEmpty(clientId))
-        {
-            throw errorFactory
-                .InvalidRequest("The specified 'client_id' cannot be null or empty.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
-
-        var client = await ClientStore.TryGetByClientIdAsync(
-            openIdTenant.TenantId,
-            clientId.ToString(),
-            cancellationToken);
-
-        if (client == null)
-        {
-            throw errorFactory
-                .InvalidRequest("The specified 'client_id' is invalid.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
-
-        var mergedSettings = openIdTenant.TenantSettings.Merge(client.Settings);
-        var clientSettings = new KnownSettingCollection(mergedSettings);
-
-        var isSafe = (clientSettings.AllowLoopbackRedirect && redirectUri.IsLoopback) || client.RedirectUris.Contains(redirectUri);
+        var isSafe = (clientSettings.AllowLoopbackRedirect && redirectUri.IsLoopback) || redirectUris.Contains(redirectUri);
         if (!isSafe)
         {
-            throw errorFactory
-                .InvalidRequest("The specified 'redirect_uri' is not valid for the associated 'client_id'.")
+            throw ErrorFactory
+                .UnauthorizedClient("The specified 'redirect_uri' is not valid for the associated 'client_id'.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
                 .AsException();
@@ -247,44 +219,41 @@ public class DefaultAuthorizationEndpointHandler(
 
         return new ClientRedirectContext
         {
-            State = state,
-            Client = client,
-            ClientSettings = clientSettings,
             RedirectUri = redirectUri,
-            ResponseMode = responseMode
+            ResponseMode = responseMode,
+            State = state
         };
     }
 
     private async ValueTask<IResult> ProcessAuthorizationContextAsync(
         OpenIdContext openIdContext,
-        AuthorizationContext authorizationContext,
+        AuthorizationRequestContext authorizationRequestContext,
         ClientRedirectContext clientRedirectContext,
         CancellationToken cancellationToken)
     {
         var mediator = openIdContext.Mediator;
-        var errorFactory = OpenIdServer.ErrorFactory;
 
         var responseMode = clientRedirectContext.ResponseMode;
         var redirectUri = clientRedirectContext.RedirectUri;
 
         // the request object may have changed the response mode
-        var requestObject = authorizationContext.AuthorizationRequest.OriginalRequestObject;
+        var requestObject = authorizationRequestContext.AuthorizationRequest.OriginalRequestObject;
         if (requestObject?.ResponseMode is not null && requestObject.ResponseMode.Value != responseMode)
         {
             responseMode = requestObject.ResponseMode.Value;
         }
 
         await mediator.SendAsync(
-            new ValidateAuthorizationRequestCommand(authorizationContext),
+            new ValidateAuthorizationRequestCommand(authorizationRequestContext),
             cancellationToken);
 
         var authenticateResult = await mediator.SendAsync<AuthenticateCommand, AuthenticateResult>(
-            new AuthenticateCommand(authorizationContext),
+            new AuthenticateCommand(authorizationRequestContext),
             cancellationToken);
 
         if (!authenticateResult.Succeeded)
         {
-            var openIdError = errorFactory
+            var openIdError = ErrorFactory
                 .AccessDenied("An error occured while attempting to authenticate the end-user.")
                 .WithState(clientRedirectContext.State)
                 .WithException(authenticateResult.Failure);
@@ -296,7 +265,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         var authorizeResult = await mediator.SendAsync<AuthorizeCommand, IResult?>(
             new AuthorizeCommand(
-                authorizationContext,
+                authorizationRequestContext,
                 authenticationTicket),
             cancellationToken);
 
@@ -305,7 +274,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         var authorizationTicket = await mediator.SendAsync<CreateAuthorizationTicketCommand, IAuthorizationTicket>(
             new CreateAuthorizationTicketCommand(
-                authorizationContext,
+                authorizationRequestContext,
                 authenticationTicket),
             cancellationToken);
 
@@ -325,21 +294,37 @@ public class DefaultAuthorizationEndpointHandler(
     {
         // TODO: extract additional parameters from the HTTP request
 
+        var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
+            openIdContext,
+            cancellationToken);
+
+        if (authResult.IsError)
+        {
+            return authResult.Error.AsResult();
+        }
+
+        if (authResult.IsUndefined)
+        {
+            return ErrorFactory
+                .InvalidClient()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsResult();
+        }
+
+        var openIdClient = authResult.PublicClient ??
+                           authResult.ConfidentialClient ??
+                           throw new InvalidOperationException();
+
         var authorizationRequest = continuePayload.Deserialize<IAuthorizationRequest>(OpenIdServer.JsonSerializerOptions);
         if (authorizationRequest == null)
             throw new InvalidOperationException("JSON deserialization returned null.");
 
-        var clientRedirectContext = await GetClientRedirectContextAsync(
-            openIdContext,
-            authorizationRequest,
-            cancellationToken);
+        var clientRedirectContext = GetClientRedirectContext(openIdClient, authorizationRequest);
 
         const bool isContinuation = true;
-
-        var authorizationContext = new DefaultAuthorizationContext(
+        var authorizationContext = new DefaultAuthorizationRequestContext(
             openIdContext,
-            clientRedirectContext.Client,
-            clientRedirectContext.ClientSettings,
+            openIdClient,
             authorizationRequest,
             isContinuation);
 
@@ -362,9 +347,7 @@ public class DefaultAuthorizationEndpointHandler(
         CancellationToken cancellationToken)
     {
         var openIdContext = command.OpenIdContext;
-        var errorFactory = OpenIdServer.ErrorFactory;
-
-        var httpContext = openIdContext.HttpContext;
+        var httpContext = openIdContext.Http;
         var httpRequest = httpContext.Request;
 
         AuthorizationSourceType sourceType;
@@ -380,7 +363,7 @@ public class DefaultAuthorizationEndpointHandler(
             const string expectedContentType = "application/x-www-form-urlencoded";
             if (!httpRequest.ContentType?.StartsWith(expectedContentType, StringComparison.OrdinalIgnoreCase) ?? false)
             {
-                throw errorFactory
+                throw ErrorFactory
                     .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
                     .WithDescription($"The content type of the request must be '{expectedContentType}'. Received '{httpRequest.ContentType}'.")
                     .WithStatusCode(StatusCodes.Status415UnsupportedMediaType)
@@ -392,7 +375,7 @@ public class DefaultAuthorizationEndpointHandler(
         }
         else
         {
-            throw errorFactory
+            throw ErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
                 .WithStatusCode(StatusCodes.Status405MethodNotAllowed)
                 .AsException();
@@ -416,14 +399,13 @@ public class DefaultAuthorizationEndpointHandler(
     #region LoadAuthorizationRequestCommand
 
     /// <inheritdoc />
-    public async ValueTask<AuthorizationContext> HandleAsync(
+    public async ValueTask<AuthorizationRequestContext> HandleAsync(
         LoadAuthorizationRequestCommand command,
         CancellationToken cancellationToken)
     {
         var authorizationSource = command.AuthorizationSource;
         var openIdContext = command.OpenIdContext;
-        var client = command.Client;
-        var clientSettings = command.ClientSettings;
+        var openIdClient = command.OpenIdClient;
 
         // the following will parse string-values into strongly-typed parameters and may throw
         var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
@@ -433,41 +415,37 @@ public class DefaultAuthorizationEndpointHandler(
         // https://datatracker.ietf.org/doc/html/rfc9126
 
         var requestObject = await LoadRequestObjectAsync(
+            openIdClient,
             requestMessage,
-            client,
-            clientSettings, cancellationToken);
+            cancellationToken);
 
         var authorizationRequest = new AuthorizationRequest(
             requestMessage,
             requestObject);
 
         const bool isContinuation = false;
-
-        return new DefaultAuthorizationContext(
+        return new DefaultAuthorizationRequestContext(
             openIdContext,
-            client,
-            clientSettings,
+            openIdClient,
             authorizationRequest,
             isContinuation);
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
+        OpenIdClient openIdClient,
         IAuthorizationRequestMessage requestMessage,
-        Client client,
-        IKnownSettingCollection clientSettings,
         CancellationToken cancellationToken)
     {
         var requestJwt = requestMessage.RequestJwt;
         var requestUri = requestMessage.RequestUri;
-        var errorFactory = OpenIdServer.ErrorFactory;
 
         RequestObjectSource requestObjectSource;
         string errorCode;
 
         if (requestUri is not null)
         {
-            if (!clientSettings.RequestUriParameterSupported)
-                throw errorFactory
+            if (!openIdClient.Settings.RequestUriParameterSupported)
+                throw ErrorFactory
                     .RequestUriNotSupported()
                     .AsException();
 
@@ -475,21 +453,19 @@ public class DefaultAuthorizationEndpointHandler(
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri;
 
             if (!string.IsNullOrEmpty(requestJwt))
-                throw errorFactory
+                throw ErrorFactory
                     .InvalidRequest("Both the 'request' and 'request_uri' parameters cannot be present at the same time.", errorCode)
                     .AsException();
 
             requestJwt = await FetchRequestUriAsync(
-                errorFactory,
-                client,
-                clientSettings,
+                openIdClient,
                 requestUri,
                 cancellationToken);
         }
         else if (!string.IsNullOrEmpty(requestJwt))
         {
-            if (!clientSettings.RequestParameterSupported)
-                throw errorFactory
+            if (!openIdClient.Settings.RequestParameterSupported)
+                throw ErrorFactory
                     .RequestParameterNotSupported()
                     .AsException();
 
@@ -502,18 +478,15 @@ public class DefaultAuthorizationEndpointHandler(
         }
 
         JsonElement jwtPayload;
-        IReadOnlyCollection<SecretKey> secretKeys = Array.Empty<SecretKey>();
         try
         {
-            secretKeys = SecretSerializer.DeserializeSecrets(client.Secrets);
-
             var parameters = new ValidateJwtParameters()
-                .UseValidationKeys(secretKeys)
-                .ValidateIssuer(client.ClientId)
+                .UseValidationKeys(openIdClient.SecretKeys.Collection)
+                .ValidateIssuer(openIdClient.ClientId)
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();
 
-            var expectedAudience = clientSettings.RequestObjectExpectedAudience;
+            var expectedAudience = openIdClient.Settings.RequestObjectExpectedAudience;
             if (!string.IsNullOrEmpty(expectedAudience))
                 parameters.ValidateAudience(expectedAudience);
 
@@ -532,14 +505,10 @@ public class DefaultAuthorizationEndpointHandler(
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to decode JWT");
-            throw errorFactory
+            throw ErrorFactory
                 .FailedToDecodeJwt(errorCode)
                 .WithException(exception)
                 .AsException();
-        }
-        finally
-        {
-            secretKeys.DisposeAll(ignoreExceptions: true);
         }
 
         try
@@ -556,7 +525,7 @@ public class DefaultAuthorizationEndpointHandler(
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to deserialize JSON");
-            throw errorFactory
+            throw ErrorFactory
                 .FailedToDeserializeJson(errorCode)
                 .WithException(exception)
                 .AsException();
@@ -564,15 +533,15 @@ public class DefaultAuthorizationEndpointHandler(
     }
 
     private async ValueTask<string> FetchRequestUriAsync(
-        IOpenIdErrorFactory errorFactory,
-        Client client,
-        IKnownSettingCollection clientSettings,
+        OpenIdClient openIdClient,
         Uri requestUri,
         CancellationToken cancellationToken)
     {
+        var clientSettings = openIdClient.Settings;
+
         using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
-        request.Options.Set(new HttpRequestOptionsKey<Client>("Client"), client);
+        request.Options.Set(new HttpRequestOptionsKey<OpenIdClient>("OpenIdClient"), openIdClient);
 
         using var httpClient = HttpClientFactory.CreateClient();
 
@@ -580,14 +549,14 @@ public class DefaultAuthorizationEndpointHandler(
         {
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                throw errorFactory
+                throw ErrorFactory
                     .InvalidRequestUri($"The http status code of the response must be 200 OK. Received {(int)response.StatusCode} {response.StatusCode}.")
                     .AsException();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
             var expectedContentType = clientSettings.RequestUriExpectedContentType;
             if (clientSettings.RequestUriRequireStrictContentType && !string.Equals(contentType, expectedContentType, StringComparison.Ordinal))
-                throw errorFactory
+                throw ErrorFactory
                     .InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.")
                     .AsException();
 
@@ -596,7 +565,7 @@ public class DefaultAuthorizationEndpointHandler(
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to fetch the request URI");
-            throw errorFactory
+            throw ErrorFactory
                 .InvalidRequestUri("Failed to fetch the request URI")
                 .WithException(exception)
                 .AsException();
@@ -612,20 +581,19 @@ public class DefaultAuthorizationEndpointHandler(
         ValidateAuthorizationRequestCommand command,
         CancellationToken cancellationToken)
     {
-        var authorizationContext = command.AuthorizationContext;
+        var authorizationContext = command.AuthorizationRequestContext;
+        var openIdClient = authorizationContext.OpenIdClient;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
 
         var requestMessage = authorizationRequest.OriginalRequestMessage;
         var requestObject = authorizationRequest.OriginalRequestObject;
-        var client = authorizationContext.Client;
-        var clientSettings = authorizationContext.ClientSettings;
 
         ValidateRequestMessage(requestMessage);
 
         if (requestObject != null)
             ValidateRequestObject(requestMessage, requestObject);
 
-        ValidateRequest(client, clientSettings, authorizationRequest);
+        ValidateRequest(openIdClient, authorizationRequest);
 
         return ValueTask.CompletedTask;
     }
@@ -634,18 +602,16 @@ public class DefaultAuthorizationEndpointHandler(
     private void ValidateRequestMessage(
         IAuthorizationRequestMessage requestMessage)
     {
-        var errorFactory = OpenIdServer.ErrorFactory;
-
         var responseType = requestMessage.ResponseType ?? ResponseTypes.Unspecified;
         if (responseType == ResponseTypes.Unspecified)
-            throw errorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
 
         if (responseType.HasFlag(ResponseTypes.None) && responseType != ResponseTypes.None)
-            throw errorFactory.InvalidRequest("The 'none' response_type must not be combined with other values.").AsException();
+            throw ErrorFactory.InvalidRequest("The 'none' response_type must not be combined with other values.").AsException();
 
         var redirectUri = requestMessage.RedirectUri;
         if (redirectUri is null)
-            throw errorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri).AsException();
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri).AsException();
     }
 
     [AssertionMethod]
@@ -653,8 +619,6 @@ public class DefaultAuthorizationEndpointHandler(
         IAuthorizationRequestMessage requestMessage,
         IAuthorizationRequestObject requestObject)
     {
-        var errorFactory = OpenIdServer.ErrorFactory;
-
         var errorCode = requestObject.RequestObjectSource == RequestObjectSource.Remote ?
             OpenIdConstants.ErrorCodes.InvalidRequestUri :
             OpenIdConstants.ErrorCodes.InvalidRequestJwt;
@@ -664,10 +628,10 @@ public class DefaultAuthorizationEndpointHandler(
          */
 
         if (requestObject.ContainsKey(OpenIdConstants.Parameters.Request))
-            throw errorFactory.InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode).AsException();
+            throw ErrorFactory.InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode).AsException();
 
         if (requestObject.ContainsKey(OpenIdConstants.Parameters.RequestUri))
-            throw errorFactory.InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode).AsException();
+            throw ErrorFactory.InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode).AsException();
 
         /*
          * So that the request is a valid OAuth 2.0 Authorization Request, values for the response_type and client_id parameters MUST
@@ -676,26 +640,25 @@ public class DefaultAuthorizationEndpointHandler(
          */
 
         if (requestObject.ResponseType != null && requestObject.ResponseType != requestMessage.ResponseType)
-            throw errorFactory.InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode).AsException();
+            throw ErrorFactory.InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode).AsException();
 
         /*
          * The Client ID values in the "client_id" request parameter and in the Request Object "client_id" claim MUST be identical.
          */
 
         if (string.IsNullOrEmpty(requestObject.ClientId))
-            throw errorFactory.MissingParameter("The 'client_id' parameter in the JWT request object is missing.", errorCode).AsException();
+            throw ErrorFactory.MissingParameter("The 'client_id' parameter in the JWT request object is missing.", errorCode).AsException();
 
         if (!string.Equals(requestObject.ClientId, requestMessage.ClientId, StringComparison.Ordinal))
-            throw errorFactory.InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode).AsException();
+            throw ErrorFactory.InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode).AsException();
     }
 
     [AssertionMethod]
     private void ValidateRequest(
-        Client client,
-        IKnownSettingCollection clientSettings,
+        OpenIdClient openIdClient,
         IAuthorizationRequest request)
     {
-        var errorFactory = OpenIdServer.ErrorFactory;
+        var clientSettings = openIdClient.Settings;
 
         var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
         var isImplicit = request.GrantType == GrantType.Implicit;
@@ -704,52 +667,52 @@ public class DefaultAuthorizationEndpointHandler(
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
         var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
 
-        if (client.IsDisabled)
-            throw errorFactory.UnauthorizedClient("The client is disabled.").AsException();
+        if (openIdClient.IsDisabled)
+            throw ErrorFactory.UnauthorizedClient("The client is disabled.").AsException();
 
         if (request.Scopes.Count == 0)
-            throw errorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
 
         if (request.ResponseType == ResponseTypes.Unspecified)
-            throw errorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
 
         if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(request.Nonce))
-            throw errorFactory.MissingParameter(OpenIdConstants.Parameters.Nonce).AsException();
+            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Nonce).AsException();
 
         if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && !hasOpenIdScope)
-            throw errorFactory.InvalidRequest("The openid scope is required when requesting id tokens.").AsException();
+            throw ErrorFactory.InvalidRequest("The openid scope is required when requesting id tokens.").AsException();
 
         if (request.ResponseMode == ResponseMode.Query && request.GrantType != GrantType.AuthorizationCode)
-            throw errorFactory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.").AsException();
+            throw ErrorFactory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.").AsException();
 
         if (request.PromptType.HasFlag(PromptTypes.None) && request.PromptType != PromptTypes.None)
-            throw errorFactory.InvalidRequest("The 'none' prompt must not be combined with other values.").AsException();
+            throw ErrorFactory.InvalidRequest("The 'none' prompt must not be combined with other values.").AsException();
 
         if (request.PromptType.HasFlag(PromptTypes.CreateAccount) && request.PromptType != PromptTypes.CreateAccount)
-            throw errorFactory.InvalidRequest("The 'create' prompt must not be combined with other values.").AsException();
+            throw ErrorFactory.InvalidRequest("The 'create' prompt must not be combined with other values.").AsException();
 
         if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
-            throw errorFactory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.").AsException();
+            throw ErrorFactory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.").AsException();
 
         // perform configurable checks...
 
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
         if (request.ResponseType.HasFlag(ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
-            throw errorFactory.UnauthorizedClient("The configuration prohibits the use of unsafe token responses.").AsException();
+            throw ErrorFactory.UnauthorizedClient("The configuration prohibits the use of unsafe token responses.").AsException();
 
         // ReSharper disable once ConvertIfStatementToSwitchStatement
         if (!hasCodeChallenge && clientSettings.RequireCodeChallenge)
-            throw errorFactory.UnauthorizedClient("The configuration requires the use of PKCE parameters.").AsException();
+            throw ErrorFactory.UnauthorizedClient("The configuration requires the use of PKCE parameters.").AsException();
 
         if (hasCodeChallenge && codeChallengeMethodIsPlain && !clientSettings.AllowPlainCodeChallengeMethod)
-            throw errorFactory.UnauthorizedClient("The configuration prohibits the plain PKCE method.").AsException();
+            throw ErrorFactory.UnauthorizedClient("The configuration prohibits the plain PKCE method.").AsException();
 
         // acr_values_supported
         if (clientSettings.TryGet(KnownSettings.AcrValuesSupported.Key, out var acrValuesSupported))
         {
             var acrValues = request.AcrValues;
             if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported.Value).Any())
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.AcrValues).AsException();
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.AcrValues).AsException();
         }
 
         // claims_locales_supported
@@ -757,7 +720,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var claimsLocales = request.ClaimsLocales;
             if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported.Value).Any())
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.ClaimsLocales).AsException();
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.ClaimsLocales).AsException();
         }
 
         // claims_parameter_supported
@@ -765,21 +728,21 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var claimCount = request.Claims?.UserInfo?.Count ?? 0 + request.Claims?.IdToken?.Count ?? 0;
             if (claimCount > 0 && !claimsParameterSupported.Value)
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Claims).AsException();
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.Claims).AsException();
         }
 
         // display_values_supported
         if (clientSettings.TryGet(KnownSettings.DisplayValuesSupported.Key, out var displayValuesSupported))
         {
             if (!displayValuesSupported.Value.Contains(request.DisplayType))
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Display).AsException();
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.Display).AsException();
         }
 
         // grant_types_supported
         if (clientSettings.TryGet(KnownSettings.GrantTypesSupported.Key, out var grantTypesSupported))
         {
             if (!grantTypesSupported.Value.Contains(request.GrantType))
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
         }
 
         // prompt_values_supported
@@ -794,7 +757,7 @@ public class DefaultAuthorizationEndpointHandler(
              * error_description value identifying the invalid parameter value.
              */
             if (!promptValuesSupported.Value.Contains(request.PromptType))
-                throw errorFactory
+                throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.Prompt)
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
@@ -804,14 +767,14 @@ public class DefaultAuthorizationEndpointHandler(
         if (clientSettings.TryGet(KnownSettings.ResponseModesSupported.Key, out var responseModesSupported))
         {
             if (!responseModesSupported.Value.Contains(request.ResponseMode))
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseMode).AsException();
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.ResponseMode).AsException();
         }
 
         // response_types_supported
         if (clientSettings.TryGet(KnownSettings.ResponseTypesSupported.Key, out var responseTypesSupported))
         {
             if (!responseTypesSupported.Value.Contains(request.ResponseType))
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseType).AsException();
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.ResponseType).AsException();
         }
 
         // scopes_supported
@@ -819,7 +782,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var scopes = request.Scopes;
             if (scopes.Count > 0 && !scopes.Except(scopesSupported.Value).Any())
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Scope).AsException();
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.Scope).AsException();
         }
 
         // subject_types_supported
@@ -848,11 +811,11 @@ public class DefaultAuthorizationEndpointHandler(
         AuthenticateCommand command,
         CancellationToken cancellationToken)
     {
-        var authorizationContext = command.AuthorizationContext;
-        var clientSettings = authorizationContext.ClientSettings;
-        var httpContext = authorizationContext.OpenIdContext.HttpContext;
+        var authorizationContext = command.AuthorizationRequestContext;
+        var openIdClient = authorizationContext.OpenIdClient;
+        var httpContext = authorizationContext.OpenIdContext.Http;
 
-        var signInSchemeName = clientSettings.AuthorizationSignInScheme;
+        var signInSchemeName = openIdClient.Settings.AuthorizationSignInScheme;
         if (string.IsNullOrEmpty(signInSchemeName))
         {
             if (!DefaultSignInSchemeFetched)
@@ -877,12 +840,11 @@ public class DefaultAuthorizationEndpointHandler(
         AuthorizeCommand command,
         CancellationToken cancellationToken)
     {
-        var authorizationContext = command.AuthorizationContext;
+        var authorizationContext = command.AuthorizationRequestContext;
         var authenticationTicket = command.AuthenticationTicket;
         var openIdContext = authorizationContext.OpenIdContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
-        var clientSettings = authorizationContext.ClientSettings;
-        var errorFactory = OpenIdServer.ErrorFactory;
+        var clientSettings = authorizationContext.OpenIdClient.Settings;
 
         // prevent infinite loops from continuations and user interaction
         var isContinuation = authorizationContext.IsContinuation;
@@ -940,7 +902,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             if (promptType.HasFlag(PromptTypes.None))
             {
-                var error = errorFactory.LoginRequired();
+                var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;
                 var responseMode = authorizationRequest.ResponseMode;
                 return new AuthorizationResult(redirectUri, responseMode, error);
@@ -972,7 +934,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             if (promptType.HasFlag(PromptTypes.None))
             {
-                var error = errorFactory.LoginRequired();
+                var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;
                 var responseMode = authorizationRequest.ResponseMode;
                 return new AuthorizationResult(redirectUri, responseMode, error);
@@ -1009,7 +971,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             if (promptType.HasFlag(PromptTypes.None))
             {
-                var error = errorFactory.LoginRequired();
+                var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;
                 var responseMode = authorizationRequest.ResponseMode;
                 return new AuthorizationResult(redirectUri, responseMode, error);
@@ -1045,12 +1007,12 @@ public class DefaultAuthorizationEndpointHandler(
     }
 
     private static async ValueTask<bool> ValidateUserIsActiveAsync(
-        AuthorizationContext authorizationContext,
+        AuthorizationRequestContext authorizationRequestContext,
         AuthenticationTicket authenticationTicket,
         CancellationToken cancellationToken)
     {
-        var mediator = authorizationContext.OpenIdContext.Mediator;
-        var command = new ValidateUserIsActiveCommand(authorizationContext, authenticationTicket);
+        var mediator = authorizationRequestContext.OpenIdContext.Mediator;
+        var command = new ValidateUserIsActiveCommand(authorizationRequestContext, authenticationTicket);
         await mediator.SendAsync(command, cancellationToken);
         return command.IsActive;
     }
@@ -1100,7 +1062,7 @@ public class DefaultAuthorizationEndpointHandler(
         CreateAuthorizationTicketCommand command,
         CancellationToken cancellationToken)
     {
-        var authorizationContext = command.AuthorizationContext;
+        var authorizationContext = command.AuthorizationRequestContext;
         var openIdContext = authorizationContext.OpenIdContext;
         var authorizationRequest = authorizationContext.AuthorizationRequest;
         var responseType = authorizationRequest.ResponseType;
@@ -1109,7 +1071,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         ticket.CreatedWhen = SystemClock.UtcNow;
         ticket.State = authorizationRequest.State;
-        ticket.Issuer = openIdContext.OpenIdTenant.Issuer;
+        ticket.Issuer = openIdContext.Tenant.Issuer;
 
         if (responseType.HasFlag(ResponseTypes.Code))
         {

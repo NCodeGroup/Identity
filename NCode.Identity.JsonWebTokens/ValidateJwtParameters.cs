@@ -96,7 +96,7 @@ public class ValidateJwtParameters
                 DefaultValidationKeyResolver.ResolveValidationKeys(
                     compactJwt.ProtectionType,
                     compactJwt.DeserializedHeader,
-                    secretKeyProvider.SecretKeys));
+                    secretKeyProvider.Collection));
 
     /// <summary>
     /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).

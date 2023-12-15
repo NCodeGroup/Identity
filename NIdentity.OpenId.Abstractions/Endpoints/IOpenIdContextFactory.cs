@@ -38,7 +38,7 @@ public interface IOpenIdContextFactory
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
     /// <see cref="OpenIdContext"/> instance.</returns>
-    ValueTask<OpenIdContext> CreateContextAsync(
+    ValueTask<OpenIdContext> CreateAsync(
         HttpContext httpContext,
         IMediator mediator,
         CancellationToken cancellationToken);

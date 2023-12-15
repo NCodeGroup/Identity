@@ -50,8 +50,8 @@ public class DefaultContinueService(
         TPayload payload,
         CancellationToken cancellationToken)
     {
-        var httpContext = openIdContext.HttpContext;
-        var tenantId = openIdContext.OpenIdTenant.TenantId;
+        var httpContext = openIdContext.Http;
+        var tenantId = openIdContext.Tenant.TenantId;
 
         var grantKey = CryptoService.GenerateUrlSafeKey();
 

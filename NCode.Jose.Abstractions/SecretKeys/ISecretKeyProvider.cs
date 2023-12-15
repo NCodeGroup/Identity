@@ -30,7 +30,7 @@ public interface ISecretKeyProvider : IDisposable
     /// <summary>
     /// Gets a read-only collection of <see cref="SecretKey"/> instances.
     /// </summary>
-    ISecretKeyCollection SecretKeys { get; }
+    ISecretKeyCollection Collection { get; }
 
     /// <summary>
     /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.

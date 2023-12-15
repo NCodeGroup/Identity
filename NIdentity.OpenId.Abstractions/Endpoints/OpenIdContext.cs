@@ -31,19 +31,19 @@ namespace NIdentity.OpenId.Endpoints;
 public abstract class OpenIdContext
 {
     /// <summary>
+    /// Gets the <see cref="HttpContext"/> associated with the current request.
+    /// </summary>
+    public abstract HttpContext Http { get; }
+
+    /// <summary>
     /// Gets the <see cref="OpenIdServer"/> associated with the current request.
     /// </summary>
-    public abstract OpenIdServer OpenIdServer { get; }
+    public abstract OpenIdServer Server { get; }
 
     /// <summary>
     /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
     /// </summary>
-    public abstract OpenIdTenant OpenIdTenant { get; }
-
-    /// <summary>
-    /// Gets the <see cref="HttpContext"/> associated with the current request.
-    /// </summary>
-    public abstract HttpContext HttpContext { get; }
+    public abstract OpenIdTenant Tenant { get; }
 
     /// <summary>
     /// Gets the <see cref="IMediator"/> instance that is scoped with the current request.

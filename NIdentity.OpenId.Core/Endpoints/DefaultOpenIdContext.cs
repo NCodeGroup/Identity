@@ -29,21 +29,21 @@ namespace NIdentity.OpenId.Endpoints;
 /// Provides a default implementation of the <see cref="OpenIdContext"/> abstraction.
 /// </summary>
 public class DefaultOpenIdContext(
+    HttpContext httpContext,
     OpenIdServer openIdServer,
     OpenIdTenant openIdTenant,
-    HttpContext httpContext,
     IMediator mediator,
     IPropertyBag propertyBag
 ) : OpenIdContext
 {
     /// <inheritdoc />
-    public override OpenIdServer OpenIdServer { get; } = openIdServer;
+    public override HttpContext Http { get; } = httpContext;
 
     /// <inheritdoc />
-    public override OpenIdTenant OpenIdTenant { get; } = openIdTenant;
+    public override OpenIdServer Server { get; } = openIdServer;
 
     /// <inheritdoc />
-    public override HttpContext HttpContext { get; } = httpContext;
+    public override OpenIdTenant Tenant { get; } = openIdTenant;
 
     /// <inheritdoc />
     public override IMediator Mediator { get; } = mediator;

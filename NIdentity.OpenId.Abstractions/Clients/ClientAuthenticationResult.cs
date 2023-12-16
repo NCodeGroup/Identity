@@ -85,12 +85,12 @@ public readonly struct ClientAuthenticationResult
     /// Gets a <see cref="bool"/> value indicating the result contains either a public client or a confidential client.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Client))]
-    public bool HasClient => IsPublic || IsConfidential;
+    public bool HasClient => IsConfidential || IsPublic;
 
     /// <summary>
     /// Gets the <see cref="OpenIdClient"/> instance containing either a public client or a confidential client.
     /// </summary>
-    public OpenIdClient? Client => PublicClient ?? ConfidentialClient;
+    public OpenIdClient? Client => ConfidentialClient ?? PublicClient;
 
     /// <summary>
     /// Gets a <see cref="bool"/> value indicating the result contains a public client.

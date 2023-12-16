@@ -26,7 +26,7 @@ namespace NIdentity.OpenId.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdError"/> abstraction.
 /// </summary>
-public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError
+public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportError
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdError"/> class.
@@ -46,6 +46,8 @@ public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError
     {
         Code = errorCode;
     }
+
+    IOpenIdError ISupportError.Error => this;
 
     /// <inheritdoc />
     public int? StatusCode { get; set; }

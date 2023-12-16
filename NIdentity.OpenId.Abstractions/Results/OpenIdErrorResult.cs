@@ -25,15 +25,17 @@ namespace NIdentity.OpenId.Results;
 /// <summary>
 /// Provides an implementation of <see cref="IResult"/> that when executed, will render an <see cref="IOpenIdError"/>.
 /// </summary>
-public class OpenIdErrorResult : IResult
+public class OpenIdErrorResult : IResult, ISupportResult, ISupportError
 {
+    IResult ISupportResult.Result => this;
+
     /// <summary>
     /// Gets or sets the <see cref="IOpenIdError"/>.
     /// </summary>
     public required IOpenIdError Error { get; init; }
 
     /// <inheritdoc />
-    public async Task ExecuteAsync(HttpContext httpContext)
+    public virtual async Task ExecuteAsync(HttpContext httpContext)
     {
         var executor = httpContext.RequestServices.GetRequiredService<IResultExecutor<OpenIdErrorResult>>();
         await executor.ExecuteAsync(httpContext, this, httpContext.RequestAborted);

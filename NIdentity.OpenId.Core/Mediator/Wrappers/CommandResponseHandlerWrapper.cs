@@ -58,15 +58,15 @@ internal class CommandResponseHandlerWrapper<TCommand, TResponse> :
 
     private static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> WrapMiddleware(
         ICommandResponseMiddleware<TCommand, TResponse> middleware) =>
-        next => async (command, cancellationToken) =>
+        next => (command, cancellationToken) =>
         {
-            return await middleware.HandleAsync(command, SimpleNext, cancellationToken);
+            return middleware.HandleAsync(command, SimpleNext, cancellationToken);
             ValueTask<TResponse> SimpleNext() => next(command, cancellationToken);
         };
 
-    public async ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken) =>
-        await MiddlewareChain((TCommand)command, cancellationToken);
+    public ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken) =>
+        MiddlewareChain((TCommand)command, cancellationToken);
 
-    public async ValueTask<TResponse> HandleAsync(TCommand command, CancellationToken cancellationToken) =>
-        await MiddlewareChain(command, cancellationToken);
+    public ValueTask<TResponse> HandleAsync(TCommand command, CancellationToken cancellationToken) =>
+        MiddlewareChain(command, cancellationToken);
 }

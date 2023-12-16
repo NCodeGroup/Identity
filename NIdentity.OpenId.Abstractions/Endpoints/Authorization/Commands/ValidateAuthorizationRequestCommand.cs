@@ -21,7 +21,7 @@ using NIdentity.OpenId.Mediator;
 namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Defines an <see cref="ICommand"/> contract that accepts an <see cref="IAuthorizationRequest"/> as an
+/// Defines an <see cref="ICommand"/> contract that accepts an <see cref="AuthorizationRequestContext"/> as an
 /// input argument and doesn't return a value.
 /// </summary>
 /// <param name="AuthorizationRequestContext">The <see cref="AuthorizationRequestContext"/> input argument for the command contract.</param>

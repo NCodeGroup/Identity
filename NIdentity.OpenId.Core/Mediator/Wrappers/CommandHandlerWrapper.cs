@@ -59,10 +59,10 @@ internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper<TCommand
 
     private static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> WrapMiddleware(
         ICommandMiddleware<TCommand> middleware) =>
-        next => async (command, cancellationToken) =>
+        next => (command, cancellationToken) =>
         {
+            return middleware.HandleAsync(command, SimpleNext, cancellationToken);
             ValueTask SimpleNext() => next(command, cancellationToken);
-            await middleware.HandleAsync(command, SimpleNext, cancellationToken);
         };
 
     public ValueTask HandleAsync(

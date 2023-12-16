@@ -24,10 +24,20 @@ namespace NIdentity.OpenId.Endpoints;
 internal static class OpenIdEndpointConventionBuilderExtensions
 {
     public static TBuilder OpenIdDiscoverable<TBuilder>(this TBuilder builder, bool discoverable = true)
-        where TBuilder : IEndpointConventionBuilder =>
-        builder.WithMetadata(
+        where TBuilder : IEndpointConventionBuilder
+        => builder.WithMetadata(
             new OpenIdEndpointDiscoverableMetadata
             {
                 Discoverable = discoverable
             });
+
+    public static TBuilder OpenIdDiscoverable<TBuilder>(this TBuilder builder, string endpointName, bool discoverable = true)
+        where TBuilder : IEndpointConventionBuilder
+        => builder
+            .WithName(endpointName)
+            .WithMetadata(
+                new OpenIdEndpointDiscoverableMetadata
+                {
+                    Discoverable = discoverable
+                });
 }

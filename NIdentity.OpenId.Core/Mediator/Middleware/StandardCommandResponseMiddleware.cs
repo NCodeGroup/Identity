@@ -98,7 +98,7 @@ internal class StandardCommandResponseMiddleware<TCommand, TResponse>(
         }
     }
 
-    private async ValueTask NotifyExceptionAsync(
+    private ValueTask NotifyExceptionAsync(
         TCommand command,
         Exception exception,
         CancellationToken cancellationToken)
@@ -110,7 +110,7 @@ internal class StandardCommandResponseMiddleware<TCommand, TResponse>(
         var wrapper = (ICommandExceptionListenerWrapper<TCommand>)
             ServiceProvider.GetRequiredService(wrapperType);
 
-        await wrapper.ListenAsync(
+        return wrapper.ListenAsync(
             command,
             exception,
             cancellationToken);

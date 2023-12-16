@@ -120,7 +120,7 @@ public class DefaultAuthorizationEndpointHandler(
             return authResult.Error.AsResult();
         }
 
-        if (authResult.IsUndefined)
+        if (!authResult.HasClient)
         {
             return ErrorFactory
                 .InvalidClient()
@@ -128,16 +128,13 @@ public class DefaultAuthorizationEndpointHandler(
                 .AsResult();
         }
 
-        var openIdClient = authResult.PublicClient ??
-                           authResult.ConfidentialClient ??
-                           throw new InvalidOperationException();
-
         // the following tries its best to not throw for OpenID protocol errors
         var authorizationSource = await mediator.SendAsync<LoadAuthorizationSourceCommand, IAuthorizationSource>(
             new LoadAuthorizationSourceCommand(openIdContext),
             cancellationToken);
 
         // this will throw if client_id or redirect_uri are invalid
+        var openIdClient = authResult.Client;
         var clientRedirectContext = GetClientRedirectContext(
             openIdClient,
             authorizationSource);
@@ -1007,14 +1004,15 @@ public class DefaultAuthorizationEndpointHandler(
     }
 
     private static async ValueTask<bool> ValidateUserIsActiveAsync(
-        AuthorizationRequestContext authorizationRequestContext,
-        AuthenticationTicket authenticationTicket,
+        AuthorizationRequestContext context,
+        AuthenticationTicket ticket,
         CancellationToken cancellationToken)
     {
-        var mediator = authorizationRequestContext.OpenIdContext.Mediator;
-        var command = new ValidateUserIsActiveCommand(authorizationRequestContext, authenticationTicket);
+        var result = new ValidateUserIsActiveResult();
+        var command = new ValidateUserIsActiveCommand(context, ticket, result);
+        var mediator = context.OpenIdContext.Mediator;
         await mediator.SendAsync(command, cancellationToken);
-        return command.IsActive;
+        return result.IsActive;
     }
 
     private bool ValidateMaxAge(ClaimsIdentity subject, TimeSpan? maxAge, TimeSpan clockSkew)

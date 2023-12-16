@@ -36,7 +36,8 @@ public static class OpenIdErrorExtensions
     /// <returns>The <see cref="IResult"/> instance.</returns>
     public static IResult AsResult(this IOpenIdError error)
     {
-        return new OpenIdErrorResult { Error = error };
+        var result = error is ISupportResult supportResult ? supportResult.Result : null;
+        return result ?? new OpenIdErrorResult { Error = error };
     }
 
     /// <summary>

@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NIdentity.OpenId.Clients;
+using NIdentity.OpenId.Endpoints.Token.Commands;
 using NIdentity.OpenId.Endpoints.Token.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
@@ -37,17 +38,18 @@ public class DefaultTokenEndpointHandler(
     OpenIdServer openIdServer,
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService
-) : IOpenIdEndpointProvider
+) : IOpenIdEndpointProvider,
+    ICommandHandler<ValidateTokenRequestCommand>
 {
     private OpenIdServer OpenIdServer { get; } = openIdServer;
+    private IOpenIdErrorFactory ErrorFactory => OpenIdServer.ErrorFactory;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapGet(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
-        .WithName(OpenIdConstants.EndpointNames.Token)
-        .OpenIdDiscoverable();
+        .OpenIdDiscoverable(OpenIdConstants.EndpointNames.Token);
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header) &&
@@ -61,7 +63,10 @@ public class DefaultTokenEndpointHandler(
         var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
         if (!isPostVerb || !IsApplicationFormContentType(httpContext))
         {
-            return TypedResults.BadRequest();
+            return ErrorFactory
+                .InvalidRequest("Only POST requests with Content-Type 'application/x-www-form-urlencoded' are supported.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsResult();
         }
 
         var openIdContext = await ContextFactory.CreateAsync(
@@ -79,41 +84,56 @@ public class DefaultTokenEndpointHandler(
             return authResult.Error.AsResult();
         }
 
-        OpenIdClient openIdClient;
-        if (authResult.IsConfidential)
+        if (!authResult.HasClient)
         {
-            openIdClient = authResult.ConfidentialClient;
-        }
-        else if (authResult.IsPublic)
-        {
-            openIdClient = authResult.PublicClient;
-        }
-        else
-        {
-            return TypedResults.BadRequest();
+            return ErrorFactory
+                .InvalidClient()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsResult();
         }
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var tokenRequest = TokenRequest.Load(OpenIdServer, formData);
 
+        var openIdClient = authResult.Client;
         var tokenRequestContext = new TokenRequestContext(openIdContext, openIdClient, tokenRequest);
 
-        // TODO: validate client
+        await mediator.SendAsync(
+            new ValidateTokenRequestCommand(tokenRequestContext),
+            cancellationToken);
 
-        // TODO: validate request
+        // TODO: issue token(s)
+
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask HandleAsync(
+        ValidateTokenRequestCommand command,
+        CancellationToken cancellationToken)
+    {
+        var tokenRequestContext = command.TokenRequestContext;
+        var (openIdContext, openIdClient, tokenRequest) = tokenRequestContext;
+
         if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
             string.Equals(
                 tokenRequest.ClientId,
                 openIdClient.ClientId,
                 StringComparison.Ordinal))
         {
-            return TypedResults.BadRequest();
+            throw ErrorFactory
+                .InvalidRequest("The 'client_id' parameter must be identical to the authenticated client identifier.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
         }
+
+        // TODO: validate client
+
+        // TODO: validate request
 
         // TODO: check DPoP
 
-        // TODO: issue token(s)
-
+        await ValueTask.CompletedTask;
         throw new NotImplementedException();
     }
 }

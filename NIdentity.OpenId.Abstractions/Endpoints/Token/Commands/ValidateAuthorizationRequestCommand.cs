@@ -17,27 +17,11 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
-using NIdentity.OpenId.Endpoints.Authorization.Messages;
+using NIdentity.OpenId.Endpoints.Token.Messages;
 using NIdentity.OpenId.Mediator;
 
-namespace NIdentity.OpenId.Endpoints.Authorization.Commands;
+namespace NIdentity.OpenId.Endpoints.Token.Commands;
 
-public class ValidateUserIsActiveResult
-{
-    /// <summary>
-    /// Gets a <see cref="bool"/> value indicating whether the user is active.
-    /// </summary>
-    public bool IsActive { get; private set; } = true;
-
-    /// <summary>
-    /// Sets the user as inactive.
-    /// </summary>
-    public void SetInactive() => IsActive = false;
-}
-
-public record struct ValidateUserIsActiveCommand(
-    AuthorizationRequestContext Context,
-    AuthenticationTicket Ticket,
-    ValidateUserIsActiveResult Result
+public record struct ValidateTokenRequestCommand(
+    TokenRequestContext TokenRequestContext
 ) : ICommand;

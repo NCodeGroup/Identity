@@ -82,6 +82,17 @@ public readonly struct ClientAuthenticationResult
     public IOpenIdError? Error { get; }
 
     /// <summary>
+    /// Gets a <see cref="bool"/> value indicating the result contains either a public client or a confidential client.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Client))]
+    public bool HasClient => IsPublic || IsConfidential;
+
+    /// <summary>
+    /// Gets the <see cref="OpenIdClient"/> instance containing either a public client or a confidential client.
+    /// </summary>
+    public OpenIdClient? Client => PublicClient ?? ConfidentialClient;
+
+    /// <summary>
     /// Gets a <see cref="bool"/> value indicating the result contains a public client.
     /// </summary>
     [MemberNotNullWhen(true, nameof(PublicClient))]

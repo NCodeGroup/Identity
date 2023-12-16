@@ -22,50 +22,58 @@ using NIdentity.OpenId.Messages.Parameters;
 
 namespace NIdentity.OpenId.Endpoints.Token.Messages;
 
-public class TokenRequest : OpenIdMessage<TokenRequest>
+internal class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
 {
+    /// <inheritdoc />
     public string? ClientId
     {
         get => GetKnownParameter(KnownParameters.ClientId);
         set => SetKnownParameter(KnownParameters.ClientId, value);
     }
 
+    /// <inheritdoc />
     public string? Code
     {
         get => GetKnownParameter(KnownParameters.Code);
         set => SetKnownParameter(KnownParameters.Code, value);
     }
 
+    /// <inheritdoc />
     public GrantType? GrantType
     {
         get => GetKnownParameter(KnownParameters.GrantType);
         set => SetKnownParameter(KnownParameters.GrantType, value);
     }
 
+    /// <inheritdoc />
     public string? Password
     {
         get => GetKnownParameter(KnownParameters.Password);
         set => SetKnownParameter(KnownParameters.Password, value);
     }
 
+    /// <inheritdoc />
     public Uri? RedirectUri
     {
         get => GetKnownParameter(KnownParameters.RedirectUri);
         set => SetKnownParameter(KnownParameters.RedirectUri, value);
     }
 
+    /// <inheritdoc />
     public string? RefreshToken
     {
         get => GetKnownParameter(KnownParameters.RefreshToken);
         set => SetKnownParameter(KnownParameters.RefreshToken, value);
     }
 
+    /// <inheritdoc />
     public IReadOnlyCollection<string>? Scopes
     {
         get => GetKnownParameter(KnownParameters.Scopes);
         set => SetKnownParameter(KnownParameters.Scopes, value);
     }
 
+    /// <inheritdoc />
     public string? Username
     {
         get => GetKnownParameter(KnownParameters.Username);

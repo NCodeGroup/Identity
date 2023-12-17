@@ -116,7 +116,7 @@ public class DefaultTokenEndpointHandler(
         var (openIdContext, openIdClient, tokenRequest) = tokenRequestContext;
 
         if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
-            string.Equals(
+            !string.Equals(
                 tokenRequest.ClientId,
                 openIdClient.ClientId,
                 StringComparison.Ordinal))

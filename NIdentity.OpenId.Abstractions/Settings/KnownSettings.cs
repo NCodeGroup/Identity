@@ -315,7 +315,7 @@ public static class KnownSettings
     public static SettingDescriptor<IReadOnlyCollection<GrantType>> GrantTypesSupported { get; } = new()
     {
         Name = SettingNames.GrantTypesSupported,
-        // TODO: Default
+        Default = new[] { GrantType.AuthorizationCode, GrantType.Implicit },
 
         Discoverable = true,
         OnMerge = Replace,

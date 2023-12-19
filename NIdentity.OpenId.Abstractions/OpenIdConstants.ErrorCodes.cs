@@ -46,6 +46,11 @@ public static partial class OpenIdConstants
         public const string UnauthorizedClient = "unauthorized_client";
 
         /// <summary>
+        /// Contains the error code for <c>unsupported_grant_type</c>.
+        /// </summary>
+        public const string UnsupportedGrantType = "unsupported_grant_type";
+
+        /// <summary>
         /// Contains the error code for <c>access_denied</c>.
         /// </summary>
         public const string AccessDenied = "access_denied";

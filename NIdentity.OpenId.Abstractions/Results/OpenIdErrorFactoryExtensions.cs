@@ -141,15 +141,26 @@ public static class OpenIdErrorFactoryExtensions
 
     /// <summary>
     /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
+    /// message produces an <see cref="OpenIdConstants.ErrorCodes.UnsupportedGrantType"/> error.
+    /// </summary>
+    /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>
+    /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
+    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+    public static IOpenIdError UnsupportedGrantType(this IOpenIdErrorFactory factory, string errorDescription)
+    {
+        return factory.Create(OpenIdConstants.ErrorCodes.UnsupportedGrantType).WithDescription(errorDescription);
+    }
+
+    /// <summary>
+    /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
     /// message produces an <see cref="OpenIdConstants.ErrorCodes.UnauthorizedClient"/> error.
     /// </summary>
     /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>
     /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
-    /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.UnauthorizedClient"/>.</param>
     /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-    public static IOpenIdError UnauthorizedClient(this IOpenIdErrorFactory factory, string errorDescription, string errorCode = OpenIdConstants.ErrorCodes.UnauthorizedClient)
+    public static IOpenIdError UnauthorizedClient(this IOpenIdErrorFactory factory, string errorDescription)
     {
-        return factory.Create(errorCode).WithDescription(errorDescription);
+        return factory.Create(OpenIdConstants.ErrorCodes.UnauthorizedClient).WithDescription(errorDescription);
     }
 
     /// <summary>

@@ -28,6 +28,7 @@ using NIdentity.OpenId.Endpoints.Token.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Servers;
+using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Endpoints.Token;
 
@@ -114,6 +115,7 @@ public class DefaultTokenEndpointHandler(
     {
         var tokenRequestContext = command.TokenRequestContext;
         var (openIdContext, openIdClient, tokenRequest) = tokenRequestContext;
+        var clientSettings = openIdClient.Settings;
 
         if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
             !string.Equals(
@@ -130,6 +132,23 @@ public class DefaultTokenEndpointHandler(
         // TODO: validate client
 
         // TODO: validate request
+
+        if (tokenRequest.GrantType is null)
+        {
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.GrantType)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
+
+        var grantType = tokenRequest.GrantType.Value;
+
+        // grant_types_supported
+        if (clientSettings.TryGet(KnownSettings.GrantTypesSupported.Key, out var grantTypesSupported))
+        {
+            if (!grantTypesSupported.Value.Contains(grantType))
+                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
+        }
 
         // TODO: check DPoP
 

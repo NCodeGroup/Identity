@@ -28,7 +28,6 @@ using NIdentity.OpenId.Endpoints.Token.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
 using NIdentity.OpenId.Servers;
-using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Endpoints.Token;
 
@@ -124,7 +123,7 @@ public class DefaultTokenEndpointHandler(
                 StringComparison.Ordinal))
         {
             throw ErrorFactory
-                .InvalidRequest("The 'client_id' parameter must be identical to the authenticated client identifier.")
+                .InvalidRequest("The 'client_id' parameter, when specified, must be identical to the authenticated client identifier.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
@@ -144,10 +143,13 @@ public class DefaultTokenEndpointHandler(
         var grantType = tokenRequest.GrantType.Value;
 
         // grant_types_supported
-        if (clientSettings.TryGet(KnownSettings.GrantTypesSupported.Key, out var grantTypesSupported))
+        if (!clientSettings.GrantTypesSupported.Contains(grantType))
         {
-            if (!grantTypesSupported.Value.Contains(grantType))
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
+            // unauthorized_client
+            throw ErrorFactory
+                .UnauthorizedClient("The client is not allowed to use the specified grant type.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
         }
 
         // TODO: check DPoP

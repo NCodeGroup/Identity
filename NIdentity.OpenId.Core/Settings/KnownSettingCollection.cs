@@ -25,15 +25,9 @@ namespace NIdentity.OpenId.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="IKnownSettingCollection"/> abstraction.
 /// </summary>
-public class KnownSettingCollection : IKnownSettingCollection
+public class KnownSettingCollection(ISettingCollection store) : IKnownSettingCollection
 {
-    private ISettingCollection Store { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="KnownSettingCollection"/> class.
-    /// </summary>
-    /// <param name="store">The <see cref="ISettingCollection"/> instance.</param>
-    public KnownSettingCollection(ISettingCollection store) => Store = store;
+    private ISettingCollection Store { get; } = store;
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> AccessTokenEncryptionAlgValuesSupported
@@ -131,6 +125,13 @@ public class KnownSettingCollection : IKnownSettingCollection
     {
         get => Get(KnownSettings.ContinueAuthorizationLifetime);
         set => Store.Set(KnownSettings.ContinueAuthorizationLifetime.Create(value));
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<GrantType> GrantTypesSupported
+    {
+        get => Get(KnownSettings.GrantTypesSupported);
+        set => Store.Set(KnownSettings.GrantTypesSupported.Create(value));
     }
 
     /// <inheritdoc />

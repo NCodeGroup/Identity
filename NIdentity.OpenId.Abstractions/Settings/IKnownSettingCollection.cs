@@ -106,6 +106,11 @@ public interface IKnownSettingCollection : ISettingCollection
     TimeSpan ContinueAuthorizationLifetime { get; set; }
 
     /// <summary>
+    /// Gets or sets the value for the 'grant_types_supported' setting.
+    /// </summary>
+    IReadOnlyCollection<GrantType> GrantTypesSupported { get; set; }
+
+    /// <summary>
     /// Gets or sets the value for the 'id_token_encryption_alg_values_supported' setting.
     /// </summary>
     IReadOnlyCollection<string> IdTokenEncryptionAlgValuesSupported { get; set; }

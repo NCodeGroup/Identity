@@ -29,15 +29,15 @@ internal class AuthorizationRequest(
     IAuthorizationRequestObject? requestObject
 ) : IAuthorizationRequest
 {
-    private static GrantType DetermineGrantType(ResponseTypes responseType) => responseType switch
+    private static string DetermineGrantType(ResponseTypes responseType) => responseType switch
     {
-        ResponseTypes.Unspecified => GrantType.Unspecified,
-        ResponseTypes.Code => GrantType.AuthorizationCode,
-        _ => responseType.HasFlag(ResponseTypes.Code) ? GrantType.Hybrid : GrantType.Implicit
+        ResponseTypes.Unspecified => throw new ArgumentException("Invalid value for response type.", nameof(responseType)),
+        ResponseTypes.Code => OpenIdConstants.GrantTypes.AuthorizationCode,
+        _ => responseType.HasFlag(ResponseTypes.Code) ? OpenIdConstants.GrantTypes.Hybrid : OpenIdConstants.GrantTypes.Implicit
     };
 
-    private static ResponseMode DetermineDefaultResponseNode(GrantType grantType) =>
-        grantType == GrantType.AuthorizationCode ?
+    private static ResponseMode DetermineDefaultResponseNode(string grantType) =>
+        grantType == OpenIdConstants.GrantTypes.AuthorizationCode ?
             ResponseMode.Query :
             ResponseMode.Fragment;
 
@@ -96,7 +96,7 @@ internal class AuthorizationRequest(
         OriginalRequestMessage.DisplayType ??
         DisplayType.Page;
 
-    public GrantType GrantType =>
+    public string GrantType =>
         DetermineGrantType(ResponseType);
 
     public string? IdTokenHint =>

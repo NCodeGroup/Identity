@@ -108,7 +108,7 @@ public interface IKnownSettingCollection : ISettingCollection
     /// <summary>
     /// Gets or sets the value for the 'grant_types_supported' setting.
     /// </summary>
-    IReadOnlyCollection<GrantType> GrantTypesSupported { get; set; }
+    IReadOnlyCollection<string> GrantTypesSupported { get; set; }
 
     /// <summary>
     /// Gets or sets the value for the 'id_token_encryption_alg_values_supported' setting.

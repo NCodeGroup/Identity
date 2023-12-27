@@ -658,8 +658,8 @@ public class DefaultAuthorizationEndpointHandler(
         var clientSettings = openIdClient.Settings;
 
         var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
-        var isImplicit = request.GrantType == GrantType.Implicit;
-        var isHybrid = request.GrantType == GrantType.Hybrid;
+        var isImplicit = request.GrantType == OpenIdConstants.GrantTypes.Implicit;
+        var isHybrid = request.GrantType == OpenIdConstants.GrantTypes.Hybrid;
 
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
         var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
@@ -679,7 +679,7 @@ public class DefaultAuthorizationEndpointHandler(
         if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && !hasOpenIdScope)
             throw ErrorFactory.InvalidRequest("The openid scope is required when requesting id tokens.").AsException();
 
-        if (request.ResponseMode == ResponseMode.Query && request.GrantType != GrantType.AuthorizationCode)
+        if (request.ResponseMode == ResponseMode.Query && request.GrantType != OpenIdConstants.GrantTypes.AuthorizationCode)
             throw ErrorFactory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.").AsException();
 
         if (request.PromptType.HasFlag(PromptTypes.None) && request.PromptType != PromptTypes.None)

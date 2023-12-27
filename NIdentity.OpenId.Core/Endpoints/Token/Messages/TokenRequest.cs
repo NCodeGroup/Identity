@@ -39,7 +39,7 @@ internal class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
     }
 
     /// <inheritdoc />
-    public GrantType? GrantType
+    public string? GrantType
     {
         get => GetKnownParameter(KnownParameters.GrantType);
         set => SetKnownParameter(KnownParameters.GrantType, value);

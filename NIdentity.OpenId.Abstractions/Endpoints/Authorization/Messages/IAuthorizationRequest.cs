@@ -77,10 +77,9 @@ public interface IAuthorizationRequest : IBaseAuthorizationRequest
     DisplayType DisplayType { get; }
 
     /// <summary>
-    /// Gets a value indicating the type of <c>OAuth</c> or <c>OpenId Connection</c> authorization flow that this
-    /// request represents.
+    /// Gets the <c>grant_type</c> parameter.
     /// </summary>
-    GrantType GrantType { get; }
+    string GrantType { get; }
 
     /// <summary>
     /// Gets the <c>id_token_hint</c> parameter.

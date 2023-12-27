@@ -131,10 +131,10 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>grant_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="DisplayType"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>grant_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<GrantType?> GrantType =
-        new(OpenIdConstants.Parameters.GrantType, ParameterParsers.GrantType)
+    public static readonly KnownParameter<string?> GrantType =
+        new(OpenIdConstants.Parameters.GrantType, ParameterParsers.String)
         {
             Optional = false,
             AllowMultipleValues = false

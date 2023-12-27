@@ -132,15 +132,14 @@ public class DefaultTokenEndpointHandler(
 
         // TODO: validate request
 
-        if (tokenRequest.GrantType is null)
+        var grantType = tokenRequest.GrantType;
+        if (string.IsNullOrEmpty(grantType))
         {
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.GrantType)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
-
-        var grantType = tokenRequest.GrantType.Value;
 
         // grant_types_supported
         if (!clientSettings.GrantTypesSupported.Contains(grantType))

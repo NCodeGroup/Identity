@@ -312,14 +312,13 @@ public static class KnownSettings
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'grant_types_supported' setting.
     /// </summary>
-    public static SettingDescriptor<IReadOnlyCollection<GrantType>> GrantTypesSupported { get; } = new()
+    public static SettingDescriptor<IReadOnlyCollection<string>> GrantTypesSupported { get; } = new()
     {
         Name = SettingNames.GrantTypesSupported,
-        Default = new[] { GrantType.AuthorizationCode, GrantType.Implicit },
+        Default = new[] { OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit },
 
         Discoverable = true,
-        OnMerge = Replace,
-        OnFormat = ConvertToInvariantString
+        OnMerge = Replace
     };
 
     /// <summary>

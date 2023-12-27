@@ -128,7 +128,7 @@ public class KnownSettingCollection(ISettingCollection store) : IKnownSettingCol
     }
 
     /// <inheritdoc />
-    public IReadOnlyCollection<GrantType> GrantTypesSupported
+    public IReadOnlyCollection<string> GrantTypesSupported
     {
         get => Get(KnownSettings.GrantTypesSupported);
         set => Store.Set(KnownSettings.GrantTypesSupported.Create(value));

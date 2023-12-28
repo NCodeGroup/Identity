@@ -30,6 +30,7 @@ using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.Endpoints.Authorization.Commands;
+using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Endpoints.Authorization.Results;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Logic.Authorization;
@@ -73,14 +74,24 @@ public class DefaultAuthorizationTicketService(
         var lifetime = openIdClient.Settings.AuthorizationCodeLifetime;
         var payload = authorizationContext.AuthorizationRequest;
 
+        var persistedGrantId = new PersistedGrantId
+        {
+            TenantId = tenantId,
+            GrantType = grantType,
+            GrantKey = grantKey
+        };
+
+        var persistedGrant = new PersistedGrant<IAuthorizationRequest>
+        {
+            ClientId = clientId,
+            SubjectId = subjectId,
+            Payload = payload
+        };
+
         await PersistedGrantService.AddAsync(
-            tenantId,
-            grantType,
-            grantKey,
-            clientId,
-            subjectId,
+            persistedGrantId,
+            persistedGrant,
             lifetime,
-            payload,
             cancellationToken);
 
         ticket.Code = grantKey;

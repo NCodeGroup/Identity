@@ -61,65 +61,59 @@ public class DefaultPersistedGrantService : IPersistedGrantService
 
     /// <inheritdoc />
     public async ValueTask AddAsync<TPayload>(
-        string tenantId,
-        string grantType,
-        string grantKey,
-        string? clientId,
-        string? subjectId,
+        PersistedGrantId grantId,
+        PersistedGrant<TPayload> grant,
         TimeSpan lifetime,
-        TPayload payload,
         CancellationToken cancellationToken)
     {
         var id = IdGenerator.CreateId();
-        var hashedKey = GetHashedKey(grantKey);
+        var hashedKey = GetHashedKey(grantId.GrantKey);
         var createdWhen = SystemClock.UtcNow;
         var expiresWhen = createdWhen.Add(lifetime);
 
         var payloadJson = JsonSerializer.Serialize(
-            payload,
+            grant.Payload,
             OpenIdServer.JsonSerializerOptions);
 
-        var persistedGrant = new PersistedGrant
+        var envelope = new PersistedGrant
         {
             Id = id,
-            TenantId = tenantId,
-            GrantType = grantType,
+            TenantId = grantId.TenantId,
+            GrantType = grantId.GrantType,
             HashedKey = hashedKey,
-            ClientId = clientId,
-            SubjectId = subjectId,
+            ClientId = grant.ClientId,
+            SubjectId = grant.SubjectId,
             CreatedWhen = createdWhen,
             ExpiresWhen = expiresWhen,
             PayloadJson = payloadJson
         };
 
-        await PersistedGrantStore.AddAsync(persistedGrant, cancellationToken);
+        await PersistedGrantStore.AddAsync(envelope, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async ValueTask<TPayload?> TryGetAsync<TPayload>(
-        string tenantId,
-        string grantType,
-        string grantKey,
+    public async ValueTask<PersistedGrant<TPayload>?> TryGetAsync<TPayload>(
+        PersistedGrantId grantId,
         bool singleUse,
         bool setConsumed,
         CancellationToken cancellationToken)
     {
         var utcNow = SystemClock.UtcNow;
-        var hashedKey = GetHashedKey(grantKey);
+        var hashedKey = GetHashedKey(grantId.GrantKey);
 
-        var persistedGrant = await PersistedGrantStore.TryGetAsync(
-            tenantId,
-            grantType,
+        var envelope = await PersistedGrantStore.TryGetAsync(
+            grantId.TenantId,
+            grantId.GrantType,
             hashedKey,
             cancellationToken);
 
-        if (persistedGrant == null)
+        if (envelope == null)
             return default;
 
-        if (persistedGrant.ExpiresWhen <= utcNow)
+        if (envelope.ExpiresWhen <= utcNow)
             return default;
 
-        var isConsumed = persistedGrant.ConsumedWhen.HasValue;
+        var isConsumed = envelope.ConsumedWhen.HasValue;
 
         if (singleUse && isConsumed)
             return default;
@@ -127,33 +121,41 @@ public class DefaultPersistedGrantService : IPersistedGrantService
         if (setConsumed && !isConsumed)
         {
             await PersistedGrantStore.SetConsumedOnceAsync(
-                tenantId,
-                grantType,
+                grantId.TenantId,
+                grantId.GrantType,
                 hashedKey,
                 utcNow,
                 cancellationToken);
         }
 
         var payload = JsonSerializer.Deserialize<TPayload>(
-            persistedGrant.PayloadJson,
+            envelope.PayloadJson,
             OpenIdServer.JsonSerializerOptions);
 
-        return payload;
+        if (payload is null)
+            return default;
+
+        var persistedGrant = new PersistedGrant<TPayload>
+        {
+            ClientId = envelope.ClientId,
+            SubjectId = envelope.SubjectId,
+            Payload = payload
+        };
+
+        return persistedGrant;
     }
 
     /// <inheritdoc />
     public async ValueTask SetConsumedAsync(
-        string tenantId,
-        string grantType,
-        string grantKey,
+        PersistedGrantId grantId,
         DateTimeOffset consumedWhen,
         CancellationToken cancellationToken)
     {
-        var hashedKey = GetHashedKey(grantKey);
+        var hashedKey = GetHashedKey(grantId.GrantKey);
 
         await PersistedGrantStore.SetConsumedOnceAsync(
-            tenantId,
-            grantType,
+            grantId.TenantId,
+            grantId.GrantType,
             hashedKey,
             consumedWhen,
             cancellationToken);

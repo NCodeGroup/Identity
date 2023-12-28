@@ -51,10 +51,8 @@ public class DefaultContinueService(
         CancellationToken cancellationToken)
     {
         var httpContext = openIdContext.Http;
-        var tenantId = openIdContext.Tenant.TenantId;
 
         var grantKey = CryptoService.GenerateUrlSafeKey();
-
         var continueUrl = LinkGenerator.GetUriByName(
             httpContext,
             OpenIdConstants.EndpointNames.Continue,
@@ -73,14 +71,24 @@ public class DefaultContinueService(
             Payload = payloadJson
         };
 
+        var persistedGrantId = new PersistedGrantId
+        {
+            TenantId = openIdContext.Tenant.TenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.Continue,
+            GrantKey = grantKey
+        };
+
+        var persistedGrant = new PersistedGrant<ContinueEnvelope>
+        {
+            ClientId = clientId,
+            SubjectId = subjectId,
+            Payload = continueEnvelope
+        };
+
         await PersistedGrantService.AddAsync(
-            tenantId,
-            OpenIdConstants.PersistedGrantTypes.Continue,
-            grantKey,
-            clientId,
-            subjectId,
+            persistedGrantId,
+            persistedGrant,
             lifetime,
-            payload: continueEnvelope,
             cancellationToken);
 
         return continueUrl;

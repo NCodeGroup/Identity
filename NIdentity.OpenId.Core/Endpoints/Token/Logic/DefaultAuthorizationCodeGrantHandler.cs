@@ -25,12 +25,10 @@ using NIdentity.OpenId.Results;
 namespace NIdentity.OpenId.Endpoints.Token.Logic;
 
 internal class DefaultAuthorizationCodeGrantHandler(
-    ICryptoService cryptoService,
     IOpenIdErrorFactory errorFactory,
     IPersistedGrantService persistedGrantService
 ) : ITokenGrantHandler
 {
-    private ICryptoService CryptoService { get; } = cryptoService;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
@@ -43,30 +41,40 @@ internal class DefaultAuthorizationCodeGrantHandler(
         var (openIdContext, openIdClient, tokenRequest) = tokenRequestContext;
         var clientSettings = openIdClient.Settings;
 
-        var tenantId = openIdContext.Tenant.TenantId;
         var clientId = openIdClient.ClientId;
-
-        const string grantType = OpenIdConstants.PersistedGrantTypes.AuthorizationCode;
-        var grantKey = tokenRequest.Code;
+        var authorizationCode = tokenRequest.Code;
 
         // TODO: verify error codes and descriptions
 
-        if (string.IsNullOrEmpty(grantKey))
+        if (string.IsNullOrEmpty(authorizationCode))
             return ErrorFactory.InvalidParameterValue("The authorization code is missing.").AsResult();
 
-        var authorizationRequest = await PersistedGrantService.TryGetAsync<IAuthorizationRequest>(
-            tenantId,
-            grantType,
-            grantKey,
+        var grantId = new PersistedGrantId
+        {
+            TenantId = openIdContext.Tenant.TenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
+            GrantKey = authorizationCode
+        };
+
+        var grantOrNull = await PersistedGrantService.TryGetAsync<IAuthorizationRequest>(
+            grantId,
             singleUse: true,
             setConsumed: true,
             cancellationToken);
 
-        if (authorizationRequest is null)
+        if (!grantOrNull.HasValue)
+            return ErrorFactory.InvalidRequest("TODO").AsResult();
+
+        var grant = grantOrNull.Value;
+        var authorizationRequest = grant.Payload;
+
+        if (grant.ClientId != clientId)
             return ErrorFactory.InvalidRequest("TODO").AsResult();
 
         if (authorizationRequest.ClientId != clientId)
             return ErrorFactory.InvalidRequest("TODO").AsResult();
+
+        // TODO: issue token(s)
 
         throw new NotImplementedException();
     }

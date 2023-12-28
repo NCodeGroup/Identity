@@ -66,19 +66,27 @@ public class DefaultContinueEndpointHandler(
             mediator,
             cancellationToken);
 
-        var continueEnvelope = await PersistedGrantService.TryGetAsync<ContinueEnvelope>(
-            openIdContext.Tenant.TenantId,
-            OpenIdConstants.PersistedGrantTypes.Continue,
-            grantKey: state,
+        var persistedGrantId = new PersistedGrantId
+        {
+            TenantId = openIdContext.Tenant.TenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.Continue,
+            GrantKey = state
+        };
+
+        var persistedGrantOrNull = await PersistedGrantService.TryGetAsync<ContinueEnvelope>(
+            persistedGrantId,
             singleUse: true,
             setConsumed: true,
             cancellationToken);
 
-        if (continueEnvelope is null)
+        if (!persistedGrantOrNull.HasValue)
         {
             // TODO: more details
             return TypedResults.BadRequest();
         }
+
+        var persistedGrant = persistedGrantOrNull.Value;
+        var continueEnvelope = persistedGrant.Payload;
 
         var provider = ContinueProviderSelector.SelectProvider(continueEnvelope.Code);
         var result = await provider.ContinueAsync(openIdContext, continueEnvelope.Payload, cancellationToken);

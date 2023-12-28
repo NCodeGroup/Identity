@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NIdentity.OpenId.Clients;
 using NIdentity.OpenId.Endpoints.Token.Commands;
+using NIdentity.OpenId.Endpoints.Token.Logic;
 using NIdentity.OpenId.Endpoints.Token.Messages;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Results;
@@ -37,7 +38,8 @@ namespace NIdentity.OpenId.Endpoints.Token;
 public class DefaultTokenEndpointHandler(
     OpenIdServer openIdServer,
     IOpenIdContextFactory contextFactory,
-    IClientAuthenticationService clientAuthenticationService
+    IClientAuthenticationService clientAuthenticationService,
+    ITokenGrantHandlerSelector tokenGrantHandlerSelector
 ) : IOpenIdEndpointProvider,
     ICommandHandler<ValidateTokenRequestCommand>
 {
@@ -45,6 +47,7 @@ public class DefaultTokenEndpointHandler(
     private IOpenIdErrorFactory ErrorFactory => OpenIdServer.ErrorFactory;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
+    private ITokenGrantHandlerSelector TokenGrantHandlerSelector { get; } = tokenGrantHandlerSelector;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -95,16 +98,25 @@ public class DefaultTokenEndpointHandler(
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var tokenRequest = TokenRequest.Load(OpenIdServer, formData);
 
-        var openIdClient = authResult.Client;
-        var tokenRequestContext = new TokenRequestContext(openIdContext, openIdClient, tokenRequest);
+        var tokenRequestContext = new TokenRequestContext(
+            openIdContext,
+            authResult.Client,
+            tokenRequest);
 
         await mediator.SendAsync(
             new ValidateTokenRequestCommand(tokenRequestContext),
             cancellationToken);
 
-        // TODO: issue token(s)
+        var handler = await TokenGrantHandlerSelector.SelectAsync(
+            tokenRequestContext,
+            cancellationToken);
 
-        throw new NotImplementedException();
+        // TODO: issue token(s)
+        var result = await handler.HandleAsync(
+            tokenRequestContext,
+            cancellationToken);
+
+        return result;
     }
 
     /// <inheritdoc />

@@ -68,17 +68,19 @@ public class DefaultAuthorizationTicketService(
         var clientId = openIdClient.ClientId;
         var subjectId = command.AuthenticationTicket.Principal.FindFirstValue(JoseClaimNames.Payload.Sub);
 
+        const string grantType = OpenIdConstants.PersistedGrantTypes.AuthorizationCode;
         var grantKey = CryptoService.GenerateUrlSafeKey();
         var lifetime = openIdClient.Settings.AuthorizationCodeLifetime;
+        var payload = authorizationContext.AuthorizationRequest;
 
         await PersistedGrantService.AddAsync(
             tenantId,
-            OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
+            grantType,
             grantKey,
             clientId,
             subjectId,
             lifetime,
-            payload: authorizationContext.AuthorizationRequest,
+            payload,
             cancellationToken);
 
         ticket.Code = grantKey;

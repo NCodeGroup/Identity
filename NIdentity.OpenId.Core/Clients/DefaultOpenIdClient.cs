@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints;
@@ -26,6 +27,7 @@ namespace NIdentity.OpenId.Clients;
 
 internal class DefaultOpenIdClient(
     ISecretSerializer secretSerializer,
+    ISecretKeyProviderFactory secretKeyProviderFactory,
     OpenIdContext context,
     Client client
 ) : OpenIdClient
@@ -60,12 +62,17 @@ internal class DefaultOpenIdClient(
     private ISecretKeyProvider LoadSecretKeys()
     {
         // TODO: add support for a dynamic data source that re-fetches secrets from the store
-
         var secretKeys = secretSerializer.DeserializeSecrets(client.Secrets);
-        var dataSource = new StaticSecretKeyDataSource(secretKeys);
-        var provider = SecretKeyProvider.Create(dataSource);
-        context.Http.Response.RegisterForDispose(provider);
-
-        return provider;
+        try
+        {
+            var provider = secretKeyProviderFactory.CreateStatic(secretKeys);
+            context.Http.Response.RegisterForDispose(provider);
+            return provider;
+        }
+        catch
+        {
+            secretKeys.DisposeAll();
+            throw;
+        }
     }
 }

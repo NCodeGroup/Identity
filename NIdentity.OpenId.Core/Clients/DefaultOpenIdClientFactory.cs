@@ -25,7 +25,8 @@ using NIdentity.OpenId.Logic;
 namespace NIdentity.OpenId.Clients;
 
 internal class DefaultOpenIdClientFactory(
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    ISecretKeyProviderFactory secretKeyProviderFactory
 ) : IOpenIdClientFactory
 {
     /// <inheritdoc />
@@ -37,6 +38,7 @@ internal class DefaultOpenIdClientFactory(
         return ValueTask.FromResult<OpenIdClient>(
             new DefaultOpenIdClient(
                 secretSerializer,
+                secretKeyProviderFactory,
                 openIdContext,
                 clientModel));
     }

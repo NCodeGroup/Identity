@@ -37,16 +37,6 @@ public class SecretKeyProvider : BaseDisposable, ISecretKeyProvider
     private ISecretKeyCollection? CollectionOrNull { get; set; }
 
     /// <summary>
-    /// Factory method that creates a new instance of the <see cref="SecretKeyProvider"/> class
-    /// with the specified <see cref="ISecretKeyDataSource"/> instance.
-    /// </summary>
-    /// <param name="dataSource">The <see cref="ISecretKeyDataSource"/> instance.</param>
-    /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    public static ISecretKeyProvider Create(ISecretKeyDataSource dataSource) => new SecretKeyProvider(dataSource);
-
-    private SecretKeyProvider(ISecretKeyDataSource dataSource) => DataSource = dataSource;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="SecretKeyProvider"/> class with the specified collection of <see cref="ISecretKeyDataSource"/> instances.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="ISecretKeyDataSource"/> instances to aggregate.</param>

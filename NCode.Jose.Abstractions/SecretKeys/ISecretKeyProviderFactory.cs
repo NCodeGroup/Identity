@@ -18,6 +18,9 @@
 
 namespace NCode.Jose.SecretKeys;
 
+/// <summary>
+/// Factory abstraction for creating new <see cref="ISecretKeyProvider"/> instances.
+/// </summary>
 public interface ISecretKeyProviderFactory
 {
     /// <summary>
@@ -36,5 +39,12 @@ public interface ISecretKeyProviderFactory
     /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
     ISecretKeyProvider Create(params ISecretKeyDataSource[] dataSources);
 
+    /// <summary>
+    /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance using a static collection of
+    /// <see cref="SecretKey"/> instances. The returned <see cref="ISecretKeyProvider"/> instance will not provide
+    /// change notifications.
+    /// </summary>
+    /// <param name="secretKeys">The collection of <see cref="SecretKey"/> instances.</param>
+    /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
     ISecretKeyProvider CreateStatic(IEnumerable<SecretKey> secretKeys);
 }

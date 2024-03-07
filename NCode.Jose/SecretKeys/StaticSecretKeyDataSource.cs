@@ -26,7 +26,7 @@ namespace NCode.Jose.SecretKeys;
 /// <summary>
 /// Provides an implementation of <see cref="ISecretKeyDataSource"/> that uses a static collection of <see cref="SecretKey"/> instances.
 /// </summary>
-public class StaticSecretKeyDataSource : ISecretKeyDataSource
+public sealed class StaticSecretKeyDataSource : ISecretKeyDataSource
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="StaticSecretKeyDataSource"/> class.

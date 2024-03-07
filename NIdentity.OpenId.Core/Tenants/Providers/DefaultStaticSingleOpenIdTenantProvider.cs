@@ -40,14 +40,16 @@ public class DefaultStaticSingleOpenIdTenantProvider(
     ISecretKeyProvider secretKeyProvider,
     ITenantStore tenantStore,
     IOpenIdTenantCache tenantCache,
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    ISecretKeyProviderFactory secretKeyProviderFactory
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
     openIdServer,
     tenantStore,
     tenantCache,
-    secretSerializer
+    secretSerializer,
+    secretKeyProviderFactory
 )
 {
     private OpenIdTenant? CachedTenant { get; set; }

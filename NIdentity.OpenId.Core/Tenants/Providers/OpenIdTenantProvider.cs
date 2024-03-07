@@ -44,7 +44,8 @@ public abstract class OpenIdTenantProvider(
     OpenIdServer openIdServer,
     ITenantStore tenantStore,
     IOpenIdTenantCache tenantCache,
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    ISecretKeyProviderFactory secretKeyProviderFactory
 ) : IOpenIdTenantProvider
 {
     [MemberNotNullWhen(true, nameof(TenantRouteOrNull))]
@@ -81,6 +82,11 @@ public abstract class OpenIdTenantProvider(
     /// Gets the <see cref="ISecretSerializer"/> used to serialize/deserialize secrets.
     /// </summary>
     protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    /// <summary>
+    /// Gets the <see cref="ISecretKeyProviderFactory"/> used to create <see cref="ISecretKeyProvider"/> instances.
+    /// </summary>
+    protected ISecretKeyProviderFactory SecretKeyProviderFactory { get; } = secretKeyProviderFactory;
 
     /// <inheritdoc />
     public abstract string ProviderCode { get; }
@@ -349,8 +355,7 @@ public abstract class OpenIdTenantProvider(
         try
         {
             // TODO: add support for a dynamic data source that re-fetches secrets from the store
-            var dataSource = new StaticSecretKeyDataSource(secretKeys);
-            var provider = SecretKeyProvider.Create(dataSource);
+            var provider = SecretKeyProviderFactory.CreateStatic(secretKeys);
             httpContext.Response.RegisterForDispose(provider);
             return provider;
         }

@@ -102,8 +102,7 @@ public class SettingCollection : ISettingCollection
         foreach (var currentSetting in Store.Values)
         {
             var settingName = currentSetting.Descriptor.Name;
-            if (newStore.ContainsKey(settingName)) continue;
-            newStore.Add(settingName, currentSetting);
+            newStore.TryAdd(settingName, currentSetting);
         }
 
         return new SettingCollection(newStore);

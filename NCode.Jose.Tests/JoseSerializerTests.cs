@@ -235,18 +235,18 @@ public class JoseSerializerTests : BaseTests
             ["customHeader"] = "customValue"
         };
 
-        if (!AlgorithmProvider.Algorithms.TryGetKeyManagementAlgorithm(
+        if (!AlgorithmProvider.Collection.TryGetKeyManagementAlgorithm(
                 keyManagementAlgorithmCode,
                 out var keyManagementAlgorithm))
             throw new InvalidOperationException();
 
-        if (!AlgorithmProvider.Algorithms.TryGetAuthenticatedEncryptionAlgorithm(
+        if (!AlgorithmProvider.Collection.TryGetAuthenticatedEncryptionAlgorithm(
                 encryptionAlgorithmCode,
                 out var encryptionAlgorithm))
             throw new InvalidOperationException();
 
         if (string.IsNullOrEmpty(compressionAlgorithmCode) ||
-            !AlgorithmProvider.Algorithms.TryGetCompressionAlgorithm(
+            !AlgorithmProvider.Collection.TryGetCompressionAlgorithm(
                 compressionAlgorithmCode,
                 out var compressionAlgorithm))
             compressionAlgorithm = null;
@@ -460,7 +460,7 @@ public class JoseSerializerTests : BaseTests
         var (controlKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
         var signatureAlgorithmCode = controlSettings.JwsHeaderValue(jwsAlgorithm);
 
-        if (!AlgorithmProvider.Algorithms.TryGetSignatureAlgorithm(
+        if (!AlgorithmProvider.Collection.TryGetSignatureAlgorithm(
                 signatureAlgorithmCode,
                 out var signatureAlgorithm))
             throw new InvalidOperationException();

@@ -16,6 +16,8 @@
 
 #endregion
 
+using NCode.Jose.Collections;
+
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
@@ -29,14 +31,14 @@ public class DefaultSecretKeyProviderFactory : ISecretKeyProviderFactory
     public static DefaultSecretKeyProviderFactory Singleton { get; } = new();
 
     /// <inheritdoc />
-    public ISecretKeyProvider Create(IEnumerable<ISecretKeyDataSource> dataSources) =>
+    public ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources) =>
         new SecretKeyProvider(dataSources);
 
     /// <inheritdoc />
-    public ISecretKeyProvider Create(params ISecretKeyDataSource[] dataSources) =>
+    public ISecretKeyProvider Create(params ICollectionDataSource<SecretKey>[] dataSources) =>
         Create(dataSources.AsEnumerable());
 
     /// <inheritdoc />
     public ISecretKeyProvider CreateStatic(IEnumerable<SecretKey> secretKeys) =>
-        Create(new StaticSecretKeyDataSource(secretKeys));
+        Create(new StaticCollectionDataSource<SecretKey>(secretKeys));
 }

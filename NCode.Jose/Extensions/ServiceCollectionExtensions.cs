@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.Collections;
 using NCode.Jose.Credentials;
 using NCode.Jose.SecretKeys;
 
@@ -54,7 +55,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ISecretKeyProvider, SecretKeyProvider>();
         services.TryAddSingleton<ISecretKeyFactory, SecretKeyFactory>();
         services.TryAddSingleton<ICredentialSelector, CredentialSelector>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAlgorithmDataSource, DefaultAlgorithmDataSource>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICollectionDataSource<Algorithm>, DefaultAlgorithmDataSource>());
         services.TryAddSingleton<IJoseSerializer, JoseSerializer>();
 
         return services;

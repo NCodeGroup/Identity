@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,12 +18,12 @@
 
 using Microsoft.Extensions.Primitives;
 
-namespace NCode.Jose.Algorithms;
+namespace NCode.Jose.Collections;
 
 /// <summary>
-/// Provides a collection of <see cref="Algorithm"/> instances and notifications when changes occur.
+/// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
 /// </summary>
-public interface IAlgorithmDataSource
+public interface ICollectionDataSource<out T> : IDisposable
 {
     /// <summary>
     /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
@@ -32,7 +31,7 @@ public interface IAlgorithmDataSource
     IChangeToken GetChangeToken();
 
     /// <summary>
-    /// Gets a read-only collection of <see cref="Algorithm"/> instances.
+    /// Gets a read-only collection of <typeparamref name="T"/> instances.
     /// </summary>
-    IEnumerable<Algorithm> Algorithms { get; }
+    IEnumerable<T> Collection { get; }
 }

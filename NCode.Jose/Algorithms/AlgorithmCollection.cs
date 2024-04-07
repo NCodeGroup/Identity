@@ -41,9 +41,9 @@ public class AlgorithmCollection : IAlgorithmCollection
     /// <summary>
     /// Initializes a new instance of the <see cref="AlgorithmCollection"/> class.
     /// </summary>
-    public AlgorithmCollection(IEnumerable<Algorithm> algorithms)
+    public AlgorithmCollection(IEnumerable<Algorithm> items)
     {
-        AlgorithmLookup = algorithms.ToDictionary(algorithm => (algorithm.Type, algorithm.Code));
+        AlgorithmLookup = items.ToDictionary(algorithm => (algorithm.Type, algorithm.Code));
     }
 
     /// <inheritdoc />

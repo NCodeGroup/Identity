@@ -33,7 +33,7 @@ public static class DisposableExtensions
     /// <param name="ignoreExceptions"><c>true</c> to ignore any exceptions thrown while disposing individual items.</param>
     public static void DisposeAll(this IEnumerable<IDisposable?> collection, bool ignoreExceptions = false)
     {
-        IList<Exception>? exceptions = null;
+        List<Exception>? exceptions = null;
 
         foreach (var item in collection)
         {
@@ -44,7 +44,7 @@ public static class DisposableExtensions
             catch (Exception exception)
             {
                 if (ignoreExceptions) continue;
-                exceptions ??= new List<Exception>();
+                exceptions ??= [];
                 exceptions.Add(exception);
             }
         }

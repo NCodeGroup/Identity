@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,12 +18,14 @@
 
 using Microsoft.Extensions.Primitives;
 
-namespace NCode.Jose.SecretKeys;
+namespace NCode.Jose.Collections;
 
 /// <summary>
-/// Provides a collection of <see cref="SecretKey"/> instances and notifications when changes occur.
+/// Provides the composition root (i.e. top-level collection) of <typeparamref name="TItem"/> instances by
+/// aggregating multiple data sources and providing change notifications.
 /// </summary>
-public interface ISecretKeyDataSource : IDisposable
+public interface ICollectionProvider<TItem, out TCollection> : IDisposable
+    where TCollection : IEnumerable<TItem>
 {
     /// <summary>
     /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
@@ -32,7 +33,7 @@ public interface ISecretKeyDataSource : IDisposable
     IChangeToken GetChangeToken();
 
     /// <summary>
-    /// Gets a read-only collection of <see cref="SecretKey"/> instances.
+    /// Gets a read-only collection of <typeparamref name="TItem"/> instances.
     /// </summary>
-    IEnumerable<SecretKey> SecretKeys { get; }
+    TCollection Collection { get; }
 }

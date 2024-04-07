@@ -23,14 +23,15 @@ using NCode.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Jose.Algorithms.Compression;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.Collections;
 using NCode.Jose.Infrastructure;
 
 namespace NCode.Jose.Algorithms;
 
 /// <summary>
-/// Provides an implementation of <see cref="IAlgorithmDataSource"/> that returns all the algorithms supported by this library.
+/// Provides a default implementation for a collection of <see cref="Algorithm"/> data sources supported by this library.
 /// </summary>
-public class DefaultAlgorithmDataSource : IAlgorithmDataSource
+public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm>
 {
     private IAesKeyWrap AesKeyWrap { get; }
 
@@ -44,10 +45,16 @@ public class DefaultAlgorithmDataSource : IAlgorithmDataSource
     }
 
     /// <inheritdoc />
+    public void Dispose()
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
 
     /// <inheritdoc />
-    public IEnumerable<Algorithm> Algorithms
+    public IEnumerable<Algorithm> Collection
     {
         get
         {

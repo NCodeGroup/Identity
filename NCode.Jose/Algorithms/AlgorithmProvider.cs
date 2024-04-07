@@ -17,144 +17,28 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Primitives;
-using NCode.Jose.Extensions;
-using NCode.Jose.Infrastructure;
+using NCode.Jose.Collections;
 
 namespace NCode.Jose.Algorithms;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="IAlgorithmProvider"/> interface.
 /// </summary>
-public class AlgorithmProvider : BaseDisposable, IAlgorithmProvider
+public class AlgorithmProvider : CollectionProvider<Algorithm, IAlgorithmCollection>, IAlgorithmProvider
 {
-    private object SyncObj { get; } = new();
-    private CancellationTokenSource? ChangeTokenSource { get; set; }
-    private IChangeToken? ConsumerChangeToken { get; set; }
-    private IDisposable? ChangeTokenRegistration { get; set; }
-    private CompositeAlgorithmDataSource DataSource { get; }
-    private IAlgorithmCollection? Collection { get; set; }
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="AlgorithmProvider"/> class with the specified collection of <see cref="IAlgorithmDataSource"/> instances.
+    /// Initializes a new instance of the <see cref="AlgorithmProvider"/> class with the specified collection of <see cref="ICollectionDataSource{Algorithm}"/> instances.
     /// </summary>
-    /// <param name="dataSources">A collection of <see cref="IAlgorithmDataSource"/> instances to aggregate.</param>
-    public AlgorithmProvider(IEnumerable<IAlgorithmDataSource> dataSources)
+    /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{Algorithm}"/> instances to aggregate.</param>
+    public AlgorithmProvider(IEnumerable<ICollectionDataSource<Algorithm>> dataSources)
+        : base(dataSources)
     {
-        DataSource = new CompositeAlgorithmDataSource(dataSources);
+        // nothing
     }
 
     /// <inheritdoc />
-    public IAlgorithmCollection Algorithms
+    protected override IAlgorithmCollection CreateCollection(IEnumerable<Algorithm> items)
     {
-        get
-        {
-            EnsureCollectionInitialized();
-            return Collection;
-        }
-    }
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-        if (IsDisposed || !disposing) return;
-
-        List<IDisposable> disposables = new() { DataSource };
-
-        lock (SyncObj)
-        {
-            if (IsDisposed) return;
-            IsDisposed = true;
-
-            if (ChangeTokenRegistration is not null)
-                disposables.Add(ChangeTokenRegistration);
-
-            if (ChangeTokenSource is not null)
-                disposables.Add(ChangeTokenSource);
-        }
-
-        disposables.DisposeAll();
-    }
-
-    /// <inheritdoc />
-    public IChangeToken GetChangeToken()
-    {
-        EnsureChangeTokenInitialized();
-        return ConsumerChangeToken;
-    }
-
-    [MemberNotNull(nameof(Collection))]
-    private void EnsureCollectionInitialized()
-    {
-        if (Collection is not null) return;
-        lock (SyncObj)
-        {
-            if (Collection is not null) return;
-
-            ThrowIfDisposed();
-            EnsureChangeTokenInitialized();
-            RefreshCollection();
-        }
-    }
-
-    [MemberNotNull(nameof(ConsumerChangeToken))]
-    private void EnsureChangeTokenInitialized()
-    {
-        if (ConsumerChangeToken is not null) return;
-        lock (SyncObj)
-        {
-            if (ConsumerChangeToken is not null) return;
-
-            ThrowIfDisposed();
-            SubscribeChangeTokenProducers();
-            RefreshConsumerChangeToken();
-        }
-    }
-
-    private void HandleChange()
-    {
-        CancellationTokenSource? oldTokenSource;
-
-        if (IsDisposed) return;
-        lock (SyncObj)
-        {
-            if (IsDisposed) return;
-
-            oldTokenSource = ChangeTokenSource;
-
-            // refresh the cached change token
-            if (oldTokenSource is not null)
-            {
-                RefreshConsumerChangeToken();
-            }
-
-            // refresh the cached collection
-            if (Collection is not null)
-            {
-                RefreshCollection();
-            }
-        }
-
-        oldTokenSource?.Cancel();
-        oldTokenSource?.Dispose();
-    }
-
-    private void SubscribeChangeTokenProducers()
-    {
-        ChangeTokenRegistration = ChangeToken.OnChange(DataSource.GetChangeToken, HandleChange);
-    }
-
-    [MemberNotNull(nameof(ConsumerChangeToken))]
-    private void RefreshConsumerChangeToken()
-    {
-        ChangeTokenSource = new CancellationTokenSource();
-        ConsumerChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
-    }
-
-    [MemberNotNull(nameof(Collection))]
-    private void RefreshCollection()
-    {
-        Collection = new AlgorithmCollection(DataSource.Algorithms);
+        return new AlgorithmCollection(items);
     }
 }

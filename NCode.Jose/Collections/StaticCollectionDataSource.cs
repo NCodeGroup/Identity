@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,27 +20,31 @@ using Microsoft.Extensions.Primitives;
 using NCode.Jose.Extensions;
 using NCode.Jose.Infrastructure;
 
-namespace NCode.Jose.SecretKeys;
+namespace NCode.Jose.Collections;
 
 /// <summary>
-/// Provides an implementation of <see cref="ISecretKeyDataSource"/> that uses a static collection of <see cref="SecretKey"/> instances.
+/// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that uses a static collection of <typeparamref name="T"/> instances.
 /// </summary>
-public sealed class StaticSecretKeyDataSource : ISecretKeyDataSource
+public sealed class StaticCollectionDataSource<T> : ICollectionDataSource<T>
 {
+    /// <inheritdoc />
+    public IEnumerable<T> Collection { get; }
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="StaticSecretKeyDataSource"/> class.
+    /// Initializes a new instance of the <see cref="collection"/> class.
     /// </summary>
-    /// <param name="secretKeys">The collection of <see cref="SecretKey"/> instances.</param>
-    public StaticSecretKeyDataSource(IEnumerable<SecretKey> secretKeys)
+    /// <param name="collection">The collection of <typeparamref name="T"/> instances.</param>
+    public StaticCollectionDataSource(IEnumerable<T> collection)
     {
-        SecretKeys = secretKeys.ToList();
+        Collection = collection.ToList();
     }
 
     /// <inheritdoc />
-    public IEnumerable<SecretKey> SecretKeys { get; }
-
-    /// <inheritdoc />
-    public void Dispose() => SecretKeys.DisposeAll();
+    public void Dispose()
+    {
+        var disposableCollection = Collection as IEnumerable<IDisposable>;
+        disposableCollection?.DisposeAll();
+    }
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken.Singleton;

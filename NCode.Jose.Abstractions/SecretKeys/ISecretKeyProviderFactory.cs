@@ -16,6 +16,8 @@
 
 #endregion
 
+using NCode.Jose.Collections;
+
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
@@ -25,19 +27,19 @@ public interface ISecretKeyProviderFactory
 {
     /// <summary>
     /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance
-    /// with the specified <see cref="ISecretKeyDataSource"/> collection.
+    /// with the specified <see cref="SecretKey"/> data source collection.
     /// </summary>
-    /// <param name="dataSources">The collection of <see cref="ISecretKeyDataSource"/> instances.</param>
+    /// <param name="dataSources">The collection of <see cref="SecretKey"/> data source instances.</param>
     /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    ISecretKeyProvider Create(IEnumerable<ISecretKeyDataSource> dataSources);
+    ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources);
 
     /// <summary>
     /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance
-    /// with the specified <see cref="ISecretKeyDataSource"/> collection.
+    /// with the specified <see cref="SecretKey"/> data source collection.
     /// </summary>
-    /// <param name="dataSources">The collection of <see cref="ISecretKeyDataSource"/> instances.</param>
+    /// <param name="dataSources">The collection of <see cref="SecretKey"/> data source instances.</param>
     /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    ISecretKeyProvider Create(params ISecretKeyDataSource[] dataSources);
+    ISecretKeyProvider Create(params ICollectionDataSource<SecretKey>[] dataSources);
 
     /// <summary>
     /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance using a static collection of

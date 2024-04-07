@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,23 +16,15 @@
 
 #endregion
 
-using Microsoft.Extensions.Primitives;
+using NCode.Jose.Collections;
 
 namespace NCode.Jose.Algorithms;
 
 /// <summary>
-/// Provides the composition root (i.e. top-level collection) of <see cref="Algorithm"/> instances by aggregating multiple
-/// <see cref="IAlgorithmDataSource"/> instances and providing change notifications.
+/// Provides the composition root (i.e. top-level collection) of <see cref="Algorithm"/> instances by
+/// aggregating multiple data sources and providing change notifications.
 /// </summary>
-public interface IAlgorithmProvider : IDisposable
+public interface IAlgorithmProvider : ICollectionProvider<Algorithm, IAlgorithmCollection>
 {
-    /// <summary>
-    /// Gets a read-only collection of <see cref="Algorithm"/> instances.
-    /// </summary>
-    IAlgorithmCollection Algorithms { get; }
-
-    /// <summary>
-    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
-    /// </summary>
-    IChangeToken GetChangeToken();
+    // nothing
 }

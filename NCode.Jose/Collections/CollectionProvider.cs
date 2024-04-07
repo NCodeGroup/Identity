@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -22,40 +22,37 @@ using Microsoft.Extensions.Primitives;
 using NCode.Jose.Extensions;
 using NCode.Jose.Infrastructure;
 
-namespace NCode.Jose.SecretKeys;
+namespace NCode.Jose.Collections;
 
 /// <summary>
-/// Provides an implementation of <see cref="ISecretKeyDataSource"/> that aggregates multiple <see cref="ISecretKeyDataSource"/> instances.
+/// Provides a default implementation for the <see cref="ICollectionProvider{TItem,TCollection}"/> interface.
 /// </summary>
-/// <remarks>
-/// Because this class is intended to be used with DI, it does not own the <see cref="ISecretKeyDataSource"/> instances.
-/// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
-/// </remarks>
-public class CompositeSecretKeyDataSource : BaseDisposable, ISecretKeyDataSource
+public abstract class CollectionProvider<TItem, TCollection> : BaseDisposable, ICollectionProvider<TItem, TCollection>
+    where TCollection : IEnumerable<TItem>
 {
     private object SyncObj { get; } = new();
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
-    private List<IDisposable>? ChangeTokenRegistrations { get; set; }
-    private IReadOnlyList<ISecretKeyDataSource> DataSources { get; }
-    private IEnumerable<SecretKey>? Collection { get; set; }
+    private IDisposable? ChangeTokenRegistration { get; set; }
+    private CompositeCollectionDataSource<TItem> DataSource { get; }
+    private TCollection? CollectionOrNull { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CompositeSecretKeyDataSource"/> class with the specified collection of <see cref="ISecretKeyDataSource"/> instances.
+    /// Initializes a new instance of the <see cref="CollectionProvider{TItem,TCollection}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
     /// </summary>
-    /// <param name="dataSources">A collection of <see cref="ISecretKeyDataSource"/> instances to aggregate.</param>
-    public CompositeSecretKeyDataSource(IEnumerable<ISecretKeyDataSource> dataSources)
+    /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
+    protected CollectionProvider(IEnumerable<ICollectionDataSource<TItem>> dataSources)
     {
-        DataSources = dataSources.ToList();
+        DataSource = new CompositeCollectionDataSource<TItem>(dataSources);
     }
 
     /// <inheritdoc />
-    public IEnumerable<SecretKey> SecretKeys
+    public TCollection Collection
     {
         get
         {
             EnsureCollectionInitialized();
-            return Collection;
+            return CollectionOrNull;
         }
     }
 
@@ -64,15 +61,15 @@ public class CompositeSecretKeyDataSource : BaseDisposable, ISecretKeyDataSource
     {
         if (IsDisposed || !disposing) return;
 
-        List<IDisposable> disposables = new();
+        List<IDisposable> disposables = [DataSource];
 
         lock (SyncObj)
         {
             if (IsDisposed) return;
             IsDisposed = true;
 
-            if (ChangeTokenRegistrations is { Count: > 0 })
-                disposables.AddRange(ChangeTokenRegistrations);
+            if (ChangeTokenRegistration is not null)
+                disposables.Add(ChangeTokenRegistration);
 
             if (ChangeTokenSource is not null)
                 disposables.Add(ChangeTokenSource);
@@ -88,13 +85,13 @@ public class CompositeSecretKeyDataSource : BaseDisposable, ISecretKeyDataSource
         return ConsumerChangeToken;
     }
 
-    [MemberNotNull(nameof(Collection))]
+    [MemberNotNull(nameof(CollectionOrNull))]
     private void EnsureCollectionInitialized()
     {
-        if (Collection is not null) return;
+        if (CollectionOrNull is not null) return;
         lock (SyncObj)
         {
-            if (Collection is not null) return;
+            if (CollectionOrNull is not null) return;
 
             ThrowIfDisposed();
             EnsureChangeTokenInitialized();
@@ -134,7 +131,7 @@ public class CompositeSecretKeyDataSource : BaseDisposable, ISecretKeyDataSource
             }
 
             // refresh the cached collection
-            if (Collection is not null)
+            if (CollectionOrNull is not null)
             {
                 RefreshCollection();
             }
@@ -146,9 +143,7 @@ public class CompositeSecretKeyDataSource : BaseDisposable, ISecretKeyDataSource
 
     private void SubscribeChangeTokenProducers()
     {
-        ChangeTokenRegistrations ??= new List<IDisposable>();
-        ChangeTokenRegistrations.AddRange(DataSources.Select(dataSource =>
-            ChangeToken.OnChange(dataSource.GetChangeToken, HandleChange)));
+        ChangeTokenRegistration = ChangeToken.OnChange(DataSource.GetChangeToken, HandleChange);
     }
 
     [MemberNotNull(nameof(ConsumerChangeToken))]
@@ -158,11 +153,16 @@ public class CompositeSecretKeyDataSource : BaseDisposable, ISecretKeyDataSource
         ConsumerChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
     }
 
-    [MemberNotNull(nameof(Collection))]
+    [MemberNotNull(nameof(CollectionOrNull))]
     private void RefreshCollection()
     {
-        Collection = DataSources.Count == 1 ?
-            DataSources[0].SecretKeys :
-            DataSources.SelectMany(dataSource => dataSource.SecretKeys);
+        CollectionOrNull = CreateCollection(DataSource.Collection);
     }
+
+    /// <summary>
+    /// Factory method to create a new <typeparamref name="TCollection"/> instance.
+    /// </summary>
+    /// <param name="items">The <see cref="IEnumerable{T}"/> collection of items.</param>
+    /// <returns>The newly created <typeparamref name="TCollection"/> instance.</returns>
+    protected abstract TCollection CreateCollection(IEnumerable<TItem> items);
 }

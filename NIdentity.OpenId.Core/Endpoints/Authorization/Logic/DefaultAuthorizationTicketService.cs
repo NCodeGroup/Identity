@@ -116,12 +116,12 @@ public class DefaultAuthorizationTicketService(
         var clientSettings = openIdClient.Settings;
 
         var signingCredentials = GetSigningCredentials(
-            AlgorithmProvider.Algorithms,
+            AlgorithmProvider.Collection,
             clientSettings.AccessTokenSigningAlgValuesSupported,
             secretKeys);
 
         var encryptionCredentials = GetEncryptionCredentials(
-            AlgorithmProvider.Algorithms,
+            AlgorithmProvider.Collection,
             clientSettings.AccessTokenEncryptionRequired,
             clientSettings.AccessTokenEncryptionAlgValuesSupported,
             clientSettings.AccessTokenEncryptionEncValuesSupported,
@@ -210,12 +210,12 @@ public class DefaultAuthorizationTicketService(
         var secretKeys = openIdTenant.SecretKeyProvider.Collection;
 
         var signingCredentials = GetSigningCredentials(
-            AlgorithmProvider.Algorithms,
+            AlgorithmProvider.Collection,
             clientSettings.IdTokenSigningAlgValuesSupported,
             secretKeys);
 
         var encryptionCredentials = GetEncryptionCredentials(
-            AlgorithmProvider.Algorithms,
+            AlgorithmProvider.Collection,
             clientSettings.IdTokenEncryptionRequired,
             clientSettings.IdTokenEncryptionAlgValuesSupported,
             clientSettings.IdTokenEncryptionEncValuesSupported,

@@ -69,7 +69,7 @@ public partial class JoseSerializer : IJoseSerializer
 
     private IAlgorithmProvider AlgorithmProvider { get; }
 
-    private IAlgorithmCollection AlgorithmCollection => AlgorithmProvider.Algorithms;
+    private IAlgorithmCollection AlgorithmCollection => AlgorithmProvider.Collection;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JoseSerializer"/> class.

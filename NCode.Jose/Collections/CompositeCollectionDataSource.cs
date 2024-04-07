@@ -22,49 +22,49 @@ using Microsoft.Extensions.Primitives;
 using NCode.Jose.Extensions;
 using NCode.Jose.Infrastructure;
 
-namespace NCode.Jose.Algorithms;
+namespace NCode.Jose.Collections;
 
 /// <summary>
-/// Provides an implementation of <see cref="IAlgorithmDataSource"/> that aggregates multiple <see cref="IAlgorithmDataSource"/> instances.
+/// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that aggregates multiple <see cref="ICollectionDataSource{T}"/> instances.
 /// </summary>
 /// <remarks>
-/// Because this class is intended to be used with DI, it does not own the <see cref="IAlgorithmDataSource"/> instances.
+/// Because this class is intended to be used with DI, it does not own the <see cref="ICollectionDataSource{T}"/> instances.
 /// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
 /// </remarks>
-public class CompositeAlgorithmDataSource : BaseDisposable, IAlgorithmDataSource
+public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataSource<T>
 {
     private object SyncObj { get; } = new();
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
     private List<IDisposable>? ChangeTokenRegistrations { get; set; }
-    private IReadOnlyList<IAlgorithmDataSource> DataSources { get; }
-    private IEnumerable<Algorithm>? Collection { get; set; }
+    private IReadOnlyList<ICollectionDataSource<T>> DataSources { get; }
+    private IEnumerable<T>? CollectionOrNull { get; set; }
+
+    /// <inheritdoc />
+    public IEnumerable<T> Collection
+    {
+        get
+        {
+            EnsureCollectionInitialized();
+            return CollectionOrNull;
+        }
+    }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CompositeAlgorithmDataSource"/> class with the specified collection of <see cref="IAlgorithmDataSource"/> instances.
+    /// Initializes a new instance of the <see cref="CompositeCollectionDataSource{T}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
     /// </summary>
-    /// <param name="dataSources">A collection of <see cref="IAlgorithmDataSource"/> instances to aggregate.</param>
-    public CompositeAlgorithmDataSource(IEnumerable<IAlgorithmDataSource> dataSources)
+    /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
+    public CompositeCollectionDataSource(IEnumerable<ICollectionDataSource<T>> dataSources)
     {
         DataSources = dataSources.ToList();
     }
 
     /// <inheritdoc />
-    public IEnumerable<Algorithm> Algorithms
-    {
-        get
-        {
-            EnsureCollectionInitialized();
-            return Collection;
-        }
-    }
-
-    /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (IsDisposed || !disposing) return;
+        if (!disposing || IsDisposed) return;
 
-        List<IDisposable> disposables = new();
+        List<IDisposable> disposables = [];
 
         lock (SyncObj)
         {
@@ -76,6 +76,10 @@ public class CompositeAlgorithmDataSource : BaseDisposable, IAlgorithmDataSource
 
             if (ChangeTokenSource is not null)
                 disposables.Add(ChangeTokenSource);
+
+            CollectionOrNull = null;
+            ChangeTokenRegistrations = null;
+            ChangeTokenSource = null;
         }
 
         disposables.DisposeAll();
@@ -88,13 +92,13 @@ public class CompositeAlgorithmDataSource : BaseDisposable, IAlgorithmDataSource
         return ConsumerChangeToken;
     }
 
-    [MemberNotNull(nameof(Collection))]
+    [MemberNotNull(nameof(CollectionOrNull))]
     private void EnsureCollectionInitialized()
     {
-        if (Collection is not null) return;
+        if (CollectionOrNull is not null) return;
         lock (SyncObj)
         {
-            if (Collection is not null) return;
+            if (CollectionOrNull is not null) return;
 
             ThrowIfDisposed();
             EnsureChangeTokenInitialized();
@@ -134,7 +138,7 @@ public class CompositeAlgorithmDataSource : BaseDisposable, IAlgorithmDataSource
             }
 
             // refresh the cached collection
-            if (Collection is not null)
+            if (CollectionOrNull is not null)
             {
                 RefreshCollection();
             }
@@ -146,7 +150,7 @@ public class CompositeAlgorithmDataSource : BaseDisposable, IAlgorithmDataSource
 
     private void SubscribeChangeTokenProducers()
     {
-        ChangeTokenRegistrations ??= new List<IDisposable>();
+        ChangeTokenRegistrations ??= [];
         ChangeTokenRegistrations.AddRange(DataSources.Select(dataSource =>
             ChangeToken.OnChange(dataSource.GetChangeToken, HandleChange)));
     }
@@ -158,11 +162,14 @@ public class CompositeAlgorithmDataSource : BaseDisposable, IAlgorithmDataSource
         ConsumerChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
     }
 
-    [MemberNotNull(nameof(Collection))]
+    [MemberNotNull(nameof(CollectionOrNull))]
     private void RefreshCollection()
     {
-        Collection = DataSources.Count == 1 ?
-            DataSources[0].Algorithms :
-            DataSources.SelectMany(dataSource => dataSource.Algorithms);
+        CollectionOrNull = DataSources.Count switch
+        {
+            0 => Enumerable.Empty<T>(),
+            1 => DataSources[0].Collection,
+            _ => DataSources.SelectMany(dataSource => dataSource.Collection)
+        };
     }
 }

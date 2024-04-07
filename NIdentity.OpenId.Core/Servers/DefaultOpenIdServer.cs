@@ -78,7 +78,7 @@ public class DefaultOpenIdServer(
         var encryptionEncValuesSupported = new List<string>();
         var encryptionZipValuesSupported = new List<string>();
 
-        foreach (var algorithm in AlgorithmProvider.Algorithms)
+        foreach (var algorithm in AlgorithmProvider.Collection)
         {
             if (string.IsNullOrEmpty(algorithm.Code)) continue;
             if (algorithm.Code == "dir") continue;

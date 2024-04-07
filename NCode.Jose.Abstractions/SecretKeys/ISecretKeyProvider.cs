@@ -17,23 +17,15 @@
 
 #endregion
 
-using Microsoft.Extensions.Primitives;
+using NCode.Jose.Collections;
 
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Provides the composition root (i.e. top-level collection) of <see cref="SecretKey"/> instances by aggregating multiple
-/// <see cref="ISecretKeyDataSource"/> instances and providing change notifications.
+/// Provides the composition root (i.e. top-level collection) of <see cref="SecretKey"/> instances by
+/// aggregating multiple data sources and providing change notifications.
 /// </summary>
-public interface ISecretKeyProvider : IDisposable
+public interface ISecretKeyProvider : ICollectionProvider<SecretKey, ISecretKeyCollection>
 {
-    /// <summary>
-    /// Gets a read-only collection of <see cref="SecretKey"/> instances.
-    /// </summary>
-    ISecretKeyCollection Collection { get; }
-
-    /// <summary>
-    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
-    /// </summary>
-    IChangeToken GetChangeToken();
+    // nothing
 }

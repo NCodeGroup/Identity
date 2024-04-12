@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace NCode.Jose.Infrastructure;
@@ -34,11 +35,10 @@ public abstract class BaseDisposable : IDisposable
     /// <summary>
     /// Throws an <see cref="ObjectDisposedException"/> if this instance has been disposed.
     /// </summary>
+    [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ThrowIfDisposed()
-    {
-        if (IsDisposed) throw new ObjectDisposedException(GetType().FullName);
-    }
+    protected void ThrowIfDisposed() =>
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
 
     /// <summary>
     /// Returns the specified <paramref name="value"/> if this instance has not been disposed; otherwise, throws an

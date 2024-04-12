@@ -20,7 +20,7 @@
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Provides a <see cref="SecretKey"/> implementation that is empty.
+/// Provides an <see cref="SecretKey"/> implementation that is empty.
 /// </summary>
 public sealed class EmptySecretKey : SecretKey
 {

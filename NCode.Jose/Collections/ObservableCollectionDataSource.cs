@@ -55,7 +55,7 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
     {
         if (!disposing || IsDisposed) return;
 
-        List<IDisposable> disposables = [];
+        List<IDisposable>? disposables;
 
         lock (SyncObj)
         {
@@ -63,6 +63,8 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
             IsDisposed = true;
 
             ObservableCollection.CollectionChanged -= HandleChange;
+
+            disposables = [];
 
             if (Owns && ObservableCollection is IEnumerable<IDisposable> disposableCollection)
             {

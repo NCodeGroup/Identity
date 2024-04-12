@@ -31,6 +31,7 @@ namespace NCode.Jose.Collections;
 /// <typeparam name="T">The type of items in the collection.</typeparam>
 public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionDataSource<T>
 {
+    private bool Owns { get; }
     private object SyncObj { get; } = new();
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private CancellationChangeToken? ChangeToken { get; set; }
@@ -40,8 +41,11 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
     /// Initializes a new instance of the <see cref="ObservableCollectionDataSource{T}"/> class with the specified <paramref name="observableCollection"/>.
     /// </summary>
     /// <param name="observableCollection">The collection of <typeparamref name="T"/> items.</param>
-    public ObservableCollectionDataSource(ObservableCollection<T> observableCollection)
+    /// <param name="owns">Indicates whether this collection will own the items and dispose of them
+    /// when this class is disposed. The default is <c>true</c>.</param>
+    public ObservableCollectionDataSource(ObservableCollection<T> observableCollection, bool owns = true)
     {
+        Owns = owns;
         ObservableCollection = observableCollection;
         ObservableCollection.CollectionChanged += HandleChange;
     }
@@ -60,7 +64,7 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
 
             ObservableCollection.CollectionChanged -= HandleChange;
 
-            if (ObservableCollection is IEnumerable<IDisposable> disposableCollection)
+            if (Owns && ObservableCollection is IEnumerable<IDisposable> disposableCollection)
             {
                 disposables.AddRange(disposableCollection);
             }
@@ -69,8 +73,6 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
             {
                 disposables.Add(ChangeTokenSource);
             }
-
-            ObservableCollection.Clear();
 
             ChangeTokenSource = null;
             ChangeToken = null;
@@ -129,5 +131,5 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
     }
 
     /// <inheritdoc />
-    public IEnumerable<T> Collection => ObservableCollection;
+    public IEnumerable<T> Collection => GetOrThrowObjectDisposed(ObservableCollection);
 }

@@ -64,12 +64,14 @@ public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataS
     {
         if (!disposing || IsDisposed) return;
 
-        List<IDisposable> disposables = [];
+        List<IDisposable>? disposables;
 
         lock (SyncObj)
         {
             if (IsDisposed) return;
             IsDisposed = true;
+
+            disposables = [];
 
             if (ChangeTokenRegistrations is { Count: > 0 })
                 disposables.AddRange(ChangeTokenRegistrations);

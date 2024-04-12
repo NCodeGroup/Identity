@@ -61,12 +61,14 @@ public abstract class CollectionProvider<TItem, TCollection> : BaseDisposable, I
     {
         if (IsDisposed || !disposing) return;
 
-        List<IDisposable> disposables = [DataSource];
+        List<IDisposable>? disposables;
 
         lock (SyncObj)
         {
             if (IsDisposed) return;
             IsDisposed = true;
+
+            disposables = [DataSource];
 
             if (ChangeTokenRegistration is not null)
                 disposables.Add(ChangeTokenRegistration);

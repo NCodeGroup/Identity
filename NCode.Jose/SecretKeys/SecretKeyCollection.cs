@@ -82,7 +82,7 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
         SecretKeys.DisposeAll();
     }
 
-    private IReadOnlyDictionary<string, SecretKey> LoadSecretKeysByKeyId()
+    private Dictionary<string, SecretKey> LoadSecretKeysByKeyId()
     {
         var dictionary = new Dictionary<string, SecretKey>(StringComparer.Ordinal);
 

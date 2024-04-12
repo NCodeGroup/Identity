@@ -27,7 +27,7 @@ namespace NCode.Jose.Algorithms;
 /// </summary>
 public class AlgorithmCollection : IAlgorithmCollection
 {
-    private IReadOnlyDictionary<(AlgorithmType type, string code), Algorithm> AlgorithmLookup { get; }
+    private Dictionary<(AlgorithmType type, string code), Algorithm> AlgorithmLookup { get; }
 
     /// <inheritdoc />
     public int Count => AlgorithmLookup.Count;

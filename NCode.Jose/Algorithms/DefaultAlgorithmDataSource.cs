@@ -29,7 +29,7 @@ using NCode.Jose.Infrastructure;
 namespace NCode.Jose.Algorithms;
 
 /// <summary>
-/// Provides a default implementation for a collection of <see cref="Algorithm"/> data sources supported by this library.
+/// Provides the default implementation for a data source collection of <see cref="Algorithm"/> instances supported by this library.
 /// </summary>
 public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm>
 {

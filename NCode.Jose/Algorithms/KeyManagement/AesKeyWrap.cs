@@ -19,7 +19,7 @@
 
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using NCode.CryptoMemory;
+using NCode.Jose.Buffers;
 using NCode.Jose.Exceptions;
 
 namespace NCode.Jose.Algorithms.KeyManagement;
@@ -115,7 +115,7 @@ public class AesKeyWrap : IAesKeyWrap
         Span<byte> a = stackalloc byte[sizeof(long)];
         DefaultIV.CopyTo(a);
 
-        using var lease = CryptoPool.Rent(contentKey.Length, out Memory<byte> leaseMemory);
+        using var lease = CryptoPool.Rent(contentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
         contentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> keyMemory = leaseMemory;
 
@@ -220,7 +220,7 @@ public class AesKeyWrap : IAesKeyWrap
                    R[i] = C[i]
         */
 
-        using var lease = CryptoPool.Rent(encryptedContentKey.Length, out Memory<byte> leaseMemory);
+        using var lease = CryptoPool.Rent(encryptedContentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
         encryptedContentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> encryptedKeyMemory = leaseMemory;
 

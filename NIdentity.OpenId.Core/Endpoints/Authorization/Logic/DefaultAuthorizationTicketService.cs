@@ -20,11 +20,11 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
-using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Identity.JsonWebTokens;
 using NCode.Jose;
 using NCode.Jose.Algorithms;
+using NCode.Jose.Buffers;
 using NCode.Jose.Credentials;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;

@@ -23,8 +23,8 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
-using NCode.CryptoMemory;
 using NCode.Jose;
+using NCode.Jose.Buffers;
 using NCode.Jose.Extensions;
 
 namespace NCode.Identity.JsonWebTokens;

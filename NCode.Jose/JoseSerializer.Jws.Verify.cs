@@ -20,8 +20,8 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using NCode.CryptoMemory;
 using NCode.Jose.Algorithms;
+using NCode.Jose.Buffers;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Json;
 using NCode.Jose.SecretKeys;

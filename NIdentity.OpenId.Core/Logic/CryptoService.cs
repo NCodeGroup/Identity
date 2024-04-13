@@ -20,9 +20,9 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Jose.Algorithms;
+using NCode.Jose.Buffers;
 using NCode.Jose.Infrastructure;
 
 namespace NIdentity.OpenId.Logic;

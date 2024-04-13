@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using NCode.Encoders;
 using NCode.Jose.Buffers;
+using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataProtection;
 using Secret = NIdentity.OpenId.DataContracts.Secret;
@@ -47,6 +48,29 @@ public class SecretSerializer : ISecretSerializer
     }
 
     /// <inheritdoc />
+    public IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<Secret> secrets, out bool requiresMigration)
+    {
+        var someRequiresMigration = false;
+        var results = new SortedSet<SecretKey>(SecretKeyExpiresWhenComparer.Singleton);
+        try
+        {
+            foreach (var secret in secrets)
+            {
+                results.Add(DeserializeSecret(secret, out var secretRequiresMigration));
+                someRequiresMigration |= secretRequiresMigration;
+            }
+        }
+        catch
+        {
+            results.DisposeAll(ignoreExceptions: true);
+            throw;
+        }
+
+        requiresMigration = someRequiresMigration;
+        return results;
+    }
+
+    /// <inheritdoc />
     public SecretKey DeserializeSecret(Secret secret, out bool requiresMigration)
     {
         var metadata = new KeyMetadata
@@ -67,7 +91,7 @@ public class SecretSerializer : ISecretSerializer
         };
     }
 
-    private SecretKey DeserializeCertificate(KeyMetadata metadata, Secret secret, out bool requiresMigration)
+    private AsymmetricSecretKey DeserializeCertificate(KeyMetadata metadata, Secret secret, out bool requiresMigration)
     {
         var protectedBytes = Base64Url.Decode(secret.ProtectedValue);
         using var lease = SecureMemoryPool<byte>.Shared.Rent(secret.UnprotectedSizeBytes);

@@ -29,12 +29,12 @@ namespace NCode.Jose.SecretKeys;
 public interface ISecretKeyFactory
 {
     /// <summary>
-    /// Factory method to create <see cref="SecretKey"/> instances from cryptographic key material in a <see cref="X509Certificate2"/>.
+    /// Factory method to create <see cref="AsymmetricSecretKey"/> instances from cryptographic key material in a <see cref="X509Certificate2"/>.
     /// </summary>
     /// <param name="metadata">The <see cref="KeyMetadata"/> for the secret key.</param>
     /// <param name="certificate">The <see cref="X509Certificate2"/> containing the cryptographic key material.</param>
     /// <returns>The newly created secret key.</returns>
-    SecretKey Create(KeyMetadata metadata, X509Certificate2 certificate);
+    AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2 certificate);
 
     /// <summary>
     /// Factory method to create <see cref="RsaSecretKey"/> instances from <c>PKCS#8</c> encoded cryptographic key material.

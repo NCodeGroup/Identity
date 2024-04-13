@@ -43,9 +43,9 @@ public abstract class OpenIdClient
     public abstract IKnownSettingCollection Settings { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyProvider"/> that can be used to access the client's secret keys.
+    /// Gets the <see cref="ISecretKeyCollection"/> that can be used to access the client's secret keys.
     /// </summary>
-    public abstract ISecretKeyProvider SecretKeys { get; }
+    public abstract ISecretKeyCollection SecretKeys { get; }
 
     /// <summary>
     /// Gets the collection of redirect addresses registered for this client.

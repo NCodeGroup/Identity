@@ -29,20 +29,22 @@ internal class DefaultOpenIdAuthenticatedClient(
     JsonElement? confirmation
 ) : OpenIdAuthenticatedClient
 {
-    /// <inheritdoc />
-    public override string ClientId => publicClient.ClientId;
+    private OpenIdClient PublicClient { get; } = publicClient;
 
     /// <inheritdoc />
-    public override bool IsDisabled => publicClient.IsDisabled;
+    public override string ClientId => PublicClient.ClientId;
 
     /// <inheritdoc />
-    public override IKnownSettingCollection Settings => publicClient.Settings;
+    public override bool IsDisabled => PublicClient.IsDisabled;
 
     /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeys => publicClient.SecretKeys;
+    public override IKnownSettingCollection Settings => PublicClient.Settings;
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<Uri> RedirectUris => publicClient.RedirectUris;
+    public override ISecretKeyCollection SecretKeys => PublicClient.SecretKeys;
+
+    /// <inheritdoc />
+    public override IReadOnlyCollection<Uri> RedirectUris => PublicClient.RedirectUris;
 
     /// <inheritdoc />
     public override bool IsAuthenticated => true;

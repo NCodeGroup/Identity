@@ -103,7 +103,7 @@ internal class BasicClientAuthenticationHandler(
         var clientSecret = UriDecode(encodedClientSecret);
         var clientSecretBytes = Encoding.UTF8.GetBytes(clientSecret);
 
-        foreach (var secretKey in publicClient.SecretKeys.Collection.OfType<SymmetricSecretKey>())
+        foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
         {
             if (!CryptographicOperations.FixedTimeEquals(secretKey.KeyBytes, clientSecretBytes))
                 continue;

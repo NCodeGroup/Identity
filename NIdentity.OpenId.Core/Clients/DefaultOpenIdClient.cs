@@ -16,10 +16,8 @@
 
 #endregion
 
-using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Settings;
 
@@ -27,28 +25,29 @@ namespace NIdentity.OpenId.Clients;
 
 internal class DefaultOpenIdClient(
     ISecretSerializer secretSerializer,
-    ISecretKeyProviderFactory secretKeyProviderFactory,
-    OpenIdContext context,
     Client client
 ) : OpenIdClient
 {
+    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private Client ClientModel { get; } = client;
+
     private KnownSettingCollection? SettingsOrNull { get; set; }
-    private ISecretKeyProvider? SecretKeysOrNull { get; set; }
+    private SecretKeyCollection? SecretKeysOrNull { get; set; }
 
     /// <inheritdoc />
-    public override string ClientId => client.ClientId;
+    public override string ClientId => ClientModel.ClientId;
 
     /// <inheritdoc />
-    public override bool IsDisabled => client.IsDisabled;
+    public override bool IsDisabled => ClientModel.IsDisabled;
 
     /// <inheritdoc />
     public override IKnownSettingCollection Settings => SettingsOrNull ??= LoadSettings();
 
     /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeys => SecretKeysOrNull ??= LoadSecretKeys();
+    public override ISecretKeyCollection SecretKeys => SecretKeysOrNull ??= LoadSecretKeys();
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<Uri> RedirectUris => client.RedirectUris;
+    public override IReadOnlyCollection<Uri> RedirectUris => ClientModel.RedirectUris;
 
     /// <inheritdoc />
     public override bool IsAuthenticated => false;
@@ -57,22 +56,8 @@ internal class DefaultOpenIdClient(
     public override OpenIdAuthenticatedClient? AuthenticatedClient => null;
 
     private KnownSettingCollection LoadSettings() =>
-        new(new SettingCollection(client.Settings));
+        new(new SettingCollection(ClientModel.Settings));
 
-    private ISecretKeyProvider LoadSecretKeys()
-    {
-        // TODO: add support for a dynamic data source that re-fetches secrets from the store
-        var secretKeys = secretSerializer.DeserializeSecrets(client.Secrets);
-        try
-        {
-            var provider = secretKeyProviderFactory.CreateStatic(secretKeys);
-            context.Http.Response.RegisterForDispose(provider);
-            return provider;
-        }
-        catch
-        {
-            secretKeys.DisposeAll();
-            throw;
-        }
-    }
+    private SecretKeyCollection LoadSecretKeys() =>
+        new(SecretSerializer.DeserializeSecrets(ClientModel.Secrets, out _));
 }

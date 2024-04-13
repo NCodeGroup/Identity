@@ -478,7 +478,7 @@ public class DefaultAuthorizationEndpointHandler(
         try
         {
             var parameters = new ValidateJwtParameters()
-                .UseValidationKeys(openIdClient.SecretKeys.Collection)
+                .UseValidationKeys(openIdClient.SecretKeys)
                 .ValidateIssuer(openIdClient.ClientId)
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();

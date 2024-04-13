@@ -49,7 +49,7 @@ public class SecretKeyFactory : ISecretKeyFactory
     }
 
     /// <inheritdoc />
-    public SecretKey Create(KeyMetadata metadata, X509Certificate2 certificate)
+    public AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2 certificate)
     {
         if (!certificate.HasPrivateKey)
             throw new ArgumentException("The certificate does not contain a private key.", nameof(certificate));

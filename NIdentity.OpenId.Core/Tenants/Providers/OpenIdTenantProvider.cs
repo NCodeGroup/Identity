@@ -351,7 +351,7 @@ public abstract class OpenIdTenantProvider(
         IPropertyBag propertyBag,
         IEnumerable<Secret> secrets)
     {
-        var secretKeys = SecretSerializer.DeserializeSecrets(secrets);
+        var secretKeys = SecretSerializer.DeserializeSecrets(secrets, out _);
         try
         {
             // TODO: add support for a dynamic data source that re-fetches secrets from the store

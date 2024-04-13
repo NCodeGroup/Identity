@@ -27,14 +27,18 @@ namespace NIdentity.OpenId.Logic;
 /// </summary>
 public interface ISecretSerializer
 {
-    // /// <summary>
-    // /// Deserializes a collection of <see cref="Secret"/> instances by loading and converting them into a collection of
-    // /// <see cref="SecretKey"/> instances.
-    // /// The resulting collection is sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
-    // /// </summary>
-    // /// <param name="secrets">The <see cref="Secret"/> instances to deserialize into <see cref="SecretKey"/> instances.</param>
-    // /// <returns>The collection of <see cref="SecretKey"/> instances.</returns>
-    // IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<Secret> secrets);
+    /// <summary>
+    /// Deserializes a collection of <see cref="Secret"/> instances by loading and converting them into a collection of
+    /// <see cref="SecretKey"/> instances.
+    /// The resulting collection is sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
+    /// </summary>
+    /// <param name="secrets">The <see cref="Secret"/> instances to deserialize into <see cref="SecretKey"/> instances.</param>
+    /// <param name="requiresMigration"><c>true</c> if at least one <see cref="Secret"/>
+    /// should be reprotected before being persisted back to long-term storage,
+    /// <c>false</c> otherwise. Migration might be requested when the default
+    /// protection key has changed, for instance.</param>
+    /// <returns>The collection of <see cref="SecretKey"/> instances.</returns>
+    IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<Secret> secrets, out bool requiresMigration);
 
     /// <summary>
     /// Deserializes a <see cref="Secret"/> instance by loading and converting it into a disposable <see cref="SecretKey"/> instance.

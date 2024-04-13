@@ -30,13 +30,13 @@ internal class SecureMemory<T> : IMemoryOwner<T>
     /// <inheritdoc />
     public Memory<T> Memory { get; }
 
-    internal SecureMemory(SecureMemoryPool<T>? pool, int byteCount)
+    internal SecureMemory(SecureMemoryPool<T>? pool, int count)
     {
         Pool = pool;
 
         // https://devblogs.microsoft.com/dotnet/internals-of-the-poh/
-        var byteArray = GC.AllocateUninitializedArray<T>(byteCount, pinned: true);
-        Memory = MemoryMarshal.CreateFromPinnedArray(byteArray, 0, byteCount);
+        var pinnedArray = GC.AllocateUninitializedArray<T>(count, pinned: true);
+        Memory = MemoryMarshal.CreateFromPinnedArray(pinnedArray, 0, count);
     }
 
     /// <inheritdoc />

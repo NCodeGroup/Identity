@@ -48,9 +48,7 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
     public SecretKeyCollection(IEnumerable<SecretKey> secretKeys, bool owns = true)
     {
         Owns = owns;
-        SecretKeys = secretKeys
-            .OrderByDescending(secretKey => secretKey.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue)
-            .ToList();
+        SecretKeys = secretKeys.Order(SecretKeyExpiresWhenComparer.Singleton).ToList();
     }
 
     /// <summary>

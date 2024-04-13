@@ -21,7 +21,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using NCode.CryptoMemory;
+using NCode.Jose.Buffers;
 using NCode.Jose.Credentials;
 using Nerdbank.Streams;
 

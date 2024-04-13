@@ -18,13 +18,9 @@
 
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 
 namespace NCode.Jose.Buffers;
-
-public class SecureMemoryPoolManager
-{
-    private ConcurrentBag<IDisposable> Pools { get; }
-}
 
 /// <summary>
 /// Provides a resource pool that enables reusing instances of memory buffers
@@ -47,6 +43,28 @@ public class SecureMemoryPool<T> : MemoryPool<T>
     /// <inheritdoc />
     public override int MaxBufferSize => Array.MaxLength;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SecureMemoryPool{T}"/> class.
+    /// </summary>
+    public SecureMemoryPool()
+    {
+        Gen2GcCallback.Register(state => ((SecureMemoryPool<T>)state).TrimMemory(), this);
+    }
+
+    private bool TrimMemory()
+    {
+        var memoryInfo = GC.GetGCMemoryInfo();
+
+        const double highPressureThreshold = 0.90;
+        var isPressureHigh = memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * highPressureThreshold;
+        if (isPressureHigh)
+        {
+            MemoryQueue.Clear();
+        }
+
+        return true;
+    }
+
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
@@ -57,17 +75,24 @@ public class SecureMemoryPool<T> : MemoryPool<T>
     }
 
     /// <inheritdoc />
-    public override IMemoryOwner<T> Rent(int minByteCount = -1)
+    public override IMemoryOwner<T> Rent(int minBufferSize = -1)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
+        ArgumentOutOfRangeException.ThrowIfLessThan(minBufferSize, -1);
 
-        if (minByteCount <= PageSize)
+        if (minBufferSize == 0)
+        {
+            return EmptyMemory<T>.Singleton;
+        }
+
+        var byteCount = minBufferSize == -1 ? PageSize : minBufferSize * Marshal.SizeOf<T>();
+        if (byteCount <= PageSize)
         {
             return MemoryQueue.TryDequeue(out var memory) ? memory : new SecureMemory<T>(this, PageSize);
         }
 
         // non-pooled
-        return new SecureMemory<T>(null, minByteCount);
+        return new SecureMemory<T>(null, minBufferSize);
     }
 
     internal void Return(SecureMemory<T> memory)

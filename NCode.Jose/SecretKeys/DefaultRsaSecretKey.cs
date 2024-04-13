@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using NCode.CryptoMemory;
 using NCode.Jose.Extensions;
 
 namespace NCode.Jose.SecretKeys;
@@ -41,39 +40,38 @@ public class DefaultRsaSecretKey : RsaSecretKey
     public override int KeySizeBits { get; }
 
     /// <inheritdoc />
-    public override ReadOnlySpan<byte> Pkcs8PrivateKey => MemoryOwner.Memory.Span;
+    public override ReadOnlySpan<byte> Pkcs8PrivateKey => Pkcs8PrivateKeyBytes.Memory.Span[..Pkcs8PrivateKeySizeBytes];
 
     /// <inheritdoc />
     public override X509Certificate2? Certificate { get; }
 
-    private IMemoryOwner<byte> MemoryOwner { get; }
+    private IMemoryOwner<byte> Pkcs8PrivateKeyBytes { get; }
+
+    private int Pkcs8PrivateKeySizeBytes { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RsaSecretKey"/> class with the specified <c>PKCS#8</c> key material
     /// and optional certificate.
     /// </summary>
     /// <param name="metadata">The metadata for the secret key.</param>
-    /// <param name="keySizeBits">The length of the key material in bits.</param>
-    /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
+    /// <param name="modulusSizeBits">The size of the RSA modulus in bits.</param>
+    /// <param name="pkcs8PrivateKeyBytes">The cryptographic key material using <c>PKCS#8</c> encoding.</param>
+    /// <param name="pkcs8PrivateKeySizeBytes">The length of the <c>PKCS#8</c> key material in bytes.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
-    public DefaultRsaSecretKey(KeyMetadata metadata, int keySizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
+    public DefaultRsaSecretKey(
+        KeyMetadata metadata,
+        int modulusSizeBits,
+        IMemoryOwner<byte> pkcs8PrivateKeyBytes,
+        int pkcs8PrivateKeySizeBytes,
+        X509Certificate2? certificate = null)
     {
         Debug.Assert(certificate == null || (certificate.GetKeyAlgorithm() == Oid && !certificate.HasPrivateKey));
 
         Metadata = metadata;
-        KeySizeBits = keySizeBits;
+        KeySizeBits = modulusSizeBits;
         Certificate = certificate;
-
-        MemoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length, zeroOnDispose: true);
-        try
-        {
-            pkcs8PrivateKey.CopyTo(MemoryOwner.Memory.Span);
-        }
-        catch
-        {
-            Dispose();
-            throw;
-        }
+        Pkcs8PrivateKeyBytes = pkcs8PrivateKeyBytes;
+        Pkcs8PrivateKeySizeBytes = pkcs8PrivateKeySizeBytes;
     }
 
     /// <inheritdoc />
@@ -81,7 +79,7 @@ public class DefaultRsaSecretKey : RsaSecretKey
     {
         if (!disposing) return;
         Certificate?.Dispose();
-        MemoryOwner.Dispose();
+        Pkcs8PrivateKeyBytes.Dispose();
     }
 
     /// <inheritdoc />

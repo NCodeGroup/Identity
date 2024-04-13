@@ -38,11 +38,13 @@ public abstract class SecretKey : IDisposable
 
     /// <summary>
     /// Gets the size, in bits, of the key material.
+    /// For asymmetric keys, this is the size of the modulus.
     /// </summary>
     public abstract int KeySizeBits { get; }
 
     /// <summary>
     /// Gets the size, in bytes, of the key material.
+    /// For asymmetric keys, this is the size of the modulus.
     /// </summary>
     public virtual int KeySizeBytes => (KeySizeBits + 7) >> 3;
 

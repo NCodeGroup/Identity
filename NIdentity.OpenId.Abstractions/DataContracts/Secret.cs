@@ -19,9 +19,6 @@
 
 namespace NIdentity.OpenId.DataContracts;
 
-// TODO: add versioning
-// TODO: add data protection
-
 /// <summary>
 /// Contains the configuration for a cryptographic secret.
 /// </summary>
@@ -30,18 +27,18 @@ public class Secret : ISupportId
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
     /// </summary>
-    public long Id { get; set; }
+    public required long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the tenant identifier for this entity.
     /// </summary>
-    public string TenantId { get; set; } = string.Empty;
+    public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the natural key for this entity.
     /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
-    public string SecretId { get; set; } = string.Empty;
+    public required string SecretId { get; init; }
 
     /// <summary>
     /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to
@@ -49,38 +46,47 @@ public class Secret : ISupportId
     /// Valid values are defined in RFC 7517 Section 4.2:
     /// https://tools.ietf.org/html/rfc7517#section-4.2
     /// </summary>
-    public string? Use { get; set; }
+    public string? Use { get; init; }
 
     /// <summary>
     /// Gets or sets the intended algorithm for use with this secret. This property is optional and may be
     /// <c>null</c> to indicate that this secret is intended for use with any compatible algorithm.
     /// </summary>
-    public string? Algorithm { get; set; }
+    public string? Algorithm { get; init; }
 
     /// <summary>
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.
     /// </summary>
-    public DateTimeOffset CreatedWhen { get; set; }
+    public required DateTimeOffset CreatedWhen { get; init; }
 
     /// <summary>
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid.
     /// </summary>
-    public DateTimeOffset ExpiresWhen { get; set; }
+    public required DateTimeOffset ExpiresWhen { get; init; }
 
     /// <summary>
     /// Gets or sets a value that specifies the type of secret.
     /// See <see cref="SecretConstants.SecretTypes"/> for possible values.
     /// </summary>
-    public string SecretType { get; set; } = string.Empty;
+    public required string SecretType { get; init; }
 
     /// <summary>
-    /// Gets or sets a value that specifies how <see cref="EncodedValue"/> is encoded to/from a string.
-    /// See <see cref="SecretConstants.EncodingTypes"/> for possible values.
+    /// Gets or sets the size, in bits, of the key material.
+    /// For asymmetric keys, this is the size of the modulus.
+    /// For symmetric keys, this is the size of the actual key material.
     /// </summary>
-    public string EncodingType { get; set; } = string.Empty;
+    public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets or sets the encoded value of the secret.
+    /// Gets or sets the size, in bytes, of the unprotected key material.
+    /// For asymmetric keys, this is the size of the key material using the <c>PKCS#8</c> encoding.
+    /// For symmetric keys, this is the size of the actual key material.
     /// </summary>
-    public string EncodedValue { get; set; } = string.Empty;
+    public required int UnprotectedSizeBytes { get; init; }
+
+    /// <summary>
+    /// Gets or sets the protected value of the key material.
+    /// The key material is protected using the <c>Data Protection APIs</c> and then <c>base64url</c> encoded.
+    /// </summary>
+    public required string ProtectedValue { get; init; }
 }

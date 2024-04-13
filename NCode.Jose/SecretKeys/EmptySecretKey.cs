@@ -35,9 +35,6 @@ public sealed class EmptySecretKey : SecretKey
     /// <inheritdoc />
     public override int KeySizeBits => 0;
 
-    /// <inheritdoc />
-    public override int KeySizeBytes => 0;
-
     private EmptySecretKey()
     {
         // nothing

@@ -317,7 +317,7 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         }
 
         // can't use span/stackalloc because DeriveKeyFromHash doesn't
-        var secretPrependBytes = GC.AllocateUninitializedArray<byte>(sizeof(int));
+        var secretPrependBytes = GC.AllocateUninitializedArray<byte>(sizeof(int), pinned: false);
         var secretAppendBytes = GetSecretAppendBytes(algorithm, apu, apv, keySizeBits);
 
         var reps = (keySizeBits + hashSizeBits - 1) / hashSizeBits;
@@ -366,7 +366,7 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             // key size bits
             sizeof(int);
 
-        var bytes = GC.AllocateUninitializedArray<byte>(secretAppendByteCount);
+        var bytes = GC.AllocateUninitializedArray<byte>(secretAppendByteCount, pinned: false);
         var pos = bytes.AsSpan();
 
         // algorithm length prefix

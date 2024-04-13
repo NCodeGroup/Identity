@@ -78,6 +78,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEnc
         var aes = Aes.Create();
         Debug.Assert(aes.BlockSize == BlockSizeBits);
 
+        // no point in using SecureMemory here since Aes clones the key anyway
         var bytes = GC.AllocateUninitializedArray<byte>(key.Length, pinned: true);
         try
         {

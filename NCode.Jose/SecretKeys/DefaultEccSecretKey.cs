@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using NCode.CryptoMemory;
 using NCode.Jose.Extensions;
 
 namespace NCode.Jose.SecretKeys;
@@ -42,12 +41,14 @@ public class DefaultEccSecretKey : EccSecretKey
     public override int KeySizeBits { get; }
 
     /// <inheritdoc />
-    public override ReadOnlySpan<byte> Pkcs8PrivateKey => MemoryOwner.Memory.Span;
+    public override ReadOnlySpan<byte> Pkcs8PrivateKey => Pkcs8PrivateKeyBytes.Memory.Span[..Pkcs8PrivateKeySizeBytes];
 
     /// <inheritdoc />
     public override X509Certificate2? Certificate { get; }
 
-    private IMemoryOwner<byte> MemoryOwner { get; }
+    private IMemoryOwner<byte> Pkcs8PrivateKeyBytes { get; }
+
+    private int Pkcs8PrivateKeySizeBytes { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EccSecretKey"/> class with the specified <c>PKCS#8</c> key material
@@ -55,26 +56,23 @@ public class DefaultEccSecretKey : EccSecretKey
     /// </summary>
     /// <param name="metadata">The metadata for the secret key.</param>
     /// <param name="curveSizeBits">The size of the ECC curve in bits.</param>
-    /// <param name="pkcs8PrivateKey">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
+    /// <param name="pkcs8PrivateKeyBytes">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
+    /// <param name="pkcs8PrivateKeySizeBytes">The length of the <c>PKCS#8</c> key material in bytes.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
-    public DefaultEccSecretKey(KeyMetadata metadata, int curveSizeBits, ReadOnlySpan<byte> pkcs8PrivateKey, X509Certificate2? certificate = null)
+    public DefaultEccSecretKey(
+        KeyMetadata metadata,
+        int curveSizeBits,
+        IMemoryOwner<byte> pkcs8PrivateKeyBytes,
+        int pkcs8PrivateKeySizeBytes,
+        X509Certificate2? certificate = null)
     {
         Debug.Assert(certificate == null || (certificate.GetKeyAlgorithm() == Oid && !certificate.HasPrivateKey));
 
         Metadata = metadata;
         KeySizeBits = curveSizeBits;
         Certificate = certificate;
-
-        MemoryOwner = new HeapMemoryManager(pkcs8PrivateKey.Length, zeroOnDispose: true);
-        try
-        {
-            pkcs8PrivateKey.CopyTo(MemoryOwner.Memory.Span);
-        }
-        catch
-        {
-            Dispose();
-            throw;
-        }
+        Pkcs8PrivateKeyBytes = pkcs8PrivateKeyBytes;
+        Pkcs8PrivateKeySizeBytes = pkcs8PrivateKeySizeBytes;
     }
 
     /// <inheritdoc />
@@ -82,7 +80,7 @@ public class DefaultEccSecretKey : EccSecretKey
     {
         if (!disposing) return;
         Certificate?.Dispose();
-        MemoryOwner.Dispose();
+        Pkcs8PrivateKeyBytes.Dispose();
     }
 
     /// <inheritdoc />

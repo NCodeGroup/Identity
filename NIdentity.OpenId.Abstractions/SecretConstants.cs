@@ -32,7 +32,7 @@ public static class SecretConstants
     public static class SecretTypes
     {
         /// <summary>
-        /// Indicates that a <see cref="Secret"/> represents an <c>x509 certificate</c> secret key.
+        /// Indicates that a <see cref="Secret"/> represents a <c>x509 certificate</c> secret key.
         /// The underlying key material may be <c>RSA</c> or <c>ECC</c>.
         /// </summary>
         public const string Certificate = "x509";
@@ -51,27 +51,5 @@ public static class SecretConstants
         /// Indicates that a <see cref="Secret"/> represents an <c>Elliptic-Curve</c> secret key without a certificate.
         /// </summary>
         public const string Ecc = "ecc";
-    }
-
-    /// <summary>
-    /// Contains constants for the possible values of the <see cref="Secret.EncodingType"/> property.
-    /// </summary>
-    public static class EncodingTypes
-    {
-        /// <summary>
-        /// Indicates that a <see cref="Secret"/> is not encoded and instead stored as plain-text.
-        /// Primarily only used for password-based key derivation (<c>PBES2</c>).
-        /// </summary>
-        public const string None = "none";
-
-        /// <summary>
-        /// Indicates that a <see cref="Secret"/> is encoded as a byte array using base64 encoding.
-        /// </summary>
-        public const string Base64 = "base64";
-
-        /// <summary>
-        /// Indicates that a <see cref="Secret"/> is encoded using the <c>PEM</c> format.
-        /// </summary>
-        public const string Pem = "pem";
     }
 }

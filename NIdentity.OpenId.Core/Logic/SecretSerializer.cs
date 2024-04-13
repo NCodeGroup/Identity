@@ -19,12 +19,11 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
-using NCode.CryptoMemory;
 using NCode.Encoders;
-using NCode.Jose.Extensions;
-using NCode.Jose.Infrastructure;
+using NCode.Jose.Buffers;
 using NCode.Jose.SecretKeys;
-using NIdentity.OpenId.DataContracts;
+using NIdentity.OpenId.DataProtection;
+using Secret = NIdentity.OpenId.DataContracts.Secret;
 
 namespace NIdentity.OpenId.Logic;
 
@@ -33,39 +32,22 @@ namespace NIdentity.OpenId.Logic;
 /// </summary>
 public class SecretSerializer : ISecretSerializer
 {
+    private ISecureDataProtector DataProtector { get; }
     private ISecretKeyFactory SecretKeyFactory { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SecretSerializer"/> class.
     /// </summary>
+    /// <param name="dataProtector">The <see cref="ISecureDataProtector"/> instance.</param>
     /// <param name="secretKeyFactory">The <see cref="ISecretKeyFactory"/> instance.</param>
-    public SecretSerializer(ISecretKeyFactory secretKeyFactory)
+    public SecretSerializer(ISecureDataProtector dataProtector, ISecretKeyFactory secretKeyFactory)
     {
+        DataProtector = dataProtector;
         SecretKeyFactory = secretKeyFactory;
     }
 
     /// <inheritdoc />
-    public IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<Secret> secrets)
-    {
-        var results = new SortedSet<SecretKey>(SecretKeyExpiresWhenComparer.Singleton);
-        try
-        {
-            foreach (var secret in secrets)
-            {
-                results.Add(DeserializeSecret(secret));
-            }
-        }
-        catch
-        {
-            results.DisposeAll(ignoreExceptions: true);
-            throw;
-        }
-
-        return results;
-    }
-
-    /// <inheritdoc />
-    public SecretKey DeserializeSecret(Secret secret)
+    public SecretKey DeserializeSecret(Secret secret, out bool requiresMigration)
     {
         var metadata = new KeyMetadata
         {
@@ -77,133 +59,104 @@ public class SecretSerializer : ISecretSerializer
         };
         return secret.SecretType switch
         {
-            SecretConstants.SecretTypes.Certificate => DeserializeCertificate(metadata, secret),
-            SecretConstants.SecretTypes.Symmetric => DeserializeSymmetric(metadata, secret),
-            SecretConstants.SecretTypes.Rsa => DeserializeRsa(metadata, secret),
-            SecretConstants.SecretTypes.Ecc => DeserializeEcc(metadata, secret),
+            SecretConstants.SecretTypes.Certificate => DeserializeCertificate(metadata, secret, out requiresMigration),
+            SecretConstants.SecretTypes.Symmetric => DeserializeSymmetric(metadata, secret, out requiresMigration),
+            SecretConstants.SecretTypes.Rsa => DeserializeRsa(metadata, secret, out requiresMigration),
+            SecretConstants.SecretTypes.Ecc => DeserializeEcc(metadata, secret, out requiresMigration),
             _ => throw new InvalidOperationException($"The '{secret.SecretType}' secret type is not supported.")
         };
     }
 
-    private SecretKey DeserializeCertificate(KeyMetadata metadata, Secret secret)
+    private SecretKey DeserializeCertificate(KeyMetadata metadata, Secret secret, out bool requiresMigration)
     {
-        // the certificate is owned by the secret
+        var protectedBytes = Base64Url.Decode(secret.ProtectedValue);
+        using var lease = SecureMemoryPool<byte>.Shared.Rent(secret.UnprotectedSizeBytes);
 
-        switch (secret.EncodingType)
-        {
-            case SecretConstants.EncodingTypes.Pem:
-            {
-                var certificate = X509Certificate2.CreateFromPem(secret.EncodedValue);
-                try
-                {
-                    return SecretKeyFactory.Create(metadata, certificate);
-                }
-                catch
-                {
-                    certificate.Dispose();
-                    throw;
-                }
-            }
+        var unprotectResult = DataProtector.TryUnprotect(
+            protectedBytes,
+            lease.Memory.Span,
+            out var bytesWritten,
+            out requiresMigration);
 
-            case SecretConstants.EncodingTypes.Base64:
-            {
-                using var _ = DecodeBase64(secret.EncodedValue, out var bytes);
-                var certificate = new X509Certificate2(bytes);
-                try
-                {
-                    return SecretKeyFactory.Create(metadata, certificate);
-                }
-                catch
-                {
-                    certificate.Dispose();
-                    throw;
-                }
-            }
+        Debug.Assert(unprotectResult && bytesWritten == secret.UnprotectedSizeBytes);
+        var certificateBytes = lease.Memory.Span[..bytesWritten];
 
-            default:
-                throw InvalidEncodingType(secret.EncodingType, "certificate");
-        }
-    }
-
-    private SecretKey DeserializeSymmetric(KeyMetadata metadata, Secret secret)
-    {
-        switch (secret.EncodingType)
-        {
-            case SecretConstants.EncodingTypes.None:
-                return SecretKeyFactory.CreateSymmetric(metadata, secret.EncodedValue);
-
-            case SecretConstants.EncodingTypes.Base64:
-            {
-                using var _ = DecodeBase64(secret.EncodedValue, out var bytes);
-                return SecretKeyFactory.CreateSymmetric(metadata, bytes);
-            }
-
-            default:
-                throw InvalidEncodingType(secret.EncodingType, "symmetric");
-        }
-    }
-
-    private SecretKey DeserializeRsa(KeyMetadata metadata, Secret secret)
-    {
-        switch (secret.EncodingType)
-        {
-            case SecretConstants.EncodingTypes.Pem:
-                return SecretKeyFactory.CreateRsaPem(metadata, secret.EncodedValue);
-
-            case SecretConstants.EncodingTypes.Base64:
-            {
-                using var _ = DecodeBase64(secret.EncodedValue, out var bytes);
-                return SecretKeyFactory.CreateRsaPkcs8(metadata, bytes);
-            }
-
-            default:
-                throw InvalidEncodingType(secret.EncodingType, "RSA");
-        }
-    }
-
-    private SecretKey DeserializeEcc(KeyMetadata metadata, Secret secret)
-    {
-        switch (secret.EncodingType)
-        {
-            case SecretConstants.EncodingTypes.Pem:
-                return SecretKeyFactory.CreateEccPem(metadata, secret.EncodedValue);
-
-            case SecretConstants.EncodingTypes.Base64:
-            {
-                using var _ = DecodeBase64(secret.EncodedValue, out var bytes);
-                return SecretKeyFactory.CreateEccPkcs8(metadata, bytes);
-            }
-
-            default:
-                throw InvalidEncodingType(secret.EncodingType, "ECC");
-        }
-    }
-
-    private static InvalidOperationException InvalidEncodingType(string encodingType, string keyType) =>
-        new($"The '{encodingType}' encoding type is not supported when deserializing {keyType} secrets.");
-
-    private static IDisposable DecodeBase64(ReadOnlySpan<char> chars, out Span<byte> bytes)
-    {
-        if (chars.Length == 0)
-        {
-            bytes = Span<byte>.Empty;
-            return EmptyDisposable.Singleton;
-        }
-
-        var maxByteCount = Base64Url.GetByteCountForDecode(chars.Length);
-        var lease = CryptoPool.Rent(maxByteCount, isSensitive: true, out bytes);
+        var certificate = new X509Certificate2(certificateBytes);
         try
         {
-            var result = Convert.TryFromBase64Chars(chars, bytes, out var bytesWritten);
-            Debug.Assert(result && bytesWritten > 0 && bytesWritten <= maxByteCount);
-            bytes = bytes[..bytesWritten];
+            // fyi, the certificate is owned by the secret
+            return SecretKeyFactory.Create(metadata, certificate);
+        }
+        catch
+        {
+            certificate.Dispose();
+            throw;
+        }
+    }
+
+    private SymmetricSecretKey DeserializeSymmetric(KeyMetadata metadata, Secret secret, out bool requiresMigration)
+    {
+        var protectedBytes = Base64Url.Decode(secret.ProtectedValue);
+        var lease = SecureMemoryPool<byte>.Shared.Rent(secret.UnprotectedSizeBytes);
+        try
+        {
+            var unprotectResult = DataProtector.TryUnprotect(
+                protectedBytes,
+                lease.Memory.Span,
+                out var bytesWritten,
+                out requiresMigration);
+
+            Debug.Assert(unprotectResult && bytesWritten == secret.UnprotectedSizeBytes);
+            return SecretKeyFactory.CreateSymmetric(metadata, lease, bytesWritten);
         }
         catch
         {
             lease.Dispose();
             throw;
         }
+    }
 
-        return lease;
+    private RsaSecretKey DeserializeRsa(KeyMetadata metadata, Secret secret, out bool requiresMigration)
+    {
+        var protectedBytes = Base64Url.Decode(secret.ProtectedValue);
+        var lease = SecureMemoryPool<byte>.Shared.Rent(secret.UnprotectedSizeBytes);
+        try
+        {
+            var unprotectResult = DataProtector.TryUnprotect(
+                protectedBytes,
+                lease.Memory.Span,
+                out var bytesWritten,
+                out requiresMigration);
+
+            Debug.Assert(unprotectResult && bytesWritten == secret.UnprotectedSizeBytes);
+            return SecretKeyFactory.CreateRsa(metadata, secret.KeySizeBits, lease, bytesWritten);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+    }
+
+    private EccSecretKey DeserializeEcc(KeyMetadata metadata, Secret secret, out bool requiresMigration)
+    {
+        var protectedBytes = Base64Url.Decode(secret.ProtectedValue);
+        var lease = SecureMemoryPool<byte>.Shared.Rent(secret.UnprotectedSizeBytes);
+        try
+        {
+            var unprotectResult = DataProtector.TryUnprotect(
+                protectedBytes,
+                lease.Memory.Span,
+                out var bytesWritten,
+                out requiresMigration);
+
+            Debug.Assert(unprotectResult && bytesWritten == secret.UnprotectedSizeBytes);
+            return SecretKeyFactory.CreateEcc(metadata, secret.KeySizeBits, lease, bytesWritten);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 }

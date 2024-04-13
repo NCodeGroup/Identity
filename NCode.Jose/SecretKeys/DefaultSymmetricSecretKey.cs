@@ -18,16 +18,12 @@
 #endregion
 
 using System.Buffers;
-using NCode.CryptoMemory;
 
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="SymmetricSecretKey"/> abstraction.
 /// </summary>
-/// <remarks>
-/// This implementation stores the key material in unmanaged memory so that it is pinned (cannot be moved/copied by the GC).
-/// </remarks>
 public class DefaultSymmetricSecretKey : SymmetricSecretKey
 {
     /// <inheritdoc />
@@ -37,32 +33,24 @@ public class DefaultSymmetricSecretKey : SymmetricSecretKey
     public override int KeySizeBits => KeySizeBytes << 3;
 
     /// <inheritdoc />
-    public override int KeySizeBytes => MemoryOwner.Memory.Length;
+    public override int KeySizeBytes { get; }
 
     /// <inheritdoc />
-    public override ReadOnlySpan<byte> KeyBytes => MemoryOwner.Memory.Span;
+    public override ReadOnlySpan<byte> KeyBytes => MemoryOwner.Memory.Span[..KeySizeBytes];
 
     private IMemoryOwner<byte> MemoryOwner { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SymmetricSecretKey"/> class by coping the specified key bytes.
+    /// Initializes a new instance of the <see cref="DefaultSymmetricSecretKey"/> class with the specified cryptographic material.
     /// </summary>
     /// <param name="metadata">The metadata for the secret key.</param>
-    /// <param name="keyBytes">The cryptographic material for the secret key.</param>
-    public DefaultSymmetricSecretKey(KeyMetadata metadata, ReadOnlySpan<byte> keyBytes)
+    /// <param name="bytes">The cryptographic material for the secret key.</param>
+    /// <param name="byteCount">The size of the cryptographic material in bytes.</param>
+    public DefaultSymmetricSecretKey(KeyMetadata metadata, IMemoryOwner<byte> bytes, int byteCount)
     {
         Metadata = metadata;
-
-        MemoryOwner = new HeapMemoryManager(keyBytes.Length, zeroOnDispose: true);
-        try
-        {
-            keyBytes.CopyTo(MemoryOwner.Memory.Span);
-        }
-        catch
-        {
-            Dispose();
-            throw;
-        }
+        KeySizeBytes = byteCount;
+        MemoryOwner = bytes;
     }
 
     /// <inheritdoc />

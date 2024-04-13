@@ -31,9 +31,6 @@ namespace NCode.Jose.SecretKeys;
 /// </summary>
 public class SecretKeyFactory : ISecretKeyFactory
 {
-    // TODO: configure?
-    private static MemoryPool<byte> MemoryPool => SecureMemoryPool<byte>.Shared;
-
     private static X509Certificate2? RemovePrivateKey(X509Certificate2? certificate)
     {
         if (certificate is null || !certificate.HasPrivateKey)
@@ -174,7 +171,7 @@ public class SecretKeyFactory : ISecretKeyFactory
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<byte> bytes)
     {
         var byteCount = bytes.Length;
-        var lease = MemoryPool.Rent(byteCount);
+        var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
         try
         {
             return CreateSymmetric(metadata, lease, byteCount);
@@ -190,7 +187,7 @@ public class SecretKeyFactory : ISecretKeyFactory
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<char> password)
     {
         var byteCount = Encoding.UTF8.GetByteCount(password);
-        var lease = MemoryPool.Rent(byteCount);
+        var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
         try
         {
             var bytesWritten = Encoding.UTF8.GetBytes(password, lease.Memory.Span);
@@ -219,7 +216,7 @@ public class SecretKeyFactory : ISecretKeyFactory
         var byteCount = 4096;
         while (true)
         {
-            var lease = MemoryPool.Rent(byteCount);
+            var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
             try
             {
                 if (key.TryExportPkcs8PrivateKey(lease.Memory.Span, out var bytesWritten))

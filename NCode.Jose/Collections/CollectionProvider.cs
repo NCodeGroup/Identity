@@ -68,6 +68,7 @@ public abstract class CollectionProvider<TItem, TCollection> : BaseDisposable, I
             if (IsDisposed) return;
             IsDisposed = true;
 
+            // fyi, we own the composite data source but not the individual data sources
             disposables = [DataSource];
 
             if (ChangeTokenRegistration is not null)

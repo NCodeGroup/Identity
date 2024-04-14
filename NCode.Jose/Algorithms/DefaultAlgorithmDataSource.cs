@@ -45,12 +45,6 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
     }
 
     /// <inheritdoc />
-    public void Dispose()
-    {
-        // nothing
-    }
-
-    /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
 
     /// <inheritdoc />

@@ -73,6 +73,8 @@ public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataS
 
             disposables = [];
 
+            // fyi, since the data sources are from DI, and we don't own them, we therefore don't dispose them
+
             if (ChangeTokenRegistrations is { Count: > 0 })
                 disposables.AddRange(ChangeTokenRegistrations);
 

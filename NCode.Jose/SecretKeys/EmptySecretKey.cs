@@ -30,18 +30,15 @@ public sealed class EmptySecretKey : SecretKey
     public static SecretKey Singleton { get; } = new EmptySecretKey();
 
     /// <inheritdoc />
+    public override string KeyType => string.Empty;
+
+    /// <inheritdoc />
     public override KeyMetadata Metadata => default;
 
     /// <inheritdoc />
     public override int KeySizeBits => 0;
 
     private EmptySecretKey()
-    {
-        // nothing
-    }
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
     {
         // nothing
     }

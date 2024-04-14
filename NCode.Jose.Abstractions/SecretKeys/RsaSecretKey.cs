@@ -31,6 +31,9 @@ public abstract class RsaSecretKey : AsymmetricSecretKey
     /// </summary>
     public const string Oid = "1.2.840.113549.1.1.1";
 
+    /// <inheritdoc />
+    public override string KeyType => SecretKeyTypes.Rsa;
+
     /// <summary>
     /// Factory method to create an <see cref="RSA"/> instance from the current <c>RSA</c> key material.
     /// </summary>

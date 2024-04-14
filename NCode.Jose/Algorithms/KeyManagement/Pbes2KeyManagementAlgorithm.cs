@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using NCode.Encoders;
+using NCode.Jose.Buffers;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
 using NCode.Jose.Json;
@@ -153,10 +154,18 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
             stackalloc byte[KeySizeBytes] :
             GC.AllocateUninitializedArray<byte>(KeySizeBytes, pinned: true);
 
+        using var _ = CryptoPool.Rent(
+            validatedSecretKey.KeySizeBytes,
+            isSensitive: true,
+            out Span<byte> encryptionKey);
+
+        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+
         try
         {
             Rfc2898DeriveBytes.Pbkdf2(
-                validatedSecretKey.KeyBytes,
+                encryptionKey,
                 salt,
                 newKek,
                 iterationCount,
@@ -247,10 +256,18 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
             stackalloc byte[KeySizeBytes] :
             GC.AllocateUninitializedArray<byte>(KeySizeBytes, pinned: true);
 
+        using var _ = CryptoPool.Rent(
+            validatedSecretKey.KeySizeBytes,
+            isSensitive: true,
+            out Span<byte> encryptionKey);
+
+        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+
         try
         {
             Rfc2898DeriveBytes.Pbkdf2(
-                validatedSecretKey.KeyBytes,
+                encryptionKey,
                 salt,
                 newKek,
                 iterationCount,

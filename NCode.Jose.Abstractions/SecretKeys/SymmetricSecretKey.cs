@@ -24,8 +24,11 @@ namespace NCode.Jose.SecretKeys;
 /// </summary>
 public abstract class SymmetricSecretKey : SecretKey
 {
+    /// <inheritdoc />
+    public override string KeyType => SecretKeyTypes.Symmetric;
+
     /// <summary>
-    /// Gets the key material.
+    /// Exports the key material to a <see cref="byte"/> buffer.
     /// </summary>
-    public abstract ReadOnlySpan<byte> KeyBytes { get; }
+    public abstract bool TryExportPrivateKey(Span<byte> buffer, out int bytesWritten);
 }

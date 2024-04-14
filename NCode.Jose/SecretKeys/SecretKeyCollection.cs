@@ -19,65 +19,40 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using NCode.Jose.Extensions;
-using NCode.Jose.Infrastructure;
 
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretKeyCollection"/> interface.
 /// </summary>
-public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
+public class SecretKeyCollection : ISecretKeyCollection
 {
-    private bool Owns { get; }
     private IReadOnlyCollection<SecretKey> SecretKeys { get; }
     private IReadOnlyDictionary<string, SecretKey>? SecretKeysByKeyIdOrNull { get; set; }
     private IReadOnlyDictionary<string, SecretKey> SecretKeysByKeyId => SecretKeysByKeyIdOrNull ??= LoadSecretKeysByKeyId();
 
     /// <inheritdoc />
-    public int Count => GetOrThrowObjectDisposed(SecretKeys).Count;
+    public int Count => SecretKeys.Count;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of
-    /// <see cref="SecretKey"/> instances. The collection will be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/>
+    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> instances.
+    /// The collection will be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/>
     /// property.
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    /// <param name="owns">Indicates whether this new instance will own the <see cref="SecretKey"/> instances
-    /// and dispose of them when this class is disposed. The default is <c>true</c>.</param>
-    public SecretKeyCollection(IEnumerable<SecretKey> secretKeys, bool owns = true)
+    public SecretKeyCollection(IEnumerable<SecretKey> secretKeys)
     {
-        Owns = owns;
         SecretKeys = secretKeys.Order(SecretKeyExpiresWhenComparer.Singleton).ToList();
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of
-    /// <see cref="SecretKey"/> instances. The collection is used as-is and should already be sorted descending by the
-    /// <see cref="KeyMetadata.ExpiresWhen"/> property.
+    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> instances.
+    /// The collection is used as-is and should already be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    /// <param name="owns">Indicates whether the new collection will own the <see cref="SecretKey"/> instances
-    /// and dispose them when done. The default is <c>true</c>.</param>
-    public SecretKeyCollection(IReadOnlyCollection<SecretKey> secretKeys, bool owns = true)
+    public SecretKeyCollection(IReadOnlyCollection<SecretKey> secretKeys)
     {
-        Owns = owns;
         SecretKeys = secretKeys;
-    }
-
-    /// <summary>
-    /// When overridden in a derived class, releases the unmanaged resources used by this instance,
-    /// and optionally releases any managed resources.
-    /// </summary>
-    /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
-    /// to release only unmanaged resources.</param>
-    protected override void Dispose(bool disposing)
-    {
-        if (!disposing || IsDisposed) return;
-        IsDisposed = true;
-
-        if (!Owns) return;
-        SecretKeys.DisposeAll();
     }
 
     private Dictionary<string, SecretKey> LoadSecretKeysByKeyId()
@@ -96,11 +71,11 @@ public class SecretKeyCollection : BaseDisposable, ISecretKeyCollection
 
     /// <inheritdoc />
     public bool TryGetByKeyId(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey) =>
-        GetOrThrowObjectDisposed(SecretKeysByKeyId).TryGetValue(keyId, out secretKey);
+        SecretKeysByKeyId.TryGetValue(keyId, out secretKey);
 
     /// <inheritdoc />
     public IEnumerator<SecretKey> GetEnumerator() =>
-        GetOrThrowObjectDisposed(SecretKeys).GetEnumerator();
+        SecretKeys.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() =>
         GetEnumerator();

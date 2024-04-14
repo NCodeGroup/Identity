@@ -53,28 +53,4 @@ public static class SecretKeyExtensions
 
         return typedSecretKey;
     }
-
-    /// <summary>
-    /// Factory method to create and initialize an <see cref="AsymmetricAlgorithm"/> instance using the current <c>PKCS#8</c> key material.
-    /// </summary>
-    /// <param name="secretKey">The <see cref="AsymmetricSecretKey"/> instance.</param>
-    /// <param name="factory">The factory method to create an instance of <typeparamref name="T"/>.</param>
-    /// <typeparam name="T">The newly initialized instance of <typeparamref name="T"/>.</typeparam>
-    /// <returns>The cryptographic algorithm that derives from <see cref="AsymmetricAlgorithm"/>.</returns>
-    public static T ExportAlgorithm<T>(this AsymmetricSecretKey secretKey, Func<T> factory)
-        where T : AsymmetricAlgorithm
-    {
-        var algorithm = factory();
-        try
-        {
-            algorithm.ImportPkcs8PrivateKey(secretKey.Pkcs8PrivateKey, out _);
-        }
-        catch
-        {
-            algorithm.Dispose();
-            throw;
-        }
-
-        return algorithm;
-    }
 }

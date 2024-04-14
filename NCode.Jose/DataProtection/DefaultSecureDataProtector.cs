@@ -20,13 +20,15 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 
-namespace NIdentity.OpenId.DataProtection;
+namespace NCode.Jose.DataProtection;
 
-public class DefaultSecureDataProtector(IPersistedDataProtector dataProtector) : ISecureDataProtector
+// https://devblogs.microsoft.com/dotnet/internals-of-the-poh/
+
+public class DefaultSecureDataProtector(
+    IPersistedDataProtector dataProtector
+) : ISecureDataProtector
 {
     private IPersistedDataProtector DataProtector { get; } = dataProtector;
-
-    // Reference: https://devblogs.microsoft.com/dotnet/internals-of-the-poh/
 
     /// <inheritdoc />
     public byte[] Protect(ReadOnlySpan<byte> plaintext)

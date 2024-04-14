@@ -17,7 +17,9 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Security.Cryptography;
+using NCode.Jose.Buffers;
 using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
@@ -79,9 +81,17 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     /// <inheritdoc />
     public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
     {
-        var validatedSecurityKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
-        return KeyedHashFunction(validatedSecurityKey.KeyBytes, inputData, signature, out bytesWritten);
+        using var _ = CryptoPool.Rent(
+            validatedSecretKey.KeySizeBytes,
+            isSensitive: true,
+            out Span<byte> encryptionKey);
+
+        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+
+        return KeyedHashFunction(encryptionKey, inputData, signature, out bytesWritten);
     }
 
     /// <inheritdoc />

@@ -17,33 +17,57 @@
 
 #endregion
 
-using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using NCode.Jose.Buffers;
+using NCode.Jose.DataProtection;
 
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecretKeyFactory"/> abstraction.
 /// </summary>
-public class SecretKeyFactory : ISecretKeyFactory
+public class SecretKeyFactory(
+    ISecureDataProtector dataProtector
+) : ISecretKeyFactory
 {
-    private static X509Certificate2? RemovePrivateKey(X509Certificate2? certificate)
+    private ISecureDataProtector DataProtector { get; } = dataProtector;
+
+    #region Symmetric
+
+    private DefaultSymmetricSecretKey CreateSymmetric(
+        KeyMetadata metadata,
+        int keySizeBytes,
+        byte[] protectedPrivateKey
+    ) => new(
+        DataProtector,
+        metadata,
+        keySizeBytes,
+        protectedPrivateKey);
+
+    /// <inheritdoc />
+    public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<byte> bytes)
     {
-        if (certificate is null || !certificate.HasPrivateKey)
-            return certificate;
-
-        var publicBytes = certificate.Export(X509ContentType.Cert);
-        certificate.Dispose();
-
-        certificate = new X509Certificate2(publicBytes);
-        Debug.Assert(!certificate.HasPrivateKey);
-
-        return certificate;
+        var keySizeBytes = bytes.Length;
+        var protectedPrivateKey = DataProtector.Protect(bytes);
+        return CreateSymmetric(metadata, keySizeBytes, protectedPrivateKey);
     }
+
+    /// <inheritdoc />
+    public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<char> password)
+    {
+        var keySizeBytes = Encoding.UTF8.GetByteCount(password);
+        using var lease = SecureMemoryPool<byte>.Shared.Rent(keySizeBytes);
+        var bytesWritten = Encoding.UTF8.GetBytes(password, lease.Memory.Span);
+        Debug.Assert(bytesWritten == keySizeBytes);
+        return CreateSymmetric(metadata, lease.Memory.Span[..keySizeBytes]);
+    }
+
+    #endregion
+
+    #region Asymmetric
 
     /// <inheritdoc />
     public AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2 certificate)
@@ -57,181 +81,136 @@ public class SecretKeyFactory : ISecretKeyFactory
             ExpiresWhen = metadata.ExpiresWhen ?? certificate.NotAfter
         };
 
-        using var rsa = certificate.GetRSAPrivateKey();
-        if (rsa != null)
-            return CreateRsa(newMetadata, rsa, certificate);
+        using var ecDiffieHellman = certificate.GetECDiffieHellmanPrivateKey();
+        if (ecDiffieHellman != null)
+            return CreateEcc(newMetadata, ecDiffieHellman, certificate);
 
         using var ecDsa = certificate.GetECDsaPrivateKey();
         if (ecDsa != null)
             return CreateEcc(newMetadata, ecDsa, certificate);
 
-        using var ecDiffieHellman = certificate.GetECDiffieHellmanPrivateKey();
-        if (ecDiffieHellman != null)
-            return CreateEcc(newMetadata, ecDiffieHellman, certificate);
+        using var rsa = certificate.GetRSAPrivateKey();
+        if (rsa != null)
+            return CreateRsa(newMetadata, rsa, certificate);
 
         var algorithm = certificate.GetKeyAlgorithm();
         throw new NotSupportedException($"The certificate uses a key algorithm '{algorithm}' that is not supported.");
     }
 
+    private delegate T AsymmetricSecretKeyFactoryDelegate<out T>(
+        byte[] protectedPkcs8PrivateKey,
+        byte[]? certificateRawData
+    ) where T : AsymmetricSecretKey;
+
+    private T CreateAsymmetric<T>(
+        AsymmetricAlgorithm asymmetricAlgorithm,
+        X509Certificate? certificate,
+        AsymmetricSecretKeyFactoryDelegate<T> factory
+    ) where T : AsymmetricSecretKey
+    {
+        // TODO: should we validate the algorithm from the certificate matches the algorithm from the key?
+        var protectedPkcs8PrivateKey = ExportProtectedPkcs8PrivateKey(asymmetricAlgorithm);
+        var certificateRawData = certificate?.Export(X509ContentType.Cert); // this will not include the private key
+        return factory(protectedPkcs8PrivateKey, certificateRawData);
+    }
+
+    private byte[] ExportProtectedPkcs8PrivateKey(AsymmetricAlgorithm asymmetricAlgorithm)
+    {
+        var byteCount = SecureMemoryPool<byte>.PageSize;
+        while (true)
+        {
+            using var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
+
+            if (asymmetricAlgorithm.TryExportPkcs8PrivateKey(lease.Memory.Span, out var bytesWritten))
+            {
+                return DataProtector.Protect(lease.Memory.Span[..bytesWritten]);
+            }
+
+            byteCount = checked(byteCount * 2);
+        }
+    }
+
+    #endregion
+
     #region RSA
 
-    /// <inheritdoc />
-    public RsaSecretKey CreateRsa(
+    private DefaultRsaSecretKey CreateRsa(
         KeyMetadata metadata,
         int modulusSizeBits,
-        IMemoryOwner<byte> pkcs8PrivateKeyBytes,
-        int pkcs8PrivateKeySizeBytes,
-        X509Certificate2? certificate = null) =>
-        new DefaultRsaSecretKey(
-            metadata,
-            modulusSizeBits,
-            pkcs8PrivateKeyBytes,
-            pkcs8PrivateKeySizeBytes,
-            RemovePrivateKey(certificate));
+        byte[] protectedPkcs8PrivateKey,
+        byte[]? certificateRawData
+    ) => new(
+        DataProtector,
+        metadata,
+        modulusSizeBits,
+        protectedPkcs8PrivateKey,
+        certificateRawData);
 
     /// <inheritdoc />
     public RsaSecretKey CreateRsa(KeyMetadata metadata, RSA key, X509Certificate2? certificate = null) =>
-        CreateAsymmetric<RsaSecretKey>(key, (bytes, byteCount) => CreateRsa(
+        CreateAsymmetric<RsaSecretKey>(key, certificate, (keyBytes, certificateBytes) => CreateRsa(
             metadata,
             key.KeySize,
-            bytes,
-            byteCount,
-            certificate));
+            keyBytes,
+            certificateBytes));
 
     /// <inheritdoc />
-    public RsaSecretKey CreateRsaPem(KeyMetadata metadata, ReadOnlySpan<char> chars)
+    public RsaSecretKey CreateRsaPem(KeyMetadata metadata, ReadOnlySpan<char> chars, X509Certificate2? certificate = null)
     {
         using var key = RSA.Create();
         key.ImportFromPem(chars);
-        return CreateRsa(metadata, key);
+        return CreateRsa(metadata, key, certificate);
     }
 
     /// <inheritdoc />
-    public RsaSecretKey CreateRsaPkcs8(KeyMetadata metadata, ReadOnlySpan<byte> bytes)
+    public RsaSecretKey CreateRsaPkcs8(KeyMetadata metadata, ReadOnlySpan<byte> bytes, X509Certificate2? certificate = null)
     {
         using var key = RSA.Create();
         key.ImportPkcs8PrivateKey(bytes, out var bytesRead);
         Debug.Assert(bytesRead == bytes.Length);
-        return CreateRsa(metadata, key);
+        return CreateRsa(metadata, key, certificate);
     }
 
     #endregion
 
     #region ECC
 
-    /// <inheritdoc />
-    public EccSecretKey CreateEcc(
+    private DefaultEccSecretKey CreateEcc(
         KeyMetadata metadata,
         int curveSizeBits,
-        IMemoryOwner<byte> pkcs8PrivateKeyBytes,
-        int pkcs8PrivateKeySizeBytes,
-        X509Certificate2? certificate = null) =>
-        new DefaultEccSecretKey(
-            metadata,
-            curveSizeBits,
-            pkcs8PrivateKeyBytes,
-            pkcs8PrivateKeySizeBytes,
-            RemovePrivateKey(certificate));
+        byte[] protectedPkcs8PrivateKey,
+        byte[]? certificateRawData
+    ) => new(
+        DataProtector,
+        metadata,
+        curveSizeBits,
+        protectedPkcs8PrivateKey,
+        certificateRawData);
 
     /// <inheritdoc />
     public EccSecretKey CreateEcc(KeyMetadata metadata, ECAlgorithm key, X509Certificate2? certificate = null) =>
-        CreateAsymmetric<EccSecretKey>(key, (bytes, byteCount) => CreateEcc(
+        CreateAsymmetric<EccSecretKey>(key, certificate, (keyBytes, certificateBytes) => CreateEcc(
             metadata,
             key.KeySize,
-            bytes,
-            byteCount,
-            certificate));
+            keyBytes,
+            certificateBytes));
 
     /// <inheritdoc />
-    public EccSecretKey CreateEccPem(KeyMetadata metadata, ReadOnlySpan<char> chars)
+    public EccSecretKey CreateEccPem(KeyMetadata metadata, ReadOnlySpan<char> chars, X509Certificate2? certificate = null)
     {
         using var key = ECDiffieHellman.Create();
         key.ImportFromPem(chars);
-        return CreateEcc(metadata, key);
+        return CreateEcc(metadata, key, certificate);
     }
 
     /// <inheritdoc />
-    public EccSecretKey CreateEccPkcs8(KeyMetadata metadata, ReadOnlySpan<byte> bytes)
+    public EccSecretKey CreateEccPkcs8(KeyMetadata metadata, ReadOnlySpan<byte> bytes, X509Certificate2? certificate = null)
     {
         using var key = ECDiffieHellman.Create();
         key.ImportPkcs8PrivateKey(bytes, out var bytesRead);
         Debug.Assert(bytesRead == bytes.Length);
-        return CreateEcc(metadata, key);
+        return CreateEcc(metadata, key, certificate);
     }
 
     #endregion
-
-    #region Symmetric
-
-    /// <inheritdoc />
-    public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, IMemoryOwner<byte> bytes, int byteCount) =>
-        new DefaultSymmetricSecretKey(metadata, bytes, byteCount);
-
-    /// <inheritdoc />
-    public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<byte> bytes)
-    {
-        var byteCount = bytes.Length;
-        var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
-        try
-        {
-            return CreateSymmetric(metadata, lease, byteCount);
-        }
-        catch
-        {
-            lease.Dispose();
-            throw;
-        }
-    }
-
-    /// <inheritdoc />
-    public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<char> password)
-    {
-        var byteCount = Encoding.UTF8.GetByteCount(password);
-        var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
-        try
-        {
-            var bytesWritten = Encoding.UTF8.GetBytes(password, lease.Memory.Span);
-            Debug.Assert(bytesWritten == byteCount);
-            return CreateSymmetric(metadata, lease, byteCount);
-        }
-        catch
-        {
-            lease.Dispose();
-            throw;
-        }
-    }
-
-    #endregion
-
-    /// <summary>
-    /// Defines a callback method to instantiate concrete <see cref="SecretKey"/> instances given cryptographic key material.
-    /// </summary>
-    /// <typeparam name="T">The concrete <see cref="SecretKey"/> type.</typeparam>
-    private delegate T SecretKeyFactoryDelegate<out T>(IMemoryOwner<byte> keyBytes, int byteCount)
-        where T : SecretKey;
-
-    private static T CreateAsymmetric<T>(AsymmetricAlgorithm key, SecretKeyFactoryDelegate<T> factory)
-        where T : AsymmetricSecretKey
-    {
-        var byteCount = 4096;
-        while (true)
-        {
-            var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
-            try
-            {
-                if (key.TryExportPkcs8PrivateKey(lease.Memory.Span, out var bytesWritten))
-                {
-                    return factory(lease, bytesWritten);
-                }
-            }
-            catch
-            {
-                lease.Dispose();
-                throw;
-            }
-
-            lease.Dispose();
-            byteCount = checked(byteCount * 2);
-        }
-    }
 }

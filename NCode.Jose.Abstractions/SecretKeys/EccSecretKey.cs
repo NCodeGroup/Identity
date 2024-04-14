@@ -31,6 +31,9 @@ public abstract class EccSecretKey : AsymmetricSecretKey
     /// </summary>
     public const string Oid = "1.2.840.10045.2.1";
 
+    /// <inheritdoc />
+    public override string KeyType => SecretKeyTypes.Ecc;
+
     /// <summary>
     /// Gets the <see cref="ECCurve"/> for the current <c>Elliptic-Curve</c> key material.
     /// </summary>

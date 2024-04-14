@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,18 +16,16 @@
 
 #endregion
 
-namespace NCode.Jose.SecretKeys;
+namespace NCode.Jose.DataProtection;
 
-/// <summary>
-/// Represents an <see cref="SecretKey"/> implementation using <c>symmetric</c> cryptographic keys.
-/// </summary>
-public abstract class SymmetricSecretKey : SecretKey
+public interface ISecureDataProtector
 {
-    /// <inheritdoc />
-    public override string KeyType => SecretKeyTypes.Symmetric;
+    byte[] Protect(
+        ReadOnlySpan<byte> plaintext);
 
-    /// <summary>
-    /// Exports the key material to a <see cref="byte"/> buffer.
-    /// </summary>
-    public abstract bool TryExportPrivateKey(Span<byte> buffer, out int bytesWritten);
+    bool TryUnprotect(
+        byte[] protectedBytes,
+        Span<byte> plaintext,
+        out int bytesWritten,
+        out bool requiresMigration);
 }

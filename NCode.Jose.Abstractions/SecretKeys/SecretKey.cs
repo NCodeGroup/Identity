@@ -22,9 +22,18 @@ namespace NCode.Jose.SecretKeys;
 /// <summary>
 /// Common abstraction for all cryptographic key material.
 /// </summary>
-public abstract class SecretKey : IDisposable
+/// <remarks>
+/// All private key material should be encrypted at rest.
+/// When requested, the private key material should be pinned and securely zeroed after use.
+/// </remarks>
+public abstract class SecretKey
 {
     private string? ToStringOrNull { get; set; }
+
+    /// <summary>
+    /// Gets the type for this secret key.
+    /// </summary>
+    public abstract string KeyType { get; }
 
     /// <summary>
     /// Gets the metadata for this secret key.
@@ -48,27 +57,6 @@ public abstract class SecretKey : IDisposable
     /// </summary>
     public virtual int KeySizeBytes => (KeySizeBits + 7) >> 3;
 
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <inheritdoc />
-    ~SecretKey()
-    {
-        Dispose(false);
-    }
-
-    /// <summary>
-    /// When overridden in a derived class, releases the unmanaged resources used by this instance,
-    /// and optionally releases any managed resources.
-    /// </summary>
-    /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
-    /// to release only unmanaged resources.</param>
-    protected abstract void Dispose(bool disposing);
-
     /// <summary>
     /// Returns a formatted <see cref="string"/> that represents this <see cref="SecretKey"/> instance.
     /// </summary>
@@ -77,7 +65,7 @@ public abstract class SecretKey : IDisposable
     /// <summary>
     /// Returns a formatted <see cref="string"/> that represents this <see cref="SecretKey"/> instance.
     /// </summary>
-    protected virtual string FormatToString() => $"{GetType().Name} {{ KeyId = {QuoteOrNull(KeyId)}, Size = {KeySizeBits} }}";
+    protected virtual string FormatToString() => $"{KeyType} {{ KeyId = {QuoteOrNull(KeyId)}, Size = {KeySizeBits} }}";
 
     /// <summary>
     /// Returns a quoted <see cref="string"/> or <c>(null)</c> if the value is <c>null</c>.

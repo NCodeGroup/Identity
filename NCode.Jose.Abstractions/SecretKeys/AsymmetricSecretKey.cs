@@ -17,28 +17,27 @@
 
 #endregion
 
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Common abstractions for all secret keys using <see cref="AsymmetricAlgorithm"/>.
+/// Common abstractions for all secret keys using <c>asymmetric</c> cryptographic keys.
 /// </summary>
 public abstract class AsymmetricSecretKey : SecretKey
 {
     /// <summary>
-    /// Gets the cryptographic material for the secret key formatted as <c>PKCS#8</c>.
+    /// Gets a value indicating whether this asymmetric key has an associated certificate.
     /// </summary>
-    public abstract ReadOnlySpan<byte> Pkcs8PrivateKey { get; }
+    public abstract bool HasCertificate { get; }
 
     /// <summary>
-    /// Gets the optional <see cref="X509Certificate2"/> for this secret key.
+    /// Gets the optional <see cref="X509Certificate2"/> for this asymmetric key.
     /// </summary>
     /// <remarks>
     /// This certificate only contains the public portion.
     /// To create a certificate with both the private and public portions, use <c>CopyWithPrivateKey</c>.
     /// Doing so will create certificates with ephemeral keys and not persist keys to disk.
     /// </remarks>
-    public abstract X509Certificate2? Certificate { get; }
+    public abstract X509Certificate2? ExportCertificate();
 }

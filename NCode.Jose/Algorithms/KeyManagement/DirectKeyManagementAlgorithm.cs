@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Jose.Exceptions;
@@ -76,12 +77,13 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
-        if (contentKey.Length != secretKey.KeySizeBytes)
+        if (contentKey.Length != validatedSecretKey.KeySizeBytes)
         {
             throw new JoseException("The size of the destination buffer for CEK must identical to the KEK size.");
         }
 
-        validatedSecretKey.KeyBytes.CopyTo(contentKey);
+        var exportResult = validatedSecretKey.TryExportPrivateKey(contentKey, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
     }
 
     /// <inheritdoc />
@@ -123,14 +125,6 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             throw new JoseException("The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.");
         }
 
-        if (contentKey.Length < secretKey.KeySizeBytes)
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
-        var result = validatedSecretKey.KeyBytes.TryCopyTo(contentKey);
-        bytesWritten = result ? secretKey.KeySizeBytes : 0;
-        return result;
+        return validatedSecretKey.TryExportPrivateKey(contentKey, out bytesWritten);
     }
 }

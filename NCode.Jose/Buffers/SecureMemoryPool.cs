@@ -28,8 +28,11 @@ namespace NCode.Jose.Buffers;
 /// </summary>
 public class SecureMemoryPool<T> : MemoryPool<T>
 {
-    // most operating systems have a page size of 4096 bytes
-    private const int PageSize = 4096;
+    /// <summary>
+    /// The fixed size of the memory buffer.
+    /// Most operating systems have a page size of 4096 bytes.
+    /// </summary>
+    public const int PageSize = 4096;
 
     /// <summary>
     /// Gets a singleton instance of <see cref="SecureMemoryPool{T}"/>.

@@ -22,7 +22,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
 using NCode.Identity;
-using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Exceptions;
@@ -351,19 +350,11 @@ public abstract class OpenIdTenantProvider(
         IPropertyBag propertyBag,
         IEnumerable<Secret> secrets)
     {
+        // TODO: add support for a dynamic data source that re-fetches secrets from the store
         var secretKeys = SecretSerializer.DeserializeSecrets(secrets, out _);
-        try
-        {
-            // TODO: add support for a dynamic data source that re-fetches secrets from the store
-            var provider = SecretKeyProviderFactory.CreateStatic(secretKeys);
-            httpContext.Response.RegisterForDispose(provider);
-            return provider;
-        }
-        catch
-        {
-            secretKeys.DisposeAll(ignoreExceptions: true);
-            throw;
-        }
+        var provider = SecretKeyProviderFactory.CreateStatic(secretKeys);
+        httpContext.Response.RegisterForDispose(provider);
+        return provider;
     }
 
     /// <summary>

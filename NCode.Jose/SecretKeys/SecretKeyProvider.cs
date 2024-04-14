@@ -39,6 +39,6 @@ public class SecretKeyProvider : CollectionProvider<SecretKey, ISecretKeyCollect
     /// <inheritdoc />
     protected override ISecretKeyCollection CreateCollection(IEnumerable<SecretKey> items)
     {
-        return new SecretKeyCollection(items, owns: false);
+        return new SecretKeyCollection(items);
     }
 }

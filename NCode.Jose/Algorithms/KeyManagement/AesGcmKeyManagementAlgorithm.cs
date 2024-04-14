@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Encoders;
+using NCode.Jose.Buffers;
 using NCode.Jose.Exceptions;
 using NCode.Jose.Extensions;
 using NCode.Jose.Json;
@@ -85,7 +86,15 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             return false;
         }
 
-        using var key = new AesGcm(validatedSecretKey.KeyBytes);
+        using var _ = CryptoPool.Rent(
+            validatedSecretKey.KeySizeBytes,
+            isSensitive: true,
+            out Span<byte> encryptionKey);
+
+        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+
+        using var key = new AesGcm(encryptionKey, TagSizeBytes);
 
         Span<byte> stack = stackalloc byte[IvSizeBytes + TagSizeBytes];
         var iv = stack[..IvSizeBytes];
@@ -125,7 +134,15 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         ValidateHeaderForUnwrap(header, iv, tag);
 
-        using var key = new AesGcm(validatedSecretKey.KeyBytes);
+        using var _ = CryptoPool.Rent(
+            validatedSecretKey.KeySizeBytes,
+            isSensitive: true,
+            out Span<byte> encryptionKey);
+
+        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+
+        using var key = new AesGcm(encryptionKey, TagSizeBytes);
 
         try
         {

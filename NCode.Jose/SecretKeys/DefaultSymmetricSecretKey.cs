@@ -17,46 +17,41 @@
 
 #endregion
 
-using System.Buffers;
+using NCode.Jose.DataProtection;
 
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="SymmetricSecretKey"/> abstraction.
 /// </summary>
-public class DefaultSymmetricSecretKey : SymmetricSecretKey
+public class DefaultSymmetricSecretKey(
+    ISecureDataProtector dataProtector,
+    KeyMetadata metadata,
+    int keySizeBytes,
+    byte[] protectedPrivateKey
+) : SymmetricSecretKey
 {
+    private ISecureDataProtector DataProtector { get; } = dataProtector;
+    private byte[] ProtectedPrivateKey { get; } = protectedPrivateKey;
+
     /// <inheritdoc />
-    public override KeyMetadata Metadata { get; }
+    public override KeyMetadata Metadata { get; } = metadata;
 
     /// <inheritdoc />
     public override int KeySizeBits => KeySizeBytes << 3;
 
     /// <inheritdoc />
-    public override int KeySizeBytes { get; }
+    public override int KeySizeBytes { get; } = keySizeBytes;
 
     /// <inheritdoc />
-    public override ReadOnlySpan<byte> KeyBytes => MemoryOwner.Memory.Span[..KeySizeBytes];
-
-    private IMemoryOwner<byte> MemoryOwner { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultSymmetricSecretKey"/> class with the specified cryptographic material.
-    /// </summary>
-    /// <param name="metadata">The metadata for the secret key.</param>
-    /// <param name="bytes">The cryptographic material for the secret key.</param>
-    /// <param name="byteCount">The size of the cryptographic material in bytes.</param>
-    public DefaultSymmetricSecretKey(KeyMetadata metadata, IMemoryOwner<byte> bytes, int byteCount)
+    public override bool TryExportPrivateKey(Span<byte> buffer, out int bytesWritten)
     {
-        Metadata = metadata;
-        KeySizeBytes = byteCount;
-        MemoryOwner = bytes;
-    }
+        if (buffer.Length < KeySizeBytes)
+        {
+            bytesWritten = 0;
+            return false;
+        }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-        if (!disposing) return;
-        MemoryOwner.Dispose();
+        return DataProtector.TryUnprotect(ProtectedPrivateKey, buffer, out bytesWritten, out _);
     }
 }

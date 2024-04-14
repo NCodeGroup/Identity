@@ -17,11 +17,10 @@
 
 #endregion
 
-using System.Buffers;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using NCode.Jose.Extensions;
+using NCode.Jose.DataProtection;
 
 namespace NCode.Jose.SecretKeys;
 
@@ -30,58 +29,32 @@ namespace NCode.Jose.SecretKeys;
 /// </summary>
 /// <remarks>
 /// Can be used for either <see cref="ECDsa"/> or <see cref="ECDiffieHellman"/> keys.
-/// This implementation stores the key material in unmanaged memory so that it is pinned (cannot be moved/copied by the GC).
 /// </remarks>
-public class DefaultEccSecretKey : EccSecretKey
+public class DefaultEccSecretKey(
+    ISecureDataProtector dataProtector,
+    KeyMetadata metadata,
+    int curveSizeBits,
+    byte[] protectedPkcs8PrivateKey,
+    byte[]? certificateRawData
+) : EccSecretKey
 {
-    /// <inheritdoc />
-    public override KeyMetadata Metadata { get; }
+    private ISecureDataProtector DataProtector { get; } = dataProtector;
+    private byte[] ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
+    private byte[]? CertificateRawData { get; } = certificateRawData;
 
     /// <inheritdoc />
-    public override int KeySizeBits { get; }
+    public override KeyMetadata Metadata { get; } = metadata;
 
     /// <inheritdoc />
-    public override ReadOnlySpan<byte> Pkcs8PrivateKey => Pkcs8PrivateKeyBytes.Memory.Span[..Pkcs8PrivateKeySizeBytes];
+    public override int KeySizeBits { get; } = curveSizeBits;
 
     /// <inheritdoc />
-    public override X509Certificate2? Certificate { get; }
-
-    private IMemoryOwner<byte> Pkcs8PrivateKeyBytes { get; }
-
-    private int Pkcs8PrivateKeySizeBytes { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EccSecretKey"/> class with the specified <c>PKCS#8</c> key material
-    /// and optional certificate.
-    /// </summary>
-    /// <param name="metadata">The metadata for the secret key.</param>
-    /// <param name="curveSizeBits">The size of the ECC curve in bits.</param>
-    /// <param name="pkcs8PrivateKeyBytes">The bytes of the key material formatted as <c>PKCS#8</c>.</param>
-    /// <param name="pkcs8PrivateKeySizeBytes">The length of the <c>PKCS#8</c> key material in bytes.</param>
-    /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
-    public DefaultEccSecretKey(
-        KeyMetadata metadata,
-        int curveSizeBits,
-        IMemoryOwner<byte> pkcs8PrivateKeyBytes,
-        int pkcs8PrivateKeySizeBytes,
-        X509Certificate2? certificate = null)
-    {
-        Debug.Assert(certificate == null || (certificate.GetKeyAlgorithm() == Oid && !certificate.HasPrivateKey));
-
-        Metadata = metadata;
-        KeySizeBits = curveSizeBits;
-        Certificate = certificate;
-        Pkcs8PrivateKeyBytes = pkcs8PrivateKeyBytes;
-        Pkcs8PrivateKeySizeBytes = pkcs8PrivateKeySizeBytes;
-    }
+    [MemberNotNullWhen(true, nameof(CertificateRawData))]
+    public override bool HasCertificate => CertificateRawData is not null;
 
     /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-        if (!disposing) return;
-        Certificate?.Dispose();
-        Pkcs8PrivateKeyBytes.Dispose();
-    }
+    public override X509Certificate2? ExportCertificate() =>
+        HasCertificate ? new X509Certificate2(CertificateRawData) : null;
 
     /// <inheritdoc />
     public override ECCurve GetECCurve() => KeySizeBits switch
@@ -100,8 +73,16 @@ public class DefaultEccSecretKey : EccSecretKey
     }
 
     /// <inheritdoc />
-    public override ECDsa ExportECDsa() => this.ExportAlgorithm(ECDsa.Create);
+    public override ECDsa ExportECDsa() =>
+        DataProtector.ExportAsymmetricAlgorithm(
+            ProtectedPkcs8PrivateKey,
+            ECDsa.Create,
+            out _);
 
     /// <inheritdoc />
-    public override ECDiffieHellman ExportECDiffieHellman() => this.ExportAlgorithm(ECDiffieHellman.Create);
+    public override ECDiffieHellman ExportECDiffieHellman() =>
+        DataProtector.ExportAsymmetricAlgorithm(
+            ProtectedPkcs8PrivateKey,
+            ECDiffieHellman.Create,
+            out _);
 }

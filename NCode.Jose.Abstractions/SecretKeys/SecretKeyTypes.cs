@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
-//
+// 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-//
+// 
 //        http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,16 +16,25 @@
 
 #endregion
 
-namespace NIdentity.OpenId.DataProtection;
+namespace NCode.Jose.SecretKeys;
 
-public interface ISecureDataProtector
+/// <summary>
+/// Contains constants for the <see cref="SecretKey.KeyType"/> property.
+/// </summary>
+public static class SecretKeyTypes
 {
-    byte[] Protect(
-        ReadOnlySpan<byte> plaintext);
+    /// <summary>
+    /// Contains the constant value for a <c>symmetric</c> cryptographic key.
+    /// </summary>
+    public const string Symmetric = "symmetric";
 
-    bool TryUnprotect(
-        byte[] protectedBytes,
-        Span<byte> plaintext,
-        out int bytesWritten,
-        out bool requiresMigration);
+    /// <summary>
+    /// Contains the constant value for a <c>RSA</c> cryptographic key.
+    /// </summary>
+    public const string Rsa = "rsa";
+
+    /// <summary>
+    /// Contains the constant value for a <c>Elliptic-Curve</c> cryptographic key.
+    /// </summary>
+    public const string Ecc = "ecc";
 }

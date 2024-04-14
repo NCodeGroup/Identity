@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using NCode.Identity.JsonWebTokens.Exceptions;
 using NCode.Identity.JsonWebTokens.Options;
 using NCode.Jose;
@@ -76,10 +77,11 @@ public static class Validators
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (context.SecretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey)
+            if (context.SecretKey is not AsymmetricSecretKey { HasCertificate: true } asymmetricSecretKey)
                 return ValueTask.CompletedTask;
 
-            var certificate = asymmetricSecretKey.Certificate;
+            using var certificate = asymmetricSecretKey.ExportCertificate();
+            Debug.Assert(certificate is not null);
 
             var nowTicks = context.SystemClock.UtcNow.UtcTicks;
 

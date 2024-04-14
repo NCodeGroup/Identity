@@ -89,10 +89,11 @@ public static class DefaultValidationKeyResolver
 
             Span<byte> actualHash = stackalloc byte[sha256HashSize];
 
-            foreach (var secretKey in secretKeys)
+            var keysWithCertificates = secretKeys.OfType<AsymmetricSecretKey>().Where(key => key.HasCertificate);
+            foreach (var secretKey in keysWithCertificates)
             {
-                if (secretKey is not AsymmetricSecretKey { Certificate: not null } asymmetricSecretKey) continue;
-                var certificate = asymmetricSecretKey.Certificate;
+                using var certificate = secretKey.ExportCertificate();
+                Debug.Assert(certificate is not null);
 
                 if (hasThumbprintSha1 && VerifyCertificateHash(certificate, HashAlgorithmName.SHA1, expectedSha1, actualHash))
                 {

@@ -17,8 +17,10 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using NCode.Jose.Buffers;
 using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
@@ -72,8 +74,16 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
+        using var _ = CryptoPool.Rent(
+            validatedSecretKey.KeySizeBytes,
+            isSensitive: true,
+            out Span<byte> encryptionKey);
+
+        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+
         return AesKeyWrap.TryWrapKey(
-            validatedSecretKey.KeyBytes,
+            encryptionKey,
             contentKey,
             encryptedContentKey,
             out bytesWritten);
@@ -89,8 +99,16 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
+        using var _ = CryptoPool.Rent(
+            validatedSecretKey.KeySizeBytes,
+            isSensitive: true,
+            out Span<byte> encryptionKey);
+
+        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+
         return AesKeyWrap.TryUnwrapKey(
-            validatedSecretKey.KeyBytes,
+            encryptionKey,
             encryptedContentKey,
             contentKey,
             out bytesWritten);

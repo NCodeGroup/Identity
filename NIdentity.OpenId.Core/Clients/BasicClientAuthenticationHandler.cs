@@ -16,9 +16,11 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using NCode.Jose.Buffers;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Results;
@@ -105,7 +107,15 @@ internal class BasicClientAuthenticationHandler(
 
         foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
         {
-            if (!CryptographicOperations.FixedTimeEquals(secretKey.KeyBytes, clientSecretBytes))
+            using var _ = CryptoPool.Rent(
+                secretKey.KeySizeBytes,
+                isSensitive: true,
+                out Memory<byte> encryptionKey);
+
+            var exportResult = secretKey.TryExportPrivateKey(encryptionKey.Span, out var exportBytesWritten);
+            Debug.Assert(exportResult && exportBytesWritten == secretKey.KeySizeBytes);
+
+            if (!CryptographicOperations.FixedTimeEquals(encryptionKey.Span, clientSecretBytes))
                 continue;
 
             var confidentialClient = await ClientFactory.CreateAsync(

@@ -23,7 +23,7 @@ namespace NCode.Jose.Collections;
 /// <summary>
 /// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
 /// </summary>
-public interface ICollectionDataSource<out T> : IDisposable
+public interface ICollectionDataSource<out T>
 {
     /// <summary>
     /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.

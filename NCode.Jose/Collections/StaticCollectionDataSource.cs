@@ -25,8 +25,10 @@ namespace NCode.Jose.Collections;
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that uses a static collection of <typeparamref name="T"/> instances.
 /// </summary>
-public sealed class StaticCollectionDataSource<T> : ICollectionDataSource<T>
+public sealed class StaticCollectionDataSource<T> : ICollectionDataSource<T>, IDisposable
 {
+    private bool Owns { get; }
+
     /// <inheritdoc />
     public IEnumerable<T> Collection { get; }
 
@@ -34,14 +36,18 @@ public sealed class StaticCollectionDataSource<T> : ICollectionDataSource<T>
     /// Initializes a new instance of the <see cref="collection"/> class.
     /// </summary>
     /// <param name="collection">The collection of <typeparamref name="T"/> instances.</param>
-    public StaticCollectionDataSource(IEnumerable<T> collection)
+    /// <param name="owns">Indicates whether this collection will own the items and dispose of them
+    /// when this class is disposed. The default is <c>true</c>.</param>
+    public StaticCollectionDataSource(IEnumerable<T> collection, bool owns = true)
     {
+        Owns = owns;
         Collection = collection.ToList();
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
+        if (!Owns) return;
         var disposableCollection = Collection as IEnumerable<IDisposable>;
         disposableCollection?.DisposeAll();
     }

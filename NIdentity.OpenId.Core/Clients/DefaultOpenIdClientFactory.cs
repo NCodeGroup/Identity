@@ -17,18 +17,18 @@
 #endregion
 
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.DataContracts;
 using NIdentity.OpenId.Endpoints;
-using NIdentity.OpenId.Logic;
 
 namespace NIdentity.OpenId.Clients;
 
 internal class DefaultOpenIdClientFactory(
-    ISecretSerializer secretSerializer
+    IServiceProvider serviceProvider
 ) : IOpenIdClientFactory
 {
-    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private IServiceProvider ServiceProvider { get; } = serviceProvider;
 
     /// <inheritdoc />
     public virtual ValueTask<OpenIdClient> CreateAsync(
@@ -37,8 +37,8 @@ internal class DefaultOpenIdClientFactory(
         CancellationToken cancellationToken)
     {
         return ValueTask.FromResult<OpenIdClient>(
-            new DefaultOpenIdClient(
-                SecretSerializer,
+            ActivatorUtilities.CreateInstance<DefaultOpenIdClient>(
+                ServiceProvider,
                 clientModel));
     }
 

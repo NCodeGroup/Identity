@@ -107,7 +107,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
     {
         const string keyId = nameof(keyId);
 
-        var aesKeyWrap = new AesKeyWrap();
+        var aesKeyWrap = new DefaultAesKeyWrap();
 
         var kekSizeBytes = kekSizeBits >> 3;
         Span<byte> kek = new byte[kekSizeBytes];
@@ -121,7 +121,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         Span<byte> encryptedCek = new byte[encryptedCekSizeBytes];
 
         var headerForWrap = new Dictionary<string, object>();
-        var algorithm = CreateAlgorithm(kekSizeBits, AesKeyWrap.Singleton);
+        var algorithm = CreateAlgorithm(kekSizeBits, DefaultAesKeyWrap.Singleton);
 
         var wrapResult = algorithm.TryWrapKey(secretKey, headerForWrap, cek, encryptedCek, out var wrapBytesWritten);
         Assert.True(wrapResult);

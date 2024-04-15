@@ -19,26 +19,26 @@
 
 using NCode.Jose.Collections;
 
-namespace NCode.Jose.SecretKeys;
+namespace NCode.Jose.Algorithms;
 
 /// <summary>
-/// Provides a default implementation for the <see cref="ISecretKeyProvider"/> interface.
+/// Provides a default implementation for the <see cref="IAlgorithmProvider"/> interface.
 /// </summary>
-public class SecretKeyProvider : CollectionProvider<SecretKey, ISecretKeyCollection>, ISecretKeyProvider
+public class DefaultAlgorithmProvider : CollectionProvider<Algorithm, IAlgorithmCollection>, IAlgorithmProvider
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKeyProvider"/> class with the specified collection of <see cref="ICollectionDataSource{SecretKey}"/> instances.
+    /// Initializes a new instance of the <see cref="DefaultAlgorithmProvider"/> class with the specified collection of <see cref="ICollectionDataSource{Algorithm}"/> instances.
     /// </summary>
-    /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{SecretKey}"/> instances to aggregate.</param>
-    public SecretKeyProvider(IEnumerable<ICollectionDataSource<SecretKey>> dataSources)
+    /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{Algorithm}"/> instances to aggregate.</param>
+    public DefaultAlgorithmProvider(IEnumerable<ICollectionDataSource<Algorithm>> dataSources)
         : base(dataSources)
     {
         // nothing
     }
 
     /// <inheritdoc />
-    protected override ISecretKeyCollection CreateCollection(IEnumerable<SecretKey> items)
+    protected override IAlgorithmCollection CreateCollection(IEnumerable<Algorithm> items)
     {
-        return new SecretKeyCollection(items);
+        return new AlgorithmCollection(items);
     }
 }

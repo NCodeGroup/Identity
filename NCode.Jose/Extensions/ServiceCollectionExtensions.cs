@@ -50,11 +50,13 @@ public static class ServiceCollectionExtensions
     {
         services.Configure(configureOptions);
 
-        services.TryAddSingleton<IAesKeyWrap, AesKeyWrap>();
-        services.TryAddSingleton<IAlgorithmProvider, AlgorithmProvider>();
-        services.TryAddSingleton<ISecretKeyProvider, SecretKeyProvider>();
-        services.TryAddSingleton<ISecretKeyFactory, SecretKeyFactory>();
-        services.TryAddSingleton<ICredentialSelector, CredentialSelector>();
+        services.TryAddSingleton<IAesKeyWrap, DefaultAesKeyWrap>();
+        services.TryAddSingleton<IAlgorithmProvider, DefaultAlgorithmProvider>();
+        services.TryAddSingleton<ISecretKeyProvider, DefaultSecretKeyProvider>();
+        services.TryAddSingleton<ISecretKeyProviderFactory, DefaultSecretKeyProviderFactory>();
+        services.TryAddSingleton<ISecretKeyFactory, DefaultSecretKeyFactory>();
+        services.TryAddSingleton<ISecretKeyCollectionFactory, DefaultSecretKeyCollectionFactory>();
+        services.TryAddSingleton<ICredentialSelector, DefaultCredentialSelector>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICollectionDataSource<Algorithm>, DefaultAlgorithmDataSource>());
         services.TryAddSingleton<IJoseSerializer, JoseSerializer>();
 

@@ -26,7 +26,7 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class RsaKeyManagementAlgorithmTests : BaseTests
 {
-    private static SecretKeyFactory SecretKeyFactory { get; } = new();
+    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
 
     [Fact]
     public void Code_Valid()

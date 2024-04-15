@@ -24,15 +24,17 @@ using NIdentity.OpenId.Settings;
 namespace NIdentity.OpenId.Clients;
 
 internal class DefaultOpenIdClient(
+    ISecretKeyCollectionFactory secretKeyCollectionFactory,
     ISecretSerializer secretSerializer,
     Client client
 ) : OpenIdClient
 {
+    private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } = secretKeyCollectionFactory;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private Client ClientModel { get; } = client;
 
     private KnownSettingCollection? SettingsOrNull { get; set; }
-    private SecretKeyCollection? SecretKeysOrNull { get; set; }
+    private ISecretKeyCollection? SecretKeysOrNull { get; set; }
 
     /// <inheritdoc />
     public override string ClientId => ClientModel.ClientId;
@@ -56,8 +58,12 @@ internal class DefaultOpenIdClient(
     public override OpenIdAuthenticatedClient? AuthenticatedClient => null;
 
     private KnownSettingCollection LoadSettings() =>
+        // TODO: use a factory
         new(new SettingCollection(ClientModel.Settings));
 
-    private SecretKeyCollection LoadSecretKeys() =>
-        new(SecretSerializer.DeserializeSecrets(ClientModel.Secrets, out _));
+    private ISecretKeyCollection LoadSecretKeys() =>
+        SecretKeyCollectionFactory.Create(
+            SecretSerializer.DeserializeSecrets(
+                ClientModel.Secrets,
+                out _));
 }

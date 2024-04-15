@@ -27,7 +27,7 @@ namespace NCode.Jose.Credentials;
 /// <summary>
 /// Provides the default implementation of the <see cref="ICredentialSelector"/> abstraction.
 /// </summary>
-public class CredentialSelector : ICredentialSelector
+public class DefaultCredentialSelector : ICredentialSelector
 {
     private static bool IsSecretKeyUseCompatible(SecretKey secretKey, string expectedUse) =>
         secretKey.Metadata.Use is null || secretKey.Metadata.Use == expectedUse;

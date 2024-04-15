@@ -25,7 +25,7 @@ namespace NCode.Jose.SecretKeys;
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretKeyCollection"/> interface.
 /// </summary>
-public class SecretKeyCollection : ISecretKeyCollection
+public class DefaultSecretKeyCollection : ISecretKeyCollection
 {
     private IReadOnlyCollection<SecretKey> SecretKeys { get; }
     private IReadOnlyDictionary<string, SecretKey>? SecretKeysByKeyIdOrNull { get; set; }
@@ -35,22 +35,22 @@ public class SecretKeyCollection : ISecretKeyCollection
     public int Count => SecretKeys.Count;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> instances.
+    /// Initializes a new instance of the <see cref="DefaultSecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> instances.
     /// The collection will be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/>
     /// property.
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    public SecretKeyCollection(IEnumerable<SecretKey> secretKeys)
+    public DefaultSecretKeyCollection(IEnumerable<SecretKey> secretKeys)
     {
         SecretKeys = secretKeys.Order(SecretKeyExpiresWhenComparer.Singleton).ToList();
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> instances.
+    /// Initializes a new instance of the <see cref="DefaultSecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> instances.
     /// The collection is used as-is and should already be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
     /// </summary>
     /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    public SecretKeyCollection(IReadOnlyCollection<SecretKey> secretKeys)
+    public DefaultSecretKeyCollection(IReadOnlyCollection<SecretKey> secretKeys)
     {
         SecretKeys = secretKeys;
     }

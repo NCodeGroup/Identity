@@ -23,6 +23,10 @@ namespace NCode.Jose.Collections;
 /// <summary>
 /// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
 /// </summary>
+/// <remarks>
+/// The concrete implementations should be registered in DI using the <see cref="ICollectionDataSource{T}"/>
+/// closed generic interface and can optionally implement <see cref="IDisposable"/> to dispose of any resources.
+/// </remarks>
 public interface ICollectionDataSource<out T>
 {
     /// <summary>

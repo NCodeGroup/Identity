@@ -222,13 +222,13 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
             throw new JoseException("The salt input ('p2s') does not have a valid size for this cryptographic algorithm.");
         }
 
-        const int minEncryptedContentKeyByteCount = KeyManagement.AesKeyWrap.IntermediateByteCount + KeyManagement.AesKeyWrap.ChunkByteCount;
-        if (encryptedContentKey.Length < minEncryptedContentKeyByteCount || encryptedContentKey.Length % KeyManagement.AesKeyWrap.ChunkByteCount != 0)
+        const int minEncryptedContentKeyByteCount = DefaultAesKeyWrap.IntermediateByteCount + DefaultAesKeyWrap.ChunkByteCount;
+        if (encryptedContentKey.Length < minEncryptedContentKeyByteCount || encryptedContentKey.Length % DefaultAesKeyWrap.ChunkByteCount != 0)
         {
             throw new JoseException("The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.");
         }
 
-        var minContentKeyByteCount = encryptedContentKey.Length - KeyManagement.AesKeyWrap.ChunkByteCount;
+        var minContentKeyByteCount = encryptedContentKey.Length - DefaultAesKeyWrap.ChunkByteCount;
         if (contentKey.Length < minContentKeyByteCount)
         {
             bytesWritten = 0;

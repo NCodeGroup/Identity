@@ -28,7 +28,7 @@ public abstract class SymmetricSecretKey : SecretKey
     public override string KeyType => SecretKeyTypes.Symmetric;
 
     /// <summary>
-    /// Exports the key material to a <see cref="byte"/> buffer.
+    /// Exports the private key to a <see cref="byte"/> buffer.
     /// </summary>
     public abstract bool TryExportPrivateKey(Span<byte> buffer, out int bytesWritten);
 }

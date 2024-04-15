@@ -30,7 +30,7 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class EcdhKeyManagementAlgorithmTests : BaseTests
 {
-    private static SecretKeyFactory SecretKeyFactory { get; } = new();
+    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
     private static EcdhKeyManagementAlgorithm Algorithm => EcdhKeyManagementAlgorithm.Singleton;
 
     private static ECCurve GetCurve(int curveSizeBits)

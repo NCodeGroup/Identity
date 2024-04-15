@@ -31,12 +31,12 @@ namespace NCode.Jose.Algorithms.KeyManagement;
 /// The variables in the implementation are identical to the following RFC so that code can be easily compared.
 /// https://datatracker.ietf.org/doc/html/rfc3394#section-2.2.1
 /// </remarks>
-public class AesKeyWrap : IAesKeyWrap
+public class DefaultAesKeyWrap : IAesKeyWrap
 {
     /// <summary>
-    /// Provides a default singleton instance for <see cref="AesKeyWrap"/>.
+    /// Provides a default singleton instance for <see cref="DefaultAesKeyWrap"/>.
     /// </summary>
-    public static AesKeyWrap Singleton { get; } = new();
+    public static DefaultAesKeyWrap Singleton { get; } = new();
 
     private const int ChunkBitCount = 64;
     internal const int ChunkByteCount = ChunkBitCount >> 3;

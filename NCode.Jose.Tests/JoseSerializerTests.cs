@@ -34,7 +34,7 @@ namespace NCode.Jose.Tests;
 
 public class JoseSerializerTests : BaseTests
 {
-    private static SecretKeyFactory SecretKeyFactory { get; } = new();
+    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
     private JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web);
     private ServiceProvider ServiceProvider { get; }
     private JoseSerializerOptions JoseSerializerOptions { get; } = new();

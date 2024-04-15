@@ -16,6 +16,7 @@
 
 #endregion
 
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Jose.Collections;
 
 namespace NCode.Jose.SecretKeys;
@@ -23,16 +24,15 @@ namespace NCode.Jose.SecretKeys;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecretKeyProviderFactory"/> abstraction.
 /// </summary>
-public class DefaultSecretKeyProviderFactory : ISecretKeyProviderFactory
+public class DefaultSecretKeyProviderFactory(
+    IServiceProvider serviceProvider
+) : ISecretKeyProviderFactory
 {
-    /// <summary>
-    /// Gets a singleton instance for <see cref="DefaultSecretKeyProviderFactory"/>.
-    /// </summary>
-    public static DefaultSecretKeyProviderFactory Singleton { get; } = new();
+    private IServiceProvider ServiceProvider { get; } = serviceProvider;
 
     /// <inheritdoc />
     public ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources) =>
-        new SecretKeyProvider(dataSources);
+        ActivatorUtilities.CreateInstance<ISecretKeyProvider>(ServiceProvider, dataSources);
 
     /// <inheritdoc />
     public ISecretKeyProvider Create(params ICollectionDataSource<SecretKey>[] dataSources) =>

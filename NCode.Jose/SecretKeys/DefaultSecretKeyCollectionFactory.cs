@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,15 +19,11 @@
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Represents an <see cref="SecretKey"/> implementation using <c>symmetric</c> cryptographic keys.
+/// Provides a default implementation for the <see cref="ISecretKeyCollectionFactory"/> abstraction.
 /// </summary>
-public abstract class SymmetricSecretKey : SecretKey
+public class DefaultSecretKeyCollectionFactory : ISecretKeyCollectionFactory
 {
     /// <inheritdoc />
-    public override string KeyType => SecretKeyTypes.Symmetric;
-
-    /// <summary>
-    /// Exports the private key to a <see cref="byte"/> buffer.
-    /// </summary>
-    public abstract bool TryExportPrivateKey(Span<byte> buffer, out int bytesWritten);
+    public ISecretKeyCollection Create(IEnumerable<SecretKey> items) =>
+        new DefaultSecretKeyCollection(items);
 }

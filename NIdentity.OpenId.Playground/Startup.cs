@@ -63,9 +63,9 @@ internal class Startup
         services.AddHealthChecks();
         services.AddHttpLogging(options => { options.LoggingFields = HttpLoggingFields.All; });
 
-        services.AddSingleton<ISystemClock, SystemClock>();
-        services.AddSingleton<ISecretSerializer, SecretSerializer>();
-        services.AddSingleton<ICryptoService, CryptoService>();
+        services.AddSingleton<ISystemClock, DefaultSystemClock>();
+        services.AddSingleton<ISecretSerializer, DefaultSecretSerializer>();
+        services.AddSingleton<ICryptoService, DefaultCryptoService>();
 
         services.AddSingleton<IClientStore, EmptyClientStore>();
         services.AddSingleton<ITenantStore, EmptyTenantStore>();

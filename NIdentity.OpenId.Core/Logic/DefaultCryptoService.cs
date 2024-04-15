@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Logic;
 /// <summary>
 /// Provides a default implementation for the <see cref="ICryptoService"/> abstraction.
 /// </summary>
-public class CryptoService : ICryptoService
+public class DefaultCryptoService : ICryptoService
 {
     private const int MaxStackAlloc = 512 >> 3;
 

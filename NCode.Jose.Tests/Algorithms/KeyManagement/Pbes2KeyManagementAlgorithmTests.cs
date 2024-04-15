@@ -242,7 +242,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var algorithm = Create(
             keySizeBits: keySizeBits,
-            aesKeyWrap: AesKeyWrap.Singleton);
+            aesKeyWrap: DefaultAesKeyWrap.Singleton);
 
         var metadata = new KeyMetadata { KeyId = keyId };
         using var secretKey = new DefaultSymmetricSecretKey(metadata, keyBytes);

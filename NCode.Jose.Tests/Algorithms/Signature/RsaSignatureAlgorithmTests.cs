@@ -27,7 +27,7 @@ namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class RsaSignatureAlgorithmTests
 {
-    private static SecretKeyFactory SecretKeyFactory { get; } = new();
+    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
 
     [Fact]
     public void Code_Valid()

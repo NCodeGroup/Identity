@@ -24,7 +24,7 @@ namespace NCode.Jose.SecretKeys;
 /// </summary>
 /// <remarks>
 /// All private key material should be encrypted at rest.
-/// When requested, the private key material should be pinned and securely zeroed after use.
+/// When requested, the private key material should be pinned while in use and securely zeroed after use.
 /// </remarks>
 public abstract class SecretKey
 {

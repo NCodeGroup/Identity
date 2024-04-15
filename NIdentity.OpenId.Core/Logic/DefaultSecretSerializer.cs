@@ -30,7 +30,7 @@ namespace NIdentity.OpenId.Logic;
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretSerializer"/> abstraction.
 /// </summary>
-public class SecretSerializer(
+public class DefaultSecretSerializer(
     ISecureDataProtector dataProtector,
     ISecretKeyFactory secretKeyFactory
 ) : ISecretSerializer

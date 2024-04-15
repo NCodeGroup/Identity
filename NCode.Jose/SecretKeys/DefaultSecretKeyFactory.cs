@@ -29,7 +29,7 @@ namespace NCode.Jose.SecretKeys;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecretKeyFactory"/> abstraction.
 /// </summary>
-public class SecretKeyFactory(
+public class DefaultSecretKeyFactory(
     ISecureDataProtector dataProtector
 ) : ISecretKeyFactory
 {

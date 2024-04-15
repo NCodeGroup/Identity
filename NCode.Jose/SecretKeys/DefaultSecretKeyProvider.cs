@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,18 +17,21 @@
 
 #endregion
 
+using NCode.Jose.Collections;
+
 namespace NCode.Jose.SecretKeys;
 
 /// <summary>
-/// Represents an <see cref="SecretKey"/> implementation using <c>symmetric</c> cryptographic keys.
+/// Provides a default implementation for the <see cref="ISecretKeyProvider"/> interface.
 /// </summary>
-public abstract class SymmetricSecretKey : SecretKey
+public class DefaultSecretKeyProvider(
+    ISecretKeyCollectionFactory factory,
+    IEnumerable<ICollectionDataSource<SecretKey>> dataSources
+) : CollectionProvider<SecretKey, ISecretKeyCollection>(dataSources), ISecretKeyProvider
 {
-    /// <inheritdoc />
-    public override string KeyType => SecretKeyTypes.Symmetric;
+    private ISecretKeyCollectionFactory Factory { get; } = factory;
 
-    /// <summary>
-    /// Exports the private key to a <see cref="byte"/> buffer.
-    /// </summary>
-    public abstract bool TryExportPrivateKey(Span<byte> buffer, out int bytesWritten);
+    /// <inheritdoc />
+    protected override ISecretKeyCollection CreateCollection(IEnumerable<SecretKey> items) =>
+        Factory.Create(items);
 }

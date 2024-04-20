@@ -128,9 +128,9 @@ partial class JoseSerializer
         JoseSigningOptions signingOptions,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(payload);
+        var byteCount = SecureEncoding.Utf8.GetByteCount(payload);
         using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
-        var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
+        var bytesWritten = SecureEncoding.Utf8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
         Encode(
             tokenWriter,
@@ -241,7 +241,7 @@ partial class JoseSerializer
     {
         var payloadCharCount = signingOptions.EncodePayload ?
             Base64Url.GetCharCountForEncode(payload.Length) :
-            Encoding.UTF8.GetCharCount(payload);
+            SecureEncoding.Utf8.GetCharCount(payload);
 
         IDisposable lease;
         Span<char> encodedPayload;

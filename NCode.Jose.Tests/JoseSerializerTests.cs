@@ -18,13 +18,13 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Jose;
 using Jose.keys;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Jose.Algorithms;
+using NCode.Jose.Buffers;
 using NCode.Jose.Credentials;
 using NCode.Jose.DataProtection;
 using NCode.Jose.Extensions;
@@ -111,7 +111,7 @@ public class JoseSerializerTests : BaseTests
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         var password = Guid.NewGuid().ToString("N");
-        var keyBytes = Encoding.UTF8.GetBytes(password);
+        var keyBytes = SecureEncoding.Utf8.GetBytes(password);
         var secretKey = SecretKeyFactory.CreateSymmetric(metadata, keyBytes);
         return (password, secretKey);
     }

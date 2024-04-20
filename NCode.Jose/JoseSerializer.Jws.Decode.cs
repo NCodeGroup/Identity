@@ -21,6 +21,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using NCode.Encoders;
+using NCode.Jose.Buffers;
 using NCode.Jose.Json;
 using NCode.Jose.SecretKeys;
 using Nerdbank.Streams;
@@ -81,7 +82,7 @@ partial class JoseSerializer
         }
         else
         {
-            Encoding.UTF8.GetBytes(encodedPayload, payloadWriter);
+            SecureEncoding.Utf8.GetBytes(encodedPayload, payloadWriter);
         }
     }
 }

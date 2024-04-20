@@ -120,7 +120,7 @@ public partial class JoseSerializer : IJoseSerializer
     private static string DecodeUtf8(ReadOnlySequence<byte> byteSequence)
     {
         using var charBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-        Encoding.UTF8.GetChars(byteSequence, charBuffer);
+        SecureEncoding.Utf8.GetChars(byteSequence, charBuffer);
         return charBuffer.AsReadOnlySequence.ToString();
     }
 
@@ -176,7 +176,7 @@ public partial class JoseSerializer : IJoseSerializer
     {
         if (value is string stringValue)
         {
-            return Encode(Encoding.UTF8, stringValue, out bytes);
+            return Encode(SecureEncoding.Utf8, stringValue, out bytes);
         }
 
         var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
@@ -239,7 +239,7 @@ public partial class JoseSerializer : IJoseSerializer
             return Base64Url.TryEncode(bytes, chars, out charsWritten);
         }
 
-        charsWritten = Encoding.UTF8.GetChars(bytes, chars);
+        charsWritten = SecureEncoding.Utf8.GetChars(bytes, chars);
         return charsWritten > 0;
     }
 
@@ -250,7 +250,7 @@ public partial class JoseSerializer : IJoseSerializer
     {
         var charCount = b64 ?
             Base64Url.GetCharCountForEncode(bytes.Length) :
-            Encoding.UTF8.GetCharCount(bytes);
+            SecureEncoding.Utf8.GetCharCount(bytes);
 
         var charLease = MemoryPool<char>.Shared.Rent(charCount);
         try
@@ -320,7 +320,7 @@ public partial class JoseSerializer : IJoseSerializer
     {
         var charCount = b64 ?
             Base64Url.GetCharCountForEncode(bytes.Length) :
-            Encoding.UTF8.GetCharCount(bytes);
+            SecureEncoding.Utf8.GetCharCount(bytes);
 
         var dotLength = addDot ? 1 : 0;
         var totalLength = charCount + dotLength;

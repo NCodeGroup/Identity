@@ -19,7 +19,6 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using NCode.Encoders;
 using NCode.Jose.Buffers;
@@ -130,14 +129,14 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
             return false;
         }
 
-        var algByteCount = Encoding.UTF8.GetByteCount(alg);
+        var algByteCount = SecureEncoding.Utf8.GetByteCount(alg);
         var saltByteCount = algByteCount + 1 + SaltInputSizeBytes;
 
         var salt = saltByteCount <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[saltByteCount] :
             GC.AllocateUninitializedArray<byte>(saltByteCount, pinned: false);
 
-        var algBytesWritten = Encoding.UTF8.GetBytes(alg, salt);
+        var algBytesWritten = SecureEncoding.Utf8.GetBytes(alg, salt);
         Debug.Assert(algBytesWritten == algByteCount);
 
         salt[algByteCount] = 0x00;
@@ -235,14 +234,14 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
             return false;
         }
 
-        var algByteCount = Encoding.UTF8.GetByteCount(alg);
+        var algByteCount = SecureEncoding.Utf8.GetByteCount(alg);
         var saltByteCount = algByteCount + 1 + SaltInputSizeBytes;
 
         var salt = saltByteCount <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[saltByteCount] :
             GC.AllocateUninitializedArray<byte>(saltByteCount, pinned: false);
 
-        var algBytesWritten = Encoding.UTF8.GetBytes(alg, salt);
+        var algBytesWritten = SecureEncoding.Utf8.GetBytes(alg, salt);
         Debug.Assert(algBytesWritten == algByteCount);
 
         salt[algByteCount] = 0x00;

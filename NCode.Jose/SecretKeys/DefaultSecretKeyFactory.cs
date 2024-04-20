@@ -20,7 +20,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using NCode.Jose.Buffers;
 using NCode.Jose.DataProtection;
 
@@ -58,9 +57,9 @@ public class DefaultSecretKeyFactory(
     /// <inheritdoc />
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<char> password)
     {
-        var keySizeBytes = Encoding.UTF8.GetByteCount(password);
+        var keySizeBytes = SecureEncoding.Utf8.GetByteCount(password);
         using var lease = SecureMemoryPool<byte>.Shared.Rent(keySizeBytes);
-        var bytesWritten = Encoding.UTF8.GetBytes(password, lease.Memory.Span);
+        var bytesWritten = SecureEncoding.Utf8.GetBytes(password, lease.Memory.Span);
         Debug.Assert(bytesWritten == keySizeBytes);
         return CreateSymmetric(metadata, lease.Memory.Span[..keySizeBytes]);
     }

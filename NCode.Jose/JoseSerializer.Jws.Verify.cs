@@ -18,7 +18,6 @@
 #endregion
 
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Buffers;
@@ -146,9 +145,9 @@ partial class JoseSerializer
 
         if (b64)
         {
-            var byteCount = Encoding.UTF8.GetByteCount(detachedPayload);
+            var byteCount = SecureEncoding.Utf8.GetByteCount(detachedPayload);
             using var lease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
-            var bytesWritten = Encoding.UTF8.GetBytes(detachedPayload, payloadBytes);
+            var bytesWritten = SecureEncoding.Utf8.GetBytes(detachedPayload, payloadBytes);
             Debug.Assert(bytesWritten == byteCount);
 
             VerifyJws(compactJwt, secretKey, payloadBytes);
@@ -256,18 +255,18 @@ partial class JoseSerializer
         ReadOnlySpan<char> encodedPayload,
         out ReadOnlySpan<byte> signatureInput)
     {
-        var headerByteCount = Encoding.UTF8.GetByteCount(encodedHeader);
-        var payloadByteCount = Encoding.UTF8.GetByteCount(encodedPayload);
+        var headerByteCount = SecureEncoding.Utf8.GetByteCount(encodedHeader);
+        var payloadByteCount = SecureEncoding.Utf8.GetByteCount(encodedPayload);
         var totalByteCount = headerByteCount + 1 + payloadByteCount;
         var lease = CryptoPool.Rent(totalByteCount, isSensitive: false, out Span<byte> span);
         try
         {
-            var bytesRead = Encoding.UTF8.GetBytes(encodedHeader, span);
+            var bytesRead = SecureEncoding.Utf8.GetBytes(encodedHeader, span);
             Debug.Assert(bytesRead == headerByteCount);
 
             span[headerByteCount] = (byte)'.';
 
-            bytesRead = Encoding.UTF8.GetBytes(encodedPayload, span[(headerByteCount + 1)..]);
+            bytesRead = SecureEncoding.Utf8.GetBytes(encodedPayload, span[(headerByteCount + 1)..]);
             Debug.Assert(bytesRead == payloadByteCount);
         }
         catch

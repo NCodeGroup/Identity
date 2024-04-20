@@ -18,10 +18,10 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.Buffers;
 using NCode.Jose.DataProtection;
 using NCode.Jose.Exceptions;
 using NCode.Jose.SecretKeys;
@@ -239,7 +239,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         const string alg = nameof(alg);
 
         var password = Guid.NewGuid().ToString("N");
-        var keyBytes = Encoding.UTF8.GetBytes(password);
+        var keyBytes = SecureEncoding.Utf8.GetBytes(password);
         var cekSizeBytes = cekSizeBits >> 3;
 
         var algorithm = Create(

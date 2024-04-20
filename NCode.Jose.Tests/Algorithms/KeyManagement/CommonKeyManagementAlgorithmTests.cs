@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using NCode.Jose.Algorithms;
+using NCode.Jose.DataProtection;
 using NCode.Jose.Exceptions;
 using NCode.Jose.SecretKeys;
 
@@ -26,6 +27,7 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class CommonKeyManagementAlgorithmTests : BaseTests
 {
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private Mock<KeyManagementAlgorithm> MockAlgorithm { get; }
     private DummyCommonKeyManagementAlgorithm Algorithm { get; }
 
@@ -50,7 +52,7 @@ public class CommonKeyManagementAlgorithmTests : BaseTests
 
         Span<byte> kek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new DefaultSymmetricSecretKey(default, kek);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
 
         Span<byte> cek = new byte[cekSizeBytes];
         cek.Fill(0);

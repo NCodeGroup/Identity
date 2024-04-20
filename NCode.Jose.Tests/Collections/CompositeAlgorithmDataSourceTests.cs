@@ -22,9 +22,9 @@ using NCode.Jose.Algorithms;
 using NCode.Jose.Collections;
 using NCode.Jose.Infrastructure;
 
-namespace NCode.Jose.Tests.Algorithms;
+namespace NCode.Jose.Tests.Collections;
 
-public class CompositeAlgorithmDataSourceTests : BaseTests
+public class CompositeCollectionDataSourceTests : BaseTests
 {
     [Fact]
     public void Collection_Initial_Valid()
@@ -39,33 +39,33 @@ public class CompositeAlgorithmDataSourceTests : BaseTests
             mockAlgorithm3.Object
         };
 
-        var mockDataSource1 = CreateStrictMock<IAlgorithmDataSource>();
+        var mockDataSource1 = CreateStrictMock<ICollectionDataSource<Algorithm>>();
         mockDataSource1
             .Setup(x => x.GetChangeToken())
             .Returns(NullChangeToken.Singleton)
             .Verifiable();
         mockDataSource1
-            .Setup(x => x.Algorithms)
+            .Setup(x => x.Collection)
             .Returns(new[] { mockAlgorithm1.Object })
             .Verifiable();
 
-        var mockDataSource2 = CreateStrictMock<IAlgorithmDataSource>();
+        var mockDataSource2 = CreateStrictMock<ICollectionDataSource<Algorithm>>();
         mockDataSource2
             .Setup(x => x.GetChangeToken())
             .Returns(NullChangeToken.Singleton)
             .Verifiable();
         mockDataSource2
-            .Setup(x => x.Algorithms)
+            .Setup(x => x.Collection)
             .Returns(new[] { mockAlgorithm2.Object })
             .Verifiable();
 
-        var mockDataSource3 = CreateStrictMock<IAlgorithmDataSource>();
+        var mockDataSource3 = CreateStrictMock<ICollectionDataSource<Algorithm>>();
         mockDataSource3
             .Setup(x => x.GetChangeToken())
             .Returns(NullChangeToken.Singleton)
             .Verifiable();
         mockDataSource3
-            .Setup(x => x.Algorithms)
+            .Setup(x => x.Collection)
             .Returns(new[] { mockAlgorithm3.Object })
             .Verifiable();
 
@@ -76,8 +76,8 @@ public class CompositeAlgorithmDataSourceTests : BaseTests
             mockDataSource3.Object
         };
 
-        using var composite = new CompositeAlgorithmDataSource(dataSources);
-        var algorithms = composite.Algorithms;
+        using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
+        var algorithms = composite.Collection;
         Assert.Equal(expected, algorithms);
     }
 
@@ -90,13 +90,13 @@ public class CompositeAlgorithmDataSourceTests : BaseTests
         using var cancellationTokenSource = new CancellationTokenSource();
         var changeTokenSource = new CancellationChangeToken(cancellationTokenSource.Token);
 
-        var mockDataSource1 = CreateStrictMock<IAlgorithmDataSource>();
+        var mockDataSource1 = CreateStrictMock<ICollectionDataSource<Algorithm>>();
         mockDataSource1
             .Setup(x => x.GetChangeToken())
             .Returns(() => changeTokenSource.HasChanged ? NullChangeToken.Singleton : changeTokenSource)
             .Verifiable();
         mockDataSource1
-            .Setup(x => x.Algorithms)
+            .Setup(x => x.Collection)
             .Returns(() => new[] { changeTokenSource.HasChanged ? mockAlgorithm2.Object : mockAlgorithm1.Object })
             .Verifiable();
 
@@ -105,9 +105,9 @@ public class CompositeAlgorithmDataSourceTests : BaseTests
             mockDataSource1.Object
         };
 
-        using var composite = new CompositeAlgorithmDataSource(dataSources);
+        using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
 
-        var algorithmsBefore = composite.Algorithms;
+        var algorithmsBefore = composite.Collection;
         Assert.Equal(new[] { mockAlgorithm1.Object }, algorithmsBefore);
 
         var changeTokenBefore = composite.GetChangeToken();
@@ -115,7 +115,7 @@ public class CompositeAlgorithmDataSourceTests : BaseTests
 
         cancellationTokenSource.Cancel();
 
-        var algorithmsAfter = composite.Algorithms;
+        var algorithmsAfter = composite.Collection;
         Assert.Equal(new[] { mockAlgorithm2.Object }, algorithmsAfter);
 
         var changeTokenAfter = composite.GetChangeToken();
@@ -127,13 +127,13 @@ public class CompositeAlgorithmDataSourceTests : BaseTests
     public void Disposed_Valid()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
-        var mockDataSource1 = CreateStrictMock<IAlgorithmDataSource>();
+        var mockDataSource1 = CreateStrictMock<ICollectionDataSource<Algorithm>>();
         mockDataSource1
             .Setup(x => x.GetChangeToken())
             .Returns(NullChangeToken.Singleton)
             .Verifiable();
         mockDataSource1
-            .Setup(x => x.Algorithms)
+            .Setup(x => x.Collection)
             .Returns(() => new[] { mockAlgorithm1.Object })
             .Verifiable();
 
@@ -142,10 +142,10 @@ public class CompositeAlgorithmDataSourceTests : BaseTests
             mockDataSource1.Object
         };
 
-        using var composite = new CompositeAlgorithmDataSource(dataSources);
+        using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
         composite.Dispose();
 
-        Assert.Throws<ObjectDisposedException>(() => composite.Algorithms);
+        Assert.Throws<ObjectDisposedException>(() => composite.Collection);
         Assert.Throws<ObjectDisposedException>(() => composite.GetChangeToken());
     }
 }

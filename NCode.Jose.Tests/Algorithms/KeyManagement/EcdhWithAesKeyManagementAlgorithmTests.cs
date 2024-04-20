@@ -22,13 +22,14 @@ using System.Text.Json;
 using NCode.Encoders;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.DataProtection;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
 {
-    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
+    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
     public EcdhWithAesKeyManagementAlgorithmTests()
@@ -89,7 +90,7 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
 
         var metadata = new KeyMetadata { KeyId = keyId };
         using var key = ECDiffieHellman.Create(curve);
-        using var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
+        var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
 
         var cekSizeBits = cekSizeBytes << 3;
         var algorithm = CreateAlgorithm(cekSizeBits, DefaultAesKeyWrap.Singleton);

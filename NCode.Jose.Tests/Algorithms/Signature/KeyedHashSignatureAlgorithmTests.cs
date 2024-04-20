@@ -20,12 +20,15 @@
 using System.Security.Cryptography;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.DataProtection;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class KeyedHashSignatureAlgorithmTests
 {
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
+
     [Fact]
     public void Code_Valid()
     {
@@ -114,7 +117,7 @@ public class KeyedHashSignatureAlgorithmTests
         RandomNumberGenerator.Fill(inputData);
 
         var metadata = new KeyMetadata { KeyId = keyId };
-        using var secretKey = new DefaultSymmetricSecretKey(metadata, key);
+        var secretKey = SecretKeyFactory.CreateSymmetric(metadata, key);
 
         var algorithm = new KeyedHashSignatureAlgorithm(code, hashAlgorithmName, keyedHashFunction);
 

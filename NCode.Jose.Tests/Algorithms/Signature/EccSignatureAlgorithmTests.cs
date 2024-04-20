@@ -19,13 +19,14 @@
 
 using System.Security.Cryptography;
 using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.DataProtection;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class EccSignatureAlgorithmTests
 {
-    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
 
     [Fact]
     public void Code_Valid()
@@ -104,7 +105,7 @@ public class EccSignatureAlgorithmTests
 
         var metadata = new KeyMetadata { KeyId = keyId };
         using var key = ECDsa.Create(curve);
-        using var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
+        var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
 
         var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
         var hashSizeBytes = algorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);

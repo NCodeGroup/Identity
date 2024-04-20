@@ -41,12 +41,6 @@ public sealed class EmptySecretKeyCollection : ISecretKeyCollection
     }
 
     /// <inheritdoc />
-    public void Dispose()
-    {
-        // nothing
-    }
-
-    /// <inheritdoc />
     public bool TryGetByKeyId(string keyId, [MaybeNullWhen(false)] out SecretKey secretKey)
     {
         secretKey = null;

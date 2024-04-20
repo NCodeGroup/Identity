@@ -75,7 +75,7 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncrypt
             cipherText,
             authenticationTag);
 
-        using var key = new AesGcm(cek);
+        using var key = new AesGcm(cek, AuthenticationTagSizeBytes);
 
         key.Encrypt(nonce, plainText, cipherText, authenticationTag, associatedData);
     }
@@ -104,7 +104,7 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncrypt
             cipherText,
             authenticationTag);
 
-        using var key = new AesGcm(cek);
+        using var key = new AesGcm(cek, AuthenticationTagSizeBytes);
         try
         {
             key.Decrypt(nonce, cipherText, authenticationTag, plainText, associatedData);

@@ -34,7 +34,7 @@ namespace NCode.Jose.Algorithms.KeyManagement;
 public class DefaultAesKeyWrap : IAesKeyWrap
 {
     /// <summary>
-    /// Provides a default singleton instance for <see cref="DefaultAesKeyWrap"/>.
+    /// Provides a singleton instance for <see cref="DefaultAesKeyWrap"/>.
     /// </summary>
     public static DefaultAesKeyWrap Singleton { get; } = new();
 

@@ -20,14 +20,15 @@
 using System.Security.Cryptography;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.Signature;
+using NCode.Jose.DataProtection;
 using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.Signature;
 
-public class RsaSignatureAlgorithmTests
+public class RsaSignatureAlgorithmTests : BaseTests
 {
-    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
 
     [Fact]
     public void Code_Valid()
@@ -104,7 +105,7 @@ public class RsaSignatureAlgorithmTests
 
         var metadata = new KeyMetadata { KeyId = keyId };
         using var key = RSA.Create(keySizeBits);
-        using var secretKey = SecretKeyFactory.CreateRsa(metadata, key);
+        var secretKey = SecretKeyFactory.CreateRsa(metadata, key);
 
         var algorithm = new RsaSignatureAlgorithm(code, hashAlgorithmName, padding);
 

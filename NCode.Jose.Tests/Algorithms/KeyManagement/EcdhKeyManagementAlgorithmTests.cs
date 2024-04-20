@@ -23,6 +23,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using NCode.Encoders;
 using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.DataProtection;
 using NCode.Jose.Exceptions;
 using NCode.Jose.SecretKeys;
 
@@ -30,7 +31,7 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class EcdhKeyManagementAlgorithmTests : BaseTests
 {
-    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
+    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private static EcdhKeyManagementAlgorithm Algorithm => EcdhKeyManagementAlgorithm.Singleton;
 
     private static ECCurve GetCurve(int curveSizeBits)
@@ -543,7 +544,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         // party 1
 
         using var key1 = ECDiffieHellman.Create(curve);
-        using var secretKey1 = SecretKeyFactory.CreateEcc(metadata, key1);
+        var secretKey1 = SecretKeyFactory.CreateEcc(metadata, key1);
         var parameters1 = key1.ExportParameters(includePrivateParameters: false);
 
         var header1 = new Dictionary<string, object>
@@ -570,7 +571,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             D = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("d", epk)))
         };
         using var key2 = ECDiffieHellman.Create(parameters2);
-        using var secretKey2 = SecretKeyFactory.CreateEcc(metadata, key2);
+        var secretKey2 = SecretKeyFactory.CreateEcc(metadata, key2);
 
         var crv = $"P-{secretKey2.KeySizeBits}";
         var header2 = new Dictionary<string, object>
@@ -602,7 +603,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var keySizeBits = keySizeBytes << 3;
         var controlKey = global::Jose.keys.EccKey.New(parameters2.Q.X, parameters2.Q.Y, parameters2.D, CngKeyUsages.KeyAgreement);
         var controlAlgorithm = new global::Jose.EcdhKeyManagement(true);
-        var controlResult = controlAlgorithm.Unwrap(Array.Empty<byte>(), controlKey, keySizeBits, header2);
+        var controlResult = controlAlgorithm.Unwrap([], controlKey, keySizeBits, header2);
         Assert.Equal(controlResult, cek1);
     }
 }

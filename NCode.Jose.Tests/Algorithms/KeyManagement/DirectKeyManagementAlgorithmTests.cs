@@ -22,6 +22,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.DataProtection;
 using NCode.Jose.Exceptions;
 using NCode.Jose.SecretKeys;
 
@@ -29,6 +30,7 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class DirectKeyManagementAlgorithmTests
 {
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private static KeyManagementAlgorithm Algorithm => DirectKeyManagementAlgorithm.Singleton;
 
     [Fact]
@@ -78,7 +80,7 @@ public class DirectKeyManagementAlgorithmTests
         Span<byte> kek = new byte[kekSizeBytes];
         Span<byte> cek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new DefaultSymmetricSecretKey(default, kek);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
 
         var header = new Dictionary<string, object>();
 
@@ -93,7 +95,7 @@ public class DirectKeyManagementAlgorithmTests
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new DefaultSymmetricSecretKey(default, kek);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
 
         var header = new Dictionary<string, object>();
 
@@ -110,7 +112,7 @@ public class DirectKeyManagementAlgorithmTests
     public void TryWrapKey_Valid()
     {
         Span<byte> kek = new byte[1];
-        using var secretKey = new DefaultSymmetricSecretKey(default, kek);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
 
         var header = new Dictionary<string, object>();
 
@@ -132,7 +134,7 @@ public class DirectKeyManagementAlgorithmTests
         Span<byte> cek = new byte[kekSizeBytes];
         Span<byte> encryptedCek = Array.Empty<byte>();
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new DefaultSymmetricSecretKey(default, kek);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
 
         var header = new JsonObject();
         var headerForUnwrap = header.Deserialize<JsonElement>();
@@ -149,7 +151,7 @@ public class DirectKeyManagementAlgorithmTests
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
         RandomNumberGenerator.Fill(kek);
-        using var secretKey = new DefaultSymmetricSecretKey(default, kek);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
 
         var header = new JsonObject();
         var headerForUnwrap = header.Deserialize<JsonElement>();

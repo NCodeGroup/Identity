@@ -22,6 +22,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using NCode.Encoders;
 using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.DataProtection;
 using NCode.Jose.Exceptions;
 using NCode.Jose.SecretKeys;
 
@@ -29,6 +30,7 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class AesGcmKeyManagementAlgorithmTests
 {
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private static AesGcmKeyManagementAlgorithm CreateAlgorithm(int? kekSizeBits = null) =>
         new("code", kekSizeBits ?? Random.Shared.Next());
 
@@ -97,7 +99,7 @@ public class AesGcmKeyManagementAlgorithmTests
         RandomNumberGenerator.Fill(kek);
 
         var metadata = new KeyMetadata { KeyId = keyId };
-        using var secretKey = new DefaultSymmetricSecretKey(metadata, kek);
+        var secretKey = SecretKeyFactory.CreateSymmetric(metadata, kek);
         var headerForWrap = new Dictionary<string, object>();
 
         var cekSizeBytes = cekSizeBits >> 3;

@@ -26,6 +26,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Credentials;
+using NCode.Jose.DataProtection;
 using NCode.Jose.Extensions;
 using NCode.Jose.Infrastructure;
 using NCode.Jose.SecretKeys;
@@ -34,7 +35,7 @@ namespace NCode.Jose.Tests;
 
 public class JoseSerializerTests : BaseTests
 {
-    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new();
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web);
     private ServiceProvider ServiceProvider { get; }
     private JoseSerializerOptions JoseSerializerOptions { get; } = new();
@@ -63,7 +64,7 @@ public class JoseSerializerTests : BaseTests
         await ServiceProvider.DisposeAsync();
     }
 
-    private static (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
+    private (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         var nativeKey = RSA.Create();
@@ -71,7 +72,7 @@ public class JoseSerializerTests : BaseTests
         return (nativeKey, secretKey);
     }
 
-    private static (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, ECCurve curve)
+    private (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, ECCurve curve)
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         using var eccKey = ECDiffieHellman.Create(curve);
@@ -81,7 +82,7 @@ public class JoseSerializerTests : BaseTests
         return (nativeKey, secretKey);
     }
 
-    private static (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, JweEncryption jweEncryption)
+    private (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, JweEncryption jweEncryption)
     {
         var curve = jweEncryption switch
         {
@@ -96,26 +97,26 @@ public class JoseSerializerTests : BaseTests
         return CreateRandomEccKey(keyId, curve);
     }
 
-    private static (object controlKey, SecretKey secretKey) CreateRandomSymmetricKey(string keyId, int bitCount)
+    private (object controlKey, SecretKey secretKey) CreateRandomSymmetricKey(string keyId, int bitCount)
     {
         var byteCount = bitCount >> 3;
         var bytes = new byte[byteCount];
         RandomNumberGenerator.Fill(bytes);
         var metadata = new KeyMetadata { KeyId = keyId };
-        var secretKey = new DefaultSymmetricSecretKey(metadata, bytes);
+        var secretKey = SecretKeyFactory.CreateSymmetric(metadata, bytes);
         return (bytes, secretKey);
     }
 
-    private static (object controlKey, SecretKey secretKey) CreateRandomPassword(string keyId)
+    private (object controlKey, SecretKey secretKey) CreateRandomPassword(string keyId)
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         var password = Guid.NewGuid().ToString("N");
         var keyBytes = Encoding.UTF8.GetBytes(password);
-        var secretKey = new DefaultSymmetricSecretKey(metadata, keyBytes);
+        var secretKey = SecretKeyFactory.CreateSymmetric(metadata, keyBytes);
         return (password, secretKey);
     }
 
-    private static (object? controlKey, SecretKey secretKey) CreateRandomKey(string keyId, JwsAlgorithm jwsAlgorithm)
+    private (object? controlKey, SecretKey secretKey) CreateRandomKey(string keyId, JwsAlgorithm jwsAlgorithm)
     {
         switch (jwsAlgorithm)
         {
@@ -153,7 +154,7 @@ public class JoseSerializerTests : BaseTests
         }
     }
 
-    private static (object controlKey, SecretKey secretKey) CreateRandomKey(
+    private (object controlKey, SecretKey secretKey) CreateRandomKey(
         string keyId,
         JweAlgorithm jweAlgorithm,
         JweEncryption jweEncryption) =>
@@ -215,7 +216,6 @@ public class JoseSerializerTests : BaseTests
         var controlSettings = new JwtSettings();
         var (controlKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
         using var disposableNativeKey = controlKey as IDisposable ?? EmptyDisposable.Singleton;
-        using var disposableSecretKey = secretKey;
 
         var keyManagementAlgorithmCode = controlSettings.JwaHeaderValue(jweAlgorithm);
         var encryptionAlgorithmCode = controlSettings.JweHeaderValue(jweEncryption);
@@ -319,7 +319,6 @@ public class JoseSerializerTests : BaseTests
         var (controlKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
 
         using var disposableNativeKey = controlKey as IDisposable ?? EmptyDisposable.Singleton;
-        using var disposableSecretKey = secretKey;
 
         var originalPayload = new Dictionary<string, object>
         {
@@ -389,7 +388,6 @@ public class JoseSerializerTests : BaseTests
         var (controlKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
 
         using var disposableNativeKey = controlKey as IDisposable ?? EmptyDisposable.Singleton;
-        using var disposableSecretKey = secretKey;
 
         var originalPayload = new Dictionary<string, object>
         {

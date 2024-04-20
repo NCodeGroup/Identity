@@ -21,12 +21,14 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
+using NCode.Jose.DataProtection;
 using NCode.Jose.SecretKeys;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class AesKeyManagementAlgorithmTests : BaseTests
 {
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
     public AesKeyManagementAlgorithmTests()
@@ -113,7 +115,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         Span<byte> kek = new byte[kekSizeBytes];
 
         var metadata = new KeyMetadata { KeyId = keyId };
-        using var secretKey = new DefaultSymmetricSecretKey(metadata, kek);
+        var secretKey = SecretKeyFactory.CreateSymmetric(metadata, kek);
 
         var cekSizeBytes = cekSizeBits >> 3;
         var encryptedCekSizeBytes = aesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);

@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using NCode.Jose.DataProtection;
 using NCode.Jose.Extensions;
 using NCode.Jose.SecretKeys;
 
@@ -25,6 +26,8 @@ namespace NCode.Jose.Tests.Extensions;
 
 public class SecretKeyExtensionsTests : BaseTests
 {
+    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
+
     [Fact]
     public void Validate_Valid()
     {
@@ -32,7 +35,7 @@ public class SecretKeyExtensionsTests : BaseTests
         const int keySizeBits = keySizeBytes * 8;
 
         Span<byte> key = new byte[keySizeBytes];
-        using var secretKey = new DefaultSymmetricSecretKey(default, key);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, key);
 
         var legalKeyBitSizes = new[] { new KeySizes(keySizeBits, keySizeBits, 0) };
 
@@ -47,7 +50,7 @@ public class SecretKeyExtensionsTests : BaseTests
         const int keySizeBits = keySizeBytes * 8;
 
         Span<byte> key = new byte[keySizeBytes];
-        using var secretKey = new DefaultSymmetricSecretKey(default, key);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, key);
 
         var legalKeyBitSizes = new[] { new KeySizes(keySizeBits, keySizeBits, 0) };
 
@@ -64,7 +67,7 @@ public class SecretKeyExtensionsTests : BaseTests
         const int keySizeBits = keySizeBytes * 8;
 
         Span<byte> key = new byte[keySizeBytes];
-        using var secretKey = new DefaultSymmetricSecretKey(default, key);
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, key);
 
         var legalKeyBitSizes = new[] { new KeySizes(keySizeBits + 8, keySizeBits + 8, 0) };
 

@@ -33,7 +33,7 @@ public sealed class StaticCollectionDataSource<T> : ICollectionDataSource<T>, ID
     public IEnumerable<T> Collection { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="collection"/> class.
+    /// Initializes a new instance of the <see cref="StaticCollectionDataSource{T}"/> class.
     /// </summary>
     /// <param name="collection">The collection of <typeparamref name="T"/> instances.</param>
     /// <param name="owns">Indicates whether this collection will own the items and dispose of them

@@ -27,6 +27,7 @@ namespace NCode.Jose.Collections;
 /// </summary>
 public sealed class StaticCollectionDataSource<T> : ICollectionDataSource<T>, IDisposable
 {
+    private bool IsDisposed { get; set; }
     private bool Owns { get; }
 
     /// <inheritdoc />
@@ -47,7 +48,8 @@ public sealed class StaticCollectionDataSource<T> : ICollectionDataSource<T>, ID
     /// <inheritdoc />
     public void Dispose()
     {
-        if (!Owns) return;
+        if (!Owns || IsDisposed) return;
+        IsDisposed = true;
         var disposableCollection = Collection as IEnumerable<IDisposable>;
         disposableCollection?.DisposeAll();
     }

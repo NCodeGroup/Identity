@@ -22,6 +22,9 @@ using NCode.Jose.SecretKeys;
 
 namespace NIdentity.OpenId.Clients;
 
+/// <summary>
+/// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that is authenticated.
+/// </summary>
 public abstract class OpenIdAuthenticatedClient : OpenIdClient
 {
     /// <summary>

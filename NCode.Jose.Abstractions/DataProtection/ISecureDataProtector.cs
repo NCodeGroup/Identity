@@ -19,7 +19,7 @@
 namespace NCode.Jose.DataProtection;
 
 /// <summary>
-/// An interface that can provide data protection services using the new <c>Span</c> API.
+/// An abstraction that can provide data protection services using the new <c>Span</c> API.
 /// </summary>
 public interface ISecureDataProtector
 {

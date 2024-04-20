@@ -23,7 +23,7 @@ using NIdentity.OpenId.Settings;
 namespace NIdentity.OpenId.Clients;
 
 /// <summary>
-/// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client.
+/// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that may or may not be authenticated.
 /// </summary>
 public abstract class OpenIdClient
 {

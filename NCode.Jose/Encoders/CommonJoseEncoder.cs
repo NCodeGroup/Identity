@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using NCode.Jose.Buffers;
 using NCode.Jose.Credentials;
@@ -127,9 +126,9 @@ public abstract class CommonJoseEncoder : JoseEncoder
         ReadOnlySpan<char> payload,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(payload);
+        var byteCount = SecureEncoding.Utf8.GetByteCount(payload);
         using var _ = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
-        var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
+        var bytesWritten = SecureEncoding.Utf8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
         Encode(
             tokenWriter,

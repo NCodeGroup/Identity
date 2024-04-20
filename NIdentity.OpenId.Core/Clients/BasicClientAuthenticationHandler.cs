@@ -18,7 +18,6 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Http;
 using NCode.Jose.Buffers;
 using NCode.Jose.SecretKeys;
@@ -81,7 +80,7 @@ internal class BasicClientAuthenticationHandler(
             return new ClientAuthenticationResult(ErrorInvalidHeader);
 
         // TODO: check for exceptions
-        var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+        var credentials = SecureEncoding.Utf8.GetString(Convert.FromBase64String(encoded));
         if (string.IsNullOrEmpty(credentials))
             return new ClientAuthenticationResult(ErrorInvalidHeader);
 
@@ -103,7 +102,7 @@ internal class BasicClientAuthenticationHandler(
         // TODO: use secure memory operations
         var encodedClientSecret = credentials[(indexOfColon + 1)..];
         var clientSecret = UriDecode(encodedClientSecret);
-        var clientSecretBytes = Encoding.UTF8.GetBytes(clientSecret);
+        var clientSecretBytes = SecureEncoding.Utf8.GetBytes(clientSecret);
 
         foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
         {

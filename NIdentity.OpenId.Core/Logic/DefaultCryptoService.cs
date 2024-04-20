@@ -19,7 +19,6 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography;
-using System.Text;
 using NCode.Encoders;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Buffers;
@@ -123,7 +122,7 @@ public class DefaultCryptoService : ICryptoService
         {
             Span<byte> dataBytes = stackalloc byte[0];
 
-            var dataByteLength = Encoding.UTF8.GetByteCount(data);
+            var dataByteLength = SecureEncoding.Utf8.GetByteCount(data);
             if (dataByteLength <= MaxStackAlloc)
             {
                 dataBytes = stackalloc byte[dataByteLength];
@@ -133,7 +132,7 @@ public class DefaultCryptoService : ICryptoService
                 lease = CryptoPool.Rent(dataByteLength, isSensitive: false, out dataBytes);
             }
 
-            var bytesWritten = Encoding.UTF8.GetBytes(data, dataBytes);
+            var bytesWritten = SecureEncoding.Utf8.GetBytes(data, dataBytes);
             Debug.Assert(bytesWritten == dataByteLength);
 
             return HashValue(dataBytes, hashAlgorithmType, binaryEncodingType);

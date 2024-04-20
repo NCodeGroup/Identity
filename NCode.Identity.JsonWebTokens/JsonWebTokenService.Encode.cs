@@ -20,7 +20,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using NCode.Jose;
@@ -235,10 +234,10 @@ partial class JsonWebTokenService
 
     private static JsonElement CreateJsonElement(string json)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(json);
+        var byteCount = SecureEncoding.Utf8.GetByteCount(json);
         using var _ = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> buffer);
 
-        var bytesWritten = Encoding.UTF8.GetBytes(json, buffer);
+        var bytesWritten = SecureEncoding.Utf8.GetBytes(json, buffer);
         Debug.Assert(bytesWritten == byteCount);
 
         var reader = new Utf8JsonReader(buffer);

@@ -126,9 +126,9 @@ partial class JoseSerializer
         JoseEncryptionOptions encryptionOptions,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(payload);
+        var byteCount = SecureEncoding.Utf8.GetByteCount(payload);
         using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
-        var bytesWritten = Encoding.UTF8.GetBytes(payload, payloadBytes);
+        var bytesWritten = SecureEncoding.Utf8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
         Encode(
             tokenWriter,

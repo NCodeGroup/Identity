@@ -17,8 +17,8 @@
 
 #endregion
 
-using System.Text;
 using System.Text.Json;
+using NCode.Jose.Buffers;
 using NCode.Jose.Json;
 
 namespace NCode.Jose.Tests.Json;
@@ -57,7 +57,7 @@ public class JoseObjectJsonConverterTests
         converter.Write(writer, input, options);
 
         var bytes = stream.ToArray();
-        var json = Encoding.UTF8.GetString(bytes);
+        var json = SecureEncoding.Utf8.GetString(bytes);
         Assert.Equal(expected, json);
 
         var reader = new Utf8JsonReader(bytes);

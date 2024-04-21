@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Disposables;
 using NCode.Identity;
 using NIdentity.OpenId.Tenants.Providers;
 
@@ -33,18 +34,18 @@ public class DefaultOpenIdTenantFactory(
     private IOpenIdTenantProviderSelector TenantProviderSelector { get; } = tenantProviderSelector;
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdTenant> CreateTenantAsync(
+    public async ValueTask<ISharedReference<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
-        var provider = TenantProviderSelector.SelectProvider(propertyBag);
+        var tenantProvider = TenantProviderSelector.SelectProvider(propertyBag);
 
-        var tenant = await provider.GetTenantAsync(
+        var tenantReference = await tenantProvider.GetTenantAsync(
             httpContext,
             propertyBag,
             cancellationToken);
 
-        return tenant;
+        return tenantReference;
     }
 }

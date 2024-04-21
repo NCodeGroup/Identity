@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Disposables;
 using NCode.Identity;
 
 namespace NIdentity.OpenId.Tenants;
@@ -27,18 +28,18 @@ namespace NIdentity.OpenId.Tenants;
 public class DefaultOpenIdTenantCache : IOpenIdTenantCache
 {
     /// <inheritdoc />
-    public ValueTask<OpenIdTenant?> TryGetAsync(
+    public ValueTask<ISharedReference<OpenIdTenant>?> TryGetAsync(
         TenantDescriptor tenantDescriptor,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult<OpenIdTenant?>(null);
+        return ValueTask.FromResult<ISharedReference<OpenIdTenant>?>(null);
     }
 
     /// <inheritdoc />
     public ValueTask SetAsync(
         TenantDescriptor tenantDescriptor,
-        OpenIdTenant tenant,
+        ISharedReference<OpenIdTenant> tenant,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {

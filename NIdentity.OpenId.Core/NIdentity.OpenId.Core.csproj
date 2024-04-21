@@ -25,6 +25,7 @@
         <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
         <PackageReference Include="NCode.Base64Url" Version="1.1.2" />
+        <PackageReference Include="NCode.Disposables" Version="4.0.0" />
         <PackageReference Include="NCode.PasswordGenerator" Version="1.0.1" />
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.0" />
         <PackageReference Include="System.Linq.Async" Version="6.0.1" />
@@ -35,10 +36,6 @@
         <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj" />
         <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj" />
         <ProjectReference Include="..\NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="DataProtection\" />
     </ItemGroup>
 
 

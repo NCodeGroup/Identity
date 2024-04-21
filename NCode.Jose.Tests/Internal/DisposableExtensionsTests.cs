@@ -17,7 +17,7 @@
 
 #endregion
 
-using NCode.Jose.Extensions;
+using NCode.Disposables;
 
 namespace NCode.Jose.Tests.Internal;
 

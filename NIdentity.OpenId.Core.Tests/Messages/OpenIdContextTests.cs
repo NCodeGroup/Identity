@@ -19,6 +19,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Moq;
+using NCode.Disposables;
 using NCode.Identity;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Mediator;
@@ -28,11 +29,11 @@ using Xunit;
 
 namespace NIdentity.OpenId.Core.Tests.Messages;
 
-public class OpenIdContextTests : IDisposable
+public sealed class OpenIdContextTests : IDisposable
 {
     private MockRepository MockRepository { get; }
     private Mock<OpenIdServer> MockOpenIdServer { get; }
-    private Mock<OpenIdTenant> MockOpenIdTenant { get; }
+    private Mock<ISharedReference<OpenIdTenant>> MockOpenIdTenantReference { get; }
     private Mock<HttpContext> MockHttpContext { get; }
     private Mock<IMediator> MockMediator { get; }
     private Mock<IPropertyBag> MockPropertyBag { get; }
@@ -41,7 +42,7 @@ public class OpenIdContextTests : IDisposable
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockOpenIdServer = MockRepository.Create<OpenIdServer>();
-        MockOpenIdTenant = MockRepository.Create<OpenIdTenant>();
+        MockOpenIdTenantReference = MockRepository.Create<ISharedReference<OpenIdTenant>>();
         MockHttpContext = MockRepository.Create<HttpContext>();
         MockMediator = MockRepository.Create<IMediator>();
         MockPropertyBag = MockRepository.Create<IPropertyBag>();
@@ -58,11 +59,11 @@ public class OpenIdContextTests : IDisposable
         var openIdContext = new DefaultOpenIdContext(
             MockHttpContext.Object,
             MockOpenIdServer.Object,
-            MockOpenIdTenant.Object,
+            MockOpenIdTenantReference.Object,
             MockMediator.Object,
             MockPropertyBag.Object);
 
-        Assert.Same(MockOpenIdTenant.Object, openIdContext.Tenant);
+        Assert.Same(MockOpenIdTenantReference.Object, openIdContext.Tenant);
         Assert.Same(MockOpenIdServer.Object, openIdContext.Server);
         Assert.Same(MockHttpContext.Object, openIdContext.Http);
         Assert.Same(MockMediator.Object, openIdContext.Mediator);

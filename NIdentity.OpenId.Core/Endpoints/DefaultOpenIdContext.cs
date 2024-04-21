@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Disposables;
 using NCode.Identity;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Servers;
@@ -31,11 +32,13 @@ namespace NIdentity.OpenId.Endpoints;
 public class DefaultOpenIdContext(
     HttpContext httpContext,
     OpenIdServer openIdServer,
-    OpenIdTenant openIdTenant,
+    ISharedReference<OpenIdTenant> tenantReference,
     IMediator mediator,
     IPropertyBag propertyBag
 ) : OpenIdContext
 {
+    private ISharedReference<OpenIdTenant> TenantReference { get; } = tenantReference.AddReference();
+
     /// <inheritdoc />
     public override HttpContext Http { get; } = httpContext;
 
@@ -43,11 +46,18 @@ public class DefaultOpenIdContext(
     public override OpenIdServer Server { get; } = openIdServer;
 
     /// <inheritdoc />
-    public override OpenIdTenant Tenant { get; } = openIdTenant;
+    public override OpenIdTenant Tenant => TenantReference.Value;
 
     /// <inheritdoc />
     public override IMediator Mediator { get; } = mediator;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = propertyBag;
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing) return;
+        TenantReference.Dispose();
+    }
 }

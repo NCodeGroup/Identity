@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Disposables;
 using NCode.Identity;
 using NCode.Jose.SecretKeys;
 using NIdentity.OpenId.Settings;
@@ -31,11 +32,12 @@ public class DefaultOpenIdTenant(
     string issuer,
     UriDescriptor baseAddress,
     ISettingCollection tenantSettings,
-    ISecretKeyProvider secretKeyProvider,
+    ISharedReference<ISecretKeyProvider> secretKeyReference,
     IPropertyBag propertyBag
 ) : OpenIdTenant
 {
     private TenantDescriptor TenantDescriptor { get; } = tenantDescriptor;
+    private ISharedReference<ISecretKeyProvider> SecretKeyReference { get; } = secretKeyReference.AddReference();
 
     /// <inheritdoc />
     public override string TenantId => TenantDescriptor.TenantId;
@@ -53,8 +55,15 @@ public class DefaultOpenIdTenant(
     public override ISettingCollection TenantSettings { get; } = tenantSettings;
 
     /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeyProvider { get; } = secretKeyProvider;
+    public override ISecretKeyProvider SecretKeyProvider => SecretKeyReference.Value;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = propertyBag;
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing) return;
+        SecretKeyReference.Dispose();
+    }
 }

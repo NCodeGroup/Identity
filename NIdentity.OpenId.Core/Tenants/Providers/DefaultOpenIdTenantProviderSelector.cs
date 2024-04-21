@@ -33,7 +33,7 @@ public class DefaultOpenIdTenantProviderSelector(
 ) : IOpenIdTenantProviderSelector
 {
     [MemberNotNullWhen(true, nameof(TenantProviderOrNull))]
-    private bool TenantProviderHasValue { get; set; }
+    private bool TenantProviderHasValue => TenantProviderOrNull != null;
 
     private IOpenIdTenantProvider? TenantProviderOrNull { get; set; }
 
@@ -48,13 +48,16 @@ public class DefaultOpenIdTenantProviderSelector(
             return TenantProviderOrNull;
 
         var providerCode = ServerOptions.Tenant.ProviderCode;
-        var tenantProvider = TenantProviders.FirstOrDefault(provider => string.Equals(
-            providerCode,
-            provider.ProviderCode,
-            StringComparison.Ordinal));
+        var tenantProvider = TenantProviders.FirstOrDefault(
+            provider => string.Equals(
+                providerCode,
+                provider.ProviderCode,
+                StringComparison.Ordinal));
 
-        TenantProviderOrNull = tenantProvider ?? throw new InvalidOperationException($"Unable to find a tenant provider with code '{providerCode}'.");
-        TenantProviderHasValue = true;
+        TenantProviderOrNull =
+            tenantProvider ??
+            throw new InvalidOperationException(
+                $"Unable to find a tenant provider with code '{providerCode}'.");
 
         return tenantProvider;
     }

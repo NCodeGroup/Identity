@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Disposables;
 using NCode.Identity;
 
 namespace NIdentity.OpenId.Tenants;
@@ -36,7 +37,7 @@ public interface IOpenIdTenantFactory
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
     /// <see cref="OpenIdTenant"/> instance.</returns>
-    ValueTask<OpenIdTenant> CreateTenantAsync(
+    ValueTask<ISharedReference<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken);

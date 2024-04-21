@@ -20,7 +20,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
-using NCode.Jose.Extensions;
+using NCode.Disposables;
 using NCode.Jose.Infrastructure;
 
 namespace NCode.Jose.Collections;

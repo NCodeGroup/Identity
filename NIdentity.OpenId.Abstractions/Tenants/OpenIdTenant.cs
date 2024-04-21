@@ -26,7 +26,7 @@ namespace NIdentity.OpenId.Tenants;
 /// <summary>
 /// Provides the configuration for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
 /// </summary>
-public abstract class OpenIdTenant
+public abstract class OpenIdTenant : IDisposable
 {
     /// <summary>
     /// Gets the unique identifier for the tenant.
@@ -63,4 +63,16 @@ public abstract class OpenIdTenant
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+    /// </summary>
+    protected abstract void Dispose(bool disposing);
 }

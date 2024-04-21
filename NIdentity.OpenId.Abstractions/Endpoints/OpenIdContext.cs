@@ -28,7 +28,7 @@ namespace NIdentity.OpenId.Endpoints;
 /// <summary>
 /// Encapsulates all OpenID-specific information about an individual OpenID request.
 /// </summary>
-public abstract class OpenIdContext
+public abstract class OpenIdContext : IDisposable
 {
     /// <summary>
     /// Gets the <see cref="HttpContext"/> associated with the current request.
@@ -54,4 +54,16 @@ public abstract class OpenIdContext
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+    /// </summary>
+    protected abstract void Dispose(bool disposing);
 }

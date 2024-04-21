@@ -37,6 +37,8 @@ public class DefaultSecureDataProtector(
     public byte[] Protect(ReadOnlySpan<byte> plaintext)
     {
         // pin the plaintextBytes to prevent the GC from moving it around
+        // can't use ArrayPool with GCHandle because it doesn't guarantee to return an exact size
+        // and data protector doesn't support span or array segments
         var plaintextBytes = GC.AllocateUninitializedArray<byte>(plaintext.Length, pinned: true);
         try
         {

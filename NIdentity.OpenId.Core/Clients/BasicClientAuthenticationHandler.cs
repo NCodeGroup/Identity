@@ -28,10 +28,10 @@ using NIdentity.OpenId.Stores;
 namespace NIdentity.OpenId.Clients;
 
 internal class BasicClientAuthenticationHandler(
-    IClientStore clientStore,
+    IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
-    IOpenIdErrorFactory errorFactory)
-    : IClientAuthenticationHandler
+    IOpenIdErrorFactory errorFactory
+) : IClientAuthenticationHandler
 {
     // TODO: move comment
     // RE: 400 vs 401
@@ -45,7 +45,7 @@ internal class BasicClientAuthenticationHandler(
         .InvalidClient()
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
-    private IClientStore ClientStore { get; } = clientStore;
+    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
 
     /// <inheritdoc />
@@ -90,8 +90,11 @@ internal class BasicClientAuthenticationHandler(
         if (string.IsNullOrEmpty(clientId))
             return new ClientAuthenticationResult(ErrorInvalidHeader);
 
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var clientStore = storeManager.GetStore<IClientStore>();
+
         var tenantId = openIdContext.Tenant.TenantId;
-        var clientModel = await ClientStore.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
+        var clientModel = await clientStore.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
         if (clientModel is null || clientModel.IsDisabled)
             return new ClientAuthenticationResult(ErrorInvalidClient);
 

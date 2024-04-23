@@ -42,7 +42,7 @@ public abstract class OpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     OpenIdServerOptions serverOptions,
     OpenIdServer openIdServer,
-    ITenantStore tenantStore,
+    IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
     ISecretSerializer secretSerializer,
     ISecretKeyProviderFactory secretKeyProviderFactory
@@ -69,9 +69,9 @@ public abstract class OpenIdTenantProvider(
     protected OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <summary>
-    /// Gets the <see cref="ITenantStore"/> used to provide tenant information.
+    /// Gets the <see cref="IStoreManagerFactory"/> used to create <see cref="IStoreManager"/> instances.
     /// </summary>
-    protected ITenantStore TenantStore { get; } = tenantStore;
+    protected IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     /// <summary>
     /// Gets the <see cref="IOpenIdTenantCache"/> used to cache tenant instances.
@@ -97,7 +97,7 @@ public abstract class OpenIdTenantProvider(
     protected abstract PathString TenantPath { get; }
 
     /// <summary>
-    /// Loads the tenant using the specified <paramref name="tenantId"/> from the <see cref="TenantStore"/>.
+    /// Loads the tenant using the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.
     /// </summary>
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -105,7 +105,10 @@ public abstract class OpenIdTenantProvider(
     /// <exception cref="HttpResultException">Throw with status code 404 when then tenant could not be found.</exception>
     protected async ValueTask<Tenant> GetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
     {
-        var tenant = await TenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var tenantStore = storeManager.GetStore<ITenantStore>();
+
+        var tenant = await tenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
         if (tenant is null)
             throw TypedResults
                 .NotFound()

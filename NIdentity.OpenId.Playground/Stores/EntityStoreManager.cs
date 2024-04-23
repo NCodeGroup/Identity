@@ -22,7 +22,12 @@ using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Playground.Stores;
 
-internal sealed class EntityStoreManager<TDbContext>(
+/// <summary>
+/// Provides an implementation for the <see cref="IStoreManager"/> abstraction that uses an <see cref="DbContext"/> instance
+/// for the unit-of-work pattern.
+/// </summary>
+/// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> instance.</typeparam>
+public sealed class EntityStoreManager<TDbContext>(
     IServiceProvider serviceProvider,
     IDbContextFactory<TDbContext> contextFactory
 ) : IStoreManager

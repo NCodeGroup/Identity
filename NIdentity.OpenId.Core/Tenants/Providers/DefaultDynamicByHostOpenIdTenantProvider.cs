@@ -34,13 +34,13 @@ namespace NIdentity.OpenId.Tenants.Providers;
 
 /// <summary>
 /// Provides a default implementation of <see cref="IOpenIdTenantProvider"/> that dynamically loads the tenant
-/// configuration using the host name from a HTTP request.
+/// configuration using the host name from an HTTP request.
 /// </summary>
 public class DefaultDynamicByHostOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdServerOptions> serverOptionsAccessor,
     OpenIdServer openIdServer,
-    ITenantStore tenantStore,
+    IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
     ISecretSerializer secretSerializer,
     ISecretKeyProviderFactory secretKeyProviderFactory
@@ -48,7 +48,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
     openIdServer,
-    tenantStore,
+    storeManagerFactory,
     tenantCache,
     secretSerializer,
     secretKeyProviderFactory
@@ -67,7 +67,10 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
 
     private async ValueTask<Tenant> GetTenantByDomainAsync(string domainName, CancellationToken cancellationToken)
     {
-        var tenant = await TenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var tenantStore = storeManager.GetStore<ITenantStore>();
+
+        var tenant = await tenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
         if (tenant is null)
             throw TypedResults
                 .NotFound()

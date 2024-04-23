@@ -42,7 +42,6 @@ internal class ClientStore : IClientStore
     {
         var clientEntity = Mapper.Map<ClientEntity>(client);
         await DbContext.Clients.AddAsync(clientEntity, cancellationToken);
-        await DbContext.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -52,7 +51,6 @@ internal class ClientStore : IClientStore
         if (clientEntity != null)
         {
             DbContext.Clients.Remove(clientEntity);
-            await DbContext.SaveChangesAsync(cancellationToken);
         }
     }
 

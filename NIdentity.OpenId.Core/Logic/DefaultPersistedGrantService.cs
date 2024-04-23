@@ -78,7 +78,6 @@ public class DefaultPersistedGrantService(
         };
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-
         var store = storeManager.GetStore<IPersistedGrantStore>();
 
         await store.AddAsync(envelope, cancellationToken);
@@ -97,7 +96,6 @@ public class DefaultPersistedGrantService(
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-
         var store = storeManager.GetStore<IPersistedGrantStore>();
 
         var envelope = await store.TryGetAsync(
@@ -161,7 +159,6 @@ public class DefaultPersistedGrantService(
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-
         var store = storeManager.GetStore<IPersistedGrantStore>();
 
         await store.SetConsumedOnceAsync(

@@ -21,7 +21,7 @@ using System.Text;
 namespace NCode.Jose.Buffers;
 
 /// <summary>
-/// Provides a secure encodings that throw an exception when invalid bytes are encountered.
+/// Provides secure encodings that throw an exception when invalid bytes are encountered.
 /// </summary>
 public static class SecureEncoding
 {

@@ -28,30 +28,19 @@ namespace NIdentity.OpenId.Logic;
 /// <summary>
 /// Provides a default implementation for the <see cref="IPersistedGrantService"/> abstraction.
 /// </summary>
-public class DefaultPersistedGrantService : IPersistedGrantService
+public class DefaultPersistedGrantService(
+    ISystemClock systemClock,
+    ICryptoService cryptoService,
+    IIdGenerator<long> idGenerator,
+    IStoreManagerFactory storeManagerFactory,
+    OpenIdServer openIdServer
+) : IPersistedGrantService
 {
-    private ISystemClock SystemClock { get; }
-    private ICryptoService CryptoService { get; }
-    private IIdGenerator<long> IdGenerator { get; }
-    private IPersistedGrantStore PersistedGrantStore { get; }
-    private OpenIdServer OpenIdServer { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultPersistedGrantService"/> class.
-    /// </summary>
-    public DefaultPersistedGrantService(
-        ISystemClock systemClock,
-        ICryptoService cryptoService,
-        IIdGenerator<long> idGenerator,
-        IPersistedGrantStore persistedGrantStore,
-        OpenIdServer openIdServer)
-    {
-        SystemClock = systemClock;
-        CryptoService = cryptoService;
-        IdGenerator = idGenerator;
-        PersistedGrantStore = persistedGrantStore;
-        OpenIdServer = openIdServer;
-    }
+    private ISystemClock SystemClock { get; } = systemClock;
+    private ICryptoService CryptoService { get; } = cryptoService;
+    private IIdGenerator<long> IdGenerator { get; } = idGenerator;
+    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     private string GetHashedKey(string grantKey) =>
         CryptoService.HashValue(
@@ -88,7 +77,13 @@ public class DefaultPersistedGrantService : IPersistedGrantService
             PayloadJson = payloadJson
         };
 
-        await PersistedGrantStore.AddAsync(envelope, cancellationToken);
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+
+        var store = storeManager.GetStore<IPersistedGrantStore>();
+
+        await store.AddAsync(envelope, cancellationToken);
+
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -101,7 +96,11 @@ public class DefaultPersistedGrantService : IPersistedGrantService
         var utcNow = SystemClock.UtcNow;
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
-        var envelope = await PersistedGrantStore.TryGetAsync(
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+
+        var store = storeManager.GetStore<IPersistedGrantStore>();
+
+        var envelope = await store.TryGetAsync(
             grantId.TenantId,
             grantId.GrantType,
             hashedKey,
@@ -118,19 +117,27 @@ public class DefaultPersistedGrantService : IPersistedGrantService
         if (singleUse && isConsumed)
             return default;
 
+        var isDirty = false;
         if (setConsumed && !isConsumed)
         {
-            await PersistedGrantStore.SetConsumedOnceAsync(
+            await store.SetConsumedOnceAsync(
                 grantId.TenantId,
                 grantId.GrantType,
                 hashedKey,
                 utcNow,
                 cancellationToken);
+
+            isDirty = true;
         }
 
         var payload = JsonSerializer.Deserialize<TPayload>(
             envelope.PayloadJson,
             OpenIdServer.JsonSerializerOptions);
+
+        if (isDirty)
+        {
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
 
         if (payload is null)
             return default;
@@ -153,11 +160,17 @@ public class DefaultPersistedGrantService : IPersistedGrantService
     {
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
-        await PersistedGrantStore.SetConsumedOnceAsync(
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+
+        var store = storeManager.GetStore<IPersistedGrantStore>();
+
+        await store.SetConsumedOnceAsync(
             grantId.TenantId,
             grantId.GrantType,
             hashedKey,
             consumedWhen,
             cancellationToken);
+
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 }

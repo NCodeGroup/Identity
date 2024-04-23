@@ -16,17 +16,22 @@
 
 #endregion
 
-using System.Text;
+using Microsoft.EntityFrameworkCore;
+using NIdentity.OpenId.Stores;
 
-namespace NCode.Jose.Buffers;
+namespace NIdentity.OpenId.Playground.Stores;
 
-/// <summary>
-/// Provides secure encodings that throw an exception when invalid bytes are encountered.
-/// </summary>
-public static class SecureEncoding
+internal sealed class StoreManagerFactory<TDbContext>(
+    IServiceProvider serviceProvider
+) : IStoreManagerFactory
+    where TDbContext : DbContext
 {
-    /// <summary>
-    /// Gets a UTF-8 encoding that throws an exception when invalid bytes are encountered.
-    /// </summary>
-    public static UTF8Encoding Utf8 { get; } = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    private IServiceProvider ServiceProvider { get; } = serviceProvider;
+
+    /// <inheritdoc />
+    public ValueTask<IStoreManager> CreateAsync(CancellationToken cancellationToken)
+    {
+        IStoreManager storeManager = ActivatorUtilities.CreateInstance<EntityStoreManager<TDbContext>>(ServiceProvider);
+        return ValueTask.FromResult(storeManager);
+    }
 }

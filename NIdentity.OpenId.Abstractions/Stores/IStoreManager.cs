@@ -16,17 +16,12 @@
 
 #endregion
 
-using System.Text;
+namespace NIdentity.OpenId.Stores;
 
-namespace NCode.Jose.Buffers;
-
-/// <summary>
-/// Provides secure encodings that throw an exception when invalid bytes are encountered.
-/// </summary>
-public static class SecureEncoding
+public interface IStoreManager : IServiceProvider, IAsyncDisposable
 {
-    /// <summary>
-    /// Gets a UTF-8 encoding that throws an exception when invalid bytes are encountered.
-    /// </summary>
-    public static UTF8Encoding Utf8 { get; } = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    TStore GetStore<TStore>()
+        where TStore : class;
+
+    ValueTask SaveChangesAsync(CancellationToken cancellationToken);
 }

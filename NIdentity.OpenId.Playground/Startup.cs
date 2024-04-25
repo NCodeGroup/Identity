@@ -27,6 +27,7 @@ using NIdentity.OpenId.Endpoints.Continue.Logic;
 using NIdentity.OpenId.Endpoints.Token;
 using NIdentity.OpenId.Logic;
 using NIdentity.OpenId.Options;
+using NIdentity.OpenId.Playground.DataLayer;
 using NIdentity.OpenId.Playground.Stores;
 using NIdentity.OpenId.Registration;
 using NIdentity.OpenId.Servers;
@@ -67,10 +68,14 @@ internal class Startup
         services.AddSingleton<ISecretSerializer, DefaultSecretSerializer>();
         services.AddSingleton<ICryptoService, DefaultCryptoService>();
 
-        services.AddSingleton<IClientStore, EmptyClientStore>();
-        services.AddSingleton<ITenantStore, EmptyTenantStore>();
-        services.AddSingleton<IPersistedGrantStore, EmptyPersistedGrantStore>();
         services.AddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
+
+        services.AddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<IdentityDbContext>>();
+        services.AddSingleton<Func<IIdentityDbContext, IClientStore>>(
+            serviceProvider => dbContext =>
+                ActivatorUtilities.CreateInstance<ClientStore>(
+                    serviceProvider,
+                    dbContext));
 
         services.AddCoreMediatorServices();
         services.AddCoreTenantServices();

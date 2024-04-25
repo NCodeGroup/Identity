@@ -37,7 +37,7 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdServerOptions> serverOptionsAccessor,
     OpenIdServer openIdServer,
-    ITenantStore tenantStore,
+    IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
     ISecretSerializer secretSerializer,
     ISecretKeyProviderFactory secretKeyProviderFactory
@@ -45,7 +45,7 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
     openIdServer,
-    tenantStore,
+    storeManagerFactory,
     tenantCache,
     secretSerializer,
     secretKeyProviderFactory

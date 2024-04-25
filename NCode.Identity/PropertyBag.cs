@@ -27,9 +27,9 @@ namespace NCode.Identity;
 /// </summary>
 public class PropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagKey, object?>
 {
-    private IDictionary<PropertyBagKey, object?>? ItemsOrNull { get; set; }
+    private Dictionary<PropertyBagKey, object?>? ItemsOrNull { get; set; }
 
-    private IDictionary<PropertyBagKey, object?> Items => ItemsOrNull ??= new Dictionary<PropertyBagKey, object?>();
+    private Dictionary<PropertyBagKey, object?> Items => ItemsOrNull ??= new Dictionary<PropertyBagKey, object?>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyBag"/> class.
@@ -97,10 +97,10 @@ public class PropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagKey, obj
         ItemsOrNull?.Count ?? 0;
 
     IEnumerable<PropertyBagKey> IReadOnlyDictionary<PropertyBagKey, object?>.Keys =>
-        ItemsOrNull?.Keys ?? Array.Empty<PropertyBagKey>();
+        ItemsOrNull?.Keys ?? Enumerable.Empty<PropertyBagKey>();
 
     IEnumerable<object?> IReadOnlyDictionary<PropertyBagKey, object?>.Values =>
-        ItemsOrNull?.Values ?? Array.Empty<object?>();
+        ItemsOrNull?.Values ?? Enumerable.Empty<object?>();
 
     object? IReadOnlyDictionary<PropertyBagKey, object?>.this[PropertyBagKey key] =>
         TryGetBase(key, out var value) ? value : default;

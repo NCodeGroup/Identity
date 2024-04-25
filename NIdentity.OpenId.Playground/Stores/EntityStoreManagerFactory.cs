@@ -26,7 +26,7 @@ namespace NIdentity.OpenId.Playground.Stores;
 /// for the unit-of-work pattern.
 /// </summary>
 /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> instance.</typeparam>
-public sealed class StoreManagerFactory<TDbContext>(
+public sealed class EntityStoreManagerFactory<TDbContext>(
     IServiceProvider serviceProvider
 ) : IStoreManagerFactory
     where TDbContext : DbContext

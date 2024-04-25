@@ -20,22 +20,18 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using NIdentity.OpenId.DataContracts;
-using NIdentity.OpenId.Playground.DataLayer;
 using NIdentity.OpenId.Playground.DataLayer.Entities;
 using NIdentity.OpenId.Stores;
 
 namespace NIdentity.OpenId.Playground.Stores;
 
-internal class ClientStore : IClientStore
+internal class ClientStore(
+    IIdentityDbContext context,
+    IMapper mapper
+) : IClientStore
 {
-    private IdentityDbContext DbContext { get; }
-    private IMapper Mapper { get; }
-
-    public ClientStore(IdentityDbContext context, IMapper mapper)
-    {
-        DbContext = context;
-        Mapper = mapper;
-    }
+    private IIdentityDbContext DbContext { get; } = context;
+    private IMapper Mapper { get; } = mapper;
 
     /// <inheritdoc />
     public async ValueTask AddAsync(Client client, CancellationToken cancellationToken)

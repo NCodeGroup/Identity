@@ -39,7 +39,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     IOptions<OpenIdServerOptions> serverOptionsAccessor,
     OpenIdServer openIdServer,
     ISecretKeyProvider secretKeyProvider,
-    ITenantStore tenantStore,
+    IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
     ISecretSerializer secretSerializer,
     ISecretKeyProviderFactory secretKeyProviderFactory
@@ -47,7 +47,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
     openIdServer,
-    tenantStore,
+    storeManagerFactory,
     tenantCache,
     secretSerializer,
     secretKeyProviderFactory

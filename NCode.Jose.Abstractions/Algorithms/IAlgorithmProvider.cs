@@ -16,7 +16,7 @@
 
 #endregion
 
-using NCode.Jose.Collections;
+using NCode.Collections.Providers;
 
 namespace NCode.Jose.Algorithms;
 

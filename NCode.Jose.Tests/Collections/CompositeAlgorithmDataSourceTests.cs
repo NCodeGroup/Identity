@@ -18,9 +18,8 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
+using NCode.Collections.Providers;
 using NCode.Jose.Algorithms;
-using NCode.Jose.Collections;
-using NCode.Jose.Infrastructure;
 
 namespace NCode.Jose.Tests.Collections;
 
@@ -142,7 +141,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
             mockDataSource1.Object
         };
 
-        using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
+        var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
         composite.Dispose();
 
         Assert.Throws<ObjectDisposedException>(() => composite.Collection);

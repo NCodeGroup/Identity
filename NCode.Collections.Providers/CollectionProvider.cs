@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -20,28 +20,25 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
-using NCode.Jose.Infrastructure;
 
-namespace NCode.Jose.Collections;
+namespace NCode.Collections.Providers;
 
 /// <summary>
-/// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that aggregates multiple <see cref="ICollectionDataSource{T}"/> instances.
+/// Provides a default implementation for the <see cref="ICollectionProvider{TItem,TCollection}"/> interface.
 /// </summary>
-/// <remarks>
-/// Because this class is intended to be used with DI, it does not own the <see cref="ICollectionDataSource{T}"/> instances.
-/// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
-/// </remarks>
-public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataSource<T>
+public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvider<TItem, TCollection>
+    where TCollection : IEnumerable<TItem>
 {
     private object SyncObj { get; } = new();
+    private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
-    private List<IDisposable>? ChangeTokenRegistrations { get; set; }
-    private IReadOnlyList<ICollectionDataSource<T>> DataSources { get; }
-    private IEnumerable<T>? CollectionOrNull { get; set; }
+    private IDisposable? ChangeTokenRegistration { get; set; }
+    private CompositeCollectionDataSource<TItem> DataSource { get; }
+    private TCollection? CollectionOrNull { get; set; }
 
     /// <inheritdoc />
-    public IEnumerable<T> Collection
+    public TCollection Collection
     {
         get
         {
@@ -51,18 +48,46 @@ public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataS
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CompositeCollectionDataSource{T}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
+    /// Initializes a new instance of the <see cref="CollectionProvider{TItem,TCollection}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
-    public CompositeCollectionDataSource(IEnumerable<ICollectionDataSource<T>> dataSources)
+    protected CollectionProvider(IEnumerable<ICollectionDataSource<TItem>> dataSources)
     {
-        DataSources = dataSources.ToList();
+        DataSource = new CompositeCollectionDataSource<TItem>(dataSources);
     }
 
+    /// <summary>
+    /// Factory method to create a new <typeparamref name="TCollection"/> instance.
+    /// </summary>
+    /// <param name="items">The <see cref="IEnumerable{T}"/> collection of items.</param>
+    /// <returns>The newly created <typeparamref name="TCollection"/> instance.</returns>
+    protected abstract TCollection CreateCollection(IEnumerable<TItem> items);
+
     /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    public IChangeToken GetChangeToken()
     {
-        if (!disposing || IsDisposed) return;
+        EnsureChangeTokenInitialized();
+        return ConsumerChangeToken;
+    }
+
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// When overridden in a derived class, releases the unmanaged resources used by this instance,
+    /// and optionally releases any managed resources.
+    /// </summary>
+    /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
+    /// to release only unmanaged resources.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (IsDisposed || !disposing) return;
 
         List<IDisposable>? disposables;
 
@@ -71,29 +96,17 @@ public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataS
             if (IsDisposed) return;
             IsDisposed = true;
 
-            disposables = [];
+            // fyi, we own the composite data source but not the individual data sources
+            disposables = [DataSource];
 
-            // fyi, since the data sources are from DI, and we don't own them, we therefore don't dispose them
-
-            if (ChangeTokenRegistrations is { Count: > 0 })
-                disposables.AddRange(ChangeTokenRegistrations);
+            if (ChangeTokenRegistration is not null)
+                disposables.Add(ChangeTokenRegistration);
 
             if (ChangeTokenSource is not null)
                 disposables.Add(ChangeTokenSource);
-
-            CollectionOrNull = null;
-            ChangeTokenRegistrations = null;
-            ChangeTokenSource = null;
         }
 
         disposables.DisposeAll();
-    }
-
-    /// <inheritdoc />
-    public IChangeToken GetChangeToken()
-    {
-        EnsureChangeTokenInitialized();
-        return ConsumerChangeToken;
     }
 
     [MemberNotNull(nameof(CollectionOrNull))]
@@ -124,6 +137,11 @@ public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataS
         }
     }
 
+    private void SubscribeChangeTokenProducers()
+    {
+        ChangeTokenRegistration = ChangeToken.OnChange(DataSource.GetChangeToken, HandleChange);
+    }
+
     private void HandleChange()
     {
         CancellationTokenSource? oldTokenSource;
@@ -152,13 +170,6 @@ public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataS
         oldTokenSource?.Dispose();
     }
 
-    private void SubscribeChangeTokenProducers()
-    {
-        ChangeTokenRegistrations ??= [];
-        ChangeTokenRegistrations.AddRange(DataSources.Select(dataSource =>
-            ChangeToken.OnChange(dataSource.GetChangeToken, HandleChange)));
-    }
-
     [MemberNotNull(nameof(ConsumerChangeToken))]
     private void RefreshConsumerChangeToken()
     {
@@ -169,11 +180,6 @@ public class CompositeCollectionDataSource<T> : BaseDisposable, ICollectionDataS
     [MemberNotNull(nameof(CollectionOrNull))]
     private void RefreshCollection()
     {
-        CollectionOrNull = DataSources.Count switch
-        {
-            0 => Enumerable.Empty<T>(),
-            1 => DataSources[0].Collection,
-            _ => DataSources.SelectMany(dataSource => dataSource.Collection)
-        };
+        CollectionOrNull = CreateCollection(DataSource.Collection);
     }
 }

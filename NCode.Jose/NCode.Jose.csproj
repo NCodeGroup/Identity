@@ -32,6 +32,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj" />
       <ProjectReference Include="..\NCode.Jose.Abstractions\NCode.Jose.Abstractions.csproj" />
     </ItemGroup>
 

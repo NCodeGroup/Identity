@@ -1,4 +1,5 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,27 +14,30 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-namespace NCode.Identity.OpenId.DataContracts;
+using Microsoft.Extensions.Primitives;
+using NCode.Disposables;
+
+namespace NCode.Collections.Providers;
 
 /// <summary>
-/// Provides the ability to return the surrogate key for an entity where the key type is <see cref="long"/>.
+/// Provides an implementation of <see cref="IChangeToken"/> that never generates any change notifications.
 /// </summary>
-public interface ISupportId : ISupportId<long>
-{
-    // nothing
-}
-
-/// <summary>
-/// Provides the ability to return the surrogate key for an entity.
-/// </summary>
-/// <typeparam name="TKey">The type of the surrogate key.</typeparam>
-public interface ISupportId<out TKey>
-    where TKey : IEquatable<TKey>
+public sealed class NullChangeToken : IChangeToken
 {
     /// <summary>
-    /// Gets the surrogate key.
+    /// Gets a singleton instance of <see cref="NullChangeToken"/>.
     /// </summary>
-    TKey Id { get; }
+    public static NullChangeToken Singleton { get; } = new();
+
+    /// <inheritdoc />
+    public bool HasChanged => false;
+
+    /// <inheritdoc />
+    public bool ActiveChangeCallbacks => false;
+
+    /// <inheritdoc />
+    public IDisposable RegisterChangeCallback(Action<object> callback, object? state) => Disposable.Empty;
 }

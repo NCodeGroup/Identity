@@ -19,9 +19,9 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Collections.Providers;
 using NCode.Jose.Algorithms;
 using NCode.Jose.Algorithms.KeyManagement;
-using NCode.Jose.Collections;
 using NCode.Jose.Credentials;
 using NCode.Jose.SecretKeys;
 

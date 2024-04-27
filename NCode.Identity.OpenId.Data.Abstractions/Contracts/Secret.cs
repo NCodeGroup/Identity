@@ -46,13 +46,13 @@ public class Secret : ISupportId
     /// Valid values are defined in RFC 7517 Section 4.2:
     /// https://tools.ietf.org/html/rfc7517#section-4.2
     /// </summary>
-    public string? Use { get; init; }
+    public required string? Use { get; init; }
 
     /// <summary>
     /// Gets or sets the intended algorithm for use with this secret. This property is optional and may be
     /// <c>null</c> to indicate that this secret is intended for use with any compatible algorithm.
     /// </summary>
-    public string? Algorithm { get; init; }
+    public required string? Algorithm { get; init; }
 
     /// <summary>
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.
@@ -66,7 +66,7 @@ public class Secret : ISupportId
 
     /// <summary>
     /// Gets or sets a value that specifies the type of secret.
-    /// See <see cref="SecretConstants.SecretTypes"/> for possible values.
+    /// See <see cref="SecretTypes"/> for possible values.
     /// </summary>
     public required string SecretType { get; init; }
 

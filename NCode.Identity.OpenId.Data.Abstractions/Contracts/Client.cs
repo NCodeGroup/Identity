@@ -53,9 +53,9 @@ public class Client : ISupportId, ISupportConcurrencyToken
     public required bool IsDisabled { get; set; }
 
     /// <summary>
-    /// Gets or sets the JSON serialized settings for the tenant.
+    /// Gets or sets the serialized JSON for the client settings.
     /// </summary>
-    public required string SerializedSettings { get; set; }
+    public required string SettingsJson { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to the client.

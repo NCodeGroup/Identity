@@ -21,21 +21,31 @@ using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
-using NCode.Jose.Infrastructure;
 
-namespace NCode.Jose.Collections;
+namespace NCode.Collections.Providers;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that uses an <see cref="ObservableCollection{T}"/> as the underlying data source.
 /// </summary>
 /// <typeparam name="T">The type of items in the collection.</typeparam>
-public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionDataSource<T>
+public sealed class ObservableCollectionDataSource<T> : ICollectionDataSource<T>, IDisposable
 {
     private bool Owns { get; }
     private object SyncObj { get; } = new();
+    private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private CancellationChangeToken? ChangeToken { get; set; }
     private ObservableCollection<T> ObservableCollection { get; }
+
+    /// <inheritdoc />
+    public IEnumerable<T> Collection
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return ObservableCollection;
+        }
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ObservableCollectionDataSource{T}"/> class with the specified <paramref name="observableCollection"/>.
@@ -51,9 +61,18 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
     }
 
     /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    public IChangeToken GetChangeToken()
     {
-        if (!disposing || IsDisposed) return;
+        EnsureChangeTokenInitialized();
+        return ChangeToken;
+    }
+
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (IsDisposed) return;
 
         List<IDisposable>? disposables;
 
@@ -96,13 +115,6 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
         }
     }
 
-    [MemberNotNull(nameof(ChangeToken))]
-    private void RefreshChangeToken()
-    {
-        ChangeTokenSource = new CancellationTokenSource();
-        ChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
-    }
-
     private void HandleChange(object? sender, NotifyCollectionChangedEventArgs e)
     {
         CancellationTokenSource? oldTokenSource;
@@ -125,13 +137,10 @@ public class ObservableCollectionDataSource<T> : BaseDisposable, ICollectionData
         oldTokenSource?.Dispose();
     }
 
-    /// <inheritdoc />
-    public IChangeToken GetChangeToken()
+    [MemberNotNull(nameof(ChangeToken))]
+    private void RefreshChangeToken()
     {
-        EnsureChangeTokenInitialized();
-        return ChangeToken;
+        ChangeTokenSource = new CancellationTokenSource();
+        ChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
     }
-
-    /// <inheritdoc />
-    public IEnumerable<T> Collection => GetOrThrowObjectDisposed(ObservableCollection);
 }

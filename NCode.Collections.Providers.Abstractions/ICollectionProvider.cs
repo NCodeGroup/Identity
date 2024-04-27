@@ -18,7 +18,7 @@
 
 using Microsoft.Extensions.Primitives;
 
-namespace NCode.Jose.Collections;
+namespace NCode.Collections.Providers;
 
 /// <summary>
 /// Provides the composition root (i.e. top-level collection) of <typeparamref name="TItem"/> instances by
@@ -28,12 +28,12 @@ public interface ICollectionProvider<TItem, out TCollection> : IDisposable
     where TCollection : IEnumerable<TItem>
 {
     /// <summary>
-    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
-    /// </summary>
-    IChangeToken GetChangeToken();
-
-    /// <summary>
     /// Gets a read-only collection of <typeparamref name="TItem"/> instances.
     /// </summary>
     TCollection Collection { get; }
+
+    /// <summary>
+    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
+    /// </summary>
+    IChangeToken GetChangeToken();
 }

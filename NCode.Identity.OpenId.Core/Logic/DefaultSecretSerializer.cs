@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using NCode.Encoders;
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.OpenId.Data.Contracts;
 using NCode.Jose.Buffers;
 using NCode.Jose.DataProtection;
 using NCode.Jose.SecretKeys;
@@ -58,10 +58,10 @@ public class DefaultSecretSerializer(
     public SecretKey DeserializeSecret(Secret secret, out bool requiresMigration) =>
         secret.SecretType switch
         {
-            SecretConstants.SecretTypes.Certificate => DeserializeCertificate(secret, out requiresMigration),
-            SecretConstants.SecretTypes.Symmetric => DeserializeSymmetric(secret, out requiresMigration),
-            SecretConstants.SecretTypes.Rsa => DeserializeRsa(secret, out requiresMigration),
-            SecretConstants.SecretTypes.Ecc => DeserializeEcc(secret, out requiresMigration),
+            SecretTypes.Certificate => DeserializeCertificate(secret, out requiresMigration),
+            SecretTypes.Symmetric => DeserializeSymmetric(secret, out requiresMigration),
+            SecretTypes.Rsa => DeserializeRsa(secret, out requiresMigration),
+            SecretTypes.Ecc => DeserializeEcc(secret, out requiresMigration),
             _ => throw new InvalidOperationException($"The '{secret.SecretType}' secret type is not supported.")
         };
 

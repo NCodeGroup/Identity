@@ -33,4 +33,8 @@
         </Compile>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\NCode.Collections.Providers.Abstractions\NCode.Collections.Providers.Abstractions.csproj" />
+    </ItemGroup>
+
 </Project>

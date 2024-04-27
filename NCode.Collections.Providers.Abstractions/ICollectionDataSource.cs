@@ -18,7 +18,7 @@
 
 using Microsoft.Extensions.Primitives;
 
-namespace NCode.Jose.Collections;
+namespace NCode.Collections.Providers;
 
 /// <summary>
 /// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
@@ -30,12 +30,12 @@ namespace NCode.Jose.Collections;
 public interface ICollectionDataSource<out T>
 {
     /// <summary>
-    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
-    /// </summary>
-    IChangeToken GetChangeToken();
-
-    /// <summary>
     /// Gets a read-only collection of <typeparamref name="T"/> instances.
     /// </summary>
     IEnumerable<T> Collection { get; }
+
+    /// <summary>
+    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
+    /// </summary>
+    IChangeToken GetChangeToken();
 }

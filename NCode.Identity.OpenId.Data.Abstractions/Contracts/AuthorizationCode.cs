@@ -29,32 +29,32 @@ public class AuthorizationCode : ISupportId
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
     /// </summary>
-    public long Id { get; set; }
+    public required long Id { get; set; }
 
     /// <summary>
     /// Gets or sets the tenant identifier for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string TenantId { get; set; } = string.Empty;
+    public required string TenantId { get; set; }
 
     /// <summary>
     /// Gets or sets the SHA-256 hash of the natural key that uniquely identifies this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string HashedCode { get; set; } = string.Empty;
+    public required string HashedCode { get; set; }
 
     /// <summary>
     /// Gets or sets when the authorization code was created.
     /// </summary>
-    public DateTimeOffset CreatedWhen { get; set; }
+    public required DateTimeOffset CreatedWhen { get; set; }
 
     /// <summary>
     /// Gets or sets when the authorization code expires.
     /// </summary>
-    public DateTimeOffset ExpiresWhen { get; set; }
+    public required DateTimeOffset ExpiresWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the original <see cref="IAuthorizationRequest"/>.
+    /// Gets or sets the serialized JSON for the original authorization request.
     /// </summary>
-    public string AuthorizationRequestJson { get; set; } = string.Empty;
+    public required string AuthorizationRequestJson { get; set; }
 }

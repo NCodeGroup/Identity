@@ -18,9 +18,8 @@
 
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
-using NCode.Jose.Infrastructure;
 
-namespace NCode.Jose.Collections;
+namespace NCode.Collections.Providers;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that uses a static collection of <typeparamref name="T"/> instances.
@@ -50,6 +49,7 @@ public sealed class StaticCollectionDataSource<T> : ICollectionDataSource<T>, ID
     {
         if (!Owns || IsDisposed) return;
         IsDisposed = true;
+
         var disposableCollection = Collection as IEnumerable<IDisposable>;
         disposableCollection?.DisposeAll();
     }

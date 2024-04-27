@@ -17,7 +17,7 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Jose.Collections;
+using NCode.Collections.Providers;
 
 namespace NCode.Jose.SecretKeys;
 

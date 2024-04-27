@@ -19,12 +19,11 @@
 
 using System.Security.Cryptography;
 using Microsoft.Extensions.Primitives;
+using NCode.Collections.Providers;
 using NCode.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Jose.Algorithms.Compression;
 using NCode.Jose.Algorithms.KeyManagement;
 using NCode.Jose.Algorithms.Signature;
-using NCode.Jose.Collections;
-using NCode.Jose.Infrastructure;
 
 namespace NCode.Jose.Algorithms;
 

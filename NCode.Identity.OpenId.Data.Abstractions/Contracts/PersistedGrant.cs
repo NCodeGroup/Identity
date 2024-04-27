@@ -29,55 +29,55 @@ public class PersistedGrant : ISupportId
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
     /// </summary>
-    public long Id { get; set; }
+    public required long Id { get; set; }
 
     /// <summary>
     /// Gets or sets the tenant identifier for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string TenantId { get; set; } = string.Empty;
+    public required string TenantId { get; set; }
 
     /// <summary>
     /// Gets or sets the type of grant.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string GrantType { get; set; } = string.Empty;
+    public required string GrantType { get; set; }
 
     /// <summary>
-    /// Gets or sets the SHA-256 hash of the natural key that uniquely identifies this entity.
+    /// Gets or sets the <c>SHA-256</c> hash of the natural key that uniquely identifies this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string HashedKey { get; set; } = string.Empty;
+    public required string HashedKey { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>ClientId</c> associated with this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string? ClientId { get; set; }
+    public required string? ClientId { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>SubjectId</c> associated with this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string? SubjectId { get; set; }
+    public required string? SubjectId { get; set; }
 
     /// <summary>
     /// Gets or sets when this entity was created.
     /// </summary>
-    public DateTimeOffset CreatedWhen { get; set; }
+    public required DateTimeOffset CreatedWhen { get; set; }
 
     /// <summary>
     /// Gets or sets when this entity expires.
     /// </summary>
-    public DateTimeOffset ExpiresWhen { get; set; }
+    public required DateTimeOffset ExpiresWhen { get; set; }
 
     /// <summary>
     /// Gets or sets when this entity was consumed.
     /// </summary>
-    public DateTimeOffset? ConsumedWhen { get; set; }
+    public required DateTimeOffset? ConsumedWhen { get; set; }
 
     /// <summary>
     /// Gets or sets the serialized JSON for the payload.
     /// </summary>
-    public string PayloadJson { get; set; } = string.Empty;
+    public required string PayloadJson { get; set; }
 }

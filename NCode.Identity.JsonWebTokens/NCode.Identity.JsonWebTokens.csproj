@@ -8,9 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Identity\NCode.Identity.csproj" />
         <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj"/>
+        <ProjectReference Include="..\NCode.PropertyBag.Abstractions\NCode.PropertyBag.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.PropertyBag\NCode.PropertyBag.csproj" />
     </ItemGroup>
 
 

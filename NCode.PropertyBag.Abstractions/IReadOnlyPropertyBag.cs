@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,26 +18,17 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace NCode.Identity;
+namespace NCode.PropertyBag;
 
 /// <summary>
-/// Provides a strongly typed collection of properties that can be accessed by key.
+/// Provides a strongly typed read-only collection of properties that can be accessed by key.
 /// </summary>
-public interface IPropertyBag
+public interface IReadOnlyPropertyBag
 {
     /// <summary>
     /// Returns a new instance of the <see cref="IPropertyBag"/> class that is a shallow copy of the current instance.
     /// </summary>
     IPropertyBag Clone();
-
-    /// <summary>
-    /// Sets a strongly typed value for the specified <paramref name="key"/> in the property bag.
-    /// </summary>
-    /// <param name="key">The key of the strongly typed value to set in the property bag.</param>
-    /// <param name="value">The strongly typed value to set in the property bag.</param>
-    /// <typeparam name="T">The type of the value to set in the property bag.</typeparam>
-    /// <returns>The <see cref="IPropertyBag"/> instance for method chaining.</returns>
-    IPropertyBag Set<T>(PropertyBagKey<T> key, T value);
 
     /// <summary>
     /// Attempts to get a strongly typed value associated with the specified key from the property bag.

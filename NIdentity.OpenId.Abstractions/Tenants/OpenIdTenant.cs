@@ -17,8 +17,8 @@
 
 #endregion
 
-using NCode.Identity;
 using NCode.Jose.SecretKeys;
+using NCode.PropertyBag;
 using NIdentity.OpenId.Settings;
 
 namespace NIdentity.OpenId.Tenants;

@@ -19,6 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
+using NCode.PropertyBag;
 
 namespace NCode.Identity.JsonWebTokens;
 

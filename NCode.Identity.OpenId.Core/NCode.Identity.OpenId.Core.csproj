@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>NCode.Identity.OpenId</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- https://learn.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="IdGen.DependencyInjection" Version="3.0.5"/>
+        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0"/>
+        <PackageReference Include="NCode.Base64Url" Version="1.1.2"/>
+        <PackageReference Include="NCode.Disposables" Version="4.0.0"/>
+        <PackageReference Include="NCode.PasswordGenerator" Version="1.0.1"/>
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.0"/>
+        <PackageReference Include="System.Linq.Async" Version="6.0.1"/>
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj"/>
+        <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj"/>
+    </ItemGroup>
+
+</Project>

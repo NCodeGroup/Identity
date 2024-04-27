@@ -9,13 +9,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Abstractions", "NIdentity.OpenId.Abstractions\NIdentity.OpenId.Abstractions.csproj", "{BC401E46-D702-42E4-AFBD-09D05FCCB0C9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCode.Identity.OpenId.Abstractions", "NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj", "{BC401E46-D702-42E4-AFBD-09D05FCCB0C9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Core", "NIdentity.OpenId.Core\NIdentity.OpenId.Core.csproj", "{FF1AA0D2-80A8-4581-9CCE-57EB39AA095D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCode.Identity.OpenId.Core", "NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj", "{FF1AA0D2-80A8-4581-9CCE-57EB39AA095D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NIdentity.OpenId.Playground", "NIdentity.OpenId.Playground\NIdentity.OpenId.Playground.csproj", "{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCode.Identity.OpenId.Playground", "NCode.Identity.OpenId.Playground\NCode.Identity.OpenId.Playground.csproj", "{4913D767-3D47-4AC8-BD1F-A25580BBAEF2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIdentity.OpenId.Core.Tests", "NIdentity.OpenId.Core.Tests\NIdentity.OpenId.Core.Tests.csproj", "{421E2D83-7CB1-4D1A-92C4-63DFC2152858}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.OpenId.Core.Tests", "NCode.Identity.OpenId.Core.Tests\NCode.Identity.OpenId.Core.Tests.csproj", "{421E2D83-7CB1-4D1A-92C4-63DFC2152858}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Jose", "NCode.Jose\NCode.Jose.csproj", "{79527D6D-BED2-4685-95D8-09366C34BF7F}"
 EndProject

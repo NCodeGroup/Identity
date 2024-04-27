@@ -52,6 +52,14 @@ public class SettingCollection : ISettingCollection
     }
 
     /// <inheritdoc />
+    public int Count => Store.Count;
+
+    /// <inheritdoc />
+    public IEnumerator<Setting> GetEnumerator() => Store.Values.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <inheritdoc />
     public bool TryGet(string settingName, [MaybeNullWhen(false)] out Setting setting)
         => Store.TryGetValue(settingName, out setting);
 
@@ -107,12 +115,4 @@ public class SettingCollection : ISettingCollection
 
         return new SettingCollection(newStore);
     }
-
-    /// <inheritdoc />
-    public int Count => Store.Count;
-
-    /// <inheritdoc />
-    public IEnumerator<Setting> GetEnumerator() => Store.Values.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

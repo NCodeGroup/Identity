@@ -31,7 +31,7 @@ public class DefaultOpenIdTenant(
     TenantDescriptor tenantDescriptor,
     string issuer,
     UriDescriptor baseAddress,
-    ISettingCollection tenantSettings,
+    IReadOnlySettingCollection tenantSettings,
     ISharedReference<ISecretKeyProvider> secretKeyReference,
     IPropertyBag propertyBag
 ) : OpenIdTenant
@@ -52,7 +52,7 @@ public class DefaultOpenIdTenant(
     public override UriDescriptor BaseAddress { get; } = baseAddress;
 
     /// <inheritdoc />
-    public override ISettingCollection TenantSettings { get; } = tenantSettings;
+    public override IReadOnlySettingCollection Settings { get; } = tenantSettings;
 
     /// <inheritdoc />
     public override ISecretKeyProvider SecretKeyProvider => SecretKeyReference.Value;

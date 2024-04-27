@@ -113,14 +113,14 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     }
 
     /// <inheritdoc />
-    protected override ValueTask<ISettingCollection> GetTenantSettingsAsync(
+    protected override ValueTask<IReadOnlySettingCollection> GetTenantSettingsAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
         CancellationToken cancellationToken)
     {
         // we use the same settings as the server
-        return ValueTask.FromResult(OpenIdServer.ServerSettings);
+        return ValueTask.FromResult(OpenIdServer.Settings);
     }
 
     /// <inheritdoc />
@@ -128,7 +128,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
-        ISettingCollection tenantSettings,
+        IReadOnlySettingCollection tenantSettings,
         UriDescriptor tenantBaseAddress,
         string tenantIssuer,
         CancellationToken cancellationToken)

@@ -40,7 +40,7 @@ public class DefaultOpenIdServer(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : OpenIdServer, IOpenIdErrorFactory
 {
-    private ISettingCollection? SettingsOrNull { get; set; }
+    private IReadOnlySettingCollection? SettingsOrNull { get; set; }
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
     private IConfiguration Configuration { get; } = configuration;
@@ -58,7 +58,7 @@ public class DefaultOpenIdServer(
     public override IKnownParameterCollection KnownParameters => KnownParameterCollection.Default;
 
     /// <inheritdoc />
-    public override ISettingCollection ServerSettings => SettingsOrNull ??= LoadSettings();
+    public override IReadOnlySettingCollection Settings => SettingsOrNull ??= LoadSettings();
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = new DefaultPropertyBag();
@@ -66,7 +66,7 @@ public class DefaultOpenIdServer(
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
 
-    private SettingCollection LoadSettings()
+    private IReadOnlySettingCollection LoadSettings()
     {
         var settingsSection = Configuration.GetSection("settings");
 
@@ -175,7 +175,7 @@ public class DefaultOpenIdServer(
             // TODO: provide a way to customize this list
             Converters =
             {
-                new JsonStringEnumConverter(),
+                new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
                 new OpenIdMessageJsonConverterFactory(this),
                 new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),

@@ -39,6 +39,7 @@ internal class DefaultOpenIdClientFactory(
         return ValueTask.FromResult<OpenIdClient>(
             ActivatorUtilities.CreateInstance<DefaultOpenIdClient>(
                 ServiceProvider,
+                openIdContext,
                 clientModel));
     }
 

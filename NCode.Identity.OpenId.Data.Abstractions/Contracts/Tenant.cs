@@ -19,7 +19,7 @@
 
 using System.ComponentModel.DataAnnotations;
 
-namespace NCode.Identity.OpenId.DataContracts;
+namespace NCode.Identity.OpenId.Data.Contracts;
 
 /// <summary>
 /// Contains the configuration for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
@@ -29,38 +29,38 @@ public class Tenant : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
     /// </summary>
-    public required long Id { get; set; }
+    public long Id { get; set; }
 
     /// <inheritdoc/>
     [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    public required string ConcurrencyToken { get; set; }
+    public string ConcurrencyToken { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the natural key for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public required string TenantId { get; set; }
+    public string TenantId { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the domain name for this entity.
     /// This value is optional and can be used to find tenants by domain name.
     /// </summary>
-    public required string? DomainName { get; set; }
+    public string? DomainName { get; set; }
 
     /// <summary>
     /// Gets or sets the display name for the tenant.
     /// </summary>
-    public required string DisplayName { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
-    public required bool IsDisabled { get; set; }
+    public bool IsDisabled { get; set; }
 
     /// <summary>
     /// Gets or sets the JSON serialized settings for the tenant.
     /// </summary>
-    public required string SerializedSettings { get; set; }
+    public string SerializedSettings { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to the tenant.

@@ -54,47 +54,26 @@ public class SettingDescriptorJsonProvider : ISettingDescriptorJsonProvider
         SettingDescriptorCollection = settingDescriptorCollection;
     }
 
+    private static SettingDescriptor<TValue> CreateDescriptor<TValue>(string settingName)
+        where TValue : notnull => new()
+    {
+        Name = settingName,
+        OnMerge = KnownSettings.Replace
+    };
+
     /// <inheritdoc />
     public SettingDescriptor GetDescriptor(string settingName, JsonTokenType jsonTokenType)
     {
         if (SettingDescriptorCollection.TryGet(settingName, out var descriptor))
             return descriptor;
 
-        switch (jsonTokenType)
+        return jsonTokenType switch
         {
-            case JsonTokenType.String:
-                return new SettingDescriptor<string>
-                {
-                    Name = settingName,
-                    OnMerge = KnownSettings.Replace
-                };
-
-            case JsonTokenType.True or JsonTokenType.False:
-                return new SettingDescriptor<bool>
-                {
-                    Name = settingName,
-                    OnMerge = KnownSettings.Replace
-                };
-
-            case JsonTokenType.Number:
-                return new SettingDescriptor<double>
-                {
-                    Name = settingName,
-                    OnMerge = KnownSettings.Replace
-                };
-
-            case JsonTokenType.StartArray:
-                return new SettingDescriptor<IReadOnlyCollection<string>>
-                {
-                    Name = settingName,
-                    OnMerge = KnownSettings.Replace
-                };
-        }
-
-        return new SettingDescriptor<JsonElement>
-        {
-            Name = settingName,
-            OnMerge = KnownSettings.Replace
+            JsonTokenType.String => CreateDescriptor<string>(settingName),
+            JsonTokenType.True or JsonTokenType.False => CreateDescriptor<bool>(settingName),
+            JsonTokenType.Number => CreateDescriptor<double>(settingName),
+            JsonTokenType.StartArray => CreateDescriptor<IReadOnlyCollection<string>>(settingName),
+            _ => CreateDescriptor<JsonElement>(settingName)
         };
     }
 }

@@ -50,9 +50,9 @@ public abstract class OpenIdTenant : IDisposable
     public abstract UriDescriptor BaseAddress { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISettingCollection"/> that contains tenant settings merged with server settings.
+    /// Gets the <see cref="IReadOnlySettingCollection"/> that contains tenant settings merged with server settings.
     /// </summary>
-    public abstract ISettingCollection TenantSettings { get; }
+    public abstract IReadOnlySettingCollection Settings { get; }
 
     /// <summary>
     /// Gets the <see cref="ISecretKeyProvider"/> for the tenant.

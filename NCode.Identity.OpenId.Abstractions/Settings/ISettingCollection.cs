@@ -17,39 +17,13 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides a strongly typed collection of <see cref="Setting"/> instances that can be accessed by name and value type.
 /// </summary>
-public interface ISettingCollection : IReadOnlyCollection<Setting>
+public interface ISettingCollection : IReadOnlySettingCollection
 {
-    /// <summary>
-    /// Attempts to get a strongly typed setting with the specified name.
-    /// </summary>
-    /// <param name="settingName">The name of the strongly typed setting to get.</param>
-    /// <param name="setting">When this method returns, contains the strongly typed setting with the specified name,
-    /// it the setting is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
-    /// This parameter is passed uninitialized.</param>
-    /// <returns><c>true</c> if the collection contains a setting with the specified name; otherwise,
-    /// <c>false</c>.</returns>
-    bool TryGet(string settingName, [MaybeNullWhen(false)] out Setting setting);
-
-    /// <summary>
-    /// Attempts to get a strongly typed setting associated with the specified key.
-    /// </summary>
-    /// <param name="key">The key of the strongly typed setting to get.</param>
-    /// <param name="setting">When this method returns, contains the strongly typed setting with the specified key,
-    /// it the setting is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
-    /// This parameter is passed uninitialized.</param>
-    /// <typeparam name="TValue">The type of the setting's value.</typeparam>
-    /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise,
-    /// <c>false</c>.</returns>
-    bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out Setting<TValue> setting)
-        where TValue : notnull;
-
     /// <summary>
     /// Add or updates a strongly typed setting in the collection.
     /// </summary>
@@ -65,12 +39,4 @@ public interface ISettingCollection : IReadOnlyCollection<Setting>
     /// The method returns <c>false</c> if <paramref name="key"/> is not found in the collection.</returns>
     bool Remove<TValue>(SettingKey<TValue> key)
         where TValue : notnull;
-
-    /// <summary>
-    /// Creates and returns a new <see cref="ISettingCollection"/> instance that contains the settings from both the current
-    /// instance and the <paramref name="otherCollection"/> by using the merge function defined by each setting's descriptor.
-    /// </summary>
-    /// <param name="otherCollection">The other collection to merge into the current collection.</param>
-    /// <returns>The new <see cref="ISettingCollection"/> instance containing the merged settings from both collections.</returns>
-    ISettingCollection Merge(IEnumerable<Setting> otherCollection);
 }

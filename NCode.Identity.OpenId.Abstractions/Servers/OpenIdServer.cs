@@ -47,9 +47,9 @@ public abstract class OpenIdServer
     public abstract IKnownParameterCollection KnownParameters { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISettingCollection"/> which contains settings scoped to the server.
+    /// Gets the <see cref="IReadOnlySettingCollection"/> which contains settings scoped to the server.
     /// </summary>
-    public abstract ISettingCollection ServerSettings { get; }
+    public abstract IReadOnlySettingCollection Settings { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

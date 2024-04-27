@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Moq;
 using NCode.Identity.OpenId.Settings;
 using Xunit;
@@ -30,6 +31,8 @@ public class SettingCollectionJsonConverterTests : BaseTests
     private SettingCollectionJsonConverter Converter { get; }
     private JsonSerializerOptions JsonSerializerOptions { get; }
 
+    private static readonly string[] ListStringValue = ["one", "two"];
+
     public SettingCollectionJsonConverterTests()
     {
         MockSettingDescriptorJsonProvider = CreatePartialMock<ISettingDescriptorJsonProvider>();
@@ -38,7 +41,7 @@ public class SettingCollectionJsonConverterTests : BaseTests
         JsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
             WriteIndented = false,
-            Converters = { Converter }
+            Converters = { Converter, new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
         };
     }
 
@@ -75,6 +78,12 @@ public class SettingCollectionJsonConverterTests : BaseTests
             OnMerge = (_, other) => other
         };
 
+        var descriptorListEnum = new SettingDescriptor<IReadOnlyCollection<DisplayType>>
+        {
+            Name = "list_enum_setting",
+            OnMerge = (_, other) => other
+        };
+
         var now = DateTimeOffset.Now;
         var settings = new List<Setting>
         {
@@ -82,7 +91,8 @@ public class SettingCollectionJsonConverterTests : BaseTests
             descriptorScalarNumber.Create(3.14),
             descriptorScalarBoolean.Create(true),
             descriptorScalarDateTimeOffset.Create(now),
-            descriptorListString.Create(new[] { "one", "two" })
+            descriptorListString.Create(ListStringValue),
+            descriptorListEnum.Create([DisplayType.Page, DisplayType.Touch])
         };
 
         var expected = JsonSerializer.Serialize(new
@@ -91,7 +101,8 @@ public class SettingCollectionJsonConverterTests : BaseTests
             scalar_double_setting = 3.14,
             scalar_bool_setting = true,
             scalar_datetimeoffset_setting = now,
-            list_string_setting = new[] { "one", "two" }
+            list_string_setting = ListStringValue,
+            list_enum_setting = new[] { "page", "touch" }
         });
 
         var json = JsonSerializer.Serialize(settings, JsonSerializerOptions);
@@ -120,6 +131,11 @@ public class SettingCollectionJsonConverterTests : BaseTests
         MockSettingDescriptorJsonProvider
             .Setup(x => x.GetDescriptor(descriptorListString.Name, JsonTokenType.StartArray))
             .Returns(descriptorListString)
+            .Verifiable();
+
+        MockSettingDescriptorJsonProvider
+            .Setup(x => x.GetDescriptor(descriptorListEnum.Name, JsonTokenType.StartArray))
+            .Returns(descriptorListEnum)
             .Verifiable();
 
         var results = JsonSerializer.Deserialize<IList<Setting>>(json, JsonSerializerOptions);

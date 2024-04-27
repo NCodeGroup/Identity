@@ -17,7 +17,7 @@
 
 #endregion
 
-using NCode.Identity;
+using NCode.PropertyBag;
 
 namespace NIdentity.OpenId.Tenants.Providers;
 

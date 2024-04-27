@@ -20,29 +20,21 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
-namespace NCode.Identity;
+namespace NCode.PropertyBag;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IPropertyBag"/> abstraction.
 /// </summary>
-public class PropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagKey, object?>
+public class DefaultPropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagKey, object?>
 {
     private Dictionary<PropertyBagKey, object?>? ItemsOrNull { get; set; }
 
     private Dictionary<PropertyBagKey, object?> Items => ItemsOrNull ??= new Dictionary<PropertyBagKey, object?>();
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PropertyBag"/> class.
-    /// </summary>
-    public PropertyBag()
-    {
-        // nothing
-    }
-
     /// <inheritdoc />
     public IPropertyBag Clone()
     {
-        var newBag = new PropertyBag();
+        var newBag = new DefaultPropertyBag();
 
         var items = ItemsOrNull;
         if (items is { Count: > 0 })

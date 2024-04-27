@@ -19,7 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
-using NCode.Identity;
+using NCode.PropertyBag;
 using NIdentity.OpenId.Options;
 
 namespace NIdentity.OpenId.Tenants.Providers;

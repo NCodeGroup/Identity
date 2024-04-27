@@ -20,8 +20,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
-using NCode.Identity;
 using NCode.Jose.Algorithms;
+using NCode.PropertyBag;
 using NIdentity.OpenId.Endpoints.Authorization.Messages;
 using NIdentity.OpenId.Messages;
 using NIdentity.OpenId.Messages.Parameters;
@@ -61,7 +61,7 @@ public class DefaultOpenIdServer(
     public override ISettingCollection ServerSettings => SettingsOrNull ??= LoadSettings();
 
     /// <inheritdoc />
-    public override IPropertyBag PropertyBag { get; } = new PropertyBag();
+    public override IPropertyBag PropertyBag { get; } = new DefaultPropertyBag();
 
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);

@@ -20,7 +20,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace NCode.Identity;
+namespace NCode.PropertyBag;
 
 /// <summary>
 /// Contains extension methods for the <see cref="IPropertyBag"/> abstraction.
@@ -49,6 +49,6 @@ public static class PropertyBagExtensions
     /// <typeparam name="T">The type of the value to get from the property bag.</typeparam>
     /// <returns><c>true</c> if the <see cref="IPropertyBag"/> contains an element with the specified key; otherwise,
     /// <c>false</c>.</returns>
-    public static bool TryGet<T>(this IPropertyBag bag, [MaybeNullWhen(false)] out T value, [CallerArgumentExpression(nameof(value))] string? name = null) =>
+    public static bool TryGet<T>(this IReadOnlyPropertyBag bag, [MaybeNullWhen(false)] out T value, [CallerArgumentExpression(nameof(value))] string? name = null) =>
         bag.TryGetValue(new PropertyBagKey<T>(name ?? string.Empty), out value);
 }

@@ -17,7 +17,7 @@
 
 #endregion
 
-namespace NCode.Identity;
+namespace NCode.PropertyBag;
 
 /// <summary>
 /// Represents a strongly typed key in a <see cref="IPropertyBag"/>.

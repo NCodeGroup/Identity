@@ -19,7 +19,7 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Disposables;
-using NCode.Identity;
+using NCode.PropertyBag;
 using NIdentity.OpenId.Tenants.Providers;
 
 namespace NIdentity.OpenId.Tenants;

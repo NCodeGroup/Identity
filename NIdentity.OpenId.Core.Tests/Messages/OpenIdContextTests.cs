@@ -20,7 +20,7 @@
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Disposables;
-using NCode.Identity;
+using NCode.PropertyBag;
 using NIdentity.OpenId.Endpoints;
 using NIdentity.OpenId.Mediator;
 using NIdentity.OpenId.Servers;

@@ -20,7 +20,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity;
+using NCode.PropertyBag;
 using NIdentity.OpenId.Tenants.Providers;
 
 namespace NIdentity.OpenId.Endpoints;
@@ -39,7 +39,7 @@ public class DefaultOpenIdEndpointRouteBuilder(
     /// <inheritdoc />
     public RouteGroupBuilder MapOpenId(IEndpointRouteBuilder endpoints)
     {
-        var propertyBag = new PropertyBag();
+        var propertyBag = new DefaultPropertyBag();
 
         var tenantProvider = TenantProviderSelector.SelectProvider(propertyBag);
 

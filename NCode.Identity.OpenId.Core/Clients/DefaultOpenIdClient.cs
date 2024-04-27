@@ -17,6 +17,7 @@
 #endregion
 
 using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Settings;
 using NCode.Jose.SecretKeys;
@@ -26,11 +27,13 @@ namespace NCode.Identity.OpenId.Clients;
 internal class DefaultOpenIdClient(
     ISecretKeyCollectionFactory secretKeyCollectionFactory,
     ISecretSerializer secretSerializer,
+    OpenIdContext openIdContext,
     Client client
 ) : OpenIdClient
 {
     private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } = secretKeyCollectionFactory;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private OpenIdContext OpenIdContext { get; } = openIdContext;
     private Client ClientModel { get; } = client;
 
     private KnownSettingCollection? SettingsOrNull { get; set; }
@@ -57,9 +60,11 @@ internal class DefaultOpenIdClient(
     /// <inheritdoc />
     public override OpenIdAuthenticatedClient? AuthenticatedClient => null;
 
-    private KnownSettingCollection LoadSettings() =>
+    private KnownSettingCollection LoadSettings()
+    {
         // TODO: use a factory
-        new(new SettingCollection(ClientModel.Settings));
+        return new KnownSettingCollection(OpenIdContext.Tenant.Settings.Merge(ClientModel.Settings));
+    }
 
     private ISecretKeyCollection LoadSecretKeys() =>
         SecretKeyCollectionFactory.Create(

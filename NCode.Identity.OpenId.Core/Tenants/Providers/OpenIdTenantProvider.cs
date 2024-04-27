@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
@@ -231,14 +232,14 @@ public abstract class OpenIdTenantProvider(
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Used to get the tenant's <see cref="ISettingCollection"/> instance from the current HTTP request.
+    /// Used to get the tenant's <see cref="IReadOnlySettingCollection"/> instance from the current HTTP request.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="tenantDescriptor">The <see cref="TenantDescriptor"/> instance for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISettingCollection"/> instance.</returns>
-    protected virtual async ValueTask<ISettingCollection> GetTenantSettingsAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="IReadOnlySettingCollection"/> instance.</returns>
+    protected virtual async ValueTask<IReadOnlySettingCollection> GetTenantSettingsAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
@@ -251,7 +252,17 @@ public abstract class OpenIdTenantProvider(
             propertyBag.Set(tenant);
         }
 
-        return OpenIdServer.ServerSettings.Merge(tenant.Settings);
+        if (string.IsNullOrEmpty(tenant.SerializedSettings))
+            return OpenIdServer.Settings;
+
+        var settings = JsonSerializer.Deserialize<IEnumerable<Setting>>(
+            tenant.SerializedSettings,
+            OpenIdServer.JsonSerializerOptions);
+
+        if (settings is null)
+            return OpenIdServer.Settings;
+
+        return OpenIdServer.Settings.Merge(settings);
     }
 
     /// <summary>
@@ -260,14 +271,14 @@ public abstract class OpenIdTenantProvider(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="tenantDescriptor">The <see cref="TenantDescriptor"/> instance for the current tenant.</param>
-    /// <param name="tenantSettings">The <see cref="ISettingCollection"/> instance for the current tenant.</param>
+    /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollection"/> instance for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISettingCollection"/> instance.</returns>
     protected virtual ValueTask<UriDescriptor> GetTenantBaseAddressAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
-        ISettingCollection tenantSettings,
+        IReadOnlySettingCollection tenantSettings,
         CancellationToken cancellationToken)
     {
         var httpRequest = httpContext.Request;
@@ -297,7 +308,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="tenantDescriptor">The <see cref="TenantDescriptor"/> instance for the current tenant.</param>
-    /// <param name="tenantSettings">The <see cref="ISettingCollection"/> instance for the current tenant.</param>
+    /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollection"/> instance for the current tenant.</param>
     /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <c>issuer identifier</c>.</returns>
@@ -305,7 +316,7 @@ public abstract class OpenIdTenantProvider(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
-        ISettingCollection tenantSettings,
+        IReadOnlySettingCollection tenantSettings,
         UriDescriptor tenantBaseAddress,
         CancellationToken cancellationToken)
     {
@@ -325,7 +336,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="tenantDescriptor">The <see cref="TenantDescriptor"/> instance for the current tenant.</param>
-    /// <param name="tenantSettings">The <see cref="ISettingCollection"/> instance for the current tenant.</param>
+    /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollection"/> instance for the current tenant.</param>
     /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -334,7 +345,7 @@ public abstract class OpenIdTenantProvider(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
-        ISettingCollection tenantSettings,
+        IReadOnlySettingCollection tenantSettings,
         UriDescriptor tenantBaseAddress,
         string tenantIssuer,
         CancellationToken cancellationToken)
@@ -376,7 +387,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="tenantDescriptor">The <see cref="TenantDescriptor"/> instance for the current tenant.</param>
-    /// <param name="tenantSettings">The <see cref="ISettingCollection"/> instance for the current tenant.</param>
+    /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollection"/> instance for the current tenant.</param>
     /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="tenantSecrets">The <see cref="ISecretKeyProvider"/> instance for the current tenant.</param>
@@ -386,7 +397,7 @@ public abstract class OpenIdTenantProvider(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
-        ISettingCollection tenantSettings,
+        IReadOnlySettingCollection tenantSettings,
         UriDescriptor tenantBaseAddress,
         string tenantIssuer,
         ISharedReference<ISecretKeyProvider> tenantSecrets,

@@ -82,7 +82,7 @@ public class DefaultDiscoveryEndpointHandler(
     {
         var (context, metadata, showAll) = command;
 
-        DiscoverSettings(metadata, context.Tenant.TenantSettings, showAll);
+        DiscoverSettings(metadata, context.Tenant.Settings, showAll);
 
         DiscoverEndpoints(metadata, context.Http, showAll);
 
@@ -91,11 +91,11 @@ public class DefaultDiscoveryEndpointHandler(
 
     private static void DiscoverSettings(
         IDictionary<string, object> metadata,
-        ISettingCollection settingsCollection,
+        IReadOnlySettingCollection settings,
         bool showAll)
     {
-        var settings = settingsCollection.Where(setting => showAll || setting.Descriptor.Discoverable);
-        foreach (var setting in settings)
+        var settingsToShow = settings.Where(setting => showAll || setting.Descriptor.Discoverable);
+        foreach (var setting in settingsToShow)
         {
             var value = setting.Descriptor.Format(setting);
             metadata[setting.Descriptor.Name] = value;

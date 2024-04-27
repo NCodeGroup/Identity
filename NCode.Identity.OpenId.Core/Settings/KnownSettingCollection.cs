@@ -25,7 +25,9 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="IKnownSettingCollection"/> abstraction.
 /// </summary>
-public class KnownSettingCollection(ISettingCollection store) : IKnownSettingCollection
+public class KnownSettingCollection(
+    ISettingCollection store
+) : IKnownSettingCollection
 {
     private ISettingCollection Store { get; } = store;
 
@@ -220,11 +222,23 @@ public class KnownSettingCollection(ISettingCollection store) : IKnownSettingCol
 
     //
 
+    /// <inheritdoc />
+    public int Count =>
+        Store.Count;
+
+    /// <inheritdoc />
+    public IEnumerator<Setting> GetEnumerator() =>
+        Store.GetEnumerator();
+
+    /// <inheritdoc />
+    IEnumerator IEnumerable.GetEnumerator() =>
+        ((IEnumerable)Store).GetEnumerator();
+
+    //
+
     private TValue Get<TValue>(SettingDescriptor<TValue> descriptor)
         where TValue : notnull =>
         Store.TryGet(descriptor.Key, out var setting) ? setting.Value : descriptor.Default;
-
-    //
 
     /// <inheritdoc />
     public bool TryGet(string settingName, [MaybeNullWhen(false)] out Setting setting) =>
@@ -246,17 +260,5 @@ public class KnownSettingCollection(ISettingCollection store) : IKnownSettingCol
 
     /// <inheritdoc />
     public ISettingCollection Merge(IEnumerable<Setting> otherCollection) =>
-        Store.Merge(otherCollection);
-
-    /// <inheritdoc />
-    public int Count =>
-        Store.Count;
-
-    /// <inheritdoc />
-    public IEnumerator<Setting> GetEnumerator() =>
-        Store.GetEnumerator();
-
-    /// <inheritdoc />
-    IEnumerator IEnumerable.GetEnumerator() =>
-        ((IEnumerable)Store).GetEnumerator();
+        new KnownSettingCollection(Store.Merge(otherCollection));
 }

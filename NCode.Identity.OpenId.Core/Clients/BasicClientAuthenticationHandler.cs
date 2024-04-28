@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Endpoints;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
@@ -61,6 +62,34 @@ internal class BasicClientAuthenticationHandler(
     private static string UriDecode(string value) =>
         Uri.UnescapeDataString(value.Replace("+", "%20"));
 
+    private async ValueTask<PersistedClient?> TryGetPersistedClientAsync(string tenantId, string clientId, CancellationToken cancellationToken)
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+
+        var persistedClient = await store.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
+        return persistedClient;
+    }
+
+    private async ValueTask<OpenIdClient> CreatePublicClientAsync(
+        OpenIdContext openIdContext,
+        PersistedClient persistedClient,
+        CancellationToken cancellationToken)
+    {
+        var settings = SettingSerializer.DeserializeSettings(persistedClient.SettingsJson);
+        var secrets = SecretSerializer.DeserializeSecrets(persistedClient.Secrets, out _);
+
+        var publicClient = await ClientFactory.CreatePublicClientAsync(
+            openIdContext,
+            persistedClient.ClientId,
+            settings,
+            secrets,
+            persistedClient.RedirectUris,
+            cancellationToken);
+
+        return publicClient;
+    }
+
     /// <inheritdoc />
     public async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
@@ -97,23 +126,14 @@ internal class BasicClientAuthenticationHandler(
         if (string.IsNullOrEmpty(clientId))
             return new ClientAuthenticationResult(ErrorInvalidHeader);
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var clientStore = storeManager.GetStore<IClientStore>();
-
         var tenantId = openIdContext.Tenant.TenantId;
-        var persistedClient = await clientStore.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
+        var persistedClient = await TryGetPersistedClientAsync(tenantId, clientId, cancellationToken);
         if (persistedClient is null || persistedClient.IsDisabled)
             return new ClientAuthenticationResult(ErrorInvalidClient);
 
-        var settings = SettingSerializer.DeserializeSettings(persistedClient.SettingsJson);
-        var secrets = SecretSerializer.DeserializeSecrets(persistedClient.Secrets, out _);
-
-        var publicClient = await ClientFactory.CreatePublicClientAsync(
+        var publicClient = await CreatePublicClientAsync(
             openIdContext,
-            persistedClient.ClientId,
-            settings,
-            secrets,
-            persistedClient.RedirectUris,
+            persistedClient,
             cancellationToken);
 
         if (indexOfColon == -1)

@@ -38,7 +38,8 @@ internal class DefaultOpenIdClientFactory(
         IReadOnlyCollection<Uri> redirectUris,
         CancellationToken cancellationToken)
     {
-        var knownSettings = new KnownSettingCollection(settings);
+        var mergedSettings = openIdContext.Tenant.Settings.Merge(settings);
+        var knownSettings = new KnownSettingCollection(mergedSettings);
         var secretKeys = SecretKeyCollectionFactory.Create(secrets);
 
         OpenIdClient publicClient = new DefaultOpenIdClient(

@@ -27,32 +27,21 @@ namespace NCode.Identity.Secrets;
 /// </summary>
 public class DefaultSecretKeyCollection : ISecretKeyCollection
 {
-    private IReadOnlyCollection<SecretKey> SecretKeys { get; }
-    private IReadOnlyDictionary<string, SecretKey>? SecretKeysByKeyIdOrNull { get; set; }
-    private IReadOnlyDictionary<string, SecretKey> SecretKeysByKeyId => SecretKeysByKeyIdOrNull ??= LoadSecretKeysByKeyId();
+    private List<SecretKey> SecretKeys { get; }
+    private Dictionary<string, SecretKey>? SecretKeysByKeyIdOrNull { get; set; }
+    private Dictionary<string, SecretKey> SecretKeysByKeyId => SecretKeysByKeyIdOrNull ??= LoadSecretKeysByKeyId();
 
     /// <inheritdoc />
     public int Count => SecretKeys.Count;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultSecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> instances.
-    /// The collection will be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/>
-    /// property.
+    /// Initializes a new instance of the <see cref="DefaultSecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> items.
+    /// The collection will be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
     /// </summary>
-    /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    public DefaultSecretKeyCollection(IEnumerable<SecretKey> secretKeys)
+    /// <param name="items">A collection of <see cref="SecretKey"/> items.</param>
+    public DefaultSecretKeyCollection(IEnumerable<SecretKey> items)
     {
-        SecretKeys = secretKeys.Order(SecretKeyExpiresWhenComparer.Singleton).ToList();
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultSecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> instances.
-    /// The collection is used as-is and should already be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
-    /// </summary>
-    /// <param name="secretKeys">A collection of <see cref="SecretKey"/> instances.</param>
-    public DefaultSecretKeyCollection(IReadOnlyCollection<SecretKey> secretKeys)
-    {
-        SecretKeys = secretKeys;
+        SecretKeys = items.Order(SecretKeyExpiresWhenComparer.Singleton).ToList();
     }
 
     private Dictionary<string, SecretKey> LoadSecretKeysByKeyId()

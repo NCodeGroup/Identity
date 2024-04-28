@@ -21,12 +21,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Disposables;
-using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.OpenId.Stores;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;

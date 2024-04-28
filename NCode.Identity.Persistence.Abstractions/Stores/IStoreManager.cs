@@ -16,7 +16,7 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Stores;
+namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Provides an abstraction for the unit-of-work pattern.

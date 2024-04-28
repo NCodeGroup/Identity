@@ -18,7 +18,7 @@
 
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
-using NCode.Identity.OpenId.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Playground.Stores;
 

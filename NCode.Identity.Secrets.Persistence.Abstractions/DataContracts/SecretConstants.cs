@@ -17,31 +17,31 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Data.Contracts;
+namespace NCode.Identity.Secrets.Persistence.DataContracts;
 
 /// <summary>
-/// Contains constants for the possible values of the <see cref="Secret.SecretType"/> property.
+/// Contains constants for the possible values of the <see cref="PersistedSecret.SecretType"/> property.
 /// </summary>
 public static class SecretTypes
 {
     /// <summary>
-    /// Indicates that a <see cref="Secret"/> represents a <c>x509 certificate</c> secret key.
+    /// Indicates that a <see cref="PersistedSecret"/> represents a <c>x509 certificate</c> secret key.
     /// The underlying key material may be <c>RSA</c> or <c>ECC</c>.
     /// </summary>
     public const string Certificate = "x509";
 
     /// <summary>
-    /// Indicates that a <see cref="Secret"/> represents a <c>symmetric</c> secret key.
+    /// Indicates that a <see cref="PersistedSecret"/> represents a <c>symmetric</c> secret key.
     /// </summary>
     public const string Symmetric = "symmetric";
 
     /// <summary>
-    /// Indicates that a <see cref="Secret"/> represents an <c>RSA</c> secret key without a certificate.
+    /// Indicates that a <see cref="PersistedSecret"/> represents an <c>RSA</c> secret key without a certificate.
     /// </summary>
     public const string Rsa = "rsa";
 
     /// <summary>
-    /// Indicates that a <see cref="Secret"/> represents an <c>Elliptic-Curve</c> secret key without a certificate.
+    /// Indicates that a <see cref="PersistedSecret"/> represents an <c>Elliptic-Curve</c> secret key without a certificate.
     /// </summary>
     public const string Ecc = "ecc";
 }

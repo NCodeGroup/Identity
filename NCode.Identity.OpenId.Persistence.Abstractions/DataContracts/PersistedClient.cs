@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -18,18 +18,24 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Data.Contracts;
+namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Represents a persisted <c>Authorization Code</c> grant for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request.
+/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> client.
 /// </summary>
-public class AuthorizationCode : ISupportId
+public class PersistedClient : ISupportId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
     /// </summary>
     public required long Id { get; set; }
+
+    /// <inheritdoc/>
+    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    public required string ConcurrencyToken { get; set; }
 
     /// <summary>
     /// Gets or sets the tenant identifier for this entity.
@@ -38,23 +44,28 @@ public class AuthorizationCode : ISupportId
     public required string TenantId { get; set; }
 
     /// <summary>
-    /// Gets or sets the SHA-256 hash of the natural key that uniquely identifies this entity.
+    /// Gets or sets the natural key for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public required string HashedCode { get; set; }
+    public required string ClientId { get; set; }
 
     /// <summary>
-    /// Gets or sets when the authorization code was created.
+    /// Gets or sets a value indicating whether the client is disabled.
     /// </summary>
-    public required DateTimeOffset CreatedWhen { get; set; }
+    public required bool IsDisabled { get; set; }
 
     /// <summary>
-    /// Gets or sets when the authorization code expires.
+    /// Gets or sets the serialized JSON for the client settings.
     /// </summary>
-    public required DateTimeOffset ExpiresWhen { get; set; }
+    public required string SettingsJson { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the original authorization request.
+    /// Gets or sets the collection of secrets only known to the client.
     /// </summary>
-    public required string AuthorizationRequestJson { get; set; }
+    public List<PersistedSecret> Secrets { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the collection of redirect addresses registered for this client.
+    /// </summary>
+    public List<Uri> RedirectUris { get; set; } = [];
 }

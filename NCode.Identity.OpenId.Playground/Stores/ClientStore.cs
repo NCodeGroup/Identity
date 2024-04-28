@@ -19,9 +19,9 @@
 
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Playground.DataLayer.Entities;
-using NCode.Identity.OpenId.Stores;
 
 namespace NCode.Identity.OpenId.Playground.Stores;
 
@@ -34,9 +34,9 @@ internal class ClientStore(
     private IMapper Mapper { get; } = mapper;
 
     /// <inheritdoc />
-    public async ValueTask AddAsync(Client client, CancellationToken cancellationToken)
+    public async ValueTask AddAsync(PersistedClient persistedClient, CancellationToken cancellationToken)
     {
-        var clientEntity = Mapper.Map<ClientEntity>(client);
+        var clientEntity = Mapper.Map<ClientEntity>(persistedClient);
         await DbContext.Clients.AddAsync(clientEntity, cancellationToken);
     }
 
@@ -51,21 +51,21 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<Client?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
+    public async ValueTask<PersistedClient?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
     {
         var clientEntity = await DbContext.Clients.FirstOrDefaultAsync(entity => entity.Id == id, cancellationToken);
-        var client = Mapper.Map<Client>(clientEntity);
-        return client;
+        var persistedClient = Mapper.Map<PersistedClient>(clientEntity);
+        return persistedClient;
     }
 
     /// <inheritdoc />
-    public async ValueTask<Client?> TryGetByClientIdAsync(string tenantId, string clientId, CancellationToken cancellationToken)
+    public async ValueTask<PersistedClient?> TryGetByClientIdAsync(string tenantId, string clientId, CancellationToken cancellationToken)
     {
         var clientEntity = await DbContext.Clients.FirstOrDefaultAsync(entity =>
                 entity.TenantId == tenantId &&
                 entity.ClientId == clientId,
             cancellationToken);
-        var client = Mapper.Map<Client>(clientEntity);
-        return client;
+        var persistedClient = Mapper.Map<PersistedClient>(clientEntity);
+        return persistedClient;
     }
 }

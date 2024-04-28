@@ -16,59 +16,33 @@
 
 #endregion
 
-using NCode.Identity.OpenId.DataContracts;
-using NCode.Identity.OpenId.Endpoints;
-using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Settings;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
 
 internal class DefaultOpenIdClient(
-    ISecretKeyCollectionFactory secretKeyCollectionFactory,
-    ISecretSerializer secretSerializer,
-    OpenIdContext openIdContext,
-    Client client
+    string clientId,
+    IKnownSettingCollection settings,
+    ISecretKeyCollection secretKeys,
+    IReadOnlyCollection<Uri> redirectUris
 ) : OpenIdClient
 {
-    private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } = secretKeyCollectionFactory;
-    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
-    private OpenIdContext OpenIdContext { get; } = openIdContext;
-    private Client ClientModel { get; } = client;
-
-    private KnownSettingCollection? SettingsOrNull { get; set; }
-    private ISecretKeyCollection? SecretKeysOrNull { get; set; }
+    /// <inheritdoc />
+    public override string ClientId { get; } = clientId;
 
     /// <inheritdoc />
-    public override string ClientId => ClientModel.ClientId;
+    public override IKnownSettingCollection Settings { get; } = settings;
 
     /// <inheritdoc />
-    public override bool IsDisabled => ClientModel.IsDisabled;
+    public override ISecretKeyCollection SecretKeys { get; } = secretKeys;
 
     /// <inheritdoc />
-    public override IKnownSettingCollection Settings => SettingsOrNull ??= LoadSettings();
-
-    /// <inheritdoc />
-    public override ISecretKeyCollection SecretKeys => SecretKeysOrNull ??= LoadSecretKeys();
-
-    /// <inheritdoc />
-    public override IReadOnlyCollection<Uri> RedirectUris => ClientModel.RedirectUris;
+    public override IReadOnlyCollection<Uri> RedirectUris { get; } = redirectUris;
 
     /// <inheritdoc />
     public override bool IsAuthenticated => false;
 
     /// <inheritdoc />
     public override OpenIdAuthenticatedClient? AuthenticatedClient => null;
-
-    private KnownSettingCollection LoadSettings()
-    {
-        // TODO: use a factory
-        return new KnownSettingCollection(OpenIdContext.Tenant.Settings.Merge(ClientModel.Settings));
-    }
-
-    private ISecretKeyCollection LoadSecretKeys() =>
-        SecretKeyCollectionFactory.Create(
-            SecretSerializer.DeserializeSecrets(
-                ClientModel.Secrets,
-                out _));
 }

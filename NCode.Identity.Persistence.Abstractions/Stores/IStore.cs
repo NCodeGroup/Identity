@@ -17,9 +17,9 @@
 
 #endregion
 
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Stores;
+namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Provides an abstraction for a store which manages persisted entities using <see cref="long"/> surrogate keys.

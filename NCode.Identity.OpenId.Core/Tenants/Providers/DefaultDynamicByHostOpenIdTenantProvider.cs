@@ -21,13 +21,14 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId.DataContracts;
-using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Options;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
-using NCode.Identity.OpenId.Stores;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;
@@ -65,18 +66,18 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     /// <inheritdoc />
     protected override PathString TenantPath => TenantOptions.TenantPath;
 
-    private async ValueTask<Tenant> GetTenantByDomainAsync(string domainName, CancellationToken cancellationToken)
+    private async ValueTask<PersistedTenant> GetTenantByDomainAsync(string domainName, CancellationToken cancellationToken)
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var tenantStore = storeManager.GetStore<ITenantStore>();
+        var store = storeManager.GetStore<ITenantStore>();
 
-        var tenant = await tenantStore.TryGetByDomainNameAsync(domainName, cancellationToken);
-        if (tenant is null)
+        var persistedTenant = await store.TryGetByDomainNameAsync(domainName, cancellationToken);
+        if (persistedTenant is null)
             throw TypedResults
                 .NotFound()
                 .AsException($"A tenant with domain '{domainName}' could not be found.");
 
-        return tenant;
+        return persistedTenant;
     }
 
     /// <inheritdoc />
@@ -97,14 +98,14 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
         var match = regex.Match(host);
         var domainName = match.Success ? match.Value : host;
 
-        var tenant = await GetTenantByDomainAsync(domainName, cancellationToken);
-        propertyBag.Set(tenant);
+        var persistedTenant = await GetTenantByDomainAsync(domainName, cancellationToken);
+        propertyBag.Set(persistedTenant);
 
         return new TenantDescriptor
         {
-            TenantId = tenant.TenantId,
-            DisplayName = tenant.DisplayName,
-            DomainName = tenant.DomainName
+            TenantId = persistedTenant.TenantId,
+            DisplayName = persistedTenant.DisplayName,
+            DomainName = persistedTenant.DomainName
         };
     }
 }

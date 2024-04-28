@@ -18,52 +18,44 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using NCode.Identity.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Data.Contracts;
+namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the configuration for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
+/// Represents a persisted <c>Authorization Code</c> grant for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request.
 /// </summary>
-public class Tenant : ISupportId, ISupportConcurrencyToken
+public class PersistedAuthorizationCode : ISupportId
 {
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
     /// </summary>
     public required long Id { get; set; }
 
-    /// <inheritdoc/>
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    public required string ConcurrencyToken { get; set; }
-
     /// <summary>
-    /// Gets or sets the natural key for this entity.
+    /// Gets or sets the tenant identifier for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
     public required string TenantId { get; set; }
 
     /// <summary>
-    /// Gets or sets the domain name for this entity.
-    /// This value is optional and can be used to find tenants by domain name.
+    /// Gets or sets the SHA-256 hash of the natural key that uniquely identifies this entity.
     /// </summary>
-    public required string? DomainName { get; set; }
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public required string HashedCode { get; set; }
 
     /// <summary>
-    /// Gets or sets the display name for the tenant.
+    /// Gets or sets when the authorization code was created.
     /// </summary>
-    public required string DisplayName { get; set; }
+    public required DateTimeOffset CreatedWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the tenant is disabled.
+    /// Gets or sets when the authorization code expires.
     /// </summary>
-    public required bool IsDisabled { get; set; }
+    public required DateTimeOffset ExpiresWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the tenant settings.
+    /// Gets or sets the serialized JSON for the original authorization request.
     /// </summary>
-    public required string SettingsJson { get; set; }
-
-    /// <summary>
-    /// Gets or sets the collection of secrets only known to the tenant.
-    /// </summary>
-    public List<Secret> Secrets { get; set; } = [];
+    public required string AuthorizationRequestJson { get; set; }
 }

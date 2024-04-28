@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -18,13 +18,15 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Data.Contracts;
+namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the configuration for an <c>OAuth</c> or <c>OpenID Connect</c> client application.
+/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> tenant.
 /// </summary>
-public class Client : ISupportId, ISupportConcurrencyToken
+public class PersistedTenant : ISupportId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
@@ -36,34 +38,34 @@ public class Client : ISupportId, ISupportConcurrencyToken
     public required string ConcurrencyToken { get; set; }
 
     /// <summary>
-    /// Gets or sets the tenant identifier for this entity.
+    /// Gets or sets the natural key for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
     public required string TenantId { get; set; }
 
     /// <summary>
-    /// Gets or sets the natural key for this entity.
+    /// Gets or sets the domain name for this entity.
+    /// This value is optional and can be used to find tenants by domain name.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string ClientId { get; set; }
+    public required string? DomainName { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the client is disabled.
+    /// Gets or sets the display name for the tenant.
+    /// </summary>
+    public required string DisplayName { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
     public required bool IsDisabled { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the client settings.
+    /// Gets or sets the serialized JSON for the tenant settings.
     /// </summary>
     public required string SettingsJson { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to the client.
+    /// Gets or sets the collection of secrets only known to the tenant.
     /// </summary>
-    public List<Secret> Secrets { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the collection of redirect addresses registered for this client.
-    /// </summary>
-    public List<Uri> RedirectUris { get; set; } = [];
+    public List<PersistedSecret> Secrets { get; set; } = [];
 }

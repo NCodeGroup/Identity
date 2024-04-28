@@ -18,70 +18,38 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Playground.DataLayer.Entities;
 
-// TODO: what is this for?
-internal readonly struct PropertyDescriptor
-{
-    public PropertyDescriptor(
-        string codeName,
-        string displayName,
-        string description,
-        Type valueType,
-        object? defaultValue,
-        bool isRequired)
-    {
-        CodeName = codeName;
-        DisplayName = displayName;
-        Description = description;
-        ValueType = valueType;
-        DefaultValue = defaultValue;
-        IsRequired = isRequired;
-    }
-
-    public string CodeName { get; }
-
-    public string DisplayName { get; }
-
-    public string Description { get; }
-
-    public Type ValueType { get; }
-
-    public object? DefaultValue { get; }
-
-    public bool IsRequired { get; }
-}
-
 internal class ClientEntity : ISupportId, ISupportConcurrencyToken
 {
-    public long Id { get; set; }
+    public required long Id { get; set; }
 
     [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    public string ConcurrencyToken { get; set; } = null!;
+    public required string ConcurrencyToken { get; set; }
 
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string TenantId { get; set; } = null!;
+    public required string TenantId { get; set; }
 
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string ClientId { get; set; } = null!;
+    public required string ClientId { get; set; }
 
-    public bool IsDisabled { get; set; }
+    public required bool IsDisabled { get; set; }
 
-    public bool AllowUnsafeTokenResponse { get; set; }
+    public required bool AllowUnsafeTokenResponse { get; set; }
 
-    public bool AllowLoopback { get; set; }
+    public required bool AllowLoopback { get; set; }
 
-    public bool RequireRequestObject { get; set; }
+    public required bool RequireRequestObject { get; set; }
 
-    public bool RequirePkce { get; set; }
+    public required bool RequirePkce { get; set; }
 
-    public bool AllowPlainCodeChallengeMethod { get; set; }
+    public required bool AllowPlainCodeChallengeMethod { get; set; }
 
-    public IList<ClientSecretEntity> ClientSecrets { get; set; } = null!;
+    public required List<ClientSecretEntity> ClientSecrets { get; set; }
 
-    public IList<ClientUrlEntity> Urls { get; set; } = null!;
+    public required List<ClientUrlEntity> Urls { get; set; }
 
-    public IList<ClientPropertyEntity> Properties { get; set; } = null!;
+    public required List<ClientPropertyEntity> Properties { get; set; }
 }

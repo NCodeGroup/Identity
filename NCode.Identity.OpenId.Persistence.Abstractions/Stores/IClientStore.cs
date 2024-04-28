@@ -17,25 +17,27 @@
 
 #endregion
 
-using NCode.Identity.OpenId.DataContracts;
 
-namespace NCode.Identity.OpenId.Stores;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Persistence.Stores;
+
+namespace NCode.Identity.OpenId.Persistence.Stores;
 
 /// <summary>
-/// Provides an abstraction for a store which persists <see cref="Client"/> instances.
+/// Provides an abstraction for a store which persists <see cref="PersistedClient"/> instances.
 /// </summary>
-public interface IClientStore : IStore<Client>
+public interface IClientStore : IStore<PersistedClient>
 {
     /// <summary>
-    /// Attempts to get a <see cref="Client"/> instance by using its natural key.
+    /// Attempts to get a <see cref="PersistedClient"/> instance by using its natural key.
     /// </summary>
-    /// <param name="tenantId">The tenant identifier for the <see cref="Client"/> instance.</param>
-    /// <param name="clientId">The natural key of the <see cref="Client"/> instance to retrieve.</param>
+    /// <param name="tenantId">The tenant identifier for the <see cref="PersistedClient"/> instance.</param>
+    /// <param name="clientId">The natural key of the <see cref="PersistedClient"/> instance to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="Client"/> instance matching the specified <paramref name="clientId"/> if it exists.</returns>
-    ValueTask<Client?> TryGetByClientIdAsync(
+    /// <see cref="PersistedClient"/> instance matching the specified <paramref name="clientId"/> if it exists.</returns>
+    ValueTask<PersistedClient?> TryGetByClientIdAsync(
         string tenantId,
         string clientId,
         CancellationToken cancellationToken);

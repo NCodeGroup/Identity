@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -15,20 +15,25 @@
 //    limitations under the License.
 #endregion
 
-namespace NCode.Identity.OpenId.Data;
+namespace NCode.Identity.Persistence.DataContracts;
 
 /// <summary>
-/// Contains various constants used by the data layer.
+/// Provides the ability to return the surrogate key for an entity where the key type is <see cref="long"/>.
 /// </summary>
-public static class DataConstants
+public interface ISupportId : ISupportId<long>
+{
+    // nothing
+}
+
+/// <summary>
+/// Provides the ability to return the surrogate key for an entity.
+/// </summary>
+/// <typeparam name="TKey">The type of the surrogate key.</typeparam>
+public interface ISupportId<out TKey>
+    where TKey : IEquatable<TKey>
 {
     /// <summary>
-    /// Specifies the maximum length of a database index.
+    /// Gets the surrogate key.
     /// </summary>
-    public const int MaxIndexLength = 256;
-
-    /// <summary>
-    /// Specifies the maximum length of a concurrency token.
-    /// </summary>
-    public const int MaxConcurrencyTokenLength = 50;
+    TKey Id { get; }
 }

@@ -17,32 +17,33 @@
 
 #endregion
 
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Stores;
+namespace NCode.Identity.OpenId.Persistence.Stores;
 
 /// <summary>
-/// Provides an abstraction for a store which persists <see cref="Tenant"/> instances.
+/// Provides an abstraction for a store which persists <see cref="PersistedTenant"/> instances.
 /// </summary>
-public interface ITenantStore : IStore<Tenant>
+public interface ITenantStore : IStore<PersistedTenant>
 {
     /// <summary>
-    /// Attempts to get a <see cref="Tenant"/> instance by using its natural key.
+    /// Attempts to get a <see cref="PersistedTenant"/> instance by using its natural key.
     /// </summary>
-    /// <param name="tenantId">The natural key of the <see cref="Tenant"/> instance to retrieve.</param>
+    /// <param name="tenantId">The natural key of the <see cref="PersistedTenant"/> instance to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="Tenant"/> instance matching the specified <paramref name="tenantId"/> if it exists.</returns>
-    ValueTask<Tenant?> TryGetByTenantIdAsync(string tenantId, CancellationToken cancellationToken);
+    /// <see cref="PersistedTenant"/> instance matching the specified <paramref name="tenantId"/> if it exists.</returns>
+    ValueTask<PersistedTenant?> TryGetByTenantIdAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Attempts to get a <see cref="Tenant"/> instance by using its domain name.
+    /// Attempts to get a <see cref="PersistedTenant"/> instance by using its domain name.
     /// </summary>
-    /// <param name="domainName">The domain name of the <see cref="Tenant"/> instance to retrieve.</param>
+    /// <param name="domainName">The domain name of the <see cref="PersistedTenant"/> instance to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="Tenant"/> instance matching the specified <paramref name="domainName"/> if it exists.</returns>
-    ValueTask<Tenant?> TryGetByDomainNameAsync(string domainName, CancellationToken cancellationToken);
+    /// <see cref="PersistedTenant"/> instance matching the specified <paramref name="domainName"/> if it exists.</returns>
+    ValueTask<PersistedTenant?> TryGetByDomainNameAsync(string domainName, CancellationToken cancellationToken);
 }

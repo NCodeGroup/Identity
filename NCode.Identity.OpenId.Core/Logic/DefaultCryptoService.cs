@@ -19,10 +19,10 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography;
+using NCode.CryptoMemory;
+using NCode.Disposables;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
-using NCode.Jose.Buffers;
-using NCode.Jose.Infrastructure;
 
 namespace NCode.Identity.OpenId.Logic;
 
@@ -50,7 +50,7 @@ public class DefaultCryptoService : ICryptoService
     /// <inheritdoc />
     public string GenerateKey(int byteLength, BinaryEncodingType binaryEncodingType)
     {
-        var lease = EmptyDisposable.Singleton;
+        var lease = Disposable.Empty;
         try
         {
             Span<byte> bytes = stackalloc byte[0];
@@ -88,7 +88,7 @@ public class DefaultCryptoService : ICryptoService
     {
         var tryComputeHash = GetHashFunction(hashAlgorithmType);
 
-        var lease = EmptyDisposable.Singleton;
+        var lease = Disposable.Empty;
         try
         {
             Span<byte> hashBytes = stackalloc byte[0];
@@ -117,7 +117,7 @@ public class DefaultCryptoService : ICryptoService
     /// <inheritdoc />
     public string HashValue(string data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
     {
-        var lease = EmptyDisposable.Singleton;
+        var lease = Disposable.Empty;
         try
         {
             Span<byte> dataBytes = stackalloc byte[0];

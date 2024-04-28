@@ -1,6 +1,6 @@
 #region Copyright Preamble
-//
-//    Copyright @ 2023 NCode Group
+
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -13,19 +13,22 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-namespace NCode.Identity.OpenId.Data.Contracts;
+namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
-/// Provides the ability to check for optimistic concurrency violations by using a random value that compared to
-/// the existing value in a database. The random value is automatically generated every time a row is inserted or
-/// updated in the database.
+/// Provides an abstraction for a factory that creates <see cref="IStoreManager"/> instances.
 /// </summary>
-public interface ISupportConcurrencyToken
+public interface IStoreManagerFactory
 {
     /// <summary>
-    /// Gets or sets a random value that is used to check for optimistic concurrency violations.
+    /// Creates a new instance of the <see cref="IStoreManager"/> instance.
     /// </summary>
-    string ConcurrencyToken { get; set; }
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// newly created <see cref="IStoreManager"/> instance.</returns>
+    ValueTask<IStoreManager> CreateAsync(CancellationToken cancellationToken);
 }

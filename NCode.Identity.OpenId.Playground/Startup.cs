@@ -27,12 +27,14 @@ using NCode.Identity.OpenId.Endpoints.Continue.Logic;
 using NCode.Identity.OpenId.Endpoints.Token;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Options;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Playground.DataLayer;
 using NCode.Identity.OpenId.Playground.Stores;
 using NCode.Identity.OpenId.Registration;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.OpenId.Stores;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence;
 
 /*
  *

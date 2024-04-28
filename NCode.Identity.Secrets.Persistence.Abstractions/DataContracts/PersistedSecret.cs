@@ -17,12 +17,14 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Data.Contracts;
+using NCode.Identity.Persistence.DataContracts;
+
+namespace NCode.Identity.Secrets.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the configuration for a cryptographic secret.
+/// Contains the data for a persisted secret.
 /// </summary>
-public class Secret : ISupportId
+public class PersistedSecret : ISupportId
 {
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
@@ -79,8 +81,9 @@ public class Secret : ISupportId
 
     /// <summary>
     /// Gets or sets the size, in bytes, of the unprotected key material.
-    /// For asymmetric keys, this is the size of the key material using the <c>PKCS#8</c> encoding.
-    /// For symmetric keys, this is the size of the actual key material.
+    /// For certificates, this is the size of the raw bytes.
+    /// For asymmetric keys, this is the size of the key using the <c>PKCS#8</c> encoding.
+    /// For symmetric keys, this is the size of the key bytes.
     /// </summary>
     public required int UnprotectedSizeBytes { get; init; }
 

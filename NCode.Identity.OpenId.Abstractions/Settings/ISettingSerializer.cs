@@ -1,6 +1,6 @@
 ﻿#region Copyright Preamble
-//
-//    Copyright @ 2023 NCode Group
+
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -13,23 +13,12 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-using System.ComponentModel.DataAnnotations;
-using NCode.Identity.Persistence.DataContracts;
+namespace NCode.Identity.OpenId.Settings;
 
-namespace NCode.Identity.OpenId.Playground.DataLayer.Entities;
-
-internal abstract class PropertyEntity : ISupportId
+public interface ISettingSerializer
 {
-    /// <inheritdoc />
-    public long Id { get; set; }
-
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string CodeName { get; set; }
-
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string NormalizedCodeName { get; set; }
-
-    public required string JsonValue { get; set; }
+    ISettingCollection DeserializeSettings(string settingsJson);
 }

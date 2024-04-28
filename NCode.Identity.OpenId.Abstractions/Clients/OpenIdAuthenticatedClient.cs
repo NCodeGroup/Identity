@@ -18,7 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
 

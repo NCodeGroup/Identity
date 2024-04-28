@@ -52,7 +52,8 @@ public class DefaultTokenEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapGet(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
-        .OpenIdDiscoverable(OpenIdConstants.EndpointNames.Token);
+        .WithName(OpenIdConstants.EndpointNames.Token)
+        .WithOpenIdDiscoverable();
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header) &&

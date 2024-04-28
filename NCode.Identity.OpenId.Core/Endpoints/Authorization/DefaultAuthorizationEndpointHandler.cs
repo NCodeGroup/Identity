@@ -96,7 +96,7 @@ public class DefaultAuthorizationEndpointHandler(
             new[] { HttpMethods.Get, HttpMethods.Post },
             HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Authorization)
-        .OpenIdDiscoverable();
+        .WithOpenIdDiscoverable();
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,

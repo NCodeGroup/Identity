@@ -47,7 +47,7 @@ public class DefaultContinueEndpointHandler(
             new[] { HttpMethods.Get, HttpMethods.Post },
             HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Continue)
-        .OpenIdDiscoverable(false);
+        .WithOpenIdDiscoverable(false);
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,

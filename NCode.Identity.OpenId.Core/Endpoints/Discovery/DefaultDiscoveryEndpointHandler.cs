@@ -49,7 +49,7 @@ public class DefaultDiscoveryEndpointHandler(
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapGet(OpenIdConstants.EndpointPaths.Discovery, HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Discovery)
-        .OpenIdDiscoverable();
+        .WithOpenIdDiscoverable();
 
     private async ValueTask<JsonHttpResult<DiscoveryResult>> HandleRouteAsync(
         HttpContext httpContext,
@@ -111,7 +111,7 @@ public class DefaultDiscoveryEndpointHandler(
 
         foreach (var endpoint in EndpointDataSource.Endpoints)
         {
-            var discoverable = endpoint.Metadata.GetMetadata<IOpenIdEndpointDiscoverableMetadata>()?.Discoverable ?? false;
+            var discoverable = endpoint.Metadata.GetMetadata<IOpenIdEndpointDiscoverableMetadata>()?.IsDiscoverable ?? false;
             if (!discoverable && !showAll)
                 continue;
 

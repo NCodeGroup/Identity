@@ -33,9 +33,9 @@ public abstract class OpenIdClient
     public abstract string ClientId { get; }
 
     /// <summary>
-    /// Gets the <see cref="IKnownSettingCollection"/> containing the client's settings merged with tenant settings.
+    /// Gets the <see cref="IReadOnlyKnownSettingCollection"/> containing the client's settings merged with tenant settings.
     /// </summary>
-    public abstract IKnownSettingCollection Settings { get; }
+    public abstract IReadOnlyKnownSettingCollection Settings { get; }
 
     /// <summary>
     /// Gets the <see cref="ISecretKeyCollection"/> that can be used to access the client's secret keys.

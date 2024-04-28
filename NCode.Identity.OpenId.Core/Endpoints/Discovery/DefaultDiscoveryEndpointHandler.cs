@@ -94,7 +94,7 @@ public class DefaultDiscoveryEndpointHandler(
         IReadOnlySettingCollection settings,
         bool showAll)
     {
-        var settingsToShow = settings.Where(setting => showAll || setting.Descriptor.Discoverable);
+        var settingsToShow = settings.Where(setting => showAll || setting.Descriptor.IsDiscoverable);
         foreach (var setting in settingsToShow)
         {
             var value = setting.Descriptor.Format(setting);

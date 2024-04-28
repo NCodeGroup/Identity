@@ -18,7 +18,26 @@
 
 namespace NCode.Identity.OpenId.Settings;
 
+/// <summary>
+/// Provides the ability to serialize and deserialize settings from JSON.
+/// </summary>
 public interface ISettingSerializer
 {
-    ISettingCollection DeserializeSettings(string settingsJson);
+    /// <summary>
+    /// Deserializes a collection of <see cref="Setting"/> instances from JSON.
+    /// </summary>
+    /// <param name="settingsJson">The JSON string to deserialize into <see cref="Setting"/> instances.</param>
+    /// <returns>The collection of <see cref="Setting"/> instances.</returns>
+    ISettingCollection DeserializeSettings(
+        string? settingsJson);
+
+    /// <summary>
+    /// Deserializes a collection of <see cref="Setting"/> instances from JSON and merges them with the provided <paramref name="parentSettings"/>.
+    /// </summary>
+    /// <param name="parentSettings">The parent settings to merge with the deserialized settings.</param>
+    /// <param name="settingsJson">The JSON string to deserialize into <see cref="Setting"/> instances.</param>
+    /// <returns>The collection of <see cref="Setting"/> instances.</returns>
+    IReadOnlySettingCollection DeserializeSettings(
+        IReadOnlySettingCollection parentSettings,
+        string? settingsJson);
 }

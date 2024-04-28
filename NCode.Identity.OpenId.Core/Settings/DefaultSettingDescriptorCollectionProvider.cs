@@ -22,10 +22,14 @@ using NCode.Collections.Providers;
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides the composition root (i.e. top-level collection) of <see cref="SettingDescriptor"/> instances by
-/// aggregating multiple data sources and providing change notifications.
+/// Provides a default implementation of the <see cref="ISettingDescriptorCollectionProvider"/> abstraction.
 /// </summary>
-public interface ISettingDescriptorCollectionProvider : ICollectionProvider<SettingDescriptor, ISettingDescriptorCollection>
+public class DefaultSettingDescriptorCollectionProvider(
+    IEnumerable<ICollectionDataSource<SettingDescriptor>> dataSources
+) : CollectionProvider<SettingDescriptor, ISettingDescriptorCollection>(dataSources),
+    ISettingDescriptorCollectionProvider
 {
-    // nothing
+    /// <inheritdoc />
+    protected override ISettingDescriptorCollection CreateCollection(IEnumerable<SettingDescriptor> items) =>
+        new SettingDescriptorCollection(items);
 }

@@ -20,6 +20,7 @@
 using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.OpenApi.Models;
+using NCode.Collections.Providers;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Endpoints.Continue;
@@ -46,14 +47,9 @@ using NCode.Identity.Secrets.Persistence;
 
 namespace NCode.Identity.OpenId.Playground;
 
-internal class Startup
+internal class Startup(IConfiguration configuration)
 {
-    public Startup(IConfiguration configuration)
-    {
-        Configuration = configuration;
-    }
-
-    public IConfiguration Configuration { get; }
+    private IConfiguration Configuration { get; } = configuration;
 
     public void ConfigureServices(IServiceCollection services)
     {
@@ -84,7 +80,11 @@ internal class Startup
         services.AddCoreEndpointServices();
 
         services.AddSingleton<OpenIdServer, DefaultOpenIdServer>();
-        services.AddSingleton<ISettingDescriptorCollectionProvider, SettingDescriptorCollectionProvider>();
+
+        services.AddSingleton<ICollectionDataSource<SettingDescriptor>, DefaultSettingDescriptorDataSource>();
+        services.AddSingleton<ISettingDescriptorCollectionProvider, DefaultSettingDescriptorCollectionProvider>();
+        services.AddSingleton<ISettingDescriptorJsonProvider, DefaultSettingDescriptorJsonProvider>();
+        services.AddSingleton<ISettingSerializer, DefaultSettingSerializer>();
 
         services.AddSingleton<IContinueService, DefaultContinueService>();
         services.AddSingleton<IContinueProviderSelector, DefaultContinueProviderSelector>();

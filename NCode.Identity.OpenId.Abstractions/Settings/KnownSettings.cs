@@ -82,7 +82,7 @@ public static class KnownSettings
     {
         Name = SettingNames.AccessTokenEncryptionAlgValuesSupported,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -93,7 +93,7 @@ public static class KnownSettings
     {
         Name = SettingNames.AccessTokenEncryptionEncValuesSupported,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -105,7 +105,7 @@ public static class KnownSettings
         Name = SettingNames.AccessTokenEncryptionRequired,
         Default = false,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -116,7 +116,7 @@ public static class KnownSettings
     {
         Name = SettingNames.AccessTokenEncryptionZipValuesSupported,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -128,7 +128,7 @@ public static class KnownSettings
         Name = SettingNames.AccessTokenLifetime,
         Default = TimeSpan.FromMinutes(5.0),
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -139,7 +139,7 @@ public static class KnownSettings
     {
         Name = SettingNames.AccessTokenSigningAlgValuesSupported,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -151,7 +151,7 @@ public static class KnownSettings
         Name = SettingNames.AccessTokenType,
         Default = JoseTokenTypes.Jwt,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -162,7 +162,7 @@ public static class KnownSettings
     {
         Name = SettingNames.AcrValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -174,7 +174,7 @@ public static class KnownSettings
         Name = SettingNames.AllowLoopbackRedirect,
         Default = true,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -186,7 +186,7 @@ public static class KnownSettings
         Name = SettingNames.AllowPlainCodeChallengeMethod,
         Default = true,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -198,7 +198,7 @@ public static class KnownSettings
         Name = SettingNames.AllowUnsafeTokenResponse,
         Default = true,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -210,7 +210,7 @@ public static class KnownSettings
         Name = SettingNames.AuthorizationCodeLifetime,
         Default = TimeSpan.FromMinutes(5.0),
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -222,7 +222,7 @@ public static class KnownSettings
         Name = SettingNames.AuthorizationSignInScheme,
         Default = string.Empty,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -233,7 +233,7 @@ public static class KnownSettings
     {
         Name = SettingNames.ClaimsLocalesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -245,7 +245,7 @@ public static class KnownSettings
         Name = SettingNames.ClaimsParameterSupported,
         Default = true,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -256,7 +256,7 @@ public static class KnownSettings
     {
         Name = SettingNames.ClaimsSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -268,7 +268,7 @@ public static class KnownSettings
         Name = SettingNames.ClaimTypesSupported,
         Default = new[] { OpenIdConstants.ClaimTypes.Normal },
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -280,7 +280,7 @@ public static class KnownSettings
         Name = SettingNames.ClockSkew,
         Default = TimeSpan.FromMinutes(5),
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -292,7 +292,7 @@ public static class KnownSettings
         Name = SettingNames.ContinueAuthorizationLifetime,
         Default = TimeSpan.FromMinutes(15),
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -304,7 +304,7 @@ public static class KnownSettings
         Name = SettingNames.DisplayValuesSupported,
         // TODO: Default
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace,
         OnFormat = ConvertToInvariantString
     };
@@ -317,7 +317,7 @@ public static class KnownSettings
         Name = SettingNames.GrantTypesSupported,
         Default = new[] { OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit },
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -328,7 +328,7 @@ public static class KnownSettings
     {
         Name = SettingNames.IdTokenEncryptionAlgValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -339,7 +339,7 @@ public static class KnownSettings
     {
         Name = SettingNames.IdTokenEncryptionEncValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -351,7 +351,7 @@ public static class KnownSettings
         Name = SettingNames.IdTokenEncryptionRequired,
         Default = false,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -362,7 +362,7 @@ public static class KnownSettings
     {
         Name = SettingNames.IdTokenEncryptionZipValuesSupported,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -374,7 +374,7 @@ public static class KnownSettings
         Name = SettingNames.IdTokenLifetime,
         Default = TimeSpan.FromMinutes(5.0),
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -385,7 +385,7 @@ public static class KnownSettings
     {
         Name = SettingNames.IdTokenSigningAlgValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -397,7 +397,7 @@ public static class KnownSettings
         Name = SettingNames.PromptValuesSupported,
         // TODO: Default
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -408,7 +408,7 @@ public static class KnownSettings
     {
         Name = SettingNames.RequestObjectEncryptionAlgValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -419,7 +419,7 @@ public static class KnownSettings
     {
         Name = SettingNames.RequestObjectEncryptionEncValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -430,7 +430,7 @@ public static class KnownSettings
     {
         Name = SettingNames.RequestObjectEncryptionZipValuesSupported,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -441,7 +441,7 @@ public static class KnownSettings
     {
         Name = SettingNames.RequestObjectSigningAlgValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -453,7 +453,7 @@ public static class KnownSettings
         Name = SettingNames.RequestObjectExpectedAudience,
         Default = string.Empty,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -465,7 +465,7 @@ public static class KnownSettings
         Name = SettingNames.RequestParameterSupported,
         Default = true,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -477,7 +477,7 @@ public static class KnownSettings
         Name = SettingNames.RequestUriParameterSupported,
         Default = true,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -489,7 +489,7 @@ public static class KnownSettings
         Name = SettingNames.RequestUriRequireStrictContentType,
         Default = false,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -501,7 +501,7 @@ public static class KnownSettings
         Name = SettingNames.RequestUriExpectedContentType,
         Default = "application/oauth-authz-req+jwt",
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -513,7 +513,7 @@ public static class KnownSettings
         Name = SettingNames.RequireCodeChallenge,
         Default = false,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Replace
     };
 
@@ -524,7 +524,7 @@ public static class KnownSettings
     {
         Name = SettingNames.RequireRequestUriRegistration,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -541,7 +541,7 @@ public static class KnownSettings
             ResponseMode.FormPost
         },
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace,
         OnFormat = ConvertToInvariantString
     };
@@ -561,7 +561,7 @@ public static class KnownSettings
             ResponseTypes.Token | ResponseTypes.IdToken
         },
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace,
         OnFormat = ConvertToInvariantString
     };
@@ -582,7 +582,7 @@ public static class KnownSettings
             OpenIdConstants.ScopeTypes.OfflineAccess
         },
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -593,7 +593,7 @@ public static class KnownSettings
     {
         Name = SettingNames.ServiceDocumentation,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -605,7 +605,7 @@ public static class KnownSettings
         Name = SettingNames.SubjectTypesSupported,
         // TODO: Default
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -616,7 +616,7 @@ public static class KnownSettings
     {
         Name = SettingNames.TokenEndpointAuthMethodsSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -627,7 +627,7 @@ public static class KnownSettings
     {
         Name = SettingNames.TokenEndpointAuthSigningAlgValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -638,7 +638,7 @@ public static class KnownSettings
     {
         Name = SettingNames.UiLocalesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Replace
     };
 
@@ -649,7 +649,7 @@ public static class KnownSettings
     {
         Name = SettingNames.UserInfoEncryptionAlgValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -660,7 +660,7 @@ public static class KnownSettings
     {
         Name = SettingNames.UserInfoEncryptionEncValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 
@@ -671,7 +671,7 @@ public static class KnownSettings
     {
         Name = SettingNames.UserInfoEncryptionZipValuesSupported,
 
-        Discoverable = IsNonStdDiscoverable,
+        IsDiscoverable = IsNonStdDiscoverable,
         OnMerge = Intersect
     };
 
@@ -682,7 +682,7 @@ public static class KnownSettings
     {
         Name = SettingNames.UserInfoSigningAlgValuesSupported,
 
-        Discoverable = true,
+        IsDiscoverable = true,
         OnMerge = Intersect
     };
 }

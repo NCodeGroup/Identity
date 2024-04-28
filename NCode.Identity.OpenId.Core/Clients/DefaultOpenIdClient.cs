@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Clients;
 
 internal class DefaultOpenIdClient(
     string clientId,
-    IKnownSettingCollection settings,
+    IReadOnlyKnownSettingCollection settings,
     ISecretKeyCollection secretKeys,
     IReadOnlyCollection<Uri> redirectUris
 ) : OpenIdClient
@@ -32,7 +32,7 @@ internal class DefaultOpenIdClient(
     public override string ClientId { get; } = clientId;
 
     /// <inheritdoc />
-    public override IKnownSettingCollection Settings { get; } = settings;
+    public override IReadOnlyKnownSettingCollection Settings { get; } = settings;
 
     /// <inheritdoc />
     public override ISecretKeyCollection SecretKeys { get; } = secretKeys;

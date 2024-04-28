@@ -37,7 +37,8 @@ namespace NCode.Identity.OpenId.Servers;
 public class DefaultOpenIdServer(
     IConfiguration configuration,
     IAlgorithmProvider algorithmProvider,
-    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
+    ISettingDescriptorJsonProvider settingDescriptorJsonProvider
 ) : OpenIdServer, IOpenIdErrorFactory
 {
     private IReadOnlySettingCollection? SettingsOrNull { get; set; }
@@ -46,6 +47,7 @@ public class DefaultOpenIdServer(
     private IConfiguration Configuration { get; } = configuration;
     private IAlgorithmProvider AlgorithmProvider { get; } = algorithmProvider;
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
+    private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
 
     /// <inheritdoc />
     public override JsonSerializerOptions JsonSerializerOptions =>
@@ -66,12 +68,12 @@ public class DefaultOpenIdServer(
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
 
-    private IReadOnlySettingCollection LoadSettings()
+    private SettingCollection LoadSettings()
     {
         var settingsSection = Configuration.GetSection("settings");
 
         var settings = new SettingCollection();
-        var descriptors = SettingDescriptorCollectionProvider.Descriptors;
+        var descriptors = SettingDescriptorCollectionProvider.Collection;
 
         var signingAlgValuesSupported = new List<string>();
         var encryptionAlgValuesSupported = new List<string>();
@@ -182,8 +184,7 @@ public class DefaultOpenIdServer(
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
-                // TODO make this better
-                new SettingCollectionJsonConverter(new SettingDescriptorJsonProvider(SettingDescriptorCollectionProvider.Descriptors)),
+                new SettingCollectionJsonConverter(SettingDescriptorJsonProvider),
                 // TODO remove these
                 new CodeChallengeMethodJsonConverter(),
                 new DisplayTypeJsonConverter(),

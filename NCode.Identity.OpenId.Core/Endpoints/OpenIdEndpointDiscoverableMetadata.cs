@@ -25,5 +25,5 @@ namespace NCode.Identity.OpenId.Endpoints;
 public class OpenIdEndpointDiscoverableMetadata : IOpenIdEndpointDiscoverableMetadata
 {
     /// <inheritdoc />
-    public bool Discoverable { get; init; } = true;
+    public bool IsDiscoverable { get; init; } = true;
 }

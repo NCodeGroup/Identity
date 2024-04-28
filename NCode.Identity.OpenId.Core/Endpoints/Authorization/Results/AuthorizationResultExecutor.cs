@@ -22,10 +22,10 @@ using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
+using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
-using NCode.Jose.Buffers;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 

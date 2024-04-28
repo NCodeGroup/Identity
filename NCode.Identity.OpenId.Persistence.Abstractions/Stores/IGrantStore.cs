@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,27 +14,29 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-namespace NCode.Identity.OpenId.Data.Contracts;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Persistence.Stores;
+
+namespace NCode.Identity.OpenId.Persistence.Stores;
 
 /// <summary>
-/// Provides the ability to return the surrogate key for an entity where the key type is <see cref="long"/>.
+/// Provides an abstraction for persisting any type of grant and their payloads to storage.
 /// </summary>
-public interface ISupportId : ISupportId<long>
+public interface IGrantStore : IStore<PersistedGrant>
 {
-    // nothing
-}
+    ValueTask<PersistedGrant?> TryGetAsync(
+        string tenantId,
+        string grantType,
+        string hashedKey,
+        CancellationToken cancellationToken);
 
-/// <summary>
-/// Provides the ability to return the surrogate key for an entity.
-/// </summary>
-/// <typeparam name="TKey">The type of the surrogate key.</typeparam>
-public interface ISupportId<out TKey>
-    where TKey : IEquatable<TKey>
-{
-    /// <summary>
-    /// Gets the surrogate key.
-    /// </summary>
-    TKey Id { get; }
+    ValueTask SetConsumedOnceAsync(
+        string tenantId,
+        string grantType,
+        string hashedKey,
+        DateTimeOffset consumedWhen,
+        CancellationToken cancellationToken);
 }

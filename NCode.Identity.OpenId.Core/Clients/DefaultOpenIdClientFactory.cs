@@ -17,34 +17,41 @@
 #endregion
 
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.OpenId.DataContracts;
 using NCode.Identity.OpenId.Endpoints;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
 
 internal class DefaultOpenIdClientFactory(
-    IServiceProvider serviceProvider
+    ISecretKeyCollectionFactory secretKeyCollectionFactory
 ) : IOpenIdClientFactory
 {
-    private IServiceProvider ServiceProvider { get; } = serviceProvider;
+    private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } = secretKeyCollectionFactory;
 
     /// <inheritdoc />
-    public virtual ValueTask<OpenIdClient> CreateAsync(
+    public ValueTask<OpenIdClient> CreatePublicClientAsync(
         OpenIdContext openIdContext,
-        Client clientModel,
+        string clientId,
+        ISettingCollection settings,
+        IReadOnlyCollection<SecretKey> secrets,
+        IReadOnlyCollection<Uri> redirectUris,
         CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult<OpenIdClient>(
-            ActivatorUtilities.CreateInstance<DefaultOpenIdClient>(
-                ServiceProvider,
-                openIdContext,
-                clientModel));
+        var knownSettings = new KnownSettingCollection(settings);
+        var secretKeys = SecretKeyCollectionFactory.Create(secrets);
+
+        OpenIdClient publicClient = new DefaultOpenIdClient(
+            clientId,
+            knownSettings,
+            secretKeys,
+            redirectUris);
+
+        return ValueTask.FromResult(publicClient);
     }
 
     /// <inheritdoc />
-    public virtual ValueTask<OpenIdAuthenticatedClient> CreateAsync(
+    public ValueTask<OpenIdAuthenticatedClient> CreateConfidentialClientAsync(
         OpenIdClient publicClient,
         string method,
         SecretKey secretKey,

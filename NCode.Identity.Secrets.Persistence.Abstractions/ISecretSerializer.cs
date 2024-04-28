@@ -17,37 +17,36 @@
 
 #endregion
 
-using NCode.Identity.OpenId.DataContracts;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Logic;
+namespace NCode.Identity.Secrets.Persistence;
 
 /// <summary>
-/// Provides the ability to serialize and deserialize secrets.
+/// Provides the ability to serialize and deserialize secrets from persisted storage.
 /// </summary>
 public interface ISecretSerializer
 {
     /// <summary>
-    /// Deserializes a collection of <see cref="Secret"/> instances by loading and converting them into a collection of
+    /// Deserializes a collection of <see cref="PersistedSecret"/> instances by loading and converting them into a collection of
     /// <see cref="SecretKey"/> instances.
     /// The resulting collection is sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
     /// </summary>
-    /// <param name="secrets">The <see cref="Secret"/> instances to deserialize into <see cref="SecretKey"/> instances.</param>
-    /// <param name="requiresMigration"><c>true</c> if at least one <see cref="Secret"/>
+    /// <param name="persistedSecrets">The <see cref="PersistedSecret"/> instances to deserialize into <see cref="SecretKey"/> instances.</param>
+    /// <param name="requiresMigration"><c>true</c> if at least one <see cref="PersistedSecret"/>
     /// should be reprotected before being persisted back to long-term storage,
     /// <c>false</c> otherwise. Migration might be requested when the default
     /// protection key has changed, for instance.</param>
     /// <returns>The collection of <see cref="SecretKey"/> instances.</returns>
-    IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<Secret> secrets, out bool requiresMigration);
+    IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<PersistedSecret> persistedSecrets, out bool requiresMigration);
 
     /// <summary>
-    /// Deserializes a <see cref="Secret"/> instance by loading and converting it into a disposable <see cref="SecretKey"/> instance.
+    /// Deserializes a <see cref="PersistedSecret"/> instance by loading and converting it into a disposable <see cref="SecretKey"/> instance.
     /// </summary>
-    /// <param name="secret">The <see cref="Secret"/> instance to deserialize into an <see cref="SecretKey"/> instance.</param>
-    /// <param name="requiresMigration"><c>true</c> if the <see cref="Secret"/>
+    /// <param name="persistedSecret">The <see cref="PersistedSecret"/> instance to deserialize into an <see cref="SecretKey"/> instance.</param>
+    /// <param name="requiresMigration"><c>true</c> if the <see cref="PersistedSecret"/>
     /// should be reprotected before being persisted back to long-term storage,
     /// <c>false</c> otherwise. Migration might be requested when the default
     /// protection key has changed, for instance.</param>
     /// <returns>The deserialized <see cref="SecretKey"/> instance.</returns>
-    SecretKey DeserializeSecret(Secret secret, out bool requiresMigration);
+    SecretKey DeserializeSecret(PersistedSecret persistedSecret, out bool requiresMigration);
 }

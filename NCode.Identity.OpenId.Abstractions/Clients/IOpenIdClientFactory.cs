@@ -17,20 +17,23 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Identity.OpenId.DataContracts;
 using NCode.Identity.OpenId.Endpoints;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
 
 public interface IOpenIdClientFactory
 {
-    ValueTask<OpenIdClient> CreateAsync(
+    ValueTask<OpenIdClient> CreatePublicClientAsync(
         OpenIdContext openIdContext,
-        Client clientModel,
+        string clientId,
+        ISettingCollection settings,
+        IReadOnlyCollection<SecretKey> secrets,
+        IReadOnlyCollection<Uri> redirectUris,
         CancellationToken cancellationToken);
 
-    ValueTask<OpenIdAuthenticatedClient> CreateAsync(
+    ValueTask<OpenIdAuthenticatedClient> CreateConfidentialClientAsync(
         OpenIdClient publicClient,
         string method,
         SecretKey secretKey,

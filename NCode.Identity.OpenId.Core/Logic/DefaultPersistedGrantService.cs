@@ -19,9 +19,10 @@
 
 using System.Text.Json;
 using IdGen;
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
-using NCode.Identity.OpenId.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Logic;
 
@@ -74,11 +75,12 @@ public class DefaultPersistedGrantService(
             SubjectId = grant.SubjectId,
             CreatedWhen = createdWhen,
             ExpiresWhen = expiresWhen,
+            ConsumedWhen = null,
             PayloadJson = payloadJson
         };
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPersistedGrantStore>();
+        var store = storeManager.GetStore<IGrantStore>();
 
         await store.AddAsync(envelope, cancellationToken);
 
@@ -96,7 +98,7 @@ public class DefaultPersistedGrantService(
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPersistedGrantStore>();
+        var store = storeManager.GetStore<IGrantStore>();
 
         var envelope = await store.TryGetAsync(
             grantId.TenantId,
@@ -159,7 +161,7 @@ public class DefaultPersistedGrantService(
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPersistedGrantStore>();
+        var store = storeManager.GetStore<IGrantStore>();
 
         await store.SetConsumedOnceAsync(
             grantId.TenantId,

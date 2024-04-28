@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
+using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
@@ -32,8 +33,7 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Logic.Authorization;
-using NCode.Jose.Buffers;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Logic;
 

@@ -16,7 +16,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Playground.DataLayer.Entities;
 
@@ -26,10 +26,10 @@ internal abstract class PropertyEntity : ISupportId
     public long Id { get; set; }
 
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string CodeName { get; set; } = null!;
+    public required string CodeName { get; set; }
 
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string NormalizedCodeName { get; set; } = null!;
+    public required string NormalizedCodeName { get; set; }
 
-    public string JsonValue { get; set; } = null!;
+    public required string JsonValue { get; set; }
 }

@@ -18,7 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using NCode.Identity.OpenId.Settings;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
 
@@ -31,11 +31,6 @@ public abstract class OpenIdClient
     /// Gets a <see cref="string"/> value containing the unique identifier for the client.
     /// </summary>
     public abstract string ClientId { get; }
-
-    /// <summary>
-    /// Gets a <see cref="bool"/> value indicating whether the client is disabled.
-    /// </summary>
-    public abstract bool IsDisabled { get; }
 
     /// <summary>
     /// Gets the <see cref="IKnownSettingCollection"/> containing the client's settings merged with tenant settings.

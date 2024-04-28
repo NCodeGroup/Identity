@@ -19,16 +19,21 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
+using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Endpoints;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Stores;
-using NCode.Jose.Buffers;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
 
 namespace NCode.Identity.OpenId.Clients;
 
 internal class BasicClientAuthenticationHandler(
     IStoreManagerFactory storeManagerFactory,
+    ISettingSerializer settingSerializer,
+    ISecretSerializer secretSerializer,
     IOpenIdClientFactory clientFactory,
     IOpenIdErrorFactory errorFactory
 ) : IClientAuthenticationHandler
@@ -46,6 +51,8 @@ internal class BasicClientAuthenticationHandler(
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
 
     /// <inheritdoc />
@@ -94,11 +101,21 @@ internal class BasicClientAuthenticationHandler(
         var clientStore = storeManager.GetStore<IClientStore>();
 
         var tenantId = openIdContext.Tenant.TenantId;
-        var clientModel = await clientStore.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
-        if (clientModel is null || clientModel.IsDisabled)
+        var persistedClient = await clientStore.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
+        if (persistedClient is null || persistedClient.IsDisabled)
             return new ClientAuthenticationResult(ErrorInvalidClient);
 
-        var publicClient = await ClientFactory.CreateAsync(openIdContext, clientModel, cancellationToken);
+        var settings = SettingSerializer.DeserializeSettings(persistedClient.SettingsJson);
+        var secrets = SecretSerializer.DeserializeSecrets(persistedClient.Secrets, out _);
+
+        var publicClient = await ClientFactory.CreatePublicClientAsync(
+            openIdContext,
+            persistedClient.ClientId,
+            settings,
+            secrets,
+            persistedClient.RedirectUris,
+            cancellationToken);
+
         if (indexOfColon == -1)
             return new ClientAuthenticationResult(publicClient);
 
@@ -120,7 +137,7 @@ internal class BasicClientAuthenticationHandler(
             if (!CryptographicOperations.FixedTimeEquals(encryptionKey.Span, clientSecretBytes))
                 continue;
 
-            var confidentialClient = await ClientFactory.CreateAsync(
+            var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
                 publicClient,
                 AuthenticationMethod,
                 secretKey,

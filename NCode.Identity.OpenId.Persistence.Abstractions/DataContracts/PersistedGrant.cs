@@ -18,11 +18,12 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using NCode.Identity.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Data.Contracts;
+namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the details for a grant that is persisted to storage.
+/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> grant.
 /// </summary>
 public class PersistedGrant : ISupportId
 {

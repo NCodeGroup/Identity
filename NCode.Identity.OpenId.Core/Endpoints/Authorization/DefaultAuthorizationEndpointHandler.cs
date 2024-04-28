@@ -664,9 +664,6 @@ public class DefaultAuthorizationEndpointHandler(
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
         var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
 
-        if (openIdClient.IsDisabled)
-            throw ErrorFactory.UnauthorizedClient("The client is disabled.").AsException();
-
         if (request.Scopes.Count == 0)
             throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
 

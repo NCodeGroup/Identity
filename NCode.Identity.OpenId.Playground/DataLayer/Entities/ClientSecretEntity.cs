@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,17 +14,18 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 namespace NCode.Identity.OpenId.Playground.DataLayer.Entities;
 
 internal class ClientSecretEntity
 {
-    public long ClientId { get; set; }
+    public required long ClientId { get; set; }
 
-    public long SecretId { get; set; }
+    public required long SecretId { get; set; }
 
-    public ClientEntity Client { get; set; } = null!;
+    public required ClientEntity Client { get; set; } = null!;
 
-    public SecretEntity Secret { get; set; } = null!;
+    public required SecretEntity Secret { get; set; } = null!;
 }

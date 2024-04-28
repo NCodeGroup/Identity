@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,11 +14,13 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using AutoMapper;
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Playground.DataLayer.Entities;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Playground.Stores;
 
@@ -29,10 +32,10 @@ internal class IdentityProfile : Profile
             .ConstructUsing(src => new Uri(src.Url))
             .ReverseMap();
 
-        CreateMap<SecretEntity, Secret>()
+        CreateMap<SecretEntity, PersistedSecret>()
             .ReverseMap();
 
-        CreateMap<ClientEntity, Client>()
+        CreateMap<ClientEntity, PersistedClient>()
             .ForMember(dst => dst.Secrets, cfg => cfg.MapFrom(src => src.ClientSecrets.Select(entity => entity.Secret)))
             .ForMember(dst => dst.RedirectUris, cfg => cfg.MapFrom(src => src.Urls.Where(clientUrl => clientUrl.UrlType == "RedirectUrl")))
             .ReverseMap();

@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Playground.DataLayer.Entities;
 
 internal class ClientPropertyEntity : PropertyEntity
 {
-    public long ClientId { get; set; }
+    public required long ClientId { get; set; }
 
-    public ClientEntity Client { get; set; } = null!;
+    public required ClientEntity Client { get; set; }
 }

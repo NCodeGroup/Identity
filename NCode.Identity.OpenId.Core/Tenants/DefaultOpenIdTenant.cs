@@ -19,7 +19,7 @@
 
 using NCode.Disposables;
 using NCode.Identity.OpenId.Settings;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants;

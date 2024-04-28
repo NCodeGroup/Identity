@@ -1,5 +1,4 @@
 #region Copyright Preamble
-
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -14,28 +13,19 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-
 #endregion
 
-using NCode.Identity.OpenId.DataContracts;
-
-namespace NCode.Identity.OpenId.Stores;
+namespace NCode.Identity.Persistence.DataContracts;
 
 /// <summary>
-/// Provides an abstraction for persisting any type of grant and their payloads to storage.
+/// Provides the ability to check for optimistic concurrency violations by using a random value that compared to
+/// the existing value in a database. The random value is automatically generated every time a row is inserted or
+/// updated in the database.
 /// </summary>
-public interface IPersistedGrantStore : IStore<PersistedGrant>
+public interface ISupportConcurrencyToken
 {
-    ValueTask<PersistedGrant?> TryGetAsync(
-        string tenantId,
-        string grantType,
-        string hashedKey,
-        CancellationToken cancellationToken);
-
-    ValueTask SetConsumedOnceAsync(
-        string tenantId,
-        string grantType,
-        string hashedKey,
-        DateTimeOffset consumedWhen,
-        CancellationToken cancellationToken);
+    /// <summary>
+    /// Gets or sets a random value that is used to check for optimistic concurrency violations.
+    /// </summary>
+    string ConcurrencyToken { get; set; }
 }

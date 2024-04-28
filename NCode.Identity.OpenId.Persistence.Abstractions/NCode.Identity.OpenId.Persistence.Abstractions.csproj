@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.OpenId.Persistence</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj" />
+      <ProjectReference Include="..\NCode.Identity.Persistence.Abstractions\NCode.Identity.Persistence.Abstractions.csproj" />
+      <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.Abstractions\NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
+    </ItemGroup>
+
+</Project>

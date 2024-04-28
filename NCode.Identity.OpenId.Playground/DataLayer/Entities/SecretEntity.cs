@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,32 +14,33 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Playground.DataLayer.Entities;
 
 internal class SecretEntity : ISupportId
 {
-    public long Id { get; set; }
+    public required long Id { get; set; }
 
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string KeyId { get; set; } = null!;
+    public required string KeyId { get; set; }
 
     /// <summary>
     /// Gets or sets the value of <see cref="KeyId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
-    public string NormalizedKeyId { get; set; } = null!;
+    public required string NormalizedKeyId { get; set; }
 
-    public string EncodingType { get; set; } = null!;
+    public required string EncodingType { get; set; }
 
-    public string AlgorithmType { get; set; } = null!;
+    public required string AlgorithmType { get; set; }
 
-    public string SecretType { get; set; } = null!;
+    public required string SecretType { get; set; }
 
-    public string EncodedValue { get; set; } = null!;
+    public required string EncodedValue { get; set; }
 }

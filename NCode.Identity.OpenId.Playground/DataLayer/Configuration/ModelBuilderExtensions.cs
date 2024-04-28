@@ -18,7 +18,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Playground.DataLayer.Configuration;
 

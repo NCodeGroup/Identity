@@ -18,7 +18,7 @@
 
 using System.Text.Json;
 using NCode.Identity.OpenId.Settings;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
 
@@ -33,9 +33,6 @@ internal class DefaultOpenIdAuthenticatedClient(
 
     /// <inheritdoc />
     public override string ClientId => PublicClient.ClientId;
-
-    /// <inheritdoc />
-    public override bool IsDisabled => PublicClient.IsDisabled;
 
     /// <inheritdoc />
     public override IKnownSettingCollection Settings => PublicClient.Settings;

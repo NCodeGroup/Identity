@@ -19,19 +19,22 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
 using NCode.Disposables;
-using NCode.Identity.OpenId.DataContracts;
 using NCode.Identity.OpenId.Exceptions;
-using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Options;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.OpenId.Stores;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;
@@ -102,20 +105,20 @@ public abstract class OpenIdTenantProvider(
     /// </summary>
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="Tenant"/> instance.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedTenant"/> instance.</returns>
     /// <exception cref="HttpResultException">Throw with status code 404 when then tenant could not be found.</exception>
-    protected async ValueTask<Tenant> GetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
+    protected async ValueTask<PersistedTenant> GetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var tenantStore = storeManager.GetStore<ITenantStore>();
+        var store = storeManager.GetStore<ITenantStore>();
 
-        var tenant = await tenantStore.TryGetByTenantIdAsync(tenantId, cancellationToken);
-        if (tenant is null)
+        var persistedTenant = await store.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        if (persistedTenant is null)
             throw TypedResults
                 .NotFound()
                 .AsException($"A tenant with identifier '{tenantId}' could not be found.");
 
-        return tenant;
+        return persistedTenant;
     }
 
     /// <inheritdoc />
@@ -246,17 +249,17 @@ public abstract class OpenIdTenantProvider(
         CancellationToken cancellationToken)
     {
         // ReSharper disable once InvertIf
-        if (!propertyBag.TryGet<Tenant>(out var tenant))
+        if (!propertyBag.TryGet<PersistedTenant>(out var persistedTenant))
         {
-            tenant = await GetTenantByIdAsync(tenantDescriptor.TenantId, cancellationToken);
-            propertyBag.Set(tenant);
+            persistedTenant = await GetTenantByIdAsync(tenantDescriptor.TenantId, cancellationToken);
+            propertyBag.Set(persistedTenant);
         }
 
-        if (string.IsNullOrEmpty(tenant.SerializedSettings))
+        if (string.IsNullOrEmpty(persistedTenant.SettingsJson))
             return OpenIdServer.Settings;
 
         var settings = JsonSerializer.Deserialize<IEnumerable<Setting>>(
-            tenant.SerializedSettings,
+            persistedTenant.SettingsJson,
             OpenIdServer.JsonSerializerOptions);
 
         if (settings is null)
@@ -351,29 +354,29 @@ public abstract class OpenIdTenantProvider(
         CancellationToken cancellationToken)
     {
         // ReSharper disable once InvertIf
-        if (!propertyBag.TryGet<Tenant>(out var tenant))
+        if (!propertyBag.TryGet<PersistedTenant>(out var persistedTenant))
         {
-            tenant = await GetTenantByIdAsync(tenantDescriptor.TenantId, cancellationToken);
-            propertyBag.Set(tenant);
+            persistedTenant = await GetTenantByIdAsync(tenantDescriptor.TenantId, cancellationToken);
+            propertyBag.Set(persistedTenant);
         }
 
         return DeserializeSecrets(
             httpContext,
             propertyBag,
-            tenant.Secrets);
+            persistedTenant.Secrets);
     }
 
     /// <summary>
-    /// Deserializes a <see cref="DataContracts.Secret"/> collection into an <see cref="ISecretKeyProvider"/> instance.
+    /// Deserializes a <see cref="Secret"/> collection into an <see cref="ISecretKeyProvider"/> instance.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
-    /// <param name="secrets">The collection of <see cref="DataContracts.Secret"/> instance.</param>
+    /// <param name="secrets">The collection of <see cref="Secret"/> instance.</param>
     /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
     protected virtual ISharedReference<ISecretKeyProvider> DeserializeSecrets(
         HttpContext httpContext,
         IPropertyBag propertyBag,
-        IEnumerable<Secret> secrets)
+        IEnumerable<PersistedSecret> secrets)
     {
         // TODO: add support for a dynamic data source that re-fetches secrets from the store
         var secretKeySource = SecretSerializer.DeserializeSecrets(secrets, out _);

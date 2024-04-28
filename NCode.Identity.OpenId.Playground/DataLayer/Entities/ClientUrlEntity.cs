@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,19 +14,20 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-using NCode.Identity.OpenId.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Playground.DataLayer.Entities;
 
 internal class ClientUrlEntity : ISupportId
 {
-    public long Id { get; set; }
+    public required long Id { get; set; }
 
-    public long ClientId { get; set; }
+    public required long ClientId { get; set; }
 
-    public string UrlType { get; set; } = null!;
+    public required string UrlType { get; set; }
 
-    public string Url { get; set; } = null!;
+    public required string Url { get; set; }
 }

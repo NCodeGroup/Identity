@@ -21,9 +21,9 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Logic.Authorization;
-using NCode.Jose;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Logic;
 

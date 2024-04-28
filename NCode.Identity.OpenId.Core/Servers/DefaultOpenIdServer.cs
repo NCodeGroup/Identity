@@ -20,13 +20,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Settings;
-using NCode.Jose.Algorithms;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Servers;
@@ -61,7 +61,7 @@ public class DefaultOpenIdServer(
     public override IReadOnlySettingCollection Settings => SettingsOrNull ??= LoadSettings();
 
     /// <inheritdoc />
-    public override IPropertyBag PropertyBag { get; } = new DefaultPropertyBag();
+    public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
 
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);

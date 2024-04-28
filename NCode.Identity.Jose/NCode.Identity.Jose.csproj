@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0"/>
+        <PackageReference Include="NCode.Base64Url" Version="1.1.2"/>
+        <PackageReference Include="NCode.Disposables" Version="4.0.0"/>
+        <PackageReference Include="NCode.StringSegments" Version="2.0.2"/>
+        <PackageReference Include="Nerdbank.Streams" Version="2.10.72"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Update="*\AlgorithmCodes.*.cs">
+            <DependentUpon>AlgorithmCodes.cs</DependentUpon>
+        </Compile>
+        <Compile Update="JoseSerializer.*.cs">
+            <DependentUpon>JoseSerializer.cs</DependentUpon>
+        </Compile>
+        <Compile Update="*\SecretKeyReader.*.cs">
+            <DependentUpon>SecretKeyReader.cs</DependentUpon>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj"/>
+        <ProjectReference Include="..\NCode.CryptoMemory\NCode.CryptoMemory.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj"/>
+    </ItemGroup>
+
+</Project>

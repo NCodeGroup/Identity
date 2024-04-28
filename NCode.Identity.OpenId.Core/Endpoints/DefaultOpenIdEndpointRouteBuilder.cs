@@ -39,7 +39,7 @@ public class DefaultOpenIdEndpointRouteBuilder(
     /// <inheritdoc />
     public RouteGroupBuilder MapOpenId(IEndpointRouteBuilder endpoints)
     {
-        var propertyBag = new DefaultPropertyBag();
+        var propertyBag = PropertyBagFactory.Create();
 
         var tenantProvider = TenantProviderSelector.SelectProvider(propertyBag);
 

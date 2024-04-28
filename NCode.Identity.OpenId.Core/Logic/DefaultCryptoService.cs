@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using NCode.Encoders;
-using NCode.Jose.Algorithms;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Jose.Buffers;
 using NCode.Jose.Infrastructure;
 

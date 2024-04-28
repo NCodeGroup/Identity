@@ -17,13 +17,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCode.Identity.OpenId.Playg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.OpenId.Core.Tests", "NCode.Identity.OpenId.Core.Tests\NCode.Identity.OpenId.Core.Tests.csproj", "{421E2D83-7CB1-4D1A-92C4-63DFC2152858}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Jose", "NCode.Jose\NCode.Jose.csproj", "{79527D6D-BED2-4685-95D8-09366C34BF7F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Jose", "NCode.Identity.Jose\NCode.Identity.Jose.csproj", "{79527D6D-BED2-4685-95D8-09366C34BF7F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Jose.Tests", "NCode.Jose.Tests\NCode.Jose.Tests.csproj", "{97FF6D64-D911-4C7D-8E17-8EB19AB50FC8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Jose.Tests", "NCode.Identity.Jose.Tests\NCode.Identity.Jose.Tests.csproj", "{97FF6D64-D911-4C7D-8E17-8EB19AB50FC8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.JsonWebTokens", "NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj", "{FB07E828-A196-44B1-B922-D5AEA15A4994}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Jose.Abstractions", "NCode.Jose.Abstractions\NCode.Jose.Abstractions.csproj", "{05EF3A9B-035F-43FE-893D-B4FF596B6638}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Jose.Abstractions", "NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj", "{05EF3A9B-035F-43FE-893D-B4FF596B6638}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.PropertyBag.Abstractions", "NCode.PropertyBag.Abstractions\NCode.PropertyBag.Abstractions.csproj", "{F818B8C2-4D6D-401F-B77D-5701D00DAFC5}"
 EndProject
@@ -34,6 +34,16 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Collections.Providers.Abstractions", "NCode.Collections.Providers.Abstractions\NCode.Collections.Providers.Abstractions.csproj", "{CB537BFE-D14E-42C2-8723-6B8F6EFAB6AE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Collections.Providers", "NCode.Collections.Providers\NCode.Collections.Providers.csproj", "{159DD5A6-F5E9-42AC-9032-6D5F049E18DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Secrets.Abstractions", "NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj", "{06165F0A-DE8E-422C-9BAF-72473E629F49}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Secrets", "NCode.Identity.Secrets\NCode.Identity.Secrets.csproj", "{F81D6E02-3547-430F-AD7B-955DDFE3DC18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.DataProtection.Abstractions", "NCode.Identity.DataProtection.Abstractions\NCode.Identity.DataProtection.Abstractions.csproj", "{6FC01EF6-0C8F-4414-843E-9B8370809D4A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.DataProtection", "NCode.Identity.DataProtection\NCode.Identity.DataProtection.csproj", "{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.CryptoMemory", "NCode.CryptoMemory\NCode.CryptoMemory.csproj", "{E141A3F6-51B8-4377-9F73-1FFE1ED09946}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -93,6 +103,26 @@ Global
 		{159DD5A6-F5E9-42AC-9032-6D5F049E18DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{159DD5A6-F5E9-42AC-9032-6D5F049E18DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{159DD5A6-F5E9-42AC-9032-6D5F049E18DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06165F0A-DE8E-422C-9BAF-72473E629F49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06165F0A-DE8E-422C-9BAF-72473E629F49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06165F0A-DE8E-422C-9BAF-72473E629F49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06165F0A-DE8E-422C-9BAF-72473E629F49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F81D6E02-3547-430F-AD7B-955DDFE3DC18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F81D6E02-3547-430F-AD7B-955DDFE3DC18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F81D6E02-3547-430F-AD7B-955DDFE3DC18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F81D6E02-3547-430F-AD7B-955DDFE3DC18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FC01EF6-0C8F-4414-843E-9B8370809D4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FC01EF6-0C8F-4414-843E-9B8370809D4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FC01EF6-0C8F-4414-843E-9B8370809D4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FC01EF6-0C8F-4414-843E-9B8370809D4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E141A3F6-51B8-4377-9F73-1FFE1ED09946}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E141A3F6-51B8-4377-9F73-1FFE1ED09946}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E141A3F6-51B8-4377-9F73-1FFE1ED09946}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E141A3F6-51B8-4377-9F73-1FFE1ED09946}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

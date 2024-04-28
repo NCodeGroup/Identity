@@ -20,7 +20,7 @@
 namespace NCode.Identity.JsonWebTokens.Options;
 
 /// <summary>
-/// Contains configurable options for <see cref="JsonWebTokenService"/>.
+/// Contains configurable options for <see cref="DefaultJsonWebTokenService"/>.
 /// </summary>
 public class JsonWebTokenServiceOptions
 {

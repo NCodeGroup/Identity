@@ -18,8 +18,8 @@
 #endregion
 
 using System.Security.Claims;
-using NCode.Jose;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Jose;
+using NCode.Identity.Secrets;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.JsonWebTokens;
@@ -62,7 +62,7 @@ public class ValidateJwtParameters
     /// Gets an <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
     /// This instance will be cloned for each JWT operation.
     /// </summary>
-    public IPropertyBag PropertyBag { get; } = new DefaultPropertyBag();
+    public IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
 
     /// <summary>
     /// Gets or sets the <c>AuthenticationType</c> that is used when creating <see cref="ClaimsIdentity"/> instances.

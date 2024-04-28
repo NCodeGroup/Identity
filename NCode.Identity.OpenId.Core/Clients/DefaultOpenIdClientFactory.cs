@@ -33,13 +33,12 @@ internal class DefaultOpenIdClientFactory(
     public ValueTask<OpenIdClient> CreatePublicClientAsync(
         OpenIdContext openIdContext,
         string clientId,
-        ISettingCollection settings,
+        IReadOnlySettingCollection settings,
         IReadOnlyCollection<SecretKey> secrets,
         IReadOnlyCollection<Uri> redirectUris,
         CancellationToken cancellationToken)
     {
-        var mergedSettings = openIdContext.Tenant.Settings.Merge(settings);
-        var knownSettings = new KnownSettingCollection(mergedSettings);
+        var knownSettings = new ReadOnlyKnownSettingCollection(settings);
         var secretKeys = SecretKeyCollectionFactory.Create(secrets);
 
         OpenIdClient publicClient = new DefaultOpenIdClient(

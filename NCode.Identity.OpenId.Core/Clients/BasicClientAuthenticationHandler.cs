@@ -76,8 +76,13 @@ internal class BasicClientAuthenticationHandler(
         PersistedClient persistedClient,
         CancellationToken cancellationToken)
     {
-        var settings = SettingSerializer.DeserializeSettings(persistedClient.SettingsJson);
-        var secrets = SecretSerializer.DeserializeSecrets(persistedClient.Secrets, out _);
+        var settings = SettingSerializer.DeserializeSettings(
+            openIdContext.Tenant.Settings,
+            persistedClient.SettingsJson);
+
+        var secrets = SecretSerializer.DeserializeSecrets(
+            persistedClient.Secrets,
+            out _);
 
         var publicClient = await ClientFactory.CreatePublicClientAsync(
             openIdContext,

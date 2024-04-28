@@ -41,6 +41,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     ISecretKeyProvider secretKeyProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
+    ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
     ISecretKeyProviderFactory secretKeyProviderFactory
 ) : OpenIdTenantProvider(
@@ -49,6 +50,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     openIdServer,
     storeManagerFactory,
     tenantCache,
+    settingSerializer,
     secretSerializer,
     secretKeyProviderFactory
 ), IDisposable

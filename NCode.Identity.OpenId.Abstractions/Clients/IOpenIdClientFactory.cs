@@ -28,7 +28,7 @@ public interface IOpenIdClientFactory
     ValueTask<OpenIdClient> CreatePublicClientAsync(
         OpenIdContext openIdContext,
         string clientId,
-        ISettingCollection settings,
+        IReadOnlySettingCollection settings,
         IReadOnlyCollection<SecretKey> secrets,
         IReadOnlyCollection<Uri> redirectUris,
         CancellationToken cancellationToken);

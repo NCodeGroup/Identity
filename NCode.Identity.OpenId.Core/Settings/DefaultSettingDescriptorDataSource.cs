@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,28 +17,25 @@
 #endregion
 
 using System.Reflection;
+using Microsoft.Extensions.Primitives;
+using NCode.Collections.Providers;
 
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISettingDescriptorCollectionProvider"/> abstraction.
+/// Provides the default implementation for a data source collection of <see cref="SettingDescriptor"/> instances supported by this library.
 /// </summary>
-public class SettingDescriptorCollectionProvider : ISettingDescriptorCollectionProvider
+public class DefaultSettingDescriptorDataSource : ICollectionDataSource<SettingDescriptor>
 {
     /// <inheritdoc />
-    public ISettingDescriptorCollection Descriptors { get; } = CreateCollection();
-
-    // TODO: make this configurable
-
-    private static SettingDescriptorCollection CreateCollection()
-    {
-        var descriptors = typeof(KnownSettings)
+    public IEnumerable<SettingDescriptor> Collection { get; } =
+        typeof(KnownSettings)
             .GetProperties(BindingFlags.Static | BindingFlags.Public)
             .Where(p => typeof(SettingDescriptor).IsAssignableFrom(p.PropertyType))
             .Select(p => (SettingDescriptor?)p.GetValue(null))
             .Where(d => d is not null)
             .Cast<SettingDescriptor>();
 
-        return new SettingDescriptorCollection(descriptors);
-    }
+    /// <inheritdoc />
+    public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
 }

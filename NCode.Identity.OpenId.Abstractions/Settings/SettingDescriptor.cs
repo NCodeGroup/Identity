@@ -37,7 +37,7 @@ public abstract class SettingDescriptor
     /// <summary>
     /// Gets or sets a value indicating whether the setting is discoverable.
     /// </summary>
-    public bool Discoverable { get; init; }
+    public bool IsDiscoverable { get; init; }
 
     /// <summary>
     /// Gets the default value for the setting if set, otherwise returns <see langword="null"/>.

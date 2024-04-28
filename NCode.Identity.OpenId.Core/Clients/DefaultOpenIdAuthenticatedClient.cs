@@ -35,7 +35,7 @@ internal class DefaultOpenIdAuthenticatedClient(
     public override string ClientId => PublicClient.ClientId;
 
     /// <inheritdoc />
-    public override IKnownSettingCollection Settings => PublicClient.Settings;
+    public override IReadOnlyKnownSettingCollection Settings => PublicClient.Settings;
 
     /// <inheritdoc />
     public override ISecretKeyCollection SecretKeys => PublicClient.SecretKeys;

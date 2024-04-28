@@ -27,193 +27,193 @@ namespace NCode.Identity.OpenId.Settings;
 /// </summary>
 public class KnownSettingCollection(
     ISettingCollection store
-) : IKnownSettingCollection
+) : IKnownSettingCollection, IReadOnlyKnownSettingCollection
 {
     private ISettingCollection Store { get; } = store;
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AccessTokenEncryptionAlgValuesSupported" />
     public IReadOnlyCollection<string> AccessTokenEncryptionAlgValuesSupported
     {
         get => Get(KnownSettings.AccessTokenEncryptionAlgValuesSupported);
         set => Store.Set(KnownSettings.AccessTokenEncryptionAlgValuesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AccessTokenEncryptionEncValuesSupported" />
     public IReadOnlyCollection<string> AccessTokenEncryptionEncValuesSupported
     {
         get => Get(KnownSettings.AccessTokenEncryptionEncValuesSupported);
         set => Store.Set(KnownSettings.AccessTokenEncryptionEncValuesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AccessTokenEncryptionRequired" />
     public bool AccessTokenEncryptionRequired
     {
         get => Get(KnownSettings.AccessTokenEncryptionRequired);
         set => Store.Set(KnownSettings.AccessTokenEncryptionRequired.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AccessTokenEncryptionZipValuesSupported" />
     public IReadOnlyCollection<string> AccessTokenEncryptionZipValuesSupported
     {
         get => Get(KnownSettings.AccessTokenEncryptionZipValuesSupported);
         set => Store.Set(KnownSettings.AccessTokenEncryptionZipValuesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AccessTokenLifetime" />
     public TimeSpan AccessTokenLifetime
     {
         get => Get(KnownSettings.AccessTokenLifetime);
         set => Store.Set(KnownSettings.AccessTokenLifetime.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AccessTokenSigningAlgValuesSupported" />
     public IReadOnlyCollection<string> AccessTokenSigningAlgValuesSupported
     {
         get => Get(KnownSettings.AccessTokenSigningAlgValuesSupported);
         set => Store.Set(KnownSettings.AccessTokenSigningAlgValuesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AccessTokenType" />
     public string AccessTokenType
     {
         get => Get(KnownSettings.AccessTokenType);
         set => Store.Set(KnownSettings.AccessTokenType.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AllowLoopbackRedirect" />
     public bool AllowLoopbackRedirect
     {
         get => Get(KnownSettings.AllowLoopbackRedirect);
         set => Store.Set(KnownSettings.AllowLoopbackRedirect.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AllowPlainCodeChallengeMethod" />
     public bool AllowPlainCodeChallengeMethod
     {
         get => Get(KnownSettings.AllowPlainCodeChallengeMethod);
         set => Store.Set(KnownSettings.AllowPlainCodeChallengeMethod.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AllowUnsafeTokenResponse" />
     public bool AllowUnsafeTokenResponse
     {
         get => Get(KnownSettings.AllowUnsafeTokenResponse);
         set => Store.Set(KnownSettings.AllowUnsafeTokenResponse.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AuthorizationCodeLifetime" />
     public TimeSpan AuthorizationCodeLifetime
     {
         get => Get(KnownSettings.AuthorizationCodeLifetime);
         set => Store.Set(KnownSettings.AuthorizationCodeLifetime.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.AuthorizationSignInScheme" />
     public string AuthorizationSignInScheme
     {
         get => Get(KnownSettings.AuthorizationSignInScheme);
         set => Store.Set(KnownSettings.AuthorizationSignInScheme.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.ClockSkew" />
     public TimeSpan ClockSkew
     {
         get => Get(KnownSettings.ClockSkew);
         set => Store.Set(KnownSettings.ClockSkew.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.ContinueAuthorizationLifetime" />
     public TimeSpan ContinueAuthorizationLifetime
     {
         get => Get(KnownSettings.ContinueAuthorizationLifetime);
         set => Store.Set(KnownSettings.ContinueAuthorizationLifetime.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.GrantTypesSupported" />
     public IReadOnlyCollection<string> GrantTypesSupported
     {
         get => Get(KnownSettings.GrantTypesSupported);
         set => Store.Set(KnownSettings.GrantTypesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.IdTokenEncryptionAlgValuesSupported" />
     public IReadOnlyCollection<string> IdTokenEncryptionAlgValuesSupported
     {
         get => Get(KnownSettings.IdTokenEncryptionAlgValuesSupported);
         set => Store.Set(KnownSettings.IdTokenEncryptionAlgValuesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.IdTokenEncryptionEncValuesSupported" />
     public IReadOnlyCollection<string> IdTokenEncryptionEncValuesSupported
     {
         get => Get(KnownSettings.IdTokenEncryptionEncValuesSupported);
         set => Store.Set(KnownSettings.IdTokenEncryptionEncValuesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.IdTokenEncryptionRequired" />
     public bool IdTokenEncryptionRequired
     {
         get => Get(KnownSettings.IdTokenEncryptionRequired);
         set => Store.Set(KnownSettings.IdTokenEncryptionRequired.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.IdTokenEncryptionZipValuesSupported" />
     public IReadOnlyCollection<string> IdTokenEncryptionZipValuesSupported
     {
         get => Get(KnownSettings.IdTokenEncryptionZipValuesSupported);
         set => Store.Set(KnownSettings.IdTokenEncryptionZipValuesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.IdTokenLifetime" />
     public TimeSpan IdTokenLifetime
     {
         get => Get(KnownSettings.IdTokenLifetime);
         set => Store.Set(KnownSettings.IdTokenLifetime.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.IdTokenSigningAlgValuesSupported" />
     public IReadOnlyCollection<string> IdTokenSigningAlgValuesSupported
     {
         get => Get(KnownSettings.IdTokenSigningAlgValuesSupported);
         set => Store.Set(KnownSettings.IdTokenSigningAlgValuesSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.RequestObjectExpectedAudience" />
     public string RequestObjectExpectedAudience
     {
         get => Get(KnownSettings.RequestObjectExpectedAudience);
         set => Store.Set(KnownSettings.RequestObjectExpectedAudience.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.RequestParameterSupported" />
     public bool RequestParameterSupported
     {
         get => Get(KnownSettings.RequestParameterSupported);
         set => Store.Set(KnownSettings.RequestParameterSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.RequestUriParameterSupported" />
     public bool RequestUriParameterSupported
     {
         get => Get(KnownSettings.RequestUriParameterSupported);
         set => Store.Set(KnownSettings.RequestUriParameterSupported.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.RequestUriRequireStrictContentType" />
     public bool RequestUriRequireStrictContentType
     {
         get => Get(KnownSettings.RequestUriRequireStrictContentType);
         set => Store.Set(KnownSettings.RequestUriRequireStrictContentType.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.RequestUriExpectedContentType" />
     public string RequestUriExpectedContentType
     {
         get => Get(KnownSettings.RequestUriExpectedContentType);
         set => Store.Set(KnownSettings.RequestUriExpectedContentType.Create(value));
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IKnownSettingCollection.RequireCodeChallenge" />
     public bool RequireCodeChallenge
     {
         get => Get(KnownSettings.RequireCodeChallenge);

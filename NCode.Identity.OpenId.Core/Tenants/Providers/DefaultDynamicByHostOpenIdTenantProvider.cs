@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
@@ -43,6 +44,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     OpenIdServer openIdServer,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
+    ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
     ISecretKeyProviderFactory secretKeyProviderFactory
 ) : OpenIdTenantProvider(
@@ -51,6 +53,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     openIdServer,
     storeManagerFactory,
     tenantCache,
+    settingSerializer,
     secretSerializer,
     secretKeyProviderFactory
 )

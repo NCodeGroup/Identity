@@ -18,7 +18,6 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
@@ -48,6 +47,7 @@ public abstract class OpenIdTenantProvider(
     OpenIdServer openIdServer,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
+    ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
     ISecretKeyProviderFactory secretKeyProviderFactory
 ) : IOpenIdTenantProvider
@@ -81,6 +81,11 @@ public abstract class OpenIdTenantProvider(
     /// Gets the <see cref="IOpenIdTenantCache"/> used to cache tenant instances.
     /// </summary>
     protected IOpenIdTenantCache TenantCache { get; } = tenantCache;
+
+    /// <summary>
+    /// Gets the <see cref="ISettingSerializer"/> used to serialize/deserialize settings.
+    /// </summary>
+    protected ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     /// <summary>
     /// Gets the <see cref="ISecretSerializer"/> used to serialize/deserialize secrets.
@@ -255,17 +260,9 @@ public abstract class OpenIdTenantProvider(
             propertyBag.Set(persistedTenant);
         }
 
-        if (string.IsNullOrEmpty(persistedTenant.SettingsJson))
-            return OpenIdServer.Settings;
-
-        var settings = JsonSerializer.Deserialize<IEnumerable<Setting>>(
-            persistedTenant.SettingsJson,
-            OpenIdServer.JsonSerializerOptions);
-
-        if (settings is null)
-            return OpenIdServer.Settings;
-
-        return OpenIdServer.Settings.Merge(settings);
+        return SettingSerializer.DeserializeSettings(
+            OpenIdServer.Settings,
+            persistedTenant.SettingsJson);
     }
 
     /// <summary>

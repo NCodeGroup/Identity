@@ -26,18 +26,11 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides a <see cref="JsonConverter{T}"/> implementation that can serialize a collection of <see cref="Setting"/>
 /// instances to and from JSON.
 /// </summary>
-public class SettingCollectionJsonConverter : JsonConverter<IEnumerable<Setting>>
+public class SettingCollectionJsonConverter(
+    ISettingDescriptorJsonProvider settingDescriptorJsonProvider
+) : JsonConverter<IEnumerable<Setting>>
 {
-    private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SettingCollectionJsonConverter"/> class.
-    /// </summary>
-    /// <param name="settingDescriptorJsonProvider">The <see cref="ISettingDescriptorJsonProvider"/> instance.</param>
-    public SettingCollectionJsonConverter(ISettingDescriptorJsonProvider settingDescriptorJsonProvider)
-    {
-        SettingDescriptorJsonProvider = settingDescriptorJsonProvider;
-    }
+    private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
 
     /// <inheritdoc />
     public override bool CanConvert(Type typeToConvert) =>

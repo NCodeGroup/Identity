@@ -20,8 +20,8 @@
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
-using NCode.Jose;
-using NCode.Jose.Json;
+using NCode.Identity.Jose;
+using NCode.Identity.Jose.Json;
 
 namespace NCode.Identity.JsonWebTokens;
 

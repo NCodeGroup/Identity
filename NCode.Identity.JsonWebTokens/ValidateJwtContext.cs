@@ -17,7 +17,7 @@
 
 #endregion
 
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 using NCode.PropertyBag;
 using NCode.SystemClock;
 

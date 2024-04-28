@@ -19,7 +19,7 @@
 
 using System.ComponentModel;
 using System.Globalization;
-using NCode.Jose;
+using NCode.Identity.Jose;
 
 namespace NCode.Identity.OpenId.Settings;
 

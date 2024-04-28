@@ -17,7 +17,7 @@
 
 #endregion
 
-using NCode.Jose;
+using NCode.Identity.Jose;
 
 namespace NCode.Identity.OpenId;
 

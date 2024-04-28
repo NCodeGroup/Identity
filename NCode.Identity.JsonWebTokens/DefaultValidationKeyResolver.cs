@@ -22,9 +22,9 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using NCode.Encoders;
-using NCode.Jose;
-using NCode.Jose.Json;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Jose;
+using NCode.Identity.Jose.Json;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.JsonWebTokens;
 

@@ -19,7 +19,7 @@
 
 using System.Text.Json;
 using NCode.Identity.JsonWebTokens.Exceptions;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.JsonWebTokens;
 

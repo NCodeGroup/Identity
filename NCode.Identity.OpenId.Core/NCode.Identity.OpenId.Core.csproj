@@ -35,7 +35,7 @@
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj"/>
         <ProjectReference Include="..\NCode.Identity.OpenId.Data.Abstractions\NCode.Identity.OpenId.Data.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj"/>
     </ItemGroup>
 

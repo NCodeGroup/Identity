@@ -19,8 +19,8 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Jose;
-using NCode.Jose.Extensions;
+using NCode.Identity.Jose;
+using NCode.Identity.Jose.Extensions;
 using NCode.SystemClock;
 
 namespace NCode.Identity.JsonWebTokens;
@@ -49,7 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddJose(configureOptions);
 
         services.TryAddSingleton<ISystemClockSecondsAccuracy, SystemClockSecondsAccuracy>();
-        services.TryAddSingleton<IJsonWebTokenService, JsonWebTokenService>();
+        services.TryAddSingleton<IJsonWebTokenService, DefaultJsonWebTokenService>();
 
         return services;
     }

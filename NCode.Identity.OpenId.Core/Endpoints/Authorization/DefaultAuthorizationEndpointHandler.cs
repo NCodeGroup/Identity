@@ -28,6 +28,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
@@ -43,7 +44,6 @@ using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Jose;
 using ISystemClock = NCode.Identity.OpenId.Logic.ISystemClock;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization;

@@ -19,8 +19,8 @@
 
 using System.Security.Claims;
 using Microsoft.Extensions.Primitives;
-using NCode.Jose;
-using NCode.Jose.Credentials;
+using NCode.Identity.Jose;
+using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.JsonWebTokens;
 

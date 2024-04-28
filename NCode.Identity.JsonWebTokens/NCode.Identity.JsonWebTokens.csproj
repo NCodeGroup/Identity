@@ -8,26 +8,25 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Jose\NCode.Jose.csproj"/>
-        <ProjectReference Include="..\NCode.PropertyBag.Abstractions\NCode.PropertyBag.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.CryptoMemory\NCode.CryptoMemory.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
         <ProjectReference Include="..\NCode.PropertyBag\NCode.PropertyBag.csproj" />
     </ItemGroup>
 
-
     <ItemGroup>
-      <PackageReference Include="NCode.SystemClock" Version="1.0.1" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+        <PackageReference Include="NCode.Base64Url" Version="1.1.2" />
+        <PackageReference Include="NCode.SystemClock" Version="1.0.1"/>
     </ItemGroup>
 
-
     <ItemGroup>
-      <Compile Update="JsonWebTokenService.Validate.cs">
-        <DependentUpon>JsonWebTokenService.cs</DependentUpon>
-      </Compile>
-      <Compile Update="JsonWebTokenService.Encode.cs">
-        <DependentUpon>JsonWebTokenService.cs</DependentUpon>
-      </Compile>
+        <Compile Update="DefaultJsonWebTokenService.Validate.cs">
+            <DependentUpon>JsonWebTokenService.cs</DependentUpon>
+        </Compile>
+        <Compile Update="DefaultJsonWebTokenService.Encode.cs">
+            <DependentUpon>JsonWebTokenService.cs</DependentUpon>
+        </Compile>
     </ItemGroup>
-
-
 
 </Project>

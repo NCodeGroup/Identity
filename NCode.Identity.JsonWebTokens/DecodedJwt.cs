@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
-using NCode.Jose;
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Jose;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.JsonWebTokens;
 

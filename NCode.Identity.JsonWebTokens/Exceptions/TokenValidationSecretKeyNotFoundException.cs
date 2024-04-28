@@ -17,7 +17,7 @@
 
 #endregion
 
-using NCode.Jose.SecretKeys;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.JsonWebTokens.Exceptions;
 

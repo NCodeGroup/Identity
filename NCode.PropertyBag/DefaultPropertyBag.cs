@@ -25,7 +25,7 @@ namespace NCode.PropertyBag;
 /// <summary>
 /// Provides a default implementation of the <see cref="IPropertyBag"/> abstraction.
 /// </summary>
-public class DefaultPropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagKey, object?>
+public class DefaultPropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagKey, object?>, ICloneable
 {
     private Dictionary<PropertyBagKey, object?>? ItemsOrNull { get; set; }
 
@@ -44,6 +44,8 @@ public class DefaultPropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagK
 
         return newBag;
     }
+
+    object ICloneable.Clone() => Clone();
 
     /// <inheritdoc />
     public IPropertyBag Set<T>(PropertyBagKey<T> key, T value)

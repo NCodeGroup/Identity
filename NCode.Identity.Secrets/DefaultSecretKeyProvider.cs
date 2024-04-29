@@ -22,14 +22,59 @@ using NCode.Collections.Providers;
 namespace NCode.Identity.Secrets;
 
 /// <summary>
-/// Provides a default implementation for the <see cref="ISecretKeyProvider"/> interface.
+/// Provides a default implementation for the <see cref="ISecretKeyProvider"/> abstraction.
 /// </summary>
-public class DefaultSecretKeyProvider(
-    ISecretKeyCollectionFactory factory,
-    IEnumerable<ICollectionDataSource<SecretKey>> dataSources
-) : CollectionProvider<SecretKey, ISecretKeyCollection>(dataSources), ISecretKeyProvider
+public class DefaultSecretKeyProvider : CollectionProvider<SecretKey, ISecretKeyCollection>, ISecretKeyProvider
 {
-    private ISecretKeyCollectionFactory Factory { get; } = factory;
+    private ISecretKeyCollectionFactory Factory { get; }
+
+    /// <summary>
+    /// Factory method to create a new instance of the <see cref="DefaultSecretKeyProvider"/> class.
+    /// This variant will own the data source and dispose of it when the provider itself is disposed.
+    /// </summary>
+    public static DefaultSecretKeyProvider Create(
+        ISecretKeyCollectionFactory factory,
+        ICollectionDataSource<SecretKey> dataSource
+    ) => new(factory, dataSource);
+
+    /// <summary>
+    /// Factory method to create a new instance of the <see cref="DefaultSecretKeyProvider"/> class.
+    /// </summary>
+    public static DefaultSecretKeyProvider Create(
+        ISecretKeyCollectionFactory factory,
+        IEnumerable<ICollectionDataSource<SecretKey>> dataSources,
+        bool owns = false
+    ) => new(factory, dataSources, owns);
+
+    // private so that the other ctor is used for DI
+    private DefaultSecretKeyProvider(
+        ISecretKeyCollectionFactory factory,
+        ICollectionDataSource<SecretKey> dataSource
+    ) : base(dataSource)
+    {
+        Factory = factory;
+    }
+
+    // private so that the other ctor is used for DI
+    private DefaultSecretKeyProvider(
+        ISecretKeyCollectionFactory factory,
+        IEnumerable<ICollectionDataSource<SecretKey>> dataSources,
+        bool owns
+    ) : base(dataSources, owns)
+    {
+        Factory = factory;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultSecretKeyProvider"/> class.
+    /// </summary>
+    public DefaultSecretKeyProvider(
+        ISecretKeyCollectionFactory factory,
+        IEnumerable<ICollectionDataSource<SecretKey>> dataSources
+    ) : base(dataSources)
+    {
+        Factory = factory;
+    }
 
     /// <inheritdoc />
     protected override ISecretKeyCollection CreateCollection(IEnumerable<SecretKey> items) =>

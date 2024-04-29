@@ -18,10 +18,10 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
+using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Options;
@@ -33,7 +33,6 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;
@@ -106,7 +105,22 @@ public abstract class OpenIdTenantProvider(
     protected abstract PathString TenantPath { get; }
 
     /// <summary>
-    /// Loads the tenant using the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.
+    /// Attempts to load a <see cref="PersistedTenant"/> using the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.
+    /// </summary>
+    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedTenant"/> instance.</returns>
+    protected async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var persistedTenant = await store.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        return persistedTenant;
+    }
+
+    /// <summary>
+    /// Loads a <see cref="PersistedTenant"/> using the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.
     /// </summary>
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -114,10 +128,7 @@ public abstract class OpenIdTenantProvider(
     /// <exception cref="HttpResultException">Throw with status code 404 when then tenant could not be found.</exception>
     protected async ValueTask<PersistedTenant> GetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-
-        var persistedTenant = await store.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        var persistedTenant = await TryGetTenantByIdAsync(tenantId, cancellationToken);
         if (persistedTenant is null)
             throw TypedResults
                 .NotFound()
@@ -350,35 +361,44 @@ public abstract class OpenIdTenantProvider(
         string tenantIssuer,
         CancellationToken cancellationToken)
     {
+        var tenantId = tenantDescriptor.TenantId;
+
         // ReSharper disable once InvertIf
         if (!propertyBag.TryGet<PersistedTenant>(out var persistedTenant))
         {
-            persistedTenant = await GetTenantByIdAsync(tenantDescriptor.TenantId, cancellationToken);
+            persistedTenant = await GetTenantByIdAsync(tenantId, cancellationToken);
             propertyBag.Set(persistedTenant);
         }
 
-        return DeserializeSecrets(
-            httpContext,
-            propertyBag,
-            persistedTenant.Secrets);
+        var refreshInterval = ServerOptions.Tenant.SecretKeyPeriodicRefreshInterval;
+        var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets, out _);
+
+        var dataSource = new PeriodicPollingCollectionDataSource<SecretKey>(
+            initialCollection,
+            async ctx => await LoadSecretsAsync(tenantId, ctx),
+            refreshInterval);
+
+        var provider = SecretKeyProviderFactory.Create(dataSource);
+        return AsyncSharedReference.Create(provider);
     }
 
     /// <summary>
-    /// Deserializes a <see cref="Secret"/> collection into an <see cref="ISecretKeyProvider"/> instance.
+    /// Loads the <see cref="SecretKey"/> collection for the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.
     /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
-    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
-    /// <param name="secrets">The collection of <see cref="Secret"/> instance.</param>
-    /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    protected virtual IAsyncSharedReference<ISecretKeyProvider> DeserializeSecrets(
-        HttpContext httpContext,
-        IPropertyBag propertyBag,
-        IEnumerable<PersistedSecret> secrets)
+    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="SecretKey"/> collection.</returns>
+    protected virtual async ValueTask<IEnumerable<SecretKey>> LoadSecretsAsync(
+        string tenantId,
+        CancellationToken cancellationToken)
     {
-        // TODO: add support for a dynamic data source that re-fetches secrets from the store
-        var secretKeySource = SecretSerializer.DeserializeSecrets(secrets, out _);
-        var secretKeyProvider = SecretKeyProviderFactory.CreateStatic(secretKeySource);
-        return AsyncSharedReference.Create(secretKeyProvider);
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var persistedSecrets = await store.GetSecretsAsync(tenantId, cancellationToken);
+        var secrets = SecretSerializer.DeserializeSecrets(persistedSecrets, out _);
+
+        return secrets;
     }
 
     /// <summary>

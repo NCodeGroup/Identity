@@ -27,19 +27,22 @@ public interface ISecretKeyProviderFactory
 {
     /// <summary>
     /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance
-    /// with the specified <see cref="SecretKey"/> data source collection.
+    /// with the specified <see cref="SecretKey"/> data source instance.
+    /// This variant will own the data source and dispose of it when the provider itself is disposed.
     /// </summary>
-    /// <param name="dataSources">The collection of <see cref="SecretKey"/> data source instances.</param>
+    /// <param name="dataSource">The <see cref="SecretKey"/> data source instance.</param>
     /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources);
+    ISecretKeyProvider Create(ICollectionDataSource<SecretKey> dataSource);
 
     /// <summary>
     /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance
     /// with the specified <see cref="SecretKey"/> data source collection.
     /// </summary>
     /// <param name="dataSources">The collection of <see cref="SecretKey"/> data source instances.</param>
+    /// <param name="owns">Indicates whether the provider will own the individual data sources and dispose of them
+    /// when the class is disposed. The default is <c>false</c>.</param>
     /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    ISecretKeyProvider Create(params ICollectionDataSource<SecretKey>[] dataSources);
+    ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources, bool owns = false);
 
     /// <summary>
     /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance using a static collection of

@@ -54,7 +54,7 @@ public sealed class PeriodicPollingCollectionDataSource<T> : ICollectionDataSour
     /// Initializes a new instance of the <see cref="PeriodicPollingCollectionDataSource{T}"/> class.
     /// </summary>
     public PeriodicPollingCollectionDataSource(
-        IReadOnlyCollection<T> initialCollection,
+        IEnumerable<T> initialCollection,
         Func<CancellationToken, ValueTask<IEnumerable<T>?>> getCollectionAsync,
         TimeSpan refreshInterval)
     {

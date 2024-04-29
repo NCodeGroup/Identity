@@ -25,7 +25,8 @@ namespace NCode.Collections.Providers;
 /// </summary>
 /// <remarks>
 /// The concrete implementations should be registered in DI using the <see cref="ICollectionDataSource{T}"/>
-/// closed generic interface and can optionally implement <see cref="IDisposable"/> to dispose of any resources.
+/// closed generic interface and can optionally implement <see cref="IDisposable"/> or <see cref="IAsyncDisposable"/>
+/// to dispose of any resources.
 /// </remarks>
 public interface ICollectionDataSource<out T>
 {

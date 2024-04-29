@@ -19,6 +19,7 @@
 
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.Stores;
 
@@ -46,4 +47,17 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="PersistedTenant"/> instance matching the specified <paramref name="domainName"/> if it exists.</returns>
     ValueTask<PersistedTenant?> TryGetByDomainNameAsync(string domainName, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the <see cref="PersistedSecret"/> collection for the specified <paramref name="tenantId"/>.
+    /// </summary>
+    /// <param name="tenantId">The natural key of the <see cref="PersistedTenant"/> instance to retrieve.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the collection of
+    /// <see cref="PersistedSecret"/> instances for the specified <paramref name="tenantId"/>.</returns>
+    /// <returns></returns>
+    ValueTask<IReadOnlyCollection<PersistedSecret>> GetSecretsAsync(
+        string tenantId,
+        CancellationToken cancellationToken);
 }

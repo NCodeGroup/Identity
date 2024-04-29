@@ -24,6 +24,12 @@ namespace NCode.Identity.OpenId.Options;
 public class OpenIdTenantOptions
 {
     /// <summary>
+    /// Gets or sets the period of time after which the secret keys for a tenant are refreshed.
+    /// The default value is 5 minutes.
+    /// </summary>
+    public TimeSpan SecretKeyPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
+
+    /// <summary>
     /// Gets or sets the provider code that is used to configure multi-tenancy.
     /// This value is used to find the corresponding <see cref="IOpenIdTenantProvider"/>.
     /// The default value is <see cref="StaticSingle"/>.

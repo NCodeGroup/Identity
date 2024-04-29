@@ -49,6 +49,7 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CollectionProvider{TItem,TCollection}"/> class with the specified <see cref="ICollectionDataSource{T}"/> instance.
+    /// This variant will own the data source and dispose of it when the provider itself is disposed.
     /// </summary>
     /// <param name="dataSource">The <see cref="ICollectionDataSource{T}"/> instance that the collection provider will own.</param>
     protected CollectionProvider(ICollectionDataSource<TItem> dataSource)
@@ -60,9 +61,11 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
     /// Initializes a new instance of the <see cref="CollectionProvider{TItem,TCollection}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
-    protected CollectionProvider(IEnumerable<ICollectionDataSource<TItem>> dataSources)
+    /// <param name="owns">Indicates whether this instance will own the individual data sources and dispose of them
+    /// when this class is disposed. The default is <c>false</c>.</param>
+    protected CollectionProvider(IEnumerable<ICollectionDataSource<TItem>> dataSources, bool owns = false)
     {
-        DataSource = new CompositeCollectionDataSource<TItem>(dataSources);
+        DataSource = new CompositeCollectionDataSource<TItem>(dataSources, owns);
     }
 
     /// <summary>
@@ -103,7 +106,6 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
             if (IsDisposed) return;
             IsDisposed = true;
 
-            // fyi, we own the composite data source but not the individual data sources
             disposables = [];
             switch (DataSource)
             {

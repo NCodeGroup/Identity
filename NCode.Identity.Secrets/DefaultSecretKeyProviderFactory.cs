@@ -16,7 +16,6 @@
 
 #endregion
 
-using Microsoft.Extensions.DependencyInjection;
 using NCode.Collections.Providers;
 
 namespace NCode.Identity.Secrets;
@@ -25,18 +24,18 @@ namespace NCode.Identity.Secrets;
 /// Provides a default implementation of the <see cref="ISecretKeyProviderFactory"/> abstraction.
 /// </summary>
 public class DefaultSecretKeyProviderFactory(
-    IServiceProvider serviceProvider
+    ISecretKeyCollectionFactory secretKeyCollectionFactory
 ) : ISecretKeyProviderFactory
 {
-    private IServiceProvider ServiceProvider { get; } = serviceProvider;
+    private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } = secretKeyCollectionFactory;
 
     /// <inheritdoc />
-    public ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources) =>
-        ActivatorUtilities.CreateInstance<ISecretKeyProvider>(ServiceProvider, dataSources);
+    public ISecretKeyProvider Create(ICollectionDataSource<SecretKey> dataSource) =>
+        DefaultSecretKeyProvider.Create(SecretKeyCollectionFactory, dataSource);
 
     /// <inheritdoc />
-    public ISecretKeyProvider Create(params ICollectionDataSource<SecretKey>[] dataSources) =>
-        Create(dataSources.AsEnumerable());
+    public ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources, bool owns) =>
+        DefaultSecretKeyProvider.Create(SecretKeyCollectionFactory, dataSources, owns);
 
     /// <inheritdoc />
     public ISecretKeyProvider CreateStatic(IEnumerable<SecretKey> secretKeys) =>

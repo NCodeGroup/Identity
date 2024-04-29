@@ -375,8 +375,8 @@ public abstract class OpenIdTenantProvider(
 
         var dataSource = new PeriodicPollingCollectionDataSource<SecretKey>(
             initialCollection,
-            async ctx => await LoadSecretsAsync(tenantId, ctx),
-            refreshInterval);
+            refreshInterval,
+            async ctx => await LoadSecretsAsync(tenantId, ctx));
 
         var provider = SecretKeyProviderFactory.Create(dataSource);
         return AsyncSharedReference.Create(provider);

@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
 
@@ -35,6 +36,7 @@ public sealed class PeriodicPollingCollectionDataSource<T> : ICollectionDataSour
 
     private IEnumerable<T> CurrentCollection { get; set; }
     private Func<CancellationToken, ValueTask<IEnumerable<T>?>> GetCollectionAsync { get; }
+    private Func<ExceptionDispatchInfo, ValueTask> ExceptionHandler { get; }
 
     private CancellationTokenSource PeriodicCancellationSource { get; } = new();
     private PeriodicTimer PeriodicTimer { get; }
@@ -53,16 +55,31 @@ public sealed class PeriodicPollingCollectionDataSource<T> : ICollectionDataSour
     /// <summary>
     /// Initializes a new instance of the <see cref="PeriodicPollingCollectionDataSource{T}"/> class.
     /// </summary>
+    /// <param name="initialCollection">The initial collection.</param>
+    /// <param name="refreshInterval">The period of time between each refresh.</param>
+    /// <param name="getCollectionAsync">The function to refresh the collection periodically.</param>
+    /// <param name="exceptionHandler">The function to handle exceptions that occur during the refresh.
+    /// If the exception is re-thrown, the periodic refresh will stop and no further updates will be made.
+    /// The default behavior is to re-throw the exception.
+    /// </param>
     public PeriodicPollingCollectionDataSource(
         IEnumerable<T> initialCollection,
+        TimeSpan refreshInterval,
         Func<CancellationToken, ValueTask<IEnumerable<T>?>> getCollectionAsync,
-        TimeSpan refreshInterval)
+        Func<ExceptionDispatchInfo, ValueTask>? exceptionHandler = default)
     {
         CurrentCollection = initialCollection;
         GetCollectionAsync = getCollectionAsync;
+        ExceptionHandler = exceptionHandler ?? DefaultExceptionHandler;
 
         PeriodicTimer = new PeriodicTimer(refreshInterval);
         PeriodicTimerTask = Task.Run(async () => await PeriodicTimerAsync());
+    }
+
+    private static ValueTask DefaultExceptionHandler(ExceptionDispatchInfo exception)
+    {
+        exception.Throw();
+        return ValueTask.CompletedTask;
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(IsDisposed, this);
@@ -139,35 +156,17 @@ public sealed class PeriodicPollingCollectionDataSource<T> : ICollectionDataSour
                 {
                     return;
                 }
-                catch
+                catch (Exception exception)
                 {
-                    // TODO: use some kind of exception handling policy
+                    await ExceptionHandler(ExceptionDispatchInfo.Capture(exception));
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch
         {
             // ignore
         }
-        catch
-        {
-            // TODO: log exception
-        }
     }
-
-    // private async ValueTask<IReadOnlyCollection<SecretKey>> GetSecretKeysAsync(CancellationToken cancellationToken)
-    // {
-    //     await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-    //     var store = storeManager.GetStore<ITenantStore>();
-    //
-    //     var persistedTenant = await store.TryGetByTenantIdAsync(TenantId, cancellationToken);
-    //
-    //     var secretKeys = persistedTenant is not null ?
-    //         SecretSerializer.DeserializeSecrets(persistedTenant.Secrets, out _) :
-    //         Array.Empty<SecretKey>();
-    //
-    //     return secretKeys;
-    // }
 
     private async ValueTask RefreshCollectionAsync(CancellationToken cancellationToken)
     {

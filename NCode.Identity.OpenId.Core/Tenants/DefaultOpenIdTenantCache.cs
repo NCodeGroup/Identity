@@ -28,18 +28,18 @@ namespace NCode.Identity.OpenId.Tenants;
 public class DefaultOpenIdTenantCache : IOpenIdTenantCache
 {
     /// <inheritdoc />
-    public ValueTask<ISharedReference<OpenIdTenant>?> TryGetAsync(
+    public ValueTask<IAsyncSharedReference<OpenIdTenant>?> TryGetAsync(
         TenantDescriptor tenantDescriptor,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult<ISharedReference<OpenIdTenant>?>(null);
+        return ValueTask.FromResult<IAsyncSharedReference<OpenIdTenant>?>(null);
     }
 
     /// <inheritdoc />
     public ValueTask SetAsync(
         TenantDescriptor tenantDescriptor,
-        ISharedReference<OpenIdTenant> tenant,
+        IAsyncSharedReference<OpenIdTenant> tenant,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {

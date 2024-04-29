@@ -34,7 +34,7 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
     private IDisposable? ChangeTokenRegistration { get; set; }
-    private CompositeCollectionDataSource<TItem> DataSource { get; }
+    private ICollectionDataSource<TItem> DataSource { get; }
     private TCollection? CollectionOrNull { get; set; }
 
     /// <inheritdoc />
@@ -45,6 +45,15 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
             EnsureCollectionInitialized();
             return CollectionOrNull;
         }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CollectionProvider{TItem,TCollection}"/> class with the specified <see cref="ICollectionDataSource{T}"/> instance.
+    /// </summary>
+    /// <param name="dataSource">The <see cref="ICollectionDataSource{T}"/> instance that the collection provider will own.</param>
+    protected CollectionProvider(ICollectionDataSource<TItem> dataSource)
+    {
+        DataSource = dataSource;
     }
 
     /// <summary>
@@ -73,23 +82,21 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(IsDisposed, this);
 
     /// <inheritdoc />
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        Dispose(true);
+        await DisposeAsyncCore();
         GC.SuppressFinalize(this);
     }
 
     /// <summary>
-    /// When overridden in a derived class, releases the unmanaged resources used by this instance,
-    /// and optionally releases any managed resources.
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting managed resources asynchronously.
     /// </summary>
-    /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c>
-    /// to release only unmanaged resources.</param>
-    protected virtual void Dispose(bool disposing)
+    /// <returns>A task that represents the asynchronous dispose operation.</returns>
+    protected virtual async ValueTask DisposeAsyncCore()
     {
-        if (IsDisposed || !disposing) return;
+        if (IsDisposed) return;
 
-        List<IDisposable>? disposables;
+        List<IAsyncDisposable>? disposables;
 
         lock (SyncObj)
         {
@@ -97,16 +104,25 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
             IsDisposed = true;
 
             // fyi, we own the composite data source but not the individual data sources
-            disposables = [DataSource];
+            disposables = [];
+            switch (DataSource)
+            {
+                case IAsyncDisposable asyncDisposable:
+                    disposables.Add(asyncDisposable);
+                    break;
+                case IDisposable disposable:
+                    disposables.Add(AsyncDisposable.Adapt(disposable));
+                    break;
+            }
 
             if (ChangeTokenRegistration is not null)
-                disposables.Add(ChangeTokenRegistration);
+                disposables.Add(AsyncDisposable.Adapt(ChangeTokenRegistration));
 
             if (ChangeTokenSource is not null)
-                disposables.Add(ChangeTokenSource);
+                disposables.Add(AsyncDisposable.Adapt(ChangeTokenSource));
         }
 
-        disposables.DisposeAll();
+        await disposables.DisposeAllAsync();
     }
 
     [MemberNotNull(nameof(CollectionOrNull))]

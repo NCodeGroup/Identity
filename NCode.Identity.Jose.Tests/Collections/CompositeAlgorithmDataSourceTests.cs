@@ -26,7 +26,7 @@ namespace NCode.Jose.Tests.Collections;
 public class CompositeCollectionDataSourceTests : BaseTests
 {
     [Fact]
-    public void Collection_Initial_Valid()
+    public async Task Collection_Initial_Valid()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<Algorithm>();
@@ -75,13 +75,13 @@ public class CompositeCollectionDataSourceTests : BaseTests
             mockDataSource3.Object
         };
 
-        using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
+        await using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
         var algorithms = composite.Collection;
         Assert.Equal(expected, algorithms);
     }
 
     [Fact]
-    public void Collection_Changed_Valid()
+    public async Task Collection_Changed_Valid()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<Algorithm>();
@@ -104,7 +104,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
             mockDataSource1.Object
         };
 
-        using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
+        await using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
 
         var algorithmsBefore = composite.Collection;
         Assert.Equal(new[] { mockAlgorithm1.Object }, algorithmsBefore);
@@ -123,7 +123,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
     }
 
     [Fact]
-    public void Disposed_Valid()
+    public async Task Dispose_Valid()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockDataSource1 = CreateStrictMock<ICollectionDataSource<Algorithm>>();
@@ -142,7 +142,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
         };
 
         var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
-        composite.Dispose();
+        await composite.DisposeAsync();
 
         Assert.Throws<ObjectDisposedException>(() => composite.Collection);
         Assert.Throws<ObjectDisposedException>(() => composite.GetChangeToken());

@@ -34,7 +34,7 @@ public class DefaultOpenIdTenantFactory(
     private IOpenIdTenantProviderSelector TenantProviderSelector { get; } = tenantProviderSelector;
 
     /// <inheritdoc />
-    public async ValueTask<ISharedReference<OpenIdTenant>> CreateTenantAsync(
+    public async ValueTask<IAsyncSharedReference<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)

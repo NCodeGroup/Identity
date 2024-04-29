@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <summary>
 /// Provides the configuration for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
 /// </summary>
-public abstract class OpenIdTenant : IDisposable
+public abstract class OpenIdTenant : IAsyncDisposable
 {
     /// <summary>
     /// Gets the unique identifier for the tenant.
@@ -65,14 +65,14 @@ public abstract class OpenIdTenant : IDisposable
     public abstract IPropertyBag PropertyBag { get; }
 
     /// <inheritdoc />
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        Dispose(true);
+        await DisposeAsyncCore();
         GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
     /// </summary>
-    protected abstract void Dispose(bool disposing);
+    protected abstract ValueTask DisposeAsyncCore();
 }

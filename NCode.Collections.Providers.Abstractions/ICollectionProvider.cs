@@ -24,7 +24,7 @@ namespace NCode.Collections.Providers;
 /// Provides the composition root (i.e. top-level collection) of <typeparamref name="TItem"/> instances by
 /// aggregating multiple data sources and providing change notifications.
 /// </summary>
-public interface ICollectionProvider<TItem, out TCollection> : IDisposable
+public interface ICollectionProvider<TItem, out TCollection> : IAsyncDisposable
     where TCollection : IEnumerable<TItem>
 {
     /// <summary>

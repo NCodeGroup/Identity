@@ -373,14 +373,22 @@ public abstract class OpenIdTenantProvider(
         var refreshInterval = ServerOptions.Tenant.SecretKeyPeriodicRefreshInterval;
         var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets, out _);
 
-        var dataSource = new PeriodicPollingCollectionDataSource<SecretKey>(
+        var dataSource = new PeriodicPollingCollectionDataSource<SecretKey, string>(
+            tenantId,
             initialCollection,
             refreshInterval,
-            async ctx => await LoadSecretsAsync(tenantId, ctx));
+            LoadSecretsAsync);
 
         var provider = SecretKeyProviderFactory.Create(dataSource);
         return AsyncSharedReference.Create(provider);
     }
+
+    private async ValueTask<IReadOnlyCollection<SecretKey>?> LoadSecretsAsync(
+        PeriodicPollingCollectionContext<SecretKey, string> context,
+        CancellationToken cancellationToken) =>
+        await LoadSecretsAsync(
+            context.State, // state is the tenantId
+            cancellationToken);
 
     /// <summary>
     /// Loads the <see cref="SecretKey"/> collection for the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.
@@ -388,7 +396,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="SecretKey"/> collection.</returns>
-    protected virtual async ValueTask<IEnumerable<SecretKey>> LoadSecretsAsync(
+    protected virtual async ValueTask<IReadOnlyCollection<SecretKey>> LoadSecretsAsync(
         string tenantId,
         CancellationToken cancellationToken)
     {

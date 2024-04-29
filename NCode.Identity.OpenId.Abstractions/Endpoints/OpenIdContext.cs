@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Endpoints;
 /// <summary>
 /// Encapsulates all OpenID-specific information about an individual OpenID request.
 /// </summary>
-public abstract class OpenIdContext : IDisposable
+public abstract class OpenIdContext : IAsyncDisposable
 {
     /// <summary>
     /// Gets the <see cref="HttpContext"/> associated with the current request.
@@ -56,14 +56,14 @@ public abstract class OpenIdContext : IDisposable
     public abstract IPropertyBag PropertyBag { get; }
 
     /// <inheritdoc />
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        Dispose(true);
+        await DisposeAsyncCore();
         GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
     /// </summary>
-    protected abstract void Dispose(bool disposing);
+    protected abstract ValueTask DisposeAsyncCore();
 }

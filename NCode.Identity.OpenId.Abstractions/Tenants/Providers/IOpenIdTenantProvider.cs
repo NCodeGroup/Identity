@@ -25,7 +25,7 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Tenants.Providers;
 
 /// <summary>
-/// Provides the ability to get the <see cref="OpenIdTenant"/> instance from a HTTP request.
+/// Provides the ability to get the <see cref="OpenIdTenant"/> instance from an HTTP request.
 /// </summary>
 public interface IOpenIdTenantProvider
 {
@@ -48,7 +48,7 @@ public interface IOpenIdTenantProvider
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OpenIdTenant"/> instance.</returns>
-    ValueTask<ISharedReference<OpenIdTenant>> GetTenantAsync(
+    ValueTask<IAsyncSharedReference<OpenIdTenant>> GetTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken);

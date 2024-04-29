@@ -30,13 +30,15 @@ namespace NCode.Collections.Providers;
 /// Because this class is intended to be used with DI, it does not own the <see cref="ICollectionDataSource{T}"/> instances.
 /// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
 /// </remarks>
-public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>, IDisposable
+public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>, IAsyncDisposable
 {
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
     private List<IDisposable>? ChangeTokenRegistrations { get; set; }
+
+    private bool Owns { get; }
     private IReadOnlyList<ICollectionDataSource<T>> DataSources { get; }
     private IEnumerable<T>? CollectionOrNull { get; set; }
 
@@ -54,8 +56,11 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
     /// Initializes a new instance of the <see cref="CompositeCollectionDataSource{T}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
-    public CompositeCollectionDataSource(IEnumerable<ICollectionDataSource<T>> dataSources)
+    /// <param name="owns">Indicates whether this collection will own the items and dispose of them
+    /// when this class is disposed. The default is <c>false</c>.</param>
+    public CompositeCollectionDataSource(IEnumerable<ICollectionDataSource<T>> dataSources, bool owns = false)
     {
+        Owns = owns;
         DataSources = dataSources.ToList();
     }
 
@@ -69,11 +74,11 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(IsDisposed, this);
 
     /// <inheritdoc />
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (IsDisposed) return;
 
-        List<IDisposable>? disposables;
+        List<IAsyncDisposable>? disposables;
 
         lock (SyncObj)
         {
@@ -82,20 +87,24 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
             disposables = [];
 
-            // fyi, since the data sources are from DI, and we don't own them, we therefore don't dispose them
+            if (Owns)
+            {
+                disposables.AddRange(DataSources.OfType<IAsyncDisposable>());
+                disposables.AddRange(DataSources.OfType<IDisposable>().Select(AsyncDisposable.Adapt));
+            }
 
             if (ChangeTokenRegistrations is { Count: > 0 })
-                disposables.AddRange(ChangeTokenRegistrations);
+                disposables.AddRange(ChangeTokenRegistrations.Select(AsyncDisposable.Adapt));
 
             if (ChangeTokenSource is not null)
-                disposables.Add(ChangeTokenSource);
+                disposables.Add(AsyncDisposable.Adapt(ChangeTokenSource));
 
             CollectionOrNull = null;
             ChangeTokenRegistrations = null;
             ChangeTokenSource = null;
         }
 
-        disposables.DisposeAll();
+        await disposables.DisposeAllAsync();
     }
 
     [MemberNotNull(nameof(CollectionOrNull))]

@@ -142,7 +142,7 @@ public abstract class OpenIdTenantProvider(
     }
 
     /// <inheritdoc />
-    public virtual async ValueTask<ISharedReference<OpenIdTenant>> GetTenantAsync(
+    public virtual async ValueTask<IAsyncSharedReference<OpenIdTenant>> GetTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
@@ -185,7 +185,7 @@ public abstract class OpenIdTenantProvider(
             tenantBaseAddress,
             cancellationToken);
 
-        using var tenantSecrets = await GetTenantSecretsAsync(
+        await using var tenantSecrets = await GetTenantSecretsAsync(
             httpContext,
             tenantPropertyBag,
             tenantDescriptor,
@@ -214,7 +214,7 @@ public abstract class OpenIdTenantProvider(
         }
         catch
         {
-            newTenantReference.Dispose();
+            await newTenantReference.DisposeAsync();
             throw;
         }
 
@@ -341,7 +341,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISecretKeyProvider"/> instance.</returns>
-    protected virtual async ValueTask<ISharedReference<ISecretKeyProvider>> GetTenantSecretsAsync(
+    protected virtual async ValueTask<IAsyncSharedReference<ISecretKeyProvider>> GetTenantSecretsAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
@@ -370,7 +370,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="secrets">The collection of <see cref="Secret"/> instance.</param>
     /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    protected virtual ISharedReference<ISecretKeyProvider> DeserializeSecrets(
+    protected virtual IAsyncSharedReference<ISecretKeyProvider> DeserializeSecrets(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         IEnumerable<PersistedSecret> secrets)
@@ -378,7 +378,7 @@ public abstract class OpenIdTenantProvider(
         // TODO: add support for a dynamic data source that re-fetches secrets from the store
         var secretKeySource = SecretSerializer.DeserializeSecrets(secrets, out _);
         var secretKeyProvider = SecretKeyProviderFactory.CreateStatic(secretKeySource);
-        return SharedReference.Create(secretKeyProvider);
+        return AsyncSharedReference.Create(secretKeyProvider);
     }
 
     /// <summary>
@@ -393,14 +393,14 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantSecrets">The <see cref="ISecretKeyProvider"/> instance for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OpenIdTenant"/> instance.</returns>
-    protected virtual ValueTask<ISharedReference<OpenIdTenant>> CreateTenantAsync(
+    protected virtual ValueTask<IAsyncSharedReference<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
         IReadOnlySettingCollection tenantSettings,
         UriDescriptor tenantBaseAddress,
         string tenantIssuer,
-        ISharedReference<ISecretKeyProvider> tenantSecrets,
+        IAsyncSharedReference<ISecretKeyProvider> tenantSecrets,
         CancellationToken cancellationToken)
     {
         OpenIdTenant tenant = new DefaultOpenIdTenant(
@@ -411,6 +411,6 @@ public abstract class OpenIdTenantProvider(
             tenantSecrets,
             propertyBag);
 
-        return ValueTask.FromResult(SharedReference.Create(tenant));
+        return ValueTask.FromResult(AsyncSharedReference.Create(tenant));
     }
 }

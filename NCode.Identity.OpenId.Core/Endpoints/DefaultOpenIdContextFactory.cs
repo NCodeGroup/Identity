@@ -43,7 +43,7 @@ public class DefaultOpenIdContextFactory(
     {
         var propertyBag = OpenIdServer.PropertyBag.Clone();
 
-        using var tenantReference = await OpenIdTenantFactory.CreateTenantAsync(
+        await using var tenantReference = await OpenIdTenantFactory.CreateTenantAsync(
             httpContext,
             propertyBag,
             cancellationToken);
@@ -55,7 +55,7 @@ public class DefaultOpenIdContextFactory(
             mediator,
             propertyBag);
 
-        httpContext.Response.RegisterForDispose(openIdContext);
+        httpContext.Response.RegisterForDisposeAsync(openIdContext);
 
         return openIdContext;
     }

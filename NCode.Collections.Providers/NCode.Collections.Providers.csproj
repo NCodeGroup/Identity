@@ -11,7 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="NCode.Disposables" Version="4.0.0"/>
+        <PackageReference Include="NCode.Disposables" Version="4.2.0" />
     </ItemGroup>
 
 </Project>

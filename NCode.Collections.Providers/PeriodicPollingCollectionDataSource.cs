@@ -24,26 +24,54 @@ using NCode.Disposables;
 namespace NCode.Collections.Providers;
 
 /// <summary>
+/// Contains context used for calling the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}.GetCollectionAsync"/> delegate.
+/// </summary>
+/// <param name="State">The state instance that was originally passed to the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}"/> constructor.</param>
+/// <param name="CurrentCollection">The current collection that was last returned by the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}.GetCollectionAsync"/> delegate.</param>
+/// <typeparam name="TItem">The type of items in the collection.</typeparam>
+/// <typeparam name="TState">The type of the state parameter used during refresh calls.</typeparam>
+public record struct PeriodicPollingCollectionContext<TItem, TState>(
+    TState State,
+    IReadOnlyCollection<TItem> CurrentCollection);
+
+/// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that periodically polls for changes to the underlying data source.
 /// </summary>
-/// <typeparam name="T">The type of items in the collection.</typeparam>
-public sealed class PeriodicPollingCollectionDataSource<T> : ICollectionDataSource<T>, IAsyncDisposable
+/// <typeparam name="TItem">The type of items in the collection.</typeparam>
+/// <typeparam name="TState">The type of the state parameter used during refresh calls.</typeparam>
+public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
+    : ICollectionDataSource<TItem>, IAsyncDisposable
 {
+    /// <summary>
+    /// Represents a method that is called to refresh the collection periodically.
+    /// </summary>
+    public delegate ValueTask<IReadOnlyCollection<TItem>?> GetCollectionAsyncDelegate(
+        PeriodicPollingCollectionContext<TItem, TState> context,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Represents a method that is called to handle exceptions that occur during the refresh.
+    /// </summary>
+    public delegate ValueTask HandleExceptionAsyncDelegate(
+        ExceptionDispatchInfo exception,
+        CancellationToken cancellationToken);
+
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private CancellationChangeToken? ChangeToken { get; set; }
 
-    private IEnumerable<T> CurrentCollection { get; set; }
-    private Func<CancellationToken, ValueTask<IEnumerable<T>?>> GetCollectionAsync { get; }
-    private Func<ExceptionDispatchInfo, ValueTask> ExceptionHandler { get; }
+    private TState State { get; }
+    private IReadOnlyCollection<TItem> CurrentCollection { get; set; }
+    private GetCollectionAsyncDelegate GetCollectionAsync { get; }
+    private HandleExceptionAsyncDelegate HandleExceptionAsync { get; }
 
     private CancellationTokenSource PeriodicCancellationSource { get; } = new();
     private PeriodicTimer PeriodicTimer { get; }
     private Task PeriodicTimerTask { get; }
 
     /// <inheritdoc />
-    public IEnumerable<T> Collection
+    public IEnumerable<TItem> Collection
     {
         get
         {
@@ -53,30 +81,35 @@ public sealed class PeriodicPollingCollectionDataSource<T> : ICollectionDataSour
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PeriodicPollingCollectionDataSource{T}"/> class.
+    /// Initializes a new instance of the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}"/> class.
     /// </summary>
+    /// <param name="state">Contains the state instance that is passed to the <see cref="GetCollectionAsync"/> delegate.</param>
     /// <param name="initialCollection">The initial collection.</param>
     /// <param name="refreshInterval">The period of time between each refresh.</param>
     /// <param name="getCollectionAsync">The function to refresh the collection periodically.</param>
-    /// <param name="exceptionHandler">The function to handle exceptions that occur during the refresh.
+    /// <param name="handleExceptionAsync">The function to handle exceptions that occur during the refresh.
     /// If the exception is re-thrown, the periodic refresh will stop and no further updates will be made.
     /// The default behavior is to re-throw the exception.
     /// </param>
     public PeriodicPollingCollectionDataSource(
-        IEnumerable<T> initialCollection,
+        TState state,
+        IReadOnlyCollection<TItem> initialCollection,
         TimeSpan refreshInterval,
-        Func<CancellationToken, ValueTask<IEnumerable<T>?>> getCollectionAsync,
-        Func<ExceptionDispatchInfo, ValueTask>? exceptionHandler = default)
+        GetCollectionAsyncDelegate getCollectionAsync,
+        HandleExceptionAsyncDelegate? handleExceptionAsync = default)
     {
+        State = state;
         CurrentCollection = initialCollection;
         GetCollectionAsync = getCollectionAsync;
-        ExceptionHandler = exceptionHandler ?? DefaultExceptionHandler;
+        HandleExceptionAsync = handleExceptionAsync ?? DefaultHandleExceptionAsync;
 
         PeriodicTimer = new PeriodicTimer(refreshInterval);
         PeriodicTimerTask = Task.Run(async () => await PeriodicTimerAsync());
     }
 
-    private static ValueTask DefaultExceptionHandler(ExceptionDispatchInfo exception)
+    private static ValueTask DefaultHandleExceptionAsync(
+        ExceptionDispatchInfo exception,
+        CancellationToken cancellationToken)
     {
         exception.Throw();
         return ValueTask.CompletedTask;
@@ -158,7 +191,9 @@ public sealed class PeriodicPollingCollectionDataSource<T> : ICollectionDataSour
                 }
                 catch (Exception exception)
                 {
-                    await ExceptionHandler(ExceptionDispatchInfo.Capture(exception));
+                    await HandleExceptionAsync(
+                        ExceptionDispatchInfo.Capture(exception),
+                        cancellationToken);
                 }
             }
         }
@@ -170,12 +205,13 @@ public sealed class PeriodicPollingCollectionDataSource<T> : ICollectionDataSour
 
     private async ValueTask RefreshCollectionAsync(CancellationToken cancellationToken)
     {
-        var collection = await GetCollectionAsync(cancellationToken);
+        var context = new PeriodicPollingCollectionContext<TItem, TState>(State, CurrentCollection);
+        var collection = await GetCollectionAsync(context, cancellationToken);
         if (collection is null) return;
         await NotifyChangeAsync(collection);
     }
 
-    private async ValueTask NotifyChangeAsync(IEnumerable<T> collection)
+    private async ValueTask NotifyChangeAsync(IReadOnlyCollection<TItem> collection)
     {
         CancellationTokenSource? oldTokenSource;
 

@@ -38,7 +38,7 @@ public abstract class OpenIdClient
     public abstract IReadOnlyKnownSettingCollection Settings { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyCollection"/> that can be used to access the client's secret keys.
+    /// Gets the <see cref="ISecretKeyCollection"/> which contains secrets only known to the client.
     /// </summary>
     public abstract ISecretKeyCollection SecretKeys { get; }
 

@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Servers;
@@ -38,7 +39,8 @@ public class DefaultOpenIdServer(
     IConfiguration configuration,
     IAlgorithmProvider algorithmProvider,
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
-    ISettingDescriptorJsonProvider settingDescriptorJsonProvider
+    ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
+    ISecretKeyProvider secretKeyProvider
 ) : OpenIdServer, IOpenIdErrorFactory
 {
     private IReadOnlySettingCollection? SettingsOrNull { get; set; }
@@ -61,6 +63,9 @@ public class DefaultOpenIdServer(
 
     /// <inheritdoc />
     public override IReadOnlySettingCollection Settings => SettingsOrNull ??= LoadSettings();
+
+    /// <inheritdoc />
+    public override ISecretKeyProvider SecretKeyProvider { get; } = secretKeyProvider;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();

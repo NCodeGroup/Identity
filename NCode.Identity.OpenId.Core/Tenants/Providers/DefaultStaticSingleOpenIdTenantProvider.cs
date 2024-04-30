@@ -38,7 +38,6 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdServerOptions> serverOptionsAccessor,
     OpenIdServer openIdServer,
-    ISecretKeyProvider secretKeyProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
@@ -56,7 +55,9 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
 ), IAsyncDisposable
 {
     private IAsyncSharedReference<OpenIdTenant>? CachedTenant { get; set; }
-    private IAsyncSharedReference<ISecretKeyProvider> SecretKeyProvider { get; } = AsyncSharedReference.Create(secretKeyProvider);
+
+    private IAsyncSharedReference<ISecretKeyProvider> SecretKeyProvider { get; } =
+        AsyncSharedReference.Create(openIdServer.SecretKeyProvider);
 
     private StaticSingleOpenIdTenantOptions TenantOptions =>
         ServerOptions.Tenant.StaticSingle ?? throw MissingTenantOptionsException();

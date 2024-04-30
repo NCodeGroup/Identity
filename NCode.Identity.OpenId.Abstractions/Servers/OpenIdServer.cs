@@ -21,6 +21,7 @@ using System.Text.Json;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Servers;
@@ -50,6 +51,11 @@ public abstract class OpenIdServer
     /// Gets the <see cref="IReadOnlySettingCollection"/> which contains settings scoped to the server.
     /// </summary>
     public abstract IReadOnlySettingCollection Settings { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ISecretKeyProvider"/> which contains secrets only known to the server.
+    /// </summary>
+    public abstract ISecretKeyProvider SecretKeyProvider { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

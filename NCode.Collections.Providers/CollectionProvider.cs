@@ -34,6 +34,8 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
     private IDisposable? ChangeTokenRegistration { get; set; }
+
+    private bool Owns { get; }
     private ICollectionDataSource<TItem> DataSource { get; }
     private TCollection? CollectionOrNull { get; set; }
 
@@ -51,20 +53,26 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
     /// Initializes a new instance of the <see cref="CollectionProvider{TItem,TCollection}"/> class with the specified <see cref="ICollectionDataSource{T}"/> instance.
     /// This variant will own the data source and dispose of it when the provider itself is disposed.
     /// </summary>
-    /// <param name="dataSource">The <see cref="ICollectionDataSource{T}"/> instance that the collection provider will own.</param>
-    protected CollectionProvider(ICollectionDataSource<TItem> dataSource)
+    /// <param name="dataSource">The <see cref="ICollectionDataSource{T}"/> instance for the provider.</param>
+    /// <param name="owns">Indicates whether the provider will own the data source and dispose of it
+    /// when the provider itself is disposed. The default is <c>true</c>.</param>
+    protected CollectionProvider(ICollectionDataSource<TItem> dataSource, bool owns = true)
     {
+        Owns = owns;
         DataSource = dataSource;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CollectionProvider{TItem,TCollection}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
+    /// By default we do not own the individual data sources and therefore not dispose of them when the provider
+    /// itself is disposed because the data sources are resolved from the DI container which will manage their lifetimes.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
     /// <param name="owns">Indicates whether this instance will own the individual data sources and dispose of them
     /// when this class is disposed. The default is <c>false</c>.</param>
     protected CollectionProvider(IEnumerable<ICollectionDataSource<TItem>> dataSources, bool owns = false)
     {
+        Owns = true; // this variant always own the composite data source
         DataSource = new CompositeCollectionDataSource<TItem>(dataSources, owns);
     }
 
@@ -107,14 +115,19 @@ public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvid
             IsDisposed = true;
 
             disposables = [];
-            switch (DataSource)
+
+            if (Owns)
             {
-                case IAsyncDisposable asyncDisposable:
-                    disposables.Add(asyncDisposable);
-                    break;
-                case IDisposable disposable:
-                    disposables.Add(AsyncDisposable.Adapt(disposable));
-                    break;
+                switch (DataSource)
+                {
+                    case IAsyncDisposable asyncDisposable:
+                        disposables.Add(asyncDisposable);
+                        break;
+
+                    case IDisposable disposable:
+                        disposables.Add(AsyncDisposable.Adapt(disposable));
+                        break;
+                }
             }
 
             if (ChangeTokenRegistration is not null)

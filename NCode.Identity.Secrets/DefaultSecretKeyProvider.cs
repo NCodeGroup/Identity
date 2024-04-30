@@ -34,8 +34,9 @@ public class DefaultSecretKeyProvider : CollectionProvider<SecretKey, ISecretKey
     /// </summary>
     public static DefaultSecretKeyProvider Create(
         ISecretKeyCollectionFactory factory,
-        ICollectionDataSource<SecretKey> dataSource
-    ) => new(factory, dataSource);
+        ICollectionDataSource<SecretKey> dataSource,
+        bool owns = true
+    ) => new(factory, dataSource, owns);
 
     /// <summary>
     /// Factory method to create a new instance of the <see cref="DefaultSecretKeyProvider"/> class.
@@ -49,8 +50,9 @@ public class DefaultSecretKeyProvider : CollectionProvider<SecretKey, ISecretKey
     // private so that the other ctor is used for DI
     private DefaultSecretKeyProvider(
         ISecretKeyCollectionFactory factory,
-        ICollectionDataSource<SecretKey> dataSource
-    ) : base(dataSource)
+        ICollectionDataSource<SecretKey> dataSource,
+        bool owns
+    ) : base(dataSource, owns)
     {
         Factory = factory;
     }
@@ -67,6 +69,8 @@ public class DefaultSecretKeyProvider : CollectionProvider<SecretKey, ISecretKey
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultSecretKeyProvider"/> class.
+    /// This variant will not own the individual data sources and therefore not dispose of them when the provider itself
+    /// is disposed because the data sources are resolved from the DI container which will manage their lifetimes.
     /// </summary>
     public DefaultSecretKeyProvider(
         ISecretKeyCollectionFactory factory,

@@ -40,12 +40,14 @@ internal class DefaultOpenIdClientFactory(
     {
         var knownSettings = new ReadOnlyKnownSettingCollection(settings);
         var secretKeys = SecretKeyCollectionFactory.Create(secrets);
+        var propertyBag = openIdContext.PropertyBag.Clone();
 
         OpenIdClient publicClient = new DefaultOpenIdClient(
             clientId,
             knownSettings,
             secretKeys,
-            redirectUris);
+            redirectUris,
+            propertyBag);
 
         return ValueTask.FromResult(publicClient);
     }

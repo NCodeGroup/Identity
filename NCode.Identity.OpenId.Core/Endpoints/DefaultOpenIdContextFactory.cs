@@ -41,12 +41,12 @@ public class DefaultOpenIdContextFactory(
         IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var propertyBag = OpenIdServer.PropertyBag.Clone();
-
         await using var tenantReference = await OpenIdTenantFactory.CreateTenantAsync(
             httpContext,
-            propertyBag,
+            OpenIdServer.PropertyBag,
             cancellationToken);
+
+        var propertyBag = tenantReference.Value.PropertyBag.Clone();
 
         var openIdContext = new DefaultOpenIdContext(
             httpContext,

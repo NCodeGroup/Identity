@@ -18,6 +18,7 @@
 
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
+using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Clients;
 
@@ -45,4 +46,7 @@ internal class DefaultOpenIdClient(
 
     /// <inheritdoc />
     public override OpenIdAuthenticatedClient? AuthenticatedClient => null;
+
+    /// <inheritdoc />
+    public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
 }

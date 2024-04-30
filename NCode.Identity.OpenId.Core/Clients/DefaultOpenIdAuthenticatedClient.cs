@@ -19,6 +19,7 @@
 using System.Text.Json;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
+using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Clients;
 
@@ -48,6 +49,9 @@ internal class DefaultOpenIdAuthenticatedClient(
 
     /// <inheritdoc />
     public override OpenIdAuthenticatedClient AuthenticatedClient => this;
+
+    /// <inheritdoc />
+    public override IPropertyBag PropertyBag => PublicClient.PropertyBag;
 
     /// <inheritdoc />
     public override string AuthenticationMethod { get; } = authenticationMethod;

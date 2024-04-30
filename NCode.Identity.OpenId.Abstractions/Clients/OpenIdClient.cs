@@ -19,6 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
+using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Clients;
 
@@ -58,4 +59,9 @@ public abstract class OpenIdClient
     /// or <c>null</c> if the client is not authenticated.
     /// </summary>
     public abstract OpenIdAuthenticatedClient? AuthenticatedClient { get; }
+
+    /// <summary>
+    /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
+    /// </summary>
+    public abstract IPropertyBag PropertyBag { get; }
 }

@@ -30,8 +30,8 @@ public class DefaultSecretKeyProviderFactory(
     private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } = secretKeyCollectionFactory;
 
     /// <inheritdoc />
-    public ISecretKeyProvider Create(ICollectionDataSource<SecretKey> dataSource) =>
-        DefaultSecretKeyProvider.Create(SecretKeyCollectionFactory, dataSource);
+    public ISecretKeyProvider Create(ICollectionDataSource<SecretKey> dataSource, bool owns) =>
+        DefaultSecretKeyProvider.Create(SecretKeyCollectionFactory, dataSource, owns);
 
     /// <inheritdoc />
     public ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources, bool owns) =>
@@ -39,5 +39,5 @@ public class DefaultSecretKeyProviderFactory(
 
     /// <inheritdoc />
     public ISecretKeyProvider CreateStatic(IEnumerable<SecretKey> secretKeys) =>
-        Create(new StaticCollectionDataSource<SecretKey>(secretKeys));
+        Create(new StaticCollectionDataSource<SecretKey>(secretKeys), owns: true);
 }

@@ -31,8 +31,10 @@ public interface ISecretKeyProviderFactory
     /// This variant will own the data source and dispose of it when the provider itself is disposed.
     /// </summary>
     /// <param name="dataSource">The <see cref="SecretKey"/> data source instance.</param>
+    /// <param name="owns">Indicates whether the provider will own the data source and dispose of it
+    /// when the provider itself is disposed. The default is <c>true</c>.</param>
     /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    ISecretKeyProvider Create(ICollectionDataSource<SecretKey> dataSource);
+    ISecretKeyProvider Create(ICollectionDataSource<SecretKey> dataSource, bool owns = true);
 
     /// <summary>
     /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance

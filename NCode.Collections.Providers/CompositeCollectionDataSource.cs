@@ -54,6 +54,8 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CompositeCollectionDataSource{T}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
+    /// By default we do not own the individual data sources and therefore not dispose of them when the composite collection
+    /// itself is disposed because the data sources are resolved from the DI container which will manage their lifetimes.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
     /// <param name="owns">Indicates whether this collection will own the items and dispose of them

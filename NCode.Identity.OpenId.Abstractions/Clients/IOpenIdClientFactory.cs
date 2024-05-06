@@ -30,7 +30,7 @@ public interface IOpenIdClientFactory
         string clientId,
         IReadOnlySettingCollection settings,
         IReadOnlyCollection<SecretKey> secrets,
-        IReadOnlyCollection<Uri> redirectUris,
+        IReadOnlyCollection<string> redirectUrls,
         CancellationToken cancellationToken);
 
     ValueTask<OpenIdAuthenticatedClient> CreateConfidentialClientAsync(

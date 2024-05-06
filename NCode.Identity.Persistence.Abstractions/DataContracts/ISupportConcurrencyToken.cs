@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,7 +14,10 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
+
+using System.ComponentModel.DataAnnotations;
 
 namespace NCode.Identity.Persistence.DataContracts;
 
@@ -25,7 +29,8 @@ namespace NCode.Identity.Persistence.DataContracts;
 public interface ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets a random value that is used to check for optimistic concurrency violations.
+    /// Gets a value that is used to check for optimistic concurrency violations.
     /// </summary>
-    string ConcurrencyToken { get; set; }
+    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    string ConcurrencyToken { get; }
 }

@@ -25,9 +25,12 @@ namespace NCode.Identity.Persistence.DataContracts;
 public static class DataConstants
 {
     /// <summary>
-    /// Specifies the maximum length of a database index.
+    /// Specifies the maximum size, in bytes, of a database index.
     /// </summary>
-    public const int MaxIndexLength = 256;
+    /// <remarks>
+    /// Microsoft SQL Server has a limit of 1,700 bytes for a non-clustered index.
+    /// </remarks>
+    public const int MaxIndexLength = 1000;
 
     /// <summary>
     /// Specifies the maximum length of a concurrency token.

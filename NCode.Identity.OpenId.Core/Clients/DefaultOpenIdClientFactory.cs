@@ -35,7 +35,7 @@ internal class DefaultOpenIdClientFactory(
         string clientId,
         IReadOnlySettingCollection settings,
         IReadOnlyCollection<SecretKey> secrets,
-        IReadOnlyCollection<Uri> redirectUris,
+        IReadOnlyCollection<string> redirectUrls,
         CancellationToken cancellationToken)
     {
         var knownSettings = new ReadOnlyKnownSettingCollection(settings);
@@ -46,7 +46,7 @@ internal class DefaultOpenIdClientFactory(
             clientId,
             knownSettings,
             secretKeys,
-            redirectUris,
+            redirectUrls,
             propertyBag);
 
         return ValueTask.FromResult(publicClient);

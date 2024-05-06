@@ -26,7 +26,7 @@ internal class DefaultOpenIdClient(
     string clientId,
     IReadOnlyKnownSettingCollection settings,
     ISecretKeyCollection secretKeys,
-    IReadOnlyCollection<Uri> redirectUris,
+    IReadOnlyCollection<string> redirectUrls,
     IPropertyBag propertyBag
 ) : OpenIdClient
 {
@@ -40,7 +40,7 @@ internal class DefaultOpenIdClient(
     public override ISecretKeyCollection SecretKeys { get; } = secretKeys;
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<Uri> RedirectUris { get; } = redirectUris;
+    public override IReadOnlyCollection<string> RedirectUrls { get; } = redirectUrls;
 
     /// <inheritdoc />
     public override bool IsAuthenticated => false;

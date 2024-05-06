@@ -25,15 +25,15 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// <summary>
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> grant.
 /// </summary>
-public class PersistedGrant : ISupportId
+public class PersistedGrant : ISupportId, ISupportTenantId
 {
     /// <summary>
-    /// Gets or sets the surrogate key for this entity.
+    /// Gets or sets the surrogate identifier for this entity.
     /// </summary>
     public required long Id { get; set; }
 
     /// <summary>
-    /// Gets or sets the tenant identifier for this entity.
+    /// Gets or sets the natural tenant identifier for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
     public required string TenantId { get; set; }

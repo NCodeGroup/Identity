@@ -18,6 +18,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
@@ -26,28 +27,28 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// <summary>
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> client.
 /// </summary>
-public class PersistedClient : ISupportId, ISupportConcurrencyToken
+public class PersistedClient : ISupportId, ISupportConcurrencyToken, ISupportTenantId
 {
     /// <summary>
-    /// Gets or sets the surrogate key for this entity.
+    /// Gets or sets the surrogate identifier for this entity.
     /// </summary>
     public required long Id { get; set; }
 
-    /// <inheritdoc/>
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    public required string ConcurrencyToken { get; set; }
-
     /// <summary>
-    /// Gets or sets the tenant identifier for this entity.
+    /// Gets or sets the natural tenant identifier for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
     public required string TenantId { get; set; }
 
     /// <summary>
-    /// Gets or sets the natural key for this entity.
+    /// Gets or sets the natural identifier for this entity.
     /// </summary>
     [MaxLength(DataConstants.MaxIndexLength)]
     public required string ClientId { get; set; }
+
+    /// <inheritdoc/>
+    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    public required string ConcurrencyToken { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the client is disabled.
@@ -57,15 +58,15 @@ public class PersistedClient : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the serialized JSON for the client settings.
     /// </summary>
-    public required string SettingsJson { get; set; }
+    public required JsonElement Settings { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to the client.
     /// </summary>
-    public List<PersistedSecret> Secrets { get; set; } = [];
+    public required List<PersistedSecret> Secrets { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of redirect addresses registered for this client.
     /// </summary>
-    public List<Uri> RedirectUris { get; set; } = [];
+    public required List<string> RedirectUrls { get; set; }
 }

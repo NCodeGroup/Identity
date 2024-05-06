@@ -62,7 +62,10 @@ internal class BasicClientAuthenticationHandler(
     private static string UriDecode(string value) =>
         Uri.UnescapeDataString(value.Replace("+", "%20"));
 
-    private async ValueTask<PersistedClient?> TryGetPersistedClientAsync(string tenantId, string clientId, CancellationToken cancellationToken)
+    private async ValueTask<PersistedClient?> TryGetPersistedClientAsync(
+        string tenantId,
+        string clientId,
+        CancellationToken cancellationToken)
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
@@ -78,7 +81,7 @@ internal class BasicClientAuthenticationHandler(
     {
         var settings = SettingSerializer.DeserializeSettings(
             openIdContext.Tenant.Settings,
-            persistedClient.SettingsJson);
+            persistedClient.Settings);
 
         var secrets = SecretSerializer.DeserializeSecrets(
             persistedClient.Secrets,
@@ -89,7 +92,7 @@ internal class BasicClientAuthenticationHandler(
             persistedClient.ClientId,
             settings,
             secrets,
-            persistedClient.RedirectUris,
+            persistedClient.RedirectUrls,
             cancellationToken);
 
         return publicClient;

@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,16 +20,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NCode.Identity.Persistence.DataContracts;
 
-/// <summary>
-/// Provides the ability to check for optimistic concurrency violations by using a random value that compared to
-/// the existing value in a database. The random value is automatically generated every time a row is inserted or
-/// updated in the database.
-/// </summary>
-public interface ISupportConcurrencyToken
+public interface ISupportTenantId
 {
     /// <summary>
-    /// Gets a value that is used to check for optimistic concurrency violations.
+    /// Gets the natural tenant identifier for this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    string ConcurrencyToken { get; }
+    [MaxLength(DataConstants.MaxIndexLength)]
+    string TenantId { get; }
 }

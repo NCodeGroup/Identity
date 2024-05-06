@@ -37,7 +37,7 @@ internal class IdentityProfile : Profile
 
         CreateMap<ClientEntity, PersistedClient>()
             .ForMember(dst => dst.Secrets, cfg => cfg.MapFrom(src => src.ClientSecrets.Select(entity => entity.Secret)))
-            .ForMember(dst => dst.RedirectUris, cfg => cfg.MapFrom(src => src.Urls.Where(clientUrl => clientUrl.UrlType == "RedirectUrl")))
+            .ForMember(dst => dst.RedirectUrls, cfg => cfg.MapFrom(src => src.Urls.Where(clientUrl => clientUrl.UrlType == "RedirectUrl")))
             .ReverseMap();
     }
 }

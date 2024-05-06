@@ -42,7 +42,7 @@ internal class DefaultOpenIdAuthenticatedClient(
     public override ISecretKeyCollection SecretKeys => PublicClient.SecretKeys;
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<Uri> RedirectUris => PublicClient.RedirectUris;
+    public override IReadOnlyCollection<string> RedirectUrls => PublicClient.RedirectUrls;
 
     /// <inheritdoc />
     public override bool IsAuthenticated => true;

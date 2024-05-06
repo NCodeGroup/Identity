@@ -18,6 +18,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
@@ -29,19 +30,19 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 public class PersistedTenant : ISupportId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate key for this entity.
+    /// Gets or sets the surrogate identifier for this entity.
     /// </summary>
     public required long Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the natural identifier for this entity.
+    /// </summary>
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public required string TenantId { get; set; }
 
     /// <inheritdoc/>
     [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
     public required string ConcurrencyToken { get; set; }
-
-    /// <summary>
-    /// Gets or sets the natural key for this entity.
-    /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string TenantId { get; set; }
 
     /// <summary>
     /// Gets or sets the domain name for this entity.
@@ -62,10 +63,10 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the serialized JSON for the tenant settings.
     /// </summary>
-    public required string SettingsJson { get; set; }
+    public required JsonElement Settings { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to the tenant.
     /// </summary>
-    public List<PersistedSecret> Secrets { get; set; } = [];
+    public required List<PersistedSecret> Secrets { get; set; }
 }

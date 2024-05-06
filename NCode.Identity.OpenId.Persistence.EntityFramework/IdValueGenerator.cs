@@ -17,23 +17,22 @@
 
 #endregion
 
-namespace NCode.Identity.Persistence.DataContracts;
+using IdGen;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.ValueGeneration;
 
-/// <summary>
-/// Contains various constants used by the data layer.
-/// </summary>
-public static class DataConstants
+namespace NCode.Identity.OpenId.Persistence.EntityFramework;
+
+internal class IdValueGenerator(
+    IIdGenerator<long> idGenerator
+) : ValueGenerator<long>
 {
-    /// <summary>
-    /// Specifies the maximum size, in bytes, of a database index.
-    /// </summary>
-    /// <remarks>
-    /// Microsoft SQL Server has a limit of 1,700 bytes for a non-clustered index.
-    /// </remarks>
-    public const int MaxIndexLength = 1000;
+    // https://medium.com/ingeniouslysimple/why-did-we-shift-away-from-database-generated-ids-7e0e54a49bb3
+    private IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
-    /// <summary>
-    /// Specifies the maximum length of a concurrency token.
-    /// </summary>
-    public const int MaxConcurrencyTokenLength = 50;
+    /// <inheritdoc />
+    public override bool GeneratesTemporaryValues => false;
+
+    /// <inheritdoc />
+    public override long Next(EntityEntry entry) => IdGenerator.CreateId();
 }

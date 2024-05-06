@@ -273,7 +273,7 @@ public abstract class OpenIdTenantProvider(
 
         return SettingSerializer.DeserializeSettings(
             OpenIdServer.Settings,
-            persistedTenant.SettingsJson);
+            persistedTenant.Settings);
     }
 
     /// <summary>

@@ -17,23 +17,23 @@
 
 #endregion
 
-namespace NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 
-/// <summary>
-/// Contains various constants used by the data layer.
-/// </summary>
-public static class DataConstants
+namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
+
+internal class ClientSecretEntity : ISupportId, ISupportTenant, ISupportSecret
 {
-    /// <summary>
-    /// Specifies the maximum size, in bytes, of a database index.
-    /// </summary>
-    /// <remarks>
-    /// Microsoft SQL Server has a limit of 1,700 bytes for a non-clustered index.
-    /// </remarks>
-    public const int MaxIndexLength = 1000;
+    public required long Id { get; set; }
 
-    /// <summary>
-    /// Specifies the maximum length of a concurrency token.
-    /// </summary>
-    public const int MaxConcurrencyTokenLength = 50;
+    public required long TenantId { get; set; }
+
+    public required long ClientId { get; set; }
+
+    public required long SecretId { get; set; }
+
+    public required TenantEntity Tenant { get; set; }
+
+    public required ClientEntity Client { get; set; }
+
+    public required SecretEntity Secret { get; set; }
 }

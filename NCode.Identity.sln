@@ -53,6 +53,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.OpenId.Persi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.OpenId.Persistence", "NCode.Identity.OpenId.Persistence\NCode.Identity.OpenId.Persistence.csproj", "{219D85CB-E976-4ED7-B82D-BD2FCABB500B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.OpenId.Persistence.EntityFramework", "NCode.Identity.OpenId.Persistence.EntityFramework\NCode.Identity.OpenId.Persistence.EntityFramework.csproj", "{6C715461-D3F5-4F01-9789-A621C043540B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -147,6 +149,10 @@ Global
 		{219D85CB-E976-4ED7-B82D-BD2FCABB500B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{219D85CB-E976-4ED7-B82D-BD2FCABB500B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{219D85CB-E976-4ED7-B82D-BD2FCABB500B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C715461-D3F5-4F01-9789-A621C043540B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C715461-D3F5-4F01-9789-A621C043540B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C715461-D3F5-4F01-9789-A621C043540B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C715461-D3F5-4F01-9789-A621C043540B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

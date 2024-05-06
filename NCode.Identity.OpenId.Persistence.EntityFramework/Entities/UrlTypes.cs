@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,23 +16,9 @@
 
 #endregion
 
-namespace NCode.Identity.Persistence.DataContracts;
+namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
-/// <summary>
-/// Contains various constants used by the data layer.
-/// </summary>
-public static class DataConstants
+public static class UrlTypes
 {
-    /// <summary>
-    /// Specifies the maximum size, in bytes, of a database index.
-    /// </summary>
-    /// <remarks>
-    /// Microsoft SQL Server has a limit of 1,700 bytes for a non-clustered index.
-    /// </remarks>
-    public const int MaxIndexLength = 1000;
-
-    /// <summary>
-    /// Specifies the maximum length of a concurrency token.
-    /// </summary>
-    public const int MaxConcurrencyTokenLength = 50;
+    public const string RedirectUrl = nameof(RedirectUrl);
 }

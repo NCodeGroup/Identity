@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// <summary>
 /// Contains the data for a persisted secret.
 /// </summary>
-public class PersistedSecret : ISupportId
+public class PersistedSecret : ISupportId, ISupportConcurrencyToken, ISupportTenantId
 {
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
@@ -41,6 +41,11 @@ public class PersistedSecret : ISupportId
     /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
     public required string SecretId { get; init; }
+
+    /// <summary>
+    /// Gets or sets a random value that is used to check for optimistic concurrency violations.
+    /// </summary>
+    public required string ConcurrencyToken { get; init; }
 
     /// <summary>
     /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to

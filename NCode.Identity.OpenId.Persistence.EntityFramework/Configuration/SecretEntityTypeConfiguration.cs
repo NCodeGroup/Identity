@@ -46,6 +46,10 @@ internal class SecretEntityTypeConfiguration : IEntityTypeConfiguration<SecretEn
         builder.Property(e => e.UnprotectedSizeBytes);
         builder.Property(e => e.ProtectedValue).AsStandardString();
 
-        builder.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).IsRequired();
+        builder
+            .HasOne(e => e.Tenant)
+            .WithMany()
+            .HasForeignKey(e => e.TenantId)
+            .IsRequired();
     }
 }

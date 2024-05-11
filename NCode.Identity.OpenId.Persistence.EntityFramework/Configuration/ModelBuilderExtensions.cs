@@ -43,9 +43,14 @@ internal static class ModelBuilderExtensions
         return builder.IsRequired(false).IsUnicode(unicode);
     }
 
-    public static void AsStandardIndex(this PropertyBuilder<string> builder)
+    public static void AsStandardIndex(this PropertyBuilder<string> builder, bool unicode = false)
     {
-        builder.AsStandardString().HasMaxLength(DataConstants.MaxIndexLength);
+        builder.AsStandardString(unicode).HasMaxLength(DataConstants.MaxIndexLength);
+    }
+
+    public static void AsOptionalIndex(this PropertyBuilder<string?> builder, bool unicode = false)
+    {
+        builder.AsOptionalString(unicode).HasMaxLength(DataConstants.MaxIndexLength);
     }
 
     public static void AsStandardConcurrencyToken(this PropertyBuilder<string> builder)

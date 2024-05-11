@@ -154,6 +154,16 @@ internal class ClientStore(
             cancellationToken);
     }
 
+    //
+
+    private async ValueTask<PersistedClient?> TryGetAsync(
+        Expression<Func<ClientEntity, bool>> predicate,
+        CancellationToken cancellationToken)
+    {
+        var client = await TryGetEntityAsync(predicate, cancellationToken);
+        return client is null ? null : Map(client);
+    }
+
     private async ValueTask<ClientEntity?> TryGetEntityAsync(
         Expression<Func<ClientEntity, bool>> predicate,
         CancellationToken cancellationToken)
@@ -164,14 +174,6 @@ internal class ClientStore(
             .Include(client => client.Secrets)
             .ThenInclude(clientSecret => clientSecret.Secret)
             .FirstOrDefaultAsync(predicate, cancellationToken);
-    }
-
-    private async ValueTask<PersistedClient?> TryGetAsync(
-        Expression<Func<ClientEntity, bool>> predicate,
-        CancellationToken cancellationToken)
-    {
-        var client = await TryGetEntityAsync(predicate, cancellationToken);
-        return client is null ? null : Map(client);
     }
 
     private static PersistedClient Map(ClientEntity client) => new()

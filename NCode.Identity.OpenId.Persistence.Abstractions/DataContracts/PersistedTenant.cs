@@ -40,25 +40,25 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     [MaxLength(DataConstants.MaxIndexLength)]
     public required string TenantId { get; set; }
 
-    /// <inheritdoc/>
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    public required string ConcurrencyToken { get; set; }
-
     /// <summary>
     /// Gets or sets the domain name for this entity.
     /// This value is optional and can be used to find tenants by domain name.
     /// </summary>
     public required string? DomainName { get; set; }
 
-    /// <summary>
-    /// Gets or sets the display name for the tenant.
-    /// </summary>
-    public required string DisplayName { get; set; }
+    /// <inheritdoc/>
+    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    public required string ConcurrencyToken { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
     public required bool IsDisabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the display name for the tenant.
+    /// </summary>
+    public required string DisplayName { get; set; }
 
     /// <summary>
     /// Gets or sets the serialized JSON for the tenant settings.

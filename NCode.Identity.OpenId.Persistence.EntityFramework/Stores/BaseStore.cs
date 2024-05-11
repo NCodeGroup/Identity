@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -41,7 +42,8 @@ internal abstract class BaseStore
         return string.IsNullOrEmpty(value) ? Guid.NewGuid().ToString("N") : value;
     }
 
-    protected static string Normalize(string value) => value.ToUpperInvariant();
+    [return: NotNullIfNotNull("value")]
+    protected static string? Normalize(string? value) => value?.ToUpperInvariant();
 
     #region Tenant
 

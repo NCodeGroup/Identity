@@ -26,11 +26,11 @@ internal class ClientUrlEntityTypeConfiguration : IEntityTypeConfiguration<Clien
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<ClientUrlEntity> builder)
     {
-        builder.HasKey(_ => _.Id);
+        builder.HasKey(e => e.Id);
 
-        builder.Property(_ => _.Id).UseIdGenerator();
-        builder.Property(_ => _.ClientId);
-        builder.Property(_ => _.UrlType).AsStandardString();
-        builder.Property(_ => _.Url).AsStandardString();
+        builder.Property(e => e.Id).UseIdGenerator();
+        builder.Property(e => e.ClientId);
+        builder.Property(e => e.UrlType).AsStandardString();
+        builder.Property(e => e.Url).AsStandardString();
     }
 }

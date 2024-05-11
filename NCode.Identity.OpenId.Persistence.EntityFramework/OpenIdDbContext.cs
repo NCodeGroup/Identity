@@ -31,9 +31,11 @@ internal class OpenIdDbContext(
 {
     private IdValueGenerator IdValueGenerator { get; } = idValueGenerator;
 
+    public DbSet<SecretEntity> Secrets { get; set; }
+
     public DbSet<TenantEntity> Tenants { get; set; }
 
-    public DbSet<SecretEntity> Secrets { get; set; }
+    public DbSet<TenantSecretEntity> TenantSecrets { get; set; }
 
     public DbSet<ClientEntity> Clients { get; set; }
 

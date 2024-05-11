@@ -36,6 +36,7 @@ public readonly struct PersistedGrantId
 
     /// <summary>
     /// Gets or sets the unique identifier of the grant.
+    /// This value is never persisted to storage as-is, instead it's hash is used as the key.
     /// </summary>
     public required string GrantKey { get; init; }
 }

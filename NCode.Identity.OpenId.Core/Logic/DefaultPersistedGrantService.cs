@@ -61,7 +61,7 @@ public class DefaultPersistedGrantService(
         var createdWhen = SystemClock.UtcNow;
         var expiresWhen = createdWhen.Add(lifetime);
 
-        var payloadJson = JsonSerializer.Serialize(
+        var payload = JsonSerializer.SerializeToElement(
             grant.Payload,
             OpenIdServer.JsonSerializerOptions);
 
@@ -76,7 +76,7 @@ public class DefaultPersistedGrantService(
             CreatedWhen = createdWhen,
             ExpiresWhen = expiresWhen,
             ConsumedWhen = null,
-            PayloadJson = payloadJson
+            Payload = payload
         };
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -130,8 +130,7 @@ public class DefaultPersistedGrantService(
             isDirty = true;
         }
 
-        var payload = JsonSerializer.Deserialize<TPayload>(
-            envelope.PayloadJson,
+        var payload = envelope.Payload.Deserialize<TPayload>(
             OpenIdServer.JsonSerializerOptions);
 
         if (isDirty)

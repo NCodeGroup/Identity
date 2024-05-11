@@ -18,6 +18,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
@@ -80,5 +81,5 @@ public class PersistedGrant : ISupportId, ISupportTenantId
     /// <summary>
     /// Gets or sets the serialized JSON for the payload.
     /// </summary>
-    public required string PayloadJson { get; set; }
+    public required JsonElement Payload { get; set; }
 }

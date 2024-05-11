@@ -17,10 +17,14 @@
 
 #endregion
 
+using NCode.Identity.Persistence.DataContracts;
+
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
-internal class TenantSecretEntity : ISupportTenant, ISupportSecret
+internal class TenantSecretEntity : ISupportId, ISupportTenant, ISupportSecret
 {
+    public required long Id { get; set; }
+
     public required long TenantId { get; set; }
 
     public required long SecretId { get; set; }

@@ -23,32 +23,29 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 
-internal class SecretEntityTypeConfiguration : IEntityTypeConfiguration<SecretEntity>
+internal class TenantEntityTypeConfiguration : IEntityTypeConfiguration<TenantEntity>
 {
     /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<SecretEntity> builder)
+    public void Configure(EntityTypeBuilder<TenantEntity> builder)
     {
         builder.HasKey(e => e.Id);
-        builder.HasIndex(e => new { e.TenantId, e.NormalizedSecretId }).IsUnique();
+        builder.HasIndex(e => e.NormalizedTenantId).IsUnique();
+        builder.HasIndex(e => e.NormalizedDomainName).IsUnique();
 
         builder.Property(e => e.Id).UseIdGenerator();
-        builder.Property(e => e.TenantId);
-        builder.Property(e => e.SecretId).AsStandardIndex();
-        builder.Property(e => e.NormalizedSecretId).AsStandardIndex();
+        builder.Property(e => e.TenantId).AsStandardIndex();
+        builder.Property(e => e.NormalizedTenantId).AsStandardIndex();
+        builder.Property(e => e.DomainName).AsOptionalIndex();
+        builder.Property(e => e.NormalizedDomainName).AsOptionalIndex();
 
         builder.Property(e => e.ConcurrencyToken).AsStandardConcurrencyToken();
-        builder.Property(e => e.Use).AsOptionalString();
-        builder.Property(e => e.Algorithm).AsOptionalString();
-        builder.Property(e => e.CreatedWhen);
-        builder.Property(e => e.ExpiresWhen);
-        builder.Property(e => e.SecretType).AsStandardString();
-        builder.Property(e => e.KeySizeBits);
-        builder.Property(e => e.UnprotectedSizeBytes);
-        builder.Property(e => e.ProtectedValue).AsStandardString();
+        builder.Property(e => e.IsDisabled);
+        builder.Property(e => e.DisplayName).AsStandardString();
+        builder.Property(e => e.Settings);
 
         builder
-            .HasOne(e => e.Tenant)
-            .WithMany()
+            .HasMany(e => e.Secrets)
+            .WithOne(e => e.Tenant)
             .HasForeignKey(e => e.TenantId)
             .IsRequired();
     }

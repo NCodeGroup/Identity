@@ -26,20 +26,24 @@ internal class TenantEntity : ISupportId, ISupportConcurrencyToken
 {
     public required long Id { get; set; }
 
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    public required string ConcurrencyToken { get; set; }
-
     [MaxLength(DataConstants.MaxIndexLength)]
     public required string TenantId { get; set; }
 
     [MaxLength(DataConstants.MaxIndexLength)]
     public required string NormalizedTenantId { get; set; }
 
+    [MaxLength(DataConstants.MaxIndexLength)]
     public required string? DomainName { get; set; }
 
-    public required string DisplayName { get; set; }
+    [MaxLength(DataConstants.MaxIndexLength)]
+    public required string? NormalizedDomainName { get; set; }
+
+    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    public required string ConcurrencyToken { get; set; }
 
     public required bool IsDisabled { get; set; }
+
+    public required string DisplayName { get; set; }
 
     public required JsonElement Settings { get; set; }
 

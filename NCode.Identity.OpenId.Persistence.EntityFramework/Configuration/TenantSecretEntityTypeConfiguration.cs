@@ -17,20 +17,32 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using NCode.Identity.OpenId.Playground.DataLayer.Entities;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
-namespace NCode.Identity.OpenId.Playground.DataLayer.Configuration;
+namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 
-internal class ClientUrlEntityTypeConfiguration : IEntityTypeConfiguration<ClientUrlEntity>
+internal class TenantSecretEntityTypeConfiguration : IEntityTypeConfiguration<TenantSecretEntity>
 {
     /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<ClientUrlEntity> builder)
+    public void Configure(EntityTypeBuilder<TenantSecretEntity> builder)
     {
         builder.HasKey(e => e.Id);
+        builder.HasIndex(e => new { e.TenantId, e.SecretId }).IsUnique();
 
         builder.Property(e => e.Id).UseIdGenerator();
-        builder.Property(e => e.ClientId);
-        builder.Property(e => e.UrlType).AsStandardString();
-        builder.Property(e => e.Url).AsStandardString();
+        builder.Property(e => e.TenantId);
+        builder.Property(e => e.SecretId);
+
+        builder
+            .HasOne(e => e.Tenant)
+            .WithMany(e => e.Secrets)
+            .HasForeignKey(e => e.TenantId)
+            .IsRequired();
+
+        builder
+            .HasOne(e => e.Secret)
+            .WithMany()
+            .HasForeignKey(e => e.SecretId)
+            .IsRequired();
     }
 }

@@ -20,6 +20,7 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;
@@ -43,14 +44,24 @@ internal class OpenIdDbContext(
 
     public DbSet<ClientSecretEntity> ClientSecrets { get; set; }
 
+    public DbSet<GrantEntity> Grants { get; set; }
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Model.SetOrRemoveAnnotation("Relational:Schema", "OpenId");
-
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-        modelBuilder.UseUtcDateTime();
         modelBuilder.UseIdGenerator(IdValueGenerator);
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder
+            .Properties<DateTime>()
+            .HaveConversion<DateTimeConverter>();
+
+        configurationBuilder
+            .Properties<DateTimeOffset>()
+            .HaveConversion<DateTimeOffsetConverter>();
     }
 }

@@ -27,27 +27,27 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// <summary>
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> client.
 /// </summary>
-public class PersistedClient : ISupportId, ISupportConcurrencyToken, ISupportTenantId
+public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.
     /// </summary>
-    public required long Id { get; set; }
+    public required long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the natural tenant identifier for this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string TenantId { get; set; }
+    [MaxLength(MaxLengths.TenantId)]
+    public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the natural identifier for this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string ClientId { get; set; }
+    [MaxLength(MaxLengths.ClientId)]
+    public required string ClientId { get; init; }
 
     /// <inheritdoc/>
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string ConcurrencyToken { get; set; }
 
     /// <summary>
@@ -63,10 +63,10 @@ public class PersistedClient : ISupportId, ISupportConcurrencyToken, ISupportTen
     /// <summary>
     /// Gets or sets the collection of secrets only known to the client.
     /// </summary>
-    public required List<PersistedSecret> Secrets { get; set; }
+    public required IReadOnlyCollection<PersistedSecret> Secrets { get; init; }
 
     /// <summary>
     /// Gets or sets the collection of redirect addresses registered for this client.
     /// </summary>
-    public required List<string> RedirectUrls { get; set; }
+    public required IReadOnlyCollection<string> RedirectUrls { get; init; }
 }

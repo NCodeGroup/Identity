@@ -33,10 +33,10 @@ internal class ClientEntityTypeConfiguration : IEntityTypeConfiguration<ClientEn
 
         builder.Property(e => e.Id).UseIdGenerator();
         builder.Property(e => e.TenantId);
-        builder.Property(e => e.ClientId).AsStandardIndex();
-        builder.Property(e => e.NormalizedClientId).AsStandardIndex();
+        builder.Property(e => e.ClientId);
+        builder.Property(e => e.NormalizedClientId);
 
-        builder.Property(e => e.ConcurrencyToken).AsStandardConcurrencyToken();
+        builder.Property(e => e.ConcurrencyToken);
         builder.Property(e => e.IsDisabled);
         builder.Property(e => e.Settings);
 

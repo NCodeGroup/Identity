@@ -31,6 +31,6 @@ public interface ISupportConcurrencyToken
     /// <summary>
     /// Gets a value that is used to check for optimistic concurrency violations.
     /// </summary>
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
     string ConcurrencyToken { get; }
 }

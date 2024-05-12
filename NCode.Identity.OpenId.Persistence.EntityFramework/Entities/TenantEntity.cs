@@ -18,34 +18,51 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
+[Index(nameof(NormalizedTenantId), IsUnique = true)]
+[Index(nameof(NormalizedDomainName), IsUnique = true)]
 internal class TenantEntity : ISupportId, ISupportConcurrencyToken
 {
-    public required long Id { get; set; }
+    [Key]
+    public required long Id { get; init; }
 
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string TenantId { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.TenantId)]
+    public required string TenantId { get; init; }
 
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string NormalizedTenantId { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.TenantId)]
+    public required string NormalizedTenantId { get; init; }
 
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string? DomainName { get; set; }
+    //
 
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string? NormalizedDomainName { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.TenantDomainName)]
+    public required string? DomainName { get; init; }
 
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    [Unicode(false)]
+    [MaxLength(MaxLengths.TenantDomainName)]
+    public required string? NormalizedDomainName { get; init; }
+
+    //
+
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    [ConcurrencyCheck]
     public required string ConcurrencyToken { get; set; }
 
     public required bool IsDisabled { get; set; }
 
+    [Unicode]
     public required string DisplayName { get; set; }
 
     public required JsonElement Settings { get; set; }
 
-    public required List<TenantSecretEntity> Secrets { get; set; }
+    //
+
+    public required IEnumerable<TenantSecretEntity> Secrets { get; init; }
 }

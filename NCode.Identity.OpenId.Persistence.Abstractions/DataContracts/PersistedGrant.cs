@@ -31,47 +31,47 @@ public class PersistedGrant : ISupportId, ISupportTenantId
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.
     /// </summary>
-    public required long Id { get; set; }
+    public required long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the natural tenant identifier for this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string TenantId { get; set; }
+    [MaxLength(MaxLengths.TenantId)]
+    public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the type of grant.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string GrantType { get; set; }
+    [MaxLength(MaxLengths.GrantType)]
+    public required string GrantType { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>SHA-256</c> hash of the natural key that uniquely identifies this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string HashedKey { get; set; }
+    [MaxLength(MaxLengths.HashedKey)]
+    public required string HashedKey { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>ClientId</c> associated with this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string? ClientId { get; set; }
+    [MaxLength(MaxLengths.ClientId)]
+    public required string? ClientId { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>SubjectId</c> associated with this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string? SubjectId { get; set; }
+    [MaxLength(MaxLengths.SubjectId)]
+    public required string? SubjectId { get; init; }
 
     /// <summary>
     /// Gets or sets when this entity was created.
     /// </summary>
-    public required DateTimeOffset CreatedWhen { get; set; }
+    public required DateTimeOffset CreatedWhen { get; init; }
 
     /// <summary>
     /// Gets or sets when this entity expires.
     /// </summary>
-    public required DateTimeOffset ExpiresWhen { get; set; }
+    public required DateTimeOffset ExpiresWhen { get; init; }
 
     /// <summary>
     /// Gets or sets when this entity was consumed.
@@ -81,5 +81,5 @@ public class PersistedGrant : ISupportId, ISupportTenantId
     /// <summary>
     /// Gets or sets the serialized JSON for the payload.
     /// </summary>
-    public required JsonElement Payload { get; set; }
+    public required JsonElement Payload { get; init; }
 }

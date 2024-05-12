@@ -33,18 +33,18 @@ internal class SecretEntityTypeConfiguration : IEntityTypeConfiguration<SecretEn
 
         builder.Property(e => e.Id).UseIdGenerator();
         builder.Property(e => e.TenantId);
-        builder.Property(e => e.SecretId).AsStandardIndex();
-        builder.Property(e => e.NormalizedSecretId).AsStandardIndex();
+        builder.Property(e => e.SecretId);
+        builder.Property(e => e.NormalizedSecretId);
 
-        builder.Property(e => e.ConcurrencyToken).AsStandardConcurrencyToken();
-        builder.Property(e => e.Use).AsOptionalString();
-        builder.Property(e => e.Algorithm).AsOptionalString();
+        builder.Property(e => e.ConcurrencyToken);
+        builder.Property(e => e.Use);
+        builder.Property(e => e.Algorithm);
         builder.Property(e => e.CreatedWhen);
         builder.Property(e => e.ExpiresWhen);
-        builder.Property(e => e.SecretType).AsStandardString();
+        builder.Property(e => e.SecretType);
         builder.Property(e => e.KeySizeBits);
         builder.Property(e => e.UnprotectedSizeBytes);
-        builder.Property(e => e.ProtectedValue).AsStandardString();
+        builder.Property(e => e.ProtectedValue);
 
         builder
             .HasOne(e => e.Tenant)

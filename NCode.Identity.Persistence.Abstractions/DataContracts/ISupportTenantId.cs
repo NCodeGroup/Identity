@@ -25,6 +25,6 @@ public interface ISupportTenantId
     /// <summary>
     /// Gets the natural tenant identifier for this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
+    [MaxLength(MaxLengths.TenantId)]
     string TenantId { get; }
 }

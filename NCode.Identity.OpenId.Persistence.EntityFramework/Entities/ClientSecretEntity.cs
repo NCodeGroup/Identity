@@ -17,23 +17,33 @@
 
 #endregion
 
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
+[Index(nameof(TenantId), nameof(ClientId), nameof(SecretId), IsUnique = true)]
 internal class ClientSecretEntity : ISupportId, ISupportTenant, ISupportSecret
 {
-    public required long Id { get; set; }
+    [Key]
+    public required long Id { get; init; }
 
-    public required long TenantId { get; set; }
+    [ForeignKey(nameof(Tenant))]
+    public required long TenantId { get; init; }
 
-    public required long ClientId { get; set; }
+    [ForeignKey(nameof(Client))]
+    public required long ClientId { get; init; }
 
-    public required long SecretId { get; set; }
+    [ForeignKey(nameof(Secret))]
+    public required long SecretId { get; init; }
 
-    public required TenantEntity Tenant { get; set; }
+    //
 
-    public required ClientEntity Client { get; set; }
+    public required TenantEntity Tenant { get; init; }
 
-    public required SecretEntity Secret { get; set; }
+    public required ClientEntity Client { get; init; }
+
+    public required SecretEntity Secret { get; init; }
 }

@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -25,8 +24,10 @@ using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
-[Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
-internal class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
+[Index(nameof(TenantId), nameof(GrantType), nameof(HashedKey), IsUnique = true)]
+[Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
+[Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
+internal class GrantEntity : ISupportId, ISupportConcurrencyToken
 {
     [Key]
     public required long Id { get; init; }
@@ -35,16 +36,12 @@ internal class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyTok
     public required long TenantId { get; init; }
 
     [Unicode(false)]
-    [MaxLength(MaxLengths.ClientId)]
-    public required string ClientId { get; init; }
+    [MaxLength(MaxLengths.GrantType)]
+    public required string GrantType { get; init; }
 
-    /// <summary>
-    /// Gets or sets the value of <see cref="ClientId"/> in uppercase so that lookups can be sargable for DBMS
-    /// engines that don't support case-insensitive indices.
-    /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.ClientId)]
-    public required string NormalizedClientId { get; init; }
+    [MaxLength(MaxLengths.HashedKey)]
+    public required string HashedKey { get; init; }
 
     //
 
@@ -53,15 +50,28 @@ internal class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyTok
     [ConcurrencyCheck]
     public required string ConcurrencyToken { get; set; }
 
-    public required bool IsDisabled { get; set; }
+    [ForeignKey(nameof(Client))]
+    public required long? ClientId { get; init; }
 
-    public required JsonElement Settings { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.SubjectId)]
+    public required string? SubjectId { get; init; }
+
+    [Unicode(false)]
+    [MaxLength(MaxLengths.SubjectId)]
+    public required string? NormalizedSubjectId { get; init; }
+
+    public required DateTimeOffset CreatedWhen { get; init; }
+
+    public required DateTimeOffset ExpiresWhen { get; init; }
+
+    public required DateTimeOffset? ConsumedWhen { get; set; }
+
+    public required JsonElement Payload { get; init; }
 
     //
 
     public required TenantEntity Tenant { get; init; }
 
-    public required IEnumerable<ClientUrlEntity> Urls { get; init; }
-
-    public required IEnumerable<ClientSecretEntity> Secrets { get; init; }
+    public required ClientEntity? Client { get; init; }
 }

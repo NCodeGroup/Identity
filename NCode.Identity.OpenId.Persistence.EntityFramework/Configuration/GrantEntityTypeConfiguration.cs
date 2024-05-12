@@ -23,20 +23,29 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 
-internal class ClientUrlEntityTypeConfiguration : IEntityTypeConfiguration<ClientUrlEntity>
+internal class GrantEntityTypeConfiguration : IEntityTypeConfiguration<GrantEntity>
 {
     /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<ClientUrlEntity> builder)
+    public void Configure(EntityTypeBuilder<GrantEntity> builder)
     {
         builder.HasKey(e => e.Id);
-        builder.HasIndex(e => new { e.TenantId, e.ClientId, e.UrlType, e.UrlValue}).IsUnique();
+        builder.HasIndex(e => new { e.TenantId, e.GrantType, e.HashedKey }).IsUnique();
+        builder.HasIndex(e => new { e.TenantId, e.ClientId }).IsUnique(false);
+        builder.HasIndex(e => new { e.TenantId, e.NormalizedSubjectId }).IsUnique(false);
 
         builder.Property(e => e.Id).UseIdGenerator();
         builder.Property(e => e.TenantId);
-        builder.Property(e => e.ClientId);
+        builder.Property(e => e.GrantType);
+        builder.Property(e => e.HashedKey);
 
-        builder.Property(e => e.UrlType);
-        builder.Property(e => e.UrlValue);
+        builder.Property(e => e.ConcurrencyToken);
+        builder.Property(e => e.ClientId);
+        builder.Property(e => e.SubjectId);
+        builder.Property(e => e.NormalizedSubjectId);
+        builder.Property(e => e.CreatedWhen);
+        builder.Property(e => e.ExpiresWhen);
+        builder.Property(e => e.ConsumedWhen);
+        builder.Property(e => e.Payload);
 
         builder
             .HasOne(e => e.Tenant)
@@ -46,8 +55,8 @@ internal class ClientUrlEntityTypeConfiguration : IEntityTypeConfiguration<Clien
 
         builder
             .HasOne(e => e.Client)
-            .WithMany(e => e.Urls)
+            .WithMany()
             .HasForeignKey(e => e.ClientId)
-            .IsRequired();
+            .IsRequired(false);
     }
 }

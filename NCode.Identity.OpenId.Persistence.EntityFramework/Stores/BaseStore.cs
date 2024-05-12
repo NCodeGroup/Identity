@@ -17,15 +17,19 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-internal abstract class BaseStore
+internal abstract class BaseStore<TItem, TEntity> : IStore<TItem>
+    where TItem : class, ISupportId<long>
+    where TEntity : class, ISupportId<long>
 {
     protected abstract IIdGenerator<long> IdGenerator { get; }
 
@@ -44,6 +48,44 @@ internal abstract class BaseStore
 
     [return: NotNullIfNotNull("value")]
     protected static string? Normalize(string? value) => value?.ToUpperInvariant();
+
+    #region IStore
+
+    /// <inheritdoc />
+    public abstract ValueTask AddAsync(TItem item, CancellationToken cancellationToken);
+
+    /// <inheritdoc />
+    public abstract ValueTask RemoveByIdAsync(long id, CancellationToken cancellationToken);
+
+    /// <inheritdoc />
+    public virtual async ValueTask<TItem?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
+    {
+        return await TryGetAsync(entity => entity.Id == id, cancellationToken);
+    }
+
+    //
+
+    protected abstract ValueTask<TItem> MapAsync(TEntity entity, CancellationToken cancellationToken);
+
+    protected abstract ValueTask<TEntity?> TryGetEntityAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken);
+
+    protected async ValueTask<TEntity> GetEntityByIdAsync(long id, CancellationToken cancellationToken)
+    {
+        var entity = await TryGetEntityAsync(entity => entity.Id == id, cancellationToken);
+        return entity ?? throw new InvalidOperationException("Entity not found.");
+    }
+
+    protected virtual async ValueTask<TItem?> TryGetAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken)
+    {
+        var entity = await TryGetEntityAsync(predicate, cancellationToken);
+        return entity is null ? null : await MapAsync(entity, cancellationToken);
+    }
+
+    #endregion
 
     #region Tenant
 

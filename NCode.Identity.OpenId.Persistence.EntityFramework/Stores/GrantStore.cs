@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 internal class GrantStore(
     IIdGenerator<long> idGenerator,
     OpenIdDbContext dbContext
-) : BaseStore, IGrantStore
+) : BaseStore<PersistedGrant, GrantEntity>, IGrantStore
 {
     /// <inheritdoc />
     protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
@@ -37,7 +37,9 @@ internal class GrantStore(
     protected override OpenIdDbContext DbContext { get; } = dbContext;
 
     /// <inheritdoc />
-    public async ValueTask AddAsync(PersistedGrant persistedGrant, CancellationToken cancellationToken)
+    public override async ValueTask AddAsync(
+        PersistedGrant persistedGrant,
+        CancellationToken cancellationToken)
     {
         var tenant = await GetTenantAsync(persistedGrant, cancellationToken);
 
@@ -74,19 +76,15 @@ internal class GrantStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask RemoveByIdAsync(long id, CancellationToken cancellationToken)
+    public override async ValueTask RemoveByIdAsync(
+        long id,
+        CancellationToken cancellationToken)
     {
         var grant = await TryGetEntityAsync(grant => grant.Id == id, cancellationToken);
         if (grant is null)
             return;
 
         DbContext.Grants.Remove(grant);
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<PersistedGrant?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
-    {
-        return await TryGetAsync(grant => grant.Id == id, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -135,15 +133,28 @@ internal class GrantStore(
 
     //
 
-    private async ValueTask<PersistedGrant?> TryGetAsync(
-        Expression<Func<GrantEntity, bool>> predicate,
+    /// <inheritdoc />
+    protected override ValueTask<PersistedGrant> MapAsync(
+        GrantEntity grant,
         CancellationToken cancellationToken)
     {
-        var client = await TryGetEntityAsync(predicate, cancellationToken);
-        return client is null ? null : Map(client);
+        return ValueTask.FromResult(new PersistedGrant
+        {
+            Id = grant.Id,
+            TenantId = grant.Tenant.TenantId,
+            GrantType = grant.GrantType,
+            HashedKey = grant.HashedKey,
+            ClientId = grant.Client?.ClientId,
+            SubjectId = grant.SubjectId,
+            CreatedWhen = grant.CreatedWhen,
+            ExpiresWhen = grant.ExpiresWhen,
+            ConsumedWhen = grant.ConsumedWhen,
+            Payload = grant.Payload
+        });
     }
 
-    private async ValueTask<GrantEntity?> TryGetEntityAsync(
+    /// <inheritdoc />
+    protected override async ValueTask<GrantEntity?> TryGetEntityAsync(
         Expression<Func<GrantEntity, bool>> predicate,
         CancellationToken cancellationToken)
     {
@@ -152,18 +163,4 @@ internal class GrantStore(
             .Include(grant => grant.Client)
             .FirstOrDefaultAsync(predicate, cancellationToken);
     }
-
-    private static PersistedGrant Map(GrantEntity grant) => new()
-    {
-        Id = grant.Id,
-        TenantId = grant.Tenant.TenantId,
-        GrantType = grant.GrantType,
-        HashedKey = grant.HashedKey,
-        ClientId = grant.Client?.ClientId,
-        SubjectId = grant.SubjectId,
-        CreatedWhen = grant.CreatedWhen,
-        ExpiresWhen = grant.ExpiresWhen,
-        ConsumedWhen = grant.ConsumedWhen,
-        Payload = grant.Payload
-    };
 }

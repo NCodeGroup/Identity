@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 internal class ClientStore(
     IIdGenerator<long> idGenerator,
     OpenIdDbContext dbContext
-) : BaseStore, IClientStore
+) : BaseStore<PersistedClient, ClientEntity>, IClientStore
 {
     /// <inheritdoc />
     protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
@@ -37,7 +37,9 @@ internal class ClientStore(
     protected override OpenIdDbContext DbContext { get; } = dbContext;
 
     /// <inheritdoc />
-    public async ValueTask AddAsync(PersistedClient persistedClient, CancellationToken cancellationToken)
+    public override async ValueTask AddAsync(
+        PersistedClient persistedClient,
+        CancellationToken cancellationToken)
     {
         var tenant = await GetTenantAsync(persistedClient, cancellationToken);
 
@@ -106,7 +108,21 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask RemoveByIdAsync(long id, CancellationToken cancellationToken)
+    public async ValueTask UpdateAsync(
+        PersistedClient persistedClient,
+        CancellationToken cancellationToken)
+    {
+        var clientEntity = await GetEntityByIdAsync(persistedClient.Id, cancellationToken);
+
+        clientEntity.ConcurrencyToken = NextConcurrencyToken();
+        clientEntity.IsDisabled = persistedClient.IsDisabled;
+        clientEntity.Settings = persistedClient.Settings;
+    }
+
+    /// <inheritdoc />
+    public override async ValueTask RemoveByIdAsync(
+        long id,
+        CancellationToken cancellationToken)
     {
         var client = await TryGetEntityAsync(client => client.Id == id, cancellationToken);
         if (client is null)
@@ -133,12 +149,6 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedClient?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
-    {
-        return await TryGetAsync(client => client.Id == id, cancellationToken);
-    }
-
-    /// <inheritdoc />
     public async ValueTask<PersistedClient?> TryGetByClientIdAsync(
         string tenantId,
         string clientId,
@@ -156,15 +166,30 @@ internal class ClientStore(
 
     //
 
-    private async ValueTask<PersistedClient?> TryGetAsync(
-        Expression<Func<ClientEntity, bool>> predicate,
+    /// <inheritdoc />
+    protected override ValueTask<PersistedClient> MapAsync(
+        ClientEntity client,
         CancellationToken cancellationToken)
     {
-        var client = await TryGetEntityAsync(predicate, cancellationToken);
-        return client is null ? null : Map(client);
+        return ValueTask.FromResult(new PersistedClient
+        {
+            Id = client.Id,
+            TenantId = client.Tenant.TenantId,
+            ClientId = client.ClientId,
+            ConcurrencyToken = client.ConcurrencyToken,
+            IsDisabled = client.IsDisabled,
+            Settings = client.Settings,
+            Secrets = Map(client.Secrets).ToList(),
+            RedirectUrls = client.Urls
+                .Where(url => url.UrlType == UrlTypes.RedirectUrl)
+                .Select(url => url.UrlValue)
+                .ToList(),
+            // TODO: RequireRequestObject
+        });
     }
 
-    private async ValueTask<ClientEntity?> TryGetEntityAsync(
+    /// <inheritdoc />
+    protected override async ValueTask<ClientEntity?> TryGetEntityAsync(
         Expression<Func<ClientEntity, bool>> predicate,
         CancellationToken cancellationToken)
     {
@@ -175,20 +200,4 @@ internal class ClientStore(
             .ThenInclude(clientSecret => clientSecret.Secret)
             .FirstOrDefaultAsync(predicate, cancellationToken);
     }
-
-    private static PersistedClient Map(ClientEntity client) => new()
-    {
-        Id = client.Id,
-        TenantId = client.Tenant.TenantId,
-        ClientId = client.ClientId,
-        ConcurrencyToken = client.ConcurrencyToken,
-        IsDisabled = client.IsDisabled,
-        Settings = client.Settings,
-        Secrets = Map(client.Secrets).ToList(),
-        RedirectUrls = client.Urls
-            .Where(url => url.UrlType == UrlTypes.RedirectUrl)
-            .Select(url => url.UrlValue)
-            .ToList(),
-        // TODO: RequireRequestObject
-    };
 }

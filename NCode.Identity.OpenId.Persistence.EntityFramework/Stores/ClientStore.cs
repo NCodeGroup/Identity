@@ -53,7 +53,7 @@ internal class ClientStore(
             TenantId = tenant.Id,
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
-            ConcurrencyToken = NextConcurrencyToken(persistedClient.ConcurrencyToken),
+            ConcurrencyToken = NextConcurrencyToken(),
             IsDisabled = persistedClient.IsDisabled,
             Settings = persistedClient.Settings,
             Tenant = tenant,
@@ -81,7 +81,7 @@ internal class ClientStore(
 
         foreach (var persistedSecret in persistedClient.Secrets)
         {
-            var secretEntity = Map(tenant, persistedSecret);
+            var secretEntity = MapNew(tenant, persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 
@@ -179,7 +179,7 @@ internal class ClientStore(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             Settings = client.Settings,
-            Secrets = Map(client.Secrets).ToList(),
+            Secrets = MapExisting(client.Secrets).ToList(),
             RedirectUrls = client.Urls
                 .Where(url => url.UrlType == UrlTypes.RedirectUrl)
                 .Select(url => url.UrlValue)

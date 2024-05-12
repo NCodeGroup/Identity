@@ -41,9 +41,9 @@ internal abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         return valueOrDefault == 0 ? IdGenerator.CreateId() : valueOrDefault;
     }
 
-    protected static string NextConcurrencyToken(string? value = null)
+    protected static string NextConcurrencyToken()
     {
-        return string.IsNullOrEmpty(value) ? Guid.NewGuid().ToString("N") : value;
+        return Guid.NewGuid().ToString("N");
     }
 
     [return: NotNullIfNotNull("value")]
@@ -118,13 +118,13 @@ internal abstract class BaseStore<TItem, TEntity> : IStore<TItem>
 
     #region Secret
 
-    protected SecretEntity Map(TenantEntity tenant, PersistedSecret secret) => new()
+    protected SecretEntity MapNew(TenantEntity tenant, PersistedSecret secret) => new()
     {
         Id = NextId(secret.Id),
         TenantId = tenant.Id,
         SecretId = secret.SecretId,
         NormalizedSecretId = Normalize(secret.SecretId),
-        ConcurrencyToken = NextConcurrencyToken(secret.ConcurrencyToken),
+        ConcurrencyToken = NextConcurrencyToken(),
         Use = secret.Use,
         Algorithm = secret.Algorithm,
         CreatedWhen = secret.CreatedWhen.ToUniversalTime(),
@@ -136,7 +136,7 @@ internal abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         Tenant = tenant
     };
 
-    protected static PersistedSecret Map(SecretEntity secret) => new()
+    protected static PersistedSecret MapExisting(SecretEntity secret) => new()
     {
         Id = secret.Id,
         TenantId = secret.Tenant.TenantId,
@@ -152,11 +152,11 @@ internal abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         ProtectedValue = secret.ProtectedValue
     };
 
-    protected static IEnumerable<PersistedSecret> Map(IEnumerable<ISupportSecret> collection) =>
-        collection.Select(Map);
+    protected static PersistedSecret MapExisting(ISupportSecret parent) =>
+        MapExisting(parent.Secret);
 
-    protected static PersistedSecret Map(ISupportSecret parent) =>
-        Map(parent.Secret);
+    protected static IEnumerable<PersistedSecret> MapExisting(IEnumerable<ISupportSecret> collection) =>
+        collection.Select(MapExisting);
 
     #endregion
 }

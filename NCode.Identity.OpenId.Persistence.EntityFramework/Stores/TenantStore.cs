@@ -52,7 +52,7 @@ internal class TenantStore(
             NormalizedTenantId = Normalize(persistedTenant.TenantId),
             DomainName = persistedTenant.DomainName,
             NormalizedDomainName = Normalize(persistedTenant.DomainName),
-            ConcurrencyToken = NextConcurrencyToken(persistedTenant.ConcurrencyToken),
+            ConcurrencyToken = NextConcurrencyToken(),
             IsDisabled = persistedTenant.IsDisabled,
             DisplayName = persistedTenant.DisplayName,
             Settings = persistedTenant.Settings,
@@ -61,7 +61,7 @@ internal class TenantStore(
 
         foreach (var persistedSecret in persistedTenant.Secrets)
         {
-            var secretEntity = Map(tenantEntity, persistedSecret);
+            var secretEntity = MapNew(tenantEntity, persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 
@@ -139,7 +139,7 @@ internal class TenantStore(
             .Include(tenantSecret => tenantSecret.Secret)
             .Where(tenantSecret => tenantSecret.Tenant.NormalizedTenantId == normalizedTenantId)
             .Select(tenantSecret => tenantSecret.Secret)
-            .Select(secret => Map(secret))
+            .Select(secret => MapExisting(secret))
             .ToListAsync(cancellationToken: cancellationToken);
     }
 
@@ -159,7 +159,7 @@ internal class TenantStore(
             IsDisabled = tenant.IsDisabled,
             DisplayName = tenant.DisplayName,
             Settings = tenant.Settings,
-            Secrets = Map(tenant.Secrets).ToList(),
+            Secrets = MapExisting(tenant.Secrets).ToList(),
         });
     }
 

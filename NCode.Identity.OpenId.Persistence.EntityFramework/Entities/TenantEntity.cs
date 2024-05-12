@@ -64,5 +64,7 @@ internal class TenantEntity : ISupportId, ISupportConcurrencyToken
 
     //
 
+    // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
+    // We use DTOs to avoid circular dependencies.
     public required IEnumerable<TenantSecretEntity> Secrets { get; init; }
 }

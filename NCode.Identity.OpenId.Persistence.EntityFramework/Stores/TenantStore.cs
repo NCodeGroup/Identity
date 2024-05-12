@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 internal class TenantStore(
     IIdGenerator<long> idGenerator,
     OpenIdDbContext dbContext
-) : BaseStore, ITenantStore
+) : BaseStore<PersistedTenant, TenantEntity>, ITenantStore
 {
     /// <inheritdoc />
     protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
@@ -38,7 +38,9 @@ internal class TenantStore(
     protected override OpenIdDbContext DbContext { get; } = dbContext;
 
     /// <inheritdoc />
-    public async ValueTask AddAsync(PersistedTenant persistedTenant, CancellationToken cancellationToken)
+    public override async ValueTask AddAsync(
+        PersistedTenant persistedTenant,
+        CancellationToken cancellationToken)
     {
         var tenantId = NextId(persistedTenant.Id);
         var secrets = new List<TenantSecretEntity>(persistedTenant.Secrets.Count);
@@ -83,19 +85,31 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
-    public ValueTask RemoveByIdAsync(long id, CancellationToken cancellationToken)
+    public async ValueTask UpdateAsync(
+        PersistedTenant persistedTenant,
+        CancellationToken cancellationToken)
     {
+        var tenantEntity = await GetEntityByIdAsync(persistedTenant.Id, cancellationToken);
+
+        tenantEntity.ConcurrencyToken = NextConcurrencyToken();
+        tenantEntity.IsDisabled = persistedTenant.IsDisabled;
+        tenantEntity.DisplayName = persistedTenant.DisplayName;
+        tenantEntity.Settings = persistedTenant.Settings;
+    }
+
+    /// <inheritdoc />
+    public override ValueTask RemoveByIdAsync(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        // TODO: do we really want to support this?
         throw new NotImplementedException();
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedTenant?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
-    {
-        return await TryGetAsync(tenant => tenant.Id == id, cancellationToken);
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<PersistedTenant?> TryGetByTenantIdAsync(string tenantId, CancellationToken cancellationToken)
+    public async ValueTask<PersistedTenant?> TryGetByTenantIdAsync(
+        string tenantId,
+        CancellationToken cancellationToken)
     {
         var normalizedTenantId = Normalize(tenantId);
         return await TryGetAsync(
@@ -104,7 +118,9 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedTenant?> TryGetByDomainNameAsync(string domainName, CancellationToken cancellationToken)
+    public async ValueTask<PersistedTenant?> TryGetByDomainNameAsync(
+        string domainName,
+        CancellationToken cancellationToken)
     {
         var normalizedDomainName = Normalize(domainName);
         return await TryGetAsync(
@@ -113,7 +129,9 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlyCollection<PersistedSecret>> GetSecretsAsync(string tenantId, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyCollection<PersistedSecret>> GetSecretsAsync(
+        string tenantId,
+        CancellationToken cancellationToken)
     {
         var normalizedTenantId = Normalize(tenantId);
         return await DbContext.TenantSecrets
@@ -127,15 +145,26 @@ internal class TenantStore(
 
     //
 
-    private async ValueTask<PersistedTenant?> TryGetAsync(
-        Expression<Func<TenantEntity, bool>> predicate,
+    /// <inheritdoc />
+    protected override ValueTask<PersistedTenant> MapAsync(
+        TenantEntity tenant,
         CancellationToken cancellationToken)
     {
-        var tenant = await TryGetEntityAsync(predicate, cancellationToken);
-        return tenant is null ? null : Map(tenant);
+        return ValueTask.FromResult(new PersistedTenant
+        {
+            Id = tenant.Id,
+            TenantId = tenant.TenantId,
+            DomainName = tenant.DomainName,
+            ConcurrencyToken = tenant.ConcurrencyToken,
+            IsDisabled = tenant.IsDisabled,
+            DisplayName = tenant.DisplayName,
+            Settings = tenant.Settings,
+            Secrets = Map(tenant.Secrets).ToList(),
+        });
     }
 
-    private async ValueTask<TenantEntity?> TryGetEntityAsync(
+    /// <inheritdoc />
+    protected override async ValueTask<TenantEntity?> TryGetEntityAsync(
         Expression<Func<TenantEntity, bool>> predicate,
         CancellationToken cancellationToken)
     {
@@ -144,16 +173,4 @@ internal class TenantStore(
             .ThenInclude(tenantSecret => tenantSecret.Secret)
             .FirstOrDefaultAsync(predicate, cancellationToken);
     }
-
-    private static PersistedTenant Map(TenantEntity tenant) => new()
-    {
-        Id = tenant.Id,
-        TenantId = tenant.TenantId,
-        DomainName = tenant.DomainName,
-        ConcurrencyToken = tenant.ConcurrencyToken,
-        IsDisabled = tenant.IsDisabled,
-        DisplayName = tenant.DisplayName,
-        Settings = tenant.Settings,
-        Secrets = Map(tenant.Secrets).ToList(),
-    };
 }

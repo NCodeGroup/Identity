@@ -53,9 +53,11 @@ internal class SecretEntity : ISupportId, ISupportTenant, ISupportConcurrencyTok
     public required string ConcurrencyToken { get; init; }
 
     [Unicode(false)]
+    [MaxLength(MaxLengths.SecretUse)]
     public required string? Use { get; init; }
 
     [Unicode(false)]
+    [MaxLength(MaxLengths.SecretAlgorithm)]
     public required string? Algorithm { get; init; }
 
     public required DateTimeOffset CreatedWhen { get; init; }
@@ -63,6 +65,7 @@ internal class SecretEntity : ISupportId, ISupportTenant, ISupportConcurrencyTok
     public required DateTimeOffset ExpiresWhen { get; init; }
 
     [Unicode(false)]
+    [MaxLength(MaxLengths.SecretType)]
     public required string SecretType { get; init; }
 
     public required int KeySizeBits { get; init; }
@@ -74,5 +77,7 @@ internal class SecretEntity : ISupportId, ISupportTenant, ISupportConcurrencyTok
 
     //
 
+    // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
+    // We use DTOs to avoid circular dependencies.
     public required TenantEntity Tenant { get; init; }
 }

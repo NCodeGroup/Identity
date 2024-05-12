@@ -46,7 +46,21 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="PersistedTenant"/> instance matching the specified <paramref name="domainName"/> if it exists.</returns>
-    ValueTask<PersistedTenant?> TryGetByDomainNameAsync(string domainName, CancellationToken cancellationToken);
+    ValueTask<PersistedTenant?> TryGetByDomainNameAsync(
+        string domainName,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates an existing persisted tenant in the store.
+    /// The secrets collection is not updated by this method.
+    /// </summary>
+    /// <param name="persistedTenant">The persisted tenant to update in the store.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask UpdateAsync(
+        PersistedTenant persistedTenant,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets the <see cref="PersistedSecret"/> collection for the specified <paramref name="tenantId"/>.

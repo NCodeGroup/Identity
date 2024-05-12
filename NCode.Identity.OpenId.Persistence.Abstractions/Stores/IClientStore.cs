@@ -41,4 +41,16 @@ public interface IClientStore : IStore<PersistedClient>
         string tenantId,
         string clientId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates an existing persisted client in the store.
+    /// The redirect urls and secrets collection are not updated by this method.
+    /// </summary>
+    /// <param name="persistedClient">The persisted client to update in the store.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask UpdateAsync(
+        PersistedClient persistedClient,
+        CancellationToken cancellationToken);
 }

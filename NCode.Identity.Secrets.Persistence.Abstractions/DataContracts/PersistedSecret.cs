@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.ComponentModel.DataAnnotations;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence.DataContracts;
@@ -24,7 +25,7 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// <summary>
 /// Contains the data for a persisted secret.
 /// </summary>
-public class PersistedSecret : ISupportId, ISupportConcurrencyToken, ISupportTenantId
+public class PersistedSecret : ISupportId, ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the surrogate key for this entity.
@@ -34,17 +35,20 @@ public class PersistedSecret : ISupportId, ISupportConcurrencyToken, ISupportTen
     /// <summary>
     /// Gets or sets the tenant identifier for this entity.
     /// </summary>
+    [MaxLength(MaxLengths.TenantId)]
     public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the natural key for this entity.
     /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
+    [MaxLength(MaxLengths.SecretId)]
     public required string SecretId { get; init; }
 
     /// <summary>
     /// Gets or sets a random value that is used to check for optimistic concurrency violations.
     /// </summary>
+    [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string ConcurrencyToken { get; init; }
 
     /// <summary>
@@ -53,12 +57,14 @@ public class PersistedSecret : ISupportId, ISupportConcurrencyToken, ISupportTen
     /// Valid values are defined in RFC 7517 Section 4.2:
     /// https://tools.ietf.org/html/rfc7517#section-4.2
     /// </summary>
+    [MaxLength(MaxLengths.SecretUse)]
     public required string? Use { get; init; }
 
     /// <summary>
     /// Gets or sets the intended algorithm for use with this secret. This property is optional and may be
     /// <c>null</c> to indicate that this secret is intended for use with any compatible algorithm.
     /// </summary>
+    [MaxLength(MaxLengths.SecretAlgorithm)]
     public required string? Algorithm { get; init; }
 
     /// <summary>
@@ -75,6 +81,7 @@ public class PersistedSecret : ISupportId, ISupportConcurrencyToken, ISupportTen
     /// Gets or sets a value that specifies the type of secret.
     /// See <see cref="SecretTypes"/> for possible values.
     /// </summary>
+    [MaxLength(MaxLengths.SecretType)]
     public required string SecretType { get; init; }
 
     /// <summary>

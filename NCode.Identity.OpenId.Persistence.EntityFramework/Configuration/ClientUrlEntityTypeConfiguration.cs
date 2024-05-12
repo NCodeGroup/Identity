@@ -35,8 +35,8 @@ internal class ClientUrlEntityTypeConfiguration : IEntityTypeConfiguration<Clien
         builder.Property(e => e.TenantId);
         builder.Property(e => e.ClientId);
 
-        builder.Property(e => e.UrlType).AsStandardString();
-        builder.Property(e => e.UrlValue).AsStandardString();
+        builder.Property(e => e.UrlType);
+        builder.Property(e => e.UrlValue);
 
         builder
             .HasOne(e => e.Tenant)

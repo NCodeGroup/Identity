@@ -32,22 +32,23 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.
     /// </summary>
-    public required long Id { get; set; }
+    public required long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the natural identifier for this entity.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string TenantId { get; set; }
+    [MaxLength(MaxLengths.TenantId)]
+    public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the domain name for this entity.
     /// This value is optional and can be used to find tenants by domain name.
     /// </summary>
-    public required string? DomainName { get; set; }
+    [MaxLength(MaxLengths.TenantDomainName)]
+    public required string? DomainName { get; init; }
 
     /// <inheritdoc/>
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string ConcurrencyToken { get; set; }
 
     /// <summary>
@@ -68,5 +69,5 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the collection of secrets only known to the tenant.
     /// </summary>
-    public required List<PersistedSecret> Secrets { get; set; }
+    public required IReadOnlyCollection<PersistedSecret> Secrets { get; init; }
 }

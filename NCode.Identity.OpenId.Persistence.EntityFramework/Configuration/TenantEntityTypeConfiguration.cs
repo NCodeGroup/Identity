@@ -33,14 +33,14 @@ internal class TenantEntityTypeConfiguration : IEntityTypeConfiguration<TenantEn
         builder.HasIndex(e => e.NormalizedDomainName).IsUnique();
 
         builder.Property(e => e.Id).UseIdGenerator();
-        builder.Property(e => e.TenantId).AsStandardIndex();
-        builder.Property(e => e.NormalizedTenantId).AsStandardIndex();
-        builder.Property(e => e.DomainName).AsOptionalIndex();
-        builder.Property(e => e.NormalizedDomainName).AsOptionalIndex();
+        builder.Property(e => e.TenantId);
+        builder.Property(e => e.NormalizedTenantId);
+        builder.Property(e => e.DomainName);
+        builder.Property(e => e.NormalizedDomainName);
 
-        builder.Property(e => e.ConcurrencyToken).AsStandardConcurrencyToken();
+        builder.Property(e => e.ConcurrencyToken);
         builder.Property(e => e.IsDisabled);
-        builder.Property(e => e.DisplayName).AsStandardString();
+        builder.Property(e => e.DisplayName);
         builder.Property(e => e.Settings);
 
         builder

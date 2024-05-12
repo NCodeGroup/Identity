@@ -68,12 +68,12 @@ internal class Startup(IConfiguration configuration)
 
         services.AddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
 
-        services.AddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<IdentityDbContext>>();
-        services.AddSingleton<Func<IIdentityDbContext, IClientStore>>(
-            serviceProvider => dbContext =>
-                ActivatorUtilities.CreateInstance<ClientStore>(
-                    serviceProvider,
-                    dbContext));
+        // services.AddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<OpenIdDbContext>>();
+        // services.AddSingleton<Func<IIdentityDbContext, IClientStore>>(
+        //     serviceProvider => dbContext =>
+        //         ActivatorUtilities.CreateInstance<ClientStore>(
+        //             serviceProvider,
+        //             dbContext));
 
         services.AddCoreMediatorServices();
         services.AddCoreTenantServices();

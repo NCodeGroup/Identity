@@ -18,44 +18,50 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
+
+[Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
 internal class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
 {
-    public required long Id { get; set; }
+    [Key]
+    public required long Id { get; init; }
 
-    public required long TenantId { get; set; }
+    [ForeignKey(nameof(Tenant))]
+    public required long TenantId { get; init; }
 
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string ClientId { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ClientId)]
+    public required string ClientId { get; init; }
 
     /// <summary>
     /// Gets or sets the value of <see cref="ClientId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string NormalizedClientId { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ClientId)]
+    public required string NormalizedClientId { get; init; }
 
-    #region Data Properties
+    //
 
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    [ConcurrencyCheck]
     public required string ConcurrencyToken { get; set; }
 
     public required bool IsDisabled { get; set; }
 
     public required JsonElement Settings { get; set; }
 
-    #endregion
+    //
 
-    #region Navigation Properties
+    public required TenantEntity Tenant { get; init; }
 
-    public required TenantEntity Tenant { get; set; }
+    public required IEnumerable<ClientUrlEntity> Urls { get; init; }
 
-    public required List<ClientUrlEntity> Urls { get; set; }
-
-    public required List<ClientSecretEntity> Secrets { get; set; }
-
-    #endregion
+    public required IEnumerable<ClientSecretEntity> Secrets { get; init; }
 }

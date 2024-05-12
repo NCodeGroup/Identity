@@ -19,8 +19,6 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 
@@ -31,31 +29,6 @@ internal static class ModelBuilderExtensions
     public static void UseIdGenerator(this PropertyBuilder<long> builder, bool enable = true)
     {
         builder.ValueGeneratedNever().HasAnnotation(UseIdGeneratorKey, enable);
-    }
-
-    public static PropertyBuilder<string> AsStandardString(this PropertyBuilder<string> builder, bool unicode = false)
-    {
-        return builder.IsRequired().IsUnicode(unicode);
-    }
-
-    public static PropertyBuilder<string?> AsOptionalString(this PropertyBuilder<string?> builder, bool unicode = false)
-    {
-        return builder.IsRequired(false).IsUnicode(unicode);
-    }
-
-    public static void AsStandardIndex(this PropertyBuilder<string> builder, bool unicode = false)
-    {
-        builder.AsStandardString(unicode).HasMaxLength(DataConstants.MaxIndexLength);
-    }
-
-    public static void AsOptionalIndex(this PropertyBuilder<string?> builder, bool unicode = false)
-    {
-        builder.AsOptionalString(unicode).HasMaxLength(DataConstants.MaxIndexLength);
-    }
-
-    public static void AsStandardConcurrencyToken(this PropertyBuilder<string> builder)
-    {
-        builder.AsStandardString().HasMaxLength(DataConstants.MaxConcurrencyTokenLength).IsConcurrencyToken();
     }
 
     public static void UseIdGenerator(this ModelBuilder builder, IdValueGenerator idValueGenerator)
@@ -69,24 +42,6 @@ internal static class ModelBuilderExtensions
         foreach (var property in properties)
         {
             property.SetValueGeneratorFactory((_, _) => idValueGenerator);
-        }
-    }
-
-    public static void UseUtcDateTime(this ModelBuilder builder)
-    {
-        // always persist DateTime values as UTC
-        var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
-            value => value.ToUniversalTime(),
-            value => DateTime.SpecifyKind(value, DateTimeKind.Utc));
-
-        var properties = builder.Model.GetEntityTypes()
-            .SelectMany(entityType => entityType.GetProperties()
-                .Where(property => typeof(DateTime?).IsAssignableFrom(property.ClrType) &&
-                                   property.GetValueConverter() == null));
-
-        foreach (var property in properties)
-        {
-            property.SetValueConverter(dateTimeConverter);
         }
     }
 }

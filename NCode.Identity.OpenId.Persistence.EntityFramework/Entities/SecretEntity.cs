@@ -18,52 +18,61 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
+[Index(nameof(TenantId), nameof(NormalizedSecretId), IsUnique = true)]
 internal class SecretEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
 {
-    public required long Id { get; set; }
+    [Key]
+    public required long Id { get; init; }
 
-    public required long TenantId { get; set; }
+    [ForeignKey(nameof(Tenant))]
+    public required long TenantId { get; init; }
 
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string SecretId { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.SecretId)]
+    public required string SecretId { get; init; }
 
     /// <summary>
     /// Gets or sets the value of <see cref="SecretId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
-    [MaxLength(DataConstants.MaxIndexLength)]
-    public required string NormalizedSecretId { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.SecretId)]
+    public required string NormalizedSecretId { get; init; }
 
-    #region Data Properties
+    //
 
-    [MaxLength(DataConstants.MaxConcurrencyTokenLength)]
-    public required string ConcurrencyToken { get; set; }
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    [ConcurrencyCheck]
+    public required string ConcurrencyToken { get; init; }
 
-    public required string? Use { get; set; }
+    [Unicode(false)]
+    public required string? Use { get; init; }
 
-    public required string? Algorithm { get; set; }
+    [Unicode(false)]
+    public required string? Algorithm { get; init; }
 
-    public required DateTimeOffset CreatedWhen { get; set; }
+    public required DateTimeOffset CreatedWhen { get; init; }
 
-    public required DateTimeOffset ExpiresWhen { get; set; }
+    public required DateTimeOffset ExpiresWhen { get; init; }
 
-    public required string SecretType { get; set; }
+    [Unicode(false)]
+    public required string SecretType { get; init; }
 
-    public required int KeySizeBits { get; set; }
+    public required int KeySizeBits { get; init; }
 
-    public required int UnprotectedSizeBytes { get; set; }
+    public required int UnprotectedSizeBytes { get; init; }
 
+    [Unicode(false)]
     public required string ProtectedValue { get; set; }
 
-    #endregion
+    //
 
-    #region Navigation Properties
-
-    public required TenantEntity Tenant { get; set; }
-
-    #endregion
+    public required TenantEntity Tenant { get; init; }
 }

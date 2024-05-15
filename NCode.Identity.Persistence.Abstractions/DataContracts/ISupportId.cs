@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,12 +14,13 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 namespace NCode.Identity.Persistence.DataContracts;
 
 /// <summary>
-/// Provides the ability to return the surrogate key for an entity where the key type is <see cref="long"/>.
+/// Provides the ability to return the surrogate identifier for an entity where the identifier type is <see cref="long"/>.
 /// </summary>
 public interface ISupportId : ISupportId<long>
 {
@@ -26,14 +28,15 @@ public interface ISupportId : ISupportId<long>
 }
 
 /// <summary>
-/// Provides the ability to return the surrogate key for an entity.
+/// Provides the ability to return the surrogate identifier for an entity.
 /// </summary>
-/// <typeparam name="TKey">The type of the surrogate key.</typeparam>
-public interface ISupportId<out TKey>
-    where TKey : IEquatable<TKey>
+/// <typeparam name="T">The type of the surrogate identifier.</typeparam>
+public interface ISupportId<out T>
+    where T : IEquatable<T>
 {
     /// <summary>
-    /// Gets the surrogate key.
+    /// Gets the surrogate identifier for this entity.
+    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
     /// </summary>
-    TKey Id { get; }
+    T Id { get; }
 }

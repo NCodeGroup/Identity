@@ -21,6 +21,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -29,6 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 internal class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
 {
     [Key]
+    [UseIdGenerator]
     public required long Id { get; init; }
 
     [ForeignKey(nameof(Tenant))]

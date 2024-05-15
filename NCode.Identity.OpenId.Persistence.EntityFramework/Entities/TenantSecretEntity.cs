@@ -20,6 +20,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -28,6 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 internal class TenantSecretEntity : ISupportId, ISupportTenant, ISupportSecret
 {
     [Key]
+    [UseIdGenerator]
     public required long Id { get; init; }
 
     [ForeignKey(nameof(Tenant))]
@@ -40,5 +42,7 @@ internal class TenantSecretEntity : ISupportId, ISupportTenant, ISupportSecret
 
     public required TenantEntity Tenant { get; init; }
 
+    // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
+    // We use DTOs to avoid circular dependencies.
     public required SecretEntity Secret { get; init; }
 }

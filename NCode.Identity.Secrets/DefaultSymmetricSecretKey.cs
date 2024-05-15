@@ -52,6 +52,6 @@ public class DefaultSymmetricSecretKey(
             return false;
         }
 
-        return DataProtector.TryUnprotect(ProtectedPrivateKey, buffer, out bytesWritten, out _);
+        return DataProtector.TryUnprotect(ProtectedPrivateKey, buffer, out bytesWritten);
     }
 }

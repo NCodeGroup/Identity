@@ -20,6 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 
@@ -47,7 +48,11 @@ public static class OpenIdCoreRegistration
         serviceCollection.TryAddSingleton<ISettingDescriptorJsonProvider, DefaultSettingDescriptorJsonProvider>();
         serviceCollection.TryAddSingleton<ISettingSerializer, DefaultSettingSerializer>();
 
-        serviceCollection.TryAddSingleton<OpenIdServer, DefaultOpenIdServer>();
+        serviceCollection.TryAddSingleton<DefaultOpenIdServer>();
+        serviceCollection.TryAddSingleton<OpenIdServer>(serviceProvider =>
+            serviceProvider.GetRequiredService<DefaultOpenIdServer>());
+        serviceCollection.TryAddSingleton<IOpenIdErrorFactory>(serviceProvider =>
+            serviceProvider.GetRequiredService<DefaultOpenIdServer>());
 
         return serviceCollection;
     }

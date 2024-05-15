@@ -76,13 +76,11 @@ public class DefaultEccSecretKey(
     public override ECDsa ExportECDsa() =>
         DataProtector.ExportAsymmetricAlgorithm(
             ProtectedPkcs8PrivateKey,
-            ECDsa.Create,
-            out _);
+            ECDsa.Create);
 
     /// <inheritdoc />
     public override ECDiffieHellman ExportECDiffieHellman() =>
         DataProtector.ExportAsymmetricAlgorithm(
             ProtectedPkcs8PrivateKey,
-            ECDiffieHellman.Create,
-            out _);
+            ECDiffieHellman.Create);
 }

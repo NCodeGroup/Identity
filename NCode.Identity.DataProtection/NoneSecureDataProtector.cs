@@ -32,17 +32,22 @@ public sealed class NoneSecureDataProtector : ISecureDataProtector
     public static NoneSecureDataProtector Singleton { get; } = new();
 
     /// <inheritdoc />
+    public ISecureDataProtector CreateProtector(string purpose)
+    {
+        return Singleton;
+    }
+
+    /// <inheritdoc />
     public byte[] Protect(ReadOnlySpan<byte> plaintext)
     {
         return plaintext.ToArray();
     }
 
     /// <inheritdoc />
-    public bool TryUnprotect(byte[] protectedBytes, Span<byte> plaintext, out int bytesWritten, out bool requiresMigration)
+    public bool TryUnprotect(byte[] protectedBytes, Span<byte> plaintext, out int bytesWritten)
     {
         var result = protectedBytes.AsSpan().TryCopyTo(plaintext);
         bytesWritten = result ? protectedBytes.Length : 0;
-        requiresMigration = false;
         return result;
     }
 }

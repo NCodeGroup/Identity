@@ -18,9 +18,19 @@
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
-internal interface ISupportSecret
+/// <summary>
+/// Indicates that an entity supports the <see cref="Secret"/> navigation property
+/// and the <see cref="SecretId"/> foreign key.
+/// </summary>
+public interface ISupportSecret
 {
+    /// <summary>
+    /// Gets the foreign key for the associated secret.
+    /// </summary>
     long SecretId { get; }
 
+    /// <summary>
+    /// Gets the navigation property for the associated secret.
+    /// </summary>
     SecretEntity Secret { get; }
 }

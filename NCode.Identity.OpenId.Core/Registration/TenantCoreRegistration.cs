@@ -24,25 +24,25 @@ using NCode.Identity.OpenId.Tenants.Providers;
 namespace NCode.Identity.OpenId.Registration;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register core tenant services and handlers
+/// Provides extension methods for <see cref="IServiceCollection"/> to register core tenant services and handlers.
 /// </summary>
-public static class CoreTenantRegistration
+public static class TenantCoreRegistration
 {
     /// <summary>
     /// Registers core tenant services and handlers into the provided <see cref="IServiceCollection"/> instance.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/> instance.</param>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddCoreTenantServices(this IServiceCollection services)
+    public static IServiceCollection AddTenantCoreServices(this IServiceCollection serviceCollection)
     {
-        services.AddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
-        services.AddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
-        services.AddSingleton<IOpenIdTenantProviderSelector, DefaultOpenIdTenantProviderSelector>();
+        serviceCollection.AddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
+        serviceCollection.AddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
+        serviceCollection.AddSingleton<IOpenIdTenantProviderSelector, DefaultOpenIdTenantProviderSelector>();
 
-        services.AddSingleton<IOpenIdTenantProvider, DefaultStaticSingleOpenIdTenantProvider>();
-        services.AddSingleton<IOpenIdTenantProvider, DefaultDynamicByHostOpenIdTenantProvider>();
-        services.AddSingleton<IOpenIdTenantProvider, DefaultDynamicByPathOpenIdTenantProvider>();
+        serviceCollection.AddSingleton<IOpenIdTenantProvider, DefaultStaticSingleOpenIdTenantProvider>();
+        serviceCollection.AddSingleton<IOpenIdTenantProvider, DefaultDynamicByHostOpenIdTenantProvider>();
+        serviceCollection.AddSingleton<IOpenIdTenantProvider, DefaultDynamicByPathOpenIdTenantProvider>();
 
-        return services;
+        return serviceCollection;
     }
 }

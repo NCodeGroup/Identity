@@ -19,12 +19,13 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using Jose;
 using NCode.CryptoMemory;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
-using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
+using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
@@ -273,9 +274,9 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var encodedSaltInput = Assert.IsType<string>(Assert.Contains("p2s", header));
         Assert.Equal(saltSize, encodedSaltInput.Length);
 
-        var controlAlgorithm = new global::Jose.Pbse2HmacShaKeyManagementWithAesKeyWrap(
+        var controlAlgorithm = new Pbse2HmacShaKeyManagementWithAesKeyWrap(
             keySizeBits,
-            new global::Jose.AesKeyWrapManagement(keySizeBits));
+            new AesKeyWrapManagement(keySizeBits));
 
         var expectedControl = controlAlgorithm.Unwrap(encryptedContentKey, password, cekSizeBits, header);
         Assert.Equal(expectedControl, contentKey.ToArray());

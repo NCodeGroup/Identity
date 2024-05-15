@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using Jose;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
@@ -229,14 +230,14 @@ public class RsaKeyManagementAlgorithmTests
         Assert.Equal(cek.ToArray(), decryptedCek.ToArray());
     }
 
-    private static global::Jose.IKeyManagement? GetControlAlgorithm(RSAEncryptionPadding padding)
+    private static IKeyManagement? GetControlAlgorithm(RSAEncryptionPadding padding)
     {
         if (padding == RSAEncryptionPadding.Pkcs1)
-            return new global::Jose.RsaKeyManagement(false);
+            return new RsaKeyManagement(false);
         if (padding == RSAEncryptionPadding.OaepSHA1)
-            return new global::Jose.RsaKeyManagement(true);
+            return new RsaKeyManagement(true);
         if (padding == RSAEncryptionPadding.OaepSHA256)
-            return new global::Jose.RsaOaep256KeyManagement();
+            return new RsaOaep256KeyManagement();
         return null;
     }
 }

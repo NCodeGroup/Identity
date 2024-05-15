@@ -21,7 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 
-namespace NCode.Identity.Jose.Json;
+namespace NCode.Identity.Jose.Extensions;
 
 /// <summary>
 /// Provides extension methods for <see cref="JsonElement"/>.

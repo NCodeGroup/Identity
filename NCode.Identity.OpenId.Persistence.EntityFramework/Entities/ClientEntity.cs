@@ -21,21 +21,31 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
+/// <summary>
+/// Represents an entity framework data contract for an <c>OAuth</c> or <c>OpenID Connect</c> client.
+/// The complimentary DTO for this entity is <see cref="PersistedClient"/>.
+/// </summary>
 [Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
-internal class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
+public class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
 {
+    /// <inheritdoc />
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
 
+    /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
 
+    /// <summary>
+    /// Gets or sets the natural identifier for this entity.
+    /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ClientId)]
     public required string ClientId { get; init; }
@@ -50,20 +60,34 @@ internal class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyTok
 
     //
 
+    /// <inheritdoc />
     [Unicode(false)]
     [MaxLength(MaxLengths.ConcurrencyToken)]
     [ConcurrencyCheck]
     public required string ConcurrencyToken { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the client is disabled.
+    /// </summary>
     public required bool IsDisabled { get; set; }
 
+    /// <summary>
+    /// Gets or sets the serialized JSON for the client settings.
+    /// </summary>
     public required JsonElement Settings { get; set; }
 
     //
 
+    /// <inheritdoc />
     public required TenantEntity Tenant { get; init; }
 
+    /// <summary>
+    /// Gets or sets the collection of URLs registered for this client.
+    /// </summary>
     public required IEnumerable<ClientUrlEntity> Urls { get; init; }
 
+    /// <summary>
+    /// Gets or sets the collection of secrets only known to this client.
+    /// </summary>
     public required IEnumerable<ClientSecretEntity> Secrets { get; init; }
 }

@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using Jose.netstandard1_4;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms.Signature;
 using NCode.Identity.Secrets;
@@ -120,7 +121,7 @@ public class EccSignatureAlgorithmTests
         Assert.True(signResult);
         Assert.Equal(hashSizeBytes, signBytesWritten);
 
-        var controlAlgorithm = new global::Jose.netstandard1_4.EcdsaUsingSha(secretKey.KeySizeBits);
+        var controlAlgorithm = new EcdsaUsingSha(secretKey.KeySizeBits);
         var controlHash = controlAlgorithm.Sign(inputData.ToArray(), key);
         Assert.Equal(hashSizeBytes, controlHash.Length);
 

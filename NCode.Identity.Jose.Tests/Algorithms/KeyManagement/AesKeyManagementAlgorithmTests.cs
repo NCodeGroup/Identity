@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using Jose;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
@@ -129,7 +130,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         Assert.True(wrapResult);
         Assert.Equal(encryptedCekSizeBytes, wrapBytesWritten);
 
-        var controlAlgorithm = new global::Jose.AesKeyWrapManagement(kekSizeBits);
+        var controlAlgorithm = new AesKeyWrapManagement(kekSizeBits);
         var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), kek.ToArray(), cekSizeBits, headerForWrap);
         Assert.Equal(controlResult, cek.ToArray());
 

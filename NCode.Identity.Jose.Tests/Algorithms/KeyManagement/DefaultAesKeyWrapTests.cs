@@ -17,6 +17,7 @@
 
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Exceptions;
+using ControlAesKeyWrap = Jose.AesKeyWrap;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
@@ -102,7 +103,7 @@ public class DefaultAesKeyWrapTests
         Assert.True(wrapResult);
         Assert.Equal(cekSizeBytes + 8, wrapBytesWritten);
 
-        var controlResult = global::Jose.AesKeyWrap.Unwrap(encryptedCek.ToArray(), kek.ToArray());
+        var controlResult = ControlAesKeyWrap.Unwrap(encryptedCek.ToArray(), kek.ToArray());
         Assert.Equal(controlResult, cek.ToArray());
 
         var unwrapResult = AesKeyWrap.TryUnwrapKey(kek, encryptedCek, cek, out var unwrapBytesWritten);

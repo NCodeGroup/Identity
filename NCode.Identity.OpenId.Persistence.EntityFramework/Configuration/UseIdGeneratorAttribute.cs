@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,8 +18,11 @@
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 
+/// <summary>
+/// Specifies that a property or field should use <see cref="IdValueGenerator"/> for generating identifier values.
+/// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-internal sealed class UseIdGeneratorAttribute : Attribute
+public sealed class UseIdGeneratorAttribute : Attribute
 {
     // nothing
 }

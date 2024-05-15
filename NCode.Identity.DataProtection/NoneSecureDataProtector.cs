@@ -21,7 +21,10 @@ namespace NCode.Identity.DataProtection;
 /// <summary>
 /// Provides an implementation of <see cref="ISecureDataProtector"/> that does not protect the data.
 /// </summary>
-public class NoneSecureDataProtector : ISecureDataProtector
+/// <remarks>
+/// This implementation is useful for development and testing purposes.
+/// </remarks>
+public sealed class NoneSecureDataProtector : ISecureDataProtector
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="NoneSecureDataProtector"/>.

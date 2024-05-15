@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using Jose;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Signature;
@@ -125,7 +126,7 @@ public class KeyedHashSignatureAlgorithmTests
         Assert.True(signResult);
         Assert.Equal(hashSizeBytes, signBytesWritten);
 
-        var controlAlgorithm = new global::Jose.HmacUsingSha($"SHA{signatureSizeBits}");
+        var controlAlgorithm = new HmacUsingSha($"SHA{signatureSizeBits}");
         var controlHash = controlAlgorithm.Sign(inputData.ToArray(), key.ToArray());
         Assert.Equal(hashSizeBytes, controlHash.Length);
 

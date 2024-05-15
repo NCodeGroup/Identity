@@ -25,30 +25,48 @@ using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
+/// <summary>
+/// Represents an entity framework data contract for a relationship between a <see cref="ClientEntity"/> and a URL.
+/// </summary>
 [Index(nameof(TenantId), nameof(ClientId), nameof(UrlType), nameof(UrlValue), IsUnique = true)]
-internal class ClientUrlEntity : ISupportId, ISupportTenant
+public class ClientUrlEntity : ISupportId, ISupportTenant
 {
+    /// <inheritdoc />
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
 
+    /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
 
+    /// <summary>
+    /// Gets the foreign key for the associated client.
+    /// </summary>
     [ForeignKey(nameof(Client))]
     public required long ClientId { get; init; }
 
+    /// <summary>
+    /// Gets the type of the URL.
+    /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.UrlType)]
     public required string UrlType { get; init; }
 
+    /// <summary>
+    /// Gets the value of the URL.
+    /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.UrlValue)]
     public required string UrlValue { get; init; }
 
     //
 
+    /// <inheritdoc />
     public required TenantEntity Tenant { get; init; }
 
+    /// <summary>
+    /// Gets the navigation property for the associated client.
+    /// </summary>
     public required ClientEntity Client { get; init; }
 }

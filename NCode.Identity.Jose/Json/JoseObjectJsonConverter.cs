@@ -46,17 +46,12 @@ namespace NCode.Identity.Jose.Json;
 /// <item><term><see cref="Single"/></term></item>
 /// </list>
 /// </remarks>
-public class JoseObjectJsonConverter : JsonConverter<object>
+public sealed class JoseObjectJsonConverter : JsonConverter<object>
 {
     /// <summary>
     /// Gets a singleton instance for <see cref="JoseObjectJsonConverter"/>.
     /// </summary>
     public static JoseObjectJsonConverter Singleton { get; } = new();
-
-    private JoseObjectJsonConverter()
-    {
-        // nothing
-    }
 
     /// <inheritdoc />
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -18,8 +18,8 @@
 #endregion
 
 using System.Security.Cryptography;
+using Jose;
 using NCode.Identity.DataProtection;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Signature;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
@@ -135,20 +135,13 @@ public class RsaSignatureAlgorithmTests : BaseTests
         Assert.True(verifyHashUsingControl);
     }
 
-    private static global::Jose.IJwsAlgorithm GetControlAlgorithm(HashAlgorithmName hashAlgorithmName, RSASignaturePadding padding)
+    private static IJwsAlgorithm GetControlAlgorithm(HashAlgorithmName hashAlgorithmName, RSASignaturePadding padding)
     {
         var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
         if (padding == RSASignaturePadding.Pkcs1)
-            return new global::Jose.RsaUsingSha($"SHA{hashSizeBits}");
+            return new RsaUsingSha($"SHA{hashSizeBits}");
         if (padding == RSASignaturePadding.Pss)
-            return new global::Jose.RsaPssUsingSha((hashSizeBits + 7) >> 3);
+            return new RsaPssUsingSha((hashSizeBits + 7) >> 3);
         throw new InvalidOperationException();
-    }
-
-    public static IEnumerable<object[]> GetTryHashTestData()
-    {
-        yield return [256, (HashFunctionDelegate)SHA256.TryHashData];
-        yield return [384, (HashFunctionDelegate)SHA384.TryHashData];
-        yield return [512, (HashFunctionDelegate)SHA512.TryHashData];
     }
 }

@@ -19,7 +19,7 @@
 
 using System.Diagnostics;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Json;
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.JsonWebTokens.Exceptions;
 using NCode.Identity.JsonWebTokens.Options;
 using NCode.Identity.Secrets;

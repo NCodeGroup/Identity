@@ -22,7 +22,7 @@ using System.Diagnostics;
 using System.Text;
 using NCode.CryptoMemory;
 using NCode.Encoders;
-using NCode.Identity.Jose.Json;
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 using Nerdbank.Streams;
 

@@ -20,6 +20,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NCode.Identity.Persistence.DataContracts;
 
+/// <summary>
+/// Indicates that an entity supports the <see cref="TenantId"/> property.
+/// </summary>
 public interface ISupportTenantId
 {
     /// <summary>

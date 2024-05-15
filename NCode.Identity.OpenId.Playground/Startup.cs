@@ -19,22 +19,20 @@
 
 using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using NCode.Collections.Providers;
+using NCode.Identity.DataProtection;
+using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Endpoints;
+using NCode.Identity.OpenId.Endpoints.Authorization;
 using NCode.Identity.OpenId.Endpoints.Continue;
-using NCode.Identity.OpenId.Endpoints.Continue.Logic;
+using NCode.Identity.OpenId.Endpoints.Discovery;
 using NCode.Identity.OpenId.Endpoints.Token;
-using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Options;
-using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Playground.DataLayer;
-using NCode.Identity.OpenId.Playground.Stores;
+using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Registration;
-using NCode.Identity.OpenId.Servers;
-using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 
 /*
@@ -56,46 +54,36 @@ internal class Startup(IConfiguration configuration)
         const int generatorId = 1;
         services.AddIdGen(generatorId);
 
-        services.AddHttpClient();
-        services.AddJsonWebTokenService();
-
         services.AddHealthChecks();
         services.AddHttpLogging(options => { options.LoggingFields = HttpLoggingFields.All; });
 
-        services.AddSingleton<ISystemClock, DefaultSystemClock>();
-        services.AddSingleton<ISecretSerializer, DefaultSecretSerializer>();
-        services.AddSingleton<ICryptoService, DefaultCryptoService>();
-
-        services.AddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
-
-        // services.AddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<OpenIdDbContext>>();
-        // services.AddSingleton<Func<IIdentityDbContext, IClientStore>>(
-        //     serviceProvider => dbContext =>
-        //         ActivatorUtilities.CreateInstance<ClientStore>(
-        //             serviceProvider,
-        //             dbContext));
-
-        services.AddCoreMediatorServices();
-        services.AddCoreTenantServices();
-        services.AddCoreEndpointServices();
-
-        services.AddSingleton<OpenIdServer, DefaultOpenIdServer>();
-
-        services.AddSingleton<ICollectionDataSource<SettingDescriptor>, DefaultSettingDescriptorDataSource>();
-        services.AddSingleton<ISettingDescriptorCollectionProvider, DefaultSettingDescriptorCollectionProvider>();
-        services.AddSingleton<ISettingDescriptorJsonProvider, DefaultSettingDescriptorJsonProvider>();
-        services.AddSingleton<ISettingSerializer, DefaultSettingSerializer>();
-
-        services.AddSingleton<IContinueService, DefaultContinueService>();
-        services.AddSingleton<IContinueProviderSelector, DefaultContinueProviderSelector>();
-        services.AddSingleton<IOpenIdEndpointProvider, DefaultContinueEndpointHandler>();
-
-        services.AddSingleton<IOpenIdEndpointProvider, DefaultTokenEndpointHandler>();
-
-        services.AddAuthorizationEndpoint();
-        services.AddDiscoveryEndpoint();
+        services.AddHttpClient();
 
         services.Configure<OpenIdServerOptions>(Configuration.GetSection("server"));
+
+        services.AddDataProtectionServices();
+        services.AddSecretServices();
+        services.AddJoseServices();
+        services.AddJsonWebTokenServices();
+
+        services.AddOpenIdCoreServices();
+        services.AddMediatorCoreServices();
+        services.AddTenantCoreServices();
+        services.AddEndpointCoreServices();
+
+        services.AddContinueEndpoint();
+        services.AddDiscoveryEndpoint();
+        services.AddAuthorizationEndpoint();
+        services.AddTokenEndpoint();
+
+        services.AddSecretPersistenceServices();
+        services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
+
+        services.AddDbContextFactory<OpenIdDbContext>(context =>
+        {
+            // TODO
+            context.UseInMemoryDatabase("OpenId");
+        });
 
         services.AddControllers();
         services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "NCode.Identity.OpenId.Playground", Version = "v1" }); });

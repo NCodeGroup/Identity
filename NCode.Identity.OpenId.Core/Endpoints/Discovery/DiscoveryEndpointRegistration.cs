@@ -18,12 +18,10 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.OpenId.Endpoints;
-using NCode.Identity.OpenId.Endpoints.Discovery;
 using NCode.Identity.OpenId.Endpoints.Discovery.Commands;
 using NCode.Identity.OpenId.Mediator;
 
-namespace NCode.Identity.OpenId.Registration;
+namespace NCode.Identity.OpenId.Endpoints.Discovery;
 
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register required services and handlers for the discovery endpoint.
@@ -33,18 +31,18 @@ public static class DiscoveryEndpointRegistration
     /// <summary>
     /// Registers the required services and handlers for the discovery endpoint into the provided <see cref="IServiceCollection"/> instance.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/> instance.</param>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddDiscoveryEndpoint(this IServiceCollection services)
+    public static IServiceCollection AddDiscoveryEndpoint(this IServiceCollection serviceCollection)
     {
-        services.AddSingleton<DefaultDiscoveryEndpointHandler>();
+        serviceCollection.AddSingleton<DefaultDiscoveryEndpointHandler>();
 
-        services.AddSingleton<IOpenIdEndpointProvider>(serviceProvider =>
+        serviceCollection.AddSingleton<IOpenIdEndpointProvider>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultDiscoveryEndpointHandler>());
 
-        services.AddSingleton<ICommandHandler<DiscoverMetadataCommand>>(serviceProvider =>
+        serviceCollection.AddSingleton<ICommandHandler<DiscoverMetadataCommand>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultDiscoveryEndpointHandler>());
 
-        return services;
+        return serviceCollection;
     }
 }

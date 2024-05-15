@@ -25,29 +25,29 @@ using NCode.Identity.OpenId.Mediator.Wrappers;
 namespace NCode.Identity.OpenId.Registration;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register core mediator services and handlers
+/// Provides extension methods for <see cref="IServiceCollection"/> to register core mediator services and handlers.
 /// </summary>
-public static class CoreMediatorRegistration
+public static class MediatorCoreRegistration
 {
     /// <summary>
     /// Registers core mediator services and handlers into the provided <see cref="IServiceCollection"/> instance.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/> instance.</param>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddCoreMediatorServices(this IServiceCollection services)
+    public static IServiceCollection AddMediatorCoreServices(this IServiceCollection serviceCollection)
     {
-        services.AddScoped(typeof(ICommandHandlerWrapper<>), typeof(CommandHandlerWrapper<>));
-        services.AddScoped(typeof(ICommandResponseHandlerWrapper<,>), typeof(CommandResponseHandlerWrapper<,>));
+        serviceCollection.AddScoped(typeof(ICommandHandlerWrapper<>), typeof(CommandHandlerWrapper<>));
+        serviceCollection.AddScoped(typeof(ICommandResponseHandlerWrapper<,>), typeof(CommandResponseHandlerWrapper<,>));
 
-        services.AddScoped(typeof(CommandExceptionListenerWrapper<,>));
-        services.AddScoped(typeof(CommandExceptionHandlerWrapper<,>));
-        services.AddScoped(typeof(CommandResponseExceptionHandlerWrapper<,,>));
+        serviceCollection.AddScoped(typeof(CommandExceptionListenerWrapper<,>));
+        serviceCollection.AddScoped(typeof(CommandExceptionHandlerWrapper<,>));
+        serviceCollection.AddScoped(typeof(CommandResponseExceptionHandlerWrapper<,,>));
 
-        services.AddScoped(typeof(ICommandMiddleware<>), typeof(StandardCommandMiddleware<>));
-        services.AddScoped(typeof(ICommandResponseMiddleware<,>), typeof(StandardCommandResponseMiddleware<,>));
+        serviceCollection.AddScoped(typeof(ICommandMiddleware<>), typeof(StandardCommandMiddleware<>));
+        serviceCollection.AddScoped(typeof(ICommandResponseMiddleware<,>), typeof(StandardCommandResponseMiddleware<,>));
 
-        services.AddScoped<IMediator, DefaultMediator>();
+        serviceCollection.AddScoped<IMediator, DefaultMediator>();
 
-        return services;
+        return serviceCollection;
     }
 }

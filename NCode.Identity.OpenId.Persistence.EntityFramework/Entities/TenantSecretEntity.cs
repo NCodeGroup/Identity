@@ -25,24 +25,32 @@ using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
+/// <summary>
+/// Represents an entity framework data contract for a relationship between a <see cref="TenantEntity"/> and a <see cref="SecretEntity"/>.
+/// </summary>
 [Index(nameof(TenantId), nameof(SecretId), IsUnique = true)]
-internal class TenantSecretEntity : ISupportId, ISupportTenant, ISupportSecret
+public class TenantSecretEntity : ISupportId, ISupportTenant, ISupportSecret
 {
+    /// <inheritdoc />
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
 
+    /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
 
+    /// <inheritdoc />
     [ForeignKey(nameof(Secret))]
     public required long SecretId { get; init; }
 
     //
 
+    /// <inheritdoc />
     public required TenantEntity Tenant { get; init; }
 
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.
+    /// <inheritdoc />
     public required SecretEntity Secret { get; init; }
 }

@@ -17,9 +17,10 @@
 #endregion
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Playground.Stores;
+namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 /// <summary>
 /// Provides an implementation for the <see cref="IStoreManagerFactory"/> abstraction that uses an <see cref="DbContext"/> instance

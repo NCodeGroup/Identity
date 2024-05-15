@@ -22,8 +22,6 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace NCode.Identity.DataProtection;
 
-// https://devblogs.microsoft.com/dotnet/internals-of-the-poh/
-
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecureDataProtector"/> abstraction.
 /// </summary>

@@ -18,7 +18,13 @@
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
+/// <summary>
+/// Contains constants for the possible values of the <c>UrlType</c> property.
+/// </summary>
 public static class UrlTypes
 {
+    /// <summary>
+    /// Indicates that a value represents a <c>redirect url</c>.
+    /// </summary>
     public const string RedirectUrl = nameof(RedirectUrl);
 }

@@ -21,7 +21,6 @@ using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using NCode.CryptoMemory;
 using NCode.Encoders;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -30,15 +29,15 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Provides a default implementation for the <see cref="ISecretSerializer"/> abstraction.
 /// </summary>
 public class DefaultSecretSerializer(
-    ISecureDataProtector dataProtector,
     ISecretKeyFactory secretKeyFactory
 ) : ISecretSerializer
 {
-    private ISecureDataProtector DataProtector { get; } = dataProtector;
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
 
     /// <inheritdoc />
-    public IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<PersistedSecret> persistedSecrets, out bool requiresMigration)
+    public IReadOnlyCollection<SecretKey> DeserializeSecrets(
+        IEnumerable<PersistedSecret> persistedSecrets,
+        out bool requiresMigration)
     {
         var anyRequiresMigration = false;
         var secretKeys = new SortedSet<SecretKey>(SecretKeyExpiresWhenComparer.Singleton);
@@ -91,7 +90,7 @@ public class DefaultSecretSerializer(
     private EccSecretKey CreateUsingEcc(KeyMetadata metadata, Memory<byte> privateKeyBytes) =>
         SecretKeyFactory.CreateEccPkcs8(metadata, privateKeyBytes.Span);
 
-    private T CreateSecretKey<T>(
+    private static T CreateSecretKey<T>(
         PersistedSecret persistedSecret,
         Func<KeyMetadata, Memory<byte>, T> factory,
         out bool requiresMigration
@@ -106,21 +105,21 @@ public class DefaultSecretSerializer(
             ExpiresWhen = persistedSecret.ExpiresWhen
         };
 
-        var protectedBytes = Base64Url.Decode(persistedSecret.ProtectedValue);
+        // TODO: Add support for multiple versions using some kind of provider/registry for supported formats.
 
-        using var _ = CryptoPool.Rent(
-            persistedSecret.UnprotectedSizeBytes,
-            isSensitive: true,
-            out Memory<byte> privateKeyBytes);
+        // $v1$base64url
+        const string prefixV1 = "$v1$";
+        if (!persistedSecret.EncodedValue.StartsWith(prefixV1))
+            throw new InvalidOperationException("The encoded secret value is not in a supported format.");
 
-        var unprotectResult = DataProtector.TryUnprotect(
-            protectedBytes,
-            privateKeyBytes.Span,
-            out var bytesWritten,
-            out requiresMigration);
+        var base64Url = persistedSecret.EncodedValue[prefixV1.Length..];
+        var byteCount = Base64Url.GetByteCountForDecode(base64Url.Length);
+        using var _ = CryptoPool.Rent(byteCount, isSensitive: true, out Memory<byte> rawBytes);
 
-        Debug.Assert(unprotectResult && bytesWritten == persistedSecret.UnprotectedSizeBytes);
+        var decodeResult = Base64Url.TryDecode(base64Url, rawBytes.Span, out var bytesWritten);
+        Debug.Assert(decodeResult && bytesWritten == byteCount);
 
-        return factory(metadata, privateKeyBytes);
+        requiresMigration = false;
+        return factory(metadata, rawBytes);
     }
 }

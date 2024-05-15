@@ -37,7 +37,9 @@ public interface ISecretSerializer
     /// <c>false</c> otherwise. Migration might be requested when the default
     /// protection key has changed, for instance.</param>
     /// <returns>The collection of <see cref="SecretKey"/> instances.</returns>
-    IReadOnlyCollection<SecretKey> DeserializeSecrets(IEnumerable<PersistedSecret> persistedSecrets, out bool requiresMigration);
+    IReadOnlyCollection<SecretKey> DeserializeSecrets(
+        IEnumerable<PersistedSecret> persistedSecrets,
+        out bool requiresMigration);
 
     /// <summary>
     /// Deserializes a <see cref="PersistedSecret"/> instance by loading and converting it into a disposable <see cref="SecretKey"/> instance.
@@ -48,5 +50,7 @@ public interface ISecretSerializer
     /// <c>false</c> otherwise. Migration might be requested when the default
     /// protection key has changed, for instance.</param>
     /// <returns>The deserialized <see cref="SecretKey"/> instance.</returns>
-    SecretKey DeserializeSecret(PersistedSecret persistedSecret, out bool requiresMigration);
+    SecretKey DeserializeSecret(
+        PersistedSecret persistedSecret,
+        out bool requiresMigration);
 }

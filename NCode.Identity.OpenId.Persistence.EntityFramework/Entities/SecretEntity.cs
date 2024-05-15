@@ -72,10 +72,8 @@ internal class SecretEntity : ISupportId, ISupportTenant, ISupportConcurrencyTok
 
     public required int KeySizeBits { get; init; }
 
-    public required int UnprotectedSizeBytes { get; init; }
-
     [Unicode(false)]
-    public required string ProtectedValue { get; set; }
+    public required string EncodedValue { get; set; }
 
     //
 

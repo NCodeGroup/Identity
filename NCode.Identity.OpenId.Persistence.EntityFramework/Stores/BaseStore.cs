@@ -131,8 +131,7 @@ internal abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         ExpiresWhen = secret.ExpiresWhen.ToUniversalTime(),
         SecretType = secret.SecretType,
         KeySizeBits = secret.KeySizeBits,
-        UnprotectedSizeBytes = secret.UnprotectedSizeBytes,
-        ProtectedValue = secret.ProtectedValue,
+        EncodedValue = secret.EncodedValue,
         Tenant = tenant
     };
 
@@ -148,8 +147,7 @@ internal abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         ExpiresWhen = secret.ExpiresWhen,
         SecretType = secret.SecretType,
         KeySizeBits = secret.KeySizeBits,
-        UnprotectedSizeBytes = secret.UnprotectedSizeBytes,
-        ProtectedValue = secret.ProtectedValue
+        EncodedValue = secret.EncodedValue
     };
 
     protected static PersistedSecret MapExisting(ISupportSecret parent) =>

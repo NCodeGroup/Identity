@@ -93,16 +93,9 @@ public class PersistedSecret : ISupportId, ISupportTenantId, ISupportConcurrency
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets or sets the size, in bytes, of the unprotected key material.
-    /// For certificates, this is the size of the raw bytes.
-    /// For asymmetric keys, this is the size of the key using the <c>PKCS#8</c> encoding.
-    /// For symmetric keys, this is the size of the key bytes.
+    /// Gets or sets the <c>base64url</c> encoded value of the key material.
+    /// Any additional details about how the key material is encoded, encrypted,
+    /// versioned, etc. must be self-contained within this value.
     /// </summary>
-    public required int UnprotectedSizeBytes { get; init; }
-
-    /// <summary>
-    /// Gets or sets the protected value of the key material.
-    /// The key material is protected using the <c>Data Protection APIs</c> and then <c>base64url</c> encoded.
-    /// </summary>
-    public required string ProtectedValue { get; init; }
+    public required string EncodedValue { get; init; }
 }

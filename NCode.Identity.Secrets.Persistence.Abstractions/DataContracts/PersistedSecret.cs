@@ -28,9 +28,10 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 public class PersistedSecret : ISupportId, ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate key for this entity.
+    /// Gets or sets the surrogate identifier for this entity.
+    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
     /// </summary>
-    public required long Id { get; init; }
+    public long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the tenant identifier for this entity.

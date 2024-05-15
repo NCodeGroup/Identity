@@ -31,8 +31,9 @@ public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrency
 {
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.
+    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
     /// </summary>
-    public required long Id { get; init; }
+    public long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the natural tenant identifier for this entity.

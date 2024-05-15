@@ -17,8 +17,8 @@
 
 #endregion
 
-using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -26,12 +26,9 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 
 internal class OpenIdDbContext(
-    DbContextOptions<OpenIdDbContext> options,
-    IdValueGenerator idValueGenerator
+    DbContextOptions<OpenIdDbContext> options
 ) : DbContext(options)
 {
-    private IdValueGenerator IdValueGenerator { get; } = idValueGenerator;
-
     public DbSet<SecretEntity> Secrets { get; set; }
 
     public DbSet<TenantEntity> Tenants { get; set; }
@@ -49,11 +46,10 @@ internal class OpenIdDbContext(
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
-        modelBuilder.UseIdGenerator(IdValueGenerator);
+        // nothing
     }
 
+    /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder
@@ -63,5 +59,8 @@ internal class OpenIdDbContext(
         configurationBuilder
             .Properties<DateTimeOffset>()
             .HaveConversion<DateTimeOffsetConverter>();
+
+        configurationBuilder.Conventions.Add(serviceProvider =>
+            serviceProvider.GetRequiredService<UseIdGeneratorConvention>());
     }
 }

@@ -35,7 +35,7 @@ public static class Registration
     public static IDataProtectionBuilder AddDataProtectionServices(
         this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<ISecureDataProtector, DefaultSecureDataProtector>();
+        serviceCollection.TryAddSingleton<ISecureDataProtectionProvider, DefaultSecureDataProtectionProvider>();
         return serviceCollection.AddDataProtection();
     }
 
@@ -49,7 +49,7 @@ public static class Registration
         this IServiceCollection serviceCollection,
         Action<DataProtectionOptions> setupAction)
     {
-        serviceCollection.TryAddSingleton<ISecureDataProtector, DefaultSecureDataProtector>();
+        serviceCollection.TryAddSingleton<ISecureDataProtectionProvider, DefaultSecureDataProtectionProvider>();
         return serviceCollection.AddDataProtection(setupAction);
     }
 }

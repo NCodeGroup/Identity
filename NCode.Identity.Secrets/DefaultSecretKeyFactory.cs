@@ -29,10 +29,11 @@ namespace NCode.Identity.Secrets;
 /// Provides a default implementation of the <see cref="ISecretKeyFactory"/> abstraction.
 /// </summary>
 public class DefaultSecretKeyFactory(
-    ISecureDataProtector dataProtector
+    ISecureDataProtectionProvider secureDataProtectionProvider
 ) : ISecretKeyFactory
 {
-    private ISecureDataProtector DataProtector { get; } = dataProtector;
+    private ISecureDataProtector SecureDataProtector { get; } =
+        secureDataProtectionProvider.CreateProtector("NCode.Identity.Secrets");
 
     /// <inheritdoc />
     public SecretKey Empty => EmptySecretKey.Singleton;
@@ -44,7 +45,7 @@ public class DefaultSecretKeyFactory(
         int keySizeBytes,
         byte[] protectedPrivateKey
     ) => new(
-        DataProtector,
+        SecureDataProtector,
         metadata,
         keySizeBytes,
         protectedPrivateKey);
@@ -53,7 +54,7 @@ public class DefaultSecretKeyFactory(
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<byte> bytes)
     {
         var keySizeBytes = bytes.Length;
-        var protectedPrivateKey = DataProtector.Protect(bytes);
+        var protectedPrivateKey = SecureDataProtector.Protect(bytes);
         return CreateSymmetric(metadata, keySizeBytes, protectedPrivateKey);
     }
 
@@ -125,7 +126,7 @@ public class DefaultSecretKeyFactory(
 
             if (asymmetricAlgorithm.TryExportPkcs8PrivateKey(lease.Memory.Span, out var bytesWritten))
             {
-                return DataProtector.Protect(lease.Memory.Span[..bytesWritten]);
+                return SecureDataProtector.Protect(lease.Memory.Span[..bytesWritten]);
             }
 
             byteCount = checked(byteCount * 2);
@@ -142,7 +143,7 @@ public class DefaultSecretKeyFactory(
         byte[] protectedPkcs8PrivateKey,
         byte[]? certificateRawData
     ) => new(
-        DataProtector,
+        SecureDataProtector,
         metadata,
         modulusSizeBits,
         protectedPkcs8PrivateKey,
@@ -183,7 +184,7 @@ public class DefaultSecretKeyFactory(
         byte[] protectedPkcs8PrivateKey,
         byte[]? certificateRawData
     ) => new(
-        DataProtector,
+        SecureDataProtector,
         metadata,
         curveSizeBits,
         protectedPkcs8PrivateKey,

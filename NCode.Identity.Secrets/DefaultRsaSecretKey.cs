@@ -57,6 +57,5 @@ public class DefaultRsaSecretKey(
     public override RSA ExportRSA() =>
         DataProtector.ExportAsymmetricAlgorithm(
             ProtectedPkcs8PrivateKey,
-            RSA.Create,
-            out _);
+            RSA.Create);
 }

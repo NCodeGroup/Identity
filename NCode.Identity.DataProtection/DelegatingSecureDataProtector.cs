@@ -23,16 +23,21 @@ using Microsoft.AspNetCore.DataProtection;
 namespace NCode.Identity.DataProtection;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISecureDataProtector"/> abstraction.
+/// Provides a implementation of the <see cref="ISecureDataProtector"/> abstraction that delegates to an <see cref="IDataProtector"/> instance.
 /// </summary>
-public class DefaultSecureDataProtector(
-    IPersistedDataProtector dataProtector
+public class DelegatingSecureDataProtector(
+    IDataProtector dataProtector
 ) : ISecureDataProtector
 {
-    private IPersistedDataProtector DataProtector { get; } = dataProtector;
+    private IDataProtector DataProtector { get; } = dataProtector;
 
     /// <inheritdoc />
-    public byte[] Protect(ReadOnlySpan<byte> plaintext)
+    public ISecureDataProtector CreateProtector(string purpose) =>
+        new DelegatingSecureDataProtector(DataProtector.CreateProtector(purpose));
+
+    /// <inheritdoc />
+    public byte[] Protect(
+        ReadOnlySpan<byte> plaintext)
     {
         // pin the plaintextBytes to prevent the GC from moving it around
         // can't use ArrayPool with GCHandle because it doesn't guarantee to return an exact size
@@ -53,16 +58,11 @@ public class DefaultSecureDataProtector(
     public bool TryUnprotect(
         byte[] protectedBytes,
         Span<byte> plaintext,
-        out int bytesWritten,
-        out bool requiresMigration)
+        out int bytesWritten)
     {
-        var plaintextBytes = DataProtector.DangerousUnprotect(
-            protectedBytes,
-            ignoreRevocationErrors: false,
-            out requiresMigration,
-            out _);
+        var plaintextBytes = DataProtector.Unprotect(protectedBytes);
 
-        // pin the plaintextBytes to prevent the GC from moving it around
+        // pin the plaintextBytes quickly in order to prevent the GC from moving it around
         var plaintextHandle = GCHandle.Alloc(plaintextBytes, GCHandleType.Pinned);
         try
         {

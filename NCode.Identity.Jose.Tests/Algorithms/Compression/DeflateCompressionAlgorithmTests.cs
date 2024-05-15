@@ -29,7 +29,7 @@ public class DeflateCompressionAlgorithmTests : BaseTests
 {
     private Mock<IBufferWriter<byte>> MockBufferWriter { get; }
     private static DeflateCompressionAlgorithm Algorithm => DeflateCompressionAlgorithm.Singleton;
-    private DeflateCompression ControlAlgorithm { get; } = new();
+    private DeflateCompression ControlAlgorithm { get; } = new(256000L);
 
     public DeflateCompressionAlgorithmTests()
     {

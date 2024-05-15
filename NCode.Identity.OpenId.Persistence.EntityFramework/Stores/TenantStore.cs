@@ -26,7 +26,10 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-internal class TenantStore(
+/// <summary>
+/// Provides a default implementation of <see cref="ITenantStore"/> that uses Entity Framework Core for persistence.
+/// </summary>
+public class TenantStore(
     IIdGenerator<long> idGenerator,
     OpenIdDbContext dbContext
 ) : BaseStore<PersistedTenant, TenantEntity>, ITenantStore

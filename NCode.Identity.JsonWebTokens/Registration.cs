@@ -19,26 +19,28 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.SystemClock;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// Provides extension methods for adding Jose services and algorithms to the DI container.
+/// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using
+/// Json Web Token (JWT) validation.
 /// </summary>
-public static class ServiceCollectionExtensions
+public static class Registration
 {
     /// <summary>
-    /// Adds SecretKey services and algorithms to the specified <see cref="IServiceCollection"/> instance.
+    /// Registers the required Json Web Token (JWT) services to the specified <see cref="IServiceCollection"/> instance.
+    /// Make sure to also register the required services from the <c>NCode.Identity.Jose</c> package.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSecretKeys(this IServiceCollection services)
+    public static IServiceCollection AddJsonWebTokenServices(
+        this IServiceCollection serviceCollection)
     {
-        services.TryAddSingleton<ISecretKeyProvider, DefaultSecretKeyProvider>();
-        services.TryAddSingleton<ISecretKeyProviderFactory, DefaultSecretKeyProviderFactory>();
-        services.TryAddSingleton<ISecretKeyFactory, DefaultSecretKeyFactory>();
-        services.TryAddSingleton<ISecretKeyCollectionFactory, DefaultSecretKeyCollectionFactory>();
+        serviceCollection.TryAddSingleton<ISystemClockSecondsAccuracy, SystemClockSecondsAccuracy>();
+        serviceCollection.TryAddSingleton<IJsonWebTokenService, DefaultJsonWebTokenService>();
 
-        return services;
+        return serviceCollection;
     }
 }

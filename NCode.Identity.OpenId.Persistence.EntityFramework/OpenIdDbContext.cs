@@ -25,22 +25,46 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 
-internal class OpenIdDbContext(
+/// <summary>
+/// Contains the entity framework <see cref="DbContext"/> for <c>OAuth</c> and <c>OpenID Connect</c> entities.
+/// </summary>
+public class OpenIdDbContext(
     DbContextOptions<OpenIdDbContext> options
 ) : DbContext(options)
 {
+    /// <summary>
+    /// Gets or sets the <see cref="SecretEntity"/> entities.
+    /// </summary>
     public DbSet<SecretEntity> Secrets { get; set; }
 
+    /// <summary>
+    /// Gets or sets the <see cref="TenantEntity"/> entities.
+    /// </summary>
     public DbSet<TenantEntity> Tenants { get; set; }
 
+    /// <summary>
+    /// Gets or sets the <see cref="TenantSecretEntity"/> entities.
+    /// </summary>
     public DbSet<TenantSecretEntity> TenantSecrets { get; set; }
 
+    /// <summary>
+    /// Gets or sets the <see cref="ClientEntity"/> entities.
+    /// </summary>
     public DbSet<ClientEntity> Clients { get; set; }
 
+    /// <summary>
+    /// Gets or sets the <see cref="ClientUrlEntity"/> entities.
+    /// </summary>
     public DbSet<ClientUrlEntity> ClientUrls { get; set; }
 
+    /// <summary>
+    /// Gets or sets the <see cref="ClientSecretEntity"/> entities.
+    /// </summary>
     public DbSet<ClientSecretEntity> ClientSecrets { get; set; }
 
+    /// <summary>
+    /// Gets or sets the <see cref="GrantEntity"/> entities.
+    /// </summary>
     public DbSet<GrantEntity> Grants { get; set; }
 
     /// <inheritdoc />

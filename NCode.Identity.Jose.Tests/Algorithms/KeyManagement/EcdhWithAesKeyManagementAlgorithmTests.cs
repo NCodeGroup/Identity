@@ -19,11 +19,13 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
-using NCode.Encoders;
+using Jose;
+using Jose.keys;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
+using Base64Url = NCode.Encoders.Base64Url;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
@@ -118,14 +120,12 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         Assert.True(wrapResult);
         Assert.Equal(encryptedCekSizeBytes, wrapBytesWritten);
 
-        using var controlKey = global::Jose.keys.EccKey.New(
+        using var controlKey = EccKey.New(
             parameters.Q.X,
             parameters.Q.Y,
             parameters.D,
             CngKeyUsages.KeyAgreement);
-        var controlAlgorithm = new global::Jose.EcdhKeyManagementWithAesKeyWrap(
-            cekSizeBits,
-            new global::Jose.AesKeyWrapManagement(cekSizeBits));
+        var controlAlgorithm = CreateControlAlgorithm(cekSizeBits);
         var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), controlKey, cekSizeBits, header);
         Assert.Equal(controlResult, cek.ToArray());
 
@@ -134,5 +134,12 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
         Assert.Equal(controlResult, cek.ToArray());
+    }
+
+    private static EcdhKeyManagementWinWithAesKeyWrap CreateControlAlgorithm(int cekSizeBits)
+    {
+        var aesKw = new AesKeyWrapManagement(cekSizeBits);
+        var unix = new EcdhKeyManagementUnixWithAesKeyWrap(cekSizeBits, aesKw);
+        return new EcdhKeyManagementWinWithAesKeyWrap(cekSizeBits, aesKw, unix);
     }
 }

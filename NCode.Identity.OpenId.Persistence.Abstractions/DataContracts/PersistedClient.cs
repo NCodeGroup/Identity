@@ -62,7 +62,7 @@ public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrency
     public required JsonElement Settings { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to the client.
+    /// Gets or sets the collection of secrets only known to this client.
     /// </summary>
     public required IReadOnlyCollection<PersistedSecret> Secrets { get; init; }
 

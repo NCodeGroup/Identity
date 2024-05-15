@@ -21,11 +21,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NCode.Encoders;
+using Jose;
+using Jose.keys;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
-using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
+using Base64Url = NCode.Encoders.Base64Url;
+using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
@@ -601,8 +603,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         // control
 
         var keySizeBits = keySizeBytes << 3;
-        var controlKey = global::Jose.keys.EccKey.New(parameters2.Q.X, parameters2.Q.Y, parameters2.D, CngKeyUsages.KeyAgreement);
-        var controlAlgorithm = new global::Jose.EcdhKeyManagement(true);
+        var controlKey = EccKey.New(parameters2.Q.X, parameters2.Q.Y, parameters2.D, CngKeyUsages.KeyAgreement);
+        var controlAlgorithm = new EcdhKeyManagementWin(true, new EcdhKeyManagementUnix(true));
         var controlResult = controlAlgorithm.Unwrap([], controlKey, keySizeBits, header2);
         Assert.Equal(controlResult, cek1);
     }

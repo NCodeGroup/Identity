@@ -22,7 +22,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 
-internal class UseIdGeneratorConvention(
+/// <summary>
+/// Provides a convention to use <see cref="IdValueGenerator"/> for properties marked with <see cref="UseIdGeneratorAttribute"/>.
+/// </summary>
+public class UseIdGeneratorConvention(
     IdValueGenerator idValueGenerator
 ) : IPropertyAddedConvention
 {

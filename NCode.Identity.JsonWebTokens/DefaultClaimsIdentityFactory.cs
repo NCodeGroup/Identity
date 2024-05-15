@@ -21,7 +21,7 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Json;
+using NCode.Identity.Jose.Extensions;
 
 namespace NCode.Identity.JsonWebTokens;
 

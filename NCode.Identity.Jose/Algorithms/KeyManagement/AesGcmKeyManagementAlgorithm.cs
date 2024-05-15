@@ -23,7 +23,7 @@ using System.Text.Json;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Jose.Json;
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;

@@ -24,23 +24,23 @@ using NCode.Identity.OpenId.Results;
 namespace NCode.Identity.OpenId.Registration;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register core endpoint services and handlers
+/// Provides extension methods for <see cref="IServiceCollection"/> to register core endpoint services and handlers.
 /// </summary>
-public static class CoreEndpointRegistration
+public static class EndpointCoreRegistration
 {
     /// <summary>
     /// Registers core endpoint services and handlers into the provided <see cref="IServiceCollection"/> instance.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/> instance.</param>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddCoreEndpointServices(this IServiceCollection services)
+    public static IServiceCollection AddEndpointCoreServices(this IServiceCollection serviceCollection)
     {
-        services.AddSingleton<IOpenIdContextFactory, DefaultOpenIdContextFactory>();
-        services.AddSingleton<IOpenIdEndpointRouteBuilder, DefaultOpenIdEndpointRouteBuilder>();
+        serviceCollection.AddSingleton<IOpenIdContextFactory, DefaultOpenIdContextFactory>();
+        serviceCollection.AddSingleton<IOpenIdEndpointRouteBuilder, DefaultOpenIdEndpointRouteBuilder>();
 
-        services.AddSingleton<IResultExecutor<OpenIdErrorResult>, OpenIdErrorResultExecutor>();
-        services.AddSingleton<IResultExecutor<OpenIdRedirectResult>, OpenIdRedirectResultExecutor>();
+        serviceCollection.AddSingleton<IResultExecutor<OpenIdErrorResult>, OpenIdErrorResultExecutor>();
+        serviceCollection.AddSingleton<IResultExecutor<OpenIdRedirectResult>, OpenIdRedirectResultExecutor>();
 
-        return services;
+        return serviceCollection;
     }
 }

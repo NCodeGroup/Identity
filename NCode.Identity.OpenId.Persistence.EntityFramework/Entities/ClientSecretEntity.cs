@@ -25,27 +25,41 @@ using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
+/// <summary>
+/// Represents an entity framework data contract for a relationship between a <see cref="ClientEntity"/> and a <see cref="SecretEntity"/>.
+/// </summary>
 [Index(nameof(TenantId), nameof(ClientId), nameof(SecretId), IsUnique = true)]
-internal class ClientSecretEntity : ISupportId, ISupportTenant, ISupportSecret
+public class ClientSecretEntity : ISupportId, ISupportTenant, ISupportSecret
 {
+    /// <inheritdoc />
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
 
+    /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
 
+    /// <summary>
+    /// Gets the foreign key for the associated client.
+    /// </summary>
     [ForeignKey(nameof(Client))]
     public required long ClientId { get; init; }
 
+    /// <inheritdoc />
     [ForeignKey(nameof(Secret))]
     public required long SecretId { get; init; }
 
     //
 
+    /// <inheritdoc />
     public required TenantEntity Tenant { get; init; }
 
+    /// <summary>
+    /// Gets the navigation property for the associated client.
+    /// </summary>
     public required ClientEntity Client { get; init; }
 
+    /// <inheritdoc />
     public required SecretEntity Secret { get; init; }
 }

@@ -68,7 +68,7 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     public required JsonElement Settings { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to the tenant.
+    /// Gets or sets the collection of secrets only known to this tenant.
     /// </summary>
     public required IReadOnlyCollection<PersistedSecret> Secrets { get; init; }
 }

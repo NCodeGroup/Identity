@@ -25,7 +25,10 @@ using NCode.Identity.OpenId.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-internal class ClientStore(
+/// <summary>
+/// Provides a default implementation of <see cref="IClientStore"/> that uses Entity Framework Core for persistence.
+/// </summary>
+public class ClientStore(
     IIdGenerator<long> idGenerator,
     OpenIdDbContext dbContext
 ) : BaseStore<PersistedClient, ClientEntity>, IClientStore

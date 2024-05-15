@@ -27,7 +27,7 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Compression;
 using NCode.Identity.Jose.Encoders;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Jose.Json;
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 using Nerdbank.Streams;
 

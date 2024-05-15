@@ -25,7 +25,10 @@ using NCode.Identity.OpenId.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-internal class GrantStore(
+/// <summary>
+/// Provides a default implementation of <see cref="IGrantStore"/> that uses Entity Framework Core for persistence.
+/// </summary>
+public class GrantStore(
     IIdGenerator<long> idGenerator,
     OpenIdDbContext dbContext
 ) : BaseStore<PersistedGrant, GrantEntity>, IGrantStore

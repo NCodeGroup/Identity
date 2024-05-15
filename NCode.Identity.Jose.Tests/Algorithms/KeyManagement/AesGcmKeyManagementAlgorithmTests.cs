@@ -20,11 +20,12 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NCode.Encoders;
+using Jose;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
-using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
+using Base64Url = NCode.Encoders.Base64Url;
+using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
@@ -120,7 +121,7 @@ public class AesGcmKeyManagementAlgorithmTests
         var tagSizeBytes = Base64Url.GetByteCountForDecode(encodedTag.Length);
         Assert.Equal(128 >> 3, tagSizeBytes);
 
-        var controlAlgorithm = new global::Jose.AesGcmKeyWrapManagement(kekSizeBits);
+        var controlAlgorithm = new AesGcmKeyWrapManagement(kekSizeBits);
         var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), kek.ToArray(), cekSizeBits, headerForWrap);
         Assert.Equal(controlResult, cek.ToArray());
 

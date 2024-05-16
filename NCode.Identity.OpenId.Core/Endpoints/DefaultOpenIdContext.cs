@@ -32,12 +32,12 @@ namespace NCode.Identity.OpenId.Endpoints;
 public class DefaultOpenIdContext(
     HttpContext httpContext,
     OpenIdServer openIdServer,
-    IAsyncSharedReference<OpenIdTenant> tenantReference,
+    AsyncSharedReferenceLease<OpenIdTenant> tenantReference,
     IMediator mediator,
     IPropertyBag propertyBag
 ) : OpenIdContext
 {
-    private IAsyncSharedReference<OpenIdTenant> TenantReference { get; } = tenantReference.AddReference();
+    private AsyncSharedReferenceLease<OpenIdTenant> TenantReference { get; set; } = tenantReference.AddReference();
 
     /// <inheritdoc />
     public override HttpContext Http { get; } = httpContext;
@@ -58,5 +58,6 @@ public class DefaultOpenIdContext(
     protected override async ValueTask DisposeAsyncCore()
     {
         await TenantReference.DisposeAsync();
+        TenantReference = default;
     }
 }

@@ -54,9 +54,9 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     secretKeyProviderFactory
 ), IAsyncDisposable
 {
-    private IAsyncSharedReference<OpenIdTenant>? CachedTenant { get; set; }
+    private AsyncSharedReferenceLease<OpenIdTenant> CachedTenant { get; set; }
 
-    private IAsyncSharedReference<ISecretKeyProvider> SecretKeyProvider { get; } =
+    private AsyncSharedReferenceLease<ISecretKeyProvider> SecretKeyProvider { get; set; } =
         AsyncSharedReference.Create(openIdServer.SecretKeyProvider);
 
     private StaticSingleOpenIdTenantOptions TenantOptions =>
@@ -71,18 +71,20 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (CachedTenant is not null)
-            await CachedTenant.DisposeAsync();
+        await CachedTenant.DisposeAsync();
+        CachedTenant = default;
+
         await SecretKeyProvider.DisposeAsync();
+        SecretKeyProvider = default;
     }
 
     /// <inheritdoc />
-    public override async ValueTask<IAsyncSharedReference<OpenIdTenant>> GetTenantAsync(
+    public override async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> GetTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
-        if (CachedTenant != null)
+        if (CachedTenant.IsActive)
             return CachedTenant.AddReference();
 
         var tenantReference = await base.GetTenantAsync(httpContext, propertyBag, cancellationToken);
@@ -128,7 +130,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     }
 
     /// <inheritdoc />
-    protected override ValueTask<IAsyncSharedReference<ISecretKeyProvider>> GetTenantSecretsAsync(
+    protected override ValueTask<AsyncSharedReferenceLease<ISecretKeyProvider>> GetTenantSecretsAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,

@@ -153,7 +153,7 @@ public abstract class OpenIdTenantProvider(
     }
 
     /// <inheritdoc />
-    public virtual async ValueTask<IAsyncSharedReference<OpenIdTenant>> GetTenantAsync(
+    public virtual async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> GetTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
@@ -163,14 +163,14 @@ public abstract class OpenIdTenantProvider(
             propertyBag,
             cancellationToken);
 
-        var tenantReference = await TenantCache.TryGetAsync(
+        await using var cachedTenantReference = await TenantCache.TryGetAsync(
             tenantDescriptor,
             propertyBag,
             cancellationToken);
 
-        if (tenantReference is not null)
+        if (cachedTenantReference.IsActive)
         {
-            return tenantReference;
+            return cachedTenantReference.AddReference();
         }
 
         var tenantPropertyBag = propertyBag.Clone();
@@ -205,7 +205,7 @@ public abstract class OpenIdTenantProvider(
             tenantIssuer,
             cancellationToken);
 
-        var newTenantReference = await CreateTenantAsync(
+        await using var newTenantReference = await CreateTenantAsync(
             httpContext,
             tenantPropertyBag,
             tenantDescriptor,
@@ -215,21 +215,13 @@ public abstract class OpenIdTenantProvider(
             tenantSecrets,
             cancellationToken);
 
-        try
-        {
-            await TenantCache.SetAsync(
-                tenantDescriptor,
-                newTenantReference,
-                tenantPropertyBag,
-                cancellationToken);
-        }
-        catch
-        {
-            await newTenantReference.DisposeAsync();
-            throw;
-        }
+        await TenantCache.SetAsync(
+            tenantDescriptor,
+            newTenantReference,
+            tenantPropertyBag,
+            cancellationToken);
 
-        return newTenantReference;
+        return newTenantReference.AddReference();
     }
 
     /// <summary>
@@ -352,7 +344,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISecretKeyProvider"/> instance.</returns>
-    protected virtual async ValueTask<IAsyncSharedReference<ISecretKeyProvider>> GetTenantSecretsAsync(
+    protected virtual async ValueTask<AsyncSharedReferenceLease<ISecretKeyProvider>> GetTenantSecretsAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
@@ -421,14 +413,14 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantSecrets">The <see cref="ISecretKeyProvider"/> instance for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OpenIdTenant"/> instance.</returns>
-    protected virtual ValueTask<IAsyncSharedReference<OpenIdTenant>> CreateTenantAsync(
+    protected virtual ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
         IReadOnlySettingCollection tenantSettings,
         UriDescriptor tenantBaseAddress,
         string tenantIssuer,
-        IAsyncSharedReference<ISecretKeyProvider> tenantSecrets,
+        AsyncSharedReferenceLease<ISecretKeyProvider> tenantSecrets,
         CancellationToken cancellationToken)
     {
         OpenIdTenant tenant = new DefaultOpenIdTenant(

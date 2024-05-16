@@ -22,8 +22,6 @@ using NCode.Identity.OpenId.Exceptions;
 
 namespace NCode.Identity.OpenId.Results;
 
-// TODO: rename 'With...' to 'Set...'
-
 /// <summary>
 /// Provides extension methods for the <see cref="IOpenIdError"/> abstraction.
 /// </summary>
@@ -36,6 +34,8 @@ public static class OpenIdErrorExtensions
     /// <returns>The <see cref="IResult"/> instance.</returns>
     public static IResult AsResult(this IOpenIdError error)
     {
+        // ReSharper disable once SuspiciousTypeConversion.Global
+        // Justification: external code may implement the ISupportResult interface
         var result = error is ISupportResult supportResult ? supportResult.Result : null;
         return result ?? new OpenIdErrorResult { Error = error };
     }

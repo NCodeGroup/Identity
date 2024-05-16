@@ -20,7 +20,13 @@ using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Results;
 
+/// <summary>
+/// Provides the ability to associate an <see cref="IResult"/> with the current instance.
+/// </summary>
 public interface ISupportResult
 {
+    /// <summary>
+    /// Gets the <see cref="IResult"/> associated with the current instance.
+    /// </summary>
     IResult? Result { get; }
 }

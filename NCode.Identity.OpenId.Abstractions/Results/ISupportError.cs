@@ -19,7 +19,13 @@
 
 namespace NCode.Identity.OpenId.Results;
 
+/// <summary>
+/// Provides the ability to associate an <see cref="IOpenIdError"/> with the current instance.
+/// </summary>
 public interface ISupportError
 {
+    /// <summary>
+    /// Gets the <see cref="IOpenIdError"/> that contains detailed error information.
+    /// </summary>
     IOpenIdError? Error { get; }
 }

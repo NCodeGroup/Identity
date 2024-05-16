@@ -33,7 +33,8 @@ public sealed class OpenIdContextTests : IDisposable
 {
     private MockRepository MockRepository { get; }
     private Mock<OpenIdServer> MockOpenIdServer { get; }
-    private Mock<IAsyncSharedReference<OpenIdTenant>> MockOpenIdTenantReference { get; }
+    private Mock<OpenIdTenant> MockOpenIdTenant { get; }
+    private AsyncSharedReferenceLease<OpenIdTenant> OpenIdTenantReference { get; }
     private Mock<HttpContext> MockHttpContext { get; }
     private Mock<IMediator> MockMediator { get; }
     private Mock<IPropertyBag> MockPropertyBag { get; }
@@ -42,7 +43,8 @@ public sealed class OpenIdContextTests : IDisposable
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockOpenIdServer = MockRepository.Create<OpenIdServer>();
-        MockOpenIdTenantReference = MockRepository.Create<IAsyncSharedReference<OpenIdTenant>>();
+        MockOpenIdTenant = MockRepository.Create<OpenIdTenant>();
+        OpenIdTenantReference = AsyncSharedReference.Create(MockOpenIdTenant.Object);
         MockHttpContext = MockRepository.Create<HttpContext>();
         MockMediator = MockRepository.Create<IMediator>();
         MockPropertyBag = MockRepository.Create<IPropertyBag>();
@@ -59,11 +61,11 @@ public sealed class OpenIdContextTests : IDisposable
         var openIdContext = new DefaultOpenIdContext(
             MockHttpContext.Object,
             MockOpenIdServer.Object,
-            MockOpenIdTenantReference.Object,
+            OpenIdTenantReference,
             MockMediator.Object,
             MockPropertyBag.Object);
 
-        Assert.Same(MockOpenIdTenantReference.Object, openIdContext.Tenant);
+        Assert.Same(MockOpenIdTenant.Object, openIdContext.Tenant);
         Assert.Same(MockOpenIdServer.Object, openIdContext.Server);
         Assert.Same(MockHttpContext.Object, openIdContext.Http);
         Assert.Same(MockMediator.Object, openIdContext.Mediator);

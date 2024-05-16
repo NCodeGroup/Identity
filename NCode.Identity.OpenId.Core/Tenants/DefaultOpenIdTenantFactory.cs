@@ -34,13 +34,14 @@ public class DefaultOpenIdTenantFactory(
     private IOpenIdTenantProviderSelector TenantProviderSelector { get; } = tenantProviderSelector;
 
     /// <inheritdoc />
-    public async ValueTask<IAsyncSharedReference<OpenIdTenant>> CreateTenantAsync(
+    public async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
         var tenantProvider = TenantProviderSelector.SelectProvider(propertyBag);
 
+        // no need to add ref since we return immediately
         var tenantReference = await tenantProvider.GetTenantAsync(
             httpContext,
             propertyBag,

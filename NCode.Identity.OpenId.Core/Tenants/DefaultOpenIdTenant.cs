@@ -32,12 +32,12 @@ public class DefaultOpenIdTenant(
     string issuer,
     UriDescriptor baseAddress,
     IReadOnlySettingCollection tenantSettings,
-    IAsyncSharedReference<ISecretKeyProvider> secretKeyReference,
+    AsyncSharedReferenceLease<ISecretKeyProvider> secretKeyReference,
     IPropertyBag propertyBag
 ) : OpenIdTenant
 {
     private TenantDescriptor TenantDescriptor { get; } = tenantDescriptor;
-    private IAsyncSharedReference<ISecretKeyProvider> SecretKeyReference { get; } = secretKeyReference.AddReference();
+    private AsyncSharedReferenceLease<ISecretKeyProvider> SecretKeyReference { get; set; } = secretKeyReference.AddReference();
 
     /// <inheritdoc />
     public override string TenantId => TenantDescriptor.TenantId;
@@ -64,5 +64,6 @@ public class DefaultOpenIdTenant(
     protected override async ValueTask DisposeAsyncCore()
     {
         await SecretKeyReference.DisposeAsync();
+        SecretKeyReference = default;
     }
 }

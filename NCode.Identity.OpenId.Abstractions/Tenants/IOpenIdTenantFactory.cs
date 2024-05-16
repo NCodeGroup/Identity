@@ -37,7 +37,7 @@ public interface IOpenIdTenantFactory
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
     /// <see cref="OpenIdTenant"/> instance.</returns>
-    ValueTask<IAsyncSharedReference<OpenIdTenant>> CreateTenantAsync(
+    ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken);

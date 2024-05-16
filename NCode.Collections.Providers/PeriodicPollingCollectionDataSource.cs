@@ -185,7 +185,8 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
                 {
                     await RefreshCollectionAsync(cancellationToken);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException exception)
+                    when (exception.CancellationToken == cancellationToken)
                 {
                     return;
                 }

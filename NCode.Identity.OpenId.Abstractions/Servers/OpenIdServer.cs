@@ -27,7 +27,7 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
-/// Provides configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.
+/// Provides contextual information and configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.
 /// </summary>
 public abstract class OpenIdServer
 {

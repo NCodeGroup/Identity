@@ -178,7 +178,7 @@ partial class DefaultJsonWebTokenService
         }
         else
         {
-            issuedAt = SystemClock.UtcNow;
+            issuedAt = TimeProvider.GetUtcNowWithPrecisionInSeconds();
             payload[JoseClaimNames.Payload.Iat] = issuedAt.ToUnixTimeSeconds();
         }
 

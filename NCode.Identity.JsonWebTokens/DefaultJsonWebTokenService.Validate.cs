@@ -60,7 +60,7 @@ partial class DefaultJsonWebTokenService
                 decodedJwt,
                 propertyBag,
                 ServiceProvider,
-                SystemClock);
+                TimeProvider);
 
             await InvokeValidatorsAsync(context, parameters.Validators, cancellationToken);
 

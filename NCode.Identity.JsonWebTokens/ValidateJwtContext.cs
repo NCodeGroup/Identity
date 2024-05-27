@@ -17,15 +17,16 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 using NCode.PropertyBag;
-using NCode.SystemClock;
 
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
 /// An opaque context that is used when validating a Json Web Token (JWT).
 /// </summary>
+[PublicAPI]
 public class ValidateJwtContext
 {
     /// <summary>
@@ -39,19 +40,19 @@ public class ValidateJwtContext
     public DecodedJwt DecodedJwt { get; }
 
     /// <summary>
-    /// Gets an <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
+    /// Gets a <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
     /// </summary>
     public IPropertyBag PropertyBag { get; }
 
     /// <summary>
-    /// Gets an <see cref="IServiceProvider"/> that can be used to resolve services.
+    /// Gets a <see cref="IServiceProvider"/> that can be used to resolve services.
     /// </summary>
     public IServiceProvider ServiceProvider { get; }
 
     /// <summary>
-    /// Gets an <see cref="ISystemClock"/> that can be used to get the current time.
+    /// Gets a <see cref="TimeProvider"/> that can be used to get the current time.
     /// </summary>
-    public ISystemClock SystemClock { get; }
+    public TimeProvider TimeProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidateJwtContext"/> class.
@@ -60,18 +61,18 @@ public class ValidateJwtContext
     /// <param name="decodedJwt">A <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT) header and payload.</param>
     /// <param name="propertyBag">A <see cref="PropertyBag"/> that can be used to store custom state information.</param>
     /// <param name="serviceProvider">An <see cref="IServiceProvider"/> that can be used to resolve services.</param>
-    /// <param name="systemClock">An <see cref="ISystemClock"/> that can be used to get the current time.</param>
+    /// <param name="timeProvider">A <see cref="TimeProvider"/> that can be used to get the current time.</param>
     public ValidateJwtContext(
         SecretKey secretKey,
         DecodedJwt decodedJwt,
         IPropertyBag propertyBag,
         IServiceProvider serviceProvider,
-        ISystemClock systemClock)
+        TimeProvider timeProvider)
     {
         SecretKey = secretKey;
         DecodedJwt = decodedJwt;
         PropertyBag = propertyBag;
         ServiceProvider = serviceProvider;
-        SystemClock = systemClock;
+        TimeProvider = timeProvider;
     }
 }

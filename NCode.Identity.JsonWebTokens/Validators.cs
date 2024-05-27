@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics;
+using JetBrains.Annotations;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.JsonWebTokens.Exceptions;
@@ -29,6 +30,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Provides the ability to configure various Json Web Token (JWT) validators.
 /// </summary>
+[PublicAPI]
 public static class Validators
 {
     /// <summary>
@@ -83,12 +85,12 @@ public static class Validators
             using var certificate = asymmetricSecretKey.ExportCertificate();
             Debug.Assert(certificate is not null);
 
-            var nowTicks = context.SystemClock.UtcNow.UtcTicks;
+            var nowTicks = context.TimeProvider.GetTimestampWithPrecisionInSeconds();
 
-            var notBefore = certificate.NotBefore.ToUniversalTime();
+            var notBefore = certificate.NotBefore.WithPrecisionInSeconds();
             var notBeforeTicks = notBefore.Ticks;
 
-            var notAfter = certificate.NotAfter.ToUniversalTime();
+            var notAfter = certificate.NotAfter.WithPrecisionInSeconds();
             var notAfterTicks = notAfter.Ticks;
 
             if (notBeforeTicks > nowTicks + clockSkewTicks)
@@ -131,7 +133,7 @@ public static class Validators
             var payload = context.DecodedJwt.Payload;
             var hasNotBefore = payload.TryGetPropertyValue<DateTime>(JoseClaimNames.Payload.Nbf, out var notBefore);
             var hasExpires = payload.TryGetPropertyValue<DateTime>(JoseClaimNames.Payload.Exp, out var expires);
-            var nowTicks = context.SystemClock.UtcNow.UtcTicks;
+            var nowTicks = context.TimeProvider.GetTimestampWithPrecisionInSeconds();
 
             if (!hasExpires && options.RequireExpirationTime)
                 throw new TokenValidationException("The token is missing an expiration time.");

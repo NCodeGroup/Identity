@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
@@ -29,6 +30,7 @@ namespace NCode.Identity.OpenId.Registration;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register required core services for OpenId.
 /// </summary>
+[PublicAPI]
 public static class OpenIdCoreRegistration
 {
     /// <summary>
@@ -38,7 +40,8 @@ public static class OpenIdCoreRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddOpenIdCoreServices(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<ISystemClock, DefaultSystemClock>();
+        serviceCollection.TryAddSingleton(TimeProvider.System);
+
         serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();
         serviceCollection.TryAddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
 

@@ -19,6 +19,7 @@
 
 using System.Text.Json;
 using IdGen;
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
@@ -30,14 +31,14 @@ namespace NCode.Identity.OpenId.Logic;
 /// Provides a default implementation for the <see cref="IPersistedGrantService"/> abstraction.
 /// </summary>
 public class DefaultPersistedGrantService(
-    ISystemClock systemClock,
+    TimeProvider timeProvider,
     ICryptoService cryptoService,
     IIdGenerator<long> idGenerator,
     IStoreManagerFactory storeManagerFactory,
     OpenIdServer openIdServer
 ) : IPersistedGrantService
 {
-    private ISystemClock SystemClock { get; } = systemClock;
+    private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IIdGenerator<long> IdGenerator { get; } = idGenerator;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -58,7 +59,7 @@ public class DefaultPersistedGrantService(
     {
         var id = IdGenerator.CreateId();
         var hashedKey = GetHashedKey(grantId.GrantKey);
-        var createdWhen = SystemClock.UtcNow;
+        var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var expiresWhen = createdWhen.Add(lifetime);
 
         var payload = JsonSerializer.SerializeToElement(
@@ -94,7 +95,7 @@ public class DefaultPersistedGrantService(
         bool setConsumed,
         CancellationToken cancellationToken)
     {
-        var utcNow = SystemClock.UtcNow;
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);

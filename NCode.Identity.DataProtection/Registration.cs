@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -25,6 +26,7 @@ namespace NCode.Identity.DataProtection;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for data protection.
 /// </summary>
+[PublicAPI]
 public static class Registration
 {
     /// <summary>
@@ -35,8 +37,7 @@ public static class Registration
     public static IDataProtectionBuilder AddDataProtectionServices(
         this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<ISecureDataProtectionProvider, DefaultSecureDataProtectionProvider>();
-        return serviceCollection.AddDataProtection();
+        return serviceCollection.AddDataProtectionServices(_ => { });
     }
 
     /// <summary>
@@ -50,6 +51,7 @@ public static class Registration
         Action<DataProtectionOptions> setupAction)
     {
         serviceCollection.TryAddSingleton<ISecureDataProtectionProvider, DefaultSecureDataProtectionProvider>();
+
         return serviceCollection.AddDataProtection(setupAction);
     }
 }

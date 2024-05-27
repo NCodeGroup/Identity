@@ -29,6 +29,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jose;
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
@@ -44,7 +45,6 @@ using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using ISystemClock = NCode.Identity.OpenId.Logic.ISystemClock;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization;
 
@@ -53,7 +53,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization;
 /// </summary>
 public class DefaultAuthorizationEndpointHandler(
     ILogger<DefaultAuthorizationEndpointHandler> logger,
-    ISystemClock systemClock,
+    TimeProvider timeProvider,
     IHttpClientFactory httpClientFactory,
     IJsonWebTokenService jsonWebTokenService,
     IClientAuthenticationService clientAuthenticationService,
@@ -77,7 +77,7 @@ public class DefaultAuthorizationEndpointHandler(
     private string? DefaultSignInSchemeName { get; set; }
 
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
-    private ISystemClock SystemClock { get; } = systemClock;
+    private TimeProvider TimeProvider { get; } = timeProvider;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
@@ -1042,8 +1042,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         // use 'long/ticks' vs 'DateTime/DateTimeOffset' comparisons to avoid overflow exceptions
 
-        var now = SystemClock.UtcNow;
-        var nowTicks = now.UtcTicks;
+        var nowTicks = TimeProvider.GetTimestampWithPrecisionInSeconds();
 
         var authTime = DateTimeOffset.FromUnixTimeSeconds(authTimeSeconds);
         var authTimeTicks = authTime.UtcTicks;
@@ -1070,7 +1069,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         var ticket = AuthorizationTicket.Create(OpenIdServer);
 
-        ticket.CreatedWhen = SystemClock.UtcNow;
+        ticket.CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         ticket.State = authorizationRequest.State;
         ticket.Issuer = openIdContext.Tenant.Issuer;
 

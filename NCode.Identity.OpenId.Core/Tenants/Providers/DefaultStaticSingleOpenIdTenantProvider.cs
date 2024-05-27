@@ -56,9 +56,6 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
 {
     private AsyncSharedReferenceLease<OpenIdTenant> CachedTenant { get; set; }
 
-    private AsyncSharedReferenceLease<ISecretKeyProvider> SecretKeyProvider { get; set; } =
-        AsyncSharedReference.Create(openIdServer.SecretKeyProvider);
-
     private StaticSingleOpenIdTenantOptions TenantOptions =>
         ServerOptions.Tenant.StaticSingle ?? throw MissingTenantOptionsException();
 
@@ -73,9 +70,6 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     {
         await CachedTenant.DisposeAsync();
         CachedTenant = default;
-
-        await SecretKeyProvider.DisposeAsync();
-        SecretKeyProvider = default;
     }
 
     /// <inheritdoc />
@@ -116,30 +110,5 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
         };
 
         return ValueTask.FromResult(descriptor);
-    }
-
-    /// <inheritdoc />
-    protected override ValueTask<IReadOnlySettingCollection> GetTenantSettingsAsync(
-        HttpContext httpContext,
-        IPropertyBag propertyBag,
-        TenantDescriptor tenantDescriptor,
-        CancellationToken cancellationToken)
-    {
-        // we use the same settings as the server
-        return ValueTask.FromResult(OpenIdServer.Settings);
-    }
-
-    /// <inheritdoc />
-    protected override ValueTask<AsyncSharedReferenceLease<ISecretKeyProvider>> GetTenantSecretsAsync(
-        HttpContext httpContext,
-        IPropertyBag propertyBag,
-        TenantDescriptor tenantDescriptor,
-        IReadOnlySettingCollection tenantSettings,
-        UriDescriptor tenantBaseAddress,
-        string tenantIssuer,
-        CancellationToken cancellationToken)
-    {
-        // we use the same secrets as the server
-        return ValueTask.FromResult(SecretKeyProvider.AddReference());
     }
 }

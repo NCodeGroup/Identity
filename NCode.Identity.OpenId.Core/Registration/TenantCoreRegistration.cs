@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Providers;
 
@@ -41,9 +42,9 @@ public static class TenantCoreRegistration
         serviceCollection.AddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
         serviceCollection.AddSingleton<IOpenIdTenantProviderSelector, DefaultOpenIdTenantProviderSelector>();
 
-        serviceCollection.AddSingleton<IOpenIdTenantProvider, DefaultStaticSingleOpenIdTenantProvider>();
-        serviceCollection.AddSingleton<IOpenIdTenantProvider, DefaultDynamicByHostOpenIdTenantProvider>();
-        serviceCollection.AddSingleton<IOpenIdTenantProvider, DefaultDynamicByPathOpenIdTenantProvider>();
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultStaticSingleOpenIdTenantProvider>());
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultDynamicByHostOpenIdTenantProvider>());
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultDynamicByPathOpenIdTenantProvider>());
 
         return serviceCollection;
     }

@@ -334,7 +334,9 @@ public abstract class OpenIdTenantProvider(
     }
 
     /// <summary>
-    /// Used to get the tenant's <see cref="UriDescriptor"/> instance from the current HTTP request.
+    /// Used to get the tenant's <see cref="ISecretKeyProvider"/> instance.
+    /// This implementation uses a <see cref="PeriodicPollingCollectionDataSource{TKey,TValue}"/> to periodically refresh the
+    /// collection of secrets.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
@@ -372,6 +374,7 @@ public abstract class OpenIdTenantProvider(
             LoadSecretsAsync);
 
         var provider = SecretKeyProviderFactory.Create(dataSource);
+
         return AsyncSharedReference.Create(provider);
     }
 

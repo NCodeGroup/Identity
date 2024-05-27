@@ -30,6 +30,12 @@ public class OpenIdTenantOptions
     public TimeSpan SecretKeyPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
 
     /// <summary>
+    /// Gets or sets the period of time after which a tenant is removed from the cache.
+    /// The default value is 4 hours.
+    /// </summary>
+    public TimeSpan TenantCacheExpiration { get; set; } = TimeSpan.FromHours(4.0);
+
+    /// <summary>
     /// Gets or sets the provider code that is used to configure multi-tenancy.
     /// This value is used to find the corresponding <see cref="IOpenIdTenantProvider"/>.
     /// The default value is <see cref="StaticSingle"/>.

@@ -21,14 +21,15 @@ using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId;
 
-// Uri is not a good choice for OpenID, because it does not support unicode host names.
-// According to the spec, the host name should be in unicode, not punycode.
-// https://github.com/IdentityServer/IdentityServer4/issues/2080
-// https://nat.sakimura.org/2018/04/04/what-encoding-should-a-uri-in-openid-and-oauth-discovery-document-use-for-an-internationalized-domain-name-idn/#easy-footnote-1-1403
-
 /// <summary>
 /// Represents the components of an Uniform Resource Identifier (URI).
 /// </summary>
+/// <remarks>
+/// Uri is not a good choice for OpenID, because it does not support unicode host names.
+/// According to the spec, the host name should be in unicode, not punycode.
+/// https://github.com/IdentityServer/IdentityServer4/issues/2080
+/// https://nat.sakimura.org/2018/04/04/what-encoding-should-a-uri-in-openid-and-oauth-discovery-document-use-for-an-internationalized-domain-name-idn/#easy-footnote-1-1403
+/// </remarks>
 public readonly struct UriDescriptor
 {
     /// <summary>

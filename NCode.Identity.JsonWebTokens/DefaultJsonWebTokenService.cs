@@ -21,7 +21,6 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens.Options;
 using NCode.Identity.Secrets;
-using NCode.SystemClock;
 
 namespace NCode.Identity.JsonWebTokens;
 
@@ -32,7 +31,7 @@ public sealed partial class DefaultJsonWebTokenService : IJsonWebTokenService
 {
     private JsonWebTokenServiceOptions Options { get; }
     private IServiceProvider ServiceProvider { get; }
-    private ISystemClockSecondsAccuracy SystemClock { get; }
+    private TimeProvider TimeProvider { get; }
     private IJoseSerializer JoseSerializer { get; }
     private ISecretKeyProvider SecretKeyProvider { get; }
 
@@ -41,19 +40,19 @@ public sealed partial class DefaultJsonWebTokenService : IJsonWebTokenService
     /// </summary>
     /// <param name="optionsAccessor">An accessor that provides <see cref="JsonWebTokenServiceOptions"/>.</param>
     /// <param name="serviceProvider">An <see cref="IServiceProvider"/> that can be used to resolve services.</param>
-    /// <param name="systemClock">An <see cref="ISystemClockSecondsAccuracy"/> that can be used to get the current time.</param>
+    /// <param name="timeProvider">An <see cref="TimeProvider"/> that can be used to get the current time.</param>
     /// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
     /// <param name="secretKeyProvider">An <see cref="ISecretKeyProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
     public DefaultJsonWebTokenService(
         IOptions<JsonWebTokenServiceOptions> optionsAccessor,
         IServiceProvider serviceProvider,
-        ISystemClockSecondsAccuracy systemClock,
+        TimeProvider timeProvider,
         IJoseSerializer joseSerializer,
         ISecretKeyProvider secretKeyProvider)
     {
         Options = optionsAccessor.Value;
         ServiceProvider = serviceProvider;
-        SystemClock = systemClock;
+        TimeProvider = timeProvider;
         JoseSerializer = joseSerializer;
         SecretKeyProvider = secretKeyProvider;
     }

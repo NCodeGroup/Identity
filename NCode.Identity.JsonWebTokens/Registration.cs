@@ -17,9 +17,9 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.SystemClock;
 
 namespace NCode.Identity.JsonWebTokens;
 
@@ -27,6 +27,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using
 /// Json Web Token (JWT) validation.
 /// </summary>
+[PublicAPI]
 public static class Registration
 {
     /// <summary>
@@ -38,7 +39,6 @@ public static class Registration
     public static IServiceCollection AddJsonWebTokenServices(
         this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<ISystemClockSecondsAccuracy, SystemClockSecondsAccuracy>();
         serviceCollection.TryAddSingleton<IJsonWebTokenService, DefaultJsonWebTokenService>();
 
         return serviceCollection;

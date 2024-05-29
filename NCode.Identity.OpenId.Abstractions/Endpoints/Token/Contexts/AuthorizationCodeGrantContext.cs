@@ -1,6 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,17 +17,21 @@
 #endregion
 
 using NCode.Identity.OpenId.Clients;
+using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Endpoints.Token.Messages;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
+namespace NCode.Identity.OpenId.Endpoints.Token.Contexts;
 
 /// <summary>
-/// Contains the information about the request that the authorization server will use to issue tokens.
+/// Contains contextual information about the request that the authorization server will use to issue tokens using the <c>Authorization Code</c> grant type.
 /// </summary>
 /// <param name="OpenIdContext">The <see cref="OpenIdContext"/> instance for the current request.</param>
 /// <param name="OpenIdClient">The <see cref="OpenIdClient"/> instance that represents the client application that is requesting the token.</param>
 /// <param name="TokenRequest">The <see cref="ITokenRequest"/> instance that represents the token request.</param>
-public record struct TokenRequestContext(
+/// <param name="AuthorizationRequest">The <see cref="IAuthorizationRequest"/> instance that represents the original authorization request.</param>
+public readonly record struct AuthorizationCodeGrantContext(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    ITokenRequest TokenRequest
+    ITokenRequest TokenRequest,
+    IAuthorizationRequest AuthorizationRequest
 );

@@ -16,7 +16,7 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Endpoints.Token.Contexts;
 using NCode.Identity.OpenId.Endpoints.Token.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Logic;

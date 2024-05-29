@@ -23,10 +23,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Endpoints.Token.Contexts;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Mediator.Commands;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 
@@ -39,15 +40,18 @@ public class DefaultTokenEndpointHandler(
     OpenIdServer openIdServer,
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService,
-    ITokenGrantHandlerSelector tokenGrantHandlerSelector
+    IEnumerable<ITokenGrantHandler> handlers
 ) : IOpenIdEndpointProvider,
-    ICommandHandler<ValidateTokenRequestCommand>
+    ICommandHandler<ValidateCommand<TokenRequestContext>>,
+    ICommandResponseHandler<SelectCommand<TokenRequestContext, ITokenGrantHandler>, ITokenGrantHandler>
 {
     private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory => OpenIdServer.ErrorFactory;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
-    private ITokenGrantHandlerSelector TokenGrantHandlerSelector { get; } = tokenGrantHandlerSelector;
+
+    private Dictionary<string, ITokenGrantHandler> Handlers { get; } =
+        handlers.ToDictionary(handler => handler.GrantType, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -107,10 +111,14 @@ public class DefaultTokenEndpointHandler(
             tokenRequest);
 
         await mediator.SendAsync(
-            new ValidateTokenRequestCommand(tokenRequestContext),
+            ValidateCommand.Create(tokenRequestContext),
             cancellationToken);
 
-        var handler = await TokenGrantHandlerSelector.SelectAsync(
+        var handler = await mediator.SendAsync(
+            SelectCommand.Create(tokenRequestContext).Return<ITokenGrantHandler>(),
+            cancellationToken);
+
+        await handler.HandleAsync(
             tokenRequestContext,
             cancellationToken);
 
@@ -122,12 +130,11 @@ public class DefaultTokenEndpointHandler(
     }
 
     /// <inheritdoc />
-    public async ValueTask HandleAsync(
-        ValidateTokenRequestCommand command,
+    public ValueTask HandleAsync(
+        ValidateCommand<TokenRequestContext> command,
         CancellationToken cancellationToken)
     {
-        var tokenRequestContext = command.TokenRequestContext;
-        var (openIdContext, openIdClient, tokenRequest) = tokenRequestContext;
+        var (_, openIdClient, tokenRequest) = command.Context;
         var clientSettings = openIdClient.Settings;
 
         // client_id
@@ -198,7 +205,24 @@ public class DefaultTokenEndpointHandler(
 
         // TODO: validate user/principal
 
-        await ValueTask.CompletedTask;
-        throw new NotImplementedException();
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public ValueTask<ITokenGrantHandler> HandleAsync(
+        SelectCommand<TokenRequestContext, ITokenGrantHandler> command,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var grantType = command.Context.TokenRequest.GrantType ?? string.Empty;
+        if (!Handlers.TryGetValue(grantType, out var handler))
+        {
+            throw ErrorFactory
+                .UnsupportedGrantType("The provided grant type is not supported by the authorization server.")
+                .AsException();
+        }
+
+        return ValueTask.FromResult(handler);
     }
 }

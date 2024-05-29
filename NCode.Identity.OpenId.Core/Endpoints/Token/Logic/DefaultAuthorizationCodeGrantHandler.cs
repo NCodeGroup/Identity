@@ -20,11 +20,11 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Endpoints.Token.Commands;
-using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Endpoints.Token.Contexts;
 using NCode.Identity.OpenId.Endpoints.Token.Results;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Mediator.Commands;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 
@@ -38,7 +38,8 @@ public class DefaultAuthorizationCodeGrantHandler(
     IOpenIdErrorFactory errorFactory,
     IPersistedGrantService persistedGrantService,
     ICryptoService cryptoService
-) : ITokenGrantHandler, ICommandHandler<ValidateAuthorizationCodeGrantCommand>
+) : ITokenGrantHandler,
+    ICommandHandler<ValidateCommand<AuthorizationCodeGrantContext>>
 {
     private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
@@ -91,10 +92,8 @@ public class DefaultAuthorizationCodeGrantHandler(
             tokenRequest,
             authorizationRequest);
 
-        var validateCommand = new ValidateAuthorizationCodeGrantCommand(grantContext);
-
         await mediator.SendAsync(
-            validateCommand,
+            ValidateCommand.Create(grantContext),
             cancellationToken);
 
         var tokenResponse = await CreateTokenResponseAsync(
@@ -105,12 +104,11 @@ public class DefaultAuthorizationCodeGrantHandler(
     }
 
     /// <inheritdoc />
-    public async ValueTask HandleAsync(
-        ValidateAuthorizationCodeGrantCommand command,
+    public ValueTask HandleAsync(
+        ValidateCommand<AuthorizationCodeGrantContext> command,
         CancellationToken cancellationToken)
     {
-        var context = command.GrantContext;
-        var (openIdContext, openIdClient, tokenRequest, authorizationRequest) = context;
+        var (openIdContext, openIdClient, tokenRequest, authorizationRequest) = command.Context;
 
         var clientId = openIdClient.ClientId;
         var clientSettings = openIdClient.Settings;
@@ -138,6 +136,8 @@ public class DefaultAuthorizationCodeGrantHandler(
             authorizationRequest.CodeChallenge,
             authorizationRequest.CodeChallengeMethod,
             clientSettings.RequireCodeChallenge);
+
+        return ValueTask.CompletedTask;
     }
 
     private void ValidatePkce(
@@ -199,7 +199,7 @@ public class DefaultAuthorizationCodeGrantHandler(
         AuthorizationCodeGrantContext grantContext,
         CancellationToken cancellationToken)
     {
-        var (openIdContext, openIdClient, tokenRequest, authorizationRequest) = grantContext;
+        var (_, _, tokenRequest, _) = grantContext;
 
         var scopes = tokenRequest.Scopes;
         Debug.Assert(scopes is not null);

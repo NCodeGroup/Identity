@@ -16,11 +16,13 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Endpoints.Token.Messages;
-using NCode.Identity.OpenId.Mediator;
+namespace NCode.Identity.OpenId.Mediator.Commands;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Commands;
+public static class ValidateCommand
+{
+    public static ValidateCommand<TContext> Create<TContext>(TContext context) => new(context);
+}
 
-public record struct ValidateAuthorizationCodeGrantCommand(
-    AuthorizationCodeGrantContext GrantContext
+public readonly record struct ValidateCommand<TContext>(
+    TContext Context
 ) : ICommand;

@@ -22,7 +22,10 @@ using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Logic;
 
-internal class DefaultTokenGrantHandlerSelector(
+/// <summary>
+/// Provides a default implementation of the <see cref="ITokenGrantHandlerSelector"/> abstraction.
+/// </summary>
+public class DefaultTokenGrantHandlerSelector(
     IOpenIdErrorFactory errorFactory,
     IEnumerable<ITokenGrantHandler> handlers
 ) : ITokenGrantHandlerSelector
@@ -32,6 +35,7 @@ internal class DefaultTokenGrantHandlerSelector(
     private Dictionary<string, ITokenGrantHandler> Handlers { get; } =
         handlers.ToDictionary(handler => handler.GrantType, StringComparer.Ordinal);
 
+    /// <inheritdoc />
     public ValueTask<ITokenGrantHandler> SelectAsync(
         TokenRequestContext tokenRequestContext,
         CancellationToken cancellationToken)
@@ -44,7 +48,7 @@ internal class DefaultTokenGrantHandlerSelector(
         if (!Handlers.TryGetValue(grantType, out var handler))
         {
             throw ErrorFactory
-                .UnsupportedGrantType("The specified grant type is not supported.")
+                .UnsupportedGrantType("The provided grant type is not supported by the authorization server.")
                 .AsException();
         }
 

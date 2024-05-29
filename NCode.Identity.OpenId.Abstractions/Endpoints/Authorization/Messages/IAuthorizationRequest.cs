@@ -64,7 +64,7 @@ public interface IAuthorizationRequest : IBaseAuthorizationRequest
     /// <summary>
     /// Gets the <c>code_challenge_method</c> parameter.
     /// </summary>
-    CodeChallengeMethod CodeChallengeMethod { get; }
+    string? CodeChallengeMethod { get; }
 
     /// <summary>
     /// Gets the <c>code_verifier</c> parameter.

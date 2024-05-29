@@ -24,7 +24,6 @@ using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Extensions;
-using NCode.Identity.Jose.Json;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
@@ -129,14 +128,14 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
             return false;
         }
 
-        var algByteCount = SecureEncoding.Utf8.GetByteCount(alg);
+        var algByteCount = SecureEncoding.ASCII.GetByteCount(alg);
         var saltByteCount = algByteCount + 1 + SaltInputSizeBytes;
 
         var salt = saltByteCount <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[saltByteCount] :
             GC.AllocateUninitializedArray<byte>(saltByteCount, pinned: false);
 
-        var algBytesWritten = SecureEncoding.Utf8.GetBytes(alg, salt);
+        var algBytesWritten = SecureEncoding.ASCII.GetBytes(alg, salt);
         Debug.Assert(algBytesWritten == algByteCount);
 
         salt[algByteCount] = 0x00;
@@ -234,14 +233,14 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
             return false;
         }
 
-        var algByteCount = SecureEncoding.Utf8.GetByteCount(alg);
+        var algByteCount = SecureEncoding.ASCII.GetByteCount(alg);
         var saltByteCount = algByteCount + 1 + SaltInputSizeBytes;
 
         var salt = saltByteCount <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[saltByteCount] :
             GC.AllocateUninitializedArray<byte>(saltByteCount, pinned: false);
 
-        var algBytesWritten = SecureEncoding.Utf8.GetBytes(alg, salt);
+        var algBytesWritten = SecureEncoding.ASCII.GetBytes(alg, salt);
         Debug.Assert(algBytesWritten == algByteCount);
 
         salt[algByteCount] = 0x00;

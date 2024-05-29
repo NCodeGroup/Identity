@@ -61,9 +61,9 @@ public class DefaultSecretKeyFactory(
     /// <inheritdoc />
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<char> password)
     {
-        var keySizeBytes = SecureEncoding.Utf8.GetByteCount(password);
+        var keySizeBytes = SecureEncoding.UTF8.GetByteCount(password);
         using var lease = SecureMemoryPool<byte>.Shared.Rent(keySizeBytes);
-        var bytesWritten = SecureEncoding.Utf8.GetBytes(password, lease.Memory.Span);
+        var bytesWritten = SecureEncoding.UTF8.GetBytes(password, lease.Memory.Span);
         Debug.Assert(bytesWritten == keySizeBytes);
         return CreateSymmetric(metadata, lease.Memory.Span[..keySizeBytes]);
     }

@@ -112,7 +112,7 @@ public class JoseSerializerTests : BaseTests
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         var password = Guid.NewGuid().ToString("N");
-        var keyBytes = SecureEncoding.Utf8.GetBytes(password);
+        var keyBytes = SecureEncoding.UTF8.GetBytes(password);
         var secretKey = SecretKeyFactory.CreateSymmetric(metadata, keyBytes);
         return (password, secretKey);
     }

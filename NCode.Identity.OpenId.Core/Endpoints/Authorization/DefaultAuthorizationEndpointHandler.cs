@@ -668,7 +668,7 @@ public class DefaultAuthorizationEndpointHandler(
         var isHybrid = request.GrantType == OpenIdConstants.GrantTypes.Hybrid;
 
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
-        var codeChallengeMethodIsPlain = request.CodeChallengeMethod == CodeChallengeMethod.Plain;
+        var codeChallengeMethodIsPlain = !hasCodeChallenge || request.CodeChallengeMethod == OpenIdConstants.CodeChallengeMethods.Plain;
 
         if (request.Scopes.Count == 0)
             throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
@@ -700,11 +700,12 @@ public class DefaultAuthorizationEndpointHandler(
         if (request.ResponseType.HasFlag(ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
             throw ErrorFactory.UnauthorizedClient("The configuration prohibits the use of unsafe token responses.").AsException();
 
-        // ReSharper disable once ConvertIfStatementToSwitchStatement
+        // require_pkce
         if (!hasCodeChallenge && clientSettings.RequireCodeChallenge)
             throw ErrorFactory.UnauthorizedClient("The configuration requires the use of PKCE parameters.").AsException();
 
-        if (hasCodeChallenge && codeChallengeMethodIsPlain && !clientSettings.AllowPlainCodeChallengeMethod)
+        // allow_plain_code_challenge_method
+        if (codeChallengeMethodIsPlain && !clientSettings.AllowPlainCodeChallengeMethod)
             throw ErrorFactory.UnauthorizedClient("The configuration prohibits the plain PKCE method.").AsException();
 
         // acr_values_supported

@@ -31,48 +31,56 @@ internal class AuthorizationTicket :
     OpenIdMessage<AuthorizationTicket, AuthorizationTicketProperties>,
     IAuthorizationTicket
 {
+    /// <inheritdoc />
     public DateTimeOffset CreatedWhen
     {
         get => Properties.CreatedWhen;
         set => Properties.CreatedWhen = value;
     }
 
+    /// <inheritdoc />
     public string? State
     {
         get => GetKnownParameter(KnownParameters.State);
         set => SetKnownParameter(KnownParameters.State, value);
     }
 
+    /// <inheritdoc />
     public string? Code
     {
         get => GetKnownParameter(KnownParameters.Code);
         set => SetKnownParameter(KnownParameters.Code, value);
     }
 
+    /// <inheritdoc />
     public string? IdToken
     {
         get => GetKnownParameter(KnownParameters.IdToken);
         set => SetKnownParameter(KnownParameters.IdToken, value);
     }
 
+    /// <inheritdoc />
     public string? AccessToken
     {
         get => GetKnownParameter(KnownParameters.AccessToken);
         set => SetKnownParameter(KnownParameters.AccessToken, value);
     }
 
+    /// <inheritdoc />
     public string? TokenType
     {
         get => GetKnownParameter(KnownParameters.TokenType);
         set => SetKnownParameter(KnownParameters.TokenType, value);
     }
 
+    /// <inheritdoc />
     public TimeSpan? ExpiresIn
     {
         get => GetKnownParameter(KnownParameters.ExpiresIn);
         set => SetKnownParameter(KnownParameters.ExpiresIn, value);
     }
 
+    /// <inheritdoc />
     public string? Issuer
     {
         get => GetKnownParameter(KnownParameters.Issuer);

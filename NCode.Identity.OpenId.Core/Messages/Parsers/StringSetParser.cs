@@ -25,7 +25,7 @@ using NCode.Identity.OpenId.Servers;
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Provides an implementation of <see cref="ParameterParser{T}"/> that parses string lists which are separated by
+/// Provides an implementation of <see cref="ParameterParser{T}"/> that parses string collections which are separated by
 /// the space ' ' character.
 /// </summary>
 public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
@@ -53,7 +53,8 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
         {
             0 when descriptor.Optional => null,
             0 => throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
-            > 1 when descriptor.AllowMultipleValues => stringValues.SelectMany(stringValue => stringValue!.Split(Separator)).ToHashSet(StringComparer.Ordinal),
+            > 1 when descriptor.AllowMultipleValues =>
+                stringValues.SelectMany(stringValue => stringValue!.Split(Separator)).ToHashSet(StringComparer.Ordinal),
             > 1 => throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
             _ => stringValues[0]!.Split(Separator).ToHashSet(StringComparer.Ordinal)
         };

@@ -20,21 +20,53 @@ using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 
+/// <summary>
+/// Represents the message for an <c>OAuth</c> or <c>OpenID Connect</c> token request.
+/// </summary>
 public interface ITokenRequest : IOpenIdMessage
 {
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the unique identifier for the <c>OAuth</c> or <c>OpenID Connect</c> client.
+    /// </summary>
     string? ClientId { get; set; }
 
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the authorization code that was issued by the authorization server.
+    /// </summary>
     string? Code { get; set; }
 
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the PKCE parameter that was used in the original authorization request.
+    /// </summary>
+    string? CodeVerifier { get; set; }
+
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the type of grant that the client is requesting.
+    /// </summary>
     string? GrantType { get; set; }
 
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the password of the resource owner.
+    /// </summary>
     string? Password { get; set; }
 
+    /// <summary>
+    /// Gets or sets a <see cref="Uri"/> value containing the <c>redirect_uri</c> parameter that was sent in the original authorization request.
+    /// </summary>
     Uri? RedirectUri { get; set; }
 
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the refresh token that was issued by the authorization server.
+    /// </summary>
     string? RefreshToken { get; set; }
 
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> collection containing the scopes requested by the client.
+    /// </summary>
     IReadOnlyCollection<string>? Scopes { get; set; }
 
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the username of the resource owner.
+    /// </summary>
     string? Username { get; set; }
 }

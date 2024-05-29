@@ -37,7 +37,7 @@ public class AuthorizationResult : IResult, ISupportError
     /// </summary>
     /// <param name="redirectUri">The <see cref="Uri"/> where the authorization response should be sent to.</param>
     /// <param name="responseMode">The mechanism that should be used for sending the authorization response.</param>
-    /// <param name="error">An <see cref="IOpenIdError"/> that contains information about the failure of the operation.</param>
+    /// <param name="error">The <see cref="IOpenIdError"/> that contains information about the failure of the operation.</param>
     public AuthorizationResult(Uri redirectUri, ResponseMode responseMode, IOpenIdError error)
         : this(redirectUri, responseMode, error, null)
     {
@@ -66,12 +66,12 @@ public class AuthorizationResult : IResult, ISupportError
     }
 
     /// <summary>
-    /// Gets or sets the <see cref="Uri"/> where the authorization response should be sent to.
+    /// Gets the <see cref="Uri"/> where the authorization response should be sent to.
     /// </summary>
     public Uri RedirectUri { get; }
 
     /// <summary>
-    /// Gets or sets the mechanism that should be used for sending the authorization response.
+    /// Gets the mechanism that should be used for sending the authorization response.
     /// </summary>
     public ResponseMode ResponseMode { get; }
 
@@ -83,12 +83,12 @@ public class AuthorizationResult : IResult, ISupportError
     public bool Succeeded => Ticket != null;
 
     /// <summary>
-    /// Gets or sets an <see cref="IOpenIdError"/> that contains information about the failure of the operation.
+    /// Gets the <see cref="IOpenIdError"/> that contains information about the failure of the operation.
     /// </summary>
     public IOpenIdError? Error { get; }
 
     /// <summary>
-    /// Gets or sets an <see cref="IAuthorizationTicket"/> that contains the parameters for a successful
+    /// Gets the <see cref="IAuthorizationTicket"/> that contains the parameters for a successful
     /// <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
     /// </summary>
     public IAuthorizationTicket? Ticket { get; }

@@ -95,8 +95,8 @@ public class DefaultPersistedGrantService(
         bool setConsumed,
         CancellationToken cancellationToken)
     {
-        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var hashedKey = GetHashedKey(grantId.GrantKey);
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
@@ -167,7 +167,7 @@ public class DefaultPersistedGrantService(
             grantId.TenantId,
             grantId.GrantType,
             hashedKey,
-            consumedWhen,
+            consumedWhen.WithPrecisionInSeconds(),
             cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);

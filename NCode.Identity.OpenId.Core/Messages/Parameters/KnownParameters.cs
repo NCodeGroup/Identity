@@ -101,13 +101,13 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>code_challenge_method</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="CodeChallengeMethod"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>code_challenge_method</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<CodeChallengeMethod?> CodeChallengeMethod =
-        new(OpenIdConstants.Parameters.CodeChallengeMethod, ParameterParsers.CodeChallengeMethod)
+    public static readonly KnownParameter<string?> CodeChallengeMethod =
+        new(OpenIdConstants.Parameters.CodeChallengeMethod, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleValues = false,
         };
 
     /// <summary>

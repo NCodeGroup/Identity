@@ -18,7 +18,10 @@
 #endregion
 
 using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Text;
 using NCode.CryptoMemory;
 using NCode.Disposables;
 using NCode.Encoders;
@@ -115,14 +118,19 @@ public class DefaultCryptoService : ICryptoService
     }
 
     /// <inheritdoc />
-    public string HashValue(string data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
+    public string HashValue(
+        string data,
+        HashAlgorithmType hashAlgorithmType,
+        BinaryEncodingType binaryEncodingType,
+        Encoding? encoding = null)
     {
+        var effectiveEncoding = encoding ?? SecureEncoding.UTF8;
         var lease = Disposable.Empty;
         try
         {
             Span<byte> dataBytes = stackalloc byte[0];
 
-            var dataByteLength = SecureEncoding.Utf8.GetByteCount(data);
+            var dataByteLength = effectiveEncoding.GetByteCount(data);
             if (dataByteLength <= MaxStackAlloc)
             {
                 dataBytes = stackalloc byte[dataByteLength];
@@ -132,7 +140,7 @@ public class DefaultCryptoService : ICryptoService
                 lease = CryptoPool.Rent(dataByteLength, isSensitive: false, out dataBytes);
             }
 
-            var bytesWritten = SecureEncoding.Utf8.GetBytes(data, dataBytes);
+            var bytesWritten = effectiveEncoding.GetBytes(data, dataBytes);
             Debug.Assert(bytesWritten == dataByteLength);
 
             return HashValue(dataBytes, hashAlgorithmType, binaryEncodingType);
@@ -141,5 +149,26 @@ public class DefaultCryptoService : ICryptoService
         {
             lease.Dispose();
         }
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public bool FixedTimeEquals<T>(ReadOnlySpan<T> left, ReadOnlySpan<T> right)
+        where T : IEqualityOperators<T, T, bool>
+    {
+        if (left.Length != right.Length)
+        {
+            return false;
+        }
+
+        var numberOfItemsThatAreDifferent = 0;
+
+        var length = left.Length;
+        for (var i = 0; i < length; ++i)
+        {
+            numberOfItemsThatAreDifferent += left[i] == right[i] ? 0 : 1;
+        }
+
+        return numberOfItemsThatAreDifferent == 0;
     }
 }

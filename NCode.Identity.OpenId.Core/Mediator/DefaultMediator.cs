@@ -51,6 +51,19 @@ public class DefaultMediator(
         return wrapper.HandleAsync(command, cancellationToken);
     }
 
+    //
+
+    /// <inheritdoc />
+    public ValueTask SendAsync(
+        ICommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var wrapperType = typeof(ICommandHandlerWrapper<>).MakeGenericType(command.GetType());
+        var wrapper = (ICommandHandlerWrapper)ServiceProvider.GetRequiredService(wrapperType);
+        return wrapper.HandleAsync(command, cancellationToken);
+    }
+
     /// <inheritdoc />
     public ValueTask<TResponse> SendAsync<TResponse>(
         ICommand<TResponse> command,

@@ -240,7 +240,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         const string alg = nameof(alg);
 
         var password = Guid.NewGuid().ToString("N");
-        var keyBytes = SecureEncoding.Utf8.GetBytes(password);
+        var keyBytes = SecureEncoding.UTF8.GetBytes(password);
         var cekSizeBytes = cekSizeBits >> 3;
 
         var algorithm = Create(

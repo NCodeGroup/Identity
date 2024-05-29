@@ -29,7 +29,14 @@ internal interface ICommandHandlerWrapper<in TCommand>
         CancellationToken cancellationToken);
 }
 
-internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper<TCommand>
+internal interface ICommandHandlerWrapper
+{
+    ValueTask HandleAsync(
+        ICommand command,
+        CancellationToken cancellationToken);
+}
+
+internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper<TCommand>, ICommandHandlerWrapper
     where TCommand : ICommand
 {
     private MiddlewareChainDelegate MiddlewareChain { get; }
@@ -61,12 +68,13 @@ internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper<TCommand
         ICommandMiddleware<TCommand> middleware) =>
         next => (command, cancellationToken) =>
         {
-            return middleware.HandleAsync(command, SimpleNext, cancellationToken);
-            ValueTask SimpleNext() => next(command, cancellationToken);
+            return middleware.HandleAsync(command, SimpleNextAsync, cancellationToken);
+            ValueTask SimpleNextAsync() => next(command, cancellationToken);
         };
 
-    public ValueTask HandleAsync(
-        TCommand command,
-        CancellationToken cancellationToken) =>
+    public ValueTask HandleAsync(TCommand command, CancellationToken cancellationToken) =>
         MiddlewareChain(command, cancellationToken);
+
+    public ValueTask HandleAsync(ICommand command, CancellationToken cancellationToken) =>
+        MiddlewareChain((TCommand)command, cancellationToken);
 }

@@ -56,7 +56,7 @@ internal abstract class BaseAuthorizationRequestMessage<T, TProperties> : OpenId
         set => SetKnownParameter(KnownParameters.CodeChallenge, value);
     }
 
-    public CodeChallengeMethod? CodeChallengeMethod
+    public string? CodeChallengeMethod
     {
         get => GetKnownParameter(KnownParameters.CodeChallengeMethod);
         set => SetKnownParameter(KnownParameters.CodeChallengeMethod, value);

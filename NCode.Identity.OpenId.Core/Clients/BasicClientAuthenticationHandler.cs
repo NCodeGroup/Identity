@@ -124,7 +124,7 @@ internal class BasicClientAuthenticationHandler(
             return new ClientAuthenticationResult(ErrorInvalidHeader);
 
         // TODO: check for exceptions
-        var credentials = SecureEncoding.Utf8.GetString(Convert.FromBase64String(encoded));
+        var credentials = SecureEncoding.UTF8.GetString(Convert.FromBase64String(encoded));
         if (string.IsNullOrEmpty(credentials))
             return new ClientAuthenticationResult(ErrorInvalidHeader);
 
@@ -150,7 +150,7 @@ internal class BasicClientAuthenticationHandler(
         // TODO: use secure memory operations
         var encodedClientSecret = credentials[(indexOfColon + 1)..];
         var clientSecret = UriDecode(encodedClientSecret);
-        var clientSecretBytes = SecureEncoding.Utf8.GetBytes(clientSecret);
+        var clientSecretBytes = SecureEncoding.UTF8.GetBytes(clientSecret);
 
         foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
         {

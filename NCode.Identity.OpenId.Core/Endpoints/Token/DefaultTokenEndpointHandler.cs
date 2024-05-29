@@ -67,10 +67,10 @@ public class DefaultTokenEndpointHandler(
         var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
         if (!isPostVerb || !IsApplicationFormContentType(httpContext))
         {
-            return ErrorFactory
+            throw ErrorFactory
                 .InvalidRequest("Only POST requests with Content-Type 'application/x-www-form-urlencoded' are supported.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsResult();
+                .AsException();
         }
 
         var openIdContext = await ContextFactory.CreateAsync(
@@ -85,15 +85,17 @@ public class DefaultTokenEndpointHandler(
         if (authResult.IsError)
         {
             // TODO: add support for 401 with WWW-Authenticate header
-            return authResult.Error.AsResult();
+            var error = authResult.Error;
+            error.StatusCode ??= StatusCodes.Status400BadRequest;
+            throw error.AsException();
         }
 
         if (!authResult.HasClient)
         {
-            return ErrorFactory
+            throw ErrorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsResult();
+                .AsException();
         }
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
@@ -112,12 +114,11 @@ public class DefaultTokenEndpointHandler(
             tokenRequestContext,
             cancellationToken);
 
-        // TODO: issue token(s)
-        var result = await handler.HandleAsync(
+        var tokenResponse = await handler.HandleAsync(
             tokenRequestContext,
             cancellationToken);
 
-        return result;
+        return TypedResults.Json(tokenResponse, OpenIdServer.JsonSerializerOptions);
     }
 
     /// <inheritdoc />
@@ -129,6 +130,7 @@ public class DefaultTokenEndpointHandler(
         var (openIdContext, openIdClient, tokenRequest) = tokenRequestContext;
         var clientSettings = openIdClient.Settings;
 
+        // client_id
         if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
             !string.Equals(
                 tokenRequest.ClientId,
@@ -141,13 +143,11 @@ public class DefaultTokenEndpointHandler(
                 .AsException();
         }
 
-        // TODO: validate client
-
-        // TODO: validate request
-
+        // grant_type
         var grantType = tokenRequest.GrantType;
         if (string.IsNullOrEmpty(grantType))
         {
+            // invalid_request
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.GrantType)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
@@ -164,7 +164,39 @@ public class DefaultTokenEndpointHandler(
                 .AsException();
         }
 
-        // TODO: check DPoP
+        // TODO: validate DPoP
+
+        // redirect_uri
+        var redirectUri = tokenRequest.RedirectUri;
+        if (redirectUri is null)
+        {
+            // invalid_request
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+
+            // fyi, the actual value is validated later by the grant handler
+        }
+
+        // scopes
+        var scopeCount = tokenRequest.Scopes?.Count ?? 0;
+        if (scopeCount == 0)
+        {
+            // invalid_request
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.Scope)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
+
+        // TODO: validate resource
+
+        // TODO: validate actual scope values
+
+        // TODO: validate PKCE
+
+        // TODO: validate user/principal
 
         await ValueTask.CompletedTask;
         throw new NotImplementedException();

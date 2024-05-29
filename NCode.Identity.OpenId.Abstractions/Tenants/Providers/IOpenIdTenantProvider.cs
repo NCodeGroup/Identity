@@ -43,6 +43,8 @@ public interface IOpenIdTenantProvider
 
     /// <summary>
     /// Gets the <see cref="OpenIdTenant"/> instance from the specified HTTP request.
+    /// This method uses <see cref="AsyncSharedReferenceLease{T}"/> so that the tenant instance can be cached and shared
+    /// across multiple requests.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>

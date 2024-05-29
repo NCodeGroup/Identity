@@ -1,7 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,11 +16,18 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Endpoints.Token.Messages;
-using NCode.Identity.OpenId.Mediator;
+namespace NCode.Identity.OpenId.Mediator.Commands;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Commands;
+public static class SelectCommand
+{
+    public struct Factory<TContext>(TContext context)
+    {
+        public SelectCommand<TContext, TResponse> Return<TResponse>() => new(context);
+    }
 
-public record struct ValidateTokenRequestCommand(
-    TokenRequestContext TokenRequestContext
-) : ICommand;
+    public static Factory<TContext> Create<TContext>(TContext context) => new(context);
+}
+
+public readonly record struct SelectCommand<TContext, TResponse>(
+    TContext Context
+) : ICommand<TResponse>;

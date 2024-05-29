@@ -16,38 +16,52 @@
 
 #endregion
 
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Endpoints.Token.Results;
 using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Logic;
 
-internal class DefaultAuthorizationCodeGrantHandler(
+/// <summary>
+/// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Authorization Code</c> grant type.
+/// </summary>
+public class DefaultAuthorizationCodeGrantHandler(
+    OpenIdServer openIdServer,
     IOpenIdErrorFactory errorFactory,
-    IPersistedGrantService persistedGrantService
-) : ITokenGrantHandler
+    IPersistedGrantService persistedGrantService,
+    ICryptoService cryptoService
+) : ITokenGrantHandler, ICommandHandler<ValidateAuthorizationCodeGrantCommand>
 {
+    private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private ICryptoService CryptoService { get; } = cryptoService;
 
     /// <inheritdoc />
     public string GrantType => OpenIdConstants.GrantTypes.AuthorizationCode;
 
     /// <inheritdoc />
-    public async ValueTask<IResult> HandleAsync(TokenRequestContext tokenRequestContext, CancellationToken cancellationToken)
+    public async ValueTask<ITokenResponse> HandleAsync(
+        TokenRequestContext tokenRequestContext,
+        CancellationToken cancellationToken)
     {
         var (openIdContext, openIdClient, tokenRequest) = tokenRequestContext;
-        var clientSettings = openIdClient.Settings;
+        var mediator = openIdContext.Mediator;
 
-        var clientId = openIdClient.ClientId;
         var authorizationCode = tokenRequest.Code;
-
-        // TODO: verify error codes and descriptions
-
         if (string.IsNullOrEmpty(authorizationCode))
-            return ErrorFactory.InvalidParameterValue("The authorization code is missing.").AsResult();
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.Code)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
 
         var grantId = new PersistedGrantId
         {
@@ -63,19 +77,150 @@ internal class DefaultAuthorizationCodeGrantHandler(
             cancellationToken);
 
         if (!grantOrNull.HasValue)
-            return ErrorFactory.InvalidRequest("TODO").AsResult();
+            throw ErrorFactory
+                .InvalidGrant("The provided authorization code is invalid, expired, or revoked.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
 
         var grant = grantOrNull.Value;
         var authorizationRequest = grant.Payload;
 
-        if (grant.ClientId != clientId)
-            return ErrorFactory.InvalidRequest("TODO").AsResult();
+        var grantContext = new AuthorizationCodeGrantContext(
+            openIdContext,
+            openIdClient,
+            tokenRequest,
+            authorizationRequest);
+
+        var validateCommand = new ValidateAuthorizationCodeGrantCommand(grantContext);
+
+        await mediator.SendAsync(
+            validateCommand,
+            cancellationToken);
+
+        var tokenResponse = await CreateTokenResponseAsync(
+            grantContext,
+            cancellationToken);
+
+        return tokenResponse;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask HandleAsync(
+        ValidateAuthorizationCodeGrantCommand command,
+        CancellationToken cancellationToken)
+    {
+        var context = command.GrantContext;
+        var (openIdContext, openIdClient, tokenRequest, authorizationRequest) = context;
+
+        var clientId = openIdClient.ClientId;
+        var clientSettings = openIdClient.Settings;
 
         if (authorizationRequest.ClientId != clientId)
-            return ErrorFactory.InvalidRequest("TODO").AsResult();
+        {
+            throw ErrorFactory
+                .InvalidGrant("The provided authorization code was issued to another client.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
+
+        var redirectUri = tokenRequest.RedirectUri;
+        if (authorizationRequest.RedirectUri != redirectUri)
+        {
+            throw ErrorFactory
+                .InvalidGrant("The provided redirect uri does not match the authorization request.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
+
+        // PKCE: code_verifier, code_challenge, code_challenge_method
+        ValidatePkce(
+            tokenRequest.CodeVerifier,
+            authorizationRequest.CodeChallenge,
+            authorizationRequest.CodeChallengeMethod,
+            clientSettings.RequireCodeChallenge);
+    }
+
+    private void ValidatePkce(
+        string? codeVerifier,
+        string? codeChallenge,
+        string? codeChallengeMethod,
+        bool requireCodeChallenge)
+    {
+        var hasCodeChallenge = !string.IsNullOrEmpty(codeChallenge);
+        var requireCodeVerifier = hasCodeChallenge || requireCodeChallenge;
+
+        if (!string.IsNullOrEmpty(codeVerifier))
+        {
+            if (!hasCodeChallenge)
+            {
+                throw ErrorFactory
+                    .InvalidGrant("The 'code_challenge' parameter was missing in the original authorization request.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .AsException();
+            }
+
+            var transformedCodeVerifier = codeChallengeMethod switch
+            {
+                OpenIdConstants.CodeChallengeMethods.Plain => codeVerifier,
+                OpenIdConstants.CodeChallengeMethods.S256 => CryptoService.HashValue(
+                    codeVerifier,
+                    HashAlgorithmType.Sha256,
+                    BinaryEncodingType.Base64Url,
+                    SecureEncoding.ASCII),
+                _ => null
+            };
+
+            if (transformedCodeVerifier is null)
+            {
+                throw ErrorFactory
+                    .InvalidGrant("The provided 'code_challenge_method' parameter contains a value that is not supported.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .AsException();
+            }
+
+            if (!CryptoService.FixedTimeEquals(codeChallenge.AsSpan(), transformedCodeVerifier.AsSpan()))
+            {
+                throw ErrorFactory
+                    .InvalidGrant("PKCE verification has failed.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .AsException();
+            }
+        }
+        else if (requireCodeVerifier)
+        {
+            throw ErrorFactory
+                .InvalidGrant("The 'code_verifier' parameter is required.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
+    }
+
+    private ValueTask<TokenResponse> CreateTokenResponseAsync(
+        AuthorizationCodeGrantContext grantContext,
+        CancellationToken cancellationToken)
+    {
+        var (openIdContext, openIdClient, tokenRequest, authorizationRequest) = grantContext;
+
+        var scopes = tokenRequest.Scopes;
+        Debug.Assert(scopes is not null);
 
         // TODO: issue token(s)
+        var tokenResponse = TokenResponse.Create(OpenIdServer);
 
-        throw new NotImplementedException();
+        tokenResponse.AccessToken = "TODO";
+
+        if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        {
+            tokenResponse.IdToken = "TODO";
+        }
+
+        if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        {
+            tokenResponse.RefreshToken = "TODO";
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return ValueTask.FromResult(tokenResponse);
     }
 }

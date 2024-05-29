@@ -60,8 +60,8 @@ internal class CommandResponseHandlerWrapper<TCommand, TResponse> :
         ICommandResponseMiddleware<TCommand, TResponse> middleware) =>
         next => (command, cancellationToken) =>
         {
-            return middleware.HandleAsync(command, SimpleNext, cancellationToken);
-            ValueTask<TResponse> SimpleNext() => next(command, cancellationToken);
+            return middleware.HandleAsync(command, SimpleNextAsync, cancellationToken);
+            ValueTask<TResponse> SimpleNextAsync() => next(command, cancellationToken);
         };
 
     public ValueTask<TResponse> HandleAsync(ICommand<TResponse> command, CancellationToken cancellationToken) =>

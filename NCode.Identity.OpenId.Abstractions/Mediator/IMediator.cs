@@ -26,6 +26,8 @@ public interface IMediator
 {
     /// <summary>
     /// Asynchronously send a command to a handler that doesn't return a value.
+    /// Since this doesn't return a value, it is possible that zero, one, or more handlers are invoked.
+    /// This variant uses the exact type of the command to find the appropriate handlers.
     /// </summary>
     /// <param name="command">The input value to handle.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
@@ -39,6 +41,7 @@ public interface IMediator
 
     /// <summary>
     /// Asynchronously send a command to a handler that returns a value.
+    /// This variant uses the exact type of the command to find the appropriate handler.
     /// </summary>
     /// <param name="command">The input value to handle.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
@@ -52,8 +55,25 @@ public interface IMediator
         CancellationToken cancellationToken
     ) where TCommand : struct, ICommand<TResponse>;
 
+    //
+
+    /// <summary>
+    /// Asynchronously send a command to a handler that doesn't return a value.
+    /// Since this doesn't return a value, it is possible that zero, one, or more handlers are invoked.
+    /// This variant uses reflection to find the appropriate handlers for the given command.
+    /// </summary>
+    /// <param name="command">The input value to handle.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask SendAsync(
+        ICommand command,
+        CancellationToken cancellationToken
+    );
+
     /// <summary>
     /// Asynchronously send a command to a handler that returns a value.
+    /// This variant uses reflection to find the appropriate handler for the given command.
     /// </summary>
     /// <param name="command">The input value to handle.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the

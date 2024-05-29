@@ -28,11 +28,6 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public static class ParameterParsers
 {
     /// <summary>
-    /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="CodeChallengeMethod"/> values.
-    /// </summary>
-    public static readonly CodeChallengeMethodParser CodeChallengeMethod = new();
-
-    /// <summary>
     /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="DisplayType"/> values.
     /// </summary>
     public static readonly DisplayTypeParser DisplayType = new();

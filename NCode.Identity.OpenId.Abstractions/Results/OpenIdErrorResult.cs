@@ -18,7 +18,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace NCode.Identity.OpenId.Results;
 
@@ -37,7 +36,10 @@ public class OpenIdErrorResult : IResult, ISupportResult, ISupportError
     /// <inheritdoc />
     public virtual async Task ExecuteAsync(HttpContext httpContext)
     {
-        var executor = httpContext.RequestServices.GetRequiredService<IResultExecutor<OpenIdErrorResult>>();
-        await executor.ExecuteAsync(httpContext, this, httpContext.RequestAborted);
+        var result = TypedResults.Json(
+            Error,
+            Error.OpenIdServer.JsonSerializerOptions,
+            statusCode: Error.StatusCode);
+        await result.ExecuteAsync(httpContext);
     }
 }

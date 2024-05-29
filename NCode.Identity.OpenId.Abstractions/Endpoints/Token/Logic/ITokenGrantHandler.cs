@@ -16,16 +16,28 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Endpoints.Token.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Logic;
 
+/// <summary>
+/// Implemented by various handlers to process token requests for a specific grant type.
+/// </summary>
 public interface ITokenGrantHandler
 {
+    /// <summary>
+    /// Gets the type of grant that this <see cref="ITokenGrantHandler"/> instance supports.
+    /// </summary>
     string GrantType { get; }
 
-    ValueTask<IResult> HandleAsync(
+    /// <summary>
+    /// Handles the token request for the specified <see cref="TokenRequestContext"/> by returning the appropriate HTTP response.
+    /// </summary>
+    /// <param name="tokenRequestContext">The <see cref="TokenRequestContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ITokenResponse"/> for a successful result.</returns>
+    ValueTask<ITokenResponse> HandleAsync(
         TokenRequestContext tokenRequestContext,
         CancellationToken cancellationToken);
 }

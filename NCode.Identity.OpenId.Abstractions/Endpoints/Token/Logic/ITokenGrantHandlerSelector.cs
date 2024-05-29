@@ -20,8 +20,20 @@ using NCode.Identity.OpenId.Endpoints.Token.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Logic;
 
+/// <summary>
+/// Provides the ability to select the <see cref="ITokenGrantHandler"/> instance that the authorization server will use to
+/// issue tokens based on the specified <see cref="TokenRequestContext"/>.
+/// </summary>
 public interface ITokenGrantHandlerSelector
 {
+    /// <summary>
+    /// Gets the <see cref="ITokenGrantHandler"/> instance that the authorization server will use to
+    /// issue tokens based on the specified <paramref name="tokenRequestContext"/>.
+    /// </summary>
+    /// <param name="tokenRequestContext">The <see cref="TokenRequestContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ITokenGrantHandler"/>
+    /// instance that will be used to issue tokens based on the specified <paramref name="tokenRequestContext"/>.</returns>
     ValueTask<ITokenGrantHandler> SelectAsync(
         TokenRequestContext tokenRequestContext,
         CancellationToken cancellationToken);

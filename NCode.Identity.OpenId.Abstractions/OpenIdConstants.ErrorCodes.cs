@@ -31,6 +31,11 @@ public static partial class OpenIdConstants
         // https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
 
         /// <summary>
+        /// Contains the error code for <c>invalid_grant</c>.
+        /// </summary>
+        public const string InvalidGrant = "invalid_grant";
+
+        /// <summary>
         /// Contains the error code for <c>invalid_client</c>.
         /// </summary>
         public const string InvalidClient = "invalid_client";

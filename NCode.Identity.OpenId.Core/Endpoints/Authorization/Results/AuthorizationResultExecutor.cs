@@ -186,7 +186,7 @@ internal class AuthorizationResultExecutor(
         httpResponse.StatusCode = StatusCodes.Status200OK;
         httpResponse.ContentType = "text/html; charset=UTF-8";
 
-        await httpResponse.WriteAsync(html, SecureEncoding.Utf8, cancellationToken);
+        await httpResponse.WriteAsync(html, SecureEncoding.UTF8, cancellationToken);
     }
 
     private static string GetFormPostHtml(Uri redirectUri, IOpenIdMessage message)

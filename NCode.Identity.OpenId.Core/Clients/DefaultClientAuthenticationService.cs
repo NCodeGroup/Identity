@@ -42,9 +42,16 @@ internal class DefaultClientAuthenticationService(
         foreach (var handler in Handlers)
         {
             var result = await handler.AuthenticateClientAsync(openIdContext, cancellationToken);
-            if (result.IsUndefined) continue;
-            if (result.IsError) return result;
-            if (!lastResult.IsUndefined) return new ClientAuthenticationResult(ErrorMultipleAuthMethods);
+
+            if (result.IsUndefined)
+                continue;
+
+            if (result.IsError)
+                return result;
+
+            if (!lastResult.IsUndefined)
+                return new ClientAuthenticationResult(ErrorMultipleAuthMethods);
+
             lastResult = result;
         }
 

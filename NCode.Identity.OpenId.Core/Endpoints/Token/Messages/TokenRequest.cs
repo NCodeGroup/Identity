@@ -38,6 +38,12 @@ internal class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
         set => SetKnownParameter(KnownParameters.Code, value);
     }
 
+    public string? CodeVerifier
+    {
+        get => GetKnownParameter(KnownParameters.CodeVerifier);
+        set => SetKnownParameter(KnownParameters.CodeVerifier, value);
+    }
+
     /// <inheritdoc />
     public string? GrantType
     {

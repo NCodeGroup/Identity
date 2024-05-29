@@ -126,9 +126,9 @@ public abstract class CommonJoseEncoder : JoseEncoder
         ReadOnlySpan<char> payload,
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
     {
-        var byteCount = SecureEncoding.Utf8.GetByteCount(payload);
+        var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
         using var _ = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
-        var bytesWritten = SecureEncoding.Utf8.GetBytes(payload, payloadBytes);
+        var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
         Encode(
             tokenWriter,

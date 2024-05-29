@@ -191,7 +191,6 @@ public class DefaultOpenIdServer(
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
                 new SettingCollectionJsonConverter(SettingDescriptorJsonProvider),
                 // TODO remove these
-                new CodeChallengeMethodJsonConverter(),
                 new DisplayTypeJsonConverter(),
                 new PromptTypesJsonConverter(),
                 new ResponseModeJsonConverter(),

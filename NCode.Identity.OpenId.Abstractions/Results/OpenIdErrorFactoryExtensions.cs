@@ -48,6 +48,18 @@ public static class OpenIdErrorFactoryExtensions
     }
 
     /// <summary>
+    /// Creates an <see cref="IOpenIdError"/> for when then provided authorization grant or refresh token is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.
+    /// </summary>
+    /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>
+    /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
+    /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidGrant"/>.</param>
+    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+    public static IOpenIdError InvalidGrant(this IOpenIdErrorFactory factory, string errorDescription, string errorCode = OpenIdConstants.ErrorCodes.InvalidGrant)
+    {
+        return factory.Create(errorCode).WithDescription(errorDescription);
+    }
+
+    /// <summary>
     /// Creates an <see cref="IOpenIdError"/> for when processing the <c>request_uri</c> parameter produces an error.
     /// </summary>
     /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>

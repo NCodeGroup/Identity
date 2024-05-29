@@ -82,7 +82,7 @@ partial class JoseSerializer
         }
         else
         {
-            SecureEncoding.Utf8.GetBytes(encodedPayload, payloadWriter);
+            SecureEncoding.UTF8.GetBytes(encodedPayload, payloadWriter);
         }
     }
 }

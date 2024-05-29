@@ -182,7 +182,7 @@ public class DefaultAuthorizationTicketService(
         // TODO: publish event of new access token
 
         ticket.AccessToken = accessToken;
-        ticket.TokenType = OpenIdConstants.TokenTypes.Bearer;
+        ticket.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
         ticket.ExpiresIn = lifetime;
     }
 

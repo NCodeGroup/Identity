@@ -20,7 +20,13 @@ using NCode.Identity.OpenId.Clients;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 
-public record TokenRequestContext(
+/// <summary>
+/// Contains the information about the request that the authorization server will use to issue tokens.
+/// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> instance for the current request.</param>
+/// <param name="OpenIdClient">The <see cref="OpenIdClient"/> instance that represents the client application that is requesting the token.</param>
+/// <param name="TokenRequest">The <see cref="ITokenRequest"/> instance that represents the token request.</param>
+public record struct TokenRequestContext(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     ITokenRequest TokenRequest

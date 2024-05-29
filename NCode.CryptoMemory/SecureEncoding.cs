@@ -26,7 +26,18 @@ namespace NCode.CryptoMemory;
 public static class SecureEncoding
 {
     /// <summary>
+    /// Gets an ASCII encoding that throws an exception when invalid bytes are encountered.
+    /// </summary>
+    // ReSharper disable once InconsistentNaming
+    public static ASCIIEncoding ASCII { get; } = new()
+    {
+        EncoderFallback = EncoderFallback.ExceptionFallback,
+        DecoderFallback = DecoderFallback.ExceptionFallback,
+    };
+
+    /// <summary>
     /// Gets a UTF-8 encoding that throws an exception when invalid bytes are encountered.
     /// </summary>
-    public static UTF8Encoding Utf8 { get; } = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    // ReSharper disable once InconsistentNaming
+    public static UTF8Encoding UTF8 { get; } = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 }

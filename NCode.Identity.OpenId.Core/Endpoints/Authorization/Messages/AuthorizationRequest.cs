@@ -18,6 +18,7 @@
 #endregion
 
 using System.Collections;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
@@ -82,10 +83,10 @@ internal class AuthorizationRequest(
         OriginalRequestObject?.CodeChallenge ??
         OriginalRequestMessage.CodeChallenge;
 
-    public CodeChallengeMethod CodeChallengeMethod =>
+    public string CodeChallengeMethod =>
         OriginalRequestObject?.CodeChallengeMethod ??
         OriginalRequestMessage.CodeChallengeMethod ??
-        CodeChallengeMethod.Plain;
+        OpenIdConstants.CodeChallengeMethods.Plain;
 
     public string? CodeVerifier =>
         OriginalRequestObject?.CodeVerifier ??
@@ -187,9 +188,11 @@ internal class AuthorizationRequest(
         OriginalRequestObject?.TryGetValue(key, out value) ??
         OriginalRequestMessage.TryGetValue(key, out value);
 
+    [MustDisposeResource]
     public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() =>
         GetUnion().GetEnumerator();
 
+    [MustDisposeResource]
     IEnumerator IEnumerable.GetEnumerator() =>
         GetEnumerator();
 }

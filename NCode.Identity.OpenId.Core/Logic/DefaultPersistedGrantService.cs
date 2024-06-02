@@ -20,6 +20,7 @@
 using System.Text.Json;
 using IdGen;
 using NCode.Identity.Jose.Extensions;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
@@ -54,14 +55,14 @@ public class DefaultPersistedGrantService(
     public async ValueTask<TimePeriod> AddAsync<TPayload>(
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,
-        TimeSpan lifetime,
+        DateTimeOffset createdWhen,
+        TimeSpan? lifetime,
         CancellationToken cancellationToken)
     {
         var id = IdGenerator.CreateId();
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
-        var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-        var timePeriod = new TimePeriod(createdWhen, lifetime);
+        var expiresWhen = createdWhen + lifetime;
 
         var payload = JsonSerializer.SerializeToElement(
             grant.Payload,
@@ -75,8 +76,8 @@ public class DefaultPersistedGrantService(
             HashedKey = hashedKey,
             ClientId = grant.ClientId,
             SubjectId = grant.SubjectId,
-            CreatedWhen = timePeriod.StartTime,
-            ExpiresWhen = timePeriod.EndTime,
+            CreatedWhen = createdWhen,
+            ExpiresWhen = expiresWhen,
             ConsumedWhen = null,
             Payload = payload
         };
@@ -88,7 +89,9 @@ public class DefaultPersistedGrantService(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        return timePeriod;
+        var tokenPeriod = new TimePeriod(createdWhen, expiresWhen);
+
+        return tokenPeriod;
     }
 
     /// <inheritdoc />

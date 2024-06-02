@@ -106,8 +106,9 @@ public static partial class OpenIdConstants
 
     public static class PersistedGrantTypes
     {
-        public const string AuthorizationCode = "authorization_code";
         public const string Continue = "continue";
+        public const string AuthorizationCode = "authorization_code";
+        public const string RefreshToken = "refresh_token";
     }
 
     public static class SecurityTokenTypes
@@ -116,5 +117,12 @@ public static partial class OpenIdConstants
         public const string AccessToken = "access_token";
         public const string RefreshToken = "refresh_token";
         public const string AuthorizationCode = "authorization_code";
+    }
+
+    public static class RefreshTokenExpirationPolicy
+    {
+        public const string None = "none";
+        public const string Absolute = "absolute";
+        public const string Sliding = "sliding";
     }
 }

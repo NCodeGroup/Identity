@@ -20,8 +20,8 @@
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
@@ -29,5 +29,5 @@ public readonly record struct AuthorizeCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IAuthorizationRequest AuthorizationRequest,
-    SubjectAuthenticationTicket AuthenticationTicket
+    SubjectAuthentication SubjectAuthentication
 ) : ICommand<IResult?>;

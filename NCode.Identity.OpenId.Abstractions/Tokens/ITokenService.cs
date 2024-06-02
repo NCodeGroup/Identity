@@ -56,4 +56,19 @@ public interface ITokenService
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Generates a refresh token.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
+    /// <param name="tokenRequest">The <see cref="CreateSecurityTokenRequest"/> that contains the information required to generate the refresh token.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="SecurityToken"/>
+    /// that represents newly generated the refresh token.</returns>
+    ValueTask<SecurityToken> CreateRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken);
 }

@@ -38,7 +38,9 @@ public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAcce
         var (openIdContext, _, tokenContext, subjectClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
-        var subject = tokenRequest.Subject ?? throw new InvalidOperationException("Subject is required.");
+        // TODO: what about client authentication?
+        var subject = tokenRequest.SubjectAuthentication?.Subject ??
+                      throw new InvalidOperationException("Subject is required.");
 
         var claimTypes = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -62,7 +64,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAcce
         if (!hasAuthTime)
         {
             var issuer = openIdContext.Tenant.Issuer;
-            var authTime = tokenRequest.AuthenticationProperties?.IssuedUtc ?? tokenRequest.CreatedWhen;
+            var authTime = tokenRequest.SubjectAuthentication?.AuthenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
 
             var claim = new Claim(
                 JoseClaimNames.Payload.AuthTime,

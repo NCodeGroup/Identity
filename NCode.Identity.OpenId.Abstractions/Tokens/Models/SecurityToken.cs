@@ -16,10 +16,12 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Models;
+
 namespace NCode.Identity.OpenId.Tokens.Models;
 
 public readonly record struct SecurityToken(
-    string Type,
-    string Value,
-    TimePeriod? Lifetime
+    string TokenType,
+    string TokenValue,
+    TimePeriod TokenPeriod
 );

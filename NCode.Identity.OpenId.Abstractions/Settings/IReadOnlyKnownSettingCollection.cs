@@ -140,6 +140,16 @@ public interface IReadOnlyKnownSettingCollection : IReadOnlySettingCollection
     IReadOnlyCollection<string> IdTokenSigningAlgValuesSupported { get; }
 
     /// <summary>
+    /// Gets the value for the 'refresh_token_expiration_policy' setting.
+    /// </summary>
+    string RefreshTokenExpirationPolicy { get; }
+
+    /// <summary>
+    /// Gets the lifetime of refresh tokens issued to clients.
+    /// </summary>
+    TimeSpan RefreshTokenLifetime { get; }
+
+    /// <summary>
     /// Gets the value to use when validating the <c>audience</c> JWT claim when fetching the request object
     /// from <c>request_uri</c>.
     /// </summary>

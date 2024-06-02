@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Routing.Template;
 using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;

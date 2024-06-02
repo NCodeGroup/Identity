@@ -17,13 +17,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Models;
 
 /// <summary>
 /// Contains the result after attempting to authenticate a user.
 /// </summary>
-public readonly struct SubjectAuthenticateResult
+public readonly struct AuthenticateSubjectResult
 {
     /// <summary>
     /// Gets the <see cref="Exception"/> for a failed authentication result.
@@ -31,9 +32,9 @@ public readonly struct SubjectAuthenticateResult
     public Exception? Error { get; }
 
     /// <summary>
-    /// Gets the <see cref="SubjectAuthenticationTicket"/> for a successful authentication result.
+    /// Gets the <see cref="SubjectAuthentication"/> for a successful authentication result.
     /// </summary>
-    public SubjectAuthenticationTicket? Ticket { get; }
+    public SubjectAuthentication? Ticket { get; }
 
     /// <summary>
     /// Gets a boolean indicating whether the result is undefined.
@@ -53,20 +54,20 @@ public readonly struct SubjectAuthenticateResult
     public bool IsSuccess => Ticket != null;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="SubjectAuthenticateResult"/> for when authentication failed.
+    /// Initializes a new instance of <see cref="AuthenticateSubjectResult"/> for when authentication failed.
     /// </summary>
     /// <param name="error">The <see cref="Exception"/> for a failed authentication result.</param>
-    public SubjectAuthenticateResult(Exception error)
+    public AuthenticateSubjectResult(Exception error)
     {
         Error = error;
         Ticket = null;
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="SubjectAuthenticateResult"/> for when authentication succeeded.
+    /// Initializes a new instance of <see cref="AuthenticateSubjectResult"/> for when authentication succeeded.
     /// </summary>
-    /// <param name="ticket">The <see cref="SubjectAuthenticationTicket"/> for a successful authentication result.</param>
-    public SubjectAuthenticateResult(SubjectAuthenticationTicket ticket)
+    /// <param name="ticket">The <see cref="SubjectAuthentication"/> for a successful authentication result.</param>
+    public AuthenticateSubjectResult(SubjectAuthentication ticket)
     {
         Error = null;
         Ticket = ticket;

@@ -72,7 +72,7 @@ public class PersistedGrant : ISupportId, ISupportTenantId
     /// <summary>
     /// Gets or sets when this entity expires.
     /// </summary>
-    public required DateTimeOffset ExpiresWhen { get; init; }
+    public required DateTimeOffset? ExpiresWhen { get; init; }
 
     /// <summary>
     /// Gets or sets when this entity was consumed.

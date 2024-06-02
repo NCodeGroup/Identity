@@ -38,7 +38,9 @@ public class DefaultGetIdTokenSubjectClaimsHandler : ICommandHandler<GetIdTokenS
         var (openIdContext, _, tokenContext, subjectClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
-        var subject = tokenRequest.Subject ?? throw new InvalidOperationException("Subject is required.");
+        // TODO: what about client authentication?
+        var subject = tokenRequest.SubjectAuthentication?.Subject ??
+                      throw new InvalidOperationException("Subject is required.");
 
         // required: sub, auth_time, idp, amr
         // optional: acr
@@ -107,7 +109,7 @@ public class DefaultGetIdTokenSubjectClaimsHandler : ICommandHandler<GetIdTokenS
         if (!hasAuthTime)
         {
             var issuer = openIdContext.Tenant.Issuer;
-            var authTime = tokenRequest.AuthenticationProperties?.IssuedUtc ?? tokenRequest.CreatedWhen;
+            var authTime = tokenRequest.SubjectAuthentication?.AuthenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
 
             var claim = new Claim(
                 JoseClaimNames.Payload.AuthTime,

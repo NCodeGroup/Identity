@@ -19,6 +19,7 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Servers;
@@ -29,12 +30,14 @@ namespace NCode.Identity.OpenId.Endpoints.Continue.Logic;
 /// Provides a default implementation of the <see cref="IContinueService"/> abstraction.
 /// </summary>
 public class DefaultContinueService(
+    TimeProvider timeProvider,
     OpenIdServer openIdServer,
     LinkGenerator linkGenerator,
     ICryptoService cryptoService,
     IPersistedGrantService persistedGrantService
 ) : IContinueService
 {
+    private TimeProvider TimeProvider { get; } = timeProvider;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
@@ -60,6 +63,8 @@ public class DefaultContinueService(
 
         if (string.IsNullOrEmpty(continueUrl))
             throw new InvalidOperationException("Unable to determine continue url.");
+
+        var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         var payloadJson = JsonSerializer.SerializeToElement(
             payload,
@@ -88,6 +93,7 @@ public class DefaultContinueService(
         await PersistedGrantService.AddAsync(
             persistedGrantId,
             persistedGrant,
+            createdWhen,
             lifetime,
             cancellationToken);
 

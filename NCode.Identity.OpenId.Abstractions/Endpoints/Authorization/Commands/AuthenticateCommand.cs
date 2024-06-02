@@ -28,4 +28,4 @@ public readonly record struct AuthenticateCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IAuthorizationRequest AuthorizationRequest
-) : ICommand<SubjectAuthenticateResult>;
+) : ICommand<AuthenticateSubjectResult>;

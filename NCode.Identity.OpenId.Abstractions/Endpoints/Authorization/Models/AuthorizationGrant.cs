@@ -17,10 +17,11 @@
 #endregion
 
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Models;
 
 public readonly record struct AuthorizationGrant(
     IAuthorizationRequest AuthorizationRequest,
-    SubjectAuthenticationTicket AuthenticationTicket
+    SubjectAuthentication SubjectAuthentication
 );

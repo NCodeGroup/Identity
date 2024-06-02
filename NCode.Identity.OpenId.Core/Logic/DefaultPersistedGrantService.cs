@@ -48,10 +48,10 @@ public class DefaultPersistedGrantService(
         CryptoService.HashValue(
             grantKey,
             HashAlgorithmType.Sha256,
-            BinaryEncodingType.Base64);
+            BinaryEncodingType.Base64); // TODO: will this cause collation issues?
 
     /// <inheritdoc />
-    public async ValueTask AddAsync<TPayload>(
+    public async ValueTask<TimePeriod> AddAsync<TPayload>(
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,
         TimeSpan lifetime,
@@ -59,8 +59,9 @@ public class DefaultPersistedGrantService(
     {
         var id = IdGenerator.CreateId();
         var hashedKey = GetHashedKey(grantId.GrantKey);
+
         var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-        var expiresWhen = createdWhen.Add(lifetime);
+        var timePeriod = new TimePeriod(createdWhen, lifetime);
 
         var payload = JsonSerializer.SerializeToElement(
             grant.Payload,
@@ -74,8 +75,8 @@ public class DefaultPersistedGrantService(
             HashedKey = hashedKey,
             ClientId = grant.ClientId,
             SubjectId = grant.SubjectId,
-            CreatedWhen = createdWhen,
-            ExpiresWhen = expiresWhen,
+            CreatedWhen = timePeriod.StartTime,
+            ExpiresWhen = timePeriod.EndTime,
             ConsumedWhen = null,
             Payload = payload
         };
@@ -86,6 +87,8 @@ public class DefaultPersistedGrantService(
         await store.AddAsync(envelope, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        return timePeriod;
     }
 
     /// <inheritdoc />

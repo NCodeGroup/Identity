@@ -19,7 +19,7 @@
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Results;
+namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 
 public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
 {

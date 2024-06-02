@@ -21,7 +21,7 @@ using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Discovery.Commands;
 
-public record struct DiscoverMetadataCommand(
+public readonly record struct DiscoverMetadataCommand(
     OpenIdContext OpenIdContext,
     IDictionary<string, object> Metadata,
     bool ShowAll

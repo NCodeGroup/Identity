@@ -24,6 +24,8 @@ using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.JsonWebTokens;
 
+// TODO: would we gain anything by making this a struct?
+
 /// <summary>
 /// Contains the parameters used to encode a Json Web Token (JWT) security token.
 /// </summary>
@@ -33,70 +35,70 @@ public class EncodeJwtParameters
     /// Gets or sets the value that will be used in the <c>typ</c> header parameter.
     /// The default value is <c>JWT</c>.
     /// </summary>
-    public string TokenType { get; set; } = JoseTokenTypes.Jwt;
+    public string TokenType { get; init; } = JoseTokenTypes.Jwt;
 
     /// <summary>
     /// Gets or sets a boolean indicating whether to add the secret's <c>kid</c> value (if present) to the JWT header.
     /// The default value is <c>true</c>.
     /// </summary>
-    public bool AddKeyIdHeader { get; set; } = true;
+    public bool AddKeyIdHeader { get; init; } = true;
 
     /// <summary>
     /// Gets or sets the <see cref="JoseSigningCredentials"/> that is used to sign the token.
     /// If both <see cref="SigningCredentials"/> and <see cref="EncryptionCredentials"/> are specified,
     /// then the result will be a nested JWS+JWE token. Both credentials cannot be <c>null</c>.
     /// </summary>
-    public JoseSigningCredentials? SigningCredentials { get; set; }
+    public JoseSigningCredentials? SigningCredentials { get; init; }
 
     /// <summary>
     /// Gets or sets the <see cref="JoseEncryptionCredentials"/> that is used to encrypt the token.
     /// If both <see cref="SigningCredentials"/> and <see cref="EncryptionCredentials"/> are specified,
     /// then the result will be a nested JWS+JWE token. Both credentials cannot be <c>null</c>.
     /// </summary>
-    public JoseEncryptionCredentials? EncryptionCredentials { get; set; }
+    public JoseEncryptionCredentials? EncryptionCredentials { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the <c>iss</c> claim.
     /// </summary>
-    public string? Issuer { get; set; }
+    public string? Issuer { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the <c>aud</c> claim.
     /// </summary>
-    public StringValues Audience { get; set; }
+    public StringValues Audience { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the <c>iat</c> claim.
     /// </summary>
-    public DateTimeOffset? IssuedAt { get; set; }
+    public DateTimeOffset? IssuedAt { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the <c>nbf</c> claim.
     /// </summary>
-    public DateTimeOffset? NotBefore { get; set; }
+    public DateTimeOffset? NotBefore { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the <c>exp</c> claim.
     /// </summary>
-    public DateTimeOffset? Expires { get; set; }
+    public DateTimeOffset? Expires { get; init; }
 
     /// <summary>
     /// Gets or sets the collection of <see cref="Claim"/> values that will be added to the payload.
     /// </summary>
-    public IEnumerable<Claim>? SubjectClaims { get; set; }
+    public IEnumerable<Claim>? SubjectClaims { get; init; }
 
     /// <summary>
     /// Gets or sets the extra claims that will be added to the payload.
     /// </summary>
-    public IReadOnlyDictionary<string, object>? ExtraPayloadClaims { get; set; }
+    public IReadOnlyDictionary<string, object>? ExtraPayloadClaims { get; init; }
 
     /// <summary>
     /// Gets or sets the extra claims that will be added to the signature header.
     /// </summary>
-    public IReadOnlyDictionary<string, object>? ExtraSignatureHeaderClaims { get; set; }
+    public IReadOnlyDictionary<string, object>? ExtraSignatureHeaderClaims { get; init; }
 
     /// <summary>
     /// Gets or sets the extra claims that will be added to the encryption header.
     /// </summary>
-    public IReadOnlyDictionary<string, object>? ExtraEncryptionHeaderClaims { get; set; }
+    public IReadOnlyDictionary<string, object>? ExtraEncryptionHeaderClaims { get; init; }
 }

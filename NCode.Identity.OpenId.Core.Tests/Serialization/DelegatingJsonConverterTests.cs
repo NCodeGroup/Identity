@@ -117,7 +117,8 @@ public class DelegatingJsonConverterTests : IDisposable
         requestObject.MaxAge = TimeSpan.FromMinutes(3.5);
         requestObject.Scopes = new[] { "scope1", "scope2" };
 
-        var inputMessage = new AuthorizationRequest(requestMessage, requestObject);
+        const bool isContinuation = false;
+        var inputMessage = new AuthorizationRequest(isContinuation, requestMessage, requestObject);
 
         var json = JsonSerializer.Serialize(inputMessage, jsonSerializerOptions);
 

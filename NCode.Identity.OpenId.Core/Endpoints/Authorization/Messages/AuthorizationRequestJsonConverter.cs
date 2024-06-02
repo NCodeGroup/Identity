@@ -34,23 +34,23 @@ internal class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationR
     {
         var envelope = JsonSerializer.Deserialize<AuthorizationRequestJsonEnvelope>(ref reader, options);
 
-        var requestMessage = envelope?.OriginalRequestMessage;
-        if (requestMessage == null)
+        if (envelope?.OriginalRequestMessage is null)
             return null;
 
+        var requestMessage = envelope.OriginalRequestMessage;
         Debug.Assert(requestMessage.OpenIdServer != null);
 
-        var requestObject = envelope?.OriginalRequestObject;
-
+        var requestObject = envelope.OriginalRequestObject;
         Debug.Assert(requestObject == null || requestObject.OpenIdServer == requestMessage.OpenIdServer);
 
-        return new AuthorizationRequest(requestMessage, requestObject);
+        return new AuthorizationRequest(envelope.IsContinuation, requestMessage, requestObject);
     }
 
     public override void Write(Utf8JsonWriter writer, IAuthorizationRequest value, JsonSerializerOptions options)
     {
         var envelope = new AuthorizationRequestJsonEnvelope
         {
+            IsContinuation = value.IsContinuation,
             OriginalRequestMessage = value.OriginalRequestMessage,
             OriginalRequestObject = value.OriginalRequestObject
         };

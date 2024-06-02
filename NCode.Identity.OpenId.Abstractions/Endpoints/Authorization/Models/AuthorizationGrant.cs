@@ -16,18 +16,11 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Mediator.Commands;
+using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-public static class SelectCommand
-{
-    public struct Factory<TContext>(TContext context)
-    {
-        public SelectCommand<TContext, TResponse> Return<TResponse>() => new(context);
-    }
+namespace NCode.Identity.OpenId.Endpoints.Authorization.Models;
 
-    public static Factory<TContext> Create<TContext>(TContext context) => new(context);
-}
-
-public readonly record struct SelectCommand<TContext, TResponse>(
-    TContext Context
-) : ICommand<TResponse>;
+public readonly record struct AuthorizationGrant(
+    IAuthorizationRequest AuthorizationRequest,
+    SubjectAuthenticationTicket AuthenticationTicket
+);

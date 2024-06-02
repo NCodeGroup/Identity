@@ -26,6 +26,11 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 public interface IAuthorizationRequest : IBaseAuthorizationRequest
 {
     /// <summary>
+    /// Gets or sets a boolean indicating whether the current authorization request has been continued from user interaction.
+    /// </summary>
+    bool IsContinuation { get; set; }
+
+    /// <summary>
     /// Gets the <see cref="IAuthorizationRequestMessage"/> which represents the OAuth request message.
     /// </summary>
     IAuthorizationRequestMessage OriginalRequestMessage { get; }

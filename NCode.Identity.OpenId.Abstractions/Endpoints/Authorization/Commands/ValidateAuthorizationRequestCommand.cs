@@ -15,16 +15,14 @@
 //    limitations under the License.
 #endregion
 
+using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
-/// <summary>
-/// Defines an <see cref="ICommand"/> contract that accepts an <see cref="AuthorizationRequestContext"/> as an
-/// input argument and doesn't return a value.
-/// </summary>
-/// <param name="AuthorizationRequestContext">The <see cref="AuthorizationRequestContext"/> input argument for the command contract.</param>
-public record struct ValidateAuthorizationRequestCommand(
-    AuthorizationRequestContext AuthorizationRequestContext
+public readonly record struct ValidateAuthorizationRequestCommand(
+    OpenIdContext OpenIdContext,
+    OpenIdClient OpenIdClient,
+    IAuthorizationRequest AuthorizationRequest
 ) : ICommand;

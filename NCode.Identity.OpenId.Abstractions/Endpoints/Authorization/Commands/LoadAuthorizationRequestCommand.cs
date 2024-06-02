@@ -23,16 +23,8 @@ using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
-/// <summary>
-/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="OpenIdContext"/>,
-/// <see cref="OpenIdClient"/>, and <see cref="IAuthorizationSource"/> as input arguments and
-/// expects <see cref="AuthorizationRequestContext"/> as a response.
-/// </summary>
-/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> input argument for the command contract.</param>
-/// <param name="OpenIdClient">The <see cref="OpenIdClient"/> input argument for the command contract.</param>
-/// <param name="AuthorizationSource">The <see cref="IAuthorizationSource"/> input argument for the command contract.</param>
-public record struct LoadAuthorizationRequestCommand(
+public readonly record struct LoadAuthorizationRequestCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IAuthorizationSource AuthorizationSource
-) : ICommand<AuthorizationRequestContext>;
+) : ICommand<IAuthorizationRequest>;

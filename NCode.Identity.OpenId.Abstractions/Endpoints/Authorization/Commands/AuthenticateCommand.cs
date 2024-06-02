@@ -17,17 +17,15 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
+using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
-/// <summary>
-/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="OpenIdContext"/> as an
-/// input argument and expects <see cref="AuthenticateResult"/> as a response.
-/// </summary>
-/// <param name="AuthorizationRequestContext">The <see cref="AuthorizationRequestContext"/> input argument for the command contract.</param>
-public record struct AuthenticateCommand(
-    AuthorizationRequestContext AuthorizationRequestContext
-) : ICommand<AuthenticateResult>;
+public readonly record struct AuthenticateCommand(
+    OpenIdContext OpenIdContext,
+    OpenIdClient OpenIdClient,
+    IAuthorizationRequest AuthorizationRequest
+) : ICommand<SubjectAuthenticateResult>;

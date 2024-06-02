@@ -22,20 +22,11 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Models;
 /// <summary>
 /// Provides contextual information about redirects and responses that can be safely returned to the user-agent.
 /// </summary>
-public readonly struct ClientRedirectContext
-{
-    /// <summary>
-    /// Gets or sets the <c>redirect_uri</c> that should be used to return responses to the user-agent.
-    /// </summary>
-    public required Uri RedirectUri { get; init; }
-
-    /// <summary>
-    /// Gets or sets the <see cref="ResponseMode"/> that should be used to return responses to the user-agent.
-    /// </summary>
-    public required ResponseMode ResponseMode { get; init; }
-
-    /// <summary>
-    /// Gets or sets the <c>state</c> parameter that should be included when returning responses to the user-agent.
-    /// </summary>
-    public required string? State { get; init; }
-}
+/// <param name="RedirectUri">Contains the <c>redirect_uri</c> that should be used to return responses to the user-agent.</param>
+/// <param name="ResponseMode">Contains the <see cref="ResponseMode"/> that should be used to return responses to the user-agent.</param>
+/// <param name="State">Contains the <c>state</c> parameter that should be included when returning responses to the user-agent.</param>
+public readonly record struct ClientRedirectContext(
+    Uri RedirectUri,
+    ResponseMode ResponseMode,
+    string? State
+);

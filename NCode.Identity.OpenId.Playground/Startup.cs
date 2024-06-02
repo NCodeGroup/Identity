@@ -30,7 +30,6 @@ using NCode.Identity.OpenId.Endpoints.Authorization;
 using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Endpoints.Discovery;
 using NCode.Identity.OpenId.Endpoints.Token;
-using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Registration;
@@ -72,6 +71,7 @@ internal class Startup(IConfiguration configuration)
         services.AddMediatorCoreServices();
         services.AddTenantCoreServices();
         services.AddEndpointCoreServices();
+        services.AddTokenServices();
 
         services.AddContinueEndpoint();
         services.AddDiscoveryEndpoint();
@@ -79,7 +79,6 @@ internal class Startup(IConfiguration configuration)
         services.AddTokenEndpoint();
 
         services.AddSingleton<IClientAuthenticationService, DefaultClientAuthenticationService>();
-        services.AddSingleton<ITokenGrantHandlerSelector, DefaultTokenGrantHandlerSelector>();
 
         services.AddSecretPersistenceServices();
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();

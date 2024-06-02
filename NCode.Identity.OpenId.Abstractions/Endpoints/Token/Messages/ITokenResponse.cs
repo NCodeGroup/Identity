@@ -18,7 +18,7 @@
 
 using NCode.Identity.OpenId.Messages;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Results;
+namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 
 public interface ITokenResponse : IOpenIdMessage
 {

@@ -1,6 +1,6 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,17 +18,12 @@
 
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Mediator;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Contexts;
+namespace NCode.Identity.OpenId.Endpoints.Token.Commands;
 
-/// <summary>
-/// Contains contextual information about the request that the authorization server will use to issue tokens.
-/// </summary>
-/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> instance for the current request.</param>
-/// <param name="OpenIdClient">The <see cref="OpenIdClient"/> instance that represents the client application that is requesting the token.</param>
-/// <param name="TokenRequest">The <see cref="ITokenRequest"/> instance that represents the token request.</param>
-public readonly record struct TokenRequestContext(
+public readonly record struct ValidateTokenRequestCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     ITokenRequest TokenRequest
-);
+) : ICommand;

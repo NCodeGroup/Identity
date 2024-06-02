@@ -17,12 +17,12 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Endpoints.Authorization.Logic;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Logic.Authorization;
@@ -43,8 +43,7 @@ public static class AuthorizationEndpointRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddAuthorizationEndpoint(this IServiceCollection serviceCollection)
     {
-        serviceCollection.AddSingleton<IAuthorizationTicketService, DefaultAuthorizationTicketService>();
-        serviceCollection.AddSingleton<IAuthorizationClaimsService, DefaultAuthorizationClaimsService>();
+        serviceCollection.AddSingleton<IAuthorizationCodeService, DefaultAuthorizationCodeService>();
         serviceCollection.AddSingleton<IAuthorizationInteractionService, NullAuthorizationInteractionService>();
 
         serviceCollection.AddSingleton<DefaultAuthorizationEndpointHandler>();
@@ -58,13 +57,13 @@ public static class AuthorizationEndpointRegistration
         serviceCollection.AddSingleton<ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
-        serviceCollection.AddSingleton<ICommandResponseHandler<LoadAuthorizationRequestCommand, AuthorizationRequestContext>>(serviceProvider =>
+        serviceCollection.AddSingleton<ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
         serviceCollection.AddSingleton<ICommandHandler<ValidateAuthorizationRequestCommand>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
-        serviceCollection.AddSingleton<ICommandResponseHandler<AuthenticateCommand, AuthenticateResult>>(serviceProvider =>
+        serviceCollection.AddSingleton<ICommandResponseHandler<AuthenticateCommand, SubjectAuthenticateResult>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
         serviceCollection.AddSingleton<ICommandResponseHandler<AuthorizeCommand, IResult?>>(serviceProvider =>

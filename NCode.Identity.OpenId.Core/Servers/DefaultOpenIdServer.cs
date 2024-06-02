@@ -21,6 +21,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Claims;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -190,6 +191,8 @@ public class DefaultOpenIdServer(
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
                 new SettingCollectionJsonConverter(SettingDescriptorJsonProvider),
+                new ClaimJsonConverter(),
+                new ClaimsIdentityJsonConverter(),
                 // TODO remove these
                 new DisplayTypeJsonConverter(),
                 new PromptTypesJsonConverter(),

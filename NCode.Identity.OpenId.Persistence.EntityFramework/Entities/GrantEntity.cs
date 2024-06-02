@@ -33,6 +33,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 [Index(nameof(TenantId), nameof(GrantType), nameof(HashedKey), IsUnique = true)]
 [Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
+[Index(nameof(TenantId), nameof(ExpiresWhen), IsUnique = false)]
 public class GrantEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
 {
     /// <inheritdoc />

@@ -45,13 +45,14 @@ public static class OpenIdCoreRegistration
         serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();
         serviceCollection.TryAddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ICollectionDataSource<SettingDescriptor>, DefaultSettingDescriptorDataSource>());
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ICollectionDataSource<SettingDescriptor>, DefaultSettingDescriptorDataSource>());
 
         serviceCollection.TryAddSingleton<ISettingDescriptorCollectionProvider, DefaultSettingDescriptorCollectionProvider>();
         serviceCollection.TryAddSingleton<ISettingDescriptorJsonProvider, DefaultSettingDescriptorJsonProvider>();
         serviceCollection.TryAddSingleton<ISettingSerializer, DefaultSettingSerializer>();
 
-        serviceCollection.TryAddSingleton<DefaultOpenIdServer>();
+        serviceCollection.AddSingleton<DefaultOpenIdServer>();
         serviceCollection.TryAddSingleton<OpenIdServer>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultOpenIdServer>());
         serviceCollection.TryAddSingleton<IOpenIdErrorFactory>(serviceProvider =>

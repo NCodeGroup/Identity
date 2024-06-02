@@ -109,4 +109,12 @@ public static partial class OpenIdConstants
         public const string AuthorizationCode = "authorization_code";
         public const string Continue = "continue";
     }
+
+    public static class SecurityTokenTypes
+    {
+        public const string IdToken = "id_token";
+        public const string AccessToken = "access_token";
+        public const string RefreshToken = "refresh_token";
+        public const string AuthorizationCode = "authorization_code";
+    }
 }

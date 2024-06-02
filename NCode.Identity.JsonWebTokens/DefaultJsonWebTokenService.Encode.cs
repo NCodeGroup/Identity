@@ -73,7 +73,7 @@ partial class DefaultJsonWebTokenService
         return encodedToken;
     }
 
-    private IDictionary<string, object> GetEffectivePayload(EncodeJwtParameters parameters)
+    private Dictionary<string, object> GetEffectivePayload(EncodeJwtParameters parameters)
     {
         var payload = new Dictionary<string, object>(StringComparer.Ordinal);
 
@@ -89,7 +89,7 @@ partial class DefaultJsonWebTokenService
     }
 
     private static void ProcessSubjectClaims(
-        IDictionary<string, object> payload,
+        Dictionary<string, object> payload,
         IEnumerable<Claim>? subjectClaims)
     {
         if (subjectClaims is null) return;
@@ -124,7 +124,7 @@ partial class DefaultJsonWebTokenService
     }
 
     private static void ProcessExtraPayloadClaims(
-        IDictionary<string, object> payload,
+        Dictionary<string, object> payload,
         IReadOnlyDictionary<string, object>? extraClaims)
     {
         if (extraClaims is not { Count: > 1 }) return;
@@ -136,7 +136,7 @@ partial class DefaultJsonWebTokenService
     }
 
     private static void ProcessRequestClaims(
-        IDictionary<string, object> payload,
+        Dictionary<string, object> payload,
         EncodeJwtParameters parameters)
     {
         if (!string.IsNullOrEmpty(parameters.Issuer))
@@ -167,7 +167,7 @@ partial class DefaultJsonWebTokenService
         }
     }
 
-    private void ProcessTokenLifetime(IDictionary<string, object> payload)
+    private void ProcessTokenLifetime(Dictionary<string, object> payload)
     {
         if (!Options.EnsureTokenLifetime) return;
 

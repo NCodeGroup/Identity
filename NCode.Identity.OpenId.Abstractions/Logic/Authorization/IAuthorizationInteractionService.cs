@@ -17,6 +17,8 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Clients;
+using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NCode.Identity.OpenId.Logic.Authorization;
@@ -29,24 +31,32 @@ public interface IAuthorizationInteractionService
     /// <summary>
     /// Gets the URL that the authorization server may redirect the user-agent in order to authenticate an end-user.
     /// </summary>
-    /// <param name="authorizationRequestContext">The <see cref="AuthorizationRequestContext"/> for the current authorization request.</param>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
+    /// <param name="authorizationRequest">The <see cref="IAuthorizationRequest"/> for the current authorization request.</param>
     /// <param name="continueUrl">The URL that the user-agent may return to the authorization server after successfully completing the operation and continuing the authorization flow.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the redirect URL.</returns>
     ValueTask<string> GetLoginUrlAsync(
-        AuthorizationRequestContext authorizationRequestContext,
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest authorizationRequest,
         string continueUrl,
         CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets the URL that the authorization server may redirect the user-agent in order to display the account creation UI.
     /// </summary>
-    /// <param name="authorizationRequestContext">The <see cref="AuthorizationRequestContext"/> for the current authorization request.</param>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
+    /// <param name="authorizationRequest">The <see cref="IAuthorizationRequest"/> for the current authorization request.</param>
     /// <param name="continueUrl">The URL that the user-agent may return to the authorization server after successfully completing the operation and continuing the authorization flow.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the redirect URL.</returns>
     ValueTask<string> GetCreateAccountUrlAsync(
-        AuthorizationRequestContext authorizationRequestContext,
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest authorizationRequest,
         string continueUrl,
         CancellationToken cancellationToken);
 }

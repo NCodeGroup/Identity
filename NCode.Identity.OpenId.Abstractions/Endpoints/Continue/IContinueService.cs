@@ -29,7 +29,7 @@ public interface IContinueService
     /// the authorization server and resume the continuation. The <paramref name="payload"/> will be
     /// persisted and available to the <see cref="IContinueProvider"/> when the user-agent returns.
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="continueCode">The <see cref="string"/> <c>Continue Code</c> for the continuation.</param>
     /// <param name="clientId">The optional <see cref="string"/> <c>ClientId</c> for the continuation.</param>
     /// <param name="subjectId">The optional <see cref="string"/> <c>SubjectId</c> for the continuation.</param>

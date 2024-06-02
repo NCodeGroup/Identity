@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Logic.Authorization;
 
@@ -26,7 +27,9 @@ internal class NullAuthorizationInteractionService : IAuthorizationInteractionSe
 {
     /// <inheritdoc />
     public ValueTask<string> GetLoginUrlAsync(
-        AuthorizationRequestContext authorizationRequestContext,
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest authorizationRequest,
         string continueUrl,
         CancellationToken cancellationToken)
     {
@@ -35,7 +38,9 @@ internal class NullAuthorizationInteractionService : IAuthorizationInteractionSe
 
     /// <inheritdoc />
     public ValueTask<string> GetCreateAccountUrlAsync(
-        AuthorizationRequestContext authorizationRequestContext,
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest authorizationRequest,
         string continueUrl,
         CancellationToken cancellationToken)
     {

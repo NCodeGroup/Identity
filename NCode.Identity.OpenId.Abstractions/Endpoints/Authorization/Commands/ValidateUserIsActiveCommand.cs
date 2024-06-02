@@ -17,8 +17,9 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
+using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
@@ -36,8 +37,10 @@ public class ValidateUserIsActiveResult
     public void SetInactive() => IsActive = false;
 }
 
-public record struct ValidateUserIsActiveCommand(
-    AuthorizationRequestContext Context,
-    AuthenticationTicket Ticket,
+public readonly record struct ValidateUserIsActiveCommand(
+    OpenIdContext OpenIdContext,
+    OpenIdClient OpenIdClient,
+    IAuthorizationRequest AuthorizationRequest,
+    SubjectAuthenticationTicket AuthenticationTicket,
     ValidateUserIsActiveResult Result
 ) : ICommand;

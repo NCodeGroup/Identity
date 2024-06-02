@@ -16,13 +16,16 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Mediator.Commands;
+using NCode.Identity.OpenId.Clients;
+using NCode.Identity.OpenId.Endpoints;
+using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Tokens.Models;
 
-public static class ValidateCommand
-{
-    public static ValidateCommand<TContext> Create<TContext>(TContext context) => new(context);
-}
+namespace NCode.Identity.OpenId.Tokens.Commands;
 
-public readonly record struct ValidateCommand<TContext>(
-    TContext Context
+public readonly record struct SecurityTokenIssuedEvent(
+    OpenIdContext OpenIdContext,
+    OpenIdClient OpenIdClient,
+    string? SubjectId,
+    SecurityToken SecurityToken
 ) : ICommand;

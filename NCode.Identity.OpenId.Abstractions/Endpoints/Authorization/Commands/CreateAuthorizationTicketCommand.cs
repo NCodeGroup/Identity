@@ -17,20 +17,17 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authentication;
+using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
-/// <summary>
-/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts <see cref="AuthorizationRequestContext"/> and
-/// <see cref="AuthenticationTicket"/> as input arguments and expects <see cref="IAuthorizationTicket"/> as a response.
-/// </summary>
-/// <param name="AuthorizationRequestContext">The <see cref="AuthorizationRequestContext"/> input argument for the command contract.</param>
-/// <param name="AuthenticationTicket">The <see cref="AuthenticationTicket"/> input argument for the command contract.</param>
-public record struct CreateAuthorizationTicketCommand(
-    AuthorizationRequestContext AuthorizationRequestContext,
-    AuthenticationTicket AuthenticationTicket
+public readonly record struct CreateAuthorizationTicketCommand(
+    OpenIdContext OpenIdContext,
+    OpenIdClient OpenIdClient,
+    IAuthorizationRequest AuthorizationRequest,
+    SubjectAuthenticationTicket AuthenticationTicket
 ) : ICommand<IAuthorizationTicket>;

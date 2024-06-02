@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Servers;
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 internal class AuthorizationRequest(
+    bool isContinuation,
     IAuthorizationRequestMessage requestMessage,
     IAuthorizationRequestObject? requestObject
 ) : IAuthorizationRequest
@@ -45,6 +46,8 @@ internal class AuthorizationRequest(
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 
     public OpenIdServer OpenIdServer => OriginalRequestMessage.OpenIdServer;
+
+    public bool IsContinuation { get; set; } = isContinuation;
 
     public IAuthorizationRequestMessage OriginalRequestMessage { get; } = requestMessage;
 

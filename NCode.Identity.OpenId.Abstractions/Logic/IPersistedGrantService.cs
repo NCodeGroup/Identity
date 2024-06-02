@@ -69,29 +69,29 @@ public readonly struct PersistedGrant<TPayload>
 public interface IPersistedGrantService
 {
     /// <summary>
-    /// Persists a grant with the specified details to storage.
+    /// Persists a persisted grant with the specified details to storage.
     /// </summary>
     /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
     /// <param name="grant">Contains the payload of the persisted grant.</param>
-    /// <param name="lifetime">The lifetime of the grant.</param>
+    /// <param name="lifetime">The lifetime of the persisted grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <typeparam name="TPayload">The type of the payload for the grant.</typeparam>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask AddAsync<TPayload>(
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the lifetime of the persisted grant.</returns>
+    ValueTask<TimePeriod> AddAsync<TPayload>(
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,
         TimeSpan lifetime,
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Attempts to retrieve a grant from storage with the specified identifiers.
+    /// Attempts to retrieve a persisted grant from storage with the specified identifiers.
     /// </summary>
     /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
     /// <param name="singleUse">Indicates whether the grant should be checked whether it has already been consumed.</param>
     /// <param name="setConsumed">Indicates whether the grant should be marked as consumed if it has not already been consumed.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <typeparam name="TPayload">The type of the payload for the grant.</typeparam>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the grant.</returns>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the persisted grant.</returns>
     ValueTask<PersistedGrant<TPayload>?> TryGetAsync<TPayload>(
         PersistedGrantId grantId,
         bool singleUse,

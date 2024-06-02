@@ -18,10 +18,10 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.OpenId.Endpoints.Token.Contexts;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Mediator.Commands;
 
 namespace NCode.Identity.OpenId.Endpoints.Token;
 
@@ -42,11 +42,13 @@ public static class TokenEndpointRegistration
         serviceCollection.AddSingleton<IOpenIdEndpointProvider>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultTokenEndpointHandler>());
 
-        serviceCollection.AddSingleton<ICommandHandler<ValidateCommand<TokenRequestContext>>>(serviceProvider =>
+        // TODO: break apart
+
+        serviceCollection.AddSingleton<ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultTokenEndpointHandler>());
 
-        serviceCollection.AddSingleton<ICommandResponseHandler<SelectCommand<TokenRequestContext, ITokenGrantHandler>, ITokenGrantHandler>>(serviceProvider =>
-            serviceProvider.GetRequiredService<DefaultTokenEndpointHandler>());
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ITokenGrantHandler, DefaultAuthorizationCodeGrantHandler>());
 
         return serviceCollection;
     }

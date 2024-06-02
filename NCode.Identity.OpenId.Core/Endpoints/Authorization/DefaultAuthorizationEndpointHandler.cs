@@ -1135,7 +1135,7 @@ public class DefaultAuthorizationEndpointHandler(
                 authenticationTicket,
                 cancellationToken);
 
-            ticket.Code = securityToken.Value;
+            ticket.AuthorizationCode = securityToken.Value;
         }
 
         var tokenRequest = new CreateSecurityTokenRequest
@@ -1144,7 +1144,7 @@ public class DefaultAuthorizationEndpointHandler(
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
             Scopes = authorizationRequest.Scopes,
-            AuthorizationCode = ticket.Code,
+            AuthorizationCode = ticket.AuthorizationCode,
             Subject = authenticationTicket.Subject,
             SubjectId = authenticationTicket.SubjectId,
             AuthenticationProperties = authenticationTicket.AuthenticationProperties,

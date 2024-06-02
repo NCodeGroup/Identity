@@ -26,14 +26,14 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 public interface ITokenRequest : IOpenIdMessage
 {
     /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the authorization code that was issued by the authorization server.
+    /// </summary>
+    string? AuthorizationCode { get; set; }
+
+    /// <summary>
     /// Gets or sets a <see cref="string"/> value containing the unique identifier for the <c>OAuth</c> or <c>OpenID Connect</c> client.
     /// </summary>
     string? ClientId { get; set; }
-
-    /// <summary>
-    /// Gets or sets a <see cref="string"/> value containing the authorization code that was issued by the authorization server.
-    /// </summary>
-    string? Code { get; set; }
 
     /// <summary>
     /// Gets or sets a <see cref="string"/> value containing the PKCE parameter that was used in the original authorization request.

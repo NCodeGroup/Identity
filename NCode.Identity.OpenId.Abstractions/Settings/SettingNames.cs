@@ -165,6 +165,16 @@ public static class SettingNames
     public const string PromptValuesSupported = "prompt_values_supported";
 
     /// <summary>
+    /// Contains the name of <c>refresh_token_expiration_policy</c> setting.
+    /// </summary>
+    public const string RefreshTokenExpirationPolicy = "refresh_token_expiration_policy";
+
+    /// <summary>
+    /// Contains the name of <c>refresh_token_lifetime</c> setting.
+    /// </summary>
+    public const string RefreshTokenLifetime = "refresh_token_lifetime";
+
+    /// <summary>
     /// Contains the name of <c>request_object_encryption_alg_values_supported</c> setting.
     /// </summary>
     public const string RequestObjectEncryptionAlgValuesSupported = "request_object_encryption_alg_values_supported";

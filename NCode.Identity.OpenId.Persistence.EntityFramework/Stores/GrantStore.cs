@@ -68,7 +68,7 @@ public class GrantStore(
             SubjectId = persistedGrant.SubjectId,
             NormalizedSubjectId = Normalize(persistedGrant.SubjectId),
             CreatedWhen = persistedGrant.CreatedWhen.ToUniversalTime(),
-            ExpiresWhen = persistedGrant.ExpiresWhen.ToUniversalTime(),
+            ExpiresWhen = persistedGrant.ExpiresWhen?.ToUniversalTime(),
             ConsumedWhen = persistedGrant.ConsumedWhen?.ToUniversalTime(),
             Payload = persistedGrant.Payload,
             Tenant = tenant,

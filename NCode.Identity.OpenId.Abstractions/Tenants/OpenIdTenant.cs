@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.PropertyBag;

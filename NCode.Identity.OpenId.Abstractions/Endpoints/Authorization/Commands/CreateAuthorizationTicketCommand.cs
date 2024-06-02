@@ -19,9 +19,9 @@
 
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
@@ -29,5 +29,5 @@ public readonly record struct CreateAuthorizationTicketCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IAuthorizationRequest AuthorizationRequest,
-    SubjectAuthenticationTicket AuthenticationTicket
+    SubjectAuthentication SubjectAuthentication
 ) : ICommand<IAuthorizationTicket>;

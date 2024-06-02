@@ -17,9 +17,10 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.OpenId;
+namespace NCode.Identity.OpenId.Models;
 
 /// <summary>
 /// Represents the components of an Uniform Resource Identifier (URI).
@@ -30,6 +31,7 @@ namespace NCode.Identity.OpenId;
 /// https://github.com/IdentityServer/IdentityServer4/issues/2080
 /// https://nat.sakimura.org/2018/04/04/what-encoding-should-a-uri-in-openid-and-oauth-discovery-document-use-for-an-internationalized-domain-name-idn/#easy-footnote-1-1403
 /// </remarks>
+[PublicAPI]
 public readonly struct UriDescriptor
 {
     /// <summary>

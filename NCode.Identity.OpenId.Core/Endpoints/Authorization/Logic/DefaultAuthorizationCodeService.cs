@@ -16,11 +16,12 @@
 
 #endregion
 
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Logic.Authorization;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Tokens.Commands;
 using NCode.Identity.OpenId.Tokens.Models;
 
@@ -30,10 +31,12 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Logic;
 /// Provides a default implementation of the <see cref="IAuthorizationCodeService"/> abstraction.
 /// </summary>
 public class DefaultAuthorizationCodeService(
+    TimeProvider timeProvider,
     ICryptoService cryptoService,
     IPersistedGrantService persistedGrantService
 ) : IAuthorizationCodeService
 {
+    private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
@@ -42,14 +45,14 @@ public class DefaultAuthorizationCodeService(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
-        SubjectAuthenticationTicket authenticationTicket,
+        SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
         var mediator = openIdContext.Mediator;
 
         var tenantId = openIdContext.Tenant.TenantId;
         var clientId = openIdClient.ClientId;
-        var subjectId = authenticationTicket.SubjectId;
+        var subjectId = subjectAuthentication.SubjectId;
 
         var authorizationCode = CryptoService.GenerateUrlSafeKey();
 
@@ -67,10 +70,13 @@ public class DefaultAuthorizationCodeService(
             Payload = authorizationRequest
         };
 
+        var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var lifetime = openIdClient.Settings.AuthorizationCodeLifetime;
+
         var tokenPeriod = await PersistedGrantService.AddAsync(
             persistedGrantId,
             persistedGrant,
+            createdWhen,
             lifetime,
             cancellationToken);
 

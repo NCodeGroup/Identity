@@ -17,6 +17,8 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Models;
+
 namespace NCode.Identity.OpenId.Logic;
 
 /// <summary>
@@ -73,6 +75,7 @@ public interface IPersistedGrantService
     /// </summary>
     /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
     /// <param name="grant">Contains the payload of the persisted grant.</param>
+    /// <param name="createdWhen">Contains the <see cref="DateTimeOffset"/> when the grant was created.</param>
     /// <param name="lifetime">The lifetime of the persisted grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
@@ -80,7 +83,8 @@ public interface IPersistedGrantService
     ValueTask<TimePeriod> AddAsync<TPayload>(
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,
-        TimeSpan lifetime,
+        DateTimeOffset createdWhen,
+        TimeSpan? lifetime,
         CancellationToken cancellationToken);
 
     /// <summary>

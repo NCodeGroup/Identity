@@ -21,7 +21,7 @@ using System.Text.Json;
 
 namespace NCode.Identity.OpenId.Endpoints.Continue.Models;
 
-internal class ContinueEnvelope
+internal readonly struct ContinueEnvelope
 {
     public required string Code { get; init; }
 

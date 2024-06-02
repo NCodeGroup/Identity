@@ -63,7 +63,7 @@ public static class AuthorizationEndpointRegistration
         serviceCollection.AddSingleton<ICommandHandler<ValidateAuthorizationRequestCommand>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
-        serviceCollection.AddSingleton<ICommandResponseHandler<AuthenticateCommand, SubjectAuthenticateResult>>(serviceProvider =>
+        serviceCollection.AddSingleton<ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectResult>>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
         serviceCollection.AddSingleton<ICommandResponseHandler<AuthorizeCommand, IResult?>>(serviceProvider =>

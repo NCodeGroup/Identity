@@ -19,7 +19,7 @@
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Endpoints.Authorization.Models;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Tokens.Models;
 
 namespace NCode.Identity.OpenId.Logic.Authorization;
@@ -35,13 +35,13 @@ public interface IAuthorizationCodeService
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
     /// <param name="authorizationRequest">The <see cref="IAuthorizationRequest"/> that represents the authorization request.</param>
-    /// <param name="authenticationTicket">The <see cref="SubjectAuthenticationTicket"/> that represents the authenticated user identity.</param>
+    /// <param name="subjectAuthentication">The <see cref="SubjectAuthentication"/> that represents the authenticated user identity.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="SecurityToken"/> newly generated authorization code.</returns>
     ValueTask<SecurityToken> CreateAuthorizationCodeAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
-        SubjectAuthenticationTicket authenticationTicket,
+        SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken);
 }

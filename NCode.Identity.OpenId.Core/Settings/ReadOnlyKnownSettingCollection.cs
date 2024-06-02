@@ -19,6 +19,7 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -116,6 +117,14 @@ public class ReadOnlyKnownSettingCollection(
         Get(KnownSettings.IdTokenSigningAlgValuesSupported);
 
     /// <inheritdoc />
+    public string RefreshTokenExpirationPolicy =>
+        Get(KnownSettings.RefreshTokenExpirationPolicy);
+
+    /// <inheritdoc />
+    public TimeSpan RefreshTokenLifetime =>
+        Get(KnownSettings.RefreshTokenLifetime);
+
+    /// <inheritdoc />
     public string RequestObjectExpectedAudience =>
         Get(KnownSettings.RequestObjectExpectedAudience);
 
@@ -146,10 +155,12 @@ public class ReadOnlyKnownSettingCollection(
         Store.Count;
 
     /// <inheritdoc />
+    [MustDisposeResource]
     public IEnumerator<Setting> GetEnumerator() =>
         Store.GetEnumerator();
 
     /// <inheritdoc />
+    [MustDisposeResource]
     IEnumerator IEnumerable.GetEnumerator() =>
         ((IEnumerable)Store).GetEnumerator();
 

@@ -402,6 +402,30 @@ public static class KnownSettings
     };
 
     /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'refresh_token_expiration_policy' setting.
+    /// </summary>
+    public static SettingDescriptor<string> RefreshTokenExpirationPolicy { get; } = new()
+    {
+        Name = SettingNames.RefreshTokenExpirationPolicy,
+        Default = OpenIdConstants.RefreshTokenExpirationPolicy.Absolute,
+
+        IsDiscoverable = IsNonStdDiscoverable,
+        OnMerge = Replace
+    };
+
+    /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'refresh_token_lifetime' setting.
+    /// </summary>
+    public static SettingDescriptor<TimeSpan> RefreshTokenLifetime { get; } = new()
+    {
+        Name = SettingNames.RefreshTokenLifetime,
+        Default = TimeSpan.FromDays(30.0),
+
+        IsDiscoverable = IsNonStdDiscoverable,
+        OnMerge = Replace
+    };
+
+    /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'request_object_encryption_alg_values_supported' setting.
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> RequestObjectEncryptionAlgValuesSupported { get; } = new()

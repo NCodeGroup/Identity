@@ -254,7 +254,7 @@ public class DefaultAuthorizationCodeGrantHandler(
         AuthorizationGrant authorizationGrant,
         CancellationToken cancellationToken)
     {
-        var (authorizationRequest, authenticationTicket) = authorizationGrant;
+        var (authorizationRequest, subjectAuthentication) = authorizationGrant;
 
         var scopes = tokenRequest.Scopes;
         Debug.Assert(scopes is not null);
@@ -270,9 +270,7 @@ public class DefaultAuthorizationCodeGrantHandler(
             State = authorizationRequest.State,
             Scopes = authorizationRequest.Scopes,
             AuthorizationCode = tokenRequest.AuthorizationCode,
-            Subject = authenticationTicket.Subject,
-            SubjectId = authenticationTicket.SubjectId,
-            AuthenticationProperties = authenticationTicket.AuthenticationProperties
+            SubjectAuthentication = subjectAuthentication
         };
 
         {
@@ -282,14 +280,17 @@ public class DefaultAuthorizationCodeGrantHandler(
                 securityTokenRequest,
                 cancellationToken);
 
-            tokenResponse.AccessToken = securityToken.Value;
-            tokenResponse.ExpiresIn = securityToken.Lifetime?.Duration;
+            tokenResponse.AccessToken = securityToken.TokenValue;
+            tokenResponse.ExpiresIn = securityToken.TokenPeriod.Duration;
             tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
         }
 
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
         {
-            var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
+            var newRequest = securityTokenRequest with
+            {
+                AccessToken = tokenResponse.AccessToken
+            };
 
             var securityToken = await TokenService.CreateAccessTokenAsync(
                 openIdContext,
@@ -297,13 +298,23 @@ public class DefaultAuthorizationCodeGrantHandler(
                 newRequest,
                 cancellationToken);
 
-            tokenResponse.IdToken = securityToken.Value;
+            tokenResponse.IdToken = securityToken.TokenValue;
         }
 
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
         {
-            // TODO
-            tokenResponse.RefreshToken = "TODO";
+            var newRequest = securityTokenRequest with
+            {
+                AccessToken = tokenResponse.AccessToken
+            };
+
+            var securityToken = await TokenService.CreateRefreshTokenAsync(
+                openIdContext,
+                openIdClient,
+                newRequest,
+                cancellationToken);
+
+            tokenResponse.RefreshToken = securityToken.TokenValue;
         }
 
         return tokenResponse;

@@ -23,7 +23,8 @@ using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints;
-using NCode.Identity.OpenId.Extensions;
+using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Tokens.Commands;
 using NCode.Identity.OpenId.Tokens.Models;
 using NCode.Identity.Secrets;
@@ -34,14 +35,18 @@ namespace NCode.Identity.OpenId.Tokens;
 /// Provides a default implementation of the <see cref="ITokenService"/> abstraction.
 /// </summary>
 public class DefaultTokenService(
+    ICryptoService cryptoService,
     IAlgorithmProvider algorithmProvider,
     ICredentialSelector credentialSelector,
-    IJsonWebTokenService jsonWebTokenService
+    IJsonWebTokenService jsonWebTokenService,
+    IPersistedGrantService persistedGrantService
 ) : ITokenService
 {
+    private ICryptoService CryptoService { get; } = cryptoService;
     private IAlgorithmProvider AlgorithmProvider { get; } = algorithmProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
     /// <inheritdoc />
     public async ValueTask<SecurityToken> CreateAccessTokenAsync(
@@ -50,22 +55,22 @@ public class DefaultTokenService(
         CreateSecurityTokenRequest tokenRequest,
         CancellationToken cancellationToken)
     {
-        var clientSettings = openIdClient.Settings;
+        var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
         var secretKeys = openIdTenant.SecretKeyProvider.Collection;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmProvider.Collection,
-            clientSettings.AccessTokenSigningAlgValuesSupported,
+            settings.AccessTokenSigningAlgValuesSupported,
             secretKeys);
 
         var encryptionCredentials = GetEncryptionCredentials(
             AlgorithmProvider.Collection,
-            clientSettings.AccessTokenEncryptionRequired,
-            clientSettings.AccessTokenEncryptionAlgValuesSupported,
-            clientSettings.AccessTokenEncryptionEncValuesSupported,
-            clientSettings.AccessTokenEncryptionZipValuesSupported,
+            settings.AccessTokenEncryptionRequired,
+            settings.AccessTokenEncryptionAlgValuesSupported,
+            settings.AccessTokenEncryptionEncValuesSupported,
+            settings.AccessTokenEncryptionZipValuesSupported,
             secretKeys);
 
         var tokenContext = new SecurityTokenContext(
@@ -93,13 +98,14 @@ public class DefaultTokenService(
                 payloadClaims),
             cancellationToken);
 
+        var lifetime = settings.AccessTokenLifetime;
         var createdWhen = tokenRequest.CreatedWhen;
-        var lifetime = clientSettings.AccessTokenLifetime;
-        var tokenPeriod = new TimePeriod(createdWhen, lifetime);
+        var expiresWhen = createdWhen + lifetime;
+        var tokenPeriod = new TimePeriod(createdWhen, expiresWhen);
 
         var parameters = new EncodeJwtParameters
         {
-            TokenType = clientSettings.AccessTokenType,
+            TokenType = settings.AccessTokenType,
 
             SigningCredentials = signingCredentials,
             EncryptionCredentials = encryptionCredentials,
@@ -107,9 +113,9 @@ public class DefaultTokenService(
             Issuer = openIdTenant.Issuer,
             Audience = openIdClient.ClientId,
 
-            IssuedAt = tokenPeriod.StartTime,
-            NotBefore = tokenPeriod.StartTime,
-            Expires = tokenPeriod.EndTime,
+            IssuedAt = createdWhen,
+            NotBefore = createdWhen,
+            Expires = expiresWhen,
 
             SubjectClaims = subjectClaims,
             ExtraPayloadClaims = payloadClaims,
@@ -121,7 +127,7 @@ public class DefaultTokenService(
 
         var jwt = JsonWebTokenService.EncodeJwt(parameters);
         var securityToken = new SecurityToken(tokenContext.TokenType, jwt, tokenPeriod);
-        var subjectId = tokenRequest.SubjectId ?? tokenRequest.Subject?.Claims.GetSubjectIdOrDefault();
+        var subjectId = tokenRequest.SubjectAuthentication?.SubjectId;
 
         await mediator.SendAsync(
             new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
@@ -137,22 +143,22 @@ public class DefaultTokenService(
         CreateSecurityTokenRequest tokenRequest,
         CancellationToken cancellationToken)
     {
-        var clientSettings = openIdClient.Settings;
+        var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
         var secretKeys = openIdTenant.SecretKeyProvider.Collection;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmProvider.Collection,
-            clientSettings.IdTokenSigningAlgValuesSupported,
+            settings.IdTokenSigningAlgValuesSupported,
             secretKeys);
 
         var encryptionCredentials = GetEncryptionCredentials(
             AlgorithmProvider.Collection,
-            clientSettings.IdTokenEncryptionRequired,
-            clientSettings.IdTokenEncryptionAlgValuesSupported,
-            clientSettings.IdTokenEncryptionEncValuesSupported,
-            clientSettings.IdTokenEncryptionZipValuesSupported,
+            settings.IdTokenEncryptionRequired,
+            settings.IdTokenEncryptionAlgValuesSupported,
+            settings.IdTokenEncryptionEncValuesSupported,
+            settings.IdTokenEncryptionZipValuesSupported,
             secretKeys);
 
         var tokenContext = new SecurityTokenContext(
@@ -180,9 +186,10 @@ public class DefaultTokenService(
                 payloadClaims),
             cancellationToken);
 
+        var lifetime = settings.IdTokenLifetime;
         var createdWhen = tokenRequest.CreatedWhen;
-        var lifetime = clientSettings.IdTokenLifetime;
-        var tokenPeriod = new TimePeriod(createdWhen, lifetime);
+        var expiresWhen = createdWhen + lifetime;
+        var tokenPeriod = new TimePeriod(createdWhen, expiresWhen);
 
         var parameters = new EncodeJwtParameters
         {
@@ -192,9 +199,9 @@ public class DefaultTokenService(
             Issuer = openIdTenant.Issuer,
             Audience = openIdClient.ClientId,
 
-            IssuedAt = tokenPeriod.StartTime,
-            NotBefore = tokenPeriod.StartTime,
-            Expires = tokenPeriod.EndTime,
+            IssuedAt = createdWhen,
+            NotBefore = createdWhen,
+            Expires = expiresWhen,
 
             SubjectClaims = subjectClaims,
             ExtraPayloadClaims = payloadClaims,
@@ -206,7 +213,74 @@ public class DefaultTokenService(
 
         var jwt = JsonWebTokenService.EncodeJwt(parameters);
         var securityToken = new SecurityToken(tokenContext.TokenType, jwt, tokenPeriod);
-        var subjectId = tokenRequest.SubjectId ?? tokenRequest.Subject?.Claims.GetSubjectIdOrDefault();
+        var subjectId = tokenRequest.SubjectAuthentication?.SubjectId;
+
+        await mediator.SendAsync(
+            new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
+            cancellationToken);
+
+        return securityToken;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<SecurityToken> CreateRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken)
+    {
+        var settings = openIdClient.Settings;
+        var mediator = openIdContext.Mediator;
+
+        var subjectAuthentication = tokenRequest.SubjectAuthentication;
+
+        var tenantId = openIdContext.Tenant.TenantId;
+        var clientId = openIdClient.ClientId;
+        var subjectId = subjectAuthentication?.SubjectId;
+
+        var refreshToken = CryptoService.GenerateUrlSafeKey();
+
+        var persistedGrantId = new PersistedGrantId
+        {
+            TenantId = tenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.RefreshToken,
+            GrantKey = refreshToken
+        };
+
+        var refreshTokenGrant = new RefreshTokenGrant(
+            tokenRequest.Scopes,
+            subjectAuthentication);
+
+        var persistedGrant = new PersistedGrant<RefreshTokenGrant>
+        {
+            ClientId = clientId,
+            SubjectId = subjectId,
+            Payload = refreshTokenGrant
+        };
+
+        // TODO
+        // enable_rotation
+        // expiration_policy (none, sliding, absolute)
+        // lifetime (only if expiration_policy is sliding or absolute)
+        // reuse_policy (none, revoke_all)
+
+        var createdWhen = tokenRequest.CreatedWhen;
+        var expirationPolicy = settings.RefreshTokenExpirationPolicy;
+        var lifetime = expirationPolicy != OpenIdConstants.RefreshTokenExpirationPolicy.None ?
+            settings.RefreshTokenLifetime :
+            (TimeSpan?)null;
+
+        var tokenPeriod = await PersistedGrantService.AddAsync(
+            persistedGrantId,
+            persistedGrant,
+            createdWhen,
+            lifetime,
+            cancellationToken);
+
+        var securityToken = new SecurityToken(
+            OpenIdConstants.SecurityTokenTypes.RefreshToken,
+            refreshToken,
+            tokenPeriod);
 
         await mediator.SendAsync(
             new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),

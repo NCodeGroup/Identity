@@ -141,6 +141,16 @@ public interface IKnownSettingCollection : ISettingCollection
     IReadOnlyCollection<string> IdTokenSigningAlgValuesSupported { get; set; }
 
     /// <summary>
+    /// Gets or sets the value for the 'refresh_token_expiration_policy' setting.
+    /// </summary>
+    string RefreshTokenExpirationPolicy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the lifetime of refresh tokens issued to clients.
+    /// </summary>
+    TimeSpan RefreshTokenLifetime { get; set; }
+
+    /// <summary>
     /// Gets or sets the value to use when validating the <c>audience</c> JWT claim when fetching the request object
     /// from <c>request_uri</c>.
     /// </summary>

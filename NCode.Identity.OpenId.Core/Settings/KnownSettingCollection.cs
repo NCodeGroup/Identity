@@ -19,6 +19,7 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -178,6 +179,20 @@ public class KnownSettingCollection(
         set => Store.Set(KnownSettings.IdTokenSigningAlgValuesSupported.Create(value));
     }
 
+    /// <inheritdoc cref="IKnownSettingCollection.RefreshTokenExpirationPolicy" />
+    public string RefreshTokenExpirationPolicy
+    {
+        get => Get(KnownSettings.RefreshTokenExpirationPolicy);
+        set => Store.Set(KnownSettings.RefreshTokenExpirationPolicy.Create(value));
+    }
+
+    /// <inheritdoc cref="IKnownSettingCollection.RefreshTokenLifetime" />
+    public TimeSpan RefreshTokenLifetime
+    {
+        get => Get(KnownSettings.RefreshTokenLifetime);
+        set => Store.Set(KnownSettings.RefreshTokenLifetime.Create(value));
+    }
+
     /// <inheritdoc cref="IKnownSettingCollection.RequestObjectExpectedAudience" />
     public string RequestObjectExpectedAudience
     {
@@ -227,10 +242,12 @@ public class KnownSettingCollection(
         Store.Count;
 
     /// <inheritdoc />
+    [MustDisposeResource]
     public IEnumerator<Setting> GetEnumerator() =>
         Store.GetEnumerator();
 
     /// <inheritdoc />
+    [MustDisposeResource]
     IEnumerator IEnumerable.GetEnumerator() =>
         ((IEnumerable)Store).GetEnumerator();
 

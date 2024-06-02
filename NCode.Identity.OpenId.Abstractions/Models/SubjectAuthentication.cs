@@ -19,9 +19,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Models;
+namespace NCode.Identity.OpenId.Models;
 
-public readonly record struct SubjectAuthenticationTicket(
+public readonly record struct SubjectAuthentication(
     string AuthenticationScheme,
     AuthenticationProperties AuthenticationProperties,
     ClaimsIdentity Subject,

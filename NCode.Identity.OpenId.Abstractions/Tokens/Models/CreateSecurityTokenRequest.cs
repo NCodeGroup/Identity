@@ -16,8 +16,7 @@
 
 #endregion
 
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
+using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Tokens.Models;
 
@@ -35,11 +34,7 @@ public readonly record struct CreateSecurityTokenRequest
 
     public string? AccessToken { get; init; }
 
-    public ClaimsIdentity? Subject { get; init; }
-
-    public string? SubjectId { get; init; }
-
-    public AuthenticationProperties? AuthenticationProperties { get; init; }
+    public SubjectAuthentication? SubjectAuthentication { get; init; }
 
     public IReadOnlyDictionary<string, object>? ExtraPayloadClaims { get; init; }
 

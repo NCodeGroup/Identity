@@ -44,6 +44,7 @@ using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
@@ -74,7 +75,7 @@ public class DefaultAuthorizationEndpointHandler(
     ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>,
     ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>,
     ICommandHandler<ValidateAuthorizationRequestCommand>,
-    ICommandResponseHandler<AuthenticateCommand, SubjectAuthenticateResult>,
+    ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectResult>,
     ICommandResponseHandler<AuthorizeCommand, IResult?>,
     ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>
 {
@@ -258,7 +259,7 @@ public class DefaultAuthorizationEndpointHandler(
             cancellationToken);
 
         // TODO: is it okay to reauthenticate after continuations?
-        var authenticateResult = await mediator.SendAsync<AuthenticateCommand, SubjectAuthenticateResult>(
+        var authenticateResult = await mediator.SendAsync<AuthenticateCommand, AuthenticateSubjectResult>(
             new AuthenticateCommand(
                 openIdContext,
                 openIdClient,
@@ -813,7 +814,7 @@ public class DefaultAuthorizationEndpointHandler(
     #region AuthenticateCommand
 
     /// <inheritdoc />
-    public async ValueTask<SubjectAuthenticateResult> HandleAsync(
+    public async ValueTask<AuthenticateSubjectResult> HandleAsync(
         AuthenticateCommand command,
         CancellationToken cancellationToken)
     {
@@ -843,7 +844,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (baseResult.Failure is not null)
         {
-            return new SubjectAuthenticateResult(baseResult.Failure);
+            return new AuthenticateSubjectResult(baseResult.Failure);
         }
 
         Debug.Assert(baseResult.Succeeded);
@@ -858,13 +859,13 @@ public class DefaultAuthorizationEndpointHandler(
         var subjectId = subject.Claims.GetSubjectIdOrDefault() ??
                         throw new InvalidOperationException("The authenticated identity must contain a 'sub' claim.");
 
-        var ticket = new SubjectAuthenticationTicket(
+        var ticket = new SubjectAuthentication(
             authenticationScheme,
             authenticationProperties,
             subject,
             subjectId);
 
-        return new SubjectAuthenticateResult(ticket);
+        return new AuthenticateSubjectResult(ticket);
     }
 
     #endregion
@@ -1055,7 +1056,7 @@ public class DefaultAuthorizationEndpointHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
-        SubjectAuthenticationTicket authenticationTicket,
+        SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
         var result = new ValidateUserIsActiveResult();
@@ -1063,7 +1064,7 @@ public class DefaultAuthorizationEndpointHandler(
             openIdContext,
             openIdClient,
             authorizationRequest,
-            authenticationTicket,
+            subjectAuthentication,
             result);
 
         var mediator = openIdContext.Mediator;
@@ -1116,7 +1117,7 @@ public class DefaultAuthorizationEndpointHandler(
         CreateAuthorizationTicketCommand command,
         CancellationToken cancellationToken)
     {
-        var (openIdContext, openIdClient, authorizationRequest, authenticationTicket) = command;
+        var (openIdContext, openIdClient, authorizationRequest, subjectAuthentication) = command;
 
         var responseType = authorizationRequest.ResponseType;
 
@@ -1132,10 +1133,10 @@ public class DefaultAuthorizationEndpointHandler(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,
-                authenticationTicket,
+                subjectAuthentication,
                 cancellationToken);
 
-            ticket.AuthorizationCode = securityToken.Value;
+            ticket.AuthorizationCode = securityToken.TokenValue;
         }
 
         var tokenRequest = new CreateSecurityTokenRequest
@@ -1145,9 +1146,7 @@ public class DefaultAuthorizationEndpointHandler(
             State = authorizationRequest.State,
             Scopes = authorizationRequest.Scopes,
             AuthorizationCode = ticket.AuthorizationCode,
-            Subject = authenticationTicket.Subject,
-            SubjectId = authenticationTicket.SubjectId,
-            AuthenticationProperties = authenticationTicket.AuthenticationProperties,
+            SubjectAuthentication = subjectAuthentication
         };
 
         if (responseType.HasFlag(ResponseTypes.Token))
@@ -1158,8 +1157,8 @@ public class DefaultAuthorizationEndpointHandler(
                 tokenRequest,
                 cancellationToken);
 
-            ticket.AccessToken = securityToken.Value;
-            ticket.ExpiresIn = securityToken.Lifetime?.Duration;
+            ticket.AccessToken = securityToken.TokenValue;
+            ticket.ExpiresIn = securityToken.TokenPeriod.Duration;
             ticket.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
         }
 
@@ -1176,7 +1175,7 @@ public class DefaultAuthorizationEndpointHandler(
                 newRequest,
                 cancellationToken);
 
-            ticket.IdToken = securityToken.Value;
+            ticket.IdToken = securityToken.TokenValue;
         }
 
         return ticket;

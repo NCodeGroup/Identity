@@ -39,7 +39,7 @@ public interface IAuthorizationTicket : IOpenIdMessage
     /// <summary>
     /// Gets or sets the <c>code</c> parameter.
     /// </summary>
-    string? Code { get; set; }
+    string? AuthorizationCode { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>id_token</c> parameter.

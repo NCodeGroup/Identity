@@ -46,10 +46,10 @@ internal class AuthorizationTicket :
     }
 
     /// <inheritdoc />
-    public string? Code
+    public string? AuthorizationCode
     {
-        get => GetKnownParameter(KnownParameters.Code);
-        set => SetKnownParameter(KnownParameters.Code, value);
+        get => GetKnownParameter(KnownParameters.AuthorizationCode);
+        set => SetKnownParameter(KnownParameters.AuthorizationCode, value);
     }
 
     /// <inheritdoc />

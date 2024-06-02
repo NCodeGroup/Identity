@@ -83,8 +83,8 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>code</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> Code =
-        new(OpenIdConstants.Parameters.Code, ParameterParsers.String)
+    public static readonly KnownParameter<string?> AuthorizationCode =
+        new(OpenIdConstants.Parameters.AuthorizationCode, ParameterParsers.String)
         {
             Optional = true,
             AllowMultipleValues = false

@@ -25,17 +25,17 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 internal class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
 {
     /// <inheritdoc />
+    public string? AuthorizationCode
+    {
+        get => GetKnownParameter(KnownParameters.AuthorizationCode);
+        set => SetKnownParameter(KnownParameters.AuthorizationCode, value);
+    }
+
+    /// <inheritdoc />
     public string? ClientId
     {
         get => GetKnownParameter(KnownParameters.ClientId);
         set => SetKnownParameter(KnownParameters.ClientId, value);
-    }
-
-    /// <inheritdoc />
-    public string? Code
-    {
-        get => GetKnownParameter(KnownParameters.Code);
-        set => SetKnownParameter(KnownParameters.Code, value);
     }
 
     public string? CodeVerifier

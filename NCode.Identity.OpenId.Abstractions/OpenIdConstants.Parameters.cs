@@ -52,6 +52,11 @@ public static partial class OpenIdConstants
         public const string Audience = "audience";
 
         /// <summary>
+        /// Contains the name of <c>code</c> parameter.
+        /// </summary>
+        public const string AuthorizationCode = "code";
+
+        /// <summary>
         /// Contains the name of <c>auth_time</c> parameter.
         /// </summary>
         public const string AuthTime = "auth_time";
@@ -85,11 +90,6 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>client_secret</c> parameter.
         /// </summary>
         public const string ClientSecret = "client_secret";
-
-        /// <summary>
-        /// Contains the name of <c>code</c> parameter.
-        /// </summary>
-        public const string Code = "code";
 
         /// <summary>
         /// Contains the name of <c>c_hash</c> parameter.

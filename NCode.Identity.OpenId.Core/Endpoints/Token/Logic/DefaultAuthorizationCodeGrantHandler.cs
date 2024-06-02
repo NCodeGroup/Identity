@@ -65,10 +65,10 @@ public class DefaultAuthorizationCodeGrantHandler(
     {
         var mediator = openIdContext.Mediator;
 
-        var authorizationCode = tokenRequest.Code;
+        var authorizationCode = tokenRequest.AuthorizationCode;
         if (string.IsNullOrEmpty(authorizationCode))
             throw ErrorFactory
-                .MissingParameter(OpenIdConstants.Parameters.Code)
+                .MissingParameter(OpenIdConstants.Parameters.AuthorizationCode)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
@@ -269,7 +269,7 @@ public class DefaultAuthorizationCodeGrantHandler(
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
             Scopes = authorizationRequest.Scopes,
-            AuthorizationCode = tokenRequest.Code,
+            AuthorizationCode = tokenRequest.AuthorizationCode,
             Subject = authenticationTicket.Subject,
             SubjectId = authenticationTicket.SubjectId,
             AuthenticationProperties = authenticationTicket.AuthenticationProperties

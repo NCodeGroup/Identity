@@ -20,6 +20,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Endpoints.Token.Handlers;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Mediator;
 
@@ -49,6 +50,9 @@ public static class TokenEndpointRegistration
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             ITokenGrantHandler, DefaultAuthorizationCodeGrantHandler>());
+
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ITokenGrantHandler, DefaultRefreshTokenGrantHandler>());
 
         return serviceCollection;
     }

@@ -193,6 +193,13 @@ public class KnownSettingCollection(
         set => Store.Set(KnownSettings.RefreshTokenLifetime.Create(value));
     }
 
+    /// <inheritdoc cref="IKnownSettingCollection.RefreshTokenRotationEnabled" />
+    public bool RefreshTokenRotationEnabled
+    {
+        get => Get(KnownSettings.RefreshTokenRotationEnabled);
+        set => Store.Set(KnownSettings.RefreshTokenRotationEnabled.Create(value));
+    }
+
     /// <inheritdoc cref="IKnownSettingCollection.RequestObjectExpectedAudience" />
     public string RequestObjectExpectedAudience
     {

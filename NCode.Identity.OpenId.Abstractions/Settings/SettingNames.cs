@@ -175,6 +175,11 @@ public static class SettingNames
     public const string RefreshTokenLifetime = "refresh_token_lifetime";
 
     /// <summary>
+    /// Contains the name of <c>refresh_token_rotation_enabled</c> setting.
+    /// </summary>
+    public const string RefreshTokenRotationEnabled = "refresh_token_rotation_enabled";
+
+    /// <summary>
     /// Contains the name of <c>request_object_encryption_alg_values_supported</c> setting.
     /// </summary>
     public const string RequestObjectEncryptionAlgValuesSupported = "request_object_encryption_alg_values_supported";

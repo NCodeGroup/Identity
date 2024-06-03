@@ -151,6 +151,11 @@ public interface IKnownSettingCollection : ISettingCollection
     TimeSpan RefreshTokenLifetime { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether refresh token rotation is enabled.
+    /// </summary>
+    bool RefreshTokenRotationEnabled { get; set; }
+
+    /// <summary>
     /// Gets or sets the value to use when validating the <c>audience</c> JWT claim when fetching the request object
     /// from <c>request_uri</c>.
     /// </summary>

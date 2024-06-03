@@ -17,10 +17,12 @@
 
 #endregion
 
+using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
@@ -31,11 +33,13 @@ namespace NCode.Identity.OpenId.Endpoints.Continue;
 /// Provides a default implementation of the required services and handlers used by the continue endpoint.
 /// </summary>
 public class DefaultContinueEndpointHandler(
+    TimeProvider timeProvider,
     IOpenIdContextFactory contextFactory,
     IPersistedGrantService persistedGrantService,
     IContinueProviderSelector continueProviderSelector
 ) : IOpenIdEndpointProvider
 {
+    private TimeProvider TimeProvider { get; } = timeProvider;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IContinueProviderSelector ContinueProviderSelector { get; } = continueProviderSelector;
@@ -66,6 +70,8 @@ public class DefaultContinueEndpointHandler(
             mediator,
             cancellationToken);
 
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
         var persistedGrantId = new PersistedGrantId
         {
             TenantId = openIdContext.Tenant.TenantId,
@@ -73,10 +79,8 @@ public class DefaultContinueEndpointHandler(
             GrantKey = state
         };
 
-        var persistedGrantOrNull = await PersistedGrantService.TryGetAsync<ContinueEnvelope>(
+        var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<ContinueEnvelope>(
             persistedGrantId,
-            singleUse: true,
-            setConsumed: true,
             cancellationToken);
 
         if (!persistedGrantOrNull.HasValue)
@@ -86,10 +90,13 @@ public class DefaultContinueEndpointHandler(
         }
 
         var persistedGrant = persistedGrantOrNull.Value;
-        var continueEnvelope = persistedGrant.Payload;
+        Debug.Assert(persistedGrant.Status == PersistedGrantStatus.Active);
 
+        var continueEnvelope = persistedGrant.Payload;
         var provider = ContinueProviderSelector.SelectProvider(continueEnvelope.Code);
         var result = await provider.ContinueAsync(openIdContext, continueEnvelope.Payload, cancellationToken);
+
+        await PersistedGrantService.SetConsumedAsync(persistedGrantId, utcNow, cancellationToken);
 
         return result;
     }

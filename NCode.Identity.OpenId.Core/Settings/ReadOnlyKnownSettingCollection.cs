@@ -125,6 +125,10 @@ public class ReadOnlyKnownSettingCollection(
         Get(KnownSettings.RefreshTokenLifetime);
 
     /// <inheritdoc />
+    public bool RefreshTokenRotationEnabled =>
+        Get(KnownSettings.RefreshTokenRotationEnabled);
+
+    /// <inheritdoc />
     public string RequestObjectExpectedAudience =>
         Get(KnownSettings.RequestObjectExpectedAudience);
 

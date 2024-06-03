@@ -69,6 +69,7 @@ public class GrantStore(
             NormalizedSubjectId = Normalize(persistedGrant.SubjectId),
             CreatedWhen = persistedGrant.CreatedWhen.ToUniversalTime(),
             ExpiresWhen = persistedGrant.ExpiresWhen?.ToUniversalTime(),
+            RevokedWhen = persistedGrant.RevokedWhen?.ToUniversalTime(),
             ConsumedWhen = persistedGrant.ConsumedWhen?.ToUniversalTime(),
             Payload = persistedGrant.Payload,
             Tenant = tenant,
@@ -83,7 +84,7 @@ public class GrantStore(
         long id,
         CancellationToken cancellationToken)
     {
-        var grant = await TryGetEntityAsync(grant => grant.Id == id, cancellationToken);
+        var grant = await TryGetEntityAsync(entity => entity.Id == id, cancellationToken);
         if (grant is null)
             return;
 
@@ -100,10 +101,10 @@ public class GrantStore(
         var normalizedTenantId = Normalize(tenantId);
 
         return await TryGetAsync(
-            grant =>
-                grant.Tenant.NormalizedTenantId == normalizedTenantId &&
-                grant.GrantType == grantType &&
-                grant.HashedKey == hashedKey,
+            entity =>
+                entity.Tenant.NormalizedTenantId == normalizedTenantId &&
+                entity.GrantType == grantType &&
+                entity.HashedKey == hashedKey,
             cancellationToken);
     }
 
@@ -117,21 +118,48 @@ public class GrantStore(
     {
         var normalizedTenantId = Normalize(tenantId);
 
-        var grant = await TryGetEntityAsync(
+        var entity = await TryGetEntityAsync(
             grant =>
                 grant.Tenant.NormalizedTenantId == normalizedTenantId &&
                 grant.GrantType == grantType &&
                 grant.HashedKey == hashedKey,
             cancellationToken);
 
-        if (grant is null)
+        if (entity is null)
             return;
 
-        if (grant.ConsumedWhen is not null)
+        if (entity.ConsumedWhen is not null)
             return;
 
-        grant.ConcurrencyToken = NextConcurrencyToken();
-        grant.ConsumedWhen = consumedWhen.ToUniversalTime();
+        entity.ConcurrencyToken = NextConcurrencyToken();
+        entity.ConsumedWhen = consumedWhen.ToUniversalTime();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask SetRevokedOnceAsync(
+        string tenantId,
+        string grantType,
+        string hashedKey,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken)
+    {
+        var normalizedTenantId = Normalize(tenantId);
+
+        var entity = await TryGetEntityAsync(
+            grant =>
+                grant.Tenant.NormalizedTenantId == normalizedTenantId &&
+                grant.GrantType == grantType &&
+                grant.HashedKey == hashedKey,
+            cancellationToken);
+
+        if (entity is null)
+            return;
+
+        if (entity.RevokedWhen is not null)
+            return;
+
+        entity.ConcurrencyToken = NextConcurrencyToken();
+        entity.RevokedWhen = revokedWhen.ToUniversalTime();
     }
 
     //
@@ -151,6 +179,7 @@ public class GrantStore(
             SubjectId = grant.SubjectId,
             CreatedWhen = grant.CreatedWhen,
             ExpiresWhen = grant.ExpiresWhen,
+            RevokedWhen = grant.RevokedWhen,
             ConsumedWhen = grant.ConsumedWhen,
             Payload = grant.Payload
         });

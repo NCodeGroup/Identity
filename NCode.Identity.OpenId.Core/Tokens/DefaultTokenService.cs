@@ -258,25 +258,20 @@ public class DefaultTokenService(
             Payload = refreshTokenGrant
         };
 
-        // TODO
-        // enable_rotation
-        // expiration_policy (none, sliding, absolute)
-        // lifetime (only if expiration_policy is sliding or absolute)
-        // reuse_policy (none, revoke_all)
-
         var createdWhen = tokenRequest.CreatedWhen;
         var expirationPolicy = settings.RefreshTokenExpirationPolicy;
         var lifetime = expirationPolicy != OpenIdConstants.RefreshTokenExpirationPolicy.None ?
             settings.RefreshTokenLifetime :
             (TimeSpan?)null;
 
-        var tokenPeriod = await PersistedGrantService.AddAsync(
+        await PersistedGrantService.AddAsync(
             persistedGrantId,
             persistedGrant,
             createdWhen,
             lifetime,
             cancellationToken);
 
+        var tokenPeriod = new TimePeriod(createdWhen, createdWhen + lifetime);
         var securityToken = new SecurityToken(
             OpenIdConstants.SecurityTokenTypes.RefreshToken,
             refreshToken,

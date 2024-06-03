@@ -39,4 +39,11 @@ public interface IGrantStore : IStore<PersistedGrant>
         string hashedKey,
         DateTimeOffset consumedWhen,
         CancellationToken cancellationToken);
+
+    ValueTask SetRevokedOnceAsync(
+        string tenantId,
+        string grantType,
+        string hashedKey,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken);
 }

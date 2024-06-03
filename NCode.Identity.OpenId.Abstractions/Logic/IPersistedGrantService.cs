@@ -17,8 +17,6 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Models;
-
 namespace NCode.Identity.OpenId.Logic;
 
 /// <summary>
@@ -44,11 +42,37 @@ public readonly struct PersistedGrantId
 }
 
 /// <summary>
+/// Specifies the status of a persisted grant.
+/// </summary>
+public enum PersistedGrantStatus
+{
+    /// <summary>
+    /// The grant is active.
+    /// </summary>
+    Active = 0,
+
+    /// <summary>
+    /// The grant has expired.
+    /// </summary>
+    Expired = 1,
+
+    /// <summary>
+    /// The grant has been revoked.
+    /// </summary>
+    Revoked = 2,
+}
+
+/// <summary>
 /// Contains the payload of a persisted grant.
 /// </summary>
 /// <typeparam name="TPayload">The type of the payload for the grant.</typeparam>
 public readonly struct PersistedGrant<TPayload>
 {
+    /// <summary>
+    /// Gets or sets the status of the grant.
+    /// </summary>
+    public PersistedGrantStatus Status { get; init; }
+
     /// <summary>
     /// Gets or sets the identifier of the client that is associated with the grant.
     /// </summary>
@@ -79,8 +103,8 @@ public interface IPersistedGrantService
     /// <param name="lifetime">The lifetime of the persisted grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the lifetime of the persisted grant.</returns>
-    ValueTask<TimePeriod> AddAsync<TPayload>(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask AddAsync<TPayload>(
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,
         DateTimeOffset createdWhen,
@@ -91,15 +115,15 @@ public interface IPersistedGrantService
     /// Attempts to retrieve a persisted grant from storage with the specified identifiers.
     /// </summary>
     /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
-    /// <param name="singleUse">Indicates whether the grant should be checked whether it has already been consumed.</param>
-    /// <param name="setConsumed">Indicates whether the grant should be marked as consumed if it has not already been consumed.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the persisted grant.</returns>
     ValueTask<PersistedGrant<TPayload>?> TryGetAsync<TPayload>(
         PersistedGrantId grantId,
-        bool singleUse,
-        bool setConsumed,
+        CancellationToken cancellationToken);
+
+    ValueTask<PersistedGrant<TPayload>?> TryConsumeOnce<TPayload>(
+        PersistedGrantId grantId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -112,5 +136,15 @@ public interface IPersistedGrantService
     ValueTask SetConsumedAsync(
         PersistedGrantId grantId,
         DateTimeOffset consumedWhen,
+        CancellationToken cancellationToken);
+
+    ValueTask SetRevokedAsync(
+        PersistedGrantId grantId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken);
+
+    ValueTask UpdateExpirationAsync(
+        PersistedGrantId grantId,
+        DateTimeOffset expiresWhen,
         CancellationToken cancellationToken);
 }

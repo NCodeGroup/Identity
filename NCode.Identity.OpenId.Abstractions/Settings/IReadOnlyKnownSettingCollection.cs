@@ -150,6 +150,11 @@ public interface IReadOnlyKnownSettingCollection : IReadOnlySettingCollection
     TimeSpan RefreshTokenLifetime { get; }
 
     /// <summary>
+    /// Gets a value indicating whether refresh token rotation is enabled.
+    /// </summary>
+    bool RefreshTokenRotationEnabled { get; }
+
+    /// <summary>
     /// Gets the value to use when validating the <c>audience</c> JWT claim when fetching the request object
     /// from <c>request_uri</c>.
     /// </summary>

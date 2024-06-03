@@ -23,6 +23,7 @@ using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
@@ -31,7 +32,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Logic;
+namespace NCode.Identity.OpenId.Endpoints.Token.Handlers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Authorization Code</c> grant type.
@@ -79,19 +80,20 @@ public class DefaultAuthorizationCodeGrantHandler(
             GrantKey = authorizationCode
         };
 
-        var persistedGrant = await PersistedGrantService.TryGetAsync<AuthorizationGrant>(
+        var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<AuthorizationGrant>(
             grantId,
-            singleUse: true,
-            setConsumed: true,
             cancellationToken);
 
-        if (!persistedGrant.HasValue)
+        if (!persistedGrantOrNull.HasValue)
             throw ErrorFactory
                 .InvalidGrant("The provided authorization code is invalid, expired, or revoked.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
-        var authorizationGrant = persistedGrant.Value.Payload;
+        var persistedGrant = persistedGrantOrNull.Value;
+        Debug.Assert(persistedGrant.Status == PersistedGrantStatus.Active);
+
+        var authorizationGrant = persistedGrant.Payload;
 
         await mediator.SendAsync(
             new ValidateTokenGrantCommand<AuthorizationGrant>(

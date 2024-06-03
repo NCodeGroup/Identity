@@ -73,13 +73,14 @@ public class DefaultAuthorizationCodeService(
         var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var lifetime = openIdClient.Settings.AuthorizationCodeLifetime;
 
-        var tokenPeriod = await PersistedGrantService.AddAsync(
+        await PersistedGrantService.AddAsync(
             persistedGrantId,
             persistedGrant,
             createdWhen,
             lifetime,
             cancellationToken);
 
+        var tokenPeriod = new TimePeriod(createdWhen, createdWhen + lifetime);
         var securityToken = new SecurityToken(
             OpenIdConstants.SecurityTokenTypes.AuthorizationCode,
             authorizationCode,

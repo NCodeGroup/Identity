@@ -426,6 +426,18 @@ public static class KnownSettings
     };
 
     /// <summary>
+    /// Gets the <see cref="SettingDescriptor"/> for the 'refresh_token_rotation_enabled' setting.
+    /// </summary>
+    public static SettingDescriptor<bool> RefreshTokenRotationEnabled { get; } = new()
+    {
+        Name = SettingNames.RefreshTokenRotationEnabled,
+        Default = false,
+
+        IsDiscoverable = IsNonStdDiscoverable,
+        OnMerge = Replace
+    };
+
+    /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'request_object_encryption_alg_values_supported' setting.
     /// </summary>
     public static SettingDescriptor<IReadOnlyCollection<string>> RequestObjectEncryptionAlgValuesSupported { get; } = new()

@@ -20,6 +20,7 @@
 using System.Text.Json;
 using IdGen;
 using NCode.Identity.Jose.Extensions;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
@@ -237,11 +238,23 @@ public class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
-    public ValueTask UpdateExpirationAsync(
+    public async ValueTask UpdateExpirationAsync(
         PersistedGrantId grantId,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var hashedKey = GetHashedKey(grantId.GrantKey);
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        await store.UpdateExpirationAsync(
+            grantId.TenantId,
+            grantId.GrantType,
+            hashedKey,
+            expiresWhen,
+            cancellationToken);
+
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 }

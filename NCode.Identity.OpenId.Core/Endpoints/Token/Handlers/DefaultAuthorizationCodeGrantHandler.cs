@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
@@ -268,6 +269,7 @@ public class DefaultAuthorizationCodeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
+            GrantType = OpenIdConstants.GrantTypes.AuthorizationCode,
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
             Scopes = authorizationRequest.Scopes,

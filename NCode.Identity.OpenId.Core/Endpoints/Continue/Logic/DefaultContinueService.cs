@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Continue.Logic;

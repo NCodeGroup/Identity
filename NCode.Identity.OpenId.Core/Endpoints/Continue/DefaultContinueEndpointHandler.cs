@@ -26,6 +26,7 @@ using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Endpoints.Continue;
 

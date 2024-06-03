@@ -159,8 +159,10 @@ public class DefaultRefreshTokenGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
+            GrantType = OpenIdConstants.GrantTypes.RefreshToken,
             Scopes = tokenRequest.Scopes,
             AuthorizationCode = tokenRequest.AuthorizationCode,
+            RefreshToken = tokenRequest.RefreshToken,
             SubjectAuthentication = subjectAuthentication
         };
 

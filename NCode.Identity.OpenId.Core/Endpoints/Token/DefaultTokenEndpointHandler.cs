@@ -48,8 +48,9 @@ public class DefaultTokenEndpointHandler(
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
 
-    private Dictionary<string, ITokenGrantHandler> Handlers { get; } =
-        handlers.ToDictionary(handler => handler.GrantType, StringComparer.Ordinal);
+    private Dictionary<string, ITokenGrantHandler> HandlersByGrantType { get; } = handlers
+        .SelectMany(handler => handler.GrantTypes.Select(grantType => (grantType, handler)))
+        .ToDictionary(pair => pair.grantType, pair => pair.handler, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -154,7 +155,7 @@ public class DefaultTokenEndpointHandler(
                 .AsException();
         }
 
-        if (!Handlers.TryGetValue(grantType, out var handler))
+        if (!HandlersByGrantType.TryGetValue(grantType, out var handler))
         {
             // unsupported_grant_type
             throw ErrorFactory

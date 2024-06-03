@@ -24,6 +24,8 @@ public readonly record struct CreateSecurityTokenRequest
 {
     public required DateTimeOffset CreatedWhen { get; init; }
 
+    public required string GrantType { get; init; }
+
     public string? Nonce { get; init; }
 
     public string? State { get; init; }
@@ -33,6 +35,8 @@ public readonly record struct CreateSecurityTokenRequest
     public string? AuthorizationCode { get; init; }
 
     public string? AccessToken { get; init; }
+
+    public string? RefreshToken { get; init; }
 
     public SubjectAuthentication? SubjectAuthentication { get; init; }
 

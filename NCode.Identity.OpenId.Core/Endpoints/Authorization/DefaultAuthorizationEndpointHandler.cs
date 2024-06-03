@@ -1139,9 +1139,10 @@ public class DefaultAuthorizationEndpointHandler(
             ticket.AuthorizationCode = securityToken.TokenValue;
         }
 
-        var tokenRequest = new CreateSecurityTokenRequest
+        var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = ticket.CreatedWhen,
+            GrantType = authorizationRequest.GrantType,
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
             Scopes = authorizationRequest.Scopes,
@@ -1154,7 +1155,7 @@ public class DefaultAuthorizationEndpointHandler(
             var securityToken = await TokenService.CreateAccessTokenAsync(
                 openIdContext,
                 openIdClient,
-                tokenRequest,
+                securityTokenRequest,
                 cancellationToken);
 
             ticket.AccessToken = securityToken.TokenValue;
@@ -1164,7 +1165,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (responseType.HasFlag(ResponseTypes.IdToken))
         {
-            var newRequest = tokenRequest with
+            var newRequest = securityTokenRequest with
             {
                 AccessToken = ticket.AccessToken
             };

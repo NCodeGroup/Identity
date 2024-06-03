@@ -56,7 +56,11 @@ public class DefaultAuthorizationCodeGrantHandler(
     private ITokenService TokenService { get; } = tokenService;
 
     /// <inheritdoc />
-    public string GrantType => OpenIdConstants.GrantTypes.AuthorizationCode;
+    public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>
+    {
+        OpenIdConstants.GrantTypes.AuthorizationCode,
+        OpenIdConstants.GrantTypes.Hybrid
+    };
 
     /// <inheritdoc />
     public async ValueTask<ITokenResponse> HandleAsync(

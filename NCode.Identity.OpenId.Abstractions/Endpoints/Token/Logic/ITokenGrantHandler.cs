@@ -27,9 +27,9 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Logic;
 public interface ITokenGrantHandler
 {
     /// <summary>
-    /// Gets the type of grant that this <see cref="ITokenGrantHandler"/> instance supports.
+    /// Gets the type of grants that this <see cref="ITokenGrantHandler"/> instance supports.
     /// </summary>
-    string GrantType { get; }
+    IReadOnlySet<string> GrantTypes { get; }
 
     /// <summary>
     /// Handles the token request for the specified <see cref="ITokenRequest"/> by returning the appropriate HTTP response.

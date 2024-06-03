@@ -56,7 +56,10 @@ public class DefaultRefreshTokenGrantHandler(
         .AsException();
 
     /// <inheritdoc />
-    public string GrantType => OpenIdConstants.GrantTypes.RefreshToken;
+    public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>
+    {
+        OpenIdConstants.GrantTypes.RefreshToken
+    };
 
     /// <inheritdoc />
     public async ValueTask<ITokenResponse> HandleAsync(

@@ -20,13 +20,10 @@
 using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
-using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Clients.Handlers;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Endpoints.Authorization;
 using NCode.Identity.OpenId.Endpoints.Continue;
@@ -73,17 +70,13 @@ internal class Startup(IConfiguration configuration)
         services.AddMediatorCoreServices();
         services.AddTenantCoreServices();
         services.AddEndpointCoreServices();
+        services.AddClientCoreServices();
         services.AddTokenServices();
 
         services.AddContinueEndpoint();
         services.AddDiscoveryEndpoint();
         services.AddAuthorizationEndpoint();
         services.AddTokenEndpoint();
-
-        services.TryAddSingleton<IClientAuthenticationService, DefaultClientAuthenticationService>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IClientAuthenticationHandler, BasicClientAuthenticationHandler>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IClientAuthenticationHandler, RequestBodyClientAuthenticationHandler>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IClientAuthenticationHandler, RequestQueryClientAuthenticationHandler>());
 
         services.AddSecretPersistenceServices();
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();

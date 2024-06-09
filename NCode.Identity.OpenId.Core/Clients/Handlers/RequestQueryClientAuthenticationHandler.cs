@@ -25,8 +25,6 @@ using NCode.Identity.Secrets.Persistence;
 
 namespace NCode.Identity.OpenId.Clients.Handlers;
 
-// TODO: registration
-
 /// <summary>
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses <c>client_id</c> from the HTTP Request Query.
 /// This handler also ensures that the <c>client_secret</c> is not passed in the query string.

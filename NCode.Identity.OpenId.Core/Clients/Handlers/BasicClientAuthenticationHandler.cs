@@ -26,8 +26,6 @@ using NCode.Identity.Secrets.Persistence;
 
 namespace NCode.Identity.OpenId.Clients.Handlers;
 
-// TODO: registration
-
 /// <summary>
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses HTTP Basic Authentication.
 /// </summary>

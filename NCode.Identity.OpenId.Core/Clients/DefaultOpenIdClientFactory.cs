@@ -23,7 +23,11 @@ using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
 
-internal class DefaultOpenIdClientFactory(
+/// <summary>
+/// Provides a default implementation of the <see cref="IOpenIdClientFactory"/> abstraction.
+/// </summary>
+/// <param name="secretKeyCollectionFactory"></param>
+public class DefaultOpenIdClientFactory(
     ISecretKeyCollectionFactory secretKeyCollectionFactory
 ) : IOpenIdClientFactory
 {

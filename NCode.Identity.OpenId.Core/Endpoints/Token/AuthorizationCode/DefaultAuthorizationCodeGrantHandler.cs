@@ -1,6 +1,6 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -24,32 +24,37 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Handlers;
+namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Client Credentials</c> grant type.
+/// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Authorization Code</c> grant type.
 /// </summary>
-public class DefaultClientCredentialsGrantHandler(
+public class DefaultAuthorizationCodeGrantHandler(
     TimeProvider timeProvider,
     OpenIdServer openIdServer,
     IOpenIdErrorFactory errorFactory,
+    IPersistedGrantService persistedGrantService,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
+    private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        OpenIdConstants.GrantTypes.ClientCredentials
+        OpenIdConstants.GrantTypes.AuthorizationCode,
+        OpenIdConstants.GrantTypes.Hybrid
     };
 
     /// <inheritdoc />
@@ -61,27 +66,48 @@ public class DefaultClientCredentialsGrantHandler(
     {
         var mediator = openIdContext.Mediator;
 
-        if (!openIdClient.IsAuthenticated)
+        var authorizationCode = tokenRequest.AuthorizationCode;
+        if (string.IsNullOrEmpty(authorizationCode))
             throw ErrorFactory
-                .InvalidClient()
+                .MissingParameter(OpenIdConstants.Parameters.AuthorizationCode)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
-        var authenticatedClient = openIdClient.AuthenticatedClient;
-        var clientCredentialsGrant = new ClientCredentialsGrant(authenticatedClient);
+        var grantId = new PersistedGrantId
+        {
+            TenantId = openIdContext.Tenant.TenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
+            GrantKey = authorizationCode
+        };
+
+        var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<AuthorizationGrant>(
+            grantId,
+            cancellationToken);
+
+        if (!persistedGrantOrNull.HasValue)
+            throw ErrorFactory
+                .InvalidGrant("The provided authorization code is invalid, expired, or revoked.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+
+        var persistedGrant = persistedGrantOrNull.Value;
+        Debug.Assert(persistedGrant.Status == PersistedGrantStatus.Active);
+
+        var authorizationGrant = persistedGrant.Payload;
 
         await mediator.SendAsync(
-            new ValidateTokenGrantCommand<ClientCredentialsGrant>(
+            new ValidateTokenGrantCommand<AuthorizationGrant>(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
-                clientCredentialsGrant),
+                authorizationGrant),
             cancellationToken);
 
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
-            authenticatedClient,
+            openIdClient,
             tokenRequest,
+            authorizationGrant,
             cancellationToken);
 
         return tokenResponse;
@@ -89,10 +115,13 @@ public class DefaultClientCredentialsGrantHandler(
 
     private async ValueTask<TokenResponse> CreateTokenResponseAsync(
         OpenIdContext openIdContext,
-        OpenIdAuthenticatedClient openIdClient,
+        OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
+        AuthorizationGrant authorizationGrant,
         CancellationToken cancellationToken)
     {
+        var (authorizationRequest, subjectAuthentication) = authorizationGrant;
+
         var scopes = tokenRequest.Scopes;
         Debug.Assert(scopes is not null);
 
@@ -103,8 +132,12 @@ public class DefaultClientCredentialsGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.ClientCredentials,
+            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.AuthorizationCode,
+            Nonce = authorizationRequest.Nonce,
+            State = authorizationRequest.State,
             Scopes = tokenRequest.Scopes,
+            AuthorizationCode = tokenRequest.AuthorizationCode,
+            SubjectAuthentication = subjectAuthentication
         };
 
         {

@@ -19,11 +19,13 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
+using NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
-using NCode.Identity.OpenId.Endpoints.Token.Handlers;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
-using NCode.Identity.OpenId.Endpoints.Token.Validators;
+using NCode.Identity.OpenId.Endpoints.Token.Password;
+using NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Models;
 
@@ -56,7 +58,7 @@ public static class TokenEndpointRegistration
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>,
-            DefaultValidateAuthorizationGrantHandler>());
+            DefaultValidateAuthorizationCodeGrantHandler>());
 
         // Refresh Token
 

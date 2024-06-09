@@ -1,6 +1,6 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
@@ -31,12 +32,12 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Handlers;
+namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Authorization Code</c> grant type.
+/// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Refresh Token</c> grant type.
 /// </summary>
-public class DefaultAuthorizationCodeGrantHandler(
+public class DefaultRefreshTokenGrantHandler(
     TimeProvider timeProvider,
     OpenIdServer openIdServer,
     IOpenIdErrorFactory errorFactory,
@@ -50,11 +51,15 @@ public class DefaultAuthorizationCodeGrantHandler(
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
 
+    private OpenIdException InvalidGrantException => ErrorFactory
+        .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+        .WithStatusCode(StatusCodes.Status400BadRequest)
+        .AsException();
+
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        OpenIdConstants.GrantTypes.AuthorizationCode,
-        OpenIdConstants.GrantTypes.Hybrid
+        OpenIdConstants.GrantTypes.RefreshToken
     };
 
     /// <inheritdoc />
@@ -64,51 +69,77 @@ public class DefaultAuthorizationCodeGrantHandler(
         ITokenRequest tokenRequest,
         CancellationToken cancellationToken)
     {
+        var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
 
-        var authorizationCode = tokenRequest.AuthorizationCode;
-        if (string.IsNullOrEmpty(authorizationCode))
+        var refreshToken = tokenRequest.RefreshToken;
+        if (string.IsNullOrEmpty(refreshToken))
             throw ErrorFactory
-                .MissingParameter(OpenIdConstants.Parameters.AuthorizationCode)
+                .MissingParameter(OpenIdConstants.Parameters.RefreshToken)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
+
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         var grantId = new PersistedGrantId
         {
             TenantId = openIdContext.Tenant.TenantId,
-            GrantType = OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
-            GrantKey = authorizationCode
+            GrantType = OpenIdConstants.PersistedGrantTypes.RefreshToken,
+            GrantKey = refreshToken
         };
 
-        var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<AuthorizationGrant>(
+        var persistedGrantOrNull = await PersistedGrantService.TryGetAsync<RefreshTokenGrant>(
             grantId,
             cancellationToken);
 
         if (!persistedGrantOrNull.HasValue)
-            throw ErrorFactory
-                .InvalidGrant("The provided authorization code is invalid, expired, or revoked.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
+            throw InvalidGrantException;
 
         var persistedGrant = persistedGrantOrNull.Value;
-        Debug.Assert(persistedGrant.Status == PersistedGrantStatus.Active);
+        if (persistedGrant.Status != PersistedGrantStatus.Active)
+        {
+            // TODO: refresh_token_reuse_policy (none, revoke_all)
+            throw InvalidGrantException;
+        }
 
-        var authorizationGrant = persistedGrant.Payload;
+        var refreshTokenGrant = persistedGrant.Payload;
 
         await mediator.SendAsync(
-            new ValidateTokenGrantCommand<AuthorizationGrant>(
+            new ValidateTokenGrantCommand<RefreshTokenGrant>(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
-                authorizationGrant),
+                refreshTokenGrant),
             cancellationToken);
+
+        var rotationEnabled = settings.RefreshTokenRotationEnabled;
+        if (rotationEnabled)
+        {
+            await PersistedGrantService.SetRevokedAsync(
+                grantId,
+                utcNow,
+                cancellationToken);
+        }
 
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
             openIdClient,
             tokenRequest,
-            authorizationGrant,
+            refreshTokenGrant,
             cancellationToken);
+
+        var expirationPolicy = settings.RefreshTokenExpirationPolicy;
+        var useSlidingExpiration = expirationPolicy == OpenIdConstants.RefreshTokenExpirationPolicy.Sliding;
+        if (useSlidingExpiration && !rotationEnabled)
+        {
+            var lifetime = settings.RefreshTokenLifetime;
+            var expiresWhen = utcNow + lifetime;
+
+            await PersistedGrantService.UpdateExpirationAsync(
+                grantId,
+                expiresWhen,
+                cancellationToken);
+        }
 
         return tokenResponse;
     }
@@ -117,10 +148,10 @@ public class DefaultAuthorizationCodeGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
-        AuthorizationGrant authorizationGrant,
+        RefreshTokenGrant refreshTokenGrant,
         CancellationToken cancellationToken)
     {
-        var (authorizationRequest, subjectAuthentication) = authorizationGrant;
+        var (_, subjectAuthentication) = refreshTokenGrant;
 
         var scopes = tokenRequest.Scopes;
         Debug.Assert(scopes is not null);
@@ -132,11 +163,9 @@ public class DefaultAuthorizationCodeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.AuthorizationCode,
-            Nonce = authorizationRequest.Nonce,
-            State = authorizationRequest.State,
+            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
             Scopes = tokenRequest.Scopes,
-            AuthorizationCode = tokenRequest.AuthorizationCode,
+            RefreshToken = tokenRequest.RefreshToken,
             SubjectAuthentication = subjectAuthentication
         };
 
@@ -170,18 +199,28 @@ public class DefaultAuthorizationCodeGrantHandler(
 
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
         {
-            var newRequest = securityTokenRequest with
+            var settings = openIdClient.Settings;
+            var rotationEnabled = settings.RefreshTokenRotationEnabled;
+
+            if (rotationEnabled)
             {
-                AccessToken = tokenResponse.AccessToken
-            };
+                var newRequest = securityTokenRequest with
+                {
+                    AccessToken = tokenResponse.AccessToken
+                };
 
-            var securityToken = await TokenService.CreateRefreshTokenAsync(
-                openIdContext,
-                openIdClient,
-                newRequest,
-                cancellationToken);
+                var securityToken = await TokenService.CreateRefreshTokenAsync(
+                    openIdContext,
+                    openIdClient,
+                    newRequest,
+                    cancellationToken);
 
-            tokenResponse.RefreshToken = securityToken.TokenValue;
+                tokenResponse.RefreshToken = securityToken.TokenValue;
+            }
+            else
+            {
+                tokenResponse.RefreshToken = tokenRequest.RefreshToken;
+            }
         }
 
         return tokenResponse;

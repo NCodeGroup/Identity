@@ -29,7 +29,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Handlers;
+namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Password</c> grant type.

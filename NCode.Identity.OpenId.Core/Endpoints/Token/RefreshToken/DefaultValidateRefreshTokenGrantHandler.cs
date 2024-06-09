@@ -17,20 +17,20 @@
 #endregion
 
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Models;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Handlers;
+namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="AuthenticatePasswordGrantCommand"/> message
-/// that returns <see cref="SubjectAuthentication"/>.
+/// Provides a default implementation of handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
+/// with <see cref="RefreshTokenGrant"/>.
 /// </summary>
-public class DefaultAuthenticatePasswordGrantHandler : ICommandResponseHandler<AuthenticatePasswordGrantCommand, SubjectAuthentication>
+public class DefaultValidateRefreshTokenGrantHandler : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>
 {
     /// <inheritdoc />
-    public ValueTask<SubjectAuthentication> HandleAsync(
-        AuthenticatePasswordGrantCommand command,
+    public ValueTask HandleAsync(
+        ValidateTokenGrantCommand<RefreshTokenGrant> command,
         CancellationToken cancellationToken)
     {
         // TODO...

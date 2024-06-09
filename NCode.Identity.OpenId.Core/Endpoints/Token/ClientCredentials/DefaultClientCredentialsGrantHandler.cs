@@ -61,14 +61,14 @@ public class DefaultClientCredentialsGrantHandler(
     {
         var mediator = openIdContext.Mediator;
 
-        if (!openIdClient.IsAuthenticated)
+        if (!openIdClient.IsConfidential)
             throw ErrorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
-        var authenticatedClient = openIdClient.AuthenticatedClient;
-        var clientCredentialsGrant = new ClientCredentialsGrant(authenticatedClient);
+        var confidentialClient = openIdClient.ConfidentialClient;
+        var clientCredentialsGrant = new ClientCredentialsGrant(confidentialClient);
 
         await mediator.SendAsync(
             new ValidateTokenGrantCommand<ClientCredentialsGrant>(
@@ -80,7 +80,7 @@ public class DefaultClientCredentialsGrantHandler(
 
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
-            authenticatedClient,
+            confidentialClient,
             tokenRequest,
             cancellationToken);
 
@@ -89,7 +89,7 @@ public class DefaultClientCredentialsGrantHandler(
 
     private async ValueTask<TokenResponse> CreateTokenResponseAsync(
         OpenIdContext openIdContext,
-        OpenIdAuthenticatedClient openIdClient,
+        OpenIdConfidentialClient openIdClient,
         ITokenRequest tokenRequest,
         CancellationToken cancellationToken)
     {

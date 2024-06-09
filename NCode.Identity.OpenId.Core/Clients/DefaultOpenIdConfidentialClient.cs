@@ -23,12 +23,12 @@ using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Clients;
 
-internal class DefaultOpenIdAuthenticatedClient(
+internal class DefaultOpenIdConfidentialClient(
     OpenIdClient publicClient,
     string authenticationMethod,
     SecretKey secretKey,
     JsonElement? confirmation
-) : OpenIdAuthenticatedClient
+) : OpenIdConfidentialClient
 {
     private OpenIdClient PublicClient { get; } = publicClient;
 
@@ -45,10 +45,10 @@ internal class DefaultOpenIdAuthenticatedClient(
     public override IReadOnlyCollection<string> RedirectUrls => PublicClient.RedirectUrls;
 
     /// <inheritdoc />
-    public override bool IsAuthenticated => true;
+    public override bool IsConfidential => true;
 
     /// <inheritdoc />
-    public override OpenIdAuthenticatedClient AuthenticatedClient => this;
+    public override OpenIdConfidentialClient ConfidentialClient => this;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag => PublicClient.PropertyBag;

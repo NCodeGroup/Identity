@@ -33,7 +33,7 @@ public interface IOpenIdClientFactory
         IReadOnlyCollection<string> redirectUrls,
         CancellationToken cancellationToken);
 
-    ValueTask<OpenIdAuthenticatedClient> CreateConfidentialClientAsync(
+    ValueTask<OpenIdConfidentialClient> CreateConfidentialClientAsync(
         OpenIdClient publicClient,
         string method,
         SecretKey secretKey,

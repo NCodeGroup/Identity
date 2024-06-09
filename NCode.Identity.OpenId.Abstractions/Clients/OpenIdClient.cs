@@ -24,7 +24,7 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Clients;
 
 /// <summary>
-/// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that may or may not be authenticated.
+/// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that may be public or confidential.
 /// </summary>
 public abstract class OpenIdClient
 {
@@ -49,16 +49,16 @@ public abstract class OpenIdClient
     public abstract IReadOnlyCollection<string> RedirectUrls { get; }
 
     /// <summary>
-    /// Gets a <see cref="bool"/> value indicating whether the client is authenticated (i.e. confidential vs public).
+    /// Gets a <see cref="bool"/> value indicating whether the client is confidential.
+    /// If <c>true</c>, the <see cref="ConfidentialClient"/> property will be non-null; otherwise, the client is public.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(AuthenticatedClient))]
-    public abstract bool IsAuthenticated { get; }
+    [MemberNotNullWhen(true, nameof(ConfidentialClient))]
+    public abstract bool IsConfidential { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdAuthenticatedClient"/> containing information how the client was authenticated,
-    /// or <c>null</c> if the client is not authenticated.
+    /// Gets the <see cref="OpenIdConfidentialClient"/> for a confidential client, or <c>null</c> if the client is public.
     /// </summary>
-    public abstract OpenIdAuthenticatedClient? AuthenticatedClient { get; }
+    public abstract OpenIdConfidentialClient? ConfidentialClient { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

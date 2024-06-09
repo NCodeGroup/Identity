@@ -43,10 +43,10 @@ internal class DefaultOpenIdClient(
     public override IReadOnlyCollection<string> RedirectUrls { get; } = redirectUrls;
 
     /// <inheritdoc />
-    public override bool IsAuthenticated => false;
+    public override bool IsConfidential => false;
 
     /// <inheritdoc />
-    public override OpenIdAuthenticatedClient? AuthenticatedClient => null;
+    public override OpenIdConfidentialClient? ConfidentialClient => null;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = propertyBag;

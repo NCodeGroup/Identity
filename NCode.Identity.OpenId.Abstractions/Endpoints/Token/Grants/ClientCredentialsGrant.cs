@@ -21,5 +21,5 @@ using NCode.Identity.OpenId.Clients;
 namespace NCode.Identity.OpenId.Endpoints.Token.Grants;
 
 public readonly record struct ClientCredentialsGrant(
-    OpenIdAuthenticatedClient AuthenticatedClient
+    OpenIdConfidentialClient ConfidentialClient
 );

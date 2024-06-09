@@ -22,11 +22,11 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Endpoints.Authorization.Logic;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization;

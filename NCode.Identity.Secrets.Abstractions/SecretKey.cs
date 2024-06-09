@@ -54,6 +54,7 @@ public abstract class SecretKey
     /// <summary>
     /// Gets the size, in bytes, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
+    /// For symmetric keys, this is the count of the bytes.
     /// </summary>
     public virtual int KeySizeBytes => (KeySizeBits + 7) >> 3;
 

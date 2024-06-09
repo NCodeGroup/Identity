@@ -17,9 +17,8 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using NCode.Identity.OpenId.Models;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Models;
+namespace NCode.Identity.OpenId.Models;
 
 /// <summary>
 /// Contains the result after attempting to authenticate a user.

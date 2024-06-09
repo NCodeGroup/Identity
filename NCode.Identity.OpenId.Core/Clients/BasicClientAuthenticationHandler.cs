@@ -57,7 +57,7 @@ internal class BasicClientAuthenticationHandler(
     private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
 
     /// <inheritdoc />
-    public string AuthenticationMethod => "TODO"; // TODO
+    public string AuthenticationMethod => "Basic"; // TODO
 
     private static string UriDecode(string value) =>
         Uri.UnescapeDataString(value.Replace("+", "%20"));
@@ -154,15 +154,7 @@ internal class BasicClientAuthenticationHandler(
 
         foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
         {
-            using var _ = CryptoPool.Rent(
-                secretKey.KeySizeBytes,
-                isSensitive: true,
-                out Memory<byte> encryptionKey);
-
-            var exportResult = secretKey.TryExportPrivateKey(encryptionKey.Span, out var exportBytesWritten);
-            Debug.Assert(exportResult && exportBytesWritten == secretKey.KeySizeBytes);
-
-            if (!CryptographicOperations.FixedTimeEquals(encryptionKey.Span, clientSecretBytes))
+            if (!IsSecretEqual(secretKey, clientSecretBytes))
                 continue;
 
             var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
@@ -176,5 +168,18 @@ internal class BasicClientAuthenticationHandler(
         }
 
         return new ClientAuthenticationResult(ErrorInvalidClient);
+    }
+
+    private static bool IsSecretEqual(SymmetricSecretKey secretKey, ReadOnlySpan<byte> clientSecretBytes)
+    {
+        using var _ = CryptoPool.Rent(
+            secretKey.KeySizeBytes,
+            isSensitive: true,
+            out Span<byte> secretKeyBytes);
+
+        var exportResult = secretKey.TryExportPrivateKey(secretKeyBytes, out var exportBytesWritten);
+        Debug.Assert(exportResult && exportBytesWritten == secretKey.KeySizeBytes);
+
+        return CryptographicOperations.FixedTimeEquals(secretKeyBytes, clientSecretBytes);
     }
 }

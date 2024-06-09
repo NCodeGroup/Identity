@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,14 +17,14 @@
 #endregion
 
 using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Models;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+namespace NCode.Identity.OpenId.Endpoints.Token.Commands;
 
-public readonly record struct AuthenticateCommand(
-    OpenIdContext OpenIdContext,
-    OpenIdClient OpenIdClient,
-    IAuthorizationRequest AuthorizationRequest
-) : ICommand<AuthenticateSubjectResult>;
+public readonly record struct AuthenticatePasswordGrantCommand(
+    OpenIdContext openIdContext,
+    OpenIdClient openIdClient,
+    ITokenRequest TokenRequest
+) : ICommand<SubjectAuthentication>;

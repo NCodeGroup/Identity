@@ -156,6 +156,26 @@ public class OpenIdMessage : IOpenIdMessage
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
+    /// Sets a parameter in the current instance.
+    /// </summary>
+    /// <param name="parameter">The parameter to set in the current instance.</param>
+    /// <typeparam name="T">The type of the parameter's value.</typeparam>
+    public void SetParameter<T>(Parameter<T> parameter)
+    {
+        ParameterStore[parameter.Descriptor.ParameterName] = parameter;
+    }
+
+    /// <summary>
+    /// Removes a parameter from the current instance.
+    /// </summary>
+    /// <param name="parameterName">The name of the parameter to remove.</param>
+    /// <returns><c>true</c> if the parameter was removed; otherwise, <c>false</c>.</returns>
+    public bool RemoveParameter(string parameterName)
+    {
+        return ParameterStore.Remove(parameterName);
+    }
+
+    /// <summary>
     /// Gets the value of well known parameter.
     /// </summary>
     /// <param name="knownParameter">The descriptor of the well known parameter.</param>

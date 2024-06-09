@@ -16,12 +16,11 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Models;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Models;
+namespace NCode.Identity.OpenId.Endpoints.Token.Grants;
 
-public readonly record struct AuthorizationGrant(
-    IAuthorizationRequest AuthorizationRequest,
-    SubjectAuthentication SubjectAuthentication
+public readonly record struct RefreshTokenGrant(
+    IReadOnlyCollection<string>? Scopes,
+    SubjectAuthentication? SubjectAuthentication
 );

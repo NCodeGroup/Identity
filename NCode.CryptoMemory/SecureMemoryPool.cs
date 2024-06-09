@@ -58,6 +58,7 @@ public class SecureMemoryPool<T> : MemoryPool<T>
     {
         var memoryInfo = GC.GetGCMemoryInfo();
 
+        // TODO: reevaluate the threshold, make it configurable, etc.
         const double highPressureThreshold = 0.90;
         var isPressureHigh = memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * highPressureThreshold;
         if (isPressureHigh)

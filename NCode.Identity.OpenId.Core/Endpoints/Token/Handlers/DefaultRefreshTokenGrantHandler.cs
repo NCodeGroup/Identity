@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Exceptions;
@@ -56,7 +57,7 @@ public class DefaultRefreshTokenGrantHandler(
         .AsException();
 
     /// <inheritdoc />
-    public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>
+    public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         OpenIdConstants.GrantTypes.RefreshToken
     };
@@ -162,9 +163,8 @@ public class DefaultRefreshTokenGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = OpenIdConstants.GrantTypes.RefreshToken,
+            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
             Scopes = tokenRequest.Scopes,
-            AuthorizationCode = tokenRequest.AuthorizationCode,
             RefreshToken = tokenRequest.RefreshToken,
             SubjectAuthentication = subjectAuthentication
         };

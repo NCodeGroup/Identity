@@ -32,25 +32,24 @@ using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Token;
 
+// TODO: Device Code Grant
+// TODO: Ciba Grant
+// TODO: Extension Grant
+
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the token endpoint.
 /// </summary>
 public class DefaultTokenEndpointHandler(
     OpenIdServer openIdServer,
+    IOpenIdErrorFactory errorFactory,
     IOpenIdContextFactory contextFactory,
-    IClientAuthenticationService clientAuthenticationService,
-    IEnumerable<ITokenGrantHandler> handlers
-) : IOpenIdEndpointProvider,
-    ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>
+    IClientAuthenticationService clientAuthenticationService
+) : IOpenIdEndpointProvider
 {
     private OpenIdServer OpenIdServer { get; } = openIdServer;
-    private IOpenIdErrorFactory ErrorFactory => OpenIdServer.ErrorFactory;
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
-
-    private Dictionary<string, ITokenGrantHandler> HandlersByGrantType { get; } = handlers
-        .SelectMany(handler => handler.GrantTypes.Select(grantType => (grantType, handler)))
-        .ToDictionary(pair => pair.grantType, pair => pair.handler, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -106,14 +105,22 @@ public class DefaultTokenEndpointHandler(
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var tokenRequest = TokenRequest.Load(OpenIdServer, formData);
 
+        // for simple validations before selecting the handler and materializing any grants
         await mediator.SendAsync(
-            new ValidateTokenRequestCommand(openIdContext, openIdClient, tokenRequest),
+            new ValidateTokenRequestCommand(
+                openIdContext,
+                openIdClient,
+                tokenRequest),
             cancellationToken);
 
-        var handler = await mediator.SendAsync(
-            new SelectTokenGrantHandlerCommand(openIdContext, openIdClient, tokenRequest),
+        var handler = await mediator.SendAsync<SelectTokenGrantHandlerCommand, ITokenGrantHandler>(
+            new SelectTokenGrantHandlerCommand(
+                openIdContext,
+                openIdClient,
+                tokenRequest),
             cancellationToken);
 
+        // the handler is also responsible for validating the request especially grants
         var tokenResponse = await handler.HandleAsync(
             openIdContext,
             openIdClient,
@@ -121,51 +128,5 @@ public class DefaultTokenEndpointHandler(
             cancellationToken);
 
         return TypedResults.Json(tokenResponse, OpenIdServer.JsonSerializerOptions);
-    }
-
-    /// <inheritdoc />
-    public ValueTask<ITokenGrantHandler> HandleAsync(
-        SelectTokenGrantHandlerCommand command,
-        CancellationToken cancellationToken)
-    {
-        var (_, openIdClient, tokenRequest) = command;
-
-        var clientSettings = openIdClient.Settings;
-        var grantType = tokenRequest.GrantType;
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        // grant_type
-        if (string.IsNullOrEmpty(grantType))
-        {
-            // invalid_request
-            throw ErrorFactory
-                .MissingParameter(OpenIdConstants.Parameters.GrantType)
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
-        }
-
-        // grant_types_supported
-        if (!clientSettings.GrantTypesSupported.Contains(grantType))
-        {
-            // unauthorized_client
-            throw ErrorFactory
-                .UnauthorizedClient("The provided grant type is not allowed by the client.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
-        }
-
-        if (!HandlersByGrantType.TryGetValue(grantType, out var handler))
-        {
-            // unsupported_grant_type
-            throw ErrorFactory
-                .UnsupportedGrantType("The provided grant type is not supported by the authorization server.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        return ValueTask.FromResult(handler);
     }
 }

@@ -20,7 +20,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Mediator;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Validators;
+namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message

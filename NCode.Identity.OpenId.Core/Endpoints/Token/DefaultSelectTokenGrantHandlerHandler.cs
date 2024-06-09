@@ -22,7 +22,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Handlers;
+namespace NCode.Identity.OpenId.Endpoints.Token;
 
 /// <summary>
 /// Provides a default implementation of handler for the <see cref="SelectTokenGrantHandlerCommand"/> message.

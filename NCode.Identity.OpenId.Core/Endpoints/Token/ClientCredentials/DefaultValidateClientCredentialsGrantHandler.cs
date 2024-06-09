@@ -20,17 +20,17 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Mediator;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Validators;
+namespace NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 
 /// <summary>
-/// Provides a default implementation of handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
-/// with <see cref="RefreshTokenGrant"/>.
+/// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
+/// with <see cref="ClientCredentialsGrant"/>.
 /// </summary>
-public class DefaultValidateRefreshTokenGrantHandler : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>
+public class DefaultValidateClientCredentialsGrantHandler : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>
 {
     /// <inheritdoc />
     public ValueTask HandleAsync(
-        ValidateTokenGrantCommand<RefreshTokenGrant> command,
+        ValidateTokenGrantCommand<ClientCredentialsGrant> command,
         CancellationToken cancellationToken)
     {
         // TODO...

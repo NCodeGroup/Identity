@@ -24,13 +24,13 @@ using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Validators;
+namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="AuthorizationGrant"/>.
 /// </summary>
-public class DefaultValidateAuthorizationGrantHandler(
+public class DefaultValidateAuthorizationCodeGrantHandler(
     ICryptoService cryptoService,
     IOpenIdErrorFactory errorFactory
 ) : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>

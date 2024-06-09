@@ -23,9 +23,9 @@ using NCode.Identity.Secrets;
 namespace NCode.Identity.OpenId.Clients;
 
 /// <summary>
-/// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that is authenticated.
+/// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that is confidential.
 /// </summary>
-public abstract class OpenIdAuthenticatedClient : OpenIdClient
+public abstract class OpenIdConfidentialClient : OpenIdClient
 {
     /// <summary>
     /// Gets a <see cref="string"/> value containing the authentication method used to authenticate the client.

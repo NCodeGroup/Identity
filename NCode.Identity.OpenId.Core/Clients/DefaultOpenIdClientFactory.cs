@@ -53,15 +53,15 @@ internal class DefaultOpenIdClientFactory(
     }
 
     /// <inheritdoc />
-    public ValueTask<OpenIdAuthenticatedClient> CreateConfidentialClientAsync(
+    public ValueTask<OpenIdConfidentialClient> CreateConfidentialClientAsync(
         OpenIdClient publicClient,
         string method,
         SecretKey secretKey,
         JsonElement? confirmation,
         CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult<OpenIdAuthenticatedClient>(
-            new DefaultOpenIdAuthenticatedClient(
+        return ValueTask.FromResult<OpenIdConfidentialClient>(
+            new DefaultOpenIdConfidentialClient(
                 publicClient,
                 method,
                 secretKey,

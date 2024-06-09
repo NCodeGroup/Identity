@@ -55,9 +55,9 @@ public readonly struct ClientAuthenticationResult
     /// <param name="client">The <see cref="OpenIdClient"/> instance containing either a public or confidential client.</param>
     public ClientAuthenticationResult(OpenIdClient client)
     {
-        if (client.IsAuthenticated)
+        if (client.IsConfidential)
         {
-            ConfidentialClient = client.AuthenticatedClient;
+            ConfidentialClient = client.ConfidentialClient;
         }
         else
         {
@@ -96,7 +96,7 @@ public readonly struct ClientAuthenticationResult
     /// Gets a <see cref="bool"/> value indicating the result contains a public client.
     /// </summary>
     [MemberNotNullWhen(true, nameof(PublicClient))]
-    public bool IsPublic => PublicClient is { IsAuthenticated: false };
+    public bool IsPublic => PublicClient is { IsConfidential: false };
 
     /// <summary>
     /// Gets the <see cref="OpenIdClient"/> instance containing the public client.
@@ -107,10 +107,10 @@ public readonly struct ClientAuthenticationResult
     /// Gets a <see cref="bool"/> value indicating the result contains a confidential client.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ConfidentialClient))]
-    public bool IsConfidential => ConfidentialClient is { IsAuthenticated: true };
+    public bool IsConfidential => ConfidentialClient is { IsConfidential: true };
 
     /// <summary>
-    /// Gets the <see cref="OpenIdAuthenticatedClient"/> instance containing the confidential client.
+    /// Gets the <see cref="OpenIdConfidentialClient"/> instance containing the confidential client.
     /// </summary>
-    public OpenIdAuthenticatedClient? ConfidentialClient { get; }
+    public OpenIdConfidentialClient? ConfidentialClient { get; }
 }

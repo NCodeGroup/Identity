@@ -381,7 +381,7 @@ public class DefaultAuthorizationEndpointHandler(
             {
                 throw ErrorFactory
                     .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
-                    .WithDescription($"The content type of the request must be '{expectedContentType}'. Received '{httpRequest.ContentType}'.")
+                    .WithDescription($"The content type of POST requests must be '{expectedContentType}', received '{httpRequest.ContentType}'.")
                     .WithStatusCode(StatusCodes.Status415UnsupportedMediaType)
                     .AsException();
             }

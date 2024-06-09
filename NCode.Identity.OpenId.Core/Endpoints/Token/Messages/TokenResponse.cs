@@ -21,6 +21,9 @@ using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 
+/// <summary>
+/// Provides a default implementation of the <see cref="ITokenResponse"/> abstraction.
+/// </summary>
 public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
 {
     /// <inheritdoc />

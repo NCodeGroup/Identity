@@ -22,7 +22,10 @@ using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 
-internal class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
+/// <summary>
+/// Provides a default implementation of the <see cref="ITokenRequest"/> abstraction.
+/// </summary>
+public class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
 {
     /// <inheritdoc />
     public string? AuthorizationCode
@@ -38,6 +41,7 @@ internal class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
         set => SetKnownParameter(KnownParameters.ClientId, value);
     }
 
+    /// <inheritdoc />
     public string? CodeVerifier
     {
         get => GetKnownParameter(KnownParameters.CodeVerifier);

@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Endpoints.Token;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register required services and handlers for the token endpoint.
 /// </summary>
-public static class TokenEndpointRegistration
+public static class DefaultTokenEndpointRegistration
 {
     /// <summary>
     /// Registers the required services and handlers for the token endpoint into the provided <see cref="IServiceCollection"/> instance.
@@ -46,6 +46,10 @@ public static class TokenEndpointRegistration
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             IOpenIdEndpointProvider,
             DefaultTokenEndpointHandler>());
+
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ICommandHandler<ValidateTokenRequestCommand>,
+            DefaultValidateTokenRequestHandler>());
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>,

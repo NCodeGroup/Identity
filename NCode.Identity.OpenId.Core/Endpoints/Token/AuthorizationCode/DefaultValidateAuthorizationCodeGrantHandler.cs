@@ -55,17 +55,6 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
                 .AsException();
         }
 
-        // client_id from token request
-        if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
-            !string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal))
-        {
-            // invalid_request
-            throw ErrorFactory
-                .InvalidRequest("The 'client_id' parameter, when specified, must be identical to the authenticated client identifier.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
-        }
-
         // redirect_uri from token request
         var redirectUri = tokenRequest.RedirectUri;
         if (redirectUri is null)
@@ -82,7 +71,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         {
             // invalid_grant
             throw ErrorFactory
-                .InvalidGrant("The provided redirect uri does not match the authorization request.")
+                .InvalidGrant("The provided redirect uri does not match from the authorization request.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
@@ -160,7 +149,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             if (!CryptoService.FixedTimeEquals(expectedCodeChallenge.AsSpan(), codeChallenge.AsSpan()))
             {
                 throw ErrorFactory
-                    .InvalidGrant("PKCE verification has failed.")
+                    .InvalidGrant("PKCE verification failed.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
             }

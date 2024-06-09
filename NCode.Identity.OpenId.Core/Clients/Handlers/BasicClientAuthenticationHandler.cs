@@ -16,28 +16,29 @@
 
 #endregion
 
-using System.Diagnostics;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Endpoints;
-using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 
-namespace NCode.Identity.OpenId.Clients;
+namespace NCode.Identity.OpenId.Clients.Handlers;
 
-internal class BasicClientAuthenticationHandler(
+// TODO: registration
+
+/// <summary>
+/// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses HTTP Basic Authentication.
+/// </summary>
+public class BasicClientAuthenticationHandler(
+    IOpenIdErrorFactory errorFactory,
     IStoreManagerFactory storeManagerFactory,
-    ISettingSerializer settingSerializer,
-    ISecretSerializer secretSerializer,
     IOpenIdClientFactory clientFactory,
-    IOpenIdErrorFactory errorFactory
-) : IClientAuthenticationHandler
+    ISettingSerializer settingSerializer,
+    ISecretSerializer secretSerializer
+) : CommonClientAuthenticationHandler(errorFactory, storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
+    IClientAuthenticationHandler
 {
     // TODO: move comment
     // RE: 400 vs 401
@@ -47,59 +48,14 @@ internal class BasicClientAuthenticationHandler(
         .InvalidRequest("An invalid or malformed authorization header was provided.")
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
-    private IOpenIdError ErrorInvalidClient { get; } = errorFactory
-        .InvalidClient()
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
-    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
-    private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
-
-    /// <inheritdoc />
-    public string AuthenticationMethod => "Basic"; // TODO
-
     private static string UriDecode(string value) =>
         Uri.UnescapeDataString(value.Replace("+", "%20"));
 
-    private async ValueTask<PersistedClient?> TryGetPersistedClientAsync(
-        string tenantId,
-        string clientId,
-        CancellationToken cancellationToken)
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        var persistedClient = await store.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
-        return persistedClient;
-    }
-
-    private async ValueTask<OpenIdClient> CreatePublicClientAsync(
-        OpenIdContext openIdContext,
-        PersistedClient persistedClient,
-        CancellationToken cancellationToken)
-    {
-        var settings = SettingSerializer.DeserializeSettings(
-            openIdContext.Tenant.Settings,
-            persistedClient.Settings);
-
-        var secrets = SecretSerializer.DeserializeSecrets(
-            persistedClient.Secrets,
-            out _);
-
-        var publicClient = await ClientFactory.CreatePublicClientAsync(
-            openIdContext,
-            persistedClient.ClientId,
-            settings,
-            secrets,
-            persistedClient.RedirectUrls,
-            cancellationToken);
-
-        return publicClient;
-    }
+    /// <inheritdoc />
+    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.Basic;
 
     /// <inheritdoc />
-    public async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
+    public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
         CancellationToken cancellationToken)
     {
@@ -152,34 +108,9 @@ internal class BasicClientAuthenticationHandler(
         var clientSecret = UriDecode(encodedClientSecret);
         var clientSecretBytes = SecureEncoding.UTF8.GetBytes(clientSecret);
 
-        foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
-        {
-            if (!IsSecretEqual(secretKey, clientSecretBytes))
-                continue;
-
-            var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
-                publicClient,
-                AuthenticationMethod,
-                secretKey,
-                confirmation: null,
-                cancellationToken);
-
-            return new ClientAuthenticationResult(confidentialClient);
-        }
-
-        return new ClientAuthenticationResult(ErrorInvalidClient);
-    }
-
-    private static bool IsSecretEqual(SymmetricSecretKey secretKey, ReadOnlySpan<byte> clientSecretBytes)
-    {
-        using var _ = CryptoPool.Rent(
-            secretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> secretKeyBytes);
-
-        var exportResult = secretKey.TryExportPrivateKey(secretKeyBytes, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == secretKey.KeySizeBytes);
-
-        return CryptographicOperations.FixedTimeEquals(secretKeyBytes, clientSecretBytes);
+        return await AuthenticateClientAsync(
+            publicClient,
+            clientSecretBytes,
+            cancellationToken);
     }
 }

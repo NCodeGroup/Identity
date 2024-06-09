@@ -125,4 +125,11 @@ public static partial class OpenIdConstants
         public const string Absolute = "absolute";
         public const string Sliding = "sliding";
     }
+
+    public static class ClientAuthenticationMethods
+    {
+        public const string Basic = "basic";
+        public const string RequestBody = "request_body";
+        public const string RequestQuery = "request_query";
+    }
 }

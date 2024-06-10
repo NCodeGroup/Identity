@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Mediator;
@@ -33,6 +34,13 @@ public class DefaultValidatePasswordGrantHandler : ICommandHandler<ValidateToken
         ValidateTokenGrantCommand<PasswordGrant> command,
         CancellationToken cancellationToken)
     {
+        var (_, openIdClient, tokenRequest, passwordGrant) = command;
+
+        // DefaultClientAuthenticationService already performs this check for us
+        Debug.Assert(
+            string.IsNullOrEmpty(tokenRequest.ClientId) ||
+            string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
+
         // TODO...
         throw new NotImplementedException();
     }

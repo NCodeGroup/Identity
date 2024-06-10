@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
@@ -46,11 +47,16 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         var (_, openIdClient, tokenRequest, authorizationGrant) = command;
         var (authorizationRequest, _) = authorizationGrant;
 
+        // DefaultClientAuthenticationService already performs this check for us
+        Debug.Assert(
+            string.IsNullOrEmpty(tokenRequest.ClientId) ||
+            string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
+
         // client_id from authorization request
         if (!string.Equals(openIdClient.ClientId, authorizationRequest.ClientId, StringComparison.Ordinal))
         {
             throw ErrorFactory
-                .InvalidGrant("The provided authorization code was issued to another client.")
+                .InvalidGrant("The provided authorization code was issued to a different client.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
@@ -77,14 +83,25 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         }
 
         // scope
-        var scopeCount = tokenRequest.Scopes?.Count ?? 0;
-        if (scopeCount == 0)
+        var requestedScopes = tokenRequest.Scopes ?? [];
+        if (requestedScopes.Count == 0)
         {
             // invalid_request
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.Scope)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
+        }
+
+        // extra scopes
+        var originalScopes = authorizationRequest.Scopes;
+        var hasExtraScopes = requestedScopes.Except(originalScopes).Any();
+        if (hasExtraScopes)
+        {
+            throw ErrorFactory
+                .InvalidScope()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException("The requested scope exceeds the scope granted by the resource owner.");
         }
 
         // TODO: validate resource

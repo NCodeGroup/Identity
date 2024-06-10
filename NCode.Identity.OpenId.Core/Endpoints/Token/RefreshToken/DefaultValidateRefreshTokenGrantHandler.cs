@@ -32,15 +32,17 @@ namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 /// with <see cref="RefreshTokenGrant"/>.
 /// </summary>
 public class DefaultValidateRefreshTokenGrantHandler(
-    IOpenIdErrorFactory errorFactory,
-    ISubjectService subjectService
+    IOpenIdErrorFactory errorFactory
 ) : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-    private ISubjectService SubjectService { get; } = subjectService;
 
     private IOpenIdError InvalidGrantError => ErrorFactory
         .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+        .WithStatusCode(StatusCodes.Status400BadRequest);
+
+    private IOpenIdError InvalidScopeError => ErrorFactory
+        .InvalidScope()
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
@@ -49,14 +51,20 @@ public class DefaultValidateRefreshTokenGrantHandler(
         CancellationToken cancellationToken)
     {
         var (openIdContext, openIdClient, tokenRequest, refreshTokenGrant) = command;
-        var (clientId, scopes, subjectAuthentication) = refreshTokenGrant;
+        var (clientId, originalScopes, _, subjectAuthentication) = refreshTokenGrant;
 
         if (!string.Equals(clientId, openIdClient.ClientId, StringComparison.Ordinal))
             throw InvalidGrantError.AsException("The refresh token belongs to a different client.");
 
-        // TODO: AllowOfflineAccess/DenyOfflineAccessScope
+        // TODO: AllowOfflineAccess/DenyOfflineAccess
 
-        // TODO: ValidateScopes
+        var requestedScopes = tokenRequest.Scopes;
+        if (requestedScopes is not null)
+        {
+            var hasExtraScopes = requestedScopes.Except(originalScopes).Any();
+            if (hasExtraScopes)
+                throw InvalidScopeError.AsException("The requested scope exceeds the scope granted by the resource owner.");
+        }
 
         if (subjectAuthentication.HasValue)
         {

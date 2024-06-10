@@ -60,6 +60,16 @@ public static class OpenIdErrorFactoryExtensions
     }
 
     /// <summary>
+    /// Creates an <see cref="IOpenIdError"/> for when then requested scope is invalid, unknown, malformed, or exceeds the scope granted by the resource owner.
+    /// </summary>
+    /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>
+    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+    public static IOpenIdError InvalidScope(this IOpenIdErrorFactory factory)
+    {
+        return factory.Create(OpenIdConstants.ErrorCodes.InvalidScope).WithDescription("The requested scope is invalid, unknown, malformed, or exceeds the scope granted by the resource owner.");
+    }
+
+    /// <summary>
     /// Creates an <see cref="IOpenIdError"/> for when processing the <c>request_uri</c> parameter produces an error.
     /// </summary>
     /// <param name="factory">The <see cref="IOpenIdErrorFactory"/> instance.</param>

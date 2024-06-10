@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Clients;
@@ -149,20 +148,20 @@ public class DefaultRefreshTokenGrantHandler(
         RefreshTokenGrant refreshTokenGrant,
         CancellationToken cancellationToken)
     {
-        var (_, _, subjectAuthentication) = refreshTokenGrant;
+        var (_, originalScopes, _, subjectAuthentication) = refreshTokenGrant;
 
-        var scopes = tokenRequest.Scopes;
-        Debug.Assert(scopes is not null);
+        var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 
         var tokenResponse = TokenResponse.Create(OpenIdServer);
 
-        tokenResponse.Scopes = scopes;
+        tokenResponse.Scopes = effectiveScopes;
 
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
-            Scopes = tokenRequest.Scopes,
+            OriginalScopes = originalScopes,
+            EffectiveScopes = effectiveScopes,
             RefreshToken = tokenRequest.RefreshToken,
             SubjectAuthentication = subjectAuthentication
         };
@@ -179,7 +178,7 @@ public class DefaultRefreshTokenGrantHandler(
             tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with
             {
@@ -195,7 +194,7 @@ public class DefaultRefreshTokenGrantHandler(
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
         {
             var settings = openIdClient.Settings;
             var rotationEnabled = settings.RefreshTokenRotationEnabled;

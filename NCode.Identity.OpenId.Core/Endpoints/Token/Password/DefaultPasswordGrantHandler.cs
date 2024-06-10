@@ -106,7 +106,8 @@ public class DefaultPasswordGrantHandler(
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.Password,
-            Scopes = tokenRequest.Scopes,
+            OriginalScopes = scopes,
+            EffectiveScopes = scopes,
             SubjectAuthentication = passwordGrant.SubjectAuthentication
         };
 

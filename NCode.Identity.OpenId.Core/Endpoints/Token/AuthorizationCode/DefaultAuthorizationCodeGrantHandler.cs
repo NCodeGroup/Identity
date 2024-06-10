@@ -122,12 +122,12 @@ public class DefaultAuthorizationCodeGrantHandler(
     {
         var (authorizationRequest, subjectAuthentication) = authorizationGrant;
 
-        var scopes = tokenRequest.Scopes;
-        Debug.Assert(scopes is not null);
+        var originalScopes = authorizationRequest.Scopes;
+        var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 
         var tokenResponse = TokenResponse.Create(OpenIdServer);
 
-        tokenResponse.Scopes = scopes;
+        tokenResponse.Scopes = effectiveScopes;
 
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
@@ -135,7 +135,8 @@ public class DefaultAuthorizationCodeGrantHandler(
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.AuthorizationCode,
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
-            Scopes = tokenRequest.Scopes,
+            OriginalScopes = originalScopes,
+            EffectiveScopes = effectiveScopes,
             AuthorizationCode = tokenRequest.AuthorizationCode,
             SubjectAuthentication = subjectAuthentication
         };
@@ -152,7 +153,7 @@ public class DefaultAuthorizationCodeGrantHandler(
             tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with
             {
@@ -168,7 +169,7 @@ public class DefaultAuthorizationCodeGrantHandler(
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
         {
             var newRequest = securityTokenRequest with
             {

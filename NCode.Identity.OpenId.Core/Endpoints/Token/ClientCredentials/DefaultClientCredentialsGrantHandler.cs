@@ -104,7 +104,8 @@ public class DefaultClientCredentialsGrantHandler(
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.ClientCredentials,
-            Scopes = tokenRequest.Scopes,
+            OriginalScopes = scopes,
+            EffectiveScopes = scopes
         };
 
         {

@@ -1180,7 +1180,8 @@ public class DefaultAuthorizationEndpointHandler(
             GrantType = authorizationRequest.GrantType,
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
-            Scopes = authorizationRequest.Scopes,
+            OriginalScopes = authorizationRequest.Scopes,
+            EffectiveScopes = authorizationRequest.Scopes,
             AuthorizationCode = ticket.AuthorizationCode,
             SubjectAuthentication = subjectAuthentication
         };

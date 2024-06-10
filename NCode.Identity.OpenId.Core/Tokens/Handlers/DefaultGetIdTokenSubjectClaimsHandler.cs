@@ -57,7 +57,7 @@ public class DefaultGetIdTokenSubjectClaimsHandler : ICommandHandler<GetIdTokenS
         // add standard claims requested by the client via the scope parameter
         // https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
 
-        var scopes = tokenRequest.Scopes ?? [];
+        var scopes = tokenRequest.EffectiveScopes;
 
         if (scopes.Contains(OpenIdConstants.ScopeTypes.Profile))
         {

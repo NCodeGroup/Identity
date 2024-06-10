@@ -39,7 +39,7 @@ public class DefaultValidateTokenRequestHandler(
     {
         var (_, openIdClient, tokenRequest) = command;
 
-        // DefaultClientAuthenticationService performs this check for us already
+        // DefaultClientAuthenticationService already performs this check for us
         Debug.Assert(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));

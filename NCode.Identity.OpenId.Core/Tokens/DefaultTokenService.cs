@@ -250,7 +250,8 @@ public class DefaultTokenService(
 
         var refreshTokenGrant = new RefreshTokenGrant(
             clientId,
-            tokenRequest.Scopes ?? [],
+            tokenRequest.OriginalScopes,
+            tokenRequest.EffectiveScopes,
             subjectAuthentication);
 
         var persistedGrant = new PersistedGrant<RefreshTokenGrant>

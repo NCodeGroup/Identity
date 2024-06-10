@@ -30,7 +30,9 @@ public readonly record struct CreateSecurityTokenRequest
 
     public string? State { get; init; }
 
-    public IReadOnlyCollection<string>? Scopes { get; init; }
+    public required IReadOnlyCollection<string> OriginalScopes { get; init; }
+
+    public required IReadOnlyCollection<string> EffectiveScopes { get; init; }
 
     public string? AuthorizationCode { get; init; }
 

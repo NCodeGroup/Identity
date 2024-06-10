@@ -1,7 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,30 +16,25 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Models;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+namespace NCode.Identity.OpenId.Subject;
 
-public class ValidateUserIsActiveResult
+/// <summary>
+/// Contains the result of validating whether the subject is active or not.
+/// </summary>
+[PublicAPI]
+public class ValidateSubjectIsActiveResult
 {
     /// <summary>
-    /// Gets a <see cref="bool"/> value indicating whether the user is active.
+    /// Gets a <see cref="bool"/> value indicating whether the subject is active.
+    /// The initial value is <c>true</c> and handlers can call the <see cref="SetInactive"/> method
+    /// to indicate that the subject is not active.
     /// </summary>
     public bool IsActive { get; private set; } = true;
 
     /// <summary>
-    /// Sets the user as inactive.
+    /// Sets the result to indicate that the subject is not active.
     /// </summary>
     public void SetInactive() => IsActive = false;
 }
-
-public readonly record struct ValidateUserIsActiveCommand(
-    OpenIdContext OpenIdContext,
-    OpenIdClient OpenIdClient,
-    IAuthorizationRequest AuthorizationRequest,
-    SubjectAuthentication SubjectAuthentication,
-    ValidateUserIsActiveResult Result
-) : ICommand;

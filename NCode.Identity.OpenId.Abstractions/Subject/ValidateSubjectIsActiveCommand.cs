@@ -17,17 +17,22 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Endpoints.Authorization.Results;
+using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Subject;
+using NCode.Identity.OpenId.Messages;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+namespace NCode.Identity.OpenId.Subject;
 
-public readonly record struct CreateAuthorizationTicketCommand(
+/// <summary>
+/// Represents a mediator command that is used to validate whether the subject is active or not.
+/// </summary>
+[PublicAPI]
+public readonly record struct ValidateSubjectIsActiveCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    IAuthorizationRequest AuthorizationRequest,
-    SubjectAuthentication SubjectAuthentication
-) : ICommand<IAuthorizationTicket>;
+    IOpenIdMessage OpenIdMessage,
+    SubjectAuthentication SubjectAuthentication,
+    ValidateSubjectIsActiveResult Result
+) : ICommand;

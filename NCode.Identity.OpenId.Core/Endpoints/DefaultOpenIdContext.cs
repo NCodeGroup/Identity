@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
@@ -37,6 +38,8 @@ public class DefaultOpenIdContext(
     IPropertyBag propertyBag
 ) : OpenIdContext
 {
+    private string? EndpointNameOrDefault { get; set; }
+
     private AsyncSharedReferenceLease<OpenIdTenant> TenantReference { get; set; } = tenantReference.AddReference();
 
     /// <inheritdoc />
@@ -55,9 +58,20 @@ public class DefaultOpenIdContext(
     public override IPropertyBag PropertyBag { get; } = propertyBag;
 
     /// <inheritdoc />
+    public override string EndpointName => EndpointNameOrDefault ??= LoadEndpointName();
+
+    /// <inheritdoc />
     protected override async ValueTask DisposeAsyncCore()
     {
         await TenantReference.DisposeAsync();
         TenantReference = default;
     }
+
+    private string LoadEndpointName() =>
+        Http
+            .GetEndpoint()?
+            .Metadata
+            .GetMetadata<IEndpointNameMetadata>()?
+            .EndpointName ??
+        string.Empty;
 }

@@ -27,7 +27,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Password;
 using NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Models;
+using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token;
 

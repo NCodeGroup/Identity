@@ -18,7 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace NCode.Identity.OpenId.Models;
+namespace NCode.Identity.OpenId.Subject;
 
 /// <summary>
 /// Contains the result after attempting to authenticate a user.

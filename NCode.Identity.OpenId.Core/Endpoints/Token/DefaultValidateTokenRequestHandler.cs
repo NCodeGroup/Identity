@@ -16,7 +16,7 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
+using System.Diagnostics;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
@@ -39,16 +39,10 @@ public class DefaultValidateTokenRequestHandler(
     {
         var (_, openIdClient, tokenRequest) = command;
 
-        // client_id from token request
-        if (!string.IsNullOrEmpty(tokenRequest.ClientId) &&
-            !string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal))
-        {
-            // invalid_request
-            throw ErrorFactory
-                .InvalidRequest("The provided client identifier does not match the authenticated client identifier.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
-        }
+        // DefaultClientAuthenticationService performs this check for us already
+        Debug.Assert(
+            string.IsNullOrEmpty(tokenRequest.ClientId) ||
+            string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
 
         return ValueTask.CompletedTask;
     }

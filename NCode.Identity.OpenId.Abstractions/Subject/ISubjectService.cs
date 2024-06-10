@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -18,30 +18,28 @@
 
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Subject;
-using NCode.Identity.OpenId.Tokens.Models;
+using NCode.Identity.OpenId.Messages;
 
-namespace NCode.Identity.OpenId.Logic.Authorization;
+namespace NCode.Identity.OpenId.Subject;
 
 /// <summary>
-/// Provides the ability for the authorization server to generate authorization codes in response to authorization requests.
+/// Provides various methods for interacting with OpenID subjects (aka users).
 /// </summary>
-public interface IAuthorizationCodeService
+public interface ISubjectService
 {
     /// <summary>
-    /// Generates the authorization code for an authorization request.
+    /// Validates whether the subject is active or not.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
-    /// <param name="authorizationRequest">The <see cref="IAuthorizationRequest"/> that represents the authorization request.</param>
-    /// <param name="subjectAuthentication">The <see cref="SubjectAuthentication"/> that represents the authenticated user identity.</param>
+    /// <param name="openIdMessage">The <see cref="IOpenIdMessage"/> that represents the current OpenID request.</param>
+    /// <param name="subjectAuthentication">The <see cref="SubjectAuthentication"/> that represents the subject to validate.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="SecurityToken"/> newly generated authorization code.</returns>
-    ValueTask<SecurityToken> CreateAuthorizationCodeAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the result of the validation.</returns>
+    ValueTask<bool> ValidateIsActiveAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        IAuthorizationRequest authorizationRequest,
+        IOpenIdMessage openIdMessage,
         SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken);
 }

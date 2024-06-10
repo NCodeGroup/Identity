@@ -16,13 +16,17 @@
 
 #endregion
 
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Clients;
 
-internal class DefaultClientAuthenticationService(
+/// <summary>
+/// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction.
+/// </summary>
+public class DefaultClientAuthenticationService(
     IOpenIdErrorFactory errorFactory,
     IEnumerable<IClientAuthenticationHandler> handlers
 ) : IClientAuthenticationService
@@ -33,12 +37,29 @@ internal class DefaultClientAuthenticationService(
 
     private IEnumerable<IClientAuthenticationHandler> Handlers { get; } = handlers;
 
+    private ClientAuthenticationResult? ResultOrDefault { get; set; }
+
     /// <inheritdoc />
     public async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
         CancellationToken cancellationToken)
     {
-        var lastResult = ClientAuthenticationResult.Undefined;
+        return ResultOrDefault ??= await AuthenticateCoreAsync(openIdContext, cancellationToken);
+    }
+
+    private async ValueTask<ClientAuthenticationResult> AuthenticateCoreAsync(
+        OpenIdContext openIdContext,
+        CancellationToken cancellationToken)
+    {
+        // Requirements:
+        // - Error if multiple results with different client IDs
+        // - Error if multiple confidential clients
+        // - Return first confidential client, if any
+        // - Otherwise return first public client
+
+        var capacity = Handlers.TryGetNonEnumeratedCount(out var count) ? count : 5;
+        var results = new List<ClientAuthenticationResult>(capacity);
+
         foreach (var handler in Handlers)
         {
             var result = await handler.AuthenticateClientAsync(openIdContext, cancellationToken);
@@ -49,12 +70,30 @@ internal class DefaultClientAuthenticationService(
             if (result.IsError)
                 return result;
 
-            if (!lastResult.IsUndefined)
-                return new ClientAuthenticationResult(ErrorMultipleAuthMethods);
+            Debug.Assert(result.HasClient);
 
-            lastResult = result;
+            if (results.Count > 0 && !string.Equals(result.Client.ClientId, results[0].Client!.ClientId, StringComparison.Ordinal))
+            {
+                return new ClientAuthenticationResult(ErrorMultipleAuthMethods);
+            }
+
+            results.Add(result);
         }
 
-        return lastResult;
+        if (results.Count == 0)
+            return ClientAuthenticationResult.Undefined;
+
+        if (results.Count == 1)
+            return results[0];
+
+        var confidentialResults = results.Where(result => result.IsConfidential).ToList();
+
+        if (confidentialResults.Count > 1)
+            return new ClientAuthenticationResult(ErrorMultipleAuthMethods);
+
+        if (confidentialResults.Count == 1)
+            return confidentialResults[0];
+
+        return results[0];
     }
 }

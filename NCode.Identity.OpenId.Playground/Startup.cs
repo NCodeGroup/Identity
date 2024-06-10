@@ -20,6 +20,7 @@
 using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose;
@@ -32,6 +33,7 @@ using NCode.Identity.OpenId.Endpoints.Token;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Registration;
+using NCode.Identity.OpenId.Subject;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 

@@ -24,7 +24,6 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
-using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
@@ -51,10 +50,9 @@ public class DefaultRefreshTokenGrantHandler(
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
 
-    private OpenIdException InvalidGrantException => ErrorFactory
+    private IOpenIdError InvalidGrantError => ErrorFactory
         .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
-        .WithStatusCode(StatusCodes.Status400BadRequest)
-        .AsException();
+        .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
@@ -93,13 +91,13 @@ public class DefaultRefreshTokenGrantHandler(
             cancellationToken);
 
         if (!persistedGrantOrNull.HasValue)
-            throw InvalidGrantException;
+            throw InvalidGrantError.AsException("The refresh token was not found.");
 
         var persistedGrant = persistedGrantOrNull.Value;
         if (persistedGrant.Status != PersistedGrantStatus.Active)
         {
             // TODO: refresh_token_reuse_policy (none, revoke_all)
-            throw InvalidGrantException;
+            throw InvalidGrantError.AsException("The refresh token is not active.");
         }
 
         var refreshTokenGrant = persistedGrant.Payload;
@@ -151,7 +149,7 @@ public class DefaultRefreshTokenGrantHandler(
         RefreshTokenGrant refreshTokenGrant,
         CancellationToken cancellationToken)
     {
-        var (_, subjectAuthentication) = refreshTokenGrant;
+        var (_, _, subjectAuthentication) = refreshTokenGrant;
 
         var scopes = tokenRequest.Scopes;
         Debug.Assert(scopes is not null);

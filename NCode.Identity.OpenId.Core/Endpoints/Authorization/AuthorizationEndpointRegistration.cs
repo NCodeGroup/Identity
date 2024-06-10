@@ -26,8 +26,8 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization;
 

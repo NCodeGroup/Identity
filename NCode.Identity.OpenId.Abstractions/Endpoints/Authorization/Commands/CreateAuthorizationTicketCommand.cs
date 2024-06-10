@@ -21,7 +21,7 @@ using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Models;
+using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 

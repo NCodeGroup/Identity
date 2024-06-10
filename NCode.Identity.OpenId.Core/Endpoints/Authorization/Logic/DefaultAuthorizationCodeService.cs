@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Models;
+using NCode.Identity.OpenId.Subject;
 using NCode.Identity.OpenId.Tokens.Commands;
 using NCode.Identity.OpenId.Tokens.Models;
 

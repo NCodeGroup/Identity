@@ -55,6 +55,11 @@ public abstract class OpenIdContext : IAsyncDisposable
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
 
+    /// <summary>
+    /// Gets the name of the endpoint associated with the current request.
+    /// </summary>
+    public abstract string EndpointName { get; }
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {

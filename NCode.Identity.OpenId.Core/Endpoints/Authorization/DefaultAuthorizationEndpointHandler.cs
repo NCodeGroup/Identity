@@ -44,10 +44,10 @@ using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Subject;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
@@ -68,7 +68,8 @@ public class DefaultAuthorizationEndpointHandler(
     IOpenIdContextFactory contextFactory,
     IContinueService continueService,
     ITokenService tokenService,
-    OpenIdServer openIdServer
+    OpenIdServer openIdServer,
+    ISubjectService subjectService
 ) :
     IOpenIdEndpointProvider,
     IContinueProvider,
@@ -95,6 +96,7 @@ public class DefaultAuthorizationEndpointHandler(
     private ITokenService TokenService { get; } = tokenService;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory => OpenIdServer.ErrorFactory;
+    private ISubjectService SubjectService { get; } = subjectService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -613,14 +615,20 @@ public class DefaultAuthorizationEndpointHandler(
     {
         var responseType = requestMessage.ResponseType ?? ResponseTypes.Unspecified;
         if (responseType == ResponseTypes.Unspecified)
-            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.ResponseType)
+                .AsException();
 
         if (responseType.HasFlag(ResponseTypes.None) && responseType != ResponseTypes.None)
-            throw ErrorFactory.InvalidRequest("The 'none' response_type must not be combined with other values.").AsException();
+            throw ErrorFactory
+                .InvalidRequest("The 'none' response_type must not be combined with other values.")
+                .AsException();
 
         var redirectUri = requestMessage.RedirectUri;
         if (redirectUri is null)
-            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri).AsException();
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+                .AsException();
     }
 
     [AssertionMethod]
@@ -637,10 +645,14 @@ public class DefaultAuthorizationEndpointHandler(
          */
 
         if (requestObject.ContainsKey(OpenIdConstants.Parameters.Request))
-            throw ErrorFactory.InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode).AsException();
+            throw ErrorFactory
+                .InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode)
+                .AsException();
 
         if (requestObject.ContainsKey(OpenIdConstants.Parameters.RequestUri))
-            throw ErrorFactory.InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode).AsException();
+            throw ErrorFactory
+                .InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode)
+                .AsException();
 
         /*
          * So that the request is a valid OAuth 2.0 Authorization Request, values for the response_type and client_id parameters MUST
@@ -649,17 +661,23 @@ public class DefaultAuthorizationEndpointHandler(
          */
 
         if (requestObject.ResponseType != null && requestObject.ResponseType != requestMessage.ResponseType)
-            throw ErrorFactory.InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode).AsException();
+            throw ErrorFactory
+                .InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode)
+                .AsException();
 
         /*
          * The Client ID values in the "client_id" request parameter and in the Request Object "client_id" claim MUST be identical.
          */
 
         if (string.IsNullOrEmpty(requestObject.ClientId))
-            throw ErrorFactory.MissingParameter("The 'client_id' parameter in the JWT request object is missing.", errorCode).AsException();
+            throw ErrorFactory
+                .MissingParameter("The 'client_id' parameter in the JWT request object is missing.", errorCode)
+                .AsException();
 
         if (!string.Equals(requestObject.ClientId, requestMessage.ClientId, StringComparison.Ordinal))
-            throw ErrorFactory.InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode).AsException();
+            throw ErrorFactory
+                .InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode)
+                .AsException();
     }
 
     [AssertionMethod]
@@ -677,49 +695,73 @@ public class DefaultAuthorizationEndpointHandler(
         var codeChallengeMethodIsPlain = !hasCodeChallenge || request.CodeChallengeMethod == OpenIdConstants.CodeChallengeMethods.Plain;
 
         if (request.Scopes.Count == 0)
-            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.Scope)
+                .AsException();
 
         if (request.ResponseType == ResponseTypes.Unspecified)
-            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ResponseType).AsException();
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.ResponseType)
+                .AsException();
 
         if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(request.Nonce))
-            throw ErrorFactory.MissingParameter(OpenIdConstants.Parameters.Nonce).AsException();
+            throw ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.Nonce)
+                .AsException();
 
         if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && !hasOpenIdScope)
-            throw ErrorFactory.InvalidRequest("The openid scope is required when requesting id tokens.").AsException();
+            throw ErrorFactory
+                .InvalidRequest("The 'openid' scope is required when requesting id tokens.")
+                .AsException();
 
         if (request.ResponseMode == ResponseMode.Query && request.GrantType != OpenIdConstants.GrantTypes.AuthorizationCode)
-            throw ErrorFactory.InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.").AsException();
+            throw ErrorFactory
+                .InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.")
+                .AsException();
 
         if (request.PromptType.HasFlag(PromptTypes.None) && request.PromptType != PromptTypes.None)
-            throw ErrorFactory.InvalidRequest("The 'none' prompt must not be combined with other values.").AsException();
+            throw ErrorFactory
+                .InvalidRequest("The 'none' prompt must not be combined with other values.")
+                .AsException();
 
         if (request.PromptType.HasFlag(PromptTypes.CreateAccount) && request.PromptType != PromptTypes.CreateAccount)
-            throw ErrorFactory.InvalidRequest("The 'create' prompt must not be combined with other values.").AsException();
+            throw ErrorFactory
+                .InvalidRequest("The 'create' prompt must not be combined with other values.")
+                .AsException();
 
         if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
-            throw ErrorFactory.InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.").AsException();
+            throw ErrorFactory
+                .InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.")
+                .AsException();
 
         // perform configurable checks...
 
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
         if (request.ResponseType.HasFlag(ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
-            throw ErrorFactory.UnauthorizedClient("The configuration prohibits the use of unsafe token responses.").AsException();
+            throw ErrorFactory
+                .UnauthorizedClient("The configuration prohibits the use of unsafe token responses.")
+                .AsException();
 
         // require_pkce
         if (!hasCodeChallenge && clientSettings.RequireCodeChallenge)
-            throw ErrorFactory.UnauthorizedClient("The configuration requires the use of PKCE parameters.").AsException();
+            throw ErrorFactory
+                .UnauthorizedClient("The configuration requires the use of PKCE parameters.")
+                .AsException();
 
         // allow_plain_code_challenge_method
         if (codeChallengeMethodIsPlain && !clientSettings.AllowPlainCodeChallengeMethod)
-            throw ErrorFactory.UnauthorizedClient("The configuration prohibits the plain PKCE method.").AsException();
+            throw ErrorFactory
+                .UnauthorizedClient("The configuration prohibits the plain PKCE method.")
+                .AsException();
 
         // acr_values_supported
         if (clientSettings.TryGet(KnownSettings.AcrValuesSupported.Key, out var acrValuesSupported))
         {
             var acrValues = request.AcrValues;
             if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported.Value).Any())
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.AcrValues).AsException();
+                throw ErrorFactory
+                    .NotSupported(OpenIdConstants.Parameters.AcrValues)
+                    .AsException();
         }
 
         // claims_locales_supported
@@ -727,7 +769,9 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var claimsLocales = request.ClaimsLocales;
             if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported.Value).Any())
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.ClaimsLocales).AsException();
+                throw ErrorFactory
+                    .NotSupported(OpenIdConstants.Parameters.ClaimsLocales)
+                    .AsException();
         }
 
         // claims_parameter_supported
@@ -735,21 +779,27 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var claimCount = request.Claims?.UserInfo?.Count ?? 0 + request.Claims?.IdToken?.Count ?? 0;
             if (claimCount > 0 && !claimsParameterSupported.Value)
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.Claims).AsException();
+                throw ErrorFactory
+                    .NotSupported(OpenIdConstants.Parameters.Claims)
+                    .AsException();
         }
 
         // display_values_supported
         if (clientSettings.TryGet(KnownSettings.DisplayValuesSupported.Key, out var displayValuesSupported))
         {
             if (!displayValuesSupported.Value.Contains(request.DisplayType))
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.Display).AsException();
+                throw ErrorFactory
+                    .NotSupported(OpenIdConstants.Parameters.Display)
+                    .AsException();
         }
 
         // grant_types_supported
         if (clientSettings.TryGet(KnownSettings.GrantTypesSupported.Key, out var grantTypesSupported))
         {
             if (!grantTypesSupported.Value.Contains(request.GrantType))
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
+                throw ErrorFactory
+                    .NotSupported(OpenIdConstants.Parameters.GrantType)
+                    .AsException();
         }
 
         // prompt_values_supported
@@ -774,14 +824,18 @@ public class DefaultAuthorizationEndpointHandler(
         if (clientSettings.TryGet(KnownSettings.ResponseModesSupported.Key, out var responseModesSupported))
         {
             if (!responseModesSupported.Value.Contains(request.ResponseMode))
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.ResponseMode).AsException();
+                throw ErrorFactory
+                    .NotSupported(OpenIdConstants.Parameters.ResponseMode)
+                    .AsException();
         }
 
         // response_types_supported
         if (clientSettings.TryGet(KnownSettings.ResponseTypesSupported.Key, out var responseTypesSupported))
         {
             if (!responseTypesSupported.Value.Contains(request.ResponseType))
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.ResponseType).AsException();
+                throw ErrorFactory
+                    .NotSupported(OpenIdConstants.Parameters.ResponseType)
+                    .AsException();
         }
 
         // scopes_supported
@@ -789,7 +843,9 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var scopes = request.Scopes;
             if (scopes.Count > 0 && !scopes.Except(scopesSupported.Value).Any())
-                throw ErrorFactory.NotSupported(OpenIdConstants.Parameters.Scope).AsException();
+                throw ErrorFactory
+                    .NotSupported(OpenIdConstants.Parameters.Scope)
+                    .AsException();
         }
 
         // subject_types_supported
@@ -968,7 +1024,7 @@ public class DefaultAuthorizationEndpointHandler(
             return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
-        if (!await ValidateUserIsActiveAsync(
+        if (!await SubjectService.ValidateIsActiveAsync(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,
@@ -983,7 +1039,7 @@ public class DefaultAuthorizationEndpointHandler(
                 return new AuthorizationResult(redirectUri, responseMode, error);
             }
 
-            Logger.LogInformation("User not active.");
+            Logger.LogInformation("Subject not active.");
 
             var continueUrl = await ContinueService.GetContinueUrlAsync(
                 openIdContext,
@@ -1050,27 +1106,6 @@ public class DefaultAuthorizationEndpointHandler(
         // TODO: check client's user SSO timeout
 
         return null;
-    }
-
-    private static async ValueTask<bool> ValidateUserIsActiveAsync(
-        OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        IAuthorizationRequest authorizationRequest,
-        SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken)
-    {
-        var result = new ValidateUserIsActiveResult();
-        var command = new ValidateUserIsActiveCommand(
-            openIdContext,
-            openIdClient,
-            authorizationRequest,
-            subjectAuthentication,
-            result);
-
-        var mediator = openIdContext.Mediator;
-        await mediator.SendAsync(command, cancellationToken);
-
-        return result.IsActive;
     }
 
     private bool ValidateMaxAge(ClaimsIdentity subject, TimeSpan? maxAge, TimeSpan clockSkew)

@@ -16,9 +16,14 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 
@@ -26,14 +31,66 @@ namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 /// Provides a default implementation of handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="RefreshTokenGrant"/>.
 /// </summary>
-public class DefaultValidateRefreshTokenGrantHandler : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>
+public class DefaultValidateRefreshTokenGrantHandler(
+    IOpenIdErrorFactory errorFactory,
+    ISubjectService subjectService
+) : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>
 {
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
+    private ISubjectService SubjectService { get; } = subjectService;
+
+    private IOpenIdError InvalidGrantError => ErrorFactory
+        .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+        .WithStatusCode(StatusCodes.Status400BadRequest);
+
     /// <inheritdoc />
-    public ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         ValidateTokenGrantCommand<RefreshTokenGrant> command,
         CancellationToken cancellationToken)
     {
-        // TODO...
-        throw new NotImplementedException();
+        var (openIdContext, openIdClient, tokenRequest, refreshTokenGrant) = command;
+        var (clientId, scopes, subjectAuthentication) = refreshTokenGrant;
+
+        if (!string.Equals(clientId, openIdClient.ClientId, StringComparison.Ordinal))
+            throw InvalidGrantError.AsException("The refresh token belongs to a different client.");
+
+        // TODO: AllowOfflineAccess/DenyOfflineAccessScope
+
+        // TODO: ValidateScopes
+
+        if (subjectAuthentication.HasValue)
+        {
+            var isSubjectActive = await ValidateSubjectIsActiveAsync(
+                openIdContext,
+                openIdClient,
+                tokenRequest,
+                subjectAuthentication.Value,
+                cancellationToken);
+
+            if (!isSubjectActive)
+                throw InvalidGrantError.AsException("The subject is not active.");
+        }
+    }
+
+    private static async ValueTask<bool> ValidateSubjectIsActiveAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IOpenIdMessage openIdMessage,
+        SubjectAuthentication subjectAuthentication,
+        CancellationToken cancellationToken)
+    {
+        var result = new ValidateSubjectIsActiveResult();
+
+        var command = new ValidateSubjectIsActiveCommand(
+            openIdContext,
+            openIdClient,
+            openIdMessage,
+            subjectAuthentication,
+            result);
+
+        var mediator = openIdContext.Mediator;
+        await mediator.SendAsync(command, cancellationToken);
+
+        return result.IsActive;
     }
 }

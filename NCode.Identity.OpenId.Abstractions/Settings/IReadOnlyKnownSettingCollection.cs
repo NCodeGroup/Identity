@@ -186,4 +186,9 @@ public interface IReadOnlyKnownSettingCollection : IReadOnlySettingCollection
     /// Gets a value indicating whether the use of PKCE is required during authorization.
     /// </summary>
     bool RequireCodeChallenge { get; }
+
+    /// <summary>
+    /// Gets the value of the 'scopes_supported' setting.
+    /// </summary>
+    IReadOnlyCollection<string> ScopesSupported { get; }
 }

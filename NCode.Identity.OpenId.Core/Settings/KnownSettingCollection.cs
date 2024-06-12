@@ -242,6 +242,13 @@ public class KnownSettingCollection(
         set => Store.Set(KnownSettings.RequireCodeChallenge.Create(value));
     }
 
+    /// <inheritdoc cref="IKnownSettingCollection.ScopesSupported" />
+    public IReadOnlyCollection<string> ScopesSupported
+    {
+        get => Get(KnownSettings.ScopesSupported);
+        set => Store.Set(KnownSettings.ScopesSupported.Create(value));
+    }
+
     //
 
     /// <inheritdoc />

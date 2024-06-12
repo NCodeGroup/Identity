@@ -20,6 +20,7 @@ using System.Diagnostics;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 
@@ -27,8 +28,12 @@ namespace NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="ClientCredentialsGrant"/>.
 /// </summary>
-public class DefaultValidateClientCredentialsGrantHandler : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>
+public class DefaultValidateClientCredentialsGrantHandler(
+    IOpenIdErrorFactory errorFactory
+) : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>
 {
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
+
     /// <inheritdoc />
     public ValueTask HandleAsync(
         ValidateTokenGrantCommand<ClientCredentialsGrant> command,

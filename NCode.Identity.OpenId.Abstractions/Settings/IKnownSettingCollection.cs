@@ -187,4 +187,9 @@ public interface IKnownSettingCollection : ISettingCollection
     /// Gets or sets a value indicating whether the use of PKCE is required during authorization.
     /// </summary>
     bool RequireCodeChallenge { get; set; }
+
+    /// <summary>
+    /// Gets or sets the value of the 'scopes_supported' setting.
+    /// </summary>
+    IReadOnlyCollection<string> ScopesSupported { get; set; }
 }

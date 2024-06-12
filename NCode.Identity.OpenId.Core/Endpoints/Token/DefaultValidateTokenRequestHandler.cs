@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
@@ -32,6 +33,10 @@ public class DefaultValidateTokenRequestHandler(
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
+    private IOpenIdError InvalidScopeError => ErrorFactory
+        .InvalidScope()
+        .WithStatusCode(StatusCodes.Status400BadRequest);
+
     /// <inheritdoc />
     public ValueTask HandleAsync(
         ValidateTokenRequestCommand command,
@@ -39,10 +44,19 @@ public class DefaultValidateTokenRequestHandler(
     {
         var (_, openIdClient, tokenRequest) = command;
 
+        var settings = openIdClient.Settings;
+        var requestedScopes = tokenRequest.Scopes;
+
         // DefaultClientAuthenticationService already performs this check for us
         Debug.Assert(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
+
+        // scopes_supported
+        var hasInvalidScopes = requestedScopes?.Except(settings.ScopesSupported).Any() ?? false;
+        if (hasInvalidScopes)
+            // invalid_scope
+            throw InvalidScopeError.AsException();
 
         return ValueTask.CompletedTask;
     }

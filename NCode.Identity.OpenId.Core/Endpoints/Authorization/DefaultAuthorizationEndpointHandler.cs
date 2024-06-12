@@ -68,8 +68,7 @@ public class DefaultAuthorizationEndpointHandler(
     IOpenIdContextFactory contextFactory,
     IContinueService continueService,
     ITokenService tokenService,
-    OpenIdServer openIdServer,
-    ISubjectService subjectService
+    OpenIdServer openIdServer
 ) :
     IOpenIdEndpointProvider,
     IContinueProvider,
@@ -96,7 +95,6 @@ public class DefaultAuthorizationEndpointHandler(
     private ITokenService TokenService { get; } = tokenService;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory => OpenIdServer.ErrorFactory;
-    private ISubjectService SubjectService { get; } = subjectService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -687,14 +685,16 @@ public class DefaultAuthorizationEndpointHandler(
     {
         var clientSettings = openIdClient.Settings;
 
-        var hasOpenIdScope = request.Scopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
+        var requestedScopes = request.Scopes;
+        var hasOpenIdScope = requestedScopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
+
         var isImplicit = request.GrantType == OpenIdConstants.GrantTypes.Implicit;
         var isHybrid = request.GrantType == OpenIdConstants.GrantTypes.Hybrid;
 
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
         var codeChallengeMethodIsPlain = !hasCodeChallenge || request.CodeChallengeMethod == OpenIdConstants.CodeChallengeMethods.Plain;
 
-        if (request.Scopes.Count == 0)
+        if (requestedScopes.Count == 0)
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.Scope)
                 .AsException();
@@ -839,13 +839,9 @@ public class DefaultAuthorizationEndpointHandler(
         }
 
         // scopes_supported
-        if (clientSettings.TryGet(KnownSettings.ScopesSupported.Key, out var scopesSupported))
+        if (requestedScopes.Except(clientSettings.ScopesSupported).Any())
         {
-            var scopes = request.Scopes;
-            if (scopes.Count > 0 && !scopes.Except(scopesSupported.Value).Any())
-                throw ErrorFactory
-                    .NotSupported(OpenIdConstants.Parameters.Scope)
-                    .AsException();
+            throw ErrorFactory.InvalidScope().AsException();
         }
 
         // subject_types_supported
@@ -1024,7 +1020,7 @@ public class DefaultAuthorizationEndpointHandler(
             return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
-        if (!await SubjectService.ValidateIsActiveAsync(
+        if (!await ValidateSubjectIsActiveAsync(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,
@@ -1106,6 +1102,28 @@ public class DefaultAuthorizationEndpointHandler(
         // TODO: check client's user SSO timeout
 
         return null;
+    }
+
+    private static async ValueTask<bool> ValidateSubjectIsActiveAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IOpenIdMessage openIdMessage,
+        SubjectAuthentication subjectAuthentication,
+        CancellationToken cancellationToken)
+    {
+        var result = new ValidateSubjectIsActiveResult();
+
+        var command = new ValidateSubjectIsActiveCommand(
+            openIdContext,
+            openIdClient,
+            openIdMessage,
+            subjectAuthentication,
+            result);
+
+        var mediator = openIdContext.Mediator;
+        await mediator.SendAsync(command, cancellationToken);
+
+        return result.IsActive;
     }
 
     private bool ValidateMaxAge(ClaimsIdentity subject, TimeSpan? maxAge, TimeSpan clockSkew)

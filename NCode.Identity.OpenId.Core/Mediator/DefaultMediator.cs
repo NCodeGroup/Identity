@@ -54,7 +54,7 @@ public class DefaultMediator(
     //
 
     /// <inheritdoc />
-    public ValueTask SendAsync(
+    public ValueTask PolymorphicSendAsync(
         ICommand command,
         CancellationToken cancellationToken
     )
@@ -65,7 +65,7 @@ public class DefaultMediator(
     }
 
     /// <inheritdoc />
-    public ValueTask<TResponse> SendAsync<TResponse>(
+    public ValueTask<TResponse> PolymorphicSendAsync<TResponse>(
         ICommand<TResponse> command,
         CancellationToken cancellationToken
     )

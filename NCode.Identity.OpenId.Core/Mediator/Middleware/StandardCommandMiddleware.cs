@@ -17,11 +17,13 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Mediator.Wrappers;
 
 namespace NCode.Identity.OpenId.Mediator.Middleware;
 
+[RequiresDynamicCode("This class uses reflection for exception handling.")]
 internal class StandardCommandMiddleware<TCommand>(
     IServiceProvider serviceProvider,
     IEnumerable<ICommandPreProcessor<TCommand>> preProcessors,

@@ -94,10 +94,8 @@ public class DefaultRefreshTokenGrantHandler(
 
         var persistedGrant = persistedGrantOrNull.Value;
         if (persistedGrant.Status != PersistedGrantStatus.Active)
-        {
             // TODO: refresh_token_reuse_policy (none, revoke_all)
             throw InvalidGrantError.AsException("The refresh token is not active.");
-        }
 
         var refreshTokenGrant = persistedGrant.Payload;
 

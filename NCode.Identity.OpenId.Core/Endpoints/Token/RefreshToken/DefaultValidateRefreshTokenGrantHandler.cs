@@ -52,19 +52,27 @@ public class DefaultValidateRefreshTokenGrantHandler(
     {
         var (openIdContext, openIdClient, tokenRequest, refreshTokenGrant) = command;
         var (clientId, originalScopes, _, subjectAuthentication) = refreshTokenGrant;
+        var settings = openIdClient.Settings;
 
         if (!string.Equals(clientId, openIdClient.ClientId, StringComparison.Ordinal))
             throw InvalidGrantError.AsException("The refresh token belongs to a different client.");
 
-        // TODO: AllowOfflineAccess/DenyOfflineAccess
+        if (!settings.ScopesSupported.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+            throw InvalidGrantError.AsException("The client is prohibited from using refresh tokens.");
 
+        // scope
         var requestedScopes = tokenRequest.Scopes;
-        if (requestedScopes is not null)
-        {
-            var hasExtraScopes = requestedScopes.Except(originalScopes).Any();
-            if (hasExtraScopes)
-                throw InvalidScopeError.AsException("The requested scope exceeds the scope granted by the resource owner.");
-        }
+        var effectiveScopes = requestedScopes ?? originalScopes;
+
+        // extra scopes
+        var hasExtraScopes = requestedScopes?.Except(originalScopes).Any() ?? false;
+        if (hasExtraScopes)
+            throw InvalidScopeError.AsException("The requested scope exceeds the scope granted by the resource owner.");
+
+        // scopes_supported
+        var hasInvalidScopes = effectiveScopes.Except(settings.ScopesSupported).Any();
+        if (hasInvalidScopes)
+            throw InvalidScopeError.AsException();
 
         if (subjectAuthentication.HasValue)
         {

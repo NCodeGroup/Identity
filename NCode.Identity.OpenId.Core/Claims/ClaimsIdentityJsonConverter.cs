@@ -29,9 +29,15 @@ public class ClaimsIdentityJsonConverter : JsonConverter<ClaimsIdentity>
     /// <inheritdoc />
     public override ClaimsIdentity? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var serializableClaimsIdentity = JsonSerializer.Deserialize<SerializableClaimsIdentity>(ref reader, options);
+        var serializableIdentity = JsonSerializer.Deserialize<SerializableClaimsIdentity>(ref reader, options);
 
-        if (serializableClaimsIdentity is null)
+        return HydrateIdentity(serializableIdentity);
+    }
+
+    [return: NotNullIfNotNull(nameof(serializableIdentity))]
+    private static ClaimsIdentity? HydrateIdentity(SerializableClaimsIdentity? serializableIdentity)
+    {
+        if (serializableIdentity is null)
         {
             return null;
         }
@@ -39,27 +45,21 @@ public class ClaimsIdentityJsonConverter : JsonConverter<ClaimsIdentity>
         var claimsIdentity = new ClaimsIdentity(
             identity: null,
             claims: null,
-            serializableClaimsIdentity.AuthenticationType,
-            serializableClaimsIdentity.NameClaimType,
-            serializableClaimsIdentity.RoleClaimType)
+            serializableIdentity.AuthenticationType,
+            serializableIdentity.NameClaimType,
+            serializableIdentity.RoleClaimType)
         {
-            Label = serializableClaimsIdentity.Label,
-            BootstrapContext = serializableClaimsIdentity.BootstrapContext
+            Label = serializableIdentity.Label,
+            BootstrapContext = serializableIdentity.BootstrapContext,
+            Actor = HydrateIdentity(serializableIdentity.Actor)
         };
 
-        foreach (var persistedClaim in serializableClaimsIdentity.Claims)
+        foreach (var serializableClaim in serializableIdentity.Claims)
         {
-            HydrateClaim(persistedClaim, claimsIdentity);
+            HydrateClaim(serializableClaim, claimsIdentity);
         }
 
         return claimsIdentity;
-    }
-
-    /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, ClaimsIdentity value, JsonSerializerOptions options)
-    {
-        var serializableClaimsIdentity = SerializeIdentity(value);
-        JsonSerializer.Serialize(serializableClaimsIdentity, options);
     }
 
     private static void HydrateClaim(SerializableClaim serializableClaim, ClaimsIdentity subject)
@@ -79,6 +79,13 @@ public class ClaimsIdentityJsonConverter : JsonConverter<ClaimsIdentity>
         }
 
         subject.AddClaim(claim);
+    }
+
+    /// <inheritdoc />
+    public override void Write(Utf8JsonWriter writer, ClaimsIdentity value, JsonSerializerOptions options)
+    {
+        var serializableClaimsIdentity = SerializeIdentity(value);
+        JsonSerializer.Serialize(serializableClaimsIdentity, options);
     }
 
     [return: NotNullIfNotNull(nameof(identity))]

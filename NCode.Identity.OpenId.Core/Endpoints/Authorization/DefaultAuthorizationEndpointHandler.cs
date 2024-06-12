@@ -1035,7 +1035,7 @@ public class DefaultAuthorizationEndpointHandler(
                 return new AuthorizationResult(redirectUri, responseMode, error);
             }
 
-            Logger.LogInformation("Subject not active.");
+            Logger.LogInformation("The user is not active.");
 
             var continueUrl = await ContinueService.GetContinueUrlAsync(
                 openIdContext,

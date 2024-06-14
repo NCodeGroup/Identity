@@ -28,11 +28,6 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public static class ParameterParsers
 {
     /// <summary>
-    /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="GrantType"/> values.
-    /// </summary>
-    public static readonly GrantTypeParser GrantType = new();
-
-    /// <summary>
     /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="IRequestClaims"/> from a JSON payload.
     /// </summary>
     public static readonly JsonParser<IRequestClaims> RequestClaims = new();

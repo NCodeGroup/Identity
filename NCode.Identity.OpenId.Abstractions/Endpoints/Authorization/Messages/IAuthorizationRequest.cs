@@ -79,7 +79,7 @@ public interface IAuthorizationRequest : IBaseAuthorizationRequest
     /// <summary>
     /// Gets the <c>display</c> parameter.
     /// </summary>
-    DisplayType DisplayType { get; }
+    string DisplayType { get; }
 
     /// <summary>
     /// Gets the <c>grant_type</c> parameter.

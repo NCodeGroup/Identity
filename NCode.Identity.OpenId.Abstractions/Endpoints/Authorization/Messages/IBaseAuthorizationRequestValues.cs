@@ -60,7 +60,7 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     /// <summary>
     /// Gets the <c>display</c> parameter.
     /// </summary>
-    DisplayType? DisplayType { get; }
+    string? DisplayType { get; }
 
     /// <summary>
     /// Gets the <c>id_token_hint</c> parameter.

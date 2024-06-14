@@ -121,10 +121,10 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>display</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="DisplayType"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>display</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<DisplayType?> DisplayType =
-        new(OpenIdConstants.Parameters.Display, ParameterParsers.DisplayType)
+    public static readonly KnownParameter<string?> DisplayType =
+        new(OpenIdConstants.Parameters.Display, ParameterParsers.String)
         {
             Optional = true,
             AllowMultipleValues = false

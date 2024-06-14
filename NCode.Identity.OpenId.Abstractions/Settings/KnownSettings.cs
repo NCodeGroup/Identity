@@ -299,14 +299,13 @@ public static class KnownSettings
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'display_values_supported' setting.
     /// </summary>
-    public static SettingDescriptor<IReadOnlyCollection<DisplayType>> DisplayValuesSupported { get; } = new()
+    public static SettingDescriptor<IReadOnlyCollection<string>> DisplayValuesSupported { get; } = new()
     {
         Name = SettingNames.DisplayValuesSupported,
         // TODO: Default
 
         IsDiscoverable = true,
         OnMerge = Replace,
-        OnFormat = ConvertToInvariantString
     };
 
     /// <summary>

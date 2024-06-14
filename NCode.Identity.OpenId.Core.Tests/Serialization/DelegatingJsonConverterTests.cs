@@ -68,7 +68,7 @@ public class DelegatingJsonConverterTests : IDisposable
 
         inputMessage.AuthorizationSourceType = AuthorizationSourceType.Union;
         inputMessage.Nonce = "nonce";
-        inputMessage.DisplayType = DisplayType.Popup;
+        inputMessage.DisplayType = OpenIdConstants.DisplayTypes.Popup;
         inputMessage.MaxAge = TimeSpan.FromMinutes(3.5);
         inputMessage.Scopes = new[] { "scope1", "scope2" };
 
@@ -105,7 +105,7 @@ public class DelegatingJsonConverterTests : IDisposable
         var requestMessage = AuthorizationRequestMessage.Load(MockOpenIdServer.Object, Array.Empty<Parameter>());
         requestMessage.AuthorizationSourceType = AuthorizationSourceType.Query;
         requestMessage.Nonce = "!nonce!";
-        requestMessage.DisplayType = DisplayType.Touch;
+        requestMessage.DisplayType = OpenIdConstants.DisplayTypes.Touch;
         requestMessage.MaxAge = TimeSpan.FromMinutes(5.0);
         requestMessage.Scopes = new[] { "!scope1!", "!scope2!" };
         requestMessage.RedirectUri = new Uri("https://localhost/test");
@@ -113,7 +113,7 @@ public class DelegatingJsonConverterTests : IDisposable
         var requestObject = AuthorizationRequestObject.Load(MockOpenIdServer.Object, Array.Empty<Parameter>());
         requestObject.RequestObjectSource = RequestObjectSource.Remote;
         requestObject.Nonce = "nonce";
-        requestObject.DisplayType = DisplayType.Popup;
+        requestObject.DisplayType = OpenIdConstants.DisplayTypes.Popup;
         requestObject.MaxAge = TimeSpan.FromMinutes(3.5);
         requestObject.Scopes = new[] { "scope1", "scope2" };
 

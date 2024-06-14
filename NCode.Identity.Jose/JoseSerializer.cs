@@ -84,6 +84,16 @@ public partial class JoseSerializer : IJoseSerializer
         AlgorithmProvider = algorithmProvider;
     }
 
+    private TAlgorithm AssertEnabled<TAlgorithm>(TAlgorithm algorithm)
+        where TAlgorithm : Algorithm
+    {
+        var code = algorithm.Code;
+        if (JoseSerializerOptions.DisabledAlgorithms.Contains(code))
+            throw new JoseInvalidAlgorithmException($"The algorithm '{code}' is disabled.");
+
+        return algorithm;
+    }
+
     /// <inheritdoc />
     public CompactJwt ParseCompactJwt(string token)
     {

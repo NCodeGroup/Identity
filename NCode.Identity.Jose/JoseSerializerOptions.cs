@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Json;
 
 namespace NCode.Identity.Jose;
@@ -25,12 +26,13 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Contains options for Jose services and algorithms.
 /// </summary>
+[PublicAPI]
 public class JoseSerializerOptions
 {
     /// <summary>
     /// Gets or sets a list containing the codes of all the disabled algorithms.
     /// </summary>
-    public List<string> DisabledAlgorithms { get; set; } = [];
+    public ICollection<string> DisabledAlgorithms { get; set; } = [];
 
     /// <summary>
     /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.

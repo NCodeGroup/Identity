@@ -40,7 +40,7 @@ partial class JoseSerializer
     private SignatureAlgorithm GetSignatureAlgorithm(string code) =>
         !AlgorithmCollection.TryGetSignatureAlgorithm(code, out var algorithm) ?
             throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for digital signatures.") :
-            algorithm;
+            AssertEnabled(algorithm);
 
     /// <inheritdoc />
     public void VerifyJws<T>(

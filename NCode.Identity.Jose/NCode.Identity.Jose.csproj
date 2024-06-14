@@ -9,13 +9,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.5" />
+        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.6" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0"/>
         <PackageReference Include="NCode.Base64Url" Version="1.1.2"/>
         <PackageReference Include="NCode.Disposables" Version="5.1.0" />
-        <PackageReference Include="NCode.StringSegments" Version="2.0.2"/>
+        <PackageReference Include="NCode.StringSegments" Version="3.0.0" />
         <PackageReference Include="Nerdbank.Streams" Version="2.11.74" />
     </ItemGroup>
 

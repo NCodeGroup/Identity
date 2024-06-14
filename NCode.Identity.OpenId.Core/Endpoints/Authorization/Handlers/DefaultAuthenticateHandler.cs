@@ -79,7 +79,7 @@ public class DefaultAuthenticateHandler(
         var authenticationProperties = baseTicket.Properties;
 
         var subject = baseTicket.Principal.Identity as ClaimsIdentity ??
-                      throw new InvalidOperationException("The AuthenticationTicket must contain a ClaimsIdentity.");
+                      throw new InvalidOperationException("The authenticated ticket must contain a claims identity.");
 
         var subjectId = subject.Claims.GetSubjectIdOrDefault() ??
                         throw new InvalidOperationException("The authenticated identity must contain a 'sub' claim.");

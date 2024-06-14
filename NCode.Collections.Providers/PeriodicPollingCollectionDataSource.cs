@@ -18,6 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
 
@@ -30,7 +31,8 @@ namespace NCode.Collections.Providers;
 /// <param name="CurrentCollection">The current collection that was last returned by the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}.GetCollectionAsync"/> delegate.</param>
 /// <typeparam name="TItem">The type of items in the collection.</typeparam>
 /// <typeparam name="TState">The type of the state parameter used during refresh calls.</typeparam>
-public record struct PeriodicPollingCollectionContext<TItem, TState>(
+[PublicAPI]
+public readonly record struct PeriodicPollingCollectionContext<TItem, TState>(
     TState State,
     IReadOnlyCollection<TItem> CurrentCollection);
 

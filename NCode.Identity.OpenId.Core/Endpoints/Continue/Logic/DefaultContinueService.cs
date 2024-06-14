@@ -56,6 +56,7 @@ public class DefaultContinueService(
     {
         var httpContext = openIdContext.Http;
 
+        // the continue endpoint has a single 'state' query string parameter that contains a one-time use grant key
         var grantKey = CryptoService.GenerateUrlSafeKey();
         var continueUrl = LinkGenerator.GetUriByName(
             httpContext,

@@ -56,7 +56,7 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
             case 0:
                 throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
 
-            case > 1 when !descriptor.AllowMultipleValues:
+            case > 1 when !descriptor.AllowMultipleStringValues:
                 throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
         }
 

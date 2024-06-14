@@ -98,7 +98,7 @@ internal abstract class BaseAuthorizationRequestMessage<T, TProperties> : OpenId
         set => SetKnownParameter(KnownParameters.Nonce, value);
     }
 
-    public PromptTypes? PromptType
+    public IReadOnlyCollection<string>? PromptTypes
     {
         get => GetKnownParameter(KnownParameters.PromptType);
         set => SetKnownParameter(KnownParameters.PromptType, value);

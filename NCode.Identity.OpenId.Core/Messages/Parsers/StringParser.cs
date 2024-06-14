@@ -44,7 +44,7 @@ public class StringParser : ParameterParser<string?>
         {
             0 when descriptor.Optional => null,
             0 => throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
-            > 1 when descriptor.AllowMultipleValues => string.Join(Separator, stringValues!),
+            > 1 when descriptor.AllowMultipleStringValues => string.Join(Separator, stringValues!),
             > 1 => throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
             _ => stringValues[0]
         };

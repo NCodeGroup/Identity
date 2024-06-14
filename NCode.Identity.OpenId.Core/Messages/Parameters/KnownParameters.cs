@@ -37,7 +37,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.AcrValues, ParameterParsers.StringSet)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -47,7 +46,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.Claims, ParameterParsers.RequestClaims)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -57,7 +55,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.ClaimsLocales, ParameterParsers.StringSet)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -67,7 +64,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.ClientId, ParameterParsers.String)
         {
             Optional = false,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -77,7 +73,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.ClientSecret, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -87,7 +82,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.AuthorizationCode, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -97,7 +91,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.CodeChallenge, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -107,7 +100,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.CodeChallengeMethod, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false,
         };
 
     /// <summary>
@@ -117,7 +109,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.CodeVerifier, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -127,7 +118,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.Display, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -137,7 +127,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.GrantType, ParameterParsers.String)
         {
             Optional = false,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -147,7 +136,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.IdToken, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -157,7 +145,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.IdTokenHint, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -167,7 +154,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.AccessToken, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -177,7 +163,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.TokenType, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -187,7 +172,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.ExpiresIn, ParameterParsers.TimeSpan)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -197,7 +181,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.LoginHint, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -207,7 +190,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.MaxAge, ParameterParsers.TimeSpan)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -217,7 +199,6 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.Nonce, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
@@ -227,158 +208,140 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.Password, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>prompt</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="PromptTypes"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>prompt</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<PromptTypes?> PromptType =
-        new(OpenIdConstants.Parameters.Prompt, ParameterParsers.PromptType)
+    public static readonly KnownParameter<IReadOnlyCollection<string>?> PromptType =
+        new(OpenIdConstants.Parameters.Prompt, ParameterParsers.StringSet)
         {
             Optional = true,
-            AllowMultipleValues = false,
-            IgnoreUnrecognizedValues = true
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>redirect_uri</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="Uri"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>redirect_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="Uri"/> result.
     /// </summary>
     public static readonly KnownParameter<Uri?> RedirectUri =
         new(OpenIdConstants.Parameters.RedirectUri, ParameterParsers.Uri)
         {
             Optional = false,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>refresh_token</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>refresh_token</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string?> RefreshToken =
         new(OpenIdConstants.Parameters.RefreshToken, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>request</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>request</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string?> RequestJwt =
         new(OpenIdConstants.Parameters.Request, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>request_uri</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="Uri"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>request_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="Uri"/> result.
     /// </summary>
     public static readonly KnownParameter<Uri?> RequestUri =
         new(OpenIdConstants.Parameters.RequestUri, ParameterParsers.Uri)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>response_mode</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="ResponseMode"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>response_mode</c> message parameter which parses <see cref="StringValues"/> into an <see cref="ResponseMode"/> result.
     /// </summary>
     public static readonly KnownParameter<ResponseMode?> ResponseMode =
         new(OpenIdConstants.Parameters.ResponseMode, ParameterParsers.ResponseMode)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>response_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="ResponseType"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>response_type</c> message parameter which parses <see cref="StringValues"/> into an <see cref="ResponseType"/> result.
     /// </summary>
     public static readonly KnownParameter<ResponseTypes?> ResponseType =
         new(OpenIdConstants.Parameters.ResponseType, ParameterParsers.ResponseType)
         {
             Optional = false,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>scope</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>scope</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<IReadOnlyCollection<string>?> Scopes =
         new(OpenIdConstants.Parameters.Scope, ParameterParsers.StringSet)
         {
-            // TODO: should this be optional?
-            Optional = false,
-            AllowMultipleValues = false
+            Optional = true,
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>state</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>state</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string?> State =
         new(OpenIdConstants.Parameters.State, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>ui_locales</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>ui_locales</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<IReadOnlyCollection<string>?> UiLocales =
         new(OpenIdConstants.Parameters.UiLocales, ParameterParsers.StringSet)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>username</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>username</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string?> Username =
         new(OpenIdConstants.Parameters.Username, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>iss</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>iss</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string?> Issuer =
         new(OpenIdConstants.Parameters.IssuerShort, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>error</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>error</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string?> ErrorCode =
         new(OpenIdConstants.Parameters.ErrorCode, ParameterParsers.String)
         {
             Optional = false,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>error_description</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>error_description</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string?> ErrorDescription =
         new(OpenIdConstants.Parameters.ErrorDescription, ParameterParsers.String)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>error_uri</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>error_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<Uri?> ErrorUri =
         new(OpenIdConstants.Parameters.ErrorUri, ParameterParsers.Uri)
         {
             Optional = true,
-            AllowMultipleValues = false
         };
 }

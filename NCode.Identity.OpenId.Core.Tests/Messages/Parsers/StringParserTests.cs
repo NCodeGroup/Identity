@@ -69,7 +69,7 @@ public class StringParserTests : IDisposable
         var knownParameter = new KnownParameter<string?>(parameterName, parser)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -116,7 +116,7 @@ public class StringParserTests : IDisposable
         var knownParameter = new KnownParameter<string?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -138,7 +138,7 @@ public class StringParserTests : IDisposable
         var knownParameter = new KnownParameter<string?>(parameterName, parser)
         {
             Optional = true,
-            AllowMultipleValues = true
+            AllowMultipleStringValues = true
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -185,7 +185,7 @@ public class StringParserTests : IDisposable
         var knownParameter = new KnownParameter<string?>(parameterName, parser)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -206,7 +206,7 @@ public class StringParserTests : IDisposable
         var knownParameter = new KnownParameter<string?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);

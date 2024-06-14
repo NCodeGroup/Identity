@@ -119,10 +119,10 @@ internal class AuthorizationRequest(
         OriginalRequestObject?.Nonce ??
         OriginalRequestMessage.Nonce;
 
-    public PromptTypes PromptType =>
-        OriginalRequestObject?.PromptType ??
-        OriginalRequestMessage.PromptType ??
-        PromptTypes.Unspecified;
+    public IReadOnlyCollection<string> PromptTypes =>
+        OriginalRequestObject?.PromptTypes ??
+        OriginalRequestMessage.PromptTypes ??
+        []; // optional
 
     public Uri RedirectUri =>
         OriginalRequestObject?.RedirectUri ??

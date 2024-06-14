@@ -45,13 +45,13 @@ public class KnownParameterTests : IDisposable
         var parameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             Optional = optional,
-            AllowMultipleValues = allowMultipleValues
+            AllowMultipleStringValues = allowMultipleValues
         };
 
         Assert.Equal(parameterName, parameter.Name);
         Assert.Equal(typeof(string), parameter.ValueType);
         Assert.Equal(optional, parameter.Optional);
-        Assert.Equal(allowMultipleValues, parameter.AllowMultipleValues);
+        Assert.Equal(allowMultipleValues, parameter.AllowMultipleStringValues);
         Assert.Same(mockParser.Object, parameter.Loader);
         Assert.Same(mockParser.Object, parameter.Parser);
     }
@@ -71,7 +71,7 @@ public class KnownParameterTests : IDisposable
                 mockParser.Object)
             {
                 Optional = optional,
-                AllowMultipleValues = allowMultipleValues
+                AllowMultipleStringValues = allowMultipleValues
             };
         });
     }
@@ -89,7 +89,7 @@ public class KnownParameterTests : IDisposable
             _ = new KnownParameter<string>(string.Empty, mockParser.Object)
             {
                 Optional = optional,
-                AllowMultipleValues = allowMultipleValues
+                AllowMultipleStringValues = allowMultipleValues
             };
         });
     }

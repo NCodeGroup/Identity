@@ -63,7 +63,7 @@ public class ResponseTypeParser : ParameterParser<ResponseTypes?>
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
-        Debug.Assert(!descriptor.AllowMultipleValues);
+        Debug.Assert(!descriptor.AllowMultipleStringValues);
 
         switch (stringValues.Count)
         {

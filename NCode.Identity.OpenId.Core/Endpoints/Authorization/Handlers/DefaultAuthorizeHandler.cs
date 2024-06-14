@@ -61,11 +61,11 @@ public class DefaultAuthorizeHandler(
         var isContinuation = authorizationRequest.IsContinuation;
 
         // prevent infinite loops from continuations and user interaction
-        var effectivePromptType = isContinuation ?
-            PromptTypes.None :
-            authorizationRequest.PromptType;
+        var effectivePromptTypes = isContinuation ?
+            [OpenIdConstants.PromptTypes.None] :
+            authorizationRequest.PromptTypes;
 
-        if (effectivePromptType.HasFlag(PromptTypes.CreateAccount))
+        if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
         {
             Logger.LogInformation("Client requested account creation.");
 
@@ -89,8 +89,8 @@ public class DefaultAuthorizeHandler(
         }
 
         var reAuthenticate =
-            effectivePromptType.HasFlag(PromptTypes.Login) ||
-            effectivePromptType.HasFlag(PromptTypes.SelectAccount);
+            effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.Login) ||
+            effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.SelectAccount);
 
         if (reAuthenticate)
         {
@@ -117,7 +117,7 @@ public class DefaultAuthorizeHandler(
 
         if (authenticationTicket is not { Subject.IsAuthenticated: true })
         {
-            if (effectivePromptType.HasFlag(PromptTypes.None))
+            if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
                 var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;
@@ -153,7 +153,7 @@ public class DefaultAuthorizeHandler(
                 authenticationTicket,
                 cancellationToken))
         {
-            if (effectivePromptType.HasFlag(PromptTypes.None))
+            if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
                 var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;
@@ -192,7 +192,7 @@ public class DefaultAuthorizeHandler(
         // check MaxAge
         if (!ValidateMaxAge(authenticationTicket.Subject, authorizationRequest.MaxAge, clientSettings.ClockSkew))
         {
-            if (effectivePromptType.HasFlag(PromptTypes.None))
+            if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
                 var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;

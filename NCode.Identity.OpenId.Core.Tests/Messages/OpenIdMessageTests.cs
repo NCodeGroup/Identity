@@ -128,7 +128,7 @@ public class OpenIdMessageTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var message = new OpenIdMessage();
@@ -151,7 +151,7 @@ public class OpenIdMessageTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var message = new OpenIdMessage();
@@ -184,7 +184,7 @@ public class OpenIdMessageTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var message = new OpenIdMessage();
@@ -216,7 +216,7 @@ public class OpenIdMessageTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var message = new OpenIdMessage();
@@ -240,7 +240,7 @@ public class OpenIdMessageTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var message = new OpenIdMessage();
@@ -274,7 +274,7 @@ public class OpenIdMessageTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var message = new OpenIdMessage();
@@ -312,7 +312,7 @@ public class OpenIdMessageTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var message = new OpenIdMessage();
@@ -363,7 +363,7 @@ public class OpenIdMessageTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var message = new OpenIdMessage();

@@ -80,7 +80,7 @@ public class UriParserTests : IDisposable
         var knownParameter = new KnownParameter<Uri?>(parameterName, parser)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -127,7 +127,7 @@ public class UriParserTests : IDisposable
         var knownParameter = new KnownParameter<Uri?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -174,7 +174,7 @@ public class UriParserTests : IDisposable
         var knownParameter = new KnownParameter<Uri?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -197,7 +197,7 @@ public class UriParserTests : IDisposable
         var knownParameter = new KnownParameter<Uri?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);

@@ -85,7 +85,7 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     /// <summary>
     /// Gets the <c>prompt</c> parameter.
     /// </summary>
-    PromptTypes? PromptType { get; }
+    IReadOnlyCollection<string>? PromptTypes { get; }
 
     /// <summary>
     /// Gets the <c>redirect_uri</c> parameter.

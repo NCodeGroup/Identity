@@ -391,7 +391,7 @@ public static class KnownSettings
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'prompt_values_supported' setting.
     /// </summary>
-    public static SettingDescriptor<IReadOnlyCollection<PromptTypes>> PromptValuesSupported { get; } = new()
+    public static SettingDescriptor<IReadOnlyCollection<string>> PromptValuesSupported { get; } = new()
     {
         Name = SettingNames.PromptValuesSupported,
         // TODO: Default

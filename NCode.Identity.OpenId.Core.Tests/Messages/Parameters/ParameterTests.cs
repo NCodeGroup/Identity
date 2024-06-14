@@ -45,7 +45,7 @@ public class ParameterTests : IDisposable
         var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -73,7 +73,7 @@ public class ParameterTests : IDisposable
         var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var server = mockOpenIdServer.Object;

@@ -90,7 +90,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -137,7 +137,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -184,7 +184,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -205,7 +205,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -252,7 +252,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -273,7 +273,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -320,7 +320,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -341,7 +341,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -388,7 +388,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -435,7 +435,7 @@ public class ResponseModeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseMode?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);

@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.Jose.Extensions;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
@@ -34,13 +34,13 @@ namespace NCode.Identity.OpenId.Endpoints.Continue;
 /// Provides a default implementation of the required services and handlers used by the continue endpoint.
 /// </summary>
 public class DefaultContinueEndpointHandler(
-    TimeProvider timeProvider,
+    ILogger<DefaultContinueEndpointHandler> logger,
     IOpenIdContextFactory contextFactory,
     IPersistedGrantService persistedGrantService,
     IContinueProviderSelector continueProviderSelector
 ) : IOpenIdEndpointProvider
 {
-    private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<DefaultContinueEndpointHandler> Logger { get; } = logger;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IContinueProviderSelector ContinueProviderSelector { get; } = continueProviderSelector;
@@ -62,7 +62,7 @@ public class DefaultContinueEndpointHandler(
     {
         if (string.IsNullOrEmpty(state))
         {
-            // TODO: more details
+            Logger.LogInformation("Missing 'state' parameter.");
             return TypedResults.BadRequest();
         }
 
@@ -70,8 +70,6 @@ public class DefaultContinueEndpointHandler(
             httpContext,
             mediator,
             cancellationToken);
-
-        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         var persistedGrantId = new PersistedGrantId
         {
@@ -86,7 +84,7 @@ public class DefaultContinueEndpointHandler(
 
         if (!persistedGrantOrNull.HasValue)
         {
-            // TODO: more details
+            Logger.LogInformation("Invalid 'state' parameter.");
             return TypedResults.BadRequest();
         }
 
@@ -96,8 +94,6 @@ public class DefaultContinueEndpointHandler(
         var continueEnvelope = persistedGrant.Payload;
         var provider = ContinueProviderSelector.SelectProvider(continueEnvelope.Code);
         var result = await provider.ContinueAsync(openIdContext, continueEnvelope.Payload, cancellationToken);
-
-        await PersistedGrantService.SetConsumedAsync(persistedGrantId, utcNow, cancellationToken);
 
         return result;
     }

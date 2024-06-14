@@ -125,7 +125,7 @@ public class DefaultAuthorizeHandler(
                 return new AuthorizationResult(redirectUri, responseMode, error);
             }
 
-            Logger.LogInformation("User not authenticated.");
+            Logger.LogInformation("The user is not authenticated.");
 
             var continueUrl = await ContinueService.GetContinueUrlAsync(
                 openIdContext,

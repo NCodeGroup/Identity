@@ -19,6 +19,7 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 
 namespace NCode.CryptoMemory;
 
@@ -26,6 +27,7 @@ namespace NCode.CryptoMemory;
 /// Provides a resource pool that enables reusing instances of memory buffers
 /// that are pinned during their lifetime and securely zeroed when returned.
 /// </summary>
+[PublicAPI]
 public class SecureMemoryPool<T> : MemoryPool<T>
 {
     /// <summary>

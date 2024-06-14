@@ -21,6 +21,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.CryptoMemory;
@@ -35,6 +36,7 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Provides a default implementation for the <see cref="IJoseSerializer"/> interface.
 /// </summary>
+[PublicAPI]
 public partial class JoseSerializer : IJoseSerializer
 {
     private const int JwsSegmentCount = 3;
@@ -92,7 +94,15 @@ public partial class JoseSerializer : IJoseSerializer
             JweSegmentCount => JoseProtectionTypes.Jwe,
             _ => throw new JoseException("The specified value does not represent a valid JOSE token in compact form.")
         };
-        return new DefaultCompactJwt(protectionType, segments);
+
+        var deserializedHeader = DeserializeHeader(segments.First.Memory.Span);
+        return new CompactJwt(protectionType, segments, deserializedHeader);
+    }
+
+    private static JsonElement DeserializeHeader(ReadOnlySpan<char> encodedHeader)
+    {
+        using var _ = DecodeBase64Url(encodedHeader, isSensitive: false, out var utf8Json);
+        return JsonSerializer.Deserialize<JsonElement>(utf8Json);
     }
 
     /// <inheritdoc />

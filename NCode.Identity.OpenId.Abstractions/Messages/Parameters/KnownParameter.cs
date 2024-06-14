@@ -59,11 +59,12 @@ public abstract class KnownParameter
     public bool Optional { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the parameter allows multiple values when parsing.
+    /// Gets a value indicating whether the parameter allows multiple string values when parsing.
     /// The default value is <c>false</c>.
     /// </summary>
-    public bool AllowMultipleValues { get; init; }
+    public bool AllowMultipleStringValues { get; init; }
 
+    // TODO: Once we remove all enums, will this still be needed?
     /// <summary>
     /// Gets a value indicating whether the parameter allows unrecognized values when parsing.
     /// The default value is <c>false</c>.

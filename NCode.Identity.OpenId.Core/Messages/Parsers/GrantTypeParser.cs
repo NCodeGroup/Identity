@@ -54,7 +54,7 @@ public class GrantTypeParser : ParameterParser<GrantType?>
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
-        Debug.Assert(!descriptor.AllowMultipleValues);
+        Debug.Assert(!descriptor.AllowMultipleStringValues);
 
         switch (stringValues.Count)
         {

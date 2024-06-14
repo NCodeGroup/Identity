@@ -53,7 +53,7 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
         {
             0 when descriptor.Optional => null,
             0 => throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
-            > 1 when descriptor.AllowMultipleValues =>
+            > 1 when descriptor.AllowMultipleStringValues =>
                 stringValues.SelectMany(stringValue => stringValue!.Split(Separator)).ToHashSet(StringComparer.Ordinal),
             > 1 => throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
             _ => stringValues[0]!.Split(Separator).ToHashSet(StringComparer.Ordinal)

@@ -80,7 +80,7 @@ public class TimeSpanParserTests : IDisposable
         var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -127,7 +127,7 @@ public class TimeSpanParserTests : IDisposable
         var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -174,7 +174,7 @@ public class TimeSpanParserTests : IDisposable
         var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -196,7 +196,7 @@ public class TimeSpanParserTests : IDisposable
         var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = true
+            AllowMultipleStringValues = true
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -218,7 +218,7 @@ public class TimeSpanParserTests : IDisposable
         var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = true
+            AllowMultipleStringValues = true
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);

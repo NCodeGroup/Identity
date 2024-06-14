@@ -50,7 +50,7 @@ public class ResponseModeParser : ParameterParser<ResponseMode?>
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
-        Debug.Assert(!descriptor.AllowMultipleValues);
+        Debug.Assert(!descriptor.AllowMultipleStringValues);
 
         switch (stringValues.Count)
         {

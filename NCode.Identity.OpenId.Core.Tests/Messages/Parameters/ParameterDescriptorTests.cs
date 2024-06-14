@@ -47,7 +47,7 @@ public class ParameterDescriptorTests : IDisposable
             mockParser.Object)
         {
             Optional = optional,
-            AllowMultipleValues = allowMultipleValues
+            AllowMultipleStringValues = allowMultipleValues
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -55,7 +55,7 @@ public class ParameterDescriptorTests : IDisposable
         Assert.Equal(parameterName, descriptor.ParameterName);
         Assert.Same(knownParameter, descriptor.KnownParameter);
         Assert.Equal(optional, descriptor.Optional);
-        Assert.Equal(allowMultipleValues, descriptor.AllowMultipleValues);
+        Assert.Equal(allowMultipleValues, descriptor.AllowMultipleStringValues);
         Assert.Same(mockParser.Object, descriptor.Loader);
     }
 
@@ -71,7 +71,7 @@ public class ParameterDescriptorTests : IDisposable
         Assert.Equal(parameterName, descriptor.ParameterName);
         Assert.Null(descriptor.KnownParameter);
         Assert.Equal(optional, descriptor.Optional);
-        Assert.Equal(allowMultipleValues, descriptor.AllowMultipleValues);
+        Assert.Equal(allowMultipleValues, descriptor.AllowMultipleStringValues);
         Assert.Same(ParameterLoader.Default, descriptor.Loader);
     }
 
@@ -89,7 +89,7 @@ public class ParameterDescriptorTests : IDisposable
             mockParser.Object)
         {
             Optional = optional,
-            AllowMultipleValues = allowMultipleValues
+            AllowMultipleStringValues = allowMultipleValues
         };
 
         var descriptor1 = new ParameterDescriptor(knownParameter);
@@ -123,7 +123,7 @@ public class ParameterDescriptorTests : IDisposable
             mockParser.Object)
         {
             Optional = optional,
-            AllowMultipleValues = allowMultipleValues
+            AllowMultipleStringValues = allowMultipleValues
         };
 
         var descriptor1 = new ParameterDescriptor(knownParameter);
@@ -157,7 +157,7 @@ public class ParameterDescriptorTests : IDisposable
             mockParser.Object)
         {
             Optional = optional,
-            AllowMultipleValues = allowMultipleValues
+            AllowMultipleStringValues = allowMultipleValues
         };
 
         var descriptor1 = new ParameterDescriptor(knownParameter);

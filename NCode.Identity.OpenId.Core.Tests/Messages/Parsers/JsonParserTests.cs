@@ -109,7 +109,7 @@ public class JsonParserTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -156,7 +156,7 @@ public class JsonParserTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -203,7 +203,7 @@ public class JsonParserTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -231,7 +231,7 @@ public class JsonParserTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -282,7 +282,7 @@ public class JsonParserTests : IDisposable
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);

@@ -167,15 +167,18 @@ public class DefaultValidateAuthorizationRequestHandler(
                 .InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.")
                 .AsException();
 
-        if (request.PromptType.HasFlag(PromptTypes.None) && request.PromptType != PromptTypes.None)
-            throw ErrorFactory
-                .InvalidRequest("The 'none' prompt must not be combined with other values.")
-                .AsException();
+        if (request.PromptTypes.Count > 1)
+        {
+            if (request.PromptTypes.Contains(OpenIdConstants.PromptTypes.None))
+                throw ErrorFactory
+                    .InvalidRequest("The 'none' prompt must not be combined with other values.")
+                    .AsException();
 
-        if (request.PromptType.HasFlag(PromptTypes.CreateAccount) && request.PromptType != PromptTypes.CreateAccount)
-            throw ErrorFactory
-                .InvalidRequest("The 'create' prompt must not be combined with other values.")
-                .AsException();
+            if (request.PromptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
+                throw ErrorFactory
+                    .InvalidRequest("The 'create' prompt must not be combined with other values.")
+                    .AsException();
+        }
 
         if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
             throw ErrorFactory
@@ -261,9 +264,10 @@ public class DefaultValidateAuthorizationRequestHandler(
              * status code and an error value of invalid_request. It is RECOMMENDED that the OP return an
              * error_description value identifying the invalid parameter value.
              */
-            if (!promptValuesSupported.Value.Contains(request.PromptType))
+            var invalidPromptValues = request.PromptTypes.Except(promptValuesSupported.Value).ToList();
+            if (invalidPromptValues.Count != 0)
                 throw ErrorFactory
-                    .NotSupported(OpenIdConstants.Parameters.Prompt)
+                    .InvalidRequest($"The following prompt values are not supported: {string.Join(", ", invalidPromptValues)}")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
         }

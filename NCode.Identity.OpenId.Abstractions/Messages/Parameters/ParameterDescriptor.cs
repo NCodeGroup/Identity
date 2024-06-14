@@ -63,10 +63,10 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public bool Optional => KnownParameter?.Optional ?? true;
 
     /// <summary>
-    /// Gets a value indicating whether the parameter allows multiple values when parsing. Returns the result from
-    /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>true</c>.
+    /// Gets a value indicating whether the parameter allows multiple string values when parsing. Returns the result from
+    /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>false</c>.
     /// </summary>
-    public bool AllowMultipleValues => KnownParameter?.AllowMultipleValues ?? true;
+    public bool AllowMultipleStringValues => KnownParameter?.AllowMultipleStringValues ?? false;
 
     /// <summary>
     /// Gets a value indicating whether unrecognized values should be ignored when parsing. Returns the result from

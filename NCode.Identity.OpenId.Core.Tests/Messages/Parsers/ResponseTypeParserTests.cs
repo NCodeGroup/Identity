@@ -98,7 +98,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = true,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -145,7 +145,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -167,7 +167,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -188,7 +188,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -235,7 +235,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -256,7 +256,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -303,7 +303,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -324,7 +324,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -371,7 +371,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -392,7 +392,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -439,7 +439,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -486,7 +486,7 @@ public class ResponseTypeParserTests : IDisposable
         var knownParameter = new KnownParameter<ResponseTypes?>(parameterName, parser)
         {
             Optional = false,
-            AllowMultipleValues = false
+            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);

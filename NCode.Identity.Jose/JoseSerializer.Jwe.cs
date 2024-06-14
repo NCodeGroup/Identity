@@ -38,17 +38,17 @@ partial class JoseSerializer
     private KeyManagementAlgorithm GetKeyManagementAlgorithm(string code) =>
         !AlgorithmCollection.TryGetKeyManagementAlgorithm(code, out var algorithm) ?
             throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for key management.") :
-            algorithm;
+            AssertEnabled(algorithm);
 
     private AuthenticatedEncryptionAlgorithm GetAuthenticatedEncryptionAlgorithm(string code) =>
         !AlgorithmCollection.TryGetAuthenticatedEncryptionAlgorithm(code, out var algorithm) ?
             throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for AEAD encryption.") :
-            algorithm;
+            AssertEnabled(algorithm);
 
     private CompressionAlgorithm GetCompressionAlgorithm(string code) =>
         !AlgorithmCollection.TryGetCompressionAlgorithm(code, out var algorithm) ?
             throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for compression.") :
-            algorithm;
+            AssertEnabled(algorithm);
 
     /// <inheritdoc />
     public JoseEncoder CreateEncoder(JoseEncryptionOptions encryptionOptions) =>

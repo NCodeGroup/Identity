@@ -194,7 +194,6 @@ public class DefaultOpenIdServer(
                 new ClaimJsonConverter(),
                 new ClaimsIdentityJsonConverter(),
                 // TODO remove these
-                new ResponseModeJsonConverter(),
                 new ResponseTypesJsonConverter()
             }
         };

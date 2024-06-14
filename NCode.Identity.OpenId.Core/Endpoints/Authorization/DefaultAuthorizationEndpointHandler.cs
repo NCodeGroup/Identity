@@ -140,13 +140,37 @@ public class DefaultAuthorizationEndpointHandler(
 
     private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IOpenIdMessage authorizationSource)
     {
+        var settings = openIdClient.Settings;
+
         var hasState = authorizationSource.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
         var state = hasState && !StringValues.IsNullOrEmpty(stateStringValues) ? stateStringValues.ToString() : null;
 
+        string effectiveResponseMode;
         var hasResponseMode = !authorizationSource.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
-        if (!hasResponseMode || !Enum.TryParse(responseModeStringValues, out ResponseMode responseMode))
+        if (hasResponseMode)
         {
-            responseMode = ResponseMode.Query;
+            if (responseModeStringValues.Count > 1)
+            {
+                throw ErrorFactory
+                    .TooManyParameterValues(OpenIdConstants.Parameters.ResponseMode)
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .WithState(state)
+                    .AsException();
+            }
+
+            effectiveResponseMode = responseModeStringValues.ToString();
+            if (!settings.ResponseModesSupported.Contains(effectiveResponseMode))
+            {
+                throw ErrorFactory
+                    .InvalidParameterValue(OpenIdConstants.Parameters.ResponseMode)
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .WithState(state)
+                    .AsException();
+            }
+        }
+        else
+        {
+            effectiveResponseMode = OpenIdConstants.ResponseModes.Query;
         }
 
         if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
@@ -167,7 +191,6 @@ public class DefaultAuthorizationEndpointHandler(
                 .AsException();
         }
 
-        var clientSettings = openIdClient.Settings;
         var redirectUrls = openIdClient.RedirectUrls;
         var effectiveUrl = redirectUri.GetComponents(
             UriComponents.Scheme |
@@ -176,7 +199,7 @@ public class DefaultAuthorizationEndpointHandler(
             UriComponents.Path,
             UriFormat.UriEscaped);
 
-        var isSafe = (clientSettings.AllowLoopbackRedirect && redirectUri.IsLoopback) || redirectUrls.Contains(effectiveUrl);
+        var isSafe = (settings.AllowLoopbackRedirect && redirectUri.IsLoopback) || redirectUrls.Contains(effectiveUrl);
         if (!isSafe)
         {
             throw ErrorFactory
@@ -186,7 +209,7 @@ public class DefaultAuthorizationEndpointHandler(
                 .AsException();
         }
 
-        return new ClientRedirectContext(redirectUri, responseMode, state);
+        return new ClientRedirectContext(redirectUri, effectiveResponseMode, state);
     }
 
     private async ValueTask<IResult> ProcessAuthorizationRequestAsync(
@@ -198,15 +221,13 @@ public class DefaultAuthorizationEndpointHandler(
     {
         var mediator = openIdContext.Mediator;
 
-        var responseMode = clientRedirectContext.ResponseMode;
         var redirectUri = clientRedirectContext.RedirectUri;
 
         // the request object may have changed the response mode
         var requestObject = authorizationRequest.OriginalRequestObject;
-        if (requestObject?.ResponseMode is not null && requestObject.ResponseMode.Value != responseMode)
-        {
-            responseMode = requestObject.ResponseMode.Value;
-        }
+        var effectiveResponseMode = !string.IsNullOrEmpty(requestObject?.ResponseMode) ?
+            requestObject.ResponseMode :
+            clientRedirectContext.ResponseMode;
 
         await mediator.SendAsync(
             new ValidateAuthorizationRequestCommand(
@@ -230,7 +251,7 @@ public class DefaultAuthorizationEndpointHandler(
                 .WithState(clientRedirectContext.State)
                 .WithException(authenticateResult.Error);
 
-            return new AuthorizationResult(redirectUri, responseMode, openIdError);
+            return new AuthorizationResult(redirectUri, effectiveResponseMode, openIdError);
         }
 
         var authenticationTicket = authenticateResult.Ticket.Value;
@@ -255,7 +276,7 @@ public class DefaultAuthorizationEndpointHandler(
                 authenticationTicket),
             cancellationToken);
 
-        return new AuthorizationResult(redirectUri, responseMode, authorizationTicket);
+        return new AuthorizationResult(redirectUri, effectiveResponseMode, authorizationTicket);
     }
 
     #region IContinueProvider

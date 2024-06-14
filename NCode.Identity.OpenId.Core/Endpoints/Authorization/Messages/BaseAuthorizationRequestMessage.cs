@@ -122,7 +122,7 @@ internal abstract class BaseAuthorizationRequestMessage<T, TProperties> : OpenId
         set => SetKnownParameter(KnownParameters.RequestUri, value);
     }
 
-    public ResponseMode? ResponseMode
+    public string? ResponseMode
     {
         get => GetKnownParameter(KnownParameters.ResponseMode);
         set => SetKnownParameter(KnownParameters.ResponseMode, value);

@@ -162,7 +162,7 @@ public class DefaultValidateAuthorizationRequestHandler(
                 .InvalidRequest("The 'openid' scope is required when requesting id tokens.")
                 .AsException();
 
-        if (request.ResponseMode == ResponseMode.Query && request.GrantType != OpenIdConstants.GrantTypes.AuthorizationCode)
+        if (request.ResponseMode == OpenIdConstants.ResponseModes.Query && request.GrantType != OpenIdConstants.GrantTypes.AuthorizationCode)
             throw ErrorFactory
                 .InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.")
                 .AsException();

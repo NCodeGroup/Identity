@@ -119,7 +119,7 @@ public interface IAuthorizationRequest : IBaseAuthorizationRequest
     /// <summary>
     /// Gets the <c>response_mode</c> parameter.
     /// </summary>
-    ResponseMode ResponseMode { get; }
+    string ResponseMode { get; }
 
     /// <summary>
     /// Gets the <c>response_type</c> parameter.

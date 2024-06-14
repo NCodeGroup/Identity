@@ -566,19 +566,18 @@ public static class KnownSettings
     /// <summary>
     /// Gets the <see cref="SettingDescriptor"/> for the 'response_modes_supported' setting.
     /// </summary>
-    public static SettingDescriptor<IReadOnlyCollection<ResponseMode>> ResponseModesSupported { get; } = new()
+    public static SettingDescriptor<IReadOnlyCollection<string>> ResponseModesSupported { get; } = new()
     {
         Name = SettingNames.ResponseModesSupported,
         Default = new[]
         {
-            ResponseMode.Query,
-            ResponseMode.Fragment,
-            ResponseMode.FormPost
+            OpenIdConstants.ResponseModes.Query,
+            OpenIdConstants.ResponseModes.Fragment,
+            OpenIdConstants.ResponseModes.FormPost
         },
 
         IsDiscoverable = true,
         OnMerge = Replace,
-        OnFormat = ConvertToInvariantString
     };
 
     /// <summary>

@@ -51,18 +51,19 @@ internal class AuthorizationResultExecutor(
 
         IOpenIdMessage? error = result.Error;
         IOpenIdMessage? ticket = result.Ticket;
+
         var message = error ?? ticket ?? throw new InvalidOperationException("Both error and ticket are null.");
 
         // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (result.ResponseMode)
         {
-            case ResponseMode.Query:
-            case ResponseMode.Fragment:
+            case OpenIdConstants.ResponseModes.Query:
+            case OpenIdConstants.ResponseModes.Fragment:
                 var finalRedirectUri = GetFinalRedirectUri(result.RedirectUri, result.ResponseMode, message);
                 ExecuteUsingRedirect(httpResponse, finalRedirectUri);
                 break;
 
-            case ResponseMode.FormPost:
+            case OpenIdConstants.ResponseModes.FormPost:
                 await ExecuteUsingFormPostAsync(httpResponse, result.RedirectUri, message, cancellationToken);
                 break;
 
@@ -71,14 +72,14 @@ internal class AuthorizationResultExecutor(
         }
     }
 
-    private static Uri GetFinalRedirectUri(Uri redirectUri, ResponseMode responseMode, IOpenIdMessage message)
+    private static Uri GetFinalRedirectUri(Uri redirectUri, string responseMode, IOpenIdMessage message)
     {
-        if (responseMode == ResponseMode.FormPost)
+        if (responseMode == OpenIdConstants.ResponseModes.FormPost)
         {
             return redirectUri;
         }
 
-        var useQuery = responseMode == ResponseMode.Query;
+        var useQuery = responseMode == OpenIdConstants.ResponseModes.Query;
         var existingParameters = useQuery ?
             QueryHelpers
                 .ParseQuery(redirectUri.Query)
@@ -86,7 +87,7 @@ internal class AuthorizationResultExecutor(
                     message.Keys,
                     kvp => kvp.Key,
                     StringComparer.OrdinalIgnoreCase) :
-            Enumerable.Empty<KeyValuePair<string, StringValues>>();
+            [];
 
         var parameters = existingParameters.Union(message);
         var serializedParameters = SerializeUriParameters(parameters);
@@ -97,7 +98,7 @@ internal class AuthorizationResultExecutor(
             uriBuilder.Query = serializedParameters;
             uriBuilder.Fragment = "_=_";
         }
-        else if (responseMode == ResponseMode.Fragment)
+        else if (responseMode == OpenIdConstants.ResponseModes.Fragment)
         {
             uriBuilder.Fragment = serializedParameters;
         }

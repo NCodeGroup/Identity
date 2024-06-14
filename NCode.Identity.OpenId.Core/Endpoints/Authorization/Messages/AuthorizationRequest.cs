@@ -38,10 +38,10 @@ internal class AuthorizationRequest(
         _ => responseType.HasFlag(ResponseTypes.Code) ? OpenIdConstants.GrantTypes.Hybrid : OpenIdConstants.GrantTypes.Implicit
     };
 
-    private static ResponseMode DetermineDefaultResponseNode(string grantType) =>
+    private static string DetermineDefaultResponseMode(string grantType) =>
         grantType == OpenIdConstants.GrantTypes.AuthorizationCode ?
-            ResponseMode.Query :
-            ResponseMode.Fragment;
+            OpenIdConstants.ResponseModes.Query :
+            OpenIdConstants.ResponseModes.Fragment;
 
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 
@@ -131,10 +131,10 @@ internal class AuthorizationRequest(
             .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
             .AsException();
 
-    public ResponseMode ResponseMode =>
+    public string ResponseMode =>
         OriginalRequestObject?.ResponseMode ??
         OriginalRequestMessage.ResponseMode ??
-        DetermineDefaultResponseNode(GrantType);
+        DetermineDefaultResponseMode(GrantType);
 
     public ResponseTypes ResponseType =>
         OriginalRequestObject?.ResponseType ??

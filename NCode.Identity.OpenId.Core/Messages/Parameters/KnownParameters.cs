@@ -256,10 +256,10 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>response_mode</c> message parameter which parses <see cref="StringValues"/> into an <see cref="ResponseMode"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>response_mode</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<ResponseMode?> ResponseMode =
-        new(OpenIdConstants.Parameters.ResponseMode, ParameterParsers.ResponseMode)
+    public static readonly KnownParameter<string?> ResponseMode =
+        new(OpenIdConstants.Parameters.ResponseMode, ParameterParsers.String)
         {
             Optional = true,
         };

@@ -153,6 +153,10 @@ public class ReadOnlyKnownSettingCollection(
         Get(KnownSettings.RequireCodeChallenge);
 
     /// <inheritdoc />
+    public IReadOnlyCollection<string> ResponseModesSupported =>
+        Get(KnownSettings.ResponseModesSupported);
+
+    /// <inheritdoc />
     public IReadOnlyCollection<string> ScopesSupported =>
         Get(KnownSettings.ScopesSupported);
 

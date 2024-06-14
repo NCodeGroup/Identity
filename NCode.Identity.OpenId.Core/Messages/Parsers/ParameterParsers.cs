@@ -33,11 +33,6 @@ public static class ParameterParsers
     public static readonly JsonParser<IRequestClaims> RequestClaims = new();
 
     /// <summary>
-    /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="ResponseMode"/> values.
-    /// </summary>
-    public static readonly ResponseModeParser ResponseMode = new();
-
-    /// <summary>
     /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="ResponseType"/> values.
     /// </summary>
     public static readonly ResponseTypeParser ResponseType = new();

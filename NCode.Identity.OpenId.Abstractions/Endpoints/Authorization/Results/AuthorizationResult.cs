@@ -38,7 +38,7 @@ public class AuthorizationResult : IResult, ISupportError
     /// <param name="redirectUri">The <see cref="Uri"/> where the authorization response should be sent to.</param>
     /// <param name="responseMode">The mechanism that should be used for sending the authorization response.</param>
     /// <param name="error">The <see cref="IOpenIdError"/> that contains information about the failure of the operation.</param>
-    public AuthorizationResult(Uri redirectUri, ResponseMode responseMode, IOpenIdError error)
+    public AuthorizationResult(Uri redirectUri, string responseMode, IOpenIdError error)
         : this(redirectUri, responseMode, error, null)
     {
         // nothing
@@ -51,13 +51,13 @@ public class AuthorizationResult : IResult, ISupportError
     /// <param name="responseMode">The mechanism that should be used for sending the authorization response.</param>
     /// <param name="ticket">An <see cref="IAuthorizationTicket"/> that contains the parameters for a successful
     /// <c>OAuth</c> or <c>OpenID Connect</c> authorization response.</param>
-    public AuthorizationResult(Uri redirectUri, ResponseMode responseMode, IAuthorizationTicket ticket)
+    public AuthorizationResult(Uri redirectUri, string responseMode, IAuthorizationTicket ticket)
         : this(redirectUri, responseMode, null, ticket)
     {
         // nothing
     }
 
-    private AuthorizationResult(Uri redirectUri, ResponseMode responseMode, IOpenIdError? error, IAuthorizationTicket? ticket)
+    private AuthorizationResult(Uri redirectUri, string responseMode, IOpenIdError? error, IAuthorizationTicket? ticket)
     {
         RedirectUri = redirectUri;
         ResponseMode = responseMode;
@@ -73,7 +73,7 @@ public class AuthorizationResult : IResult, ISupportError
     /// <summary>
     /// Gets the mechanism that should be used for sending the authorization response.
     /// </summary>
-    public ResponseMode ResponseMode { get; }
+    public string ResponseMode { get; }
 
     /// <summary>
     /// Gets a value indicating whether the authorization operation was successful.

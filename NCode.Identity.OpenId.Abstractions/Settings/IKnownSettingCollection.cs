@@ -189,6 +189,11 @@ public interface IKnownSettingCollection : ISettingCollection
     bool RequireCodeChallenge { get; set; }
 
     /// <summary>
+    /// Gets or sets the value of the 'response_modes_supported' setting.
+    /// </summary>
+    IReadOnlyCollection<string> ResponseModesSupported { get; set; }
+
+    /// <summary>
     /// Gets or sets the value of the 'scopes_supported' setting.
     /// </summary>
     IReadOnlyCollection<string> ScopesSupported { get; set; }

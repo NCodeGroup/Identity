@@ -95,10 +95,10 @@ internal class AuthorizationRequest(
         OriginalRequestObject?.CodeVerifier ??
         OriginalRequestMessage.CodeVerifier;
 
-    public DisplayType DisplayType =>
+    public string DisplayType =>
         OriginalRequestObject?.DisplayType ??
         OriginalRequestMessage.DisplayType ??
-        DisplayType.Page;
+        OpenIdConstants.DisplayTypes.Page;
 
     public string GrantType =>
         DetermineGrantType(ResponseType);

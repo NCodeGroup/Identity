@@ -68,7 +68,7 @@ internal abstract class BaseAuthorizationRequestMessage<T, TProperties> : OpenId
         set => SetKnownParameter(KnownParameters.CodeVerifier, value);
     }
 
-    public DisplayType? DisplayType
+    public string? DisplayType
     {
         get => GetKnownParameter(KnownParameters.DisplayType);
         set => SetKnownParameter(KnownParameters.DisplayType, value);

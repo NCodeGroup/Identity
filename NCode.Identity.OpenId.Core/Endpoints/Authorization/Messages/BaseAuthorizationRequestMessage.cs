@@ -128,10 +128,10 @@ internal abstract class BaseAuthorizationRequestMessage<T, TProperties> : OpenId
         set => SetKnownParameter(KnownParameters.ResponseMode, value);
     }
 
-    public ResponseTypes? ResponseType
+    public IReadOnlyCollection<string>? ResponseTypes
     {
-        get => GetKnownParameter(KnownParameters.ResponseType);
-        set => SetKnownParameter(KnownParameters.ResponseType, value);
+        get => GetKnownParameter(KnownParameters.ResponseTypes);
+        set => SetKnownParameter(KnownParameters.ResponseTypes, value);
     }
 
     public IReadOnlyCollection<string>? Scopes

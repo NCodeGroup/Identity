@@ -59,6 +59,12 @@ public abstract class KnownParameter
     public bool Optional { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the parameter should sort string values when serializing.
+    /// The default value is <c>false</c>.
+    /// </summary>
+    public bool SortStringValues { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the parameter allows multiple string values when parsing.
     /// The default value is <c>false</c>.
     /// </summary>

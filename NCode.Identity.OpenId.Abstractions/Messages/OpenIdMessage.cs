@@ -206,14 +206,14 @@ public class OpenIdMessage : IOpenIdMessage
             return;
         }
 
-        var stringValues = knownParameter.Parser.Serialize(OpenIdServerOrNull, parsedValue);
+        var descriptor = new ParameterDescriptor(knownParameter);
+        var stringValues = knownParameter.Parser.Serialize(OpenIdServerOrNull, descriptor, parsedValue);
         if (StringValues.IsNullOrEmpty(stringValues))
         {
             ParameterStore.Remove(parameterName);
             return;
         }
 
-        var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = descriptor.Loader.Load(OpenIdServerOrNull, descriptor, stringValues, parsedValue);
         ParameterStore[knownParameter.Name] = parameter;
     }

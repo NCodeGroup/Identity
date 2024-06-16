@@ -28,27 +28,33 @@ namespace NCode.Identity.OpenId.Settings;
 public class SettingCollection : ISettingCollection
 {
     private Dictionary<string, Setting> Store { get; }
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingCollection"/> class.
     /// </summary>
-    public SettingCollection()
+    /// <param name="settingDescriptorCollectionProvider">The <see cref="ISettingDescriptorCollectionProvider"/> instance.</param>
+    public SettingCollection(ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider)
     {
         Store = new Dictionary<string, Setting>(StringComparer.Ordinal);
+        SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingCollection"/> class.
     /// </summary>
+    /// <param name="settingDescriptorCollectionProvider">The <see cref="ISettingDescriptorCollectionProvider"/> instance.</param>
     /// <param name="settings">The collection of <see cref="Setting"/> instances.</param>
-    public SettingCollection(IEnumerable<Setting> settings)
+    public SettingCollection(ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider, IEnumerable<Setting> settings)
     {
         Store = settings.ToDictionary(setting => setting.Descriptor.Name, StringComparer.Ordinal);
+        SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
     }
 
-    private SettingCollection(Dictionary<string, Setting> store)
+    private SettingCollection(ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider, Dictionary<string, Setting> store)
     {
         Store = store;
+        SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
     }
 
     /// <inheritdoc />
@@ -60,26 +66,64 @@ public class SettingCollection : ISettingCollection
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <inheritdoc />
+    public TValue GetValue<TValue>(SettingKey<TValue> key)
+        where TValue : notnull
+    {
+        if (TryGet(key, out var setting))
+        {
+            return setting.Value;
+        }
+
+        if (SettingDescriptorCollectionProvider.Collection.TryGet(key, out var descriptor) && descriptor.HasDefault)
+        {
+            return descriptor.DefaultOrNull;
+        }
+
+        throw new KeyNotFoundException();
+    }
+
+    /// <inheritdoc />
     public bool TryGet(string settingName, [MaybeNullWhen(false)] out Setting setting)
-        => Store.TryGetValue(settingName, out setting);
+    {
+        return Store.TryGetValue(settingName, out setting);
+    }
 
     /// <inheritdoc />
     public bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out Setting<TValue> setting)
         where TValue : notnull
     {
-        if (!Store.TryGetValue(key.SettingName, out var baseSetting) || baseSetting is not Setting<TValue> typedSetting)
+        if (Store.TryGetValue(key.SettingName, out var baseSetting) && baseSetting is Setting<TValue> typedSetting)
         {
-            setting = default;
-            return false;
+            setting = typedSetting;
+            return true;
         }
 
-        setting = typedSetting;
-        return true;
+        setting = default;
+        return false;
     }
 
     /// <inheritdoc />
     public void Set(Setting setting)
-        => Store[setting.Descriptor.Name] = setting;
+    {
+        Store[setting.Descriptor.Name] = setting;
+    }
+
+    /// <inheritdoc />
+    public void Set<TValue>(SettingKey<TValue> key, TValue value)
+        where TValue : notnull
+    {
+        if (!SettingDescriptorCollectionProvider.Collection.TryGet(key, out var descriptor))
+        {
+            descriptor = new SettingDescriptor<TValue>
+            {
+                Name = key.SettingName
+            };
+        }
+
+        var setting = descriptor.Create(value);
+
+        Store[key.SettingName] = setting;
+    }
 
     /// <inheritdoc />
     public bool Remove<TValue>(SettingKey<TValue> key)
@@ -113,6 +157,6 @@ public class SettingCollection : ISettingCollection
             newStore.TryAdd(settingName, currentSetting);
         }
 
-        return new SettingCollection(newStore);
+        return new SettingCollection(SettingDescriptorCollectionProvider, newStore);
     }
 }

@@ -265,12 +265,13 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>response_type</c> message parameter which parses <see cref="StringValues"/> into an <see cref="ResponseType"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>response_type</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<ResponseTypes?> ResponseType =
-        new(OpenIdConstants.Parameters.ResponseType, ParameterParsers.ResponseType)
+    public static readonly KnownParameter<IReadOnlyCollection<string>?> ResponseTypes =
+        new(OpenIdConstants.Parameters.ResponseType, ParameterParsers.StringSet)
         {
             Optional = false,
+            SortStringValues = true,
         };
 
     /// <summary>

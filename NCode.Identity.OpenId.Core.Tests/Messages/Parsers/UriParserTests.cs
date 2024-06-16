@@ -51,8 +51,9 @@ public class UriParserTests : IDisposable
     {
         var parser = new UriParser();
         var server = MockOpenIdServer.Object;
+        var descriptor = new ParameterDescriptor(new KnownParameter<Uri?>("parameterName", parser));
 
-        var stringValue = parser.Serialize(server, null);
+        var stringValue = parser.Serialize(server, descriptor, null);
         Assert.Equal(StringValues.Empty, stringValue);
     }
 
@@ -61,10 +62,11 @@ public class UriParserTests : IDisposable
     {
         var parser = new UriParser();
         var server = MockOpenIdServer.Object;
+        var descriptor = new ParameterDescriptor(new KnownParameter<Uri?>("parameterName", parser));
 
         var uri = new Uri("http://localhost/path1/path2?key1=value1&key2");
 
-        var stringValue = parser.Serialize(server, uri);
+        var stringValue = parser.Serialize(server, descriptor, uri);
         Assert.Equal(uri.AbsoluteUri, stringValue);
     }
 

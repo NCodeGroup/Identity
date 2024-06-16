@@ -288,7 +288,7 @@ public class OpenIdMessageTests : IDisposable
         message.Initialize(server, new[] { parameter });
 
         mockParameterParser
-            .Setup(x => x.Serialize(server, parsedValue))
+            .Setup(x => x.Serialize(server, descriptor, parsedValue))
             .Returns(StringValues.Empty)
             .Verifiable();
 
@@ -328,7 +328,7 @@ public class OpenIdMessageTests : IDisposable
         };
 
         mockParameterParser
-            .Setup(x => x.Serialize(server, parsedValue))
+            .Setup(x => x.Serialize(server, descriptor, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 
@@ -387,7 +387,7 @@ public class OpenIdMessageTests : IDisposable
         };
 
         mockParameterParser
-            .Setup(x => x.Serialize(server, parsedValue))
+            .Setup(x => x.Serialize(server, descriptor, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 

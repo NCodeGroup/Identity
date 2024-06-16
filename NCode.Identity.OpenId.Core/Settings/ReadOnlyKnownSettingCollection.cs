@@ -34,131 +34,131 @@ public class ReadOnlyKnownSettingCollection(
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> AccessTokenEncryptionAlgValuesSupported =>
-        Get(KnownSettings.AccessTokenEncryptionAlgValuesSupported);
+        Store.GetValue(SettingKeys.AccessTokenEncryptionAlgValuesSupported);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> AccessTokenEncryptionEncValuesSupported =>
-        Get(KnownSettings.AccessTokenEncryptionEncValuesSupported);
+        Store.GetValue(SettingKeys.AccessTokenEncryptionEncValuesSupported);
 
     /// <inheritdoc />
     public bool AccessTokenEncryptionRequired =>
-        Get(KnownSettings.AccessTokenEncryptionRequired);
+        Store.GetValue(SettingKeys.AccessTokenEncryptionRequired);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> AccessTokenEncryptionZipValuesSupported =>
-        Get(KnownSettings.AccessTokenEncryptionZipValuesSupported);
+        Store.GetValue(SettingKeys.AccessTokenEncryptionZipValuesSupported);
 
     /// <inheritdoc />
     public TimeSpan AccessTokenLifetime =>
-        Get(KnownSettings.AccessTokenLifetime);
+        Store.GetValue(SettingKeys.AccessTokenLifetime);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> AccessTokenSigningAlgValuesSupported =>
-        Get(KnownSettings.AccessTokenSigningAlgValuesSupported);
+        Store.GetValue(SettingKeys.AccessTokenSigningAlgValuesSupported);
 
     /// <inheritdoc />
     public string AccessTokenType =>
-        Get(KnownSettings.AccessTokenType);
+        Store.GetValue(SettingKeys.AccessTokenType);
 
     /// <inheritdoc />
     public bool AllowLoopbackRedirect =>
-        Get(KnownSettings.AllowLoopbackRedirect);
+        Store.GetValue(SettingKeys.AllowLoopbackRedirect);
 
     /// <inheritdoc />
     public bool AllowPlainCodeChallengeMethod =>
-        Get(KnownSettings.AllowPlainCodeChallengeMethod);
+        Store.GetValue(SettingKeys.AllowPlainCodeChallengeMethod);
 
     /// <inheritdoc />
     public bool AllowUnsafeTokenResponse =>
-        Get(KnownSettings.AllowUnsafeTokenResponse);
+        Store.GetValue(SettingKeys.AllowUnsafeTokenResponse);
 
     /// <inheritdoc />
     public TimeSpan AuthorizationCodeLifetime =>
-        Get(KnownSettings.AuthorizationCodeLifetime);
+        Store.GetValue(SettingKeys.AuthorizationCodeLifetime);
 
     /// <inheritdoc />
     public string AuthorizationSignInScheme =>
-        Get(KnownSettings.AuthorizationSignInScheme);
+        Store.GetValue(SettingKeys.AuthorizationSignInScheme);
 
     /// <inheritdoc />
     public TimeSpan ClockSkew =>
-        Get(KnownSettings.ClockSkew);
+        Store.GetValue(SettingKeys.ClockSkew);
 
     /// <inheritdoc />
     public TimeSpan ContinueAuthorizationLifetime =>
-        Get(KnownSettings.ContinueAuthorizationLifetime);
+        Store.GetValue(SettingKeys.ContinueAuthorizationLifetime);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> GrantTypesSupported =>
-        Get(KnownSettings.GrantTypesSupported);
+        Store.GetValue(SettingKeys.GrantTypesSupported);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> IdTokenEncryptionAlgValuesSupported =>
-        Get(KnownSettings.IdTokenEncryptionAlgValuesSupported);
+        Store.GetValue(SettingKeys.IdTokenEncryptionAlgValuesSupported);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> IdTokenEncryptionEncValuesSupported =>
-        Get(KnownSettings.IdTokenEncryptionEncValuesSupported);
+        Store.GetValue(SettingKeys.IdTokenEncryptionEncValuesSupported);
 
     /// <inheritdoc />
     public bool IdTokenEncryptionRequired =>
-        Get(KnownSettings.IdTokenEncryptionRequired);
+        Store.GetValue(SettingKeys.IdTokenEncryptionRequired);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> IdTokenEncryptionZipValuesSupported =>
-        Get(KnownSettings.IdTokenEncryptionZipValuesSupported);
+        Store.GetValue(SettingKeys.IdTokenEncryptionZipValuesSupported);
 
     /// <inheritdoc />
     public TimeSpan IdTokenLifetime =>
-        Get(KnownSettings.IdTokenLifetime);
+        Store.GetValue(SettingKeys.IdTokenLifetime);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> IdTokenSigningAlgValuesSupported =>
-        Get(KnownSettings.IdTokenSigningAlgValuesSupported);
+        Store.GetValue(SettingKeys.IdTokenSigningAlgValuesSupported);
 
     /// <inheritdoc />
     public string RefreshTokenExpirationPolicy =>
-        Get(KnownSettings.RefreshTokenExpirationPolicy);
+        Store.GetValue(SettingKeys.RefreshTokenExpirationPolicy);
 
     /// <inheritdoc />
     public TimeSpan RefreshTokenLifetime =>
-        Get(KnownSettings.RefreshTokenLifetime);
+        Store.GetValue(SettingKeys.RefreshTokenLifetime);
 
     /// <inheritdoc />
     public bool RefreshTokenRotationEnabled =>
-        Get(KnownSettings.RefreshTokenRotationEnabled);
+        Store.GetValue(SettingKeys.RefreshTokenRotationEnabled);
 
     /// <inheritdoc />
     public string RequestObjectExpectedAudience =>
-        Get(KnownSettings.RequestObjectExpectedAudience);
+        Store.GetValue(SettingKeys.RequestObjectExpectedAudience);
 
     /// <inheritdoc />
     public bool RequestParameterSupported =>
-        Get(KnownSettings.RequestParameterSupported);
+        Store.GetValue(SettingKeys.RequestParameterSupported);
 
     /// <inheritdoc />
     public bool RequestUriParameterSupported =>
-        Get(KnownSettings.RequestUriParameterSupported);
+        Store.GetValue(SettingKeys.RequestUriParameterSupported);
 
     /// <inheritdoc />
     public bool RequestUriRequireStrictContentType =>
-        Get(KnownSettings.RequestUriRequireStrictContentType);
+        Store.GetValue(SettingKeys.RequestUriRequireStrictContentType);
 
     /// <inheritdoc />
     public string RequestUriExpectedContentType =>
-        Get(KnownSettings.RequestUriExpectedContentType);
+        Store.GetValue(SettingKeys.RequestUriExpectedContentType);
 
     /// <inheritdoc />
     public bool RequireCodeChallenge =>
-        Get(KnownSettings.RequireCodeChallenge);
+        Store.GetValue(SettingKeys.RequireCodeChallenge);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> ResponseModesSupported =>
-        Get(KnownSettings.ResponseModesSupported);
+        Store.GetValue(SettingKeys.ResponseModesSupported);
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> ScopesSupported =>
-        Get(KnownSettings.ScopesSupported);
+        Store.GetValue(SettingKeys.ScopesSupported);
 
     //
 
@@ -176,11 +176,10 @@ public class ReadOnlyKnownSettingCollection(
     IEnumerator IEnumerable.GetEnumerator() =>
         ((IEnumerable)Store).GetEnumerator();
 
-    //
-
-    private TValue Get<TValue>(SettingDescriptor<TValue> descriptor)
+    /// <inheritdoc />
+    public TValue GetValue<TValue>(SettingKey<TValue> key)
         where TValue : notnull =>
-        Store.TryGet(descriptor.Key, out var setting) ? setting.Value : descriptor.Default;
+        Store.GetValue(key);
 
     /// <inheritdoc />
     public bool TryGet(string settingName, [MaybeNullWhen(false)] out Setting setting) =>

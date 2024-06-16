@@ -1,8 +1,11 @@
-﻿namespace NCode.Identity.OpenId.Settings;
+﻿using JetBrains.Annotations;
+
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides the base class for a configurable setting.
 /// </summary>
+[PublicAPI]
 public abstract class Setting
 {
     /// <summary>
@@ -29,6 +32,7 @@ public abstract class Setting
 /// Provides a default implementation for the <see cref="Setting"/> abstraction with a strongly typed value.
 /// </summary>
 /// <typeparam name="TValue">The type of the setting's value.</typeparam>
+[PublicAPI]
 public class Setting<TValue> : Setting
     where TValue : notnull
 {

@@ -324,9 +324,7 @@ public abstract class OpenIdTenantProvider(
         UriDescriptor tenantBaseAddress,
         CancellationToken cancellationToken)
     {
-        var settingKey = new SettingKey<string>(SettingNames.TenantIssuer);
-        if (tenantSettings.TryGet(settingKey, out var setting) &&
-            !string.IsNullOrEmpty(setting.Value))
+        if (tenantSettings.TryGet(SettingKeys.TenantIssuer, out var setting) && !string.IsNullOrEmpty(setting.Value))
         {
             return ValueTask.FromResult(setting.Value);
         }

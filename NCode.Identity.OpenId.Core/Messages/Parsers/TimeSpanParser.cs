@@ -33,12 +33,13 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
     /// <inheritdoc/>
     public override StringValues Serialize(
         OpenIdServer openIdServer,
-        TimeSpan? value)
+        ParameterDescriptor descriptor,
+        TimeSpan? parsedValue)
     {
-        if (value == null)
+        if (parsedValue == null)
             return StringValues.Empty;
 
-        var wholeSeconds = (int)value.Value.TotalSeconds;
+        var wholeSeconds = (int)parsedValue.Value.TotalSeconds;
         return wholeSeconds.ToString(CultureInfo.InvariantCulture);
     }
 

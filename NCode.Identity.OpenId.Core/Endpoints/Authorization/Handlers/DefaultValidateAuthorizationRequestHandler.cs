@@ -59,15 +59,10 @@ public class DefaultValidateAuthorizationRequestHandler(
     [AssertionMethod]
     private void ValidateRequestMessage(IAuthorizationRequestMessage requestMessage)
     {
-        var responseType = requestMessage.ResponseType ?? ResponseTypes.Unspecified;
-        if (responseType == ResponseTypes.Unspecified)
+        var responseTypesCount = requestMessage.ResponseTypes?.Count ?? 0;
+        if (responseTypesCount == 0)
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.ResponseType)
-                .AsException();
-
-        if (responseType.HasFlag(ResponseTypes.None) && responseType != ResponseTypes.None)
-            throw ErrorFactory
-                .InvalidRequest("The 'none' response_type must not be combined with other values.")
                 .AsException();
 
         var redirectUri = requestMessage.RedirectUri;
@@ -106,10 +101,15 @@ public class DefaultValidateAuthorizationRequestHandler(
          * match those in the Request Object, if present.
          */
 
-        if (requestObject.ResponseType != null && requestObject.ResponseType != requestMessage.ResponseType)
-            throw ErrorFactory
-                .InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode)
-                .AsException();
+        if (requestMessage.ResponseTypes != null && requestObject.ResponseTypes != null)
+        {
+            var requestMessageResponseTypes = requestMessage.ResponseTypes.Order();
+            var requestObjectResponseTypes = requestObject.ResponseTypes.Order();
+            if (!requestMessageResponseTypes.SequenceEqual(requestObjectResponseTypes))
+                throw ErrorFactory
+                    .InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode)
+                    .AsException();
+        }
 
         /*
          * The Client ID values in the "client_id" request parameter and in the Request Object "client_id" claim MUST be identical.
@@ -147,17 +147,17 @@ public class DefaultValidateAuthorizationRequestHandler(
                 .MissingParameter(OpenIdConstants.Parameters.Scope)
                 .AsException();
 
-        if (request.ResponseType == ResponseTypes.Unspecified)
+        if (request.ResponseTypes.Count == 0)
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.ResponseType)
                 .AsException();
 
-        if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && string.IsNullOrEmpty(request.Nonce))
+        if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken) && string.IsNullOrEmpty(request.Nonce))
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.Nonce)
                 .AsException();
 
-        if (request.ResponseType.HasFlag(ResponseTypes.IdToken) && !hasOpenIdScope)
+        if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken) && !hasOpenIdScope)
             throw ErrorFactory
                 .InvalidRequest("The 'openid' scope is required when requesting id tokens.")
                 .AsException();
@@ -188,7 +188,7 @@ public class DefaultValidateAuthorizationRequestHandler(
         // perform configurable checks...
 
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
-        if (request.ResponseType.HasFlag(ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
+        if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
             throw ErrorFactory
                 .UnauthorizedClient("The configuration prohibits the use of unsafe token responses.")
                 .AsException();
@@ -206,7 +206,7 @@ public class DefaultValidateAuthorizationRequestHandler(
                 .AsException();
 
         // acr_values_supported
-        if (clientSettings.TryGet(KnownSettings.AcrValuesSupported.Key, out var acrValuesSupported))
+        if (clientSettings.TryGet(SettingKeys.AcrValuesSupported, out var acrValuesSupported))
         {
             var acrValues = request.AcrValues;
             if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported.Value).Any())
@@ -216,7 +216,7 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // claims_locales_supported
-        if (clientSettings.TryGet(KnownSettings.ClaimsLocalesSupported.Key, out var claimsLocalesSupported))
+        if (clientSettings.TryGet(SettingKeys.ClaimsLocalesSupported, out var claimsLocalesSupported))
         {
             var claimsLocales = request.ClaimsLocales;
             if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported.Value).Any())
@@ -226,7 +226,7 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // claims_parameter_supported
-        if (clientSettings.TryGet(KnownSettings.ClaimsParameterSupported.Key, out var claimsParameterSupported))
+        if (clientSettings.TryGet(SettingKeys.ClaimsParameterSupported, out var claimsParameterSupported))
         {
             var claimCount = request.Claims?.UserInfo?.Count ?? 0 + request.Claims?.IdToken?.Count ?? 0;
             if (claimCount > 0 && !claimsParameterSupported.Value)
@@ -236,7 +236,7 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // display_values_supported
-        if (clientSettings.TryGet(KnownSettings.DisplayValuesSupported.Key, out var displayValuesSupported))
+        if (clientSettings.TryGet(SettingKeys.DisplayValuesSupported, out var displayValuesSupported))
         {
             if (!displayValuesSupported.Value.Contains(request.DisplayType))
                 throw ErrorFactory
@@ -245,7 +245,7 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // grant_types_supported
-        if (clientSettings.TryGet(KnownSettings.GrantTypesSupported.Key, out var grantTypesSupported))
+        if (clientSettings.TryGet(SettingKeys.GrantTypesSupported, out var grantTypesSupported))
         {
             if (!grantTypesSupported.Value.Contains(request.GrantType))
                 throw ErrorFactory
@@ -254,7 +254,7 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // prompt_values_supported
-        if (clientSettings.TryGet(KnownSettings.PromptValuesSupported.Key, out var promptValuesSupported))
+        if (clientSettings.TryGet(SettingKeys.PromptValuesSupported, out var promptValuesSupported))
         {
             /*
              * https://openid.net/specs/openid-connect-prompt-create-1_0.html#section-4.1
@@ -273,7 +273,7 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // response_modes_supported
-        if (clientSettings.TryGet(KnownSettings.ResponseModesSupported.Key, out var responseModesSupported))
+        if (clientSettings.TryGet(SettingKeys.ResponseModesSupported, out var responseModesSupported))
         {
             if (!responseModesSupported.Value.Contains(request.ResponseMode))
                 throw ErrorFactory
@@ -282,9 +282,9 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // response_types_supported
-        if (clientSettings.TryGet(KnownSettings.ResponseTypesSupported.Key, out var responseTypesSupported))
+        if (clientSettings.TryGet(SettingKeys.ResponseTypesSupported, out var responseTypesSupported))
         {
-            if (!responseTypesSupported.Value.Contains(request.ResponseType))
+            if (request.ResponseTypes.Except(responseTypesSupported.Value).Any())
                 throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.ResponseType)
                     .AsException();

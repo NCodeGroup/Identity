@@ -78,7 +78,7 @@ public class DefaultOpenIdServer(
     {
         var settingsSection = Configuration.GetSection("settings");
 
-        var settings = new SettingCollection();
+        var settings = new SettingCollection(SettingDescriptorCollectionProvider);
         var descriptors = SettingDescriptorCollectionProvider.Collection;
 
         var signingAlgValuesSupported = new List<string>();
@@ -112,32 +112,31 @@ public class DefaultOpenIdServer(
             }
         }
 
-        settings.Set(KnownSettings.IdTokenSigningAlgValuesSupported.Create(signingAlgValuesSupported));
-        settings.Set(KnownSettings.UserInfoSigningAlgValuesSupported.Create(signingAlgValuesSupported));
-        settings.Set(KnownSettings.AccessTokenSigningAlgValuesSupported.Create(signingAlgValuesSupported));
-        settings.Set(KnownSettings.RequestObjectSigningAlgValuesSupported.Create(signingAlgValuesSupported));
+        settings.Set(SettingKeys.IdTokenSigningAlgValuesSupported, signingAlgValuesSupported);
+        settings.Set(SettingKeys.UserInfoSigningAlgValuesSupported, signingAlgValuesSupported);
+        settings.Set(SettingKeys.AccessTokenSigningAlgValuesSupported, signingAlgValuesSupported);
+        settings.Set(SettingKeys.RequestObjectSigningAlgValuesSupported, signingAlgValuesSupported);
 
-        settings.Set(KnownSettings.IdTokenEncryptionAlgValuesSupported.Create(encryptionAlgValuesSupported));
-        settings.Set(KnownSettings.UserInfoEncryptionAlgValuesSupported.Create(encryptionAlgValuesSupported));
-        settings.Set(KnownSettings.AccessTokenEncryptionAlgValuesSupported.Create(encryptionAlgValuesSupported));
-        settings.Set(KnownSettings.RequestObjectEncryptionAlgValuesSupported.Create(encryptionAlgValuesSupported));
+        settings.Set(SettingKeys.IdTokenEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
+        settings.Set(SettingKeys.UserInfoEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
+        settings.Set(SettingKeys.AccessTokenEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
+        settings.Set(SettingKeys.RequestObjectEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
 
-        settings.Set(KnownSettings.IdTokenEncryptionEncValuesSupported.Create(encryptionEncValuesSupported));
-        settings.Set(KnownSettings.UserInfoEncryptionEncValuesSupported.Create(encryptionEncValuesSupported));
-        settings.Set(KnownSettings.AccessTokenEncryptionEncValuesSupported.Create(encryptionEncValuesSupported));
-        settings.Set(KnownSettings.RequestObjectEncryptionEncValuesSupported.Create(encryptionEncValuesSupported));
+        settings.Set(SettingKeys.IdTokenEncryptionEncValuesSupported, encryptionEncValuesSupported);
+        settings.Set(SettingKeys.UserInfoEncryptionEncValuesSupported, encryptionEncValuesSupported);
+        settings.Set(SettingKeys.AccessTokenEncryptionEncValuesSupported, encryptionEncValuesSupported);
+        settings.Set(SettingKeys.RequestObjectEncryptionEncValuesSupported, encryptionEncValuesSupported);
 
-        settings.Set(KnownSettings.IdTokenEncryptionZipValuesSupported.Create(encryptionZipValuesSupported));
-        settings.Set(KnownSettings.UserInfoEncryptionZipValuesSupported.Create(encryptionZipValuesSupported));
-        settings.Set(KnownSettings.AccessTokenEncryptionZipValuesSupported.Create(encryptionZipValuesSupported));
-        settings.Set(KnownSettings.RequestObjectEncryptionZipValuesSupported.Create(encryptionZipValuesSupported));
+        settings.Set(SettingKeys.IdTokenEncryptionZipValuesSupported, encryptionZipValuesSupported);
+        settings.Set(SettingKeys.UserInfoEncryptionZipValuesSupported, encryptionZipValuesSupported);
+        settings.Set(SettingKeys.AccessTokenEncryptionZipValuesSupported, encryptionZipValuesSupported);
+        settings.Set(SettingKeys.RequestObjectEncryptionZipValuesSupported, encryptionZipValuesSupported);
 
         foreach (var descriptor in descriptors)
         {
-            var defaultValue = descriptor.GetDefaultValueOrNull();
-            if (defaultValue is not null)
+            if (descriptor.HasDefault)
             {
-                settings.Set(descriptor.Create(defaultValue));
+                settings.Set(descriptor.Create(descriptor.DefaultOrNull));
             }
         }
 
@@ -150,16 +149,14 @@ public class DefaultOpenIdServer(
                 {
                     descriptor = new SettingDescriptor<IReadOnlyCollection<string>>
                     {
-                        Name = settingName,
-                        OnMerge = KnownSettings.Replace
+                        Name = settingName
                     };
                 }
                 else
                 {
                     descriptor = new SettingDescriptor<string>
                     {
-                        Name = settingName,
-                        OnMerge = KnownSettings.Replace
+                        Name = settingName
                     };
                 }
             }
@@ -192,9 +189,7 @@ public class DefaultOpenIdServer(
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
                 new SettingCollectionJsonConverter(SettingDescriptorJsonProvider),
                 new ClaimJsonConverter(),
-                new ClaimsIdentityJsonConverter(),
-                // TODO remove these
-                new ResponseTypesJsonConverter()
+                new ClaimsIdentityJsonConverter()
             }
         };
 }

@@ -124,7 +124,7 @@ public interface IAuthorizationRequest : IBaseAuthorizationRequest
     /// <summary>
     /// Gets the <c>response_type</c> parameter.
     /// </summary>
-    ResponseTypes ResponseType { get; }
+    IReadOnlyCollection<string> ResponseTypes { get; }
 
     /// <summary>
     /// Gets the <c>scope</c> parameter.

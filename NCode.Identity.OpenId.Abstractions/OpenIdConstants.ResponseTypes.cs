@@ -25,11 +25,6 @@ public static partial class OpenIdConstants
     public static class ResponseTypes
     {
         /// <summary>
-        /// Contains the <c>response_type</c> parameter value for <c>none</c>.
-        /// </summary>
-        public const string None = "none";
-
-        /// <summary>
         /// Contains the <c>response_type</c> parameter value for <c>code</c>.
         /// </summary>
         public const string Code = "code";

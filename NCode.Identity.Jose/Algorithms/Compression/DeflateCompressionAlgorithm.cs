@@ -20,6 +20,7 @@
 using System.Buffers;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using Nerdbank.Streams;
 
 namespace NCode.Identity.Jose.Algorithms.Compression;
@@ -27,6 +28,7 @@ namespace NCode.Identity.Jose.Algorithms.Compression;
 /// <summary>
 /// Provides an implementation of <see cref="CompressionAlgorithm"/> that uses the <c>DEFLATE (RFC1951)</c> algorithm for compression.
 /// </summary>
+[PublicAPI]
 public class DeflateCompressionAlgorithm : CompressionAlgorithm
 {
     /// <summary>

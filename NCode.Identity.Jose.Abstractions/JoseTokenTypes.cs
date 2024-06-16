@@ -17,12 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Jose;
 
 /// <summary>
 /// Constants for the possible values that can be used in the <c>typ</c> JOSE header parameter.
 /// https://datatracker.ietf.org/doc/html/rfc7515#section-4.1.9
 /// </summary>
+[PublicAPI]
 public static class JoseTokenTypes
 {
     /// <summary>

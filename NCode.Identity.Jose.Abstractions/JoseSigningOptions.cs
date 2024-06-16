@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.Jose;
@@ -24,6 +25,7 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Contains the credentials and set of options that are required when signing a JWS token.
 /// </summary>
+[PublicAPI]
 public class JoseSigningOptions : JoseEncodingOptions
 {
     /// <inheritdoc />

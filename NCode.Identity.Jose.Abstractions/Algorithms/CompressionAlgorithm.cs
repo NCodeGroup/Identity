@@ -18,12 +18,14 @@
 #endregion
 
 using System.Buffers;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
 /// Provides methods for all compressions algorithms.
 /// </summary>
+[PublicAPI]
 public abstract class CompressionAlgorithm : Algorithm
 {
     /// <inheritdoc />

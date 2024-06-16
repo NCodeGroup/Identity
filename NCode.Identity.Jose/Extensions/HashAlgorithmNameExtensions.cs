@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Algorithms;
 
 namespace NCode.Identity.Jose.Extensions;
@@ -25,6 +26,7 @@ namespace NCode.Identity.Jose.Extensions;
 /// <summary>
 /// Provides various extension methods for <see cref="HashAlgorithmName"/>.
 /// </summary>
+[PublicAPI]
 public static class HashAlgorithmNameExtensions
 {
     /// <summary>

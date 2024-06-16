@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Extensions;
@@ -33,6 +34,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>ECDH-ES</c> cryptographic algorithm for key management.
 /// </summary>
+[PublicAPI]
 public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     /// <summary>

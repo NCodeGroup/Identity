@@ -16,6 +16,8 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.DataProtection;
 
 /// <summary>
@@ -24,6 +26,7 @@ namespace NCode.Identity.DataProtection;
 /// <remarks>
 /// This implementation is useful for development and testing purposes.
 /// </remarks>
+[PublicAPI]
 public sealed class NoneSecureDataProtector : ISecureDataProtector
 {
     /// <summary>

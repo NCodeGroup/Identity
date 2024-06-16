@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.Secrets;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using secrets.
 /// </summary>
+[PublicAPI]
 public static class Registration
 {
     /// <summary>

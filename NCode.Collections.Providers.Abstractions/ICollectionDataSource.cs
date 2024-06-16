@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 
 namespace NCode.Collections.Providers;
@@ -28,6 +29,7 @@ namespace NCode.Collections.Providers;
 /// closed generic interface and can optionally implement <see cref="IDisposable"/> or <see cref="IAsyncDisposable"/>
 /// to dispose of any resources.
 /// </remarks>
+[PublicAPI]
 public interface ICollectionDataSource<out T>
 {
     /// <summary>

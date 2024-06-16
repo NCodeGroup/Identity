@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 /// <summary>
 /// Provides an abstraction for a store which persists <see cref="PersistedTenant"/> instances.
 /// </summary>
+[PublicAPI]
 public interface ITenantStore : IStore<PersistedTenant>
 {
     /// <summary>

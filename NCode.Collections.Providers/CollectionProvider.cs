@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
 
@@ -26,6 +27,7 @@ namespace NCode.Collections.Providers;
 /// <summary>
 /// Provides a default implementation for the <see cref="ICollectionProvider{TItem,TCollection}"/> interface.
 /// </summary>
+[PublicAPI]
 public abstract class CollectionProvider<TItem, TCollection> : ICollectionProvider<TItem, TCollection>
     where TCollection : IEnumerable<TItem>
 {

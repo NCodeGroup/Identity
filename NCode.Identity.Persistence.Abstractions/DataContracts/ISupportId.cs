@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Persistence.DataContracts;
 
 /// <summary>
 /// Provides the ability to return the surrogate identifier for an entity where the identifier type is <see cref="long"/>.
 /// </summary>
+[PublicAPI]
 public interface ISupportId : ISupportId<long>
 {
     // nothing
@@ -31,6 +34,7 @@ public interface ISupportId : ISupportId<long>
 /// Provides the ability to return the surrogate identifier for an entity.
 /// </summary>
 /// <typeparam name="T">The type of the surrogate identifier.</typeparam>
+[PublicAPI]
 public interface ISupportId<out T>
     where T : IEquatable<T>
 {

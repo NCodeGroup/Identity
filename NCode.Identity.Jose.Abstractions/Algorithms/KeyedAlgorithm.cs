@@ -18,12 +18,14 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
 /// Common abstractions for all <c>JOSE</c> algorithms that require cryptographic key material.
 /// </summary>
+[PublicAPI]
 public abstract class KeyedAlgorithm : Algorithm
 {
     /// <summary>

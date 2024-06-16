@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.JsonWebTokens.Exceptions;
 using NCode.Identity.Secrets;
 
@@ -26,6 +27,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Contains extension methods for the <see cref="ValidateJwtParameters"/> class.
 /// </summary>
+[PublicAPI]
 public static class ValidateJwtParametersExtensions
 {
     /// <summary>

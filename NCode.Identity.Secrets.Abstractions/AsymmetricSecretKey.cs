@@ -18,12 +18,14 @@
 #endregion
 
 using System.Security.Cryptography.X509Certificates;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Common abstractions for all secret keys using <c>asymmetric</c> cryptographic keys.
 /// </summary>
+[PublicAPI]
 public abstract class AsymmetricSecretKey : SecretKey
 {
     /// <summary>

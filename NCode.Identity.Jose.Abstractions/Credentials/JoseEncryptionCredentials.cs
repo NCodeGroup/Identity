@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 
@@ -29,6 +30,7 @@ namespace NCode.Identity.Jose.Credentials;
 /// <param name="KeyManagementAlgorithm">The <see cref="KeyManagementAlgorithm"/> to use for key management.</param>
 /// <param name="AuthenticatedEncryptionAlgorithm">The <see cref="AuthenticatedEncryptionAlgorithm"/> to use for authenticated encryption.</param>
 /// <param name="CompressionAlgorithm">The optional <see cref="CompressionAlgorithm"/> to use for compression.</param>
+[PublicAPI]
 public record JoseEncryptionCredentials(
     SecretKey SecretKey,
     KeyManagementAlgorithm KeyManagementAlgorithm,

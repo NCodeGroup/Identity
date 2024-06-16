@@ -19,12 +19,14 @@
 
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Provides factory methods to create <see cref="SecretKey"/> instances from cryptographic key material.
 /// </summary>
+[PublicAPI]
 public interface ISecretKeyFactory
 {
     /// <summary>

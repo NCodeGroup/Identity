@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Exceptions;
 
 namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
@@ -25,6 +26,7 @@ namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 /// <summary>
 /// Provides an implementation of <see cref="AuthenticatedEncryptionAlgorithm"/> that uses the <c>AES GCM</c> cryptographic algorithm for authenticated encryption (AEAD).
 /// </summary>
+[PublicAPI]
 public class AesGcmAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncryptionAlgorithm
 {
     /// <inheritdoc />

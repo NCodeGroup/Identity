@@ -16,11 +16,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Provides an abstraction for the unit-of-work pattern.
 /// </summary>
+[PublicAPI]
 public interface IStoreManager : IServiceProvider, IAsyncDisposable
 {
     /// <summary>

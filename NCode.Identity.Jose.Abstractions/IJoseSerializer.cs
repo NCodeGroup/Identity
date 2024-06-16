@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose;
@@ -25,6 +26,7 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Provides the ability to encode and decode JWT values using JSON Object Signing and Encryption (JOSE).
 /// </summary>
+[PublicAPI]
 public partial interface IJoseSerializer
 {
     /// <summary>

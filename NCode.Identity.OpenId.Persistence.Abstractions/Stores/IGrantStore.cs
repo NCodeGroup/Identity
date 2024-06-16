@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 /// <summary>
 /// Provides an abstraction for persisting any type of grant and their payloads to storage.
 /// </summary>
+[PublicAPI]
 public interface IGrantStore : IStore<PersistedGrant>
 {
     ValueTask<PersistedGrant?> TryGetAsync(

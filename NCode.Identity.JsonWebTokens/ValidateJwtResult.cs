@@ -19,6 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
+using JetBrains.Annotations;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.JsonWebTokens;
@@ -26,6 +27,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Contains the result after a Json Web Token (JWT) has been validation.
 /// </summary>
+[PublicAPI]
 public class ValidateJwtResult
 {
     /// <summary>

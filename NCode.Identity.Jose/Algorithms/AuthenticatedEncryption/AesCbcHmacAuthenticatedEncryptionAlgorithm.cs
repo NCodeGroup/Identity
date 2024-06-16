@@ -20,6 +20,7 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Exceptions;
 
 namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
@@ -27,6 +28,7 @@ namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 /// <summary>
 /// Provides an implementation of <see cref="AuthenticatedEncryptionAlgorithm"/> that uses the <c>AES CBC HMAC</c> cryptographic algorithm for authenticated encryption (AEAD).
 /// </summary>
+[PublicAPI]
 public class AesCbcHmacAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncryptionAlgorithm
 {
     private const int BlockSizeBits = 128;

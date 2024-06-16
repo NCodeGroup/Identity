@@ -16,11 +16,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
 /// Provides an abstraction for a factory that creates <see cref="IStoreManager"/> instances.
 /// </summary>
+[PublicAPI]
 public interface IStoreManagerFactory
 {
     /// <summary>

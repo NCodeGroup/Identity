@@ -18,6 +18,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Persistence.DataContracts;
 
@@ -26,6 +27,7 @@ namespace NCode.Identity.Persistence.DataContracts;
 /// the existing value in a database. The random value is automatically generated every time a row is inserted or
 /// updated in the database.
 /// </summary>
+[PublicAPI]
 public interface ISupportConcurrencyToken
 {
     /// <summary>

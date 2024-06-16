@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Secrets.Persistence.DataContracts;
 
 /// <summary>
 /// Contains constants for the possible values of the <see cref="PersistedSecret.SecretType"/> property.
 /// </summary>
+[PublicAPI]
 public static class SecretTypes
 {
     /// <summary>

@@ -41,6 +41,7 @@ public readonly record struct PeriodicPollingCollectionContext<TItem, TState>(
 /// </summary>
 /// <typeparam name="TItem">The type of items in the collection.</typeparam>
 /// <typeparam name="TState">The type of the state parameter used during refresh calls.</typeparam>
+[PublicAPI]
 public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
     : ICollectionDataSource<TItem>, IAsyncDisposable
 {

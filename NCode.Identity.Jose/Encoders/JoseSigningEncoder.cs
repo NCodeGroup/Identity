@@ -18,12 +18,14 @@
 #endregion
 
 using System.Buffers;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Encoders;
 
 /// <summary>
 /// Provides an implementation of <see cref="JoseEncoder"/> that can be used to sign JWS tokens.
 /// </summary>
+[PublicAPI]
 public class JoseSigningEncoder : CommonJoseEncoder
 {
     private JoseSigningOptions SigningOptions { get; }

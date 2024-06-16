@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Jose;
 
 /// <summary>
 /// Constants for <see cref="CompactJwt.ProtectionType"/> that can be used to indicate how the JWT is protected.
 /// </summary>
+[PublicAPI]
 public static class JoseProtectionTypes
 {
     /// <summary>

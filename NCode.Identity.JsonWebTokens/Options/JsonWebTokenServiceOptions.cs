@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.JsonWebTokens.Options;
 
 /// <summary>
 /// Contains configurable options for <see cref="DefaultJsonWebTokenService"/>.
 /// </summary>
+[PublicAPI]
 public class JsonWebTokenServiceOptions
 {
     /// <summary>

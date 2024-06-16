@@ -19,6 +19,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// <summary>
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> client.
 /// </summary>
+[PublicAPI]
 public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>

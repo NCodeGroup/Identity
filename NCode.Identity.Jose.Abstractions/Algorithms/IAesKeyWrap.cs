@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Algorithms;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// Defines cryptographic operations for the <c>AES</c> key wrap algorithm.
 /// https://datatracker.ietf.org/doc/html/rfc3394
 /// </summary>
+[PublicAPI]
 public interface IAesKeyWrap
 {
     /// <summary>

@@ -17,12 +17,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.PropertyBag;
 
 /// <summary>
 /// Provides a strongly typed read-only collection of properties that can be accessed by key.
 /// </summary>
+[PublicAPI]
 public interface IReadOnlyPropertyBag
 {
     /// <summary>

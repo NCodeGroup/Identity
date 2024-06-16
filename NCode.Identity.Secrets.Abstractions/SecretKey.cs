@@ -17,6 +17,8 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Secrets;
 
 /// <summary>
@@ -26,6 +28,7 @@ namespace NCode.Identity.Secrets;
 /// All private key material should be encrypted at rest.
 /// When requested, the private key material should be pinned while in use and securely zeroed after use.
 /// </remarks>
+[PublicAPI]
 public abstract class SecretKey
 {
     private string? ToStringOrNull { get; set; }

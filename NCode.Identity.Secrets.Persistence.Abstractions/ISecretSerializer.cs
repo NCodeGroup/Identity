@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -24,6 +25,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <summary>
 /// Provides the ability to serialize and deserialize secrets from persisted storage.
 /// </summary>
+[PublicAPI]
 public interface ISecretSerializer
 {
     /// <summary>

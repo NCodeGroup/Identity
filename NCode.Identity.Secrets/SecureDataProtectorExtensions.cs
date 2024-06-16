@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using NCode.CryptoMemory;
 using NCode.Identity.DataProtection;
 
@@ -26,6 +27,7 @@ namespace NCode.Identity.Secrets;
 /// <summary>
 /// Provides extension methods for <see cref="ISecureDataProtector"/>.
 /// </summary>
+[PublicAPI]
 public static class SecureDataProtectorExtensions
 {
     /// <summary>

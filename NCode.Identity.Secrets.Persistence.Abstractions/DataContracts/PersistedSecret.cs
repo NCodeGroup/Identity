@@ -18,6 +18,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence.DataContracts;
@@ -25,6 +26,7 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// <summary>
 /// Contains the data for a persisted secret.
 /// </summary>
+[PublicAPI]
 public class PersistedSecret : ISupportId, ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>

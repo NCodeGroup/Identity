@@ -19,6 +19,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
 
@@ -28,6 +29,7 @@ namespace NCode.Collections.Providers;
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that uses an <see cref="ObservableCollection{T}"/> as the underlying data source.
 /// </summary>
 /// <typeparam name="T">The type of items in the collection.</typeparam>
+[PublicAPI]
 public sealed class ObservableCollectionDataSource<T> : ICollectionDataSource<T>, IDisposable
 {
     private bool Owns { get; }

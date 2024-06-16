@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
@@ -32,6 +33,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// Provides a default implementation for resolving the <see cref="SecretKey"/> instances that are to be used
 /// to validate a Json Web Token (JWT).
 /// </summary>
+[PublicAPI]
 public static class DefaultValidationKeyResolver
 {
     /// <summary>

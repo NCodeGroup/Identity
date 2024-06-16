@@ -49,9 +49,9 @@ internal class TestParameterParser : ParameterParser<string>
         WriteJsonDelegate = writeJsonDelegate;
     }
 
-    public override StringValues Serialize(OpenIdServer openIdServer, string? value)
+    public override StringValues Serialize(OpenIdServer openIdServer, ParameterDescriptor descriptor, string? parsedValue)
     {
-        return InnerParser.Serialize(openIdServer, value);
+        return InnerParser.Serialize(openIdServer, parsedValue);
     }
 
     public override string Parse(OpenIdServer openIdServer, ParameterDescriptor descriptor, StringValues stringValues)

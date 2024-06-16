@@ -78,7 +78,7 @@ public class SettingCollectionJsonConverterTests : BaseTests
             OnMerge = (_, other) => other
         };
 
-        var descriptorListEnum = new SettingDescriptor<IReadOnlyCollection<ResponseTypes>>
+        var descriptorListEnum = new SettingDescriptor<IReadOnlyCollection<BinaryEncodingType>>
         {
             Name = "list_enum_setting",
             OnMerge = (_, other) => other
@@ -92,7 +92,7 @@ public class SettingCollectionJsonConverterTests : BaseTests
             descriptorScalarBoolean.Create(true),
             descriptorScalarDateTimeOffset.Create(now),
             descriptorListString.Create(ListStringValue),
-            descriptorListEnum.Create([ResponseTypes.Token, ResponseTypes.Code])
+            descriptorListEnum.Create([BinaryEncodingType.Base64, BinaryEncodingType.Hex])
         };
 
         var expected = JsonSerializer.Serialize(new

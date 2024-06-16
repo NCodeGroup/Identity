@@ -30,9 +30,12 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class StringParser : ParameterParser<string?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(OpenIdServer openIdServer, string? value)
+    public override StringValues Serialize(
+        OpenIdServer openIdServer,
+        ParameterDescriptor descriptor,
+        string? parsedValue)
     {
-        return value;
+        return parsedValue;
     }
 
     /// <inheritdoc/>

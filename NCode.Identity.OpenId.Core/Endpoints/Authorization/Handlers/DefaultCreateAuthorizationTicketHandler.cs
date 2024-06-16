@@ -49,7 +49,7 @@ public class DefaultCreateAuthorizationTicketHandler(
     {
         var (openIdContext, openIdClient, authorizationRequest, subjectAuthentication) = command;
 
-        var responseType = authorizationRequest.ResponseType;
+        var responseTypes = authorizationRequest.ResponseTypes;
 
         var ticket = AuthorizationTicket.Create(OpenIdServer);
 
@@ -57,7 +57,7 @@ public class DefaultCreateAuthorizationTicketHandler(
         ticket.State = authorizationRequest.State;
         ticket.Issuer = openIdContext.Tenant.Issuer;
 
-        if (responseType.HasFlag(ResponseTypes.Code))
+        if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Code))
         {
             var securityToken = await AuthorizationCodeService.CreateAuthorizationCodeAsync(
                 openIdContext,
@@ -81,7 +81,7 @@ public class DefaultCreateAuthorizationTicketHandler(
             SubjectAuthentication = subjectAuthentication
         };
 
-        if (responseType.HasFlag(ResponseTypes.Token))
+        if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Token))
         {
             var securityToken = await TokenService.CreateAccessTokenAsync(
                 openIdContext,
@@ -94,7 +94,7 @@ public class DefaultCreateAuthorizationTicketHandler(
             ticket.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
         }
 
-        if (responseType.HasFlag(ResponseTypes.IdToken))
+        if (responseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken))
         {
             var newRequest = securityTokenRequest with
             {

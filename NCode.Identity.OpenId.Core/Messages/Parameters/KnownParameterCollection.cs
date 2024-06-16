@@ -27,7 +27,7 @@ internal class KnownParameterCollection : IKnownParameterCollection
     public static KnownParameterCollection Default { get; } = new();
 
     // TODO: allow for additional/custom known parameters to be added/registered
-    private static readonly IReadOnlyDictionary<string, KnownParameter> StaticKnownParameters = new Dictionary<string, KnownParameter>(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, KnownParameter> StaticKnownParameters = new(StringComparer.OrdinalIgnoreCase)
     {
         [KnownParameters.AcrValues.Name] = KnownParameters.AcrValues,
         [KnownParameters.Claims.Name] = KnownParameters.Claims,
@@ -46,7 +46,7 @@ internal class KnownParameterCollection : IKnownParameterCollection
         [KnownParameters.RequestJwt.Name] = KnownParameters.RequestJwt,
         [KnownParameters.RequestUri.Name] = KnownParameters.RequestUri,
         [KnownParameters.ResponseMode.Name] = KnownParameters.ResponseMode,
-        [KnownParameters.ResponseType.Name] = KnownParameters.ResponseType,
+        [KnownParameters.ResponseTypes.Name] = KnownParameters.ResponseTypes,
         [KnownParameters.Scopes.Name] = KnownParameters.Scopes,
         [KnownParameters.State.Name] = KnownParameters.State,
         [KnownParameters.UiLocales.Name] = KnownParameters.UiLocales,

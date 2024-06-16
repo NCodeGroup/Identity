@@ -79,9 +79,12 @@ public class JsonParser<T> : ParameterParser<T?>
     }
 
     /// <inheritdoc/>
-    public override StringValues Serialize(OpenIdServer openIdServer, T? value)
+    public override StringValues Serialize(
+        OpenIdServer openIdServer,
+        ParameterDescriptor descriptor,
+        T? parsedValue)
     {
-        return JsonSerializer.Serialize(value, openIdServer.JsonSerializerOptions);
+        return JsonSerializer.Serialize(parsedValue, openIdServer.JsonSerializerOptions);
     }
 
     /// <inheritdoc/>

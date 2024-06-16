@@ -33,8 +33,7 @@ public class DefaultSettingDescriptorJsonProvider(
     private static SettingDescriptor<TValue> CreateDescriptor<TValue>(string settingName)
         where TValue : notnull => new()
     {
-        Name = settingName,
-        OnMerge = KnownSettings.Replace
+        Name = settingName
     };
 
     /// <inheritdoc />

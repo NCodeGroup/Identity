@@ -26,6 +26,18 @@ namespace NCode.Identity.OpenId.Settings;
 public interface IReadOnlySettingCollection : IReadOnlyCollection<Setting>
 {
     /// <summary>
+    /// Gets the strongly typed setting with the specified name.
+    /// If the setting hasn't been set, the default value from the descriptor is returned if available.
+    /// Otherwise, the <see cref="KeyNotFoundException"/> is thrown.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed setting to get.</param>
+    /// <typeparam name="TValue">The type of the setting's value.</typeparam>
+    /// <returns>The value of strongly typed setting with the specified name.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the setting with the specified name is not found.</exception>
+    TValue GetValue<TValue>(SettingKey<TValue> key)
+        where TValue : notnull;
+
+    /// <summary>
     /// Attempts to get a strongly typed setting with the specified name.
     /// </summary>
     /// <param name="settingName">The name of the strongly typed setting to get.</param>

@@ -63,6 +63,12 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public bool Optional => KnownParameter?.Optional ?? true;
 
     /// <summary>
+    /// Gets a value indicating whether the parameter should sort string values when serializing. Returns the result from
+    /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>false</c>.
+    /// </summary>
+    public bool SortStringValues => KnownParameter?.SortStringValues ?? false;
+
+    /// <summary>
     /// Gets a value indicating whether the parameter allows multiple string values when parsing. Returns the result from
     /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>false</c>.
     /// </summary>

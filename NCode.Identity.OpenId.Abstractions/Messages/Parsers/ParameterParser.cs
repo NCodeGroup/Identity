@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Servers;
@@ -28,6 +29,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// Provides the ability parse and load a <see cref="Parameter"/> given its string values.
 /// </summary>
 /// <typeparam name="T">The type of parameter to parse.</typeparam>
+[PublicAPI]
 public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
 {
     /// <summary>
@@ -43,12 +45,16 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
     public virtual StringComparison StringComparison => StringComparison.Ordinal;
 
     /// <summary>
-    /// Returns the specified <paramref name="value"/> formatted as <see cref="StringValues"/>.
+    /// Returns the specified <paramref name="parsedValue"/> formatted as <see cref="StringValues"/>.
     /// </summary>
     /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when serializing the value.</param>
-    /// <param name="value">The value to serialize.</param>
+    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to serialize.</param>
+    /// <param name="parsedValue">The value to serialize.</param>
     /// <returns>The value formatted as <see cref="StringValues"/>.</returns>
-    public abstract StringValues Serialize(OpenIdServer openIdServer, T? value);
+    public abstract StringValues Serialize(
+        OpenIdServer openIdServer,
+        ParameterDescriptor descriptor,
+        T? parsedValue);
 
     /// <summary>
     /// Parses the specified string values into a type-specific value.
@@ -86,7 +92,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
         JsonSerializerOptions options)
     {
         var parsedValue = JsonSerializer.Deserialize<T>(ref reader, options);
-        var stringValues = Serialize(openIdServer, parsedValue);
+        var stringValues = Serialize(openIdServer, descriptor, parsedValue);
         return descriptor.Loader.Load(openIdServer, descriptor, stringValues, parsedValue);
     }
 

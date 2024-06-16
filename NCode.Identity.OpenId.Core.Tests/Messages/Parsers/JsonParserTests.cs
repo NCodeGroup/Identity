@@ -85,6 +85,9 @@ public class JsonParserTests : IDisposable
         var server = MockOpenIdServer.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
+        const string parameterName = "parameterName";
+        var descriptor = new ParameterDescriptor(parameterName);
+
         MockOpenIdServer
             .Setup(x => x.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
@@ -93,7 +96,7 @@ public class JsonParserTests : IDisposable
         var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
         var expectedValueAsJson = JsonSerializer.Serialize(expectedValue);
 
-        var stringValues = parser.Serialize(server, expectedValue);
+        var stringValues = parser.Serialize(server, descriptor, expectedValue);
         Assert.Equal(expectedValueAsJson, stringValues);
     }
 

@@ -51,9 +51,12 @@ public class StringParserTests : IDisposable
         var parser = new StringParser();
         var server = MockOpenIdServer.Object;
 
+        const string parameterName = "parameterName";
+        var descriptor = new ParameterDescriptor(parameterName);
+
         const string parsedValue = "parsedValue";
 
-        var stringValue = parser.Serialize(server, parsedValue);
+        var stringValue = parser.Serialize(server, descriptor, parsedValue);
         Assert.Equal(parsedValue, stringValue);
     }
 

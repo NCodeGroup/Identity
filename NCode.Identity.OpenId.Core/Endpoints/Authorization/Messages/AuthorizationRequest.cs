@@ -31,12 +31,12 @@ internal class AuthorizationRequest(
     IAuthorizationRequestObject? requestObject
 ) : IAuthorizationRequest
 {
-    private static string DetermineGrantType(ResponseTypes responseType) => responseType switch
-    {
-        ResponseTypes.Unspecified => throw new ArgumentException("Invalid value for response type.", nameof(responseType)),
-        ResponseTypes.Code => OpenIdConstants.GrantTypes.AuthorizationCode,
-        _ => responseType.HasFlag(ResponseTypes.Code) ? OpenIdConstants.GrantTypes.Hybrid : OpenIdConstants.GrantTypes.Implicit
-    };
+    private static string DetermineGrantType(IReadOnlyCollection<string> responseTypes) =>
+        responseTypes.Contains(OpenIdConstants.ResponseTypes.Code) ?
+            responseTypes.Count == 1 ?
+                OpenIdConstants.GrantTypes.AuthorizationCode :
+                OpenIdConstants.GrantTypes.Hybrid :
+            OpenIdConstants.GrantTypes.Implicit;
 
     private static string DetermineDefaultResponseMode(string grantType) =>
         grantType == OpenIdConstants.GrantTypes.AuthorizationCode ?
@@ -101,7 +101,7 @@ internal class AuthorizationRequest(
         OpenIdConstants.DisplayTypes.Page;
 
     public string GrantType =>
-        DetermineGrantType(ResponseType);
+        DetermineGrantType(ResponseTypes);
 
     public string? IdTokenHint =>
         OriginalRequestObject?.IdTokenHint ??
@@ -122,7 +122,7 @@ internal class AuthorizationRequest(
     public IReadOnlyCollection<string> PromptTypes =>
         OriginalRequestObject?.PromptTypes ??
         OriginalRequestMessage.PromptTypes ??
-        []; // optional
+        Array.Empty<string>();
 
     public Uri RedirectUri =>
         OriginalRequestObject?.RedirectUri ??
@@ -136,19 +136,15 @@ internal class AuthorizationRequest(
         OriginalRequestMessage.ResponseMode ??
         DetermineDefaultResponseMode(GrantType);
 
-    public ResponseTypes ResponseType =>
-        OriginalRequestObject?.ResponseType ??
-        OriginalRequestMessage.ResponseType ??
-        throw OpenIdServer.ErrorFactory
-            .MissingParameter(OpenIdConstants.Parameters.ResponseType)
-            .AsException();
+    public IReadOnlyCollection<string> ResponseTypes =>
+        OriginalRequestObject?.ResponseTypes ??
+        OriginalRequestMessage.ResponseTypes ??
+        Array.Empty<string>();
 
     public IReadOnlyCollection<string> Scopes =>
         OriginalRequestObject?.Scopes ??
         OriginalRequestMessage.Scopes ??
-        throw OpenIdServer.ErrorFactory
-            .MissingParameter(OpenIdConstants.Parameters.Scope)
-            .AsException();
+        Array.Empty<string>();
 
     public string? State =>
         OriginalRequestObject?.State ??

@@ -26,7 +26,6 @@ using NCode.Identity.OpenId.Endpoints.Discovery.Commands;
 using NCode.Identity.OpenId.Endpoints.Discovery.Results;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
-using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Endpoints.Discovery;
 
@@ -80,20 +79,21 @@ public class DefaultDiscoveryEndpointHandler(
         DiscoverMetadataCommand command,
         CancellationToken cancellationToken)
     {
-        var (context, metadata, showAll) = command;
+        var (openIdContext, metadata, showAll) = command;
 
-        DiscoverSettings(metadata, context.Tenant.Settings, showAll);
+        DiscoverSettings(openIdContext, metadata, showAll);
 
-        DiscoverEndpoints(metadata, context.Http, showAll);
+        DiscoverEndpoints(metadata, openIdContext.Http, showAll);
 
         return ValueTask.CompletedTask;
     }
 
     private static void DiscoverSettings(
+        OpenIdContext openIdContext,
         IDictionary<string, object> metadata,
-        IReadOnlySettingCollection settings,
         bool showAll)
     {
+        var settings = openIdContext.Tenant.Settings;
         var settingsToShow = settings.Where(setting => showAll || setting.Descriptor.IsDiscoverable);
         foreach (var setting in settingsToShow)
         {

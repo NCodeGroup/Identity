@@ -27,8 +27,17 @@ public interface ISettingCollection : IReadOnlySettingCollection
     /// <summary>
     /// Add or updates a strongly typed setting in the collection.
     /// </summary>
-    /// <param name="setting">The strongly typed setting to set.</param>
+    /// <param name="setting">The strongly typed setting to add or update.</param>
     void Set(Setting setting);
+
+    /// <summary>
+    /// Add or updates a strongly typed setting in the collection.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed setting to remove.</param>
+    /// <param name="value">The value of the strongly typed setting to set.</param>
+    /// <typeparam name="TValue">The type of the setting's value.</typeparam>
+    void Set<TValue>(SettingKey<TValue> key, TValue value)
+        where TValue : notnull;
 
     /// <summary>
     /// Removes a strongly typed setting with the specified key.

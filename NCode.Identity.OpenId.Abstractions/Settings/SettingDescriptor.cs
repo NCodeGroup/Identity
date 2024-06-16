@@ -17,6 +17,9 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
@@ -40,9 +43,15 @@ public abstract class SettingDescriptor
     public bool IsDiscoverable { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the default value is set.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(DefaultOrNull))]
+    public abstract bool HasDefault { get; }
+
+    /// <summary>
     /// Gets the default value for the setting if set, otherwise returns <see langword="null"/>.
     /// </summary>
-    public abstract object? GetDefaultValueOrNull();
+    public object? DefaultOrNull { get; init; }
 
     /// <summary>
     /// Factory method used to create a new <see cref="Setting"/> instance with the specified <paramref name="value"/>.
@@ -73,6 +82,7 @@ public abstract class SettingDescriptor
 /// Contains information about a configurable setting.
 /// </summary>
 /// <typeparam name="TValue">The type of setting's value.</typeparam>
+[PublicAPI]
 public class SettingDescriptor<TValue> : SettingDescriptor
     where TValue : notnull
 {
@@ -85,9 +95,15 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     public override Type ValueType => typeof(TValue);
 
     /// <summary>
+    /// Gets a value indicating whether the default value is set.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(DefaultOrNull))]
+    public override bool HasDefault => DefaultOrNull is not null;
+
+    /// <summary>
     /// Gets or sets the default value for the setting.
     /// </summary>
-    public TValue? DefaultOrNull { get; init; }
+    public new TValue? DefaultOrNull { get; init; }
 
     /// <summary>
     /// Gets the default value for the setting or throws an <see cref="InvalidOperationException"/> if the default value is not set.
@@ -116,11 +132,8 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// Gets or sets the function that is used to format the setting's value to be returned in the discovery document.
     /// The default implementation returns the value as-is.
     /// </summary>
-    public Func<TValue, object> OnFormat { get; init; }
-        = value => value;
-
-    /// <inheritdoc />
-    public override object? GetDefaultValueOrNull() => DefaultOrNull;
+    public Func<Setting<TValue>, object> OnFormat { get; init; }
+        = setting => setting.Value;
 
     /// <inheritdoc />
     public override Setting Create(object value)
@@ -160,7 +173,7 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <param name="setting">The <see cref="Setting"/> to format.</param>
     /// <returns>The setting's formatted value.</returns>
     public virtual object Format(Setting<TValue> setting)
-        => OnFormat(setting.Value);
+        => OnFormat(setting);
 
     /// <summary>
     /// Operator overload to convert a <see cref="SettingDescriptor{TValue}"/> instance to a <see cref="SettingKey{TValue}"/> instance.

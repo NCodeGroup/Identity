@@ -25,10 +25,12 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction.
 /// </summary>
 public class DefaultSettingSerializer(
-    OpenIdServer server
+    OpenIdServer server,
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingSerializer
 {
     private OpenIdServer Server { get; } = server;
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
     public ISettingCollection DeserializeSettings(JsonElement settingsJson)
@@ -38,11 +40,11 @@ public class DefaultSettingSerializer(
         {
             case JsonValueKind.Null:
             case JsonValueKind.Undefined:
-                return new SettingCollection();
+                return new SettingCollection(SettingDescriptorCollectionProvider);
 
             case JsonValueKind.Object:
                 var settings = settingsJson.Deserialize<IEnumerable<Setting>>(Server.JsonSerializerOptions);
-                return new SettingCollection(settings ?? Enumerable.Empty<Setting>());
+                return new SettingCollection(SettingDescriptorCollectionProvider, settings ?? []);
 
             default:
                 throw new JsonException("Expected an object or null value.");

@@ -33,12 +33,13 @@ public class UriParser : ParameterParser<Uri?>
     /// <inheritdoc/>
     public override StringValues Serialize(
         OpenIdServer openIdServer,
-        Uri? value)
+        ParameterDescriptor descriptor,
+        Uri? parsedValue)
     {
-        if (value is null)
+        if (parsedValue is null)
             return StringValues.Empty;
 
-        return value.AbsoluteUri;
+        return parsedValue.AbsoluteUri;
     }
 
     /// <inheritdoc/>

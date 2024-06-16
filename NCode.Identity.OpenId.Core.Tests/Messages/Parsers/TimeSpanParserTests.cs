@@ -52,7 +52,10 @@ public class TimeSpanParserTests : IDisposable
         var parser = new TimeSpanParser();
         var server = MockOpenIdServer.Object;
 
-        var stringValue = parser.Serialize(server, null);
+        const string parameterName = "parameterName";
+        var descriptor = new ParameterDescriptor(parameterName);
+
+        var stringValue = parser.Serialize(server, descriptor, null);
         Assert.Equal(StringValues.Empty, stringValue);
     }
 
@@ -62,9 +65,12 @@ public class TimeSpanParserTests : IDisposable
         var parser = new TimeSpanParser();
         var server = MockOpenIdServer.Object;
 
+        const string parameterName = "parameterName";
+        var descriptor = new ParameterDescriptor(parameterName);
+
         var timeSpan = TimeSpan.FromSeconds(123.456);
 
-        var stringValue = parser.Serialize(server, timeSpan);
+        var stringValue = parser.Serialize(server, descriptor, timeSpan);
         Assert.Equal("123", stringValue);
     }
 

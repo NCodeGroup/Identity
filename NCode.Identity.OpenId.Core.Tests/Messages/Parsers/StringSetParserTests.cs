@@ -52,9 +52,12 @@ public class StringSetParserTests : IDisposable
         var parser = new StringSetParser();
         var server = MockOpenIdServer.Object;
 
+        const string parameterName = "parameterName";
+        var descriptor = new ParameterDescriptor(parameterName);
+
         var parsedValue = (IReadOnlyCollection<string>?)null;
 
-        var stringValues = parser.Serialize(server, parsedValue);
+        var stringValues = parser.Serialize(server, descriptor, parsedValue);
         Assert.Equal(StringValues.Empty, stringValues);
     }
 
@@ -64,9 +67,12 @@ public class StringSetParserTests : IDisposable
         var parser = new StringSetParser();
         var server = MockOpenIdServer.Object;
 
+        const string parameterName = "parameterName";
+        var descriptor = new ParameterDescriptor(parameterName);
+
         var parsedValue = Array.Empty<string>();
 
-        var stringValues = parser.Serialize(server, parsedValue);
+        var stringValues = parser.Serialize(server, descriptor, parsedValue);
         Assert.Equal(StringValues.Empty, stringValues);
     }
 

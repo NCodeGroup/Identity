@@ -33,15 +33,20 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
     /// <inheritdoc/>
     public override StringValues Serialize(
         OpenIdServer openIdServer,
-        IReadOnlyCollection<string>? value)
+        ParameterDescriptor descriptor,
+        IReadOnlyCollection<string>? parsedValue)
     {
-        if (value is null)
+        if (parsedValue is null)
             return StringValues.Empty;
 
-        if (value.Count == 0)
+        if (parsedValue.Count == 0)
             return StringValues.Empty;
 
-        return string.Join(Separator, value);
+        var values = descriptor.SortStringValues ?
+            parsedValue.Order() :
+            parsedValue.AsEnumerable();
+
+        return string.Join(Separator, values);
     }
 
     /// <inheritdoc/>

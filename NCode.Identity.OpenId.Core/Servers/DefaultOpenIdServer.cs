@@ -42,7 +42,7 @@ public class DefaultOpenIdServer(
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
-    ISecretKeyProvider secretKeyProvider
+    ISecretKeyCollectionProvider secretKeyCollectionProvider
 ) : OpenIdServer, IOpenIdErrorFactory
 {
     private IReadOnlySettingCollection? SettingsOrNull { get; set; }
@@ -68,7 +68,7 @@ public class DefaultOpenIdServer(
     public override IReadOnlySettingCollection Settings => SettingsOrNull ??= LoadSettings();
 
     /// <inheritdoc />
-    public override ISecretKeyProvider SecretKeyProvider { get; } = secretKeyProvider;
+    public override ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; } = secretKeyCollectionProvider;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();

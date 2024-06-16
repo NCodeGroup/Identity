@@ -33,7 +33,7 @@ public sealed partial class DefaultJsonWebTokenService : IJsonWebTokenService
     private IServiceProvider ServiceProvider { get; }
     private TimeProvider TimeProvider { get; }
     private IJoseSerializer JoseSerializer { get; }
-    private ISecretKeyProvider SecretKeyProvider { get; }
+    private ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultJsonWebTokenService"/> class.
@@ -42,18 +42,18 @@ public sealed partial class DefaultJsonWebTokenService : IJsonWebTokenService
     /// <param name="serviceProvider">An <see cref="IServiceProvider"/> that can be used to resolve services.</param>
     /// <param name="timeProvider">An <see cref="TimeProvider"/> that can be used to get the current time.</param>
     /// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
-    /// <param name="secretKeyProvider">An <see cref="ISecretKeyProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
+    /// <param name="secretKeyCollectionProvider">An <see cref="ISecretKeyCollectionProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
     public DefaultJsonWebTokenService(
         IOptions<JsonWebTokenServiceOptions> optionsAccessor,
         IServiceProvider serviceProvider,
         TimeProvider timeProvider,
         IJoseSerializer joseSerializer,
-        ISecretKeyProvider secretKeyProvider)
+        ISecretKeyCollectionProvider secretKeyCollectionProvider)
     {
         Options = optionsAccessor.Value;
         ServiceProvider = serviceProvider;
         TimeProvider = timeProvider;
         JoseSerializer = joseSerializer;
-        SecretKeyProvider = secretKeyProvider;
+        SecretKeyCollectionProvider = secretKeyCollectionProvider;
     }
 }

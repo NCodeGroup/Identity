@@ -59,7 +59,7 @@ public class DefaultTokenService(
         var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
-        var secretKeys = openIdTenant.SecretKeyProvider.Collection;
+        var secretKeys = openIdTenant.SecretKeyCollectionProvider.Collection;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmCollectionProvider.Collection,
@@ -147,7 +147,7 @@ public class DefaultTokenService(
         var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
-        var secretKeys = openIdTenant.SecretKeyProvider.Collection;
+        var secretKeys = openIdTenant.SecretKeyCollectionProvider.Collection;
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmCollectionProvider.Collection,

@@ -42,7 +42,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
-    ISecretKeyProviderFactory secretKeyProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -51,7 +51,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     tenantCache,
     settingSerializer,
     secretSerializer,
-    secretKeyProviderFactory
+    secretKeyCollectionProviderFactory
 ), IAsyncDisposable
 {
     private AsyncSharedReferenceLease<OpenIdTenant> CachedTenant { get; set; }

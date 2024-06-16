@@ -38,7 +38,7 @@ public delegate ValueTask ValidateJwtAsync(
 public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
     CompactJwt compactJwt,
     IPropertyBag propertyBag,
-    ISecretKeyProvider secretKeyProvider,
+    ISecretKeyCollectionProvider secretKeyCollectionProvider,
     CancellationToken cancellationToken);
 
 /// <summary>

@@ -56,9 +56,9 @@ public abstract class OpenIdTenant : IAsyncDisposable
     public abstract IReadOnlySettingCollection Settings { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyProvider"/> which contains secrets only known to the tenant.
+    /// Gets the <see cref="ISecretKeyCollectionProvider"/> which contains secrets only known to the tenant.
     /// </summary>
-    public abstract ISecretKeyProvider SecretKeyProvider { get; }
+    public abstract ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

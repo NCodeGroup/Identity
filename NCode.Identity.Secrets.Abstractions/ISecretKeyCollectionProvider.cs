@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets;
 /// Provides the composition root (i.e. top-level collection) of <see cref="SecretKey"/> instances by
 /// aggregating multiple data sources and providing change notifications.
 /// </summary>
-public interface ISecretKeyProvider : ICollectionProvider<SecretKey, ISecretKeyCollection>
+public interface ISecretKeyCollectionProvider : ICollectionProvider<SecretKey, ISecretKeyCollection>
 {
     // nothing
 }

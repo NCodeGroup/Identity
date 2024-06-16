@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,42 +14,59 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Collections;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-internal class RequestClaimDictionary :
+/// <summary>
+/// Provides the implementation for a dictionary with <see cref="IRequestClaim"/> instances.
+/// </summary>
+[PublicAPI]
+public class RequestClaimDictionary :
     IDictionary<string, RequestClaim?>,
     IReadOnlyDictionary<string, RequestClaim?>,
     IReadOnlyDictionary<string, IRequestClaim?>
 {
     private IDictionary<string, RequestClaim?> Inner { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RequestClaimDictionary"/> class.
+    /// </summary>
     public RequestClaimDictionary()
         : this(StringComparer.Ordinal)
     {
         // nothing
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RequestClaimDictionary"/> class with the specified <paramref name="comparer"/>.
+    /// </summary>
+    /// <param name="comparer">The <see cref="StringComparer"/> to use when comparing keys.</param>
     public RequestClaimDictionary(StringComparer comparer)
     {
         Inner = new Dictionary<string, RequestClaim?>(comparer);
     }
 
+    /// <inheritdoc cref="IDictionary{TKey,TValue}.Count" />
     public int Count => Inner.Count;
 
+    /// <inheritdoc cref="IDictionary{TKey,TValue}.ContainsKey" />
     public bool ContainsKey(string key)
     {
         return Inner.ContainsKey(key);
     }
 
+    /// <inheritdoc cref="IDictionary{TKey,TValue}.TryGetValue" />
     public bool TryGetValue(string key, out RequestClaim? value)
     {
         return Inner.TryGetValue(key, out value);
     }
 
+    /// <inheritdoc cref="IDictionary{TKey,TValue}.TryGetValue" />
     public bool TryGetValue(string key, out IRequestClaim? value)
     {
         if (Inner.TryGetValue(key, out var innerValue))
@@ -69,15 +87,19 @@ internal class RequestClaimDictionary :
         throw new NotSupportedException();
     }
 
+    [MustDisposeResource]
     IEnumerator<KeyValuePair<string, RequestClaim?>> IEnumerable<KeyValuePair<string, RequestClaim?>>.
         GetEnumerator()
     {
         return Inner.GetEnumerator();
     }
 
+    /// <inheritdoc />
+    [MustDisposeResource]
     public IEnumerator<KeyValuePair<string, IRequestClaim?>> GetEnumerator()
     {
-        return Inner.Select(kvp => KeyValuePair.Create<string, IRequestClaim?>(kvp.Key, kvp.Value))
+        return Inner
+            .Select(kvp => KeyValuePair.Create<string, IRequestClaim?>(kvp.Key, kvp.Value))
             .GetEnumerator();
     }
 

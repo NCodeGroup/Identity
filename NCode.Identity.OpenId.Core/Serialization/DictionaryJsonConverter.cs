@@ -22,8 +22,10 @@ using System.Text.Json.Serialization;
 
 namespace NCode.Identity.OpenId.Serialization;
 
+// TODO: delete?
 internal class DictionaryJsonConverter : JsonConverter<object>
 {
+    /// <inheritdoc />
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var type = typeToConvert;
@@ -63,6 +65,7 @@ internal class DictionaryJsonConverter : JsonConverter<object>
         return JsonSerializer.Deserialize(ref reader, type, options);
     }
 
+    /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options) =>
         JsonSerializer.Serialize(writer, value, value.GetType(), options);
 }

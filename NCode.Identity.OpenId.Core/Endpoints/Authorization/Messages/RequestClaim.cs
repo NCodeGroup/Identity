@@ -16,10 +16,15 @@
 #endregion
 
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-internal class RequestClaim : IRequestClaim
+/// <summary>
+/// Provides a default implementation of the <see cref="IRequestClaim"/> abstraction.
+/// </summary>
+[PublicAPI]
+public class RequestClaim : IRequestClaim
 {
     /// <inheritdoc />
     [JsonPropertyName(OpenIdConstants.Parameters.Essential)]
@@ -36,6 +41,9 @@ internal class RequestClaim : IRequestClaim
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IEnumerable<string>? Values { get; set; }
 
+    /// <summary>
+    /// Contains the additional data that is not captured by other properties during serialization.
+    /// </summary>
     [JsonExtensionData]
     public Dictionary<string, object?> ExtensionData { get; set; } = new();
 }

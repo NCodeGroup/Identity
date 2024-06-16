@@ -18,19 +18,29 @@
 #endregion
 
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-internal class RequestClaims : IRequestClaims
+/// <summary>
+/// Provides a default implementation of the <see cref="IRequestClaims"/> abstraction.
+/// </summary>
+[PublicAPI]
+public class RequestClaims : IRequestClaims
 {
+    /// <inheritdoc cref="IRequestClaims.UserInfo" />
     [JsonPropertyName(OpenIdConstants.Parameters.UserInfo)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RequestClaimDictionary? UserInfo { get; set; }
 
+    /// <inheritdoc cref="IRequestClaims.IdToken" />
     [JsonPropertyName(OpenIdConstants.Parameters.IdToken)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RequestClaimDictionary? IdToken { get; set; }
 
+    /// <summary>
+    /// Contains the additional data that is not captured by other properties during serialization.
+    /// </summary>
     [JsonExtensionData]
     public Dictionary<string, object?> ExtensionData { get; set; } = new();
 

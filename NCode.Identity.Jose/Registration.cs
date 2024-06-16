@@ -56,7 +56,7 @@ public static class Registration
         serviceCollection.Configure(configureOptions);
 
         serviceCollection.TryAddSingleton<IAesKeyWrap, DefaultAesKeyWrap>();
-        serviceCollection.TryAddSingleton<IAlgorithmProvider, DefaultAlgorithmProvider>();
+        serviceCollection.TryAddSingleton<IAlgorithmCollectionProvider, DefaultAlgorithmCollectionProvider>();
         serviceCollection.TryAddSingleton<ICredentialSelector, DefaultCredentialSelector>();
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ICollectionDataSource<Algorithm>, DefaultAlgorithmDataSource>());
         serviceCollection.TryAddSingleton<IJoseSerializer, JoseSerializer>();

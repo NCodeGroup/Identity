@@ -25,30 +25,12 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingDescriptorCollection"/> abstraction.
 /// </summary>
-public class SettingDescriptorCollection : ISettingDescriptorCollection
+public class SettingDescriptorCollection(
+    IEnumerable<SettingDescriptor> descriptors
+) : ISettingDescriptorCollection
 {
-    private Dictionary<string, SettingDescriptor> Descriptors { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SettingDescriptorCollection"/> class.
-    /// </summary>
-    public SettingDescriptorCollection()
-    {
-        Descriptors = new Dictionary<string, SettingDescriptor>(StringComparer.Ordinal);
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SettingDescriptorCollection"/> class with the specified <paramref name="descriptors"/>.
-    /// </summary>
-    /// <param name="descriptors">The collection of <see cref="SettingDescriptor"/> instances.</param>
-    public SettingDescriptorCollection(IEnumerable<SettingDescriptor> descriptors)
-    {
-        Descriptors = descriptors.ToDictionary(d => d.Name, StringComparer.Ordinal);
-    }
-
-    /// <inheritdoc />
-    public void Register(SettingDescriptor descriptor) =>
-        Descriptors[descriptor.Name] = descriptor;
+    private Dictionary<string, SettingDescriptor> Descriptors { get; } =
+        descriptors.ToDictionary(x => x.Name, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public bool TryGet(string settingName, [MaybeNullWhen(false)] out SettingDescriptor descriptor) =>

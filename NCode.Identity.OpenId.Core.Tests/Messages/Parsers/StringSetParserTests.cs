@@ -87,7 +87,7 @@ public class StringSetParserTests : IDisposable
 
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
             AllowMultipleStringValues = false
         };
 
@@ -134,7 +134,7 @@ public class StringSetParserTests : IDisposable
 
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = false
         };
 
@@ -181,7 +181,7 @@ public class StringSetParserTests : IDisposable
 
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = false
         };
 
@@ -202,7 +202,7 @@ public class StringSetParserTests : IDisposable
 
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = true
         };
 
@@ -223,7 +223,7 @@ public class StringSetParserTests : IDisposable
 
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = true
         };
 
@@ -245,7 +245,7 @@ public class StringSetParserTests : IDisposable
 
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = false
         };
 
@@ -267,7 +267,7 @@ public class StringSetParserTests : IDisposable
 
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = false
         };
 

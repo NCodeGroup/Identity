@@ -38,7 +38,8 @@ namespace NCode.Identity.OpenId.Servers;
 /// </summary>
 public class DefaultOpenIdServer(
     IConfiguration configuration,
-    IAlgorithmProvider algorithmProvider,
+    IAlgorithmCollectionProvider algorithmCollectionProvider,
+    IKnownParameterCollectionProvider knownParameterCollectionProvider,
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
     ISecretKeyProvider secretKeyProvider
@@ -48,7 +49,8 @@ public class DefaultOpenIdServer(
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
     private IConfiguration Configuration { get; } = configuration;
-    private IAlgorithmProvider AlgorithmProvider { get; } = algorithmProvider;
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } = algorithmCollectionProvider;
+    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
 
@@ -60,7 +62,7 @@ public class DefaultOpenIdServer(
     public override IOpenIdErrorFactory ErrorFactory => this;
 
     /// <inheritdoc />
-    public override IKnownParameterCollection KnownParameters => KnownParameterCollection.Default;
+    public override IKnownParameterCollection KnownParameters => KnownParameterCollectionProvider.Collection;
 
     /// <inheritdoc />
     public override IReadOnlySettingCollection Settings => SettingsOrNull ??= LoadSettings();
@@ -86,7 +88,7 @@ public class DefaultOpenIdServer(
         var encryptionEncValuesSupported = new List<string>();
         var encryptionZipValuesSupported = new List<string>();
 
-        foreach (var algorithm in AlgorithmProvider.Collection)
+        foreach (var algorithm in AlgorithmCollectionProvider.Collection)
         {
             if (string.IsNullOrEmpty(algorithm.Code)) continue;
             if (algorithm.Code == "dir") continue;

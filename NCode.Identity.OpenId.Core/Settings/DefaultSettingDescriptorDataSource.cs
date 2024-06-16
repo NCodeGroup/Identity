@@ -55,6 +55,9 @@ public class DefaultSettingDescriptorDataSource : ICollectionDataSource<SettingD
     ) => current.Intersect(other).ToList();
 
     /// <inheritdoc />
+    public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+
+    /// <inheritdoc />
     public IEnumerable<SettingDescriptor> Collection
     {
         get
@@ -615,9 +618,6 @@ public class DefaultSettingDescriptorDataSource : ICollectionDataSource<SettingD
             };
         }
     }
-
-    /// <inheritdoc />
-    public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
 
     private static string[] FormatUniqueCombinations(Setting<IReadOnlyCollection<string>> setting) =>
         setting.Value

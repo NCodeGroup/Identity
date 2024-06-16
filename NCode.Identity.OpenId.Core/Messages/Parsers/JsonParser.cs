@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
@@ -31,6 +32,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse JSON payloads.
 /// </summary>
 /// <typeparam name="T">The type of object to parse from JSON.</typeparam>
+[PublicAPI]
 public class JsonParser<T> : ParameterParser<T?>
 {
     /// <summary>
@@ -97,14 +99,20 @@ public class JsonParser<T> : ParameterParser<T?>
 
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional:
+            case 0 when descriptor.AllowMissingStringValues:
                 return default;
 
             case 0:
-                throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
+                throw openIdServer
+                    .ErrorFactory
+                    .MissingParameter(descriptor.ParameterName)
+                    .AsException();
 
             case > 1:
-                throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
+                throw openIdServer
+                    .ErrorFactory
+                    .TooManyParameterValues(descriptor.ParameterName)
+                    .AsException();
         }
 
         var json = stringValues[0];

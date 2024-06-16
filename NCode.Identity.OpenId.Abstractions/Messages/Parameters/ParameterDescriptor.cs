@@ -57,10 +57,10 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public KnownParameter? KnownParameter { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the parameter is optional or required when parsing. Returns the result from
+    /// Gets a value indicating whether the parameter allows missing string values when parsing. Returns the result from
     /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>true</c>.
     /// </summary>
-    public bool Optional => KnownParameter?.Optional ?? true;
+    public bool AllowMissingStringValues => KnownParameter?.AllowMissingStringValues ?? true;
 
     /// <summary>
     /// Gets a value indicating whether the parameter should sort string values when serializing. Returns the result from
@@ -73,12 +73,6 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>false</c>.
     /// </summary>
     public bool AllowMultipleStringValues => KnownParameter?.AllowMultipleStringValues ?? false;
-
-    /// <summary>
-    /// Gets a value indicating whether unrecognized values should be ignored when parsing. Returns the result from
-    /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>true</c>.
-    /// </summary>
-    public bool IgnoreUnrecognizedValues => KnownParameter?.IgnoreUnrecognizedValues ?? true;
 
     /// <summary>
     /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given

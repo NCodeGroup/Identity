@@ -42,13 +42,32 @@ public class StringParser : ParameterParser<string?>
     public override string? Parse(
         OpenIdServer openIdServer,
         ParameterDescriptor descriptor,
-        StringValues stringValues) =>
-        stringValues.Count switch
+        StringValues stringValues)
+    {
+        // ReSharper disable once ConvertSwitchStatementToSwitchExpression
+        // That makes the code unreadable.
+        switch (stringValues.Count)
         {
-            0 when descriptor.Optional => null,
-            0 => throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException(),
-            > 1 when descriptor.AllowMultipleStringValues => string.Join(Separator, stringValues!),
-            > 1 => throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException(),
-            _ => stringValues[0]
-        };
+            case 0 when descriptor.AllowMissingStringValues:
+                return null;
+
+            case 0:
+                throw openIdServer
+                    .ErrorFactory
+                    .MissingParameter(descriptor.ParameterName)
+                    .AsException();
+
+            case > 1 when descriptor.AllowMultipleStringValues:
+                return string.Join(Separator, stringValues!);
+
+            case > 1:
+                throw openIdServer
+                    .ErrorFactory
+                    .TooManyParameterValues(descriptor.ParameterName)
+                    .AsException();
+
+            default:
+                return stringValues[0];
+        }
+    }
 }

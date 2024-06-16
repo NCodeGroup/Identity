@@ -48,9 +48,11 @@ public class DelegatingJsonConverterTests : IDisposable
     [Fact]
     public void AuthorizationRequestMessage_RoundTrip()
     {
+        var knownParameterCollection = new KnownParameterCollection(new DefaultKnownParameterDataSource().Collection);
+
         MockOpenIdServer
             .Setup(x => x.KnownParameters)
-            .Returns(KnownParameterCollection.Default)
+            .Returns(knownParameterCollection)
             .Verifiable();
 
         var jsonSerializerOptions = new JsonSerializerOptions
@@ -85,9 +87,11 @@ public class DelegatingJsonConverterTests : IDisposable
     [Fact]
     public void AuthorizationRequest_RoundTrip()
     {
+        var knownParameterCollection = new KnownParameterCollection(new DefaultKnownParameterDataSource().Collection);
+
         MockOpenIdServer
             .Setup(x => x.KnownParameters)
-            .Returns(KnownParameterCollection.Default)
+            .Returns(knownParameterCollection)
             .Verifiable();
 
         var jsonSerializerOptions = new JsonSerializerOptions

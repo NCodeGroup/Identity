@@ -27,12 +27,6 @@ namespace NCode.Identity.OpenId.Settings;
 public interface ISettingDescriptorCollection : IReadOnlyCollection<SettingDescriptor>
 {
     /// <summary>
-    /// Adds the specified <paramref name="descriptor"/> to the collection.
-    /// </summary>
-    /// <param name="descriptor">The <see cref="SettingDescriptor"/> instance to add.</param>
-    void Register(SettingDescriptor descriptor);
-
-    /// <summary>
     /// Attempts to get a strongly typed descriptor with the specified setting name.
     /// </summary>
     /// <param name="settingName">The name of the strongly typed descriptor to get.</param>

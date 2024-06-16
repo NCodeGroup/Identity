@@ -27,15 +27,19 @@ namespace NCode.CryptoMemory;
 [PublicAPI]
 public static class SecureEncoding
 {
+    private static ASCIIEncoding CreateSecureAsciiEncoding()
+    {
+        var encoding = (ASCIIEncoding)Encoding.ASCII.Clone();
+        encoding.EncoderFallback = EncoderFallback.ExceptionFallback;
+        encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+        return encoding;
+    }
+
     /// <summary>
     /// Gets an ASCII encoding that throws an exception when invalid bytes are encountered.
     /// </summary>
     // ReSharper disable once InconsistentNaming
-    public static ASCIIEncoding ASCII { get; } = new()
-    {
-        EncoderFallback = EncoderFallback.ExceptionFallback,
-        DecoderFallback = DecoderFallback.ExceptionFallback,
-    };
+    public static ASCIIEncoding ASCII { get; } = CreateSecureAsciiEncoding();
 
     /// <summary>
     /// Gets a UTF-8 encoding that throws an exception when invalid bytes are encountered.

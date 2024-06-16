@@ -112,7 +112,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
         var changeTokenBefore = composite.GetChangeToken();
         Assert.False(changeTokenBefore.HasChanged);
 
-        cancellationTokenSource.Cancel();
+        await cancellationTokenSource.CancelAsync();
 
         var algorithmsAfter = composite.Collection;
         Assert.Equal(new[] { mockAlgorithm2.Object }, algorithmsAfter);
@@ -123,7 +123,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
     }
 
     [Fact]
-    public async Task Dispose_Valid()
+    public async Task DisposeAsync_Valid()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockDataSource1 = CreateStrictMock<ICollectionDataSource<Algorithm>>();

@@ -24,6 +24,9 @@ using NCode.Identity.OpenId.Tokens.Models;
 
 namespace NCode.Identity.OpenId.Tokens.Commands;
 
+/// <summary>
+/// Represents a mediator event that is raised when a security token is issued.
+/// </summary>
 [PublicAPI]
 public readonly record struct SecurityTokenIssuedEvent(
     OpenIdContext OpenIdContext,

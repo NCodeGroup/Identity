@@ -21,6 +21,9 @@ using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Tokens.Models;
 
+/// <summary>
+/// Represents a security token, which contains the token type, token value, and token period.
+/// </summary>
 [PublicAPI]
 public readonly record struct SecurityToken(
     string TokenType,

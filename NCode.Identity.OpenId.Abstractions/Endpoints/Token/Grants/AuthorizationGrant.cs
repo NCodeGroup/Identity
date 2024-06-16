@@ -16,11 +16,16 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Grants;
 
+/// <summary>
+/// Represents a token authorization grant.
+/// </summary>
+[PublicAPI]
 public readonly record struct AuthorizationGrant(
     IAuthorizationRequest AuthorizationRequest,
     SubjectAuthentication SubjectAuthentication

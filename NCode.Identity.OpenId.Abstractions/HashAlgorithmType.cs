@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId;
 
 /// <summary>
 /// Specifies which cryptographic hash algorithm to use.
 /// </summary>
+[PublicAPI]
 public enum HashAlgorithmType
 {
     /// <summary>

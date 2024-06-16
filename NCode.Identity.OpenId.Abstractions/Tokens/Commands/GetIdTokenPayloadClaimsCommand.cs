@@ -24,6 +24,9 @@ using NCode.Identity.OpenId.Tokens.Models;
 
 namespace NCode.Identity.OpenId.Tokens.Commands;
 
+/// <summary>
+/// Represents a mediator command to get the id token payload claims.
+/// </summary>
 [PublicAPI]
 public readonly record struct GetIdTokenPayloadClaimsCommand(
     OpenIdContext OpenIdContext,

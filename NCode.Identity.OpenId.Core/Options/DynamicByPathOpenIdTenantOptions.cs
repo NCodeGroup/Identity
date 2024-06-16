@@ -17,10 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Options;
 
+/// <summary>
+/// Contains the options for dynamic tenant resolution based on the path.
+/// </summary>
+[PublicAPI]
 public class DynamicByPathOpenIdTenantOptions
 {
     /// <summary>

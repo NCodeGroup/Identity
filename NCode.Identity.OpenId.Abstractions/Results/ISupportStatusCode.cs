@@ -20,6 +20,9 @@ using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Results;
 
+/// <summary>
+/// Provides the ability to associate a HTTP Status Code with the current instance.
+/// </summary>
 [PublicAPI]
 public interface ISupportStatusCode
 {

@@ -22,6 +22,10 @@ using System.Text.Json.Serialization;
 
 namespace NCode.Identity.OpenId.Claims;
 
+/// <summary>
+/// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="Claim"/> instances
+/// to and from JSON.
+/// </summary>
 public class ClaimJsonConverter : JsonConverter<Claim>
 {
     /// <inheritdoc />

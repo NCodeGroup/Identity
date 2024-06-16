@@ -17,10 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Tenants.Providers;
 
 namespace NCode.Identity.OpenId.Options;
 
+/// <summary>
+/// Contains the options that are used to configure multi-tenancy support.
+/// </summary>
+[PublicAPI]
 public class OpenIdTenantOptions
 {
     /// <summary>

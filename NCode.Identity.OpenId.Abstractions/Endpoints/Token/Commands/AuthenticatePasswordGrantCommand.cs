@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Mediator;
@@ -23,8 +24,12 @@ using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Commands;
 
+/// <summary>
+/// Represents a mediator command to authenticate a password grant request.
+/// </summary>
+[PublicAPI]
 public readonly record struct AuthenticatePasswordGrantCommand(
-    OpenIdContext openIdContext,
-    OpenIdClient openIdClient,
+    OpenIdContext OpenIdContext,
+    OpenIdClient OpenIdClient,
     ITokenRequest TokenRequest
 ) : ICommand<SubjectAuthentication>;

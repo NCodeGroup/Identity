@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
@@ -23,6 +24,10 @@ using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Commands;
 
+/// <summary>
+/// Represents a mediator command to select a token grant handler.
+/// </summary>
+[PublicAPI]
 public readonly record struct SelectTokenGrantHandlerCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,

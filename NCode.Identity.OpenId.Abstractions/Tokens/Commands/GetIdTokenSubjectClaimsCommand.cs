@@ -25,6 +25,9 @@ using NCode.Identity.OpenId.Tokens.Models;
 
 namespace NCode.Identity.OpenId.Tokens.Commands;
 
+/// <summary>
+/// Represents a mediator command to get the id token subject claims.
+/// </summary>
 [PublicAPI]
 public readonly record struct GetIdTokenSubjectClaimsCommand(
     OpenIdContext OpenIdContext,

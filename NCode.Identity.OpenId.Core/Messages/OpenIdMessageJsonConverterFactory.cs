@@ -23,7 +23,11 @@ using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages;
 
-internal class OpenIdMessageJsonConverterFactory(
+/// <summary>
+/// Provides a <see cref="JsonConverterFactory"/> implementation that can serialize and deserialize <see cref="OpenIdMessage"/>
+/// instances to and from JSON.
+/// </summary>
+public class OpenIdMessageJsonConverterFactory(
     OpenIdServer openIdServer
 ) : JsonConverterFactory
 {

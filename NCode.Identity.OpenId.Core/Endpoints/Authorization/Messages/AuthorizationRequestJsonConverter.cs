@@ -23,18 +23,24 @@ using System.Text.Json.Serialization;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-internal class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationRequest>
+/// <summary>
+/// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="IAuthorizationRequest"/>
+/// instances to and from JSON.
+/// </summary>
+public class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationRequest>
 {
+    /// <inheritdoc />
     public override bool CanConvert(Type typeToConvert)
     {
         return typeof(IAuthorizationRequest).IsAssignableFrom(typeToConvert);
     }
 
+    /// <inheritdoc />
     public override IAuthorizationRequest? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var envelope = JsonSerializer.Deserialize<AuthorizationRequestJsonEnvelope>(ref reader, options);
 
-        if (envelope?.OriginalRequestMessage is null)
+        if (envelope.OriginalRequestMessage is null)
             return null;
 
         var requestMessage = envelope.OriginalRequestMessage;
@@ -46,6 +52,7 @@ internal class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationR
         return new AuthorizationRequest(envelope.IsContinuation, requestMessage, requestObject);
     }
 
+    /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, IAuthorizationRequest value, JsonSerializerOptions options)
     {
         var envelope = new AuthorizationRequestJsonEnvelope

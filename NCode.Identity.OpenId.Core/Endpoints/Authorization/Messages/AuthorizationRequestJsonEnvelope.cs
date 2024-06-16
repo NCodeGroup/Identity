@@ -19,11 +19,24 @@
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-internal class AuthorizationRequestJsonEnvelope
+/// <summary>
+/// Contains the properties for serializing and deserializing <see cref="IAuthorizationRequest"/> instances
+/// to and from JSON.
+/// </summary>
+public readonly struct AuthorizationRequestJsonEnvelope
 {
+    /// <summary>
+    /// Gets or sets a value indicating whether the request is a continuation.
+    /// </summary>
     public required bool IsContinuation { get; init; }
 
+    /// <summary>
+    /// Gets or sets the original request message.
+    /// </summary>
     public required IAuthorizationRequestMessage? OriginalRequestMessage { get; init; }
 
+    /// <summary>
+    /// Gets or sets the original request object.
+    /// </summary>
     public required IAuthorizationRequestObject? OriginalRequestObject { get; init; }
 }

@@ -26,7 +26,12 @@ using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages;
 
-internal class OpenIdMessageJsonConverter<T>(
+/// <summary>
+/// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="IOpenIdMessage"/>
+/// instances to and from JSON.
+/// </summary>
+/// <typeparam name="T">The type of the <see cref="IOpenIdMessage"/> instance to serialize and deserialize.</typeparam>
+public class OpenIdMessageJsonConverter<T>(
     OpenIdServer openIdServer
 ) : JsonConverter<T?>
     where T : OpenIdMessage
@@ -65,6 +70,7 @@ internal class OpenIdMessageJsonConverter<T>(
         return (T)(Activator.CreateInstance(messageType, nonPublic) ?? throw new InvalidOperationException());
     }
 
+    /// <inheritdoc />
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         T? messageOrNull = null;
@@ -140,6 +146,7 @@ internal class OpenIdMessageJsonConverter<T>(
         throw new JsonException();
     }
 
+    /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, T? message, JsonSerializerOptions options)
     {
         if (message == null)

@@ -19,9 +19,16 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Serialization;
 
+/// <summary>
+/// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize a type by delegating to another type.
+/// </summary>
+/// <typeparam name="TInterface">The original type to serialize and deserialize.</typeparam>
+/// <typeparam name="TImplementation">The implementation type that will be used to serialize and deserialize the original type.</typeparam>
+[PublicAPI]
 public class DelegatingJsonConverter<TInterface, TImplementation> : JsonConverter<TInterface>
     where TImplementation : TInterface, new()
 {

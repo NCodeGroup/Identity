@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Logic;
 /// <summary>
 /// Implemented by various handlers to process token requests for a specific grant type.
 /// </summary>
+[PublicAPI]
 public interface ITokenGrantHandler
 {
     /// <summary>

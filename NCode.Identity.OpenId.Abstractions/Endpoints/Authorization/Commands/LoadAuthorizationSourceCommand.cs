@@ -24,10 +24,9 @@ using NCode.Identity.OpenId.Mediator;
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Defines an <see cref="ICommand{TResponse}"/> contract that accepts an <see cref="OpenIdContext"/>
-/// as input arguments and expects <see cref="IAuthorizationSource"/> as a response.
+/// Represents a mediator command to load the source of an authorization message.
 /// </summary>
-/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> input argument for the command contract.</param>
+/// <param name="OpenIdContext"></param>
 [PublicAPI]
 public readonly record struct LoadAuthorizationSourceCommand(
     OpenIdContext OpenIdContext

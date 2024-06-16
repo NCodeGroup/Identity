@@ -16,10 +16,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Grants;
 
+/// <summary>
+/// Represents a refresh token grant.
+/// </summary>
+[PublicAPI]
 public readonly record struct RefreshTokenGrant(
     string ClientId,
     IReadOnlyCollection<string> OriginalScopes,

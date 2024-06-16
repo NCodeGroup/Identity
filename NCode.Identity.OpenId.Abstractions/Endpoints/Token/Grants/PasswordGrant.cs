@@ -16,10 +16,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Grants;
 
+/// <summary>
+/// Represents a password grant.
+/// </summary>
+[PublicAPI]
 public readonly record struct PasswordGrant(
     SubjectAuthentication SubjectAuthentication
 );

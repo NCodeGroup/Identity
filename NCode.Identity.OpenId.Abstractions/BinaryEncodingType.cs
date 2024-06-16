@@ -15,11 +15,14 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId;
 
 /// <summary>
 /// Specifies which encoding to use when converting binary data into text.
 /// </summary>
+[PublicAPI]
 public enum BinaryEncodingType
 {
     /// <summary>

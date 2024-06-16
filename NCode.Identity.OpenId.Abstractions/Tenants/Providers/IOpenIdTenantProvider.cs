@@ -37,10 +37,10 @@ public interface IOpenIdTenantProvider
     string ProviderCode { get; }
 
     /// <summary>
-    /// Gets the <see cref="RoutePattern"/> for the tenant's relative base path.
+    /// Gets the <see cref="T:RoutePattern"/> for the tenant's relative base path.
     /// </summary>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
-    /// <returns>The <see cref="RoutePattern"/> instance for the tenant.</returns>
+    /// <returns>The <see cref="T:RoutePattern"/> instance for the tenant.</returns>
     RoutePattern GetTenantRoute(IPropertyBag propertyBag);
 
     /// <summary>

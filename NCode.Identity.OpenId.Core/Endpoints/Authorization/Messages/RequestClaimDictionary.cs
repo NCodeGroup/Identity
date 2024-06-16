@@ -51,7 +51,7 @@ public class RequestClaimDictionary :
         Inner = new Dictionary<string, RequestClaim?>(comparer);
     }
 
-    /// <inheritdoc cref="IDictionary{TKey,TValue}.Count" />
+    /// <inheritdoc cref="ICollection.Count" />
     public int Count => Inner.Count;
 
     /// <inheritdoc cref="IDictionary{TKey,TValue}.ContainsKey" />

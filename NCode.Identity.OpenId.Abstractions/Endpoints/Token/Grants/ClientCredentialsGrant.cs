@@ -16,10 +16,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Grants;
 
+/// <summary>
+/// Represents a client credentials grant.
+/// </summary>
+[PublicAPI]
 public readonly record struct ClientCredentialsGrant(
     OpenIdConfidentialClient ConfidentialClient
 );

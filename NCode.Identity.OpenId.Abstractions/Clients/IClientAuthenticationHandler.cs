@@ -21,11 +21,26 @@ using NCode.Identity.OpenId.Endpoints;
 
 namespace NCode.Identity.OpenId.Clients;
 
+/// <summary>
+/// Used to authenticate an OpenID client from the current HTTP request.
+/// </summary>
 [PublicAPI]
 public interface IClientAuthenticationHandler
 {
+    /// <summary>
+    /// Gets the <see cref="string"/> value that identifies the current authentication method.
+    /// </summary>
     string AuthenticationMethod { get; }
 
+    /// <summary>
+    /// Attempts to authenticate an OpenID client from the current HTTP request.
+    /// The authentication result may be undefined to allow other authentication handlers to attempt authentication.
+    /// Otherwise, the authentication result may contain a public client, a confidential client, or an error.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation,
+    /// containing the <see cref="ClientAuthenticationResult"/> from the client authentication process.</returns>
     ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
         CancellationToken cancellationToken);

@@ -17,8 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Options;
 
+/// <summary>
+/// Contains the options used to configure OpenID server.
+/// </summary>
+[PublicAPI]
 public class OpenIdServerOptions
 {
     /// <summary>

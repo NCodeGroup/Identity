@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId;
 
 /// <summary>
 /// Contains constants for various <c>OAuth</c> and <c>OpenID Connect</c> implementations.
 /// </summary>
+[PublicAPI]
 public static partial class OpenIdConstants
 {
     /// <summary>
@@ -92,6 +95,9 @@ public static partial class OpenIdConstants
         public const string Token = $"{Prefix}/token";
     }
 
+    /// <summary>
+    /// Contains constants for various codes that can be used to identify the tenant provider.
+    /// </summary>
     public static class TenantProviderCodes
     {
         public const string StaticSingle = "StaticSingle";
@@ -99,11 +105,17 @@ public static partial class OpenIdConstants
         public const string DynamicByPath = "DynamicByPath";
     }
 
+    /// <summary>
+    /// Contains constants for various codes that can be used to identify the type of continuation operation.
+    /// </summary>
     public static class ContinueCodes
     {
         public const string Authorization = "continue_authorization";
     }
 
+    /// <summary>
+    /// Contains constants for various types of OpenID grants.
+    /// </summary>
     public static class PersistedGrantTypes
     {
         public const string Continue = "continue";
@@ -111,6 +123,9 @@ public static partial class OpenIdConstants
         public const string RefreshToken = "refresh_token";
     }
 
+    /// <summary>
+    /// Contains constants for various types of security tokens.
+    /// </summary>
     public static class SecurityTokenTypes
     {
         public const string IdToken = "id_token";
@@ -119,6 +134,9 @@ public static partial class OpenIdConstants
         public const string AuthorizationCode = "authorization_code";
     }
 
+    /// <summary>
+    /// Contains constants for various types of expiration policies for refresh tokens.
+    /// </summary>
     public static class RefreshTokenExpirationPolicy
     {
         public const string None = "none";
@@ -126,6 +144,9 @@ public static partial class OpenIdConstants
         public const string Sliding = "sliding";
     }
 
+    /// <summary>
+    /// Contains constants for various types of client authentication methods.
+    /// </summary>
     public static class ClientAuthenticationMethods
     {
         public const string Basic = "basic";

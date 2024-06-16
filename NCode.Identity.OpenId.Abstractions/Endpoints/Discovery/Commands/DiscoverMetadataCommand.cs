@@ -22,6 +22,9 @@ using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Discovery.Commands;
 
+/// <summary>
+/// Represents a mediator command to discover metadata.
+/// </summary>
 [PublicAPI]
 public readonly record struct DiscoverMetadataCommand(
     OpenIdContext OpenIdContext,

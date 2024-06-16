@@ -26,6 +26,9 @@ using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
+/// <summary>
+/// Represents a mediator command to create an authorization ticket.
+/// </summary>
 [PublicAPI]
 public readonly record struct CreateAuthorizationTicketCommand(
     OpenIdContext OpenIdContext,

@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId;
 public static partial class OpenIdConstants
 {
     /// <summary>
-    /// Contains constants for various type of the <c>OAuth</c> and <c>OpenID Connect</c> tokens.
+    /// Contains constants for various types of <c>OAuth</c> and <c>OpenID Connect</c> tokens.
     /// </summary>
     public static class TokenTypes
     {

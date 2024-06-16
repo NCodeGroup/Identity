@@ -21,6 +21,9 @@ using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.OpenId.Tokens.Models;
 
+/// <summary>
+/// Contains contextual information about a security token.
+/// </summary>
 [PublicAPI]
 public readonly record struct SecurityTokenContext(
     CreateSecurityTokenRequest TokenRequest,

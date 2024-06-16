@@ -16,12 +16,17 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Commands;
 
+/// <summary>
+/// Represents a mediator command to validate a token request.
+/// </summary>
+[PublicAPI]
 public readonly record struct ValidateTokenRequestCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,

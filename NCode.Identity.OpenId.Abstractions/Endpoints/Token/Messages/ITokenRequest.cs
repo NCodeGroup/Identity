@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
@@ -23,6 +24,7 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 /// <summary>
 /// Represents the message for an <c>OAuth</c> or <c>OpenID Connect</c> token request.
 /// </summary>
+[PublicAPI]
 public interface ITokenRequest : IOpenIdMessage
 {
     /// <summary>

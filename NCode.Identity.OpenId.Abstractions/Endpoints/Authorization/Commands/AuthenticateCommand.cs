@@ -25,6 +25,9 @@ using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
+/// <summary>
+/// Represents a mediator command to authenticate a subject (aka user).
+/// </summary>
 [PublicAPI]
 public readonly record struct AuthenticateCommand(
     OpenIdContext OpenIdContext,

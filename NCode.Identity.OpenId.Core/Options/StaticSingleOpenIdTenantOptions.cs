@@ -17,10 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Options;
 
+/// <summary>
+/// Contains the options for a single tenant that is statically defined.
+/// </summary>
+[PublicAPI]
 public class StaticSingleOpenIdTenantOptions
 {
     /// <summary>

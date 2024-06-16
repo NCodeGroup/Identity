@@ -24,6 +24,9 @@ using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
+/// <summary>
+/// Represents a mediator command to load an authorization request.
+/// </summary>
 [PublicAPI]
 public readonly record struct LoadAuthorizationRequestCommand(
     OpenIdContext OpenIdContext,

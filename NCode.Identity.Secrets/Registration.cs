@@ -35,10 +35,21 @@ public static class Registration
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddSecretServices(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<ISecretKeyProvider, DefaultSecretKeyProvider>();
-        serviceCollection.TryAddSingleton<ISecretKeyProviderFactory, DefaultSecretKeyProviderFactory>();
-        serviceCollection.TryAddSingleton<ISecretKeyFactory, DefaultSecretKeyFactory>();
-        serviceCollection.TryAddSingleton<ISecretKeyCollectionFactory, DefaultSecretKeyCollectionFactory>();
+        serviceCollection.TryAddSingleton<
+            ISecretKeyCollectionProvider,
+            DefaultSecretKeyCollectionProvider>();
+
+        serviceCollection.TryAddSingleton<
+            ISecretKeyCollectionProviderFactory,
+            DefaultSecretKeyCollectionProviderFactory>();
+
+        serviceCollection.TryAddSingleton<
+            ISecretKeyFactory,
+            DefaultSecretKeyFactory>();
+
+        serviceCollection.TryAddSingleton<
+            ISecretKeyCollectionFactory,
+            DefaultSecretKeyCollectionFactory>();
 
         return serviceCollection;
     }

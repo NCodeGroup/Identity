@@ -42,7 +42,7 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
-    ISecretKeyProviderFactory secretKeyProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -51,7 +51,7 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     tenantCache,
     settingSerializer,
     secretSerializer,
-    secretKeyProviderFactory
+    secretKeyCollectionProviderFactory
 )
 {
     private DynamicByPathOpenIdTenantOptions TenantOptions =>

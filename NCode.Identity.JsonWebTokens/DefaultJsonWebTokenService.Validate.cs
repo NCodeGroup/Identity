@@ -42,7 +42,7 @@ partial class DefaultJsonWebTokenService
             var validationKeys = await parameters.ResolveValidationKeysAsync(
                 compactJwt,
                 propertyBag,
-                SecretKeyProvider,
+                SecretKeyCollectionProvider,
                 cancellationToken);
 
             var payload = DeserializePayload(

@@ -21,23 +21,23 @@ using NCode.Collections.Providers;
 namespace NCode.Identity.Secrets;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISecretKeyProviderFactory"/> abstraction.
+/// Provides a default implementation of the <see cref="ISecretKeyCollectionProviderFactory"/> abstraction.
 /// </summary>
-public class DefaultSecretKeyProviderFactory(
+public class DefaultSecretKeyCollectionProviderFactory(
     ISecretKeyCollectionFactory secretKeyCollectionFactory
-) : ISecretKeyProviderFactory
+) : ISecretKeyCollectionProviderFactory
 {
     private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } = secretKeyCollectionFactory;
 
     /// <inheritdoc />
-    public ISecretKeyProvider Create(ICollectionDataSource<SecretKey> dataSource, bool owns) =>
-        DefaultSecretKeyProvider.Create(SecretKeyCollectionFactory, dataSource, owns);
+    public ISecretKeyCollectionProvider Create(ICollectionDataSource<SecretKey> dataSource, bool owns) =>
+        DefaultSecretKeyCollectionProvider.Create(SecretKeyCollectionFactory, dataSource, owns);
 
     /// <inheritdoc />
-    public ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources, bool owns) =>
-        DefaultSecretKeyProvider.Create(SecretKeyCollectionFactory, dataSources, owns);
+    public ISecretKeyCollectionProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources, bool owns) =>
+        DefaultSecretKeyCollectionProvider.Create(SecretKeyCollectionFactory, dataSources, owns);
 
     /// <inheritdoc />
-    public ISecretKeyProvider CreateStatic(IEnumerable<SecretKey> secretKeys) =>
+    public ISecretKeyCollectionProvider CreateStatic(IEnumerable<SecretKey> secretKeys) =>
         Create(new StaticCollectionDataSource<SecretKey>(secretKeys), owns: true);
 }

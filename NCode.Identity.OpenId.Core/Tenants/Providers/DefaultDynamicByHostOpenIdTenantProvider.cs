@@ -46,7 +46,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
-    ISecretKeyProviderFactory secretKeyProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -55,7 +55,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     tenantCache,
     settingSerializer,
     secretSerializer,
-    secretKeyProviderFactory
+    secretKeyCollectionProviderFactory
 )
 {
     private Regex? DomainNameRegex { get; set; }

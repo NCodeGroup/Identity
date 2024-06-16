@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
@@ -41,6 +42,7 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 /// <summary>
 /// Provides a common base implementation of the <see cref="IOpenIdTenantProvider"/> abstraction.
 /// </summary>
+[PublicAPI]
 public abstract class OpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     OpenIdServerOptions serverOptions,
@@ -49,7 +51,7 @@ public abstract class OpenIdTenantProvider(
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
-    ISecretKeyProviderFactory secretKeyProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
 ) : IOpenIdTenantProvider
 {
     [MemberNotNullWhen(true, nameof(TenantRouteOrNull))]
@@ -93,9 +95,9 @@ public abstract class OpenIdTenantProvider(
     protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyProviderFactory"/> used to create <see cref="ISecretKeyProvider"/> instances.
+    /// Gets the <see cref="ISecretKeyCollectionProviderFactory"/> used to create <see cref="ISecretKeyCollectionProvider"/> instances.
     /// </summary>
-    protected ISecretKeyProviderFactory SecretKeyProviderFactory { get; } = secretKeyProviderFactory;
+    protected ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
 
     /// <inheritdoc />
     public abstract string ProviderCode { get; }
@@ -333,7 +335,7 @@ public abstract class OpenIdTenantProvider(
     }
 
     /// <summary>
-    /// Used to get the tenant's <see cref="ISecretKeyProvider"/> instance.
+    /// Used to get the tenant's <see cref="ISecretKeyCollectionProvider"/> instance.
     /// This implementation uses a <see cref="PeriodicPollingCollectionDataSource{TKey,TValue}"/> to periodically refresh the
     /// collection of secrets.
     /// </summary>
@@ -344,8 +346,8 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISecretKeyProvider"/> instance.</returns>
-    protected virtual async ValueTask<AsyncSharedReferenceLease<ISecretKeyProvider>> GetTenantSecretsAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISecretKeyCollectionProvider"/> instance.</returns>
+    protected virtual async ValueTask<AsyncSharedReferenceLease<ISecretKeyCollectionProvider>> GetTenantSecretsAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
@@ -372,7 +374,7 @@ public abstract class OpenIdTenantProvider(
             refreshInterval,
             LoadSecretsAsync);
 
-        var provider = SecretKeyProviderFactory.Create(dataSource);
+        var provider = SecretKeyCollectionProviderFactory.Create(dataSource);
 
         return AsyncSharedReference.Create(provider);
     }
@@ -412,7 +414,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollection"/> instance for the current tenant.</param>
     /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
-    /// <param name="tenantSecrets">The <see cref="ISecretKeyProvider"/> instance for the current tenant.</param>
+    /// <param name="tenantSecrets">The <see cref="ISecretKeyCollectionProvider"/> instance for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OpenIdTenant"/> instance.</returns>
     protected virtual ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantAsync(
@@ -422,7 +424,7 @@ public abstract class OpenIdTenantProvider(
         IReadOnlySettingCollection tenantSettings,
         UriDescriptor tenantBaseAddress,
         string tenantIssuer,
-        AsyncSharedReferenceLease<ISecretKeyProvider> tenantSecrets,
+        AsyncSharedReferenceLease<ISecretKeyCollectionProvider> tenantSecrets,
         CancellationToken cancellationToken)
     {
         OpenIdTenant tenant = new DefaultOpenIdTenant(

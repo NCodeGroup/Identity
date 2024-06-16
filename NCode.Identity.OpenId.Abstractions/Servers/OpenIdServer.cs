@@ -53,9 +53,9 @@ public abstract class OpenIdServer
     public abstract IReadOnlySettingCollection Settings { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyProvider"/> which contains secrets only known to the server.
+    /// Gets the <see cref="ISecretKeyCollectionProvider"/> which contains secrets only known to the server.
     /// </summary>
-    public abstract ISecretKeyProvider SecretKeyProvider { get; }
+    public abstract ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

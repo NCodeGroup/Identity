@@ -21,37 +21,37 @@ using NCode.Collections.Providers;
 namespace NCode.Identity.Secrets;
 
 /// <summary>
-/// Factory abstraction for creating new <see cref="ISecretKeyProvider"/> instances.
+/// Factory abstraction for creating <see cref="ISecretKeyCollectionProvider"/> instances.
 /// </summary>
-public interface ISecretKeyProviderFactory
+public interface ISecretKeyCollectionProviderFactory
 {
     /// <summary>
-    /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance
+    /// Factory method that creates a new <see cref="ISecretKeyCollectionProvider"/> instance
     /// with the specified <see cref="SecretKey"/> data source instance.
     /// This variant will own the data source and dispose of it when the provider itself is disposed.
     /// </summary>
     /// <param name="dataSource">The <see cref="SecretKey"/> data source instance.</param>
     /// <param name="owns">Indicates whether the provider will own the data source and dispose of it
     /// when the provider itself is disposed. The default is <c>true</c>.</param>
-    /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    ISecretKeyProvider Create(ICollectionDataSource<SecretKey> dataSource, bool owns = true);
+    /// <returns>The newly created <see cref="ISecretKeyCollectionProvider"/> instance.</returns>
+    ISecretKeyCollectionProvider Create(ICollectionDataSource<SecretKey> dataSource, bool owns = true);
 
     /// <summary>
-    /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance
+    /// Factory method that creates a new <see cref="ISecretKeyCollectionProvider"/> instance
     /// with the specified <see cref="SecretKey"/> data source collection.
     /// </summary>
     /// <param name="dataSources">The collection of <see cref="SecretKey"/> data source instances.</param>
     /// <param name="owns">Indicates whether the provider will own the individual data sources and dispose of them
     /// when the class is disposed. The default is <c>false</c>.</param>
-    /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    ISecretKeyProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources, bool owns = false);
+    /// <returns>The newly created <see cref="ISecretKeyCollectionProvider"/> instance.</returns>
+    ISecretKeyCollectionProvider Create(IEnumerable<ICollectionDataSource<SecretKey>> dataSources, bool owns = false);
 
     /// <summary>
-    /// Factory method that creates a new <see cref="ISecretKeyProvider"/> instance using a static collection of
-    /// <see cref="SecretKey"/> instances. The returned <see cref="ISecretKeyProvider"/> instance will not provide
+    /// Factory method that creates a new <see cref="ISecretKeyCollectionProvider"/> instance using a static collection of
+    /// <see cref="SecretKey"/> instances. The returned <see cref="ISecretKeyCollectionProvider"/> instance will not provide
     /// change notifications.
     /// </summary>
     /// <param name="secretKeys">The collection of <see cref="SecretKey"/> instances.</param>
-    /// <returns>The newly created <see cref="ISecretKeyProvider"/> instance.</returns>
-    ISecretKeyProvider CreateStatic(IEnumerable<SecretKey> secretKeys);
+    /// <returns>The newly created <see cref="ISecretKeyCollectionProvider"/> instance.</returns>
+    ISecretKeyCollectionProvider CreateStatic(IEnumerable<SecretKey> secretKeys);
 }

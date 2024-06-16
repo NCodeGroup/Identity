@@ -15,11 +15,14 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Results;
 
 /// <summary>
 /// Provides the ability to create an <see cref="IOpenIdError"/> instance that represents an <c>OAuth</c> or <c>OpenID Connect</c> error.
 /// </summary>
+[PublicAPI]
 public interface IOpenIdErrorFactory
 {
     /// <summary>

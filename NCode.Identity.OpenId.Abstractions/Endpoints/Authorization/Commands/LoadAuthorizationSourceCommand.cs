@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
 
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 /// as input arguments and expects <see cref="IAuthorizationSource"/> as a response.
 /// </summary>
 /// <param name="OpenIdContext">The <see cref="OpenIdContext"/> input argument for the command contract.</param>
+[PublicAPI]
 public readonly record struct LoadAuthorizationSourceCommand(
     OpenIdContext OpenIdContext
 ) : ICommand<IAuthorizationSource>;

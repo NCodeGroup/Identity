@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Mediator;
 
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Endpoints;
 /// Provides the ability to create an <see cref="OpenIdContext"/> instance that encapsulates all
 /// OpenID-specific information about an individual OpenID request.
 /// </summary>
+[PublicAPI]
 public interface IOpenIdContextFactory
 {
     /// <summary>

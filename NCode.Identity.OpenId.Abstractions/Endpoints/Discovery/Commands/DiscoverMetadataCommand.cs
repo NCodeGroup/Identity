@@ -17,10 +17,12 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Discovery.Commands;
 
+[PublicAPI]
 public readonly record struct DiscoverMetadataCommand(
     OpenIdContext OpenIdContext,
     IDictionary<string, object> Metadata,

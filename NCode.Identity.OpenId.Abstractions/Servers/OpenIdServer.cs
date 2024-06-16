@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
@@ -29,6 +30,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// <summary>
 /// Provides contextual information and configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.
 /// </summary>
+[PublicAPI]
 public abstract class OpenIdServer
 {
     /// <summary>

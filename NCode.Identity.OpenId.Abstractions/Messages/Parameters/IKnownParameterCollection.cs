@@ -18,12 +18,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
 /// <summary>
 /// Provides a readonly collection of <see cref="KnownParameter"/> instances that can be accessed by name.
 /// </summary>
+[PublicAPI]
 public interface IKnownParameterCollection : IReadOnlyCollection<KnownParameter>
 {
     /// <summary>

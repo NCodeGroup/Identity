@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Mediator.Middleware;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Mediator.Middleware;
 /// Contains the resulting state when handling an error in an exception handler that can return a response.
 /// </summary>
 /// <typeparam name="TResponse">The type of the return value.</typeparam>
+[PublicAPI]
 public class CommandResponseExceptionHandlerState<TResponse>
 {
     /// <summary>

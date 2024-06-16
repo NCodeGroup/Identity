@@ -17,12 +17,14 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
 
+[PublicAPI]
 public interface IOpenIdClientFactory
 {
     ValueTask<OpenIdClient> CreatePublicClientAsync(

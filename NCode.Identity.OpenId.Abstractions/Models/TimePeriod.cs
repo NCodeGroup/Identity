@@ -16,9 +16,20 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Models;
 
+/// <summary>
+/// Represents a time period with a start time and an optional end time.
+/// </summary>
+/// <param name="StartTime">The start time of the period.</param>
+/// <param name="EndTime">The end time of the period, or <c>null</c> if unknown.</param>
+[PublicAPI]
 public readonly record struct TimePeriod(DateTimeOffset StartTime, DateTimeOffset? EndTime)
 {
+    /// <summary>
+    /// Gets duration (i.e. end time minus start time) of the time period.
+    /// </summary>
     public TimeSpan? Duration => EndTime - StartTime;
 }

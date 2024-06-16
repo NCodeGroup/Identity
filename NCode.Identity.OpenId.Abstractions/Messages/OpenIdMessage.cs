@@ -20,6 +20,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -31,6 +32,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// Provides a default implementation of <see cref="IOpenIdMessage"/> that uses strongly-typed <see cref="Parameter"/> and
 /// <see cref="KnownParameter"/> objects for <c>OAuth</c> or <c>OpenID Connect</c> parameters.
 /// </summary>
+[PublicAPI]
 public class OpenIdMessage : IOpenIdMessage
 {
     private static Exception NotInitializedException => new InvalidOperationException("Not initialized");
@@ -223,6 +225,7 @@ public class OpenIdMessage : IOpenIdMessage
 /// Provides a generic implementation of <see cref="OpenIdMessage"/>.
 /// </summary>
 /// <typeparam name="T">The type of <c>OAuth</c> or <c>OpenID Connect</c> message.</typeparam>
+[PublicAPI]
 public abstract class OpenIdMessage<T> : OpenIdMessage
     where T : OpenIdMessage<T>, new()
 {
@@ -283,7 +286,7 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
         Load(openIdServer, properties.Select(property => Parameter.Load(openIdServer, property.Key, property.Value)));
 
     /// <summary>
-    /// Clones an existing <c>OAuth</c> or <c>OpenID Connect</c> message by parsing it's parameters using their original string-values.
+    /// Clones an existing <c>OAuth</c> or <c>OpenID Connect</c> message by parsing its parameters using their original string-values.
     /// </summary>
     /// <param name="other">The <see cref="IOpenIdMessage"/> to clone.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
@@ -295,6 +298,7 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
 /// </summary>
 /// <typeparam name="T">The type of <c>OAuth</c> or <c>OpenID Connect</c> message.</typeparam>
 /// <typeparam name="TProperties">The type that contains the additional properties for JSON serialization.</typeparam>
+[PublicAPI]
 public abstract class OpenIdMessage<T, TProperties> : OpenIdMessage<T>, ISupportProperties
     where T : OpenIdMessage<T, TProperties>, new()
     where TProperties : class, new()

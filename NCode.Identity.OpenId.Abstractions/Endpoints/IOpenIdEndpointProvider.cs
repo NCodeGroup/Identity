@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Routing;
 
 namespace NCode.Identity.OpenId.Endpoints;
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Endpoints;
 /// <summary>
 /// Provides the ability for providers to configure <c>OAuth</c> or <c>OpenID Connect</c> endpoints.
 /// </summary>
+[PublicAPI]
 public interface IOpenIdEndpointProvider
 {
     /// <summary>

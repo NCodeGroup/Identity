@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Disposables;
 using NCode.PropertyBag;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <summary>
 /// Provides an abstraction for caching <see cref="OpenIdTenant"/> instances.
 /// </summary>
+[PublicAPI]
 public interface IOpenIdTenantCache
 {
     /// <summary>

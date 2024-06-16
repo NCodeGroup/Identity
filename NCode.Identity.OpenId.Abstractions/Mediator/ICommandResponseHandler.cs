@@ -15,6 +15,8 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator;
 
 /// <summary>
@@ -22,6 +24,7 @@ namespace NCode.Identity.OpenId.Mediator;
 /// </summary>
 /// <typeparam name="TCommand">The type of the input value.</typeparam>
 /// <typeparam name="TResponse">The type of the return value.</typeparam>
+[PublicAPI]
 public interface ICommandResponseHandler<in TCommand, TResponse>
     where TCommand : ICommand<TResponse>
 {

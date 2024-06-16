@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator.Middleware;
 
 /// <summary>
 /// Contains the resulting state when handling an error in an exception handler that doesn't return a response.
 /// </summary>
+[PublicAPI]
 public class CommandExceptionHandlerState
 {
     /// <summary>

@@ -15,12 +15,15 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
 /// Provides the ability for the authorization request to enable requesting individual <c>Claims</c> and specifying
 /// parameters that apply to the requested <c>Claims</c>.
 /// </summary>
+[PublicAPI]
 public interface IRequestClaims
 {
     /// <summary>

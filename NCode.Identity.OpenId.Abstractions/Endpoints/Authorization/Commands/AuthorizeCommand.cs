@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
@@ -25,6 +26,7 @@ using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
+[PublicAPI]
 public readonly record struct AuthorizeCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,

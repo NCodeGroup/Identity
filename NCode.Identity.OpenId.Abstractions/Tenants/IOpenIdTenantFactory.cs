@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Disposables;
 using NCode.PropertyBag;
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <summary>
 /// Provides the ability to create <see cref="OpenIdTenant"/> instances from the current HTTP request.
 /// </summary>
+[PublicAPI]
 public interface IOpenIdTenantFactory
 {
     /// <summary>

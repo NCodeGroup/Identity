@@ -17,12 +17,14 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides the ability to serialize and deserialize settings from JSON.
 /// </summary>
+[PublicAPI]
 public interface ISettingSerializer
 {
     /// <summary>

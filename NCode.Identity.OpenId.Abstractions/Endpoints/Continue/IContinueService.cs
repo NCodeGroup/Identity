@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Continue;
 
 /// <summary>
 /// Provides the ability for the authorization server to generate return URLs for external operations that need continuations.
 /// </summary>
+[PublicAPI]
 public interface IContinueService
 {
     /// <summary>

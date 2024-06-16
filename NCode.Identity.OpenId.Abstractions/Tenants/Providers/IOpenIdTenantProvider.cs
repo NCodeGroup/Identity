@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Disposables;
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 /// <summary>
 /// Provides the ability to get the <see cref="OpenIdTenant"/> instance from an HTTP request.
 /// </summary>
+[PublicAPI]
 public interface IOpenIdTenantProvider
 {
     /// <summary>

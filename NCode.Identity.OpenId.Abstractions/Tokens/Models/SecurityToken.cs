@@ -16,10 +16,12 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Tokens.Models;
 
+[PublicAPI]
 public readonly record struct SecurityToken(
     string TokenType,
     string TokenValue,

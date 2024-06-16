@@ -15,12 +15,15 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
 /// Represents an <c>OAuth</c> or <c>OpenID Connect</c> authorization request loaded from query or form data that isn't parsed
 /// and only contains string-values.
 /// </summary>
+[PublicAPI]
 public interface IAuthorizationSource : IBaseAuthorizationRequest
 {
     // nothing

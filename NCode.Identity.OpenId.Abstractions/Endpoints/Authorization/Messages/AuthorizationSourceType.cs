@@ -15,11 +15,14 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
 /// Specifies from where an <see cref="IBaseAuthorizationRequest"/> was loaded from.
 /// </summary>
+[PublicAPI]
 public enum AuthorizationSourceType
 {
     /// <summary>

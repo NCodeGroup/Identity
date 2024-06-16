@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Results;
@@ -31,6 +32,7 @@ namespace NCode.Identity.OpenId.Results;
 /// <see cref="IResult.ExecuteAsync"/> method of the corresponding action result type.
 /// Implementations should be registered as singleton services.
 /// </remarks>
+[PublicAPI]
 public interface IResultExecutor<in TResult>
     where TResult : IResult
 {

@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Servers;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Contains the parsed value and string values from which a parameter was parsed from.
 /// </summary>
+[PublicAPI]
 public abstract class Parameter
 {
     /// <summary>
@@ -82,6 +84,7 @@ public abstract class Parameter
 /// Contains the parsed value and string values from which a parameter was parsed from.
 /// </summary>
 /// <typeparam name="T">The type of the parameter's parsed value.</typeparam>
+[PublicAPI]
 public class Parameter<T> : Parameter
 {
     /// <summary>

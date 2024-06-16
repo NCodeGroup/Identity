@@ -16,11 +16,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Models;
 
 /// <summary>
 /// Contains the identifiers of a persisted grant.
 /// </summary>
+[PublicAPI]
 public readonly struct PersistedGrantId
 {
     /// <summary>

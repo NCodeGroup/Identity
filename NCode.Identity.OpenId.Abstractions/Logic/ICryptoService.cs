@@ -19,12 +19,14 @@
 
 using System.Numerics;
 using System.Text;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Logic;
 
 /// <summary>
 /// Provides the ability to generate random bytes, encode binary data as a string, generate random keys, and hash values.
 /// </summary>
+[PublicAPI]
 public interface ICryptoService
 {
     /// <summary>

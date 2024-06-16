@@ -18,12 +18,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides a strongly typed collection of <see cref="SettingDescriptor"/> instances that can be accessed by setting name and value type.
 /// </summary>
+[PublicAPI]
 public interface ISettingDescriptorCollection : IReadOnlyCollection<SettingDescriptor>
 {
     /// <summary>

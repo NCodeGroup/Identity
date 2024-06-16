@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Results;
 
 /// <summary>
 /// Provides the ability to associate an <see cref="IOpenIdError"/> with the current instance.
 /// </summary>
+[PublicAPI]
 public interface ISupportError
 {
     /// <summary>

@@ -17,12 +17,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides a strongly typed read-only collection of <see cref="Setting"/> instances that can be accessed by name and value type.
 /// </summary>
+[PublicAPI]
 public interface IReadOnlySettingCollection : IReadOnlyCollection<Setting>
 {
     /// <summary>

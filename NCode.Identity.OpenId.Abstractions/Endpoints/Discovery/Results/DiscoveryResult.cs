@@ -18,12 +18,14 @@
 #endregion
 
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Endpoints.Discovery.Results;
 
 /// <summary>
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server metadata discovery response.
 /// </summary>
+[PublicAPI]
 public class DiscoveryResult
 {
     /// <summary>

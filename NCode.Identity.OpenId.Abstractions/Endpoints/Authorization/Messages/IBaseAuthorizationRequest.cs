@@ -15,6 +15,7 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
@@ -22,6 +23,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 /// <summary>
 /// The base interface for all <c>OAuth</c> or <c>OpenID Connect</c> authorization request messages.
 /// </summary>
+[PublicAPI]
 public interface IBaseAuthorizationRequest : IOpenIdMessage
 {
     /// <summary>

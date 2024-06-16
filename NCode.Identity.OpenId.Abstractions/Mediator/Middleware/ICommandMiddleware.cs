@@ -17,6 +17,8 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator.Middleware;
 
 /// <summary>
@@ -25,12 +27,14 @@ namespace NCode.Identity.OpenId.Mediator.Middleware;
 /// <remarks>
 /// Declared without arguments so that <see cref="ICommandMiddleware{TCommand}"/> can be contravariant in DI.
 /// </remarks>
+[PublicAPI]
 public delegate ValueTask CommandMiddlewareDelegate();
 
 /// <summary>
 /// Defines a middleware component that can be added to a command-only pipeline.
 /// </summary>
 /// <typeparam name="TCommand">The type of the input value.</typeparam>
+[PublicAPI]
 public interface ICommandMiddleware<in TCommand>
     where TCommand : ICommand
 {

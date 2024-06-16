@@ -25,6 +25,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Contains information about a configurable setting.
 /// </summary>
+[PublicAPI]
 public abstract class SettingDescriptor
 {
     /// <summary>

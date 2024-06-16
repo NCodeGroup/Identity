@@ -15,11 +15,14 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator;
 
 /// <summary>
 /// Defines the command contract used by handlers that don't return a value.
 /// </summary>
+[PublicAPI]
 public interface ICommand
 {
     // nothing
@@ -29,6 +32,7 @@ public interface ICommand
 /// Defines the command contract used by handlers that return a value.
 /// </summary>
 /// <typeparam name="TResponse">The type of the return value.</typeparam>
+[PublicAPI]
 public interface ICommand<out TResponse>
 {
     // nothing

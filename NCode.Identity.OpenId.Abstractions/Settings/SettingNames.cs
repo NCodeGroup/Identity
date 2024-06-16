@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Contains constants for various <c>OAuth</c> and <c>OpenID Connect</c> setting names.
 /// </summary>
+[PublicAPI]
 public static class SettingNames
 {
     /// <summary>

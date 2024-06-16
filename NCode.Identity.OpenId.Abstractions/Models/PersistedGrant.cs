@@ -16,12 +16,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Models;
 
 /// <summary>
 /// Contains the payload of a persisted grant.
 /// </summary>
 /// <typeparam name="TPayload">The type of the payload for the grant.</typeparam>
+[PublicAPI]
 public readonly struct PersistedGrant<TPayload>
 {
     /// <summary>

@@ -18,6 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId.Clients;
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Clients;
 /// <summary>
 /// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that is confidential.
 /// </summary>
+[PublicAPI]
 public abstract class OpenIdConfidentialClient : OpenIdClient
 {
     /// <summary>

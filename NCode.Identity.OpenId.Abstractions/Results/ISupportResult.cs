@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Results;
@@ -23,6 +24,7 @@ namespace NCode.Identity.OpenId.Results;
 /// <summary>
 /// Provides the ability to associate an <see cref="IResult"/> with the current instance.
 /// </summary>
+[PublicAPI]
 public interface ISupportResult
 {
     /// <summary>

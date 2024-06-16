@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Messages;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// Provides the ability for an <see cref="IOpenIdMessage"/> to store additional properties that are included in JSON
 /// serialization but not persisted as <c>OAuth</c> or <c>OpenID Connect</c> parameters.
 /// </summary>
+[PublicAPI]
 public interface ISupportProperties : IOpenIdMessage
 {
     /// <summary>

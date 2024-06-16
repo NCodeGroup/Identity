@@ -16,10 +16,12 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Tokens.Models;
 
+[PublicAPI]
 public readonly record struct CreateSecurityTokenRequest
 {
     public required DateTimeOffset CreatedWhen { get; init; }

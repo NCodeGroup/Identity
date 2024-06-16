@@ -16,10 +16,12 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.OpenId.Tokens.Models;
 
+[PublicAPI]
 public readonly record struct SecurityTokenContext(
     CreateSecurityTokenRequest TokenRequest,
     JoseSigningCredentials SigningCredentials,

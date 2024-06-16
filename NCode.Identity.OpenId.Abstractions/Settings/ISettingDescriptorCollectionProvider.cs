@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Collections.Providers;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides the composition root (i.e. top-level collection) of <see cref="SettingDescriptor"/> instances by
 /// aggregating multiple data sources and providing change notifications.
 /// </summary>
+[PublicAPI]
 public interface ISettingDescriptorCollectionProvider : ICollectionProvider<SettingDescriptor, ISettingDescriptorCollection>
 {
     // nothing

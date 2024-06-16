@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 /// <summary>
 /// Contains the parameters for a successful <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
 /// </summary>
+[PublicAPI]
 public interface IAuthorizationTicket : IOpenIdMessage
 {
     /// <summary>

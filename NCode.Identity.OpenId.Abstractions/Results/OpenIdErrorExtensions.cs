@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Exceptions;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Results;
 /// <summary>
 /// Provides extension methods for the <see cref="IOpenIdError"/> abstraction.
 /// </summary>
+[PublicAPI]
 public static class OpenIdErrorExtensions
 {
     /// <summary>

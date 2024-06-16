@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Continue;
 
 /// <summary>
 /// Provides the ability to select an <see cref="IContinueProvider"/> instance given a <see cref="string"/> <c>Continue Code</c>.
 /// </summary>
+[PublicAPI]
 public interface IContinueProviderSelector
 {
     /// <summary>

@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Results;
@@ -30,6 +31,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 /// request has been validated, specifically the <c>client_id</c> and <c>redirect_uri</c> parameters
 /// from the request have been validated and it is safe to redirect the user agent back to the client.
 /// </summary>
+[PublicAPI]
 public class AuthorizationResult : IResult, ISupportError
 {
     /// <summary>

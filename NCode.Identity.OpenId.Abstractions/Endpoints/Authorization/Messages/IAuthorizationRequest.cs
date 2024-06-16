@@ -17,12 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request after combining
 /// values from the request message (query or form) and the request (JAR) object.
 /// </summary>
+[PublicAPI]
 public interface IAuthorizationRequest : IBaseAuthorizationRequest
 {
     /// <summary>

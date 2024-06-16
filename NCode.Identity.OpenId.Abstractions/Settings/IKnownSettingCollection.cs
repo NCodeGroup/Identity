@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Provides a wrapper on top of <see cref="ISettingCollection"/> that provides strongly typed access to known settings.
 /// </summary>
+[PublicAPI]
 public interface IKnownSettingCollection : ISettingCollection
 {
     /// <summary>

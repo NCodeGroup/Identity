@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
@@ -24,6 +25,7 @@ using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
+[PublicAPI]
 public readonly record struct AuthenticateCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,

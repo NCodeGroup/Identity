@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Logic.Authorization;
 /// <summary>
 /// Provides the ability for the authorization server to generate authorization codes in response to authorization requests.
 /// </summary>
+[PublicAPI]
 public interface IAuthorizationCodeService
 {
     /// <summary>

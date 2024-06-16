@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Messages.Parsers;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Defines the contract for all known parameters in an <c>OAuth</c> or <c>OpenID Connect</c> message.
 /// </summary>
+[PublicAPI]
 public abstract class KnownParameter
 {
     /// <summary>
@@ -80,6 +82,7 @@ public abstract class KnownParameter
 /// Defines the contract for all known parameters in an <c>OAuth</c> or <c>OpenID Connect</c> message.
 /// </summary>
 /// <typeparam name="T">The type of the parameter's parsed value.</typeparam>
+[PublicAPI]
 public class KnownParameter<T> : KnownParameter
 {
     /// <summary>

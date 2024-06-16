@@ -17,12 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
+[PublicAPI]
 public readonly record struct LoadAuthorizationRequestCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,

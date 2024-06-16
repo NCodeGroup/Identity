@@ -17,12 +17,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Subject;
 
 /// <summary>
 /// Contains the result after attempting to authenticate a user.
 /// </summary>
+[PublicAPI]
 public readonly struct AuthenticateSubjectResult
 {
     /// <summary>

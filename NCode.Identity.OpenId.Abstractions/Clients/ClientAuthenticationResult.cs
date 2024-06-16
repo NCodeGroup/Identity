@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Clients;
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Clients;
 /// <summary>
 /// Contains the result from authenticating an OpenID client.
 /// </summary>
+[PublicAPI]
 public readonly struct ClientAuthenticationResult
 {
     /// <summary>

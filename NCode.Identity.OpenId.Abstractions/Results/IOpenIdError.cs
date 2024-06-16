@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Results;
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Results;
 /// <summary>
 /// Contains the details for an <c>OAuth</c> or <c>OpenID Connect</c> error.
 /// </summary>
+[PublicAPI]
 public interface IOpenIdError : IOpenIdMessage, ISupportStatusCode
 {
     /// <summary>

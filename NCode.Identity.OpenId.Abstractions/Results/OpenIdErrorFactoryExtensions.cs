@@ -17,12 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Results;
 
 /// <summary>
 /// Provides extension methods for <see cref="IOpenIdErrorFactory"/> that can be used to create specific
 /// <c>OAuth</c> or <c>OpenID Connect</c> errors.
 /// </summary>
+[PublicAPI]
 public static class OpenIdErrorFactoryExtensions
 {
     /// <summary>

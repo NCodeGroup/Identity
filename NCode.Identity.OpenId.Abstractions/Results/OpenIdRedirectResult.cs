@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Results;
 /// Provides an implementation of the <see cref="IResult"/> abstraction that redirects an HTTP client to a specified
 /// URL and is <c>AJAX</c> aware.
 /// </summary>
+[PublicAPI]
 public class OpenIdRedirectResult : IResult
 {
     /// <summary>

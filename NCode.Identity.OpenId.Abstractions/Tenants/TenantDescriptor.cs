@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Contains identifying information about a tenant.
 /// </summary>
+[PublicAPI]
 public readonly struct TenantDescriptor
 {
     /// <summary>

@@ -15,12 +15,15 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization request from the request
 /// message only.
 /// </summary>
+[PublicAPI]
 public interface IAuthorizationRequestMessage : IBaseAuthorizationRequestValues
 {
     /// <summary>

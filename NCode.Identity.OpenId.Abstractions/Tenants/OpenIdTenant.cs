@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <summary>
 /// Provides the configuration for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
 /// </summary>
+[PublicAPI]
 public abstract class OpenIdTenant : IAsyncDisposable
 {
     /// <summary>

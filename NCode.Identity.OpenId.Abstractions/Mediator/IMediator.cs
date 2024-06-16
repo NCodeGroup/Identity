@@ -18,12 +18,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Mediator;
 
 /// <summary>
 /// Provides the ability to dispatch a command and optionally receive a response.
 /// </summary>
+[PublicAPI]
 public interface IMediator
 {
     /// <summary>

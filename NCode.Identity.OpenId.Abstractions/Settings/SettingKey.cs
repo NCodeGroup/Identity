@@ -17,12 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Represents a strongly typed key in a <see cref="ISettingCollection"/>.
 /// </summary>
 /// <typeparam name="TValue">The type of the setting's value.</typeparam>
+[PublicAPI]
 public readonly record struct SettingKey<TValue>(string SettingName)
     where TValue : notnull
 {

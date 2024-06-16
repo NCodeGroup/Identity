@@ -17,6 +17,8 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Settings;
 
 // TODO
@@ -26,6 +28,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Contains constants for known <see cref="SettingKey{TValue}"/> instances.
 /// </summary>
+[PublicAPI]
 public static class SettingKeys
 {
     /// <summary>

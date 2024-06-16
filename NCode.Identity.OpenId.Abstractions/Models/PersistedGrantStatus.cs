@@ -16,11 +16,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Models;
 
 /// <summary>
 /// Specifies the status of a persisted grant.
 /// </summary>
+[PublicAPI]
 public enum PersistedGrantStatus
 {
     /// <summary>

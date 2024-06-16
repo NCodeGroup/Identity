@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
@@ -28,6 +29,7 @@ namespace NCode.Identity.OpenId.Endpoints;
 /// <summary>
 /// Encapsulates all OpenID-specific information about an individual OpenID request.
 /// </summary>
+[PublicAPI]
 public abstract class OpenIdContext : IAsyncDisposable
 {
     /// <summary>

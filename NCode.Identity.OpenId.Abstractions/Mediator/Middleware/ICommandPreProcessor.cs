@@ -15,12 +15,15 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator.Middleware;
 
 /// <summary>
 /// Defines a method for pre-processing a command-only or command-response pipeline.
 /// </summary>
 /// <typeparam name="TCommand">The type of the input value.</typeparam>
+[PublicAPI]
 public interface ICommandPreProcessor<in TCommand>
     where TCommand : notnull
 {

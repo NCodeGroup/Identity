@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Endpoints.Continue;
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Endpoints.Continue;
 /// <summary>
 /// Provides the ability to continue an <c>OAuth</c> or <c>OpenID Connect</c> operation from callbacks.
 /// </summary>
+[PublicAPI]
 public interface IContinueProvider
 {
     /// <summary>

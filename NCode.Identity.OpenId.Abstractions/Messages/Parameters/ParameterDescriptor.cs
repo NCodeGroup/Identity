@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Contains information about how an <c>OAuth</c> or <c>OpenID Connect</c> parameter should be parsed and loaded.
 /// </summary>
+[PublicAPI]
 public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
 {
     /// <summary>

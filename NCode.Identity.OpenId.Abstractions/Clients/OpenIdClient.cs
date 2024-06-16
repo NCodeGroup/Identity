@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.PropertyBag;
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Clients;
 /// <summary>
 /// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that may be public or confidential.
 /// </summary>
+[PublicAPI]
 public abstract class OpenIdClient
 {
     /// <summary>

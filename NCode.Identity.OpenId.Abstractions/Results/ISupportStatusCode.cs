@@ -16,8 +16,11 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Results;
 
+[PublicAPI]
 public interface ISupportStatusCode
 {
     /// <summary>

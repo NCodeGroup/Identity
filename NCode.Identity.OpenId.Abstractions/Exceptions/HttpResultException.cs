@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Exceptions;
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Exceptions;
 /// <summary>
 /// Represents an error that occured while executing a <c>HTTP</c> endpoint.
 /// </summary>
+[PublicAPI]
 public class HttpResultException : Exception
 {
     /// <summary>

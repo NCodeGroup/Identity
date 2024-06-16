@@ -17,12 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator;
 
 /// <summary>
 /// Defines a handler that accepts an input value and doesn't return anything.
 /// </summary>
 /// <typeparam name="TCommand">The type of the input value.</typeparam>
+[PublicAPI]
 public interface ICommandHandler<in TCommand>
     where TCommand : ICommand
 {

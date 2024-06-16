@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Results;
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Results;
 /// <summary>
 /// Provides an implementation of <see cref="IResult"/> that when executed, will render an <see cref="IOpenIdError"/>.
 /// </summary>
+[PublicAPI]
 public class OpenIdErrorResult : IResult, ISupportResult, ISupportError
 {
     IResult ISupportResult.Result => this;

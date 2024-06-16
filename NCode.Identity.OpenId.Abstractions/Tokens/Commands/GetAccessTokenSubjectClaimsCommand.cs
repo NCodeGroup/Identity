@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Claims;
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Mediator;
@@ -24,6 +25,7 @@ using NCode.Identity.OpenId.Tokens.Models;
 
 namespace NCode.Identity.OpenId.Tokens.Commands;
 
+[PublicAPI]
 public readonly record struct GetAccessTokenSubjectClaimsCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,

@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 /// Provides the ability to select an <see cref="IOpenIdTenantProvider"/> instance that the authorization server
 /// will use to create <see cref="OpenIdTenant"/> instances.
 /// </summary>
+[PublicAPI]
 public interface IOpenIdTenantProviderSelector
 {
     /// <summary>

@@ -15,11 +15,14 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 /// <summary>
 /// Used to provide additional information about the Claim being requested.
 /// </summary>
+[PublicAPI]
 public interface IRequestClaim
 {
     /// <summary>

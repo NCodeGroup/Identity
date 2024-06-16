@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Logic;
@@ -24,6 +25,7 @@ namespace NCode.Identity.OpenId.Logic;
 /// <summary>
 /// Provides an abstraction for persisting any type of grant and their payloads to storage.
 /// </summary>
+[PublicAPI]
 public interface IPersistedGrantService
 {
     /// <summary>

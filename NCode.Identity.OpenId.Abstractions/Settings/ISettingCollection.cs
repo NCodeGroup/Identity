@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides a strongly typed collection of <see cref="Setting"/> instances that can be accessed by name and value type.
 /// </summary>
+[PublicAPI]
 public interface ISettingCollection : IReadOnlySettingCollection
 {
     /// <summary>

@@ -16,10 +16,12 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Endpoints;
 
 namespace NCode.Identity.OpenId.Clients;
 
+[PublicAPI]
 public interface IClientAuthenticationHandler
 {
     string AuthenticationMethod { get; }

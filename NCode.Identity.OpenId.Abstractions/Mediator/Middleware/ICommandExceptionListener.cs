@@ -17,6 +17,8 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator.Middleware;
 
 /// <summary>
@@ -24,6 +26,7 @@ namespace NCode.Identity.OpenId.Mediator.Middleware;
 /// </summary>
 /// <typeparam name="TCommand">The type of the original input value.</typeparam>
 /// <typeparam name="TException">The type of the exception to listen for.</typeparam>
+[PublicAPI]
 public interface ICommandExceptionListener<in TCommand, in TException>
     where TCommand : notnull
     where TException : Exception

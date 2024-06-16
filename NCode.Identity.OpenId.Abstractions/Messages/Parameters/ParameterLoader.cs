@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Servers;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Provides the ability load a <see cref="Parameter"/> given its values.
 /// </summary>
+[PublicAPI]
 public class ParameterLoader
 {
     /// <summary>

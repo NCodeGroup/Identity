@@ -17,6 +17,8 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator.Middleware;
 
 /// <summary>
@@ -26,6 +28,7 @@ namespace NCode.Identity.OpenId.Mediator.Middleware;
 /// <remarks>
 /// Declared without arguments so that <see cref="ICommandResponseMiddleware{TCommand,TResponse}"/> can be contravariant in DI.
 /// </remarks>
+[PublicAPI]
 public delegate ValueTask<TResponse> CommandResponseMiddlewareDelegate<TResponse>();
 
 /// <summary>
@@ -33,6 +36,7 @@ public delegate ValueTask<TResponse> CommandResponseMiddlewareDelegate<TResponse
 /// </summary>
 /// <typeparam name="TCommand">The type of the input value.</typeparam>
 /// <typeparam name="TResponse">The type of the return value.</typeparam>
+[PublicAPI]
 public interface ICommandResponseMiddleware<in TCommand, TResponse>
     where TCommand : ICommand<TResponse>
 {

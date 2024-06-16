@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Servers;
 
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// <summary>
 /// Provides the ability to parse and load JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
 /// </summary>
+[PublicAPI]
 public interface IJsonParser
 {
     /// <summary>

@@ -17,6 +17,8 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Mediator.Middleware;
 
 /// <summary>
@@ -24,6 +26,7 @@ namespace NCode.Identity.OpenId.Mediator.Middleware;
 /// </summary>
 /// <typeparam name="TCommand">The type of the input value.</typeparam>
 /// <typeparam name="TResponse">The type of the return value.</typeparam>
+[PublicAPI]
 public interface ICommandResponsePostProcessor<in TCommand, in TResponse>
     where TCommand : ICommand<TResponse>
 {

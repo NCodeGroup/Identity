@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Logic;
 
 /// <summary>
 /// Provides extension methods for the <see cref="ICryptoService"/> abstraction.
 /// </summary>
+[PublicAPI]
 public static class CryptoServiceExtensions
 {
     private const int DefaultKeyByteLength = 32;

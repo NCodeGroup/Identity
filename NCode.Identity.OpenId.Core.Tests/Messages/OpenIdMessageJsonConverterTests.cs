@@ -145,7 +145,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var knownParameter = new KnownParameter<string>(parameterName, parser)
         {
-            Optional = optional,
+            AllowMissingStringValues = optional,
             AllowMultipleStringValues = allowMultipleValues
         };
 
@@ -225,7 +225,7 @@ public class OpenIdMessageJsonConverterTests : IDisposable
 
         var knownParameter = new KnownParameter<string>(parameterName, parser)
         {
-            Optional = optional,
+            AllowMissingStringValues = optional,
             AllowMultipleStringValues = allowMultipleValues
         };
 

@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
@@ -46,11 +47,26 @@ public static class OpenIdCoreRegistration
         serviceCollection.TryAddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ICollectionDataSource<KnownParameter>, DefaultKnownParameterDataSource>());
+
+        serviceCollection.TryAddSingleton<
+            IKnownParameterCollectionProvider,
+            DefaultKnownParameterCollectionProvider>();
+
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             ICollectionDataSource<SettingDescriptor>, DefaultSettingDescriptorDataSource>());
 
-        serviceCollection.TryAddSingleton<ISettingDescriptorCollectionProvider, DefaultSettingDescriptorCollectionProvider>();
-        serviceCollection.TryAddSingleton<ISettingDescriptorJsonProvider, DefaultSettingDescriptorJsonProvider>();
-        serviceCollection.TryAddSingleton<ISettingSerializer, DefaultSettingSerializer>();
+        serviceCollection.TryAddSingleton<
+            ISettingDescriptorCollectionProvider,
+            DefaultSettingDescriptorCollectionProvider>();
+
+        serviceCollection.TryAddSingleton<
+            ISettingDescriptorJsonProvider,
+            DefaultSettingDescriptorJsonProvider>();
+
+        serviceCollection.TryAddSingleton<
+            ISettingSerializer,
+            DefaultSettingSerializer>();
 
         serviceCollection.AddSingleton<DefaultOpenIdServer>();
         serviceCollection.TryAddSingleton<OpenIdServer>(serviceProvider =>

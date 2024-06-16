@@ -52,19 +52,28 @@ public class UriParser : ParameterParser<Uri?>
 
         switch (stringValues.Count)
         {
-            case 0 when descriptor.Optional:
+            case 0 when descriptor.AllowMissingStringValues:
                 return null;
 
             case 0:
-                throw openIdServer.ErrorFactory.MissingParameter(descriptor.ParameterName).AsException();
+                throw openIdServer
+                    .ErrorFactory
+                    .MissingParameter(descriptor.ParameterName)
+                    .AsException();
 
             case > 1:
-                throw openIdServer.ErrorFactory.TooManyParameterValues(descriptor.ParameterName).AsException();
+                throw openIdServer
+                    .ErrorFactory
+                    .TooManyParameterValues(descriptor.ParameterName)
+                    .AsException();
         }
 
         if (Uri.TryCreate(stringValues[0], UriKind.Absolute, out var uri))
             return uri;
 
-        throw openIdServer.ErrorFactory.InvalidParameterValue(descriptor.ParameterName).AsException();
+        throw openIdServer
+            .ErrorFactory
+            .InvalidParameterValue(descriptor.ParameterName)
+            .AsException();
     }
 }

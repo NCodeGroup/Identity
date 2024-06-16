@@ -22,47 +22,27 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
-internal class KnownParameterCollection : IKnownParameterCollection
+/// <summary>
+/// Provides a default implementation of the <see cref="IKnownParameterCollection"/> abstraction.
+/// </summary>
+public class KnownParameterCollection(
+    IEnumerable<KnownParameter> knownParameters
+) : IKnownParameterCollection
 {
-    public static KnownParameterCollection Default { get; } = new();
-
-    // TODO: allow for additional/custom known parameters to be added/registered
-    private static readonly Dictionary<string, KnownParameter> StaticKnownParameters = new(StringComparer.OrdinalIgnoreCase)
-    {
-        [KnownParameters.AcrValues.Name] = KnownParameters.AcrValues,
-        [KnownParameters.Claims.Name] = KnownParameters.Claims,
-        [KnownParameters.ClaimsLocales.Name] = KnownParameters.ClaimsLocales,
-        [KnownParameters.ClientId.Name] = KnownParameters.ClientId,
-        [KnownParameters.CodeChallenge.Name] = KnownParameters.CodeChallenge,
-        [KnownParameters.CodeChallengeMethod.Name] = KnownParameters.CodeChallengeMethod,
-        [KnownParameters.CodeVerifier.Name] = KnownParameters.CodeVerifier,
-        [KnownParameters.DisplayType.Name] = KnownParameters.DisplayType,
-        [KnownParameters.IdTokenHint.Name] = KnownParameters.IdTokenHint,
-        [KnownParameters.LoginHint.Name] = KnownParameters.LoginHint,
-        [KnownParameters.MaxAge.Name] = KnownParameters.MaxAge,
-        [KnownParameters.Nonce.Name] = KnownParameters.Nonce,
-        [KnownParameters.PromptType.Name] = KnownParameters.PromptType,
-        [KnownParameters.RedirectUri.Name] = KnownParameters.RedirectUri,
-        [KnownParameters.RequestJwt.Name] = KnownParameters.RequestJwt,
-        [KnownParameters.RequestUri.Name] = KnownParameters.RequestUri,
-        [KnownParameters.ResponseMode.Name] = KnownParameters.ResponseMode,
-        [KnownParameters.ResponseTypes.Name] = KnownParameters.ResponseTypes,
-        [KnownParameters.Scopes.Name] = KnownParameters.Scopes,
-        [KnownParameters.State.Name] = KnownParameters.State,
-        [KnownParameters.UiLocales.Name] = KnownParameters.UiLocales,
-    };
+    private Dictionary<string, KnownParameter> KnownParameters { get; } =
+        knownParameters.ToDictionary(x => x.Name, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public int Count =>
-        StaticKnownParameters.Count;
+        KnownParameters.Count;
 
     /// <inheritdoc />
     public bool TryGet(string parameterName, [MaybeNullWhen(false)] out KnownParameter knownParameter) =>
-        StaticKnownParameters.TryGetValue(parameterName, out knownParameter);
+        KnownParameters.TryGetValue(parameterName, out knownParameter);
 
     /// <inheritdoc />
     public IEnumerator<KnownParameter> GetEnumerator() =>
-        StaticKnownParameters.Values.GetEnumerator();
+        KnownParameters.Values.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() =>
         GetEnumerator();

@@ -37,14 +37,14 @@ namespace NCode.Identity.OpenId.Tokens;
 /// </summary>
 public class DefaultTokenService(
     ICryptoService cryptoService,
-    IAlgorithmProvider algorithmProvider,
+    IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
     IJsonWebTokenService jsonWebTokenService,
     IPersistedGrantService persistedGrantService
 ) : ITokenService
 {
     private ICryptoService CryptoService { get; } = cryptoService;
-    private IAlgorithmProvider AlgorithmProvider { get; } = algorithmProvider;
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } = algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
@@ -62,12 +62,12 @@ public class DefaultTokenService(
         var secretKeys = openIdTenant.SecretKeyProvider.Collection;
 
         var signingCredentials = GetSigningCredentials(
-            AlgorithmProvider.Collection,
+            AlgorithmCollectionProvider.Collection,
             settings.AccessTokenSigningAlgValuesSupported,
             secretKeys);
 
         var encryptionCredentials = GetEncryptionCredentials(
-            AlgorithmProvider.Collection,
+            AlgorithmCollectionProvider.Collection,
             settings.AccessTokenEncryptionRequired,
             settings.AccessTokenEncryptionAlgValuesSupported,
             settings.AccessTokenEncryptionEncValuesSupported,
@@ -150,12 +150,12 @@ public class DefaultTokenService(
         var secretKeys = openIdTenant.SecretKeyProvider.Collection;
 
         var signingCredentials = GetSigningCredentials(
-            AlgorithmProvider.Collection,
+            AlgorithmCollectionProvider.Collection,
             settings.IdTokenSigningAlgValuesSupported,
             secretKeys);
 
         var encryptionCredentials = GetEncryptionCredentials(
-            AlgorithmProvider.Collection,
+            AlgorithmCollectionProvider.Collection,
             settings.IdTokenEncryptionRequired,
             settings.IdTokenEncryptionAlgValuesSupported,
             settings.IdTokenEncryptionEncValuesSupported,

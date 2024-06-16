@@ -69,19 +69,19 @@ public partial class JoseSerializer : IJoseSerializer
 
     private JoseSerializerOptions JoseSerializerOptions { get; }
 
-    private IAlgorithmProvider AlgorithmProvider { get; }
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; }
 
-    private IAlgorithmCollection AlgorithmCollection => AlgorithmProvider.Collection;
+    private IAlgorithmCollection AlgorithmCollection => AlgorithmCollectionProvider.Collection;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
     /// </summary>
     /// <param name="optionsAccessor">An accessor that provides <see cref="JoseSerializerOptions"/>.</param>
-    /// <param name="algorithmProvider">An <see cref="IAlgorithmProvider"/> that provides a collection of <see cref="Algorithm"/> instances.</param>
-    public JoseSerializer(IOptions<JoseSerializerOptions> optionsAccessor, IAlgorithmProvider algorithmProvider)
+    /// <param name="algorithmCollectionProvider">An <see cref="IAlgorithmCollectionProvider"/> that provides a collection of <see cref="Algorithm"/> instances.</param>
+    public JoseSerializer(IOptions<JoseSerializerOptions> optionsAccessor, IAlgorithmCollectionProvider algorithmCollectionProvider)
     {
         JoseSerializerOptions = optionsAccessor.Value;
-        AlgorithmProvider = algorithmProvider;
+        AlgorithmCollectionProvider = algorithmCollectionProvider;
     }
 
     private TAlgorithm AssertEnabled<TAlgorithm>(TAlgorithm algorithm)

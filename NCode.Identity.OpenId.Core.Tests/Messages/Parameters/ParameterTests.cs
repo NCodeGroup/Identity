@@ -44,7 +44,7 @@ public class ParameterTests : IDisposable
 
         var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = false
         };
 
@@ -72,7 +72,7 @@ public class ParameterTests : IDisposable
 
         var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = false
         };
 

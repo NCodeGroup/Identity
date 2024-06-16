@@ -29,7 +29,6 @@ using NCode.Identity.DataProtection;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 
 namespace NCode.Jose.Tests;
@@ -40,7 +39,7 @@ public class JoseSerializerTests : BaseTests
     private JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web);
     private ServiceProvider ServiceProvider { get; }
     private JoseSerializerOptions JoseSerializerOptions { get; } = new();
-    private IAlgorithmProvider AlgorithmProvider { get; }
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; }
     private Mock<JoseSerializer> MockJoseSerializer { get; }
     private JoseSerializer JoseSerializer { get; }
 
@@ -50,8 +49,8 @@ public class JoseSerializerTests : BaseTests
         ConfigureServices(services);
         ServiceProvider = services.BuildServiceProvider();
 
-        AlgorithmProvider = ServiceProvider.GetRequiredService<IAlgorithmProvider>();
-        MockJoseSerializer = CreatePartialMock<JoseSerializer>(Options.Create(JoseSerializerOptions), AlgorithmProvider);
+        AlgorithmCollectionProvider = ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>();
+        MockJoseSerializer = CreatePartialMock<JoseSerializer>(Options.Create(JoseSerializerOptions), AlgorithmCollectionProvider);
         JoseSerializer = MockJoseSerializer.Object;
     }
 
@@ -236,18 +235,18 @@ public class JoseSerializerTests : BaseTests
             ["customHeader"] = "customValue"
         };
 
-        if (!AlgorithmProvider.Collection.TryGetKeyManagementAlgorithm(
+        if (!AlgorithmCollectionProvider.Collection.TryGetKeyManagementAlgorithm(
                 keyManagementAlgorithmCode,
                 out var keyManagementAlgorithm))
             throw new InvalidOperationException();
 
-        if (!AlgorithmProvider.Collection.TryGetAuthenticatedEncryptionAlgorithm(
+        if (!AlgorithmCollectionProvider.Collection.TryGetAuthenticatedEncryptionAlgorithm(
                 encryptionAlgorithmCode,
                 out var encryptionAlgorithm))
             throw new InvalidOperationException();
 
         if (string.IsNullOrEmpty(compressionAlgorithmCode) ||
-            !AlgorithmProvider.Collection.TryGetCompressionAlgorithm(
+            !AlgorithmCollectionProvider.Collection.TryGetCompressionAlgorithm(
                 compressionAlgorithmCode,
                 out var compressionAlgorithm))
             compressionAlgorithm = null;
@@ -459,7 +458,7 @@ public class JoseSerializerTests : BaseTests
         var (controlKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
         var signatureAlgorithmCode = controlSettings.JwsHeaderValue(jwsAlgorithm);
 
-        if (!AlgorithmProvider.Collection.TryGetSignatureAlgorithm(
+        if (!AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
                 signatureAlgorithmCode,
                 out var signatureAlgorithm))
             throw new InvalidOperationException();

@@ -37,8 +37,8 @@ public class ParameterDescriptorTests : IDisposable
     public void Constructor_GivenKnownParameter_ThenValid()
     {
         const string parameterName = "parameterName";
-        const bool optional = false;
-        const bool allowMultipleValues = false;
+        const bool allowMissingStringValues = false;
+        const bool allowMultipleStringValues = false;
 
         var mockParser = MockRepository.Create<ParameterParser<string>>();
 
@@ -46,16 +46,16 @@ public class ParameterDescriptorTests : IDisposable
             parameterName,
             mockParser.Object)
         {
-            Optional = optional,
-            AllowMultipleStringValues = allowMultipleValues
+            AllowMissingStringValues = allowMissingStringValues,
+            AllowMultipleStringValues = allowMultipleStringValues
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Equal(parameterName, descriptor.ParameterName);
         Assert.Same(knownParameter, descriptor.KnownParameter);
-        Assert.Equal(optional, descriptor.Optional);
-        Assert.Equal(allowMultipleValues, descriptor.AllowMultipleStringValues);
+        Assert.Equal(allowMissingStringValues, descriptor.AllowMissingStringValues);
+        Assert.Equal(allowMultipleStringValues, descriptor.AllowMultipleStringValues);
         Assert.Same(mockParser.Object, descriptor.Loader);
     }
 
@@ -63,15 +63,15 @@ public class ParameterDescriptorTests : IDisposable
     public void Constructor_GivenUnknownParameter_ThenValid()
     {
         const string parameterName = "parameterName";
-        const bool optional = true;
-        const bool allowMultipleValues = true;
+        const bool allowMissingStringValues = true;
+        const bool allowMultipleStringValues = true;
 
         var descriptor = new ParameterDescriptor(parameterName);
 
         Assert.Equal(parameterName, descriptor.ParameterName);
         Assert.Null(descriptor.KnownParameter);
-        Assert.Equal(optional, descriptor.Optional);
-        Assert.Equal(allowMultipleValues, descriptor.AllowMultipleStringValues);
+        Assert.Equal(allowMissingStringValues, descriptor.AllowMissingStringValues);
+        Assert.Equal(allowMultipleStringValues, descriptor.AllowMultipleStringValues);
         Assert.Same(ParameterLoader.Default, descriptor.Loader);
     }
 
@@ -79,8 +79,8 @@ public class ParameterDescriptorTests : IDisposable
     public void Equals_GivenIdenticalObject_WhenKnownParameter_ThenEqual()
     {
         const string parameterName = "parameterName";
-        const bool optional = false;
-        const bool allowMultipleValues = false;
+        const bool allowMissingStringValues = false;
+        const bool allowMultipleStringValues = false;
 
         var mockParser = MockRepository.Create<ParameterParser<string>>();
 
@@ -88,8 +88,8 @@ public class ParameterDescriptorTests : IDisposable
             parameterName,
             mockParser.Object)
         {
-            Optional = optional,
-            AllowMultipleStringValues = allowMultipleValues
+            AllowMissingStringValues = allowMissingStringValues,
+            AllowMultipleStringValues = allowMultipleStringValues
         };
 
         var descriptor1 = new ParameterDescriptor(knownParameter);
@@ -113,8 +113,8 @@ public class ParameterDescriptorTests : IDisposable
     public void Equals_GivenIdenticalStruct_WhenKnownParameter_ThenEqual()
     {
         const string parameterName = "parameterName";
-        const bool optional = false;
-        const bool allowMultipleValues = false;
+        const bool allowMissingStringValues = false;
+        const bool allowMultipleStringValues = false;
 
         var mockParser = MockRepository.Create<ParameterParser<string>>();
 
@@ -122,8 +122,8 @@ public class ParameterDescriptorTests : IDisposable
             parameterName,
             mockParser.Object)
         {
-            Optional = optional,
-            AllowMultipleStringValues = allowMultipleValues
+            AllowMissingStringValues = allowMissingStringValues,
+            AllowMultipleStringValues = allowMultipleStringValues
         };
 
         var descriptor1 = new ParameterDescriptor(knownParameter);
@@ -147,8 +147,8 @@ public class ParameterDescriptorTests : IDisposable
     public void GetHashCode_WhenKnownParameter_ThenValid()
     {
         const string parameterName = "parameterName";
-        const bool optional = false;
-        const bool allowMultipleValues = false;
+        const bool allowMissingStringValues = false;
+        const bool allowMultipleStringValues = false;
 
         var mockParser = MockRepository.Create<ParameterParser<string>>();
 
@@ -156,8 +156,8 @@ public class ParameterDescriptorTests : IDisposable
             parameterName,
             mockParser.Object)
         {
-            Optional = optional,
-            AllowMultipleStringValues = allowMultipleValues
+            AllowMissingStringValues = allowMissingStringValues,
+            AllowMultipleStringValues = allowMultipleStringValues
         };
 
         var descriptor1 = new ParameterDescriptor(knownParameter);

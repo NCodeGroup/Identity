@@ -53,10 +53,10 @@ public abstract class KnownParameter
     public abstract Type ValueType { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the parameter is optional or required when parsing.
+    /// Gets a value indicating whether the parameter allows missing string values when parsing.
     /// The default value is <c>false</c>.
     /// </summary>
-    public bool Optional { get; init; }
+    public required bool AllowMissingStringValues { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the parameter should sort string values when serializing.
@@ -69,13 +69,6 @@ public abstract class KnownParameter
     /// The default value is <c>false</c>.
     /// </summary>
     public bool AllowMultipleStringValues { get; init; }
-
-    // TODO: Once we remove all enums, will this still be needed?
-    /// <summary>
-    /// Gets a value indicating whether the parameter allows unrecognized values when parsing.
-    /// The default value is <c>false</c>.
-    /// </summary>
-    public bool IgnoreUnrecognizedValues { get; init; }
 
     /// <summary>
     /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.

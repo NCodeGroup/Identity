@@ -23,8 +23,6 @@ using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
-// TODO: revisit the `Optional` argument. It really should be `AllowMissingValues` or something like that.
-
 /// <summary>
 /// Contains constants for various <see cref="KnownParameters"/> used by <c>OAuth</c> and <c>OpenID Connect</c> messages.
 /// </summary>
@@ -36,7 +34,7 @@ public static class KnownParameters
     public static readonly KnownParameter<IReadOnlyCollection<string>?> AcrValues =
         new(OpenIdConstants.Parameters.AcrValues, ParameterParsers.StringSet)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -45,7 +43,7 @@ public static class KnownParameters
     public static readonly KnownParameter<IRequestClaims?> Claims =
         new(OpenIdConstants.Parameters.Claims, ParameterParsers.RequestClaims)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -54,7 +52,7 @@ public static class KnownParameters
     public static readonly KnownParameter<IReadOnlyCollection<string>?> ClaimsLocales =
         new(OpenIdConstants.Parameters.ClaimsLocales, ParameterParsers.StringSet)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -63,7 +61,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> ClientId =
         new(OpenIdConstants.Parameters.ClientId, ParameterParsers.String)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
         };
 
     /// <summary>
@@ -72,7 +70,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> ClientSecret =
         new(OpenIdConstants.Parameters.ClientSecret, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -81,7 +79,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> AuthorizationCode =
         new(OpenIdConstants.Parameters.AuthorizationCode, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -90,7 +88,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> CodeChallenge =
         new(OpenIdConstants.Parameters.CodeChallenge, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -99,7 +97,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> CodeChallengeMethod =
         new(OpenIdConstants.Parameters.CodeChallengeMethod, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -108,7 +106,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> CodeVerifier =
         new(OpenIdConstants.Parameters.CodeVerifier, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -117,7 +115,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> DisplayType =
         new(OpenIdConstants.Parameters.Display, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -126,7 +124,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> GrantType =
         new(OpenIdConstants.Parameters.GrantType, ParameterParsers.String)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
         };
 
     /// <summary>
@@ -135,7 +133,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> IdToken =
         new(OpenIdConstants.Parameters.IdToken, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -144,7 +142,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> IdTokenHint =
         new(OpenIdConstants.Parameters.IdTokenHint, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -153,7 +151,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> AccessToken =
         new(OpenIdConstants.Parameters.AccessToken, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -162,7 +160,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> TokenType =
         new(OpenIdConstants.Parameters.TokenType, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -171,7 +169,7 @@ public static class KnownParameters
     public static readonly KnownParameter<TimeSpan?> ExpiresIn =
         new(OpenIdConstants.Parameters.ExpiresIn, ParameterParsers.TimeSpan)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -180,7 +178,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> LoginHint =
         new(OpenIdConstants.Parameters.LoginHint, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -189,7 +187,7 @@ public static class KnownParameters
     public static readonly KnownParameter<TimeSpan?> MaxAge =
         new(OpenIdConstants.Parameters.MaxAge, ParameterParsers.TimeSpan)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -198,7 +196,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> Nonce =
         new(OpenIdConstants.Parameters.Nonce, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -207,7 +205,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> Password =
         new(OpenIdConstants.Parameters.Password, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -216,7 +214,7 @@ public static class KnownParameters
     public static readonly KnownParameter<IReadOnlyCollection<string>?> PromptType =
         new(OpenIdConstants.Parameters.Prompt, ParameterParsers.StringSet)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -225,7 +223,7 @@ public static class KnownParameters
     public static readonly KnownParameter<Uri?> RedirectUri =
         new(OpenIdConstants.Parameters.RedirectUri, ParameterParsers.Uri)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
         };
 
     /// <summary>
@@ -234,7 +232,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> RefreshToken =
         new(OpenIdConstants.Parameters.RefreshToken, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -243,7 +241,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> RequestJwt =
         new(OpenIdConstants.Parameters.Request, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -252,7 +250,7 @@ public static class KnownParameters
     public static readonly KnownParameter<Uri?> RequestUri =
         new(OpenIdConstants.Parameters.RequestUri, ParameterParsers.Uri)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -261,7 +259,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> ResponseMode =
         new(OpenIdConstants.Parameters.ResponseMode, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -270,7 +268,7 @@ public static class KnownParameters
     public static readonly KnownParameter<IReadOnlyCollection<string>?> ResponseTypes =
         new(OpenIdConstants.Parameters.ResponseType, ParameterParsers.StringSet)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             SortStringValues = true,
         };
 
@@ -280,7 +278,7 @@ public static class KnownParameters
     public static readonly KnownParameter<IReadOnlyCollection<string>?> Scopes =
         new(OpenIdConstants.Parameters.Scope, ParameterParsers.StringSet)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -289,7 +287,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> State =
         new(OpenIdConstants.Parameters.State, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -298,7 +296,7 @@ public static class KnownParameters
     public static readonly KnownParameter<IReadOnlyCollection<string>?> UiLocales =
         new(OpenIdConstants.Parameters.UiLocales, ParameterParsers.StringSet)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -307,7 +305,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> Username =
         new(OpenIdConstants.Parameters.Username, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -316,7 +314,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> Issuer =
         new(OpenIdConstants.Parameters.IssuerShort, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -325,7 +323,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> ErrorCode =
         new(OpenIdConstants.Parameters.ErrorCode, ParameterParsers.String)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
         };
 
     /// <summary>
@@ -334,7 +332,7 @@ public static class KnownParameters
     public static readonly KnownParameter<string?> ErrorDescription =
         new(OpenIdConstants.Parameters.ErrorDescription, ParameterParsers.String)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 
     /// <summary>
@@ -343,6 +341,6 @@ public static class KnownParameters
     public static readonly KnownParameter<Uri?> ErrorUri =
         new(OpenIdConstants.Parameters.ErrorUri, ParameterParsers.Uri)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
         };
 }

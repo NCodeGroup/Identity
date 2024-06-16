@@ -127,7 +127,7 @@ public class OpenIdMessageTests : IDisposable
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
             AllowMultipleStringValues = false
         };
 
@@ -150,7 +150,7 @@ public class OpenIdMessageTests : IDisposable
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
             AllowMultipleStringValues = false
         };
 
@@ -183,7 +183,7 @@ public class OpenIdMessageTests : IDisposable
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
-            Optional = false,
+            AllowMissingStringValues = false,
             AllowMultipleStringValues = false
         };
 
@@ -215,7 +215,7 @@ public class OpenIdMessageTests : IDisposable
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
             AllowMultipleStringValues = false
         };
 
@@ -239,7 +239,7 @@ public class OpenIdMessageTests : IDisposable
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
             AllowMultipleStringValues = false
         };
 
@@ -273,7 +273,7 @@ public class OpenIdMessageTests : IDisposable
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
             AllowMultipleStringValues = false
         };
 
@@ -311,7 +311,7 @@ public class OpenIdMessageTests : IDisposable
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
             AllowMultipleStringValues = false
         };
 
@@ -362,7 +362,7 @@ public class OpenIdMessageTests : IDisposable
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
-            Optional = true,
+            AllowMissingStringValues = true,
             AllowMultipleStringValues = false
         };
 

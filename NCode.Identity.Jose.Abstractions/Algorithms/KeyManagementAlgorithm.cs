@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms;
@@ -26,6 +27,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// <summary>
 /// Provides methods for all cryptographic key management algorithms.
 /// </summary>
+[PublicAPI]
 public abstract class KeyManagementAlgorithm : KeyedAlgorithm
 {
     /// <inheritdoc />

@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.CryptoMemory;
 using NCode.Identity.Secrets;
 
@@ -28,6 +29,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>AES</c> cryptographic algorithm for key management.
 /// </summary>
+[PublicAPI]
 public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     private IAesKeyWrap AesKeyWrap { get; }

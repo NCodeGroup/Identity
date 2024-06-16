@@ -8,9 +8,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj" />
-      <ProjectReference Include="..\NCode.Identity.Persistence.Abstractions\NCode.Identity.Persistence.Abstractions.csproj" />
-      <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.Abstractions\NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.Persistence.Abstractions\NCode.Identity.Persistence.Abstractions.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.Abstractions\NCode.Identity.Secrets.Persistence.Abstractions.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" PrivateAssets="All"/>
     </ItemGroup>
 
 </Project>

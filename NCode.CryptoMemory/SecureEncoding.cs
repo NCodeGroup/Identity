@@ -17,12 +17,14 @@
 #endregion
 
 using System.Text;
+using JetBrains.Annotations;
 
 namespace NCode.CryptoMemory;
 
 /// <summary>
 /// Provides secure encodings that throw an exception when invalid bytes are encountered.
 /// </summary>
+[PublicAPI]
 public static class SecureEncoding
 {
     /// <summary>

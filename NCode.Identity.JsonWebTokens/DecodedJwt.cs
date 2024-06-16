@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Jose;
 using NCode.Identity.Secrets;
 
@@ -7,6 +8,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Represents a Json Web Token (JWT) that has been successfully decoded.
 /// </summary>
+[PublicAPI]
 public class DecodedJwt
 {
     /// <summary>

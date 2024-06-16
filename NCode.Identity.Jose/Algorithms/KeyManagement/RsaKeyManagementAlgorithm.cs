@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 
@@ -27,6 +28,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>RSA</c> cryptographic algorithm for key management.
 /// </summary>
+[PublicAPI]
 public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]

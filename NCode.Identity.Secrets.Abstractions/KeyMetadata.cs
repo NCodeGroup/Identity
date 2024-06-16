@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Contains common metadata for a secret key such as <c>TenantId</c>, <c>KeyId</c>, <c>Use</c>, and <c>Algorithm</c>.
 /// </summary>
+[PublicAPI]
 public readonly struct KeyMetadata
 {
     /// <summary>

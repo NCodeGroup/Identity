@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Jose.Exceptions;
 
 /// <summary>
 /// Represents errors that occur when the <c>Jose</c> implementation fails to validate a signature.
 /// </summary>
+[PublicAPI]
 [Serializable]
 public class JoseInvalidSignatureException : JoseException
 {

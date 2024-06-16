@@ -17,12 +17,14 @@
 #endregion
 
 using System.Buffers;
+using JetBrains.Annotations;
 
 namespace NCode.CryptoMemory;
 
 /// <summary>
 /// Provides a resource pool that enables reusing instances of byte arrays that are pinned during their lifetime and securely zeroed when returned.
 /// </summary>
+[PublicAPI]
 public static class CryptoPool
 {
     /// <summary>

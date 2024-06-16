@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Claims;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Credentials;
@@ -29,6 +30,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Contains the parameters used to encode a Json Web Token (JWT) security token.
 /// </summary>
+[PublicAPI]
 public class EncodeJwtParameters
 {
     /// <summary>

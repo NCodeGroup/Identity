@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms;
@@ -25,6 +26,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// <summary>
 /// Provides methods for all cryptographic digital signature algorithms.
 /// </summary>
+[PublicAPI]
 public abstract class SignatureAlgorithm : KeyedAlgorithm
 {
     /// <inheritdoc />

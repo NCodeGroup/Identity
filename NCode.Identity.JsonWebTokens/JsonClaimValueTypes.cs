@@ -18,12 +18,14 @@
 #endregion
 
 using System.Security.Claims;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
 /// Constants for <see cref="Claim.ValueType"/> that can be used to indicate how <see cref="Claim.Value"/> should be interpreted.
 /// </summary>
+[PublicAPI]
 public static class JsonClaimValueTypes
 {
     /// <summary>

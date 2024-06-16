@@ -18,12 +18,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
 /// Provides a read-only collection of <see cref="Algorithm"/> instances that can be accessed by their purpose.
 /// </summary>
+[PublicAPI]
 public interface IAlgorithmCollection : IReadOnlyCollection<Algorithm>
 {
     /// <summary>

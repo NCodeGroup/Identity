@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
@@ -31,6 +32,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>PBKDF2 with AES</c> cryptographic algorithm for key management.
 /// </summary>
+[PublicAPI]
 public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     internal const int SaltInputSizeBytes = 12;

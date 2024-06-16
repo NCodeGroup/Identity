@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Represents an <see cref="SecretKey"/> implementation using <c>symmetric</c> cryptographic keys.
 /// </summary>
+[PublicAPI]
 public abstract class SymmetricSecretKey : SecretKey
 {
     /// <inheritdoc />

@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.Persistence.Stores;
@@ -25,6 +26,7 @@ namespace NCode.Identity.Persistence.Stores;
 /// Provides an abstraction for a store which manages persisted entities using <see cref="long"/> surrogate keys.
 /// </summary>
 /// <typeparam name="T">The type of the persisted entity.</typeparam>
+[PublicAPI]
 public interface IStore<T> : IStore<T, long>
     where T : ISupportId<long>
 {
@@ -36,6 +38,7 @@ public interface IStore<T> : IStore<T, long>
 /// </summary>
 /// <typeparam name="T">The type of the persisted entity.</typeparam>
 /// <typeparam name="TKey">The type of the persisted entity's surrogate key.</typeparam>
+[PublicAPI]
 public interface IStore<T, in TKey>
     where T : ISupportId<TKey>
     where TKey : IEquatable<TKey>

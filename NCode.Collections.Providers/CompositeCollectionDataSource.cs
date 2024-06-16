@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
 
@@ -30,6 +31,7 @@ namespace NCode.Collections.Providers;
 /// Because this class is intended to be used with DI, it does not own the <see cref="ICollectionDataSource{T}"/> instances.
 /// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
 /// </remarks>
+[PublicAPI]
 public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>, IAsyncDisposable
 {
     private object SyncObj { get; } = new();

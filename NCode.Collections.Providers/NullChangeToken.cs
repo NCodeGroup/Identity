@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
 
@@ -25,6 +26,7 @@ namespace NCode.Collections.Providers;
 /// <summary>
 /// Provides an implementation of <see cref="IChangeToken"/> that never generates any change notifications.
 /// </summary>
+[PublicAPI]
 public sealed class NullChangeToken : IChangeToken
 {
     /// <summary>

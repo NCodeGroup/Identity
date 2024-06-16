@@ -15,11 +15,14 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
 /// Contains the various types of supported cryptographic algorithms.
 /// </summary>
+[PublicAPI]
 public enum AlgorithmType
 {
     /// <summary>

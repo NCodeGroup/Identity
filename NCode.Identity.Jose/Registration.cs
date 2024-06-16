@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
@@ -30,6 +31,7 @@ namespace NCode.Identity.Jose;
 /// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using
 /// Jose algorithms.
 /// </summary>
+[PublicAPI]
 public static class Registration
 {
     /// <summary>

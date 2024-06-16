@@ -17,12 +17,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Contains constants for the <see cref="KeyMetadata.Use"/> property.
 /// https://datatracker.ietf.org/doc/html/rfc7517#section-4.2
 /// </summary>
+[PublicAPI]
 public static class SecretKeyUses
 {
     /// <summary>

@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Collections.Providers;
 
 namespace NCode.Identity.Secrets;
@@ -23,6 +24,7 @@ namespace NCode.Identity.Secrets;
 /// <summary>
 /// Factory abstraction for creating <see cref="ISecretKeyCollectionProvider"/> instances.
 /// </summary>
+[PublicAPI]
 public interface ISecretKeyCollectionProviderFactory
 {
     /// <summary>

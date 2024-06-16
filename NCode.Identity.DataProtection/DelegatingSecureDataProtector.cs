@@ -18,6 +18,7 @@
 
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
 
 namespace NCode.Identity.DataProtection;
@@ -25,6 +26,7 @@ namespace NCode.Identity.DataProtection;
 /// <summary>
 /// Provides a implementation of the <see cref="ISecureDataProtector"/> abstraction that delegates to an <see cref="IDataProtector"/> instance.
 /// </summary>
+[PublicAPI]
 public class DelegatingSecureDataProtector(
     IDataProtector dataProtector
 ) : ISecureDataProtector

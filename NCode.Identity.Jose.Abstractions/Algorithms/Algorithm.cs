@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
 /// Common abstraction for all <c>JOSE</c> algorithms.
 /// </summary>
+[PublicAPI]
 public abstract class Algorithm
 {
     /// <summary>

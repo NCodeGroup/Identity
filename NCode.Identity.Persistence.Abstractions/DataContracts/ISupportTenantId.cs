@@ -17,12 +17,14 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Persistence.DataContracts;
 
 /// <summary>
 /// Indicates that an entity supports the <see cref="TenantId"/> property.
 /// </summary>
+[PublicAPI]
 public interface ISupportTenantId
 {
     /// <summary>

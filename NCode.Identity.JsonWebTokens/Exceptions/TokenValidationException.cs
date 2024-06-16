@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Exceptions;
 
 namespace NCode.Identity.JsonWebTokens.Exceptions;
@@ -24,6 +25,7 @@ namespace NCode.Identity.JsonWebTokens.Exceptions;
 /// <summary>
 /// Represents errors that occur during <c>Json Web Token (JWT)</c> validation.
 /// </summary>
+[PublicAPI]
 [Serializable]
 public class TokenValidationException : JoseException
 {

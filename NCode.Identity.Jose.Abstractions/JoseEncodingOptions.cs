@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.Jose;
@@ -24,6 +25,7 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Contains the credentials and common set of options that are required when encoding a JOSE token.
 /// </summary>
+[PublicAPI]
 public abstract class JoseEncodingOptions
 {
     /// <summary>

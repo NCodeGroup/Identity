@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.JsonWebTokens.Options;
 
 /// <summary>
 /// Provides the ability to configure the behavior when validating the lifetime of a Json Web Token (JWT).
 /// </summary>
+[PublicAPI]
 public class ValidateTokenLifeTimeOptions
 {
     /// <summary>

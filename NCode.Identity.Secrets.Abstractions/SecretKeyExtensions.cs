@@ -18,12 +18,14 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Provides extensions methods for the <see cref="SecretKey"/> abstraction.
 /// </summary>
+[PublicAPI]
 public static class SecretKeyExtensions
 {
     /// <summary>

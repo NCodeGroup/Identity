@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
 
@@ -26,6 +27,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Base implementation for all cryptographic key management algorithms.
 /// </summary>
+[PublicAPI]
 public abstract class CommonKeyManagementAlgorithm : KeyManagementAlgorithm
 {
     /// <inheritdoc />

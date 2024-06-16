@@ -19,6 +19,7 @@
 
 using System.Buffers;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.Jose;
@@ -26,6 +27,7 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Provides an abstraction to encode a JOSE token.
 /// </summary>
+[PublicAPI]
 public abstract class JoseEncoder
 {
     /// <summary>

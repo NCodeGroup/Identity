@@ -16,11 +16,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.DataProtection;
 
 /// <summary>
 /// Provides a factory abstraction for creating instances of <see cref="ISecureDataProtector"/>.
 /// </summary>
+[PublicAPI]
 public interface ISecureDataProtectionProvider
 {
     /// <summary>

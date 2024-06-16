@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.PropertyBag;
 
 /// <summary>
 /// Represents a strongly typed key in a <see cref="IPropertyBag"/>.
 /// </summary>
+[PublicAPI]
 public readonly struct PropertyBagKey : IEquatable<PropertyBagKey>
 {
     /// <summary>
@@ -74,6 +77,7 @@ public readonly struct PropertyBagKey : IEquatable<PropertyBagKey>
 /// Represents a strongly typed key in a <see cref="IPropertyBag"/>.
 /// </summary>
 /// <typeparam name="T">The type of the value in the property bag.</typeparam>
+[PublicAPI]
 public readonly struct PropertyBagKey<T> : IEquatable<PropertyBagKey<T>>
 {
     /// <summary>

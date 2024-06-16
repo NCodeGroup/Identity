@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Jose.Exceptions;
 
 /// <summary>
 /// Represents errors that occur when the <c>Jose</c> implementation is unable to determine what algorithm to use.
 /// </summary>
+[PublicAPI]
 [Serializable]
 public class JoseInvalidAlgorithmException : JoseException
 {

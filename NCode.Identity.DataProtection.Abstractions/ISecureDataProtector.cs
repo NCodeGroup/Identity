@@ -16,11 +16,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.DataProtection;
 
 /// <summary>
 /// An abstraction that can provide data protection services using the new <c>Span</c> API.
 /// </summary>
+[PublicAPI]
 public interface ISecureDataProtector : ISecureDataProtectionProvider
 {
     /// <summary>

@@ -18,12 +18,14 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Represents an <see cref="AsymmetricSecretKey"/> implementation using <c>RSA</c> cryptographic keys.
 /// </summary>
+[PublicAPI]
 public abstract class RsaSecretKey : AsymmetricSecretKey
 {
     /// <summary>

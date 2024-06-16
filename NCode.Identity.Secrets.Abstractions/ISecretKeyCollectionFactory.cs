@@ -16,11 +16,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Factory abstraction for creating new <see cref="ISecretKeyCollection"/> instances.
 /// </summary>
+[PublicAPI]
 public interface ISecretKeyCollectionFactory
 {
     /// <summary>

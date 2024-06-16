@@ -18,12 +18,14 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Provides the ability to validate key sizes using <see cref="KeySizes"/>.
 /// </summary>
+[PublicAPI]
 public static class KeySizesUtility
 {
     /// <summary>

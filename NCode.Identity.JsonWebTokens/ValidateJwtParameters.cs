@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Claims;
+using JetBrains.Annotations;
 using NCode.Identity.Jose;
 using NCode.Identity.Secrets;
 using NCode.PropertyBag;
@@ -27,6 +28,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Provides the signature for a delegate to validate the claims in a Json Web Token (JWT).
 /// </summary>
+[PublicAPI]
 public delegate ValueTask ValidateJwtAsync(
     ValidateJwtContext context,
     CancellationToken cancellationToken);
@@ -35,6 +37,7 @@ public delegate ValueTask ValidateJwtAsync(
 /// Provides the signature for a delegate that is used to return a collection of <see cref="SecretKey"/> instances
 /// that are to be used to validate a Json Web Token (JWT).
 /// </summary>
+[PublicAPI]
 public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
     CompactJwt compactJwt,
     IPropertyBag propertyBag,
@@ -45,6 +48,7 @@ public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
 /// Contains the signature for a delegate that is used to create a <see cref="ClaimsIdentity"/> instance
 /// from a decoded Json Web Token (JWT).
 /// </summary>
+[PublicAPI]
 public delegate ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
     DecodedJwt decodedJwt,
     IPropertyBag propertyBag,
@@ -56,6 +60,7 @@ public delegate ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
 /// <summary>
 /// Contains a set of parameters that are used to validate a Json Web Token (JWT).
 /// </summary>
+[PublicAPI]
 public class ValidateJwtParameters
 {
     /// <summary>

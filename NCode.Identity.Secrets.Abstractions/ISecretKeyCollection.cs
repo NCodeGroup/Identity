@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets;
 
@@ -25,6 +26,7 @@ namespace NCode.Identity.Secrets;
 /// Provides a read-only collection of <see cref="SecretKey"/> instances that can be accessed by <c>Key ID (KID)</c>.
 /// The collection is sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
 /// </summary>
+[PublicAPI]
 public interface ISecretKeyCollection : IReadOnlyCollection<SecretKey>
 {
     /// <summary>

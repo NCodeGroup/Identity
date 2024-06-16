@@ -19,12 +19,14 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 
 namespace NCode.PropertyBag;
 
 /// <summary>
 /// Contains extension methods for the <see cref="IPropertyBag"/> abstraction.
 /// </summary>
+[PublicAPI]
 public static class PropertyBagExtensions
 {
     /// <summary>

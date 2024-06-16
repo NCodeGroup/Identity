@@ -16,11 +16,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Persistence.DataContracts;
 
 /// <summary>
 /// Contains constants for the maximum lengths of various fields.
 /// </summary>
+[PublicAPI]
 public static class MaxLengths
 {
     /// <summary>

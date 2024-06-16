@@ -19,6 +19,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// <summary>
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> grant.
 /// </summary>
+[PublicAPI]
 public class PersistedGrant : ISupportId, ISupportTenantId
 {
     /// <summary>

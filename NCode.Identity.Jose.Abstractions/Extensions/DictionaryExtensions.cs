@@ -18,12 +18,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Extensions;
 
 /// <summary>
 /// Provides various extension methods for dictionary instances.
 /// </summary>
+[PublicAPI]
 public static class DictionaryExtensions
 {
     /// <summary>

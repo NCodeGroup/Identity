@@ -17,6 +17,8 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Secrets;
 
 /// <summary>
@@ -25,6 +27,7 @@ namespace NCode.Identity.Secrets;
 /// ascending. If any compared doesn't have a <see cref="KeyMetadata.ExpiresWhen"/> value, then it is treated as
 /// <see cref="DateTimeOffset.MaxValue"/>.
 /// </summary>
+[PublicAPI]
 public class SecretKeyExpiresWhenComparer : IComparer<SecretKey>
 {
     /// <summary>

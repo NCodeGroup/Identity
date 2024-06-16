@@ -20,12 +20,14 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Extensions;
 
 /// <summary>
 /// Provides extension methods for <see cref="JsonElement"/>.
 /// </summary>
+[PublicAPI]
 public static class JsonElementExtensions
 {
     /// <summary>

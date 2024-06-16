@@ -17,11 +17,14 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
 /// Provides methods for all cryptographic authenticated encryption (AEAD) algorithms.
 /// </summary>
+[PublicAPI]
 public abstract class AuthenticatedEncryptionAlgorithm : KeyedAlgorithm
 {
     /// <inheritdoc />

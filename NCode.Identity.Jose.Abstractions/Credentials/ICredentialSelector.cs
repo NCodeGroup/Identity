@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 
@@ -27,6 +28,7 @@ namespace NCode.Identity.Jose.Credentials;
 /// Provides the ability to retrieve <see cref="JoseSigningCredentials"/> and <see cref="JoseEncryptionCredentials"/> instances
 /// based on criteria that specify preferred algorithms and secret keys.
 /// </summary>
+[PublicAPI]
 public interface ICredentialSelector
 {
     /// <summary>

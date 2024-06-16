@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 
@@ -27,6 +28,7 @@ namespace NCode.Identity.Jose.Credentials;
 /// </summary>
 /// <param name="SecretKey">The Key Encryption Key (KEK) to use for signing.</param>
 /// <param name="SignatureAlgorithm">The <see cref="SignatureAlgorithm"/> to use for signing.</param>
+[PublicAPI]
 public record JoseSigningCredentials(
     SecretKey SecretKey,
     SignatureAlgorithm SignatureAlgorithm

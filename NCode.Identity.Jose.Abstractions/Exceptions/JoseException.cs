@@ -15,11 +15,14 @@
 //    limitations under the License.
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.Jose.Exceptions;
 
 /// <summary>
 /// Represents errors that occur during <c>Jose</c> encoding or decoding.
 /// </summary>
+[PublicAPI]
 [Serializable]
 public class JoseException : Exception
 {

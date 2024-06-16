@@ -18,12 +18,14 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose;
 
 /// <summary>
 /// Defines some of the standard claim names used in <c>JOSE</c>.
 /// </summary>
+[PublicAPI]
 [SuppressMessage("ReSharper", "IdentifierTypo")]
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public static class JoseClaimNames

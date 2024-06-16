@@ -18,12 +18,14 @@
 #endregion
 
 using System.Buffers;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Encoders;
 
 /// <summary>
 /// Provides an implementation of <see cref="JoseEncoder"/> that can be used to encrypt JWE tokens.
 /// </summary>
+[PublicAPI]
 public class JoseEncryptionEncoder : CommonJoseEncoder
 {
     private JoseEncryptionOptions EncryptionOptions { get; }

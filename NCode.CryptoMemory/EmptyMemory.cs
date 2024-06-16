@@ -17,6 +17,7 @@
 #endregion
 
 using System.Buffers;
+using JetBrains.Annotations;
 
 namespace NCode.CryptoMemory;
 
@@ -24,6 +25,7 @@ namespace NCode.CryptoMemory;
 /// Provides an <see cref="IMemoryOwner{T}"/> implementation that is empty.
 /// </summary>
 /// <typeparam name="T">The type of elements to store in memory.</typeparam>
+[PublicAPI]
 public sealed class EmptyMemory<T> : IMemoryOwner<T>
 {
     /// <summary>

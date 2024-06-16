@@ -20,6 +20,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
 
@@ -28,6 +29,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Factory class that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT) payload.
 /// </summary>
+[PublicAPI]
 public static class DefaultClaimsIdentityFactory
 {
     /// <summary>

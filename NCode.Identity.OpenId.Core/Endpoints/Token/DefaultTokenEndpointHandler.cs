@@ -69,10 +69,10 @@ public class DefaultTokenEndpointHandler(
         var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
         if (!isPostVerb || !IsApplicationFormContentType(httpContext))
         {
-            throw ErrorFactory
+            return ErrorFactory
                 .InvalidRequest("Only POST requests with Content-Type 'application/x-www-form-urlencoded' are supported.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
+                .AsResult();
         }
 
         var openIdContext = await ContextFactory.CreateAsync(
@@ -89,15 +89,15 @@ public class DefaultTokenEndpointHandler(
             // TODO: add support for 401 with WWW-Authenticate header
             var error = authResult.Error;
             error.StatusCode ??= StatusCodes.Status400BadRequest;
-            throw error.AsException();
+            return error.AsResult();
         }
 
         if (!authResult.HasClient)
         {
-            throw ErrorFactory
+            return ErrorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
+                .AsResult();
         }
 
         var openIdClient = authResult.Client;

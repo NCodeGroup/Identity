@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -29,6 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using Entity Framework with OpenId.
 /// </summary>
+[PublicAPI]
 public static class DefaultRegistration
 {
     /// <summary>

@@ -16,20 +16,15 @@
 
 #endregion
 
-using Microsoft.AspNetCore.DataProtection;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.DataProtection;
+namespace NCode.Identity.Secrets;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISecureDataProtectionProvider"/> abstraction.
+/// A marker interface to indicate that the required services needed for secrets have been registered.
 /// </summary>
-public class DefaultSecureDataProtectionProvider(
-    IDataProtectionProvider dataProtectionProvider
-) : ISecureDataProtectionProvider
+[PublicAPI]
+public interface ISecretsRegistrationMarker
 {
-    private IDataProtectionProvider DataProtectionProvider { get; } = dataProtectionProvider;
-
-    /// <inheritdoc />
-    public ISecureDataProtector CreateProtector(string purpose) =>
-        new DelegatingSecureDataProtector(DataProtectionProvider.CreateProtector(purpose));
+    // empty on purpose
 }

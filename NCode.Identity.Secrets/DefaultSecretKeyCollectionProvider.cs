@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets;
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretKeyCollectionProvider"/> abstraction.
 /// </summary>
-public class DefaultSecretKeyCollectionProvider : CollectionProvider<SecretKey, ISecretKeyCollection>, ISecretKeyCollectionProvider
+public class DefaultSecretKeyCollectionProvider : BaseCollectionProvider<SecretKey, ISecretKeyCollection>, ISecretKeyCollectionProvider
 {
     private ISecretKeyCollectionFactory Factory { get; }
 

@@ -20,6 +20,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Jose;
 
 namespace NCode.Identity.JsonWebTokens;
 
@@ -28,7 +29,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// Json Web Token (JWT) validation.
 /// </summary>
 [PublicAPI]
-public static class Registration
+public static class DefaultRegistration
 {
     /// <summary>
     /// Registers the required Json Web Token (JWT) services to the specified <see cref="IServiceCollection"/> instance.
@@ -39,7 +40,11 @@ public static class Registration
     public static IServiceCollection AddJsonWebTokenServices(
         this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<IJsonWebTokenService, DefaultJsonWebTokenService>();
+        serviceCollection.VerifyJoseServicesAreRegistered();
+
+        serviceCollection.TryAddSingleton<
+            IJsonWebTokenService,
+            DefaultJsonWebTokenService>();
 
         return serviceCollection;
     }

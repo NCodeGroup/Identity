@@ -20,7 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
 
-namespace NCode.Collections.Providers;
+namespace NCode.Collections.Providers.DataSources;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that uses a static collection of <typeparamref name="T"/> instances.

@@ -36,6 +36,7 @@
         <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj"/>
         <ProjectReference Include="..\NCode.CryptoMemory\NCode.CryptoMemory.csproj"/>
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
     </ItemGroup>
 
 </Project>

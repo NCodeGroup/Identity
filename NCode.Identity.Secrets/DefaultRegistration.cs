@@ -20,6 +20,8 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Collections.Providers;
+using NCode.Identity.DataProtection;
 
 namespace NCode.Identity.Secrets;
 
@@ -27,16 +29,24 @@ namespace NCode.Identity.Secrets;
 /// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using secrets.
 /// </summary>
 [PublicAPI]
-public static class Registration
+public static class DefaultRegistration
 {
     /// <summary>
     /// Registers the required services needed for using secrets into the provided <see cref="IServiceCollection"/> instance.
-    /// Make sure to also register the required services from the <c>NCode.Identity.DataProtection</c> package.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSecretServices(this IServiceCollection serviceCollection)
+    public static IServiceCollection AddSecretServices(
+        this IServiceCollection serviceCollection)
     {
+        serviceCollection.AddCollectionProviders();
+
+        serviceCollection.VerifySecureDataProtectionServicesAreRegistered();
+
+        serviceCollection.TryAddSingleton<
+            ISecretsRegistrationMarker,
+            DefaultSecretsRegistrationMarker>();
+
         serviceCollection.TryAddSingleton<
             ISecretKeyCollectionProvider,
             DefaultSecretKeyCollectionProvider>();

@@ -55,6 +55,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.OpenId.Persi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.OpenId.Persistence.EntityFramework", "NCode.Identity.OpenId.Persistence.EntityFramework\NCode.Identity.OpenId.Persistence.EntityFramework.csproj", "{6C715461-D3F5-4F01-9789-A621C043540B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Common", "NCode.Identity.Common\NCode.Identity.Common.csproj", "{62B7D334-299C-420F-805D-E86E0049661E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -153,6 +155,10 @@ Global
 		{6C715461-D3F5-4F01-9789-A621C043540B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C715461-D3F5-4F01-9789-A621C043540B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C715461-D3F5-4F01-9789-A621C043540B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62B7D334-299C-420F-805D-E86E0049661E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62B7D334-299C-420F-805D-E86E0049661E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62B7D334-299C-420F-805D-E86E0049661E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62B7D334-299C-420F-805D-E86E0049661E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

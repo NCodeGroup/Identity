@@ -27,7 +27,9 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides the default implementation for a data source collection of <see cref="SettingDescriptor"/> instances supported by this library.
 /// </summary>
 [PublicAPI]
-public class DefaultSettingDescriptorDataSource : ICollectionDataSource<SettingDescriptor>
+public class DefaultSettingDescriptorDataSource(
+    INullChangeToken nullChangeToken
+) : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsNonStdDiscoverable = false;
 
@@ -54,8 +56,10 @@ public class DefaultSettingDescriptorDataSource : ICollectionDataSource<SettingD
         IEnumerable<TItem> other
     ) => current.Intersect(other).ToList();
 
+    private INullChangeToken NullChangeToken { get; } = nullChangeToken;
+
     /// <inheritdoc />
-    public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+    public IChangeToken GetChangeToken() => NullChangeToken;
 
     /// <inheritdoc />
     public IEnumerable<SettingDescriptor> Collection

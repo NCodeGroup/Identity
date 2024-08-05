@@ -23,7 +23,10 @@ using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints;
 
-internal class OpenIdMiddleware(RequestDelegate next, OpenIdServer openIdServer)
+internal class OpenIdMiddleware(
+    RequestDelegate next,
+    OpenIdServer openIdServer
+)
 {
     private RequestDelegate Next { get; } = next;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
@@ -36,11 +39,12 @@ internal class OpenIdMiddleware(RequestDelegate next, OpenIdServer openIdServer)
         }
         catch (OpenIdException exception)
         {
-            var error = exception.Error;
+            var openIdError = exception.Error;
+
             var result = TypedResults.Json(
-                error,
+                openIdError,
                 OpenIdServer.JsonSerializerOptions,
-                statusCode: error.StatusCode);
+                statusCode: openIdError.StatusCode);
 
             await result.ExecuteAsync(httpContext);
         }

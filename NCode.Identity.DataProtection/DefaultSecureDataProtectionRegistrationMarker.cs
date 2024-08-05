@@ -16,20 +16,10 @@
 
 #endregion
 
-using Microsoft.AspNetCore.DataProtection;
-
 namespace NCode.Identity.DataProtection;
 
-/// <summary>
-/// Provides a default implementation of the <see cref="ISecureDataProtectionProvider"/> abstraction.
-/// </summary>
-public class DefaultSecureDataProtectionProvider(
-    IDataProtectionProvider dataProtectionProvider
-) : ISecureDataProtectionProvider
+/// <inheritdoc />
+public sealed class DefaultSecureDataProtectionRegistrationMarker : ISecureDataProtectionRegistrationMarker
 {
-    private IDataProtectionProvider DataProtectionProvider { get; } = dataProtectionProvider;
-
-    /// <inheritdoc />
-    public ISecureDataProtector CreateProtector(string purpose) =>
-        new DelegatingSecureDataProtector(DataProtectionProvider.CreateProtector(purpose));
+    // empty on purpose
 }

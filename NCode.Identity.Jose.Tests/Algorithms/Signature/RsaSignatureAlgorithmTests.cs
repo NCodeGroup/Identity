@@ -20,8 +20,8 @@
 using System.Security.Cryptography;
 using Jose;
 using NCode.Identity.DataProtection;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Signature;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 
 namespace NCode.Jose.Tests.Algorithms.Signature;

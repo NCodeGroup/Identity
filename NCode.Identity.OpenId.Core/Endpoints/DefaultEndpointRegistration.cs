@@ -17,29 +17,41 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.OpenId.Endpoints;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Results;
 
-namespace NCode.Identity.OpenId.Registration;
+namespace NCode.Identity.OpenId.Endpoints;
 
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register core endpoint services and handlers.
 /// </summary>
-public static class EndpointCoreRegistration
+[PublicAPI]
+public static class DefaultEndpointRegistration
 {
     /// <summary>
     /// Registers core endpoint services and handlers into the provided <see cref="IServiceCollection"/> instance.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddEndpointCoreServices(this IServiceCollection serviceCollection)
+    public static IServiceCollection AddEndpointServices(this IServiceCollection serviceCollection)
     {
-        serviceCollection.AddSingleton<IOpenIdContextFactory, DefaultOpenIdContextFactory>();
-        serviceCollection.AddSingleton<IOpenIdEndpointRouteBuilder, DefaultOpenIdEndpointRouteBuilder>();
+        serviceCollection.TryAddSingleton<
+            IOpenIdContextFactory,
+            DefaultOpenIdContextFactory>();
 
-        serviceCollection.AddSingleton<IResultExecutor<OpenIdErrorResult>, OpenIdErrorResultExecutor>();
-        serviceCollection.AddSingleton<IResultExecutor<OpenIdRedirectResult>, OpenIdRedirectResultExecutor>();
+        serviceCollection.TryAddSingleton<
+            IOpenIdEndpointRouteBuilder,
+            DefaultOpenIdEndpointRouteBuilder>();
+
+        serviceCollection.TryAddSingleton<
+            IResultExecutor<OpenIdErrorResult>,
+            OpenIdErrorResultExecutor>();
+
+        serviceCollection.TryAddSingleton<
+            IResultExecutor<OpenIdRedirectResult>,
+            OpenIdRedirectResultExecutor>();
 
         return serviceCollection;
     }

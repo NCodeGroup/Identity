@@ -24,10 +24,14 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Provides the default implementation for a data source collection of <see cref="KnownParameter"/> instances supported by this library.
 /// </summary>
-public class DefaultKnownParameterDataSource : ICollectionDataSource<KnownParameter>
+public class DefaultKnownParameterDataSource(
+    INullChangeToken nullChangeToken
+) : ICollectionDataSource<KnownParameter>
 {
+    private INullChangeToken NullChangeToken { get; } = nullChangeToken;
+
     /// <inheritdoc />
-    public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+    public IChangeToken GetChangeToken() => NullChangeToken;
 
     /// <inheritdoc />
     public IEnumerable<KnownParameter> Collection

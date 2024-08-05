@@ -16,20 +16,15 @@
 
 #endregion
 
-using Microsoft.AspNetCore.DataProtection;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.DataProtection;
+namespace NCode.Collections.Providers.PeriodicPolling;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISecureDataProtectionProvider"/> abstraction.
+/// Represents a method that is periodically called to refresh a collection.
+/// If the collection is not changed, then the method should return <c>null</c>.
 /// </summary>
-public class DefaultSecureDataProtectionProvider(
-    IDataProtectionProvider dataProtectionProvider
-) : ISecureDataProtectionProvider
-{
-    private IDataProtectionProvider DataProtectionProvider { get; } = dataProtectionProvider;
-
-    /// <inheritdoc />
-    public ISecureDataProtector CreateProtector(string purpose) =>
-        new DelegatingSecureDataProtector(DataProtectionProvider.CreateProtector(purpose));
-}
+[PublicAPI]
+public delegate ValueTask<IReadOnlyCollection<TItem>?> GetCollectionAsyncDelegate<TItem, TState>(
+    PeriodicPollingCollectionContext<TItem, TState> context,
+    CancellationToken cancellationToken);

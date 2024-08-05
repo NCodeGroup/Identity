@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,27 +18,14 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
-using NCode.Disposables;
 
 namespace NCode.Collections.Providers;
 
 /// <summary>
-/// Provides an implementation of <see cref="IChangeToken"/> that never generates any change notifications.
+/// Represents a change token that never generates any change notifications.
 /// </summary>
 [PublicAPI]
-public sealed class NullChangeToken : INullChangeToken
+public interface INullChangeToken : IChangeToken
 {
-    /// <summary>
-    /// Gets a singleton instance of <see cref="NullChangeToken"/>.
-    /// </summary>
-    public static NullChangeToken Singleton { get; } = new();
-
-    /// <inheritdoc />
-    public bool HasChanged => false;
-
-    /// <inheritdoc />
-    public bool ActiveChangeCallbacks => false;
-
-    /// <inheritdoc />
-    public IDisposable RegisterChangeCallback(Action<object> callback, object? state) => Disposable.Empty;
+    // nothing
 }

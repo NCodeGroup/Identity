@@ -20,6 +20,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
+using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Servers;
@@ -42,7 +43,8 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
-    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
+    ICollectionDataSourceFactory collectionDataSourceFactory
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -51,7 +53,8 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     tenantCache,
     settingSerializer,
     secretSerializer,
-    secretKeyCollectionProviderFactory
+    secretKeyCollectionProviderFactory,
+    collectionDataSourceFactory
 ), IAsyncDisposable
 {
     private AsyncSharedReferenceLease<OpenIdTenant> CachedTenant { get; set; }

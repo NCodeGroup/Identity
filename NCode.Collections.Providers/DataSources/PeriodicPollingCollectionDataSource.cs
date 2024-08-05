@@ -20,21 +20,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
+using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
 
-namespace NCode.Collections.Providers;
-
-/// <summary>
-/// Contains context used for calling the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}.GetCollectionAsync"/> delegate.
-/// </summary>
-/// <param name="State">The state instance that was originally passed to the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}"/> constructor.</param>
-/// <param name="CurrentCollection">The current collection that was last returned by the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}.GetCollectionAsync"/> delegate.</param>
-/// <typeparam name="TItem">The type of items in the collection.</typeparam>
-/// <typeparam name="TState">The type of the state parameter used during refresh calls.</typeparam>
-[PublicAPI]
-public readonly record struct PeriodicPollingCollectionContext<TItem, TState>(
-    TState State,
-    IReadOnlyCollection<TItem> CurrentCollection);
+namespace NCode.Collections.Providers.DataSources;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that periodically polls for changes to the underlying data source.
@@ -45,20 +34,6 @@ public readonly record struct PeriodicPollingCollectionContext<TItem, TState>(
 public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
     : ICollectionDataSource<TItem>, IAsyncDisposable
 {
-    /// <summary>
-    /// Represents a method that is called to refresh the collection periodically.
-    /// </summary>
-    public delegate ValueTask<IReadOnlyCollection<TItem>?> GetCollectionAsyncDelegate(
-        PeriodicPollingCollectionContext<TItem, TState> context,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Represents a method that is called to handle exceptions that occur during the refresh.
-    /// </summary>
-    public delegate ValueTask HandleExceptionAsyncDelegate(
-        ExceptionDispatchInfo exception,
-        CancellationToken cancellationToken);
-
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
@@ -66,7 +41,7 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
 
     private TState State { get; }
     private IReadOnlyCollection<TItem> CurrentCollection { get; set; }
-    private GetCollectionAsyncDelegate GetCollectionAsync { get; }
+    private GetCollectionAsyncDelegate<TItem, TState> GetCollectionAsync { get; }
     private HandleExceptionAsyncDelegate HandleExceptionAsync { get; }
 
     private CancellationTokenSource PeriodicCancellationSource { get; } = new();
@@ -98,7 +73,7 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
         TState state,
         IReadOnlyCollection<TItem> initialCollection,
         TimeSpan refreshInterval,
-        GetCollectionAsyncDelegate getCollectionAsync,
+        GetCollectionAsyncDelegate<TItem, TState> getCollectionAsync,
         HandleExceptionAsyncDelegate? handleExceptionAsync = default)
     {
         State = state;

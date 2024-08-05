@@ -22,6 +22,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.DataProtection\NCode.Identity.DataProtection.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj"/>
         <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj"/>
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.EntityFramework\NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />

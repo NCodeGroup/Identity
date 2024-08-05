@@ -16,44 +16,36 @@
 
 #endregion
 
-using JetBrains.Annotations;
-
 namespace NCode.Collections.Providers;
 
 /// <summary>
-/// Provides a default implementation for the <see cref="ICollectionProvider{TItem,TCollection}"/> abstraction.
+/// Provides a default implementation of the <see cref="ICollectionProviderFactory"/> abstraction.
 /// </summary>
-/// <typeparam name="TItem">The type of items in the collection.</typeparam>
-/// <typeparam name="TCollection">The type of the collection.</typeparam>
-[PublicAPI]
-public class CollectionProvider<TItem, TCollection> : BaseCollectionProvider<TItem, TCollection>
-    where TCollection : IEnumerable<TItem>
+public class DefaultCollectionProviderFactory : ICollectionProviderFactory
 {
-    private Func<IEnumerable<TItem>, TCollection> CollectionFactory { get; }
-
     /// <inheritdoc />
-    public CollectionProvider(
+    public ICollectionProvider<TItem, TCollection> Create<TItem, TCollection>(
         Func<IEnumerable<TItem>, TCollection> collectionFactory,
         ICollectionDataSource<TItem> dataSource,
         bool owns = true
-    ) : base(dataSource, owns)
+    ) where TCollection : IEnumerable<TItem>
     {
-        CollectionFactory = collectionFactory;
+        return new CollectionProvider<TItem, TCollection>(
+            collectionFactory,
+            dataSource,
+            owns);
     }
 
     /// <inheritdoc />
-    public CollectionProvider(
+    public ICollectionProvider<TItem, TCollection> Create<TItem, TCollection>(
         Func<IEnumerable<TItem>, TCollection> collectionFactory,
         IEnumerable<ICollectionDataSource<TItem>> dataSources,
         bool owns = false
-    ) : base(dataSources, owns)
+    ) where TCollection : IEnumerable<TItem>
     {
-        CollectionFactory = collectionFactory;
-    }
-
-    /// <inheritdoc />
-    protected override TCollection CreateCollection(IEnumerable<TItem> items)
-    {
-        return CollectionFactory(items);
+        return new CollectionProvider<TItem, TCollection>(
+            collectionFactory,
+            dataSources,
+            owns);
     }
 }

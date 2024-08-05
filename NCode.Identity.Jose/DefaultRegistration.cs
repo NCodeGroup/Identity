@@ -24,6 +24,7 @@ using NCode.Collections.Providers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Credentials;
+using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose;
 
@@ -32,11 +33,10 @@ namespace NCode.Identity.Jose;
 /// Jose algorithms.
 /// </summary>
 [PublicAPI]
-public static class Registration
+public static class DefaultRegistration
 {
     /// <summary>
     /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/>.
-    /// Make sure to also register the required services from the <c>NCode.Identity.Secrets</c> package.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
@@ -46,22 +46,37 @@ public static class Registration
 
     /// <summary>
     /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/> instance.
-    /// Make sure to also register the required services from the <c>NCode.Identity.Secrets</c> package.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <param name="configureOptions">The action used to configure the <see cref="JoseSerializerOptions"/>.</param>
+    /// <param name="configureJoseOptions">The action used to configure the <see cref="JoseSerializerOptions"/>.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddJoseServices(
         this IServiceCollection serviceCollection,
-        Action<JoseSerializerOptions> configureOptions)
+        Action<JoseSerializerOptions> configureJoseOptions)
     {
-        serviceCollection.Configure(configureOptions);
+        serviceCollection.Configure(configureJoseOptions);
 
-        serviceCollection.TryAddSingleton<IAesKeyWrap, DefaultAesKeyWrap>();
-        serviceCollection.TryAddSingleton<IAlgorithmCollectionProvider, DefaultAlgorithmCollectionProvider>();
-        serviceCollection.TryAddSingleton<ICredentialSelector, DefaultCredentialSelector>();
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ICollectionDataSource<Algorithm>, DefaultAlgorithmDataSource>());
-        serviceCollection.TryAddSingleton<IJoseSerializer, JoseSerializer>();
+        serviceCollection.VerifySecretServicesAreRegistered();
+
+        serviceCollection.TryAddSingleton<
+            IAesKeyWrap,
+            DefaultAesKeyWrap>();
+
+        serviceCollection.TryAddSingleton<
+            IAlgorithmCollectionProvider,
+            DefaultAlgorithmCollectionProvider>();
+
+        serviceCollection.TryAddSingleton<
+            ICredentialSelector,
+            DefaultCredentialSelector>();
+
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ICollectionDataSource<Algorithm>,
+            DefaultAlgorithmDataSource>());
+
+        serviceCollection.TryAddSingleton<
+            IJoseSerializer,
+            JoseSerializer>();
 
         return serviceCollection;
     }

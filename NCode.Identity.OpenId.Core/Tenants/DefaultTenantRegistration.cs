@@ -1,6 +1,7 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+//
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,35 +17,51 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Clients.Handlers;
+using NCode.Identity.OpenId.Tenants.Providers;
 
-namespace NCode.Identity.OpenId.Registration;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register core client services and handlers.
+/// Provides extension methods for <see cref="IServiceCollection"/> to register core tenant services and handlers.
 /// </summary>
-public static class ClientCoreRegistration
+[PublicAPI]
+public static class DefaultTenantRegistration
 {
     /// <summary>
-    /// Registers core client services and handlers into the provided <see cref="IServiceCollection"/> instance.
+    /// Registers core tenant services and handlers into the provided <see cref="IServiceCollection"/> instance.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddClientCoreServices(this IServiceCollection serviceCollection)
+    public static IServiceCollection AddTenantServices(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<IOpenIdClientFactory, DefaultOpenIdClientFactory>();
+        serviceCollection.AddMemoryCache();
 
-        serviceCollection.TryAddSingleton<IClientAuthenticationService, DefaultClientAuthenticationService>();
+        serviceCollection.TryAddSingleton<
+            IOpenIdTenantCache,
+            DefaultOpenIdTenantCache>();
+
+        serviceCollection.TryAddSingleton<
+            IOpenIdTenantFactory,
+            DefaultOpenIdTenantFactory>();
+
+        serviceCollection.TryAddSingleton<
+            IOpenIdTenantProviderSelector,
+            DefaultOpenIdTenantProviderSelector>();
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            IClientAuthenticationHandler, BasicClientAuthenticationHandler>());
+            IOpenIdTenantProvider,
+            DefaultStaticSingleOpenIdTenantProvider>());
+
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            IClientAuthenticationHandler, RequestBodyClientAuthenticationHandler>());
+            IOpenIdTenantProvider,
+            DefaultDynamicByHostOpenIdTenantProvider>());
+
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            IClientAuthenticationHandler, RequestQueryClientAuthenticationHandler>());
+            IOpenIdTenantProvider,
+            DefaultDynamicByPathOpenIdTenantProvider>());
 
         return serviceCollection;
     }

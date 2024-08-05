@@ -16,6 +16,7 @@
 
 #endregion
 
+using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
@@ -24,11 +25,27 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// Provides a default implementation of the <see cref="IKnownParameterCollectionProvider"/> abstraction.
 /// </summary>
 public class DefaultKnownParameterCollectionProvider(
+    ICollectionProviderFactory collectionProviderFactory,
     IEnumerable<ICollectionDataSource<KnownParameter>> dataSources
-) : CollectionProvider<KnownParameter, IKnownParameterCollection>(dataSources),
-    IKnownParameterCollectionProvider
+) : IKnownParameterCollectionProvider
 {
+    private ICollectionProvider<KnownParameter, IKnownParameterCollection> Inner { get; } =
+        collectionProviderFactory.Create(
+            items => new KnownParameterCollection(items),
+            dataSources,
+            owns: false
+        );
+
     /// <inheritdoc />
-    protected override IKnownParameterCollection CreateCollection(IEnumerable<KnownParameter> items) =>
-        new KnownParameterCollection(items);
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return Inner.DisposeAsync();
+    }
+
+    /// <inheritdoc />
+    public IKnownParameterCollection Collection => Inner.Collection;
+
+    /// <inheritdoc />
+    public IChangeToken GetChangeToken() => Inner.GetChangeToken();
 }

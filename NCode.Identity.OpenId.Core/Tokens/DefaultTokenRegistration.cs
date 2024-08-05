@@ -20,17 +20,16 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Commands;
 using NCode.Identity.OpenId.Tokens.Handlers;
 
-namespace NCode.Identity.OpenId.Registration;
+namespace NCode.Identity.OpenId.Tokens;
 
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register required token services for OpenId.
 /// </summary>
 [PublicAPI]
-public static class TokenServicesRegistration
+public static class DefaultTokenRegistration
 {
     /// <summary>
     /// Registers the required token services for OpenId into the provided <see cref="IServiceCollection"/> instance.
@@ -39,17 +38,25 @@ public static class TokenServicesRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddTokenServices(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<ITokenService, DefaultTokenService>();
+        serviceCollection.TryAddSingleton<
+            ITokenService,
+            DefaultTokenService>();
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<GetIdTokenSubjectClaimsCommand>, DefaultGetIdTokenSubjectClaimsHandler>());
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<GetIdTokenPayloadClaimsCommand>, DefaultGetIdTokenPayloadClaimsHandler>());
+            ICommandHandler<GetIdTokenSubjectClaimsCommand>,
+            DefaultGetIdTokenSubjectClaimsHandler>());
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<GetAccessTokenSubjectClaimsCommand>, DefaultGetAccessTokenSubjectClaimsHandler>());
+            ICommandHandler<GetIdTokenPayloadClaimsCommand>,
+            DefaultGetIdTokenPayloadClaimsHandler>());
+
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<GetAccessTokenPayloadClaimsCommand>, DefaultGetAccessTokenPayloadClaimsHandler>());
+            ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
+            DefaultGetAccessTokenSubjectClaimsHandler>());
+
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ICommandHandler<GetAccessTokenPayloadClaimsCommand>,
+            DefaultGetAccessTokenPayloadClaimsHandler>());
 
         return serviceCollection;
     }

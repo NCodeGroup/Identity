@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -36,7 +37,8 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register required services and handlers for the authorization endpoint.
 /// </summary>
-public static class AuthorizationEndpointRegistration
+[PublicAPI]
+public static class DefaultAuthorizationEndpointRegistration
 {
     /// <summary>
     /// Registers the required services and handlers for the authorization endpoint into the provided <see cref="IServiceCollection"/> instance.
@@ -45,15 +47,20 @@ public static class AuthorizationEndpointRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddAuthorizationEndpoint(this IServiceCollection serviceCollection)
     {
-        serviceCollection.AddSingleton<IAuthorizationCodeService, DefaultAuthorizationCodeService>();
-        serviceCollection.AddSingleton<IAuthorizationInteractionService, NullAuthorizationInteractionService>();
+        serviceCollection.TryAddSingleton<
+            IAuthorizationCodeService,
+            DefaultAuthorizationCodeService>();
+
+        serviceCollection.TryAddSingleton<
+            IAuthorizationInteractionService,
+            NullAuthorizationInteractionService>();
 
         serviceCollection.AddSingleton<DefaultAuthorizationEndpointHandler>();
 
-        serviceCollection.AddSingleton<IContinueProvider>(serviceProvider =>
+        serviceCollection.TryAddSingleton<IContinueProvider>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
-        serviceCollection.AddSingleton<IOpenIdEndpointProvider>(serviceProvider =>
+        serviceCollection.TryAddSingleton<IOpenIdEndpointProvider>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
         serviceCollection.TryAddSingleton<
@@ -80,7 +87,7 @@ public static class AuthorizationEndpointRegistration
             ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>,
             DefaultCreateAuthorizationTicketHandler>();
 
-        serviceCollection.AddSingleton<
+        serviceCollection.TryAddSingleton<
             IResultExecutor<AuthorizationResult>,
             AuthorizationResultExecutor>();
 

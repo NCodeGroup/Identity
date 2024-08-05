@@ -22,7 +22,6 @@ using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Tokens.Commands;
 

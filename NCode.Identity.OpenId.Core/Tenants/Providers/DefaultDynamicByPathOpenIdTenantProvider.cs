@@ -20,6 +20,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
+using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
@@ -42,7 +43,8 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
-    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
+    ICollectionDataSourceFactory collectionDataSourceFactory
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -51,7 +53,8 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     tenantCache,
     settingSerializer,
     secretSerializer,
-    secretKeyCollectionProviderFactory
+    secretKeyCollectionProviderFactory,
+    collectionDataSourceFactory
 )
 {
     private DynamicByPathOpenIdTenantOptions TenantOptions =>

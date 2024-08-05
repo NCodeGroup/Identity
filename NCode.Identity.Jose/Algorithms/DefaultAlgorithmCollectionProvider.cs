@@ -26,7 +26,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// </summary>
 public class DefaultAlgorithmCollectionProvider(
     IEnumerable<ICollectionDataSource<Algorithm>> dataSources
-) : CollectionProvider<Algorithm, IAlgorithmCollection>(dataSources),
+) : BaseCollectionProvider<Algorithm, IAlgorithmCollection>(dataSources),
     IAlgorithmCollectionProvider
 {
     /// <inheritdoc />

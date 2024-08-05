@@ -22,10 +22,19 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace NCode.Identity.OpenId.Endpoints;
 
-internal static class OpenIdEndpointRouteBuilderExtensions
+/// <summary>
+/// Provides the ability to map <c>OAuth</c> or <c>OpenID Connect</c> endpoints to the HTTP request pipeline.
+/// </summary>
+public static class OpenIdEndpointRouteBuilderExtensions
 {
-    public static RouteGroupBuilder MapOpenId(this IEndpointRouteBuilder endpoints) => endpoints
-        .ServiceProvider
-        .GetRequiredService<IOpenIdEndpointRouteBuilder>()
-        .MapOpenId(endpoints);
+    /// <summary>
+    /// Maps all the <c>OAuth</c> or <c>OpenID Connect</c> endpoints that have been registered with the service provider.
+    /// </summary>
+    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance to map the endpoints to.</param>
+    /// <returns>The <see cref="RouteGroupBuilder"/> instance that contains all the <c>OAuth</c> or <c>OpenID Connect</c> endpoints.</returns>
+    public static RouteGroupBuilder MapOpenId(this IEndpointRouteBuilder endpoints) =>
+        endpoints
+            .ServiceProvider
+            .GetRequiredService<IOpenIdEndpointRouteBuilder>()
+            .MapOpenId(endpoints);
 }

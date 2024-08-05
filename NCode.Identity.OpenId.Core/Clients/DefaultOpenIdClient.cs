@@ -22,7 +22,10 @@ using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Clients;
 
-internal class DefaultOpenIdClient(
+/// <summary>
+/// Provides a default implementation of the <see cref="OpenIdClient"/> abstraction.
+/// </summary>
+public class DefaultOpenIdClient(
     string clientId,
     IReadOnlyKnownSettingCollection settings,
     ISecretKeyCollection secretKeys,

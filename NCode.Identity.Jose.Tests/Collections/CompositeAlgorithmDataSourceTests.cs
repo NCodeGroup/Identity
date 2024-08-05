@@ -19,6 +19,7 @@
 
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
+using NCode.Collections.Providers.DataSources;
 using NCode.Identity.Jose.Algorithms;
 
 namespace NCode.Jose.Tests.Collections;

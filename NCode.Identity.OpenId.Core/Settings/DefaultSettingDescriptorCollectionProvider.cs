@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -25,11 +26,27 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides a default implementation of the <see cref="ISettingDescriptorCollectionProvider"/> abstraction.
 /// </summary>
 public class DefaultSettingDescriptorCollectionProvider(
+    ICollectionProviderFactory collectionProviderFactory,
     IEnumerable<ICollectionDataSource<SettingDescriptor>> dataSources
-) : CollectionProvider<SettingDescriptor, ISettingDescriptorCollection>(dataSources),
-    ISettingDescriptorCollectionProvider
+) : ISettingDescriptorCollectionProvider
 {
+    private ICollectionProvider<SettingDescriptor, ISettingDescriptorCollection> Inner { get; } =
+        collectionProviderFactory.Create(
+            items => new SettingDescriptorCollection(items),
+            dataSources,
+            owns: false
+        );
+
     /// <inheritdoc />
-    protected override ISettingDescriptorCollection CreateCollection(IEnumerable<SettingDescriptor> items) =>
-        new SettingDescriptorCollection(items);
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return Inner.DisposeAsync();
+    }
+
+    /// <inheritdoc />
+    public ISettingDescriptorCollection Collection => Inner.Collection;
+
+    /// <inheritdoc />
+    public IChangeToken GetChangeToken() => Inner.GetChangeToken();
 }

@@ -18,7 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Identity.Jose.Extensions;
+using NCode.Identity.Jose.Algorithms;
 
 namespace NCode.Jose.Tests.Extensions;
 
@@ -26,11 +26,11 @@ public class HashAlgorithmNameExtensionsTests
 {
     public static IEnumerable<object?[]> GetHashSizeBitsTestData()
     {
-        yield return new object?[] { HashAlgorithmName.MD5, null };
-        yield return new object?[] { HashAlgorithmName.SHA1, 160 };
-        yield return new object?[] { HashAlgorithmName.SHA256, 256 };
-        yield return new object?[] { HashAlgorithmName.SHA384, 384 };
-        yield return new object?[] { HashAlgorithmName.SHA512, 512 };
+        yield return [HashAlgorithmName.MD5, null];
+        yield return [HashAlgorithmName.SHA1, 160];
+        yield return [HashAlgorithmName.SHA256, 256];
+        yield return [HashAlgorithmName.SHA384, 384];
+        yield return [HashAlgorithmName.SHA512, 512];
     }
 
     [Theory]

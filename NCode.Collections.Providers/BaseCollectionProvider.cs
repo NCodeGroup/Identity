@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -20,32 +20,30 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
+using NCode.Collections.Providers.DataSources;
 using NCode.Disposables;
 
 namespace NCode.Collections.Providers;
 
 /// <summary>
-/// Provides an implementation of <see cref="ICollectionDataSource{T}"/> that aggregates multiple <see cref="ICollectionDataSource{T}"/> instances.
+/// Provides a base implementation for the <see cref="ICollectionProvider{TItem,TCollection}"/> abstraction.
 /// </summary>
-/// <remarks>
-/// Because this class is intended to be used with DI, it does not own the <see cref="ICollectionDataSource{T}"/> instances.
-/// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
-/// </remarks>
 [PublicAPI]
-public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>, IAsyncDisposable
+public abstract class BaseCollectionProvider<TItem, TCollection> : ICollectionProvider<TItem, TCollection>
+    where TCollection : IEnumerable<TItem>
 {
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
-    private List<IDisposable>? ChangeTokenRegistrations { get; set; }
+    private IDisposable? ChangeTokenRegistration { get; set; }
 
     private bool Owns { get; }
-    private IReadOnlyList<ICollectionDataSource<T>> DataSources { get; }
-    private IEnumerable<T>? CollectionOrNull { get; set; }
+    private ICollectionDataSource<TItem> DataSource { get; }
+    private TCollection? CollectionOrNull { get; set; }
 
     /// <inheritdoc />
-    public IEnumerable<T> Collection
+    public TCollection Collection
     {
         get
         {
@@ -55,18 +53,38 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CompositeCollectionDataSource{T}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
-    /// By default we do not own the individual data sources and therefore not dispose of them when the composite collection
+    /// Initializes a new instance of the <see cref="BaseCollectionProvider{TItem,TCollection}"/> class with the specified <see cref="ICollectionDataSource{T}"/> instance.
+    /// This variant will own the data source and dispose of it when the provider itself is disposed.
+    /// </summary>
+    /// <param name="dataSource">The <see cref="ICollectionDataSource{T}"/> instance for the provider.</param>
+    /// <param name="owns">Indicates whether the provider will own the data source and dispose of it
+    /// when the provider itself is disposed. The default is <c>true</c>.</param>
+    protected BaseCollectionProvider(ICollectionDataSource<TItem> dataSource, bool owns = true)
+    {
+        Owns = owns;
+        DataSource = dataSource;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaseCollectionProvider{TItem,TCollection}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
+    /// By default, we do not own the individual data sources and therefore not dispose of them when the provider
     /// itself is disposed because the data sources are resolved from the DI container which will manage their lifetimes.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
-    /// <param name="owns">Indicates whether this collection will own the items and dispose of them
+    /// <param name="owns">Indicates whether this instance will own the individual data sources and dispose of them
     /// when this class is disposed. The default is <c>false</c>.</param>
-    public CompositeCollectionDataSource(IEnumerable<ICollectionDataSource<T>> dataSources, bool owns = false)
+    protected BaseCollectionProvider(IEnumerable<ICollectionDataSource<TItem>> dataSources, bool owns = false)
     {
-        Owns = owns;
-        DataSources = dataSources.ToList();
+        Owns = true; // this variant always own the composite data source
+        DataSource = new CompositeCollectionDataSource<TItem>(dataSources, owns);
     }
+
+    /// <summary>
+    /// Factory method to create a new <typeparamref name="TCollection"/> instance.
+    /// </summary>
+    /// <param name="items">The <see cref="IEnumerable{T}"/> collection of items.</param>
+    /// <returns>The newly created <typeparamref name="TCollection"/> instance.</returns>
+    protected abstract TCollection CreateCollection(IEnumerable<TItem> items);
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken()
@@ -79,6 +97,16 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
+    {
+        await DisposeAsyncCore();
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting managed resources asynchronously.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous dispose operation.</returns>
+    protected virtual async ValueTask DisposeAsyncCore()
     {
         if (IsDisposed) return;
 
@@ -93,19 +121,23 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
             if (Owns)
             {
-                disposables.AddRange(DataSources.OfType<IAsyncDisposable>());
-                disposables.AddRange(DataSources.OfType<IDisposable>().Select(AsyncDisposable.Adapt));
+                switch (DataSource)
+                {
+                    case IAsyncDisposable asyncDisposable:
+                        disposables.Add(asyncDisposable);
+                        break;
+
+                    case IDisposable disposable:
+                        disposables.Add(AsyncDisposable.Adapt(disposable));
+                        break;
+                }
             }
 
-            if (ChangeTokenRegistrations is { Count: > 0 })
-                disposables.AddRange(ChangeTokenRegistrations.Select(AsyncDisposable.Adapt));
+            if (ChangeTokenRegistration is not null)
+                disposables.Add(AsyncDisposable.Adapt(ChangeTokenRegistration));
 
             if (ChangeTokenSource is not null)
                 disposables.Add(AsyncDisposable.Adapt(ChangeTokenSource));
-
-            CollectionOrNull = null;
-            ChangeTokenRegistrations = null;
-            ChangeTokenSource = null;
         }
 
         await disposables.DisposeAllAsync();
@@ -141,9 +173,7 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
     private void SubscribeChangeTokenProducers()
     {
-        ChangeTokenRegistrations ??= [];
-        ChangeTokenRegistrations.AddRange(DataSources.Select(dataSource =>
-            ChangeToken.OnChange(dataSource.GetChangeToken, HandleChange)));
+        ChangeTokenRegistration = ChangeToken.OnChange(DataSource.GetChangeToken, HandleChange);
     }
 
     private void HandleChange()
@@ -184,11 +214,6 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
     [MemberNotNull(nameof(CollectionOrNull))]
     private void RefreshCollection()
     {
-        CollectionOrNull = DataSources.Count switch
-        {
-            0 => Enumerable.Empty<T>(),
-            1 => DataSources[0].Collection,
-            _ => DataSources.SelectMany(dataSource => dataSource.Collection)
-        };
+        CollectionOrNull = CreateCollection(DataSource.Collection);
     }
 }

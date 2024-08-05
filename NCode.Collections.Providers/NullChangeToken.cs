@@ -27,7 +27,7 @@ namespace NCode.Collections.Providers;
 /// Provides an implementation of <see cref="IChangeToken"/> that never generates any change notifications.
 /// </summary>
 [PublicAPI]
-public sealed class NullChangeToken : IChangeToken
+public sealed class NullChangeToken : INullChangeToken
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="NullChangeToken"/>.

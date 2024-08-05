@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Endpoints.Continue.Logic;
@@ -25,7 +26,8 @@ namespace NCode.Identity.OpenId.Endpoints.Continue;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register required services and handlers for the continue endpoint.
 /// </summary>
-public static class ContinueEndpointRegistration
+[PublicAPI]
+public static class DefaultContinueEndpointRegistration
 {
     /// <summary>
     /// Registers the required services and handlers for the continue endpoint into the provided <see cref="IServiceCollection"/> instance.
@@ -34,9 +36,17 @@ public static class ContinueEndpointRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddContinueEndpoint(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<IContinueService, DefaultContinueService>();
-        serviceCollection.TryAddSingleton<IContinueProviderSelector, DefaultContinueProviderSelector>();
-        serviceCollection.TryAddSingleton<IOpenIdEndpointProvider, DefaultContinueEndpointHandler>();
+        serviceCollection.TryAddSingleton<
+            IContinueService,
+            DefaultContinueService>();
+
+        serviceCollection.TryAddSingleton<
+            IContinueProviderSelector,
+            DefaultContinueProviderSelector>();
+
+        serviceCollection.TryAddSingleton<
+            IOpenIdEndpointProvider,
+            DefaultContinueEndpointHandler>();
 
         return serviceCollection;
     }

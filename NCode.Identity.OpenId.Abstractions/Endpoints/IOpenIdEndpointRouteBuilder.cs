@@ -23,15 +23,15 @@ using Microsoft.AspNetCore.Routing;
 namespace NCode.Identity.OpenId.Endpoints;
 
 /// <summary>
-/// Provides the ability to configure multiple <c>OAuth</c> or <c>OpenID Connect</c> endpoints.
+/// Provides the ability to map <c>OAuth</c> or <c>OpenID Connect</c> endpoints to the HTTP request pipeline.
 /// </summary>
 [PublicAPI]
 public interface IOpenIdEndpointRouteBuilder
 {
     /// <summary>
-    /// Adds various <see cref="RouteEndpoint"/> to the <see cref="IEndpointRouteBuilder"/> for a multiple <c>OAuth</c> or <c>OpenID Connect</c> endpoints.
+    /// Maps all the <c>OAuth</c> or <c>OpenID Connect</c> endpoints that have been registered with the service provider.
     /// </summary>
-    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance.</param>
+    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance to map the endpoints to.</param>
     /// <returns>The <see cref="RouteGroupBuilder"/> instance that contains all the <c>OAuth</c> or <c>OpenID Connect</c> endpoints.</returns>
     RouteGroupBuilder MapOpenId(IEndpointRouteBuilder endpoints);
 }

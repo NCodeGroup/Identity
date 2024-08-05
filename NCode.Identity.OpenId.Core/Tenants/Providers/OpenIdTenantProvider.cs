@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
 using NCode.Collections.Providers;
+using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Models;
@@ -51,7 +52,8 @@ public abstract class OpenIdTenantProvider(
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
-    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
+    ICollectionDataSourceFactory collectionDataSourceFactory
 ) : IOpenIdTenantProvider
 {
     [MemberNotNullWhen(true, nameof(TenantRouteOrNull))]
@@ -98,6 +100,11 @@ public abstract class OpenIdTenantProvider(
     /// Gets the <see cref="ISecretKeyCollectionProviderFactory"/> used to create <see cref="ISecretKeyCollectionProvider"/> instances.
     /// </summary>
     protected ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+
+    /// <summary>
+    /// Gets the <see cref="ICollectionDataSourceFactory"/> used to create <see cref="ICollectionDataSource{T}"/> instances.
+    /// </summary>
+    protected ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
 
     /// <inheritdoc />
     public abstract string ProviderCode { get; }
@@ -336,8 +343,7 @@ public abstract class OpenIdTenantProvider(
 
     /// <summary>
     /// Used to get the tenant's <see cref="ISecretKeyCollectionProvider"/> instance.
-    /// This implementation uses a <see cref="PeriodicPollingCollectionDataSource{TKey,TValue}"/> to periodically refresh the
-    /// collection of secrets.
+    /// This implementation uses a periodic polling collection data source to periodically refresh the collection of secrets.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
@@ -368,7 +374,7 @@ public abstract class OpenIdTenantProvider(
         var refreshInterval = ServerOptions.Tenant.SecretKeyPeriodicRefreshInterval;
         var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets, out _);
 
-        var dataSource = new PeriodicPollingCollectionDataSource<SecretKey, string>(
+        var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             tenantId,
             initialCollection,
             refreshInterval,

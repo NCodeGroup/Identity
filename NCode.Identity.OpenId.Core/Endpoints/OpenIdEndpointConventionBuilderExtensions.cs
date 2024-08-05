@@ -17,12 +17,24 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 
 namespace NCode.Identity.OpenId.Endpoints;
 
-internal static class OpenIdEndpointConventionBuilderExtensions
+/// <summary>
+/// Provides extension methods for <see cref="IEndpointConventionBuilder"/>.
+/// </summary>
+[PublicAPI]
+public static class OpenIdEndpointConventionBuilderExtensions
 {
+    /// <summary>
+    /// Adds <see cref="OpenIdEndpointDiscoverableMetadata"/> to the <see cref="IEndpointConventionBuilder"/> to indicate whether the endpoint is discoverable.
+    /// </summary>
+    /// <param name="builder">The <see cref="IEndpointConventionBuilder"/> instance.</param>
+    /// <param name="isDiscoverable">Specifies whether the endpoint is discoverable. Default is <c>true</c>.</param>
+    /// <typeparam name="TBuilder">The type of the <see cref="IEndpointConventionBuilder"/> instance.</typeparam>
+    /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
     public static TBuilder WithOpenIdDiscoverable<TBuilder>(this TBuilder builder, bool isDiscoverable = true)
         where TBuilder : IEndpointConventionBuilder
         => builder.WithMetadata(

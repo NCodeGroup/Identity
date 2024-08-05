@@ -21,6 +21,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
+using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -46,7 +47,8 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
-    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
+    ICollectionDataSourceFactory collectionDataSourceFactory
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -55,7 +57,8 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     tenantCache,
     settingSerializer,
     secretSerializer,
-    secretKeyCollectionProviderFactory
+    secretKeyCollectionProviderFactory,
+    collectionDataSourceFactory
 )
 {
     private Regex? DomainNameRegex { get; set; }

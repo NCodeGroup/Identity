@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
@@ -34,6 +35,7 @@ namespace NCode.Identity.OpenId.Endpoints.Token;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register required services and handlers for the token endpoint.
 /// </summary>
+[PublicAPI]
 public static class DefaultTokenEndpointRegistration
 {
     /// <summary>
@@ -58,7 +60,8 @@ public static class DefaultTokenEndpointRegistration
         // Authorization Code
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ITokenGrantHandler, DefaultAuthorizationCodeGrantHandler>());
+            ITokenGrantHandler,
+            DefaultAuthorizationCodeGrantHandler>());
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>,
@@ -67,7 +70,8 @@ public static class DefaultTokenEndpointRegistration
         // Refresh Token
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ITokenGrantHandler, DefaultRefreshTokenGrantHandler>());
+            ITokenGrantHandler,
+            DefaultRefreshTokenGrantHandler>());
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>,
@@ -76,7 +80,8 @@ public static class DefaultTokenEndpointRegistration
         // Client Credentials
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ITokenGrantHandler, DefaultClientCredentialsGrantHandler>());
+            ITokenGrantHandler,
+            DefaultClientCredentialsGrantHandler>());
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>,
@@ -85,7 +90,8 @@ public static class DefaultTokenEndpointRegistration
         // Password
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ITokenGrantHandler, DefaultPasswordGrantHandler>());
+            ITokenGrantHandler,
+            DefaultPasswordGrantHandler>());
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<AuthenticatePasswordGrantCommand, SubjectAuthentication>,

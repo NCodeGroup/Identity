@@ -20,6 +20,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Moq;
+using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -32,11 +33,13 @@ namespace NCode.Identity.OpenId.Tests.Serialization;
 public class DelegatingJsonConverterTests : IDisposable
 {
     private MockRepository MockRepository { get; }
+    private Mock<INullChangeToken> MockNullChangeToken { get; }
     private Mock<OpenIdServer> MockOpenIdServer { get; }
 
     public DelegatingJsonConverterTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
+        MockNullChangeToken = MockRepository.Create<INullChangeToken>();
         MockOpenIdServer = MockRepository.Create<OpenIdServer>();
     }
 
@@ -48,7 +51,8 @@ public class DelegatingJsonConverterTests : IDisposable
     [Fact]
     public void AuthorizationRequestMessage_RoundTrip()
     {
-        var knownParameterCollection = new KnownParameterCollection(new DefaultKnownParameterDataSource().Collection);
+        var knownParameterCollection = new KnownParameterCollection(
+            new DefaultKnownParameterDataSource(MockNullChangeToken.Object).Collection);
 
         MockOpenIdServer
             .Setup(x => x.KnownParameters)
@@ -87,7 +91,8 @@ public class DelegatingJsonConverterTests : IDisposable
     [Fact]
     public void AuthorizationRequest_RoundTrip()
     {
-        var knownParameterCollection = new KnownParameterCollection(new DefaultKnownParameterDataSource().Collection);
+        var knownParameterCollection = new KnownParameterCollection(
+            new DefaultKnownParameterDataSource(MockNullChangeToken.Object).Collection);
 
         MockOpenIdServer
             .Setup(x => x.KnownParameters)

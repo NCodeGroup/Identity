@@ -31,6 +31,5 @@ public class DefaultSecureDataProtectionProvider(
 
     /// <inheritdoc />
     public ISecureDataProtector CreateProtector(string purpose) =>
-        new DelegatingSecureDataProtector(
-            DataProtectionProvider.CreateProtector(purpose));
+        new DelegatingSecureDataProtector(DataProtectionProvider.CreateProtector(purpose));
 }

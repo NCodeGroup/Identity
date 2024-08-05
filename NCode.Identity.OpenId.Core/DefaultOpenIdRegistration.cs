@@ -16,45 +16,71 @@
 
 #endregion
 
+using System.Buffers;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 
-namespace NCode.Identity.OpenId.Registration;
+namespace NCode.Identity.OpenId;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register required core services for OpenId.
+/// Provides extension methods for <see cref="IServiceCollection"/> to register the required services and handlers for OpenId.
 /// </summary>
 [PublicAPI]
-public static class OpenIdCoreRegistration
+public static class DefaultOpenIdRegistration
 {
     /// <summary>
-    /// Registers the required core services for OpenId into the provided <see cref="IServiceCollection"/> instance.
+    /// Registers the required services and handlers for OpenId into the provided <see cref="IServiceCollection"/> instance.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddOpenIdCoreServices(this IServiceCollection serviceCollection)
+    public static IServiceCollection AddOpenIdServices(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton(TimeProvider.System);
+        serviceCollection.VerifySecretServicesAreRegistered();
+        serviceCollection.VerifyJoseServicesAreRegistered();
 
-        serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();
-        serviceCollection.TryAddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
+        // random services
+
+        serviceCollection.TryAddSingleton(
+            TimeProvider.System);
+
+        serviceCollection.TryAddSingleton(
+            ArrayPool<char>.Shared);
+
+        serviceCollection.TryAddSingleton(
+            ArrayPool<byte>.Shared);
+
+        serviceCollection.TryAddSingleton<
+            ICryptoService,
+            DefaultCryptoService>();
+
+        serviceCollection.TryAddSingleton<
+            IPersistedGrantService,
+            DefaultPersistedGrantService>();
+
+        // parameters
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICollectionDataSource<KnownParameter>, DefaultKnownParameterDataSource>());
+            ICollectionDataSource<KnownParameter>,
+            DefaultKnownParameterDataSource>());
 
         serviceCollection.TryAddSingleton<
             IKnownParameterCollectionProvider,
             DefaultKnownParameterCollectionProvider>();
 
+        // settings
+
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICollectionDataSource<SettingDescriptor>, DefaultSettingDescriptorDataSource>());
+            ICollectionDataSource<SettingDescriptor>,
+            DefaultSettingDescriptorDataSource>());
 
         serviceCollection.TryAddSingleton<
             ISettingDescriptorCollectionProvider,
@@ -68,9 +94,13 @@ public static class OpenIdCoreRegistration
             ISettingSerializer,
             DefaultSettingSerializer>();
 
+        // server
+
         serviceCollection.AddSingleton<DefaultOpenIdServer>();
+
         serviceCollection.TryAddSingleton<OpenIdServer>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultOpenIdServer>());
+
         serviceCollection.TryAddSingleton<IOpenIdErrorFactory>(serviceProvider =>
             serviceProvider.GetRequiredService<DefaultOpenIdServer>());
 

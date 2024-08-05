@@ -88,6 +88,8 @@ public class TenantEntity : ISupportId, ISupportConcurrencyToken
     /// Gets or sets the display name for the tenant.
     /// </summary>
     [Unicode]
+    // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
+    // We never know how long the value will be.
     public required string DisplayName { get; set; }
 
     /// <summary>

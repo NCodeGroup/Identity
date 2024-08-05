@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
@@ -23,6 +24,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 /// <summary>
 /// Provides an implementation of <see cref="ValueConverter"/> that always converts <see cref="DateTimeOffset"/> values to UTC.
 /// </summary>
+[PublicAPI]
 public class DateTimeOffsetConverter : ValueConverter<DateTimeOffset, DateTimeOffset>
 {
     /// <summary>

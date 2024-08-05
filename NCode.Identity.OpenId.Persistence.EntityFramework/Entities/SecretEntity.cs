@@ -115,7 +115,9 @@ public class SecretEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
     /// versioned, etc. must be self-contained within this value.
     /// </summary>
     [Unicode(false)]
-    public required string EncodedValue { get; set; }
+    // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
+    // We never know how long the value will be.
+    public required string EncodedValue { get; init; }
 
     //
 

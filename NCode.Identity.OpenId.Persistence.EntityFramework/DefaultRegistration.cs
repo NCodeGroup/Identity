@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 /// <summary>
 /// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using Entity Framework with OpenId.
 /// </summary>
-public static class Registration
+public static class DefaultRegistration
 {
     /// <summary>
     /// Registers the required services needed for using Entity Framework with OpenId into the provided <see cref="IServiceCollection"/> instance.

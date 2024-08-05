@@ -21,6 +21,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Endpoints.Discovery.Commands;
+using NCode.Identity.OpenId.Endpoints.Discovery.Handlers;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Discovery;
@@ -38,13 +39,13 @@ public static class DefaultDiscoveryEndpointRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddDiscoveryEndpoint(this IServiceCollection serviceCollection)
     {
-        serviceCollection.AddSingleton<DefaultDiscoveryEndpointHandler>();
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            IOpenIdEndpointProvider,
+            DefaultDiscoveryEndpointHandler>());
 
-        serviceCollection.TryAddSingleton<IOpenIdEndpointProvider>(serviceProvider =>
-            serviceProvider.GetRequiredService<DefaultDiscoveryEndpointHandler>());
-
-        serviceCollection.TryAddSingleton<ICommandHandler<DiscoverMetadataCommand>>(serviceProvider =>
-            serviceProvider.GetRequiredService<DefaultDiscoveryEndpointHandler>());
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ICommandHandler<DiscoverMetadataCommand>,
+            DefaultDiscoverMetadataHandler>());
 
         return serviceCollection;
     }

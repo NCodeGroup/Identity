@@ -139,13 +139,16 @@ public abstract class OpenIdTenantProvider(
     protected async ValueTask<PersistedTenant> GetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
     {
         var persistedTenant = await TryGetTenantByIdAsync(tenantId, cancellationToken);
-        if (persistedTenant is null)
-            throw TypedResults
-                .NotFound()
-                .AsException($"A tenant with identifier '{tenantId}' could not be found.");
-
-        return persistedTenant;
+        return persistedTenant ?? throw GetTenantNotFoundException(tenantId);
     }
+
+    /// <summary>
+    /// Creates and returns an <see cref="Exception"/> instance for when the tenant could not be found.
+    /// The default implementation returns a <see cref="HttpResultException"/> with status code 404.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant that could not be found.</param>
+    protected virtual Exception GetTenantNotFoundException(string tenantId) =>
+        TypedResults.NotFound($"A tenant with identifier '{tenantId}' could not be found.").AsException();
 
     /// <inheritdoc />
     public virtual RoutePattern GetTenantRoute(IPropertyBag propertyBag)

@@ -19,7 +19,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -86,7 +86,7 @@ public class OpenIdDbContext(
             .Properties<DateTimeOffset>()
             .HaveConversion<DateTimeOffsetConverter>();
 
-        configurationBuilder.Conventions.Add(serviceProvider =>
-            serviceProvider.GetRequiredService<UseIdGeneratorConvention>());
+        configurationBuilder.Conventions.Add(_ =>
+            this.GetService<UseIdGeneratorConvention>());
     }
 }

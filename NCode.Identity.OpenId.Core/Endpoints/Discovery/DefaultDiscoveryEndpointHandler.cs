@@ -33,14 +33,10 @@ namespace NCode.Identity.OpenId.Endpoints.Discovery;
 /// Provides a default implementation of the required services and handlers used by the discovery endpoint.
 /// </summary>
 public class DefaultDiscoveryEndpointHandler(
-    EndpointDataSource endpointDataSource,
-    LinkGenerator linkGenerator,
     IOpenIdContextFactory contextFactory,
     OpenIdServer openIdServer
-) : IOpenIdEndpointProvider, ICommandHandler<DiscoverMetadataCommand>
+) : IOpenIdEndpointProvider
 {
-    private EndpointDataSource EndpointDataSource { get; } = endpointDataSource;
-    private LinkGenerator LinkGenerator { get; } = linkGenerator;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private OpenIdServer OpenIdServer { get; } = openIdServer;
 
@@ -72,62 +68,5 @@ public class DefaultDiscoveryEndpointHandler(
         );
 
         return TypedResults.Json(result, OpenIdServer.JsonSerializerOptions);
-    }
-
-    /// <inheritdoc />
-    public ValueTask HandleAsync(
-        DiscoverMetadataCommand command,
-        CancellationToken cancellationToken)
-    {
-        var (openIdContext, metadata, showAll) = command;
-
-        DiscoverSettings(openIdContext, metadata, showAll);
-
-        DiscoverEndpoints(metadata, openIdContext.Http, showAll);
-
-        return ValueTask.CompletedTask;
-    }
-
-    private static void DiscoverSettings(
-        OpenIdContext openIdContext,
-        IDictionary<string, object> metadata,
-        bool showAll)
-    {
-        var settings = openIdContext.Tenant.Settings;
-        var settingsToShow = settings.Where(setting => showAll || setting.Descriptor.IsDiscoverable);
-        foreach (var setting in settingsToShow)
-        {
-            var value = setting.Descriptor.Format(setting);
-            metadata[setting.Descriptor.Name] = value;
-        }
-    }
-
-    private void DiscoverEndpoints(
-        IDictionary<string, object> metadata,
-        HttpContext httpContext,
-        bool showAll)
-    {
-        var routeValues = new { };
-
-        foreach (var endpoint in EndpointDataSource.Endpoints)
-        {
-            var discoverable = endpoint.Metadata.GetMetadata<IOpenIdEndpointDiscoverableMetadata>()?.IsDiscoverable ?? false;
-            if (!discoverable && !showAll)
-                continue;
-
-            var suppressLinkGeneration = endpoint.Metadata.GetMetadata<ISuppressLinkGenerationMetadata>()?.SuppressLinkGeneration ?? false;
-            if (suppressLinkGeneration)
-                continue;
-
-            var endpointName = endpoint.Metadata.GetMetadata<EndpointNameMetadata>()?.EndpointName;
-            if (string.IsNullOrEmpty(endpointName))
-                continue;
-
-            var endpointUrl = LinkGenerator.GetUriByName(httpContext, endpointName, routeValues);
-            if (string.IsNullOrEmpty(endpointUrl))
-                continue;
-
-            metadata[endpointName] = endpointUrl;
-        }
     }
 }

@@ -114,4 +114,10 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
 
         return ValueTask.FromResult(descriptor);
     }
+
+    /// <inheritdoc />
+    protected override Exception GetTenantNotFoundException(string tenantId)
+    {
+        throw new InvalidOperationException($"The server is configured to use a static single tenant with identifier '{tenantId}', but the tenant was not found.");
+    }
 }

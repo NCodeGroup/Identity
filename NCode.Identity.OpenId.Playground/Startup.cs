@@ -117,7 +117,7 @@ internal class Startup(IConfiguration configuration)
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapOpenId().WithHttpLogging(HttpLoggingFields.All);
-            endpoints.MapControllers();
+            endpoints.MapControllers().WithHttpLogging(HttpLoggingFields.All);
             endpoints.MapHealthChecks("/health").WithName("health_endpoint");
         });
     }

@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for persisting secrets.
 /// </summary>
 [PublicAPI]
-public static class Registration
+public static class DefaultRegistration
 {
     /// <summary>
     /// Registers the required services needed for persisting secrets into the provided <see cref="IServiceCollection"/> instance.
@@ -35,7 +35,11 @@ public static class Registration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddSecretPersistenceServices(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
+        serviceCollection.VerifySecretServicesAreRegistered();
+
+        serviceCollection.TryAddSingleton<
+            ISecretSerializer,
+            DefaultSecretSerializer>();
 
         return serviceCollection;
     }

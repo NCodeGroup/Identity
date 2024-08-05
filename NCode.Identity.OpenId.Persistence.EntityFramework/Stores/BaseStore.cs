@@ -19,6 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using IdGen;
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.Persistence.DataContracts;
@@ -32,6 +33,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// </summary>
 /// <typeparam name="TItem">The type of the persisted item, also known as a <c>Data Transfer Object</c> or <c>DTO</c>.</typeparam>
 /// <typeparam name="TEntity">The type of the corresponding entity.</typeparam>
+[PublicAPI]
 public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     where TItem : class, ISupportId<long>
     where TEntity : class, ISupportId<long>

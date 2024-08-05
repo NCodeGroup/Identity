@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
@@ -28,6 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 /// <summary>
 /// Contains the entity framework <see cref="DbContext"/> for <c>OAuth</c> and <c>OpenID Connect</c> entities.
 /// </summary>
+[PublicAPI]
 public class OpenIdDbContext(
     DbContextOptions<OpenIdDbContext> options
 ) : DbContext(options)

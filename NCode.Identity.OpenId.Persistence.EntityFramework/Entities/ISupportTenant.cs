@@ -16,12 +16,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
 /// <summary>
 /// Indicates that an entity supports the <see cref="Tenant"/> navigation property
 /// and the <see cref="TenantId"/> foreign key.
 /// </summary>
+[PublicAPI]
 public interface ISupportTenant
 {
     /// <summary>

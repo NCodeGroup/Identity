@@ -16,12 +16,15 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
 /// <summary>
 /// Indicates that an entity supports the <see cref="Secret"/> navigation property
 /// and the <see cref="SecretId"/> foreign key.
 /// </summary>
+[PublicAPI]
 public interface ISupportSecret
 {
     /// <summary>

@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -32,10 +33,14 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// </summary>
 [PublicAPI]
 public class TenantStore(
+    IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
     OpenIdDbContext dbContext
 ) : BaseStore<PersistedTenant, TenantEntity>, ITenantStore
 {
+    /// <inheritdoc />
+    protected override IStoreProvider StoreProvider { get; } = storeProvider;
+
     /// <inheritdoc />
     protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
 

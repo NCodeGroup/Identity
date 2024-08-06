@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Text.Json;
 using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +33,6 @@ using NCode.Identity.OpenId.Endpoints.Token;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
-using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.Secrets;
@@ -99,12 +97,6 @@ internal class Startup(IConfiguration configuration)
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
-        using (var serviceScope = app.ApplicationServices.CreateScope())
-        {
-            var context = serviceScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-            BootstrapData(context);
-        }
-
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
@@ -128,30 +120,5 @@ internal class Startup(IConfiguration configuration)
             endpoints.MapControllers().WithHttpLogging(HttpLoggingFields.All);
             endpoints.MapHealthChecks("/health").WithName("health_endpoint");
         });
-    }
-
-    private static void BootstrapData(OpenIdDbContext context)
-    {
-        const string tenantId = StaticSingleOpenIdTenantOptions.DefaultTenantId;
-        var tenant = context.Tenants.FirstOrDefault(tenant => tenant.TenantId == tenantId);
-        if (tenant == null)
-        {
-            tenant = new TenantEntity
-            {
-                TenantId = tenantId,
-                NormalizedTenantId = tenantId.ToUpperInvariant(),
-                DisplayName = StaticSingleOpenIdTenantOptions.DefaultDisplayName,
-                DomainName = null,
-                NormalizedDomainName = null,
-                ConcurrencyToken = Guid.NewGuid().ToString(),
-                IsDisabled = false,
-                Settings = JsonSerializer.SerializeToElement(null, typeof(object)),
-                Secrets = Array.Empty<TenantSecretEntity>(),
-            };
-
-            context.Tenants.Add(tenant);
-        }
-
-        context.SaveChanges();
     }
 }

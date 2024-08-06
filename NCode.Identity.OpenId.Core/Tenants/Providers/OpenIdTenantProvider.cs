@@ -120,7 +120,7 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedTenant"/> instance.</returns>
-    protected async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
+    protected virtual async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
@@ -133,22 +133,26 @@ public abstract class OpenIdTenantProvider(
     /// Loads a <see cref="PersistedTenant"/> using the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.
     /// </summary>
     /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedTenant"/> instance.</returns>
     /// <exception cref="HttpResultException">Throw with status code 404 when then tenant could not be found.</exception>
-    protected async ValueTask<PersistedTenant> GetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
+    protected async ValueTask<PersistedTenant> GetTenantByIdAsync(
+        string tenantId,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken)
     {
-        var persistedTenant = await TryGetTenantByIdAsync(tenantId, cancellationToken);
-        return persistedTenant ?? throw GetTenantNotFoundException(tenantId);
-    }
+        if (propertyBag.TryGet<PersistedTenant>(out var persistedTenant, tenantId) && persistedTenant.TenantId == tenantId)
+            return persistedTenant;
 
-    /// <summary>
-    /// Creates and returns an <see cref="Exception"/> instance for when the tenant could not be found.
-    /// The default implementation returns a <see cref="HttpResultException"/> with status code 404.
-    /// </summary>
-    /// <param name="tenantId">The identifier of the tenant that could not be found.</param>
-    protected virtual Exception GetTenantNotFoundException(string tenantId) =>
-        TypedResults.NotFound($"A tenant with identifier '{tenantId}' could not be found.").AsException();
+        persistedTenant = await TryGetTenantByIdAsync(tenantId, cancellationToken);
+        if (persistedTenant == null)
+            throw TypedResults.NotFound($"A tenant with identifier '{tenantId}' could not be found.").AsException();
+
+        propertyBag.Set(persistedTenant, tenantId);
+
+        return persistedTenant;
+    }
 
     /// <inheritdoc />
     public virtual RoutePattern GetTenantRoute(IPropertyBag propertyBag)
@@ -269,12 +273,10 @@ public abstract class OpenIdTenantProvider(
         TenantDescriptor tenantDescriptor,
         CancellationToken cancellationToken)
     {
-        // ReSharper disable once InvertIf
-        if (!propertyBag.TryGet<PersistedTenant>(out var persistedTenant))
-        {
-            persistedTenant = await GetTenantByIdAsync(tenantDescriptor.TenantId, cancellationToken);
-            propertyBag.Set(persistedTenant);
-        }
+        var persistedTenant = await GetTenantByIdAsync(
+            tenantDescriptor.TenantId,
+            propertyBag,
+            cancellationToken);
 
         return SettingSerializer.DeserializeSettings(
             OpenIdServer.Settings,
@@ -366,13 +368,10 @@ public abstract class OpenIdTenantProvider(
         CancellationToken cancellationToken)
     {
         var tenantId = tenantDescriptor.TenantId;
-
-        // ReSharper disable once InvertIf
-        if (!propertyBag.TryGet<PersistedTenant>(out var persistedTenant))
-        {
-            persistedTenant = await GetTenantByIdAsync(tenantId, cancellationToken);
-            propertyBag.Set(persistedTenant);
-        }
+        var persistedTenant = await GetTenantByIdAsync(
+            tenantId,
+            propertyBag,
+            cancellationToken);
 
         var refreshInterval = ServerOptions.Tenant.SecretKeyPeriodicRefreshInterval;
         var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets, out _);

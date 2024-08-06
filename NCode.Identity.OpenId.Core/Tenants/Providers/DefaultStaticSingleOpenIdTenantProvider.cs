@@ -17,17 +17,22 @@
 
 #endregion
 
+using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Options;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;
@@ -116,8 +121,31 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     }
 
     /// <inheritdoc />
-    protected override Exception GetTenantNotFoundException(string tenantId)
+    protected override async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
     {
-        throw new InvalidOperationException($"The server is configured to use a static single tenant with identifier '{tenantId}', but the tenant was not found.");
+        Debug.Assert(tenantId == TenantOptions.TenantId, "The tenantId should match the configured tenantId.");
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var persistedTenant = await store.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        if (persistedTenant is not null)
+            return persistedTenant;
+
+        persistedTenant = new PersistedTenant
+        {
+            TenantId = tenantId,
+            DisplayName = TenantOptions.DisplayName,
+            DomainName = null,
+            ConcurrencyToken = Guid.NewGuid().ToString(),
+            IsDisabled = false,
+            Settings = JsonSerializer.SerializeToElement(null, typeof(object)),
+            Secrets = Array.Empty<PersistedSecret>()
+        };
+
+        await store.AddAsync(persistedTenant, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return persistedTenant;
     }
 }

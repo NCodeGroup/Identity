@@ -21,17 +21,15 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Persistence.Stores;
 
 /// <summary>
-/// Provides an abstraction for the unit-of-work pattern.
+/// Provides the ability to get an <see cref="IStore{T}"/> instance of the specified type.
 /// </summary>
 [PublicAPI]
-public interface IStoreManager : IStoreProvider, IAsyncDisposable
+public interface IStoreProvider : IServiceProvider
 {
     /// <summary>
-    /// Saves all changes made in this unit-of-work instance to the database.
-    /// Relational databases may use transactions to ensure the consistency of the persisted data.
+    /// Gets an <see cref="IStore{T}"/> instance of the specified type that can be used to query a database using the unit-of-work pattern.
     /// </summary>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask SaveChangesAsync(CancellationToken cancellationToken);
+    /// <typeparam name="TStore">The type of the store.</typeparam>
+    TStore GetStore<TStore>()
+        where TStore : IStore;
 }

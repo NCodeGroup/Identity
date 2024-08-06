@@ -34,12 +34,21 @@ public interface IStore<T> : IStore<T, long>
 }
 
 /// <summary>
+/// Base interface for all store implementations.
+/// </summary>
+[PublicAPI]
+public interface IStore : IStoreProvider
+{
+    // nothing
+}
+
+/// <summary>
 /// Provides an abstraction for a store which manages persisted entities.
 /// </summary>
 /// <typeparam name="T">The type of the persisted entity.</typeparam>
 /// <typeparam name="TKey">The type of the persisted entity's surrogate key.</typeparam>
 [PublicAPI]
-public interface IStore<T, in TKey>
+public interface IStore<T, in TKey> : IStore
     where T : ISupportId<TKey>
     where TKey : IEquatable<TKey>
 {
@@ -62,7 +71,7 @@ public interface IStore<T, in TKey>
     ValueTask RemoveByIdAsync(TKey id, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets an persisted entity from the store by using its surrogate key.
+    /// Gets a persisted entity from the store by using its surrogate key.
     /// </summary>
     /// <param name="id">The surrogate key of the entity to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the

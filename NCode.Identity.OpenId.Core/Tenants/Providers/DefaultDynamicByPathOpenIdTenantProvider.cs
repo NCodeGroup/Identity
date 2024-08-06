@@ -90,8 +90,7 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
         if (string.IsNullOrEmpty(tenantId))
             throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' is empty.");
 
-        var persistedTenant = await GetTenantByIdAsync(tenantId, cancellationToken);
-        propertyBag.Set(persistedTenant);
+        var persistedTenant = await GetTenantByIdAsync(tenantId, propertyBag, cancellationToken);
 
         return new TenantDescriptor
         {

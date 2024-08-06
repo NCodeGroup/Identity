@@ -138,7 +138,7 @@ public class DefaultOpenIdServer(
         {
             if (descriptor.HasDefault)
             {
-                settings.Set(descriptor.Create(descriptor.DefaultOrNull));
+                settings.Set(descriptor.Create(descriptor.BoxedDefaultOrNull));
             }
         }
 

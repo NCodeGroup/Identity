@@ -36,7 +36,7 @@ public class TenantEntity : ISupportId, ISupportConcurrencyToken
     /// <inheritdoc />
     [Key]
     [UseIdGenerator]
-    public required long Id { get; init; }
+    public long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the natural identifier for this entity.

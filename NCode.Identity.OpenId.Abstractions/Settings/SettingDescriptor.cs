@@ -46,13 +46,13 @@ public abstract class SettingDescriptor
     /// <summary>
     /// Gets a value indicating whether the default value is set.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(DefaultOrNull))]
+    [MemberNotNullWhen(true, nameof(BoxedDefaultOrNull))]
     public abstract bool HasDefault { get; }
 
     /// <summary>
-    /// Gets the default value for the setting if set, otherwise returns <see langword="null"/>.
+    /// Gets the boxed default value for the setting if set, otherwise returns <see langword="null"/>.
     /// </summary>
-    public object? DefaultOrNull { get; init; }
+    public abstract object? BoxedDefaultOrNull { get; }
 
     /// <summary>
     /// Factory method used to create a new <see cref="Setting"/> instance with the specified <paramref name="value"/>.
@@ -95,16 +95,18 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <inheritdoc />
     public override Type ValueType => typeof(TValue);
 
-    /// <summary>
-    /// Gets a value indicating whether the default value is set.
-    /// </summary>
+    /// <inheritdoc />
     [MemberNotNullWhen(true, nameof(DefaultOrNull))]
+    [MemberNotNullWhen(true, nameof(BoxedDefaultOrNull))]
     public override bool HasDefault => DefaultOrNull is not null;
+
+    /// <inheritdoc />
+    public override object? BoxedDefaultOrNull => DefaultOrNull;
 
     /// <summary>
     /// Gets or sets the default value for the setting.
     /// </summary>
-    public new TValue? DefaultOrNull { get; init; }
+    public TValue? DefaultOrNull { get; init; }
 
     /// <summary>
     /// Gets the default value for the setting or throws an <see cref="InvalidOperationException"/> if the default value is not set.

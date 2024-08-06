@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
@@ -31,10 +32,14 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// </summary>
 [PublicAPI]
 public class GrantStore(
+    IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
     OpenIdDbContext dbContext
 ) : BaseStore<PersistedGrant, GrantEntity>, IGrantStore
 {
+    /// <inheritdoc />
+    protected override IStoreProvider StoreProvider { get; } = storeProvider;
+
     /// <inheritdoc />
     protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
 

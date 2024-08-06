@@ -50,20 +50,25 @@ public static class DefaultRegistration
         serviceCollection.TryAddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<TDbContext>>();
         serviceCollection.TryAddScoped<IStoreManager, EntityStoreManager<TDbContext>>();
 
-        AddFactoryFunction<TDbContext, ITenantStore, TenantStore>(serviceCollection);
-        AddFactoryFunction<TDbContext, IClientStore, ClientStore>(serviceCollection);
-        AddFactoryFunction<TDbContext, IGrantStore, GrantStore>(serviceCollection);
+        AddStore<TDbContext, ITenantStore, TenantStore>(serviceCollection);
+        AddStore<TDbContext, IClientStore, ClientStore>(serviceCollection);
+        AddStore<TDbContext, IGrantStore, GrantStore>(serviceCollection);
 
         return serviceCollection;
     }
 
-    private static void AddFactoryFunction<TArg, TService, TImplementation>(
+    private static void AddStore<TDbContext, TService, TImplementation>(
         this IServiceCollection serviceCollection)
-        where TArg : class
+        where TDbContext : DbContext
         where TService : class
         where TImplementation : class, TService
     {
-        serviceCollection.AddSingleton<Func<TArg, TService>>(
-            provider => arg => ActivatorUtilities.CreateInstance<TImplementation>(provider, arg));
+        serviceCollection.AddSingleton<Func<IStoreProvider, TDbContext, TService>>(
+            serviceProvider =>
+                (storeProvider, dbContext) =>
+                    ActivatorUtilities.CreateInstance<TImplementation>(
+                        serviceProvider,
+                        storeProvider,
+                        dbContext));
     }
 }

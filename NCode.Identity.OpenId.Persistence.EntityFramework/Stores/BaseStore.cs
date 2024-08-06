@@ -39,6 +39,11 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     where TEntity : class, ISupportId<long>
 {
     /// <summary>
+    /// Gets the <see cref="IStoreProvider"/> for this store.
+    /// </summary>
+    protected abstract IStoreProvider StoreProvider { get; }
+
+    /// <summary>
     /// Gets the <see cref="IdGenerator"/> for this store.
     /// </summary>
     protected abstract IIdGenerator<long> IdGenerator { get; }
@@ -141,6 +146,19 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         var entity = await TryGetEntityAsync(predicate, cancellationToken);
         return entity is null ? null : await MapAsync(entity, cancellationToken);
     }
+
+    #endregion
+
+    #region IStoreProvider
+
+    /// <inheritdoc />
+    public object? GetService(Type serviceType)
+        => StoreProvider.GetService(serviceType);
+
+    /// <inheritdoc />
+    public virtual TStore GetStore<TStore>()
+        where TStore : IStore
+        => StoreProvider.GetStore<TStore>();
 
     #endregion
 

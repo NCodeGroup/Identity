@@ -146,8 +146,20 @@ public abstract class OpenIdTenantProvider(
             return persistedTenant;
 
         persistedTenant = await TryGetTenantByIdAsync(tenantId, cancellationToken);
+
         if (persistedTenant == null)
-            throw TypedResults.NotFound($"A tenant with identifier '{tenantId}' could not be found.").AsException();
+            throw OpenIdServer.ErrorFactory
+                .Create(OpenIdConstants.ErrorCodes.ServerError)
+                .WithStatusCode(StatusCodes.Status404NotFound)
+                .WithDescription($"The tenant with identifier '{tenantId}' could not be found.")
+                .AsException();
+
+        if (persistedTenant.IsDisabled)
+            throw OpenIdServer.ErrorFactory
+                .Create(OpenIdConstants.ErrorCodes.ServerError)
+                .WithStatusCode(StatusCodes.Status404NotFound)
+                .WithDescription($"The tenant with identifier '{tenantId}' is disabled.")
+                .AsException();
 
         propertyBag.Set(persistedTenant, tenantId);
 

@@ -132,7 +132,7 @@ internal class Startup(IConfiguration configuration)
 
     private static void BootstrapData(OpenIdDbContext context)
     {
-        const string tenantId = "foo";
+        const string tenantId = StaticSingleOpenIdTenantOptions.DefaultTenantId;
         var tenant = context.Tenants.FirstOrDefault(tenant => tenant.TenantId == tenantId);
         if (tenant == null)
         {
@@ -140,7 +140,7 @@ internal class Startup(IConfiguration configuration)
             {
                 TenantId = tenantId,
                 NormalizedTenantId = tenantId.ToUpperInvariant(),
-                DisplayName = "Test Tenant",
+                DisplayName = StaticSingleOpenIdTenantOptions.DefaultDisplayName,
                 DomainName = null,
                 NormalizedDomainName = null,
                 ConcurrencyToken = Guid.NewGuid().ToString(),

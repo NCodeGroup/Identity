@@ -80,6 +80,20 @@ public class TenantEntity : ISupportId, ISupportConcurrencyToken
     public required string ConcurrencyToken { get; set; }
 
     /// <summary>
+    /// Gets or sets the concurrency token for tenant's settings.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    public required string SettingsConcurrencyToken { get; set; }
+
+    /// <summary>
+    /// Gets or sets the concurrency token for the tenant's secrets.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    public required string SecretsConcurrencyToken { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
     public required bool IsDisabled { get; set; }
@@ -95,7 +109,7 @@ public class TenantEntity : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the serialized JSON for the tenant settings.
     /// </summary>
-    public required JsonElement Settings { get; set; }
+    public required JsonElement SettingsJson { get; set; }
 
     //
 

@@ -19,8 +19,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Configuration;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Claims;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Messages;
@@ -37,21 +35,14 @@ namespace NCode.Identity.OpenId.Servers;
 /// Provides a default implementation of the <see cref="OpenIdServer"/> abstraction.
 /// </summary>
 public class DefaultOpenIdServer(
-    IConfiguration configuration,
-    IAlgorithmCollectionProvider algorithmCollectionProvider,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
-    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
+    ISettingCollectionProvider settingCollectionProvider,
     ISecretKeyCollectionProvider secretKeyCollectionProvider
 ) : OpenIdServer, IOpenIdErrorFactory
 {
-    private IReadOnlySettingCollection? SettingsOrNull { get; set; }
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
-
-    private IConfiguration Configuration { get; } = configuration;
-    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } = algorithmCollectionProvider;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
-    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
 
     /// <inheritdoc />
@@ -65,7 +56,7 @@ public class DefaultOpenIdServer(
     public override IKnownParameterCollection KnownParameters => KnownParameterCollectionProvider.Collection;
 
     /// <inheritdoc />
-    public override IReadOnlySettingCollection Settings => SettingsOrNull ??= LoadSettings();
+    public override ISettingCollectionProvider SettingCollectionProvider { get; } = settingCollectionProvider;
 
     /// <inheritdoc />
     public override ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; } = secretKeyCollectionProvider;
@@ -75,103 +66,6 @@ public class DefaultOpenIdServer(
 
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
-
-    private SettingCollection LoadSettings()
-    {
-        var settingsSection = Configuration.GetSection("settings");
-
-        var settings = new SettingCollection(SettingDescriptorCollectionProvider);
-        var descriptors = SettingDescriptorCollectionProvider.Collection;
-
-        var signingAlgValuesSupported = new List<string>();
-        var encryptionAlgValuesSupported = new List<string>();
-        var encryptionEncValuesSupported = new List<string>();
-        var encryptionZipValuesSupported = new List<string>();
-
-        foreach (var algorithm in AlgorithmCollectionProvider.Collection)
-        {
-            if (string.IsNullOrEmpty(algorithm.Code)) continue;
-            if (algorithm.Code == "dir") continue;
-            if (algorithm.Code == "none") continue;
-
-            switch (algorithm.Type)
-            {
-                case AlgorithmType.DigitalSignature:
-                    signingAlgValuesSupported.Add(algorithm.Code);
-                    break;
-
-                case AlgorithmType.KeyManagement:
-                    encryptionAlgValuesSupported.Add(algorithm.Code);
-                    break;
-
-                case AlgorithmType.AuthenticatedEncryption:
-                    encryptionEncValuesSupported.Add(algorithm.Code);
-                    break;
-
-                case AlgorithmType.Compression:
-                    encryptionZipValuesSupported.Add(algorithm.Code);
-                    break;
-            }
-        }
-
-        settings.Set(SettingKeys.IdTokenSigningAlgValuesSupported, signingAlgValuesSupported);
-        settings.Set(SettingKeys.UserInfoSigningAlgValuesSupported, signingAlgValuesSupported);
-        settings.Set(SettingKeys.AccessTokenSigningAlgValuesSupported, signingAlgValuesSupported);
-        settings.Set(SettingKeys.RequestObjectSigningAlgValuesSupported, signingAlgValuesSupported);
-
-        settings.Set(SettingKeys.IdTokenEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
-        settings.Set(SettingKeys.UserInfoEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
-        settings.Set(SettingKeys.AccessTokenEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
-        settings.Set(SettingKeys.RequestObjectEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
-
-        settings.Set(SettingKeys.IdTokenEncryptionEncValuesSupported, encryptionEncValuesSupported);
-        settings.Set(SettingKeys.UserInfoEncryptionEncValuesSupported, encryptionEncValuesSupported);
-        settings.Set(SettingKeys.AccessTokenEncryptionEncValuesSupported, encryptionEncValuesSupported);
-        settings.Set(SettingKeys.RequestObjectEncryptionEncValuesSupported, encryptionEncValuesSupported);
-
-        settings.Set(SettingKeys.IdTokenEncryptionZipValuesSupported, encryptionZipValuesSupported);
-        settings.Set(SettingKeys.UserInfoEncryptionZipValuesSupported, encryptionZipValuesSupported);
-        settings.Set(SettingKeys.AccessTokenEncryptionZipValuesSupported, encryptionZipValuesSupported);
-        settings.Set(SettingKeys.RequestObjectEncryptionZipValuesSupported, encryptionZipValuesSupported);
-
-        foreach (var descriptor in descriptors)
-        {
-            if (descriptor.HasDefault)
-            {
-                settings.Set(descriptor.Create(descriptor.BoxedDefaultOrNull));
-            }
-        }
-
-        foreach (var settingSection in settingsSection.GetChildren())
-        {
-            var settingName = settingSection.Key;
-            if (!descriptors.TryGet(settingName, out var descriptor))
-            {
-                if (settingSection.GetChildren().Count() > 1)
-                {
-                    descriptor = new SettingDescriptor<IReadOnlyCollection<string>>
-                    {
-                        Name = settingName
-                    };
-                }
-                else
-                {
-                    descriptor = new SettingDescriptor<string>
-                    {
-                        Name = settingName
-                    };
-                }
-            }
-
-            var value = settingSection.Get(descriptor.ValueType);
-            if (value is null) continue;
-
-            var setting = descriptor.Create(value);
-            settings.Set(setting);
-        }
-
-        return settings;
-    }
 
     private JsonSerializerOptions CreateJsonSerializerOptions() =>
         new(JsonSerializerDefaults.Web)

@@ -17,7 +17,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
 
 namespace NCode.Collections.Providers;
 
@@ -30,15 +29,10 @@ namespace NCode.Collections.Providers;
 /// to dispose of any resources.
 /// </remarks>
 [PublicAPI]
-public interface ICollectionDataSource<out T>
+public interface ICollectionDataSource<out T> : ISupportChangeToken
 {
     /// <summary>
     /// Gets a read-only collection of <typeparamref name="T"/> instances.
     /// </summary>
     IEnumerable<T> Collection { get; }
-
-    /// <summary>
-    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
-    /// </summary>
-    IChangeToken GetChangeToken();
 }

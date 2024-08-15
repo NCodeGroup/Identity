@@ -19,6 +19,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
@@ -73,7 +74,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the collection of
     /// <see cref="PersistedSecret"/> instances for the specified <paramref name="tenantId"/>.</returns>
     /// <returns></returns>
-    ValueTask<IReadOnlyCollection<PersistedSecret>> GetSecretsAsync(
+    ValueTask<ReadOnlyConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
         string tenantId,
         CancellationToken cancellationToken);
 }

@@ -54,6 +54,12 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string ConcurrencyToken { get; set; }
 
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    public required string SettingsConcurrencyToken { get; set; }
+
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    public required string SecretsConcurrencyToken { get; set; }
+
     /// <summary>
     /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
@@ -67,7 +73,7 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the serialized JSON for the tenant settings.
     /// </summary>
-    public required JsonElement Settings { get; set; }
+    public required JsonElement SettingsJson { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to this tenant.

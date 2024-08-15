@@ -17,7 +17,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
 
 namespace NCode.Collections.Providers;
 
@@ -26,16 +25,11 @@ namespace NCode.Collections.Providers;
 /// aggregating multiple data sources and providing change notifications.
 /// </summary>
 [PublicAPI]
-public interface ICollectionProvider<TItem, out TCollection> : IAsyncDisposable
+public interface ICollectionProvider<out TItem, out TCollection> : ISupportChangeToken, IAsyncDisposable
     where TCollection : IEnumerable<TItem>
 {
     /// <summary>
     /// Gets a read-only collection of <typeparamref name="TItem"/> instances.
     /// </summary>
     TCollection Collection { get; }
-
-    /// <summary>
-    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
-    /// </summary>
-    IChangeToken GetChangeToken();
 }

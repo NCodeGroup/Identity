@@ -32,9 +32,10 @@ public class DefaultCollectionDataSourceFactory : ICollectionDataSourceFactory
         IEnumerable<ICollectionDataSource<T>> dataSources,
         bool owns = false)
     {
-        return new CompositeCollectionDataSource<T>(
-            dataSources,
-            owns);
+        return new CompositeCollectionDataSource<T>(dataSources)
+        {
+            Owns = owns
+        };
     }
 
     /// <inheritdoc />

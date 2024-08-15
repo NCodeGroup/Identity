@@ -40,8 +40,22 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
     private IChangeToken? ConsumerChangeToken { get; set; }
     private List<IDisposable>? ChangeTokenRegistrations { get; set; }
 
-    private bool Owns { get; }
+    /// <summary>
+    /// Gets or sets a value indicating whether this collection owns the individual data sources and therefore disposes of
+    /// them when this class is disposed. By default, we do not own the individual data sources and therefore not dispose
+    /// of them when the composite collection itself is disposed because the data sources are usually resolved from the DI
+    /// container which will manage their lifetimes.
+    /// </summary>
+    public bool Owns { get; init; }
+
+    /// <summary>
+    /// Gets or sets a function that is used to combine the items from the individual data sources.
+    /// The default is to concatenate the items.
+    /// </summary>
+    public Func<IEnumerable<IEnumerable<T>>, IEnumerable<T>> CombineFunc { get; init; } = DefaultCombineFunc;
+
     private IReadOnlyList<ICollectionDataSource<T>> DataSources { get; }
+    private IReadOnlyCollection<ISupportChangeToken> ChangeTokenProducers { get; }
     private IEnumerable<T>? CollectionOrNull { get; set; }
 
     /// <inheritdoc />
@@ -56,16 +70,29 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CompositeCollectionDataSource{T}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
-    /// By default, we do not own the individual data sources and therefore not dispose of them when the composite collection
-    /// itself is disposed because the data sources are resolved from the DI container which will manage their lifetimes.
     /// </summary>
     /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
-    /// <param name="owns">Indicates whether this collection will own the items and dispose of them
-    /// when this class is disposed. The default is <c>false</c>.</param>
-    public CompositeCollectionDataSource(IEnumerable<ICollectionDataSource<T>> dataSources, bool owns = false)
+    public CompositeCollectionDataSource(IEnumerable<ICollectionDataSource<T>> dataSources)
     {
-        Owns = owns;
-        DataSources = dataSources.ToList();
+        var dataSourcesList = dataSources.ToList();
+
+        DataSources = dataSourcesList;
+        ChangeTokenProducers = dataSourcesList;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CompositeCollectionDataSource{T}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
+    /// </summary>
+    /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
+    /// <param name="additionalChangeTokenProducers">A collection of <see cref="ISupportChangeToken"/> instances that additionally produce change notifications.</param>
+    public CompositeCollectionDataSource(
+        IEnumerable<ICollectionDataSource<T>> dataSources,
+        IEnumerable<ISupportChangeToken> additionalChangeTokenProducers)
+    {
+        var dataSourcesList = dataSources.ToList();
+
+        DataSources = dataSourcesList;
+        ChangeTokenProducers = [..dataSourcesList, ..additionalChangeTokenProducers];
     }
 
     /// <inheritdoc />
@@ -93,8 +120,19 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
             if (Owns)
             {
-                disposables.AddRange(DataSources.OfType<IAsyncDisposable>());
-                disposables.AddRange(DataSources.OfType<IDisposable>().Select(AsyncDisposable.Adapt));
+                foreach (var dataSource in DataSources)
+                {
+                    switch (dataSource)
+                    {
+                        case IAsyncDisposable asyncDisposable:
+                            disposables.Add(asyncDisposable);
+                            break;
+
+                        case IDisposable disposable:
+                            disposables.Add(AsyncDisposable.Adapt(disposable));
+                            break;
+                    }
+                }
             }
 
             if (ChangeTokenRegistrations is { Count: > 0 })
@@ -105,7 +143,9 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
             CollectionOrNull = null;
             ChangeTokenRegistrations = null;
+
             ChangeTokenSource = null;
+            ConsumerChangeToken = null;
         }
 
         await disposables.DisposeAllAsync();
@@ -142,36 +182,47 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
     private void SubscribeChangeTokenProducers()
     {
         ChangeTokenRegistrations ??= [];
-        ChangeTokenRegistrations.AddRange(DataSources.Select(dataSource =>
-            ChangeToken.OnChange(dataSource.GetChangeToken, HandleChange)));
+        ChangeTokenRegistrations.AddRange(ChangeTokenProducers.Select(changeTokenProducer =>
+            ChangeToken.OnChange(changeTokenProducer.GetChangeToken, HandleChange)));
     }
 
     private void HandleChange()
     {
-        CancellationTokenSource? oldTokenSource;
-
         if (IsDisposed) return;
-        lock (SyncObj)
+
+        CancellationTokenSource? oldTokenSource = null;
+        try
         {
-            if (IsDisposed) return;
-
-            oldTokenSource = ChangeTokenSource;
-
-            // refresh the cached change token
-            if (oldTokenSource is not null)
+            lock (SyncObj)
             {
-                RefreshConsumerChangeToken();
+                if (IsDisposed) return;
+
+                oldTokenSource = ChangeTokenSource;
+
+                ChangeTokenSource = null;
+                ConsumerChangeToken = null;
+
+                // refresh the cached change token
+                if (oldTokenSource is not null)
+                {
+                    RefreshConsumerChangeToken();
+                }
+
+                // refresh the cached collection
+                if (CollectionOrNull is not null)
+                {
+                    RefreshCollection();
+                }
             }
 
-            // refresh the cached collection
-            if (CollectionOrNull is not null)
-            {
-                RefreshCollection();
-            }
+            // this will trigger the consumer change token
+            // and most importantly after the collection has been refreshed
+            oldTokenSource?.Cancel();
         }
-
-        oldTokenSource?.Cancel();
-        oldTokenSource?.Dispose();
+        finally
+        {
+            oldTokenSource?.Dispose();
+        }
     }
 
     [MemberNotNull(nameof(ConsumerChangeToken))]
@@ -184,11 +235,9 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
     [MemberNotNull(nameof(CollectionOrNull))]
     private void RefreshCollection()
     {
-        CollectionOrNull = DataSources.Count switch
-        {
-            0 => [],
-            1 => DataSources[0].Collection,
-            _ => DataSources.SelectMany(dataSource => dataSource.Collection)
-        };
+        CollectionOrNull = CombineFunc(DataSources.Select(dataSource => dataSource.Collection));
     }
+
+    private static IEnumerable<T> DefaultCombineFunc(IEnumerable<IEnumerable<T>> collections) =>
+        collections.SelectMany(collection => collection);
 }

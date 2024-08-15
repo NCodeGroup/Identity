@@ -36,7 +36,7 @@ public sealed class ObservableCollectionDataSource<T> : ICollectionDataSource<T>
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
-    private CancellationChangeToken? ChangeToken { get; set; }
+    private CancellationChangeToken? ConsumerChangeToken { get; set; }
     private ObservableCollection<T> ObservableCollection { get; }
 
     /// <inheritdoc />
@@ -66,7 +66,7 @@ public sealed class ObservableCollectionDataSource<T> : ICollectionDataSource<T>
     public IChangeToken GetChangeToken()
     {
         EnsureChangeTokenInitialized();
-        return ChangeToken;
+        return ConsumerChangeToken;
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(IsDisposed, this);
@@ -98,19 +98,19 @@ public sealed class ObservableCollectionDataSource<T> : ICollectionDataSource<T>
             }
 
             ChangeTokenSource = null;
-            ChangeToken = null;
+            ConsumerChangeToken = null;
         }
 
         disposables.DisposeAll();
     }
 
-    [MemberNotNull(nameof(ChangeToken))]
+    [MemberNotNull(nameof(ConsumerChangeToken))]
     private void EnsureChangeTokenInitialized()
     {
-        if (ChangeToken is not null) return;
+        if (ConsumerChangeToken is not null) return;
         lock (SyncObj)
         {
-            if (ChangeToken is not null) return;
+            if (ConsumerChangeToken is not null) return;
 
             ThrowIfDisposed();
             RefreshChangeToken();
@@ -119,30 +119,39 @@ public sealed class ObservableCollectionDataSource<T> : ICollectionDataSource<T>
 
     private void HandleChange(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        CancellationTokenSource? oldTokenSource;
-
         if (IsDisposed) return;
-        lock (SyncObj)
+
+        CancellationTokenSource? oldTokenSource = null;
+        try
         {
-            if (IsDisposed) return;
-
-            oldTokenSource = ChangeTokenSource;
-
-            // refresh the cached change token
-            if (oldTokenSource is not null)
+            lock (SyncObj)
             {
-                RefreshChangeToken();
-            }
-        }
+                if (IsDisposed) return;
 
-        oldTokenSource?.Cancel();
-        oldTokenSource?.Dispose();
+                oldTokenSource = ChangeTokenSource;
+
+                ChangeTokenSource = null;
+                ConsumerChangeToken = null;
+
+                // refresh the cached change token
+                if (oldTokenSource is not null)
+                {
+                    RefreshChangeToken();
+                }
+            }
+
+            oldTokenSource?.Cancel();
+        }
+        finally
+        {
+            oldTokenSource?.Dispose();
+        }
     }
 
-    [MemberNotNull(nameof(ChangeToken))]
+    [MemberNotNull(nameof(ConsumerChangeToken))]
     private void RefreshChangeToken()
     {
         ChangeTokenSource = new CancellationTokenSource();
-        ChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
+        ConsumerChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
     }
 }

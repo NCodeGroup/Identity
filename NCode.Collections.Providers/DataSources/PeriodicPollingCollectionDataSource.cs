@@ -37,7 +37,7 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
-    private CancellationChangeToken? ChangeToken { get; set; }
+    private CancellationChangeToken? ConsumerChangeToken { get; set; }
 
     private TState State { get; }
     private IReadOnlyCollection<TItem> CurrentCollection { get; set; }
@@ -115,8 +115,10 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
                 ChangeTokenSource
             ];
 
+            CurrentCollection = Array.Empty<TItem>();
+
             ChangeTokenSource = null;
-            ChangeToken = null;
+            ConsumerChangeToken = null;
         }
 
         await PeriodicCancellationSource.CancelAsync();
@@ -129,27 +131,27 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
     public IChangeToken GetChangeToken()
     {
         EnsureChangeTokenInitialized();
-        return ChangeToken;
+        return ConsumerChangeToken;
     }
 
-    [MemberNotNull(nameof(ChangeToken))]
+    [MemberNotNull(nameof(ConsumerChangeToken))]
     private void EnsureChangeTokenInitialized()
     {
-        if (ChangeToken is not null) return;
+        if (ConsumerChangeToken is not null) return;
         lock (SyncObj)
         {
-            if (ChangeToken is not null) return;
+            if (ConsumerChangeToken is not null) return;
 
             ThrowIfDisposed();
             RefreshChangeToken();
         }
     }
 
-    [MemberNotNull(nameof(ChangeToken))]
+    [MemberNotNull(nameof(ConsumerChangeToken))]
     private void RefreshChangeToken()
     {
         ChangeTokenSource = new CancellationTokenSource();
-        ChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
+        ConsumerChangeToken = new CancellationChangeToken(ChangeTokenSource.Token);
     }
 
     private async ValueTask PeriodicTimerAsync()
@@ -192,24 +194,33 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
 
     private async ValueTask NotifyChangeAsync(IReadOnlyCollection<TItem> collection)
     {
-        CancellationTokenSource? oldTokenSource;
-
         if (IsDisposed) return;
-        lock (SyncObj)
+
+        CancellationTokenSource? oldTokenSource = null;
+        try
         {
-            if (IsDisposed) return;
+            lock (SyncObj)
+            {
+                if (IsDisposed) return;
 
-            oldTokenSource = ChangeTokenSource;
+                oldTokenSource = ChangeTokenSource;
 
-            RefreshChangeToken();
+                ChangeTokenSource = null;
+                ConsumerChangeToken = null;
 
-            CurrentCollection = collection;
+                RefreshChangeToken();
+
+                CurrentCollection = collection;
+            }
+
+            if (oldTokenSource is not null)
+            {
+                await oldTokenSource.CancelAsync();
+            }
         }
-
-        if (oldTokenSource is not null)
+        finally
         {
-            await oldTokenSource.CancelAsync();
-            oldTokenSource.Dispose();
+            oldTokenSource?.Dispose();
         }
     }
 }

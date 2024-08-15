@@ -16,20 +16,18 @@
 
 #endregion
 
-using JetBrains.Annotations;
+namespace NCode.Identity.OpenId.Settings;
 
-namespace NCode.Collections.Providers;
+public delegate ValueTask<IReadOnlyCollection<Setting>> LoadSettingsAsyncDelegate<in TState>(
+    TState state,
+    CancellationToken cancellationToken);
 
-/// <summary>
-/// Provides the composition root (i.e. top-level collection) of <typeparamref name="TItem"/> instances by
-/// aggregating multiple data sources and providing change notifications.
-/// </summary>
-[PublicAPI]
-public interface ICollectionProvider<out TItem, out TCollection> : ISupportChangeToken, IAsyncDisposable
-    where TCollection : IEnumerable<TItem>
+public interface ISettingCollectionProviderFactory
 {
-    /// <summary>
-    /// Gets a read-only collection of <typeparamref name="TItem"/> instances.
-    /// </summary>
-    TCollection Collection { get; }
+    ValueTask<ISettingCollectionProvider> CreateProviderAsync<TState>(
+        ISettingCollectionProvider? parentSettings,
+        TState state,
+        TimeSpan refreshInterval,
+        LoadSettingsAsyncDelegate<TState> loadSettingsAsync,
+        CancellationToken cancellationToken);
 }

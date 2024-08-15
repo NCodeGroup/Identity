@@ -16,23 +16,22 @@
 
 #endregion
 
-using JetBrains.Annotations;
+using Microsoft.Extensions.Primitives;
 
-namespace NCode.Collections.Providers;
+namespace NCode.Collections.Providers.DataSources;
 
-/// <summary>
-/// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
-/// </summary>
 /// <remarks>
-/// The concrete implementations should be registered in DI using the <see cref="ICollectionDataSource{T}"/>
-/// closed generic interface and can optionally implement <see cref="IDisposable"/> or <see cref="IAsyncDisposable"/>
-/// to dispose of any resources.
+/// We are not disposable because the provider is responsible for managing the lifetime of the items.
 /// </remarks>
-[PublicAPI]
-public interface ICollectionDataSource<out T> : ISupportChangeToken
+internal class CollectionDataSourceAdapter<TItem>(
+    ICollectionProvider<TItem, IEnumerable<TItem>> provider
+) : ICollectionDataSource<TItem>
 {
-    /// <summary>
-    /// Gets a read-only collection of <typeparamref name="T"/> instances.
-    /// </summary>
-    IEnumerable<T> Collection { get; }
+    private ICollectionProvider<TItem, IEnumerable<TItem>> Provider { get; } = provider;
+
+    /// <inheritdoc />
+    public IChangeToken GetChangeToken() => Provider.GetChangeToken();
+
+    /// <inheritdoc />
+    public IEnumerable<TItem> Collection => Provider.Collection;
 }

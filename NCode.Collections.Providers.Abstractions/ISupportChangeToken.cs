@@ -16,23 +16,17 @@
 
 #endregion
 
-using JetBrains.Annotations;
+using Microsoft.Extensions.Primitives;
 
 namespace NCode.Collections.Providers;
 
 /// <summary>
-/// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
+/// Provides the ability to get a <see cref="IChangeToken"/> that can be used to observe changes.
 /// </summary>
-/// <remarks>
-/// The concrete implementations should be registered in DI using the <see cref="ICollectionDataSource{T}"/>
-/// closed generic interface and can optionally implement <see cref="IDisposable"/> or <see cref="IAsyncDisposable"/>
-/// to dispose of any resources.
-/// </remarks>
-[PublicAPI]
-public interface ICollectionDataSource<out T> : ISupportChangeToken
+public interface ISupportChangeToken
 {
     /// <summary>
-    /// Gets a read-only collection of <typeparamref name="T"/> instances.
+    /// Gets a <see cref="IChangeToken"/> that provides notifications when changes occur.
     /// </summary>
-    IEnumerable<T> Collection { get; }
+    IChangeToken GetChangeToken();
 }

@@ -36,3 +36,20 @@ public interface ISupportConcurrencyToken
     [MaxLength(MaxLengths.ConcurrencyToken)]
     string ConcurrencyToken { get; }
 }
+
+[PublicAPI]
+public class ConcurrentState<TState>(TState state, string concurrencyToken)
+{
+    public TState State { get; set; } = state;
+    public string ConcurrencyToken { get; set; } = concurrencyToken;
+
+    public void Deconstruct(out TState state, out string concurrencyToken)
+    {
+        state = State;
+        concurrencyToken = ConcurrencyToken;
+    }
+}
+
+public readonly record struct ReadOnlyConcurrentState<TState>(
+    TState State,
+    string ConcurrencyToken);

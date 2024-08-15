@@ -17,22 +17,23 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Collections.Providers.DataSources;
 
 namespace NCode.Collections.Providers;
 
 /// <summary>
-/// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
+/// Provides extension methods for the <see cref="ICollectionProvider{TItem,TCollection}"/> abstraction.
 /// </summary>
-/// <remarks>
-/// The concrete implementations should be registered in DI using the <see cref="ICollectionDataSource{T}"/>
-/// closed generic interface and can optionally implement <see cref="IDisposable"/> or <see cref="IAsyncDisposable"/>
-/// to dispose of any resources.
-/// </remarks>
 [PublicAPI]
-public interface ICollectionDataSource<out T> : ISupportChangeToken
+public static class CollectionProviderExtensions
 {
     /// <summary>
-    /// Gets a read-only collection of <typeparamref name="T"/> instances.
+    /// Adapts an <see cref="ICollectionProvider{TItem,TCollection}"/> to an <see cref="ICollectionDataSource{TItem}"/>.
+    /// The newly created <see cref="ICollectionDataSource{TItem}"/> will not be disposable since the original
+    /// <see cref="ICollectionProvider{TItem,TCollection}"/> controls the lifetime of the items.
     /// </summary>
-    IEnumerable<T> Collection { get; }
+    public static ICollectionDataSource<TItem> AsDataSource<TItem>(this ICollectionProvider<TItem, IEnumerable<TItem>> provider)
+    {
+        return new CollectionDataSourceAdapter<TItem>(provider);
+    }
 }

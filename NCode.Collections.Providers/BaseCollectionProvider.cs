@@ -29,18 +29,23 @@ namespace NCode.Collections.Providers;
 /// Provides a base implementation for the <see cref="ICollectionProvider{TItem,TCollection}"/> abstraction.
 /// </summary>
 [PublicAPI]
-public abstract class BaseCollectionProvider<TItem, TCollection> : ICollectionProvider<TItem, TCollection>
+public abstract class BaseCollectionProvider<TItem, TCollection> :
+    ICollectionProvider<TItem, TCollection>,
+    ICollectionDataSource<TItem>
     where TCollection : IEnumerable<TItem>
 {
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
-    private IDisposable? ChangeTokenRegistration { get; set; }
+    private List<IDisposable>? ChangeTokenRegistrations { get; set; }
 
     private bool Owns { get; }
     private ICollectionDataSource<TItem> DataSource { get; }
+    private IReadOnlyCollection<ISupportChangeToken> ChangeTokenProducers { get; }
     private TCollection? CollectionOrNull { get; set; }
+
+    IEnumerable<TItem> ICollectionDataSource<TItem>.Collection => Collection;
 
     /// <inheritdoc />
     public TCollection Collection
@@ -59,10 +64,31 @@ public abstract class BaseCollectionProvider<TItem, TCollection> : ICollectionPr
     /// <param name="dataSource">The <see cref="ICollectionDataSource{T}"/> instance for the provider.</param>
     /// <param name="owns">Indicates whether the provider will own the data source and dispose of it
     /// when the provider itself is disposed. The default is <c>true</c>.</param>
-    protected BaseCollectionProvider(ICollectionDataSource<TItem> dataSource, bool owns = true)
+    protected BaseCollectionProvider(
+        ICollectionDataSource<TItem> dataSource,
+        bool owns = true)
     {
         Owns = owns;
         DataSource = dataSource;
+        ChangeTokenProducers = [dataSource];
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaseCollectionProvider{TItem,TCollection}"/> class with the specified <see cref="ICollectionDataSource{T}"/> instance.
+    /// This variant will own the data source and dispose of it when the provider itself is disposed.
+    /// </summary>
+    /// <param name="dataSource">The <see cref="ICollectionDataSource{T}"/> instance for the provider.</param>
+    /// <param name="additionalChangeTokenProducers">A collection of <see cref="ISupportChangeToken"/> instances that additionally produce change notifications.</param>
+    /// <param name="owns">Indicates whether the provider will own the data source and dispose of it
+    /// when the provider itself is disposed. The default is <c>true</c>.</param>
+    protected BaseCollectionProvider(
+        ICollectionDataSource<TItem> dataSource,
+        IEnumerable<ISupportChangeToken> additionalChangeTokenProducers,
+        bool owns = true)
+    {
+        Owns = owns;
+        DataSource = dataSource;
+        ChangeTokenProducers = [dataSource, ..additionalChangeTokenProducers];
     }
 
     /// <summary>
@@ -73,10 +99,42 @@ public abstract class BaseCollectionProvider<TItem, TCollection> : ICollectionPr
     /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
     /// <param name="owns">Indicates whether this instance will own the individual data sources and dispose of them
     /// when this class is disposed. The default is <c>false</c>.</param>
-    protected BaseCollectionProvider(IEnumerable<ICollectionDataSource<TItem>> dataSources, bool owns = false)
+    protected BaseCollectionProvider(
+        IEnumerable<ICollectionDataSource<TItem>> dataSources,
+        bool owns = false)
     {
+        var dataSource = new CompositeCollectionDataSource<TItem>(dataSources)
+        {
+            Owns = owns
+        };
+
         Owns = true; // this variant always own the composite data source
-        DataSource = new CompositeCollectionDataSource<TItem>(dataSources, owns);
+        DataSource = dataSource;
+        ChangeTokenProducers = [dataSource];
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaseCollectionProvider{TItem,TCollection}"/> class with the specified collection of <see cref="ICollectionDataSource{T}"/> instances.
+    /// By default, we do not own the individual data sources and therefore not dispose of them when the provider
+    /// itself is disposed because the data sources are resolved from the DI container which will manage their lifetimes.
+    /// </summary>
+    /// <param name="dataSources">A collection of <see cref="ICollectionDataSource{T}"/> instances to aggregate.</param>
+    /// <param name="additionalChangeTokenProducers">A collection of <see cref="ISupportChangeToken"/> instances that additionally produce change notifications.</param>
+    /// <param name="owns">Indicates whether this instance will own the individual data sources and dispose of them
+    /// when this class is disposed. The default is <c>false</c>.</param>
+    protected BaseCollectionProvider(
+        IEnumerable<ICollectionDataSource<TItem>> dataSources,
+        IEnumerable<ISupportChangeToken> additionalChangeTokenProducers,
+        bool owns = false)
+    {
+        var dataSource = new CompositeCollectionDataSource<TItem>(dataSources)
+        {
+            Owns = owns
+        };
+
+        Owns = true; // this variant always own the composite data source
+        DataSource = dataSource;
+        ChangeTokenProducers = [dataSource, ..additionalChangeTokenProducers];
     }
 
     /// <summary>
@@ -133,11 +191,17 @@ public abstract class BaseCollectionProvider<TItem, TCollection> : ICollectionPr
                 }
             }
 
-            if (ChangeTokenRegistration is not null)
-                disposables.Add(AsyncDisposable.Adapt(ChangeTokenRegistration));
+            if (ChangeTokenRegistrations is { Count: > 0 })
+                disposables.AddRange(ChangeTokenRegistrations.Select(AsyncDisposable.Adapt));
 
             if (ChangeTokenSource is not null)
                 disposables.Add(AsyncDisposable.Adapt(ChangeTokenSource));
+
+            CollectionOrNull = default;
+            ChangeTokenRegistrations = null;
+
+            ChangeTokenSource = null;
+            ConsumerChangeToken = null;
         }
 
         await disposables.DisposeAllAsync();
@@ -173,7 +237,9 @@ public abstract class BaseCollectionProvider<TItem, TCollection> : ICollectionPr
 
     private void SubscribeChangeTokenProducers()
     {
-        ChangeTokenRegistration = ChangeToken.OnChange(DataSource.GetChangeToken, HandleChange);
+        ChangeTokenRegistrations ??= [];
+        ChangeTokenRegistrations.AddRange(ChangeTokenProducers.Select(changeTokenProducer =>
+            ChangeToken.OnChange(changeTokenProducer.GetChangeToken, HandleChange)));
     }
 
     private void HandleChange()
@@ -186,6 +252,9 @@ public abstract class BaseCollectionProvider<TItem, TCollection> : ICollectionPr
             if (IsDisposed) return;
 
             oldTokenSource = ChangeTokenSource;
+
+            ChangeTokenSource = null;
+            ConsumerChangeToken = null;
 
             // refresh the cached change token
             if (oldTokenSource is not null)
@@ -200,7 +269,10 @@ public abstract class BaseCollectionProvider<TItem, TCollection> : ICollectionPr
             }
         }
 
+        // this will trigger the consumer change token
+        // and most importantly after the collection has been refreshed
         oldTokenSource?.Cancel();
+
         oldTokenSource?.Dispose();
     }
 

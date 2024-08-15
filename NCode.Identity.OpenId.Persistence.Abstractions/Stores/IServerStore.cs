@@ -16,20 +16,14 @@
 
 #endregion
 
-using JetBrains.Annotations;
+using System.Text.Json;
+using NCode.Identity.Persistence.Stores;
 
-namespace NCode.Collections.Providers;
+namespace NCode.Identity.OpenId.Persistence.Stores;
 
-/// <summary>
-/// Provides the composition root (i.e. top-level collection) of <typeparamref name="TItem"/> instances by
-/// aggregating multiple data sources and providing change notifications.
-/// </summary>
-[PublicAPI]
-public interface ICollectionProvider<out TItem, out TCollection> : ISupportChangeToken, IAsyncDisposable
-    where TCollection : IEnumerable<TItem>
+public interface IServerStore : IStore
 {
-    /// <summary>
-    /// Gets a read-only collection of <typeparamref name="TItem"/> instances.
-    /// </summary>
-    TCollection Collection { get; }
+    ValueTask<JsonElement> GetSettingsAsync(CancellationToken cancellationToken);
+
+    ValueTask UpdateSettingsAsync(JsonElement settings, CancellationToken cancellationToken);
 }

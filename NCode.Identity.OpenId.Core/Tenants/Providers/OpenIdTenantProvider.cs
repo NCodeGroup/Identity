@@ -33,6 +33,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
@@ -272,14 +273,14 @@ public abstract class OpenIdTenantProvider(
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Used to get the tenant's <see cref="IReadOnlySettingCollection"/> instance from the current HTTP request.
+    /// Used to get the tenant's <see cref="ISettingCollectionProvider"/> instance from the current HTTP request.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="tenantDescriptor">The <see cref="TenantDescriptor"/> instance for the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="IReadOnlySettingCollection"/> instance.</returns>
-    protected virtual async ValueTask<IReadOnlySettingCollection> GetTenantSettingsAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISettingCollectionProvider"/> instance.</returns>
+    protected virtual async ValueTask<AsyncSharedReferenceLease<ISettingCollectionProvider>> GetTenantSettingsAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,
         TenantDescriptor tenantDescriptor,
@@ -290,9 +291,20 @@ public abstract class OpenIdTenantProvider(
             propertyBag,
             cancellationToken);
 
-        return SettingSerializer.DeserializeSettings(
-            OpenIdServer.Settings,
-            persistedTenant.Settings);
+        var dataSources = new List<ICollectionDataSource<Setting>>
+        {
+            OpenIdServer.SettingCollectionProvider.AsDataSource()
+        };
+
+        var jsonSettings = persistedTenant.Settings;
+        var provider = new SettingCollectionProvider(null, dataSources, owns: true);
+        return AsyncSharedReference.Create<ISettingCollectionProvider>(provider);
+
+        await ValueTask.CompletedTask;
+
+        // return SettingSerializer.DeserializeSettings(
+        //     OpenIdServer.Settings,
+        //     persistedTenant.Settings);
     }
 
     /// <summary>
@@ -388,8 +400,9 @@ public abstract class OpenIdTenantProvider(
         var refreshInterval = ServerOptions.Tenant.SecretKeyPeriodicRefreshInterval;
         var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets, out _);
 
+        var state = new ConcurrentState<string>(tenantId, Guid.NewGuid().ToString("N"));
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            tenantId,
+            state,
             initialCollection,
             refreshInterval,
             LoadSecretsAsync);
@@ -400,10 +413,10 @@ public abstract class OpenIdTenantProvider(
     }
 
     private async ValueTask<IReadOnlyCollection<SecretKey>?> LoadSecretsAsync(
-        PeriodicPollingCollectionContext<SecretKey, string> context,
+        PeriodicPollingCollectionContext<SecretKey, ConcurrentState<string>> context,
         CancellationToken cancellationToken) =>
         await LoadSecretsAsync(
-            context.State, // state is the tenantId
+            context.State,
             cancellationToken);
 
     /// <summary>
@@ -412,17 +425,22 @@ public abstract class OpenIdTenantProvider(
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="SecretKey"/> collection.</returns>
-    protected virtual async ValueTask<IReadOnlyCollection<SecretKey>> LoadSecretsAsync(
-        string tenantId,
+    protected virtual async ValueTask<IReadOnlyCollection<SecretKey>?> LoadSecretsAsync(
+        ConcurrentState<string> concurrentState,
         CancellationToken cancellationToken)
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var persistedSecrets = await store.GetSecretsAsync(tenantId, cancellationToken);
-        var secrets = SecretSerializer.DeserializeSecrets(persistedSecrets, out _);
+        var (tenantId, prevConcurrencyToken) = concurrentState;
+        var (persistedSecrets, nextConcurrencyToken) = await store.GetSecretsAsync(tenantId, cancellationToken);
 
-        return secrets;
+        if (string.Equals(prevConcurrencyToken, nextConcurrencyToken, StringComparison.Ordinal))
+            return null;
+
+        concurrentState.ConcurrencyToken = nextConcurrencyToken;
+
+        return SecretSerializer.DeserializeSecrets(persistedSecrets, out _);
     }
 
     /// <summary>

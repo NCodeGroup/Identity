@@ -17,22 +17,16 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Collections.Providers;
 
-namespace NCode.Collections.Providers;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
+/// Provides the composition root (i.e. top-level collection) of <see cref="Setting"/> instances by
+/// aggregating multiple data sources and providing change notifications.
 /// </summary>
-/// <remarks>
-/// The concrete implementations should be registered in DI using the <see cref="ICollectionDataSource{T}"/>
-/// closed generic interface and can optionally implement <see cref="IDisposable"/> or <see cref="IAsyncDisposable"/>
-/// to dispose of any resources.
-/// </remarks>
 [PublicAPI]
-public interface ICollectionDataSource<out T> : ISupportChangeToken
+public interface ISettingCollectionProvider : ICollectionProvider<Setting, ISettingCollection>
 {
-    /// <summary>
-    /// Gets a read-only collection of <typeparamref name="T"/> instances.
-    /// </summary>
-    IEnumerable<T> Collection { get; }
+    // nothing
 }

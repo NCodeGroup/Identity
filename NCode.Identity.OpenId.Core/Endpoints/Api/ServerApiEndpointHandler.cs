@@ -16,20 +16,32 @@
 
 #endregion
 
-using JetBrains.Annotations;
+using Microsoft.AspNetCore.Routing;
 
-namespace NCode.Collections.Providers;
+namespace NCode.Identity.OpenId.Endpoints.Api;
 
-/// <summary>
-/// Provides the composition root (i.e. top-level collection) of <typeparamref name="TItem"/> instances by
-/// aggregating multiple data sources and providing change notifications.
-/// </summary>
-[PublicAPI]
-public interface ICollectionProvider<out TItem, out TCollection> : ISupportChangeToken, IAsyncDisposable
-    where TCollection : IEnumerable<TItem>
+/*
+
+GET api/server/settings
+PUT api/server/settings
+
+GET api/server/secrets
+POST api/server/secrets
+GET api/server/secrets/{secretId}
+PUT api/server/secrets/{secretId}
+
+GET api/tenants
+GET api/tenants/{tenantId}
+GET api/tenants/{tenantId}/settings
+GET api/tenants/{tenantId}/secrets
+
+*/
+
+public class ServerApiEndpointHandler : IOpenIdEndpointProvider
 {
-    /// <summary>
-    /// Gets a read-only collection of <typeparamref name="TItem"/> instances.
-    /// </summary>
-    TCollection Collection { get; }
+    /// <inheritdoc />
+    public void Map(IEndpointRouteBuilder endpoints)
+    {
+        throw new NotImplementedException();
+    }
 }

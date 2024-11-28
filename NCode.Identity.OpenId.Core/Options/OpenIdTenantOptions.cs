@@ -29,10 +29,16 @@ namespace NCode.Identity.OpenId.Options;
 public class OpenIdTenantOptions
 {
     /// <summary>
-    /// Gets or sets the period of time after which the secret keys for a tenant are refreshed.
+    /// Gets or sets the period of time after which the secrets for a tenant are refreshed.
     /// The default value is 5 minutes.
     /// </summary>
-    public TimeSpan SecretKeyPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
+    public TimeSpan SecretsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
+
+    /// <summary>
+    /// Gets or sets the period of time after which the settings for a tenant are refreshed.
+    /// The default value is 5 minutes.
+    /// </summary>
+    public TimeSpan SettingsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
 
     /// <summary>
     /// Gets or sets the period of time after which a tenant is removed from the cache.

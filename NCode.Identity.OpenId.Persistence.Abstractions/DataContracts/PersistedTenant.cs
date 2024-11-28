@@ -72,5 +72,5 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the collection of secrets only known to this tenant.
     /// </summary>
-    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; init; }
+    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; set; }
 }

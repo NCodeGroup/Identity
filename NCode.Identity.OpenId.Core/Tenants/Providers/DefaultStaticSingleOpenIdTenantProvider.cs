@@ -51,7 +51,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
-    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
+    IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -76,7 +76,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     protected override PathString TenantPath => TenantOptions.TenantPath;
 
     /// <inheritdoc />
-    protected override ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
+    protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()

@@ -17,7 +17,6 @@
 #endregion
 
 using NCode.Collections.Providers;
-using NCode.Collections.Providers.PeriodicPolling;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -25,53 +24,15 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides a default implementation of the <see cref="IReadOnlySettingCollectionProviderFactory"/> abstraction.
 /// </summary>
 public class DefaultReadOnlySettingCollectionProviderFactory(
-    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
-    ICollectionDataSourceFactory collectionDataSourceFactory
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : IReadOnlySettingCollectionProviderFactory
 {
-    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
-    private ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
+        = settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlySettingCollectionProvider> CreateProviderAsync<TState>(
-        IReadOnlySettingCollectionProvider? parentSettings,
-        TState state,
-        TimeSpan refreshInterval,
-        LoadSettingsAsyncDelegate<TState> loadSettingsAsync,
-        CancellationToken cancellationToken)
-    {
-        var initialSettings = await loadSettingsAsync(state, cancellationToken);
-
-        var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            (state, loadSettingsAsync),
-            initialSettings,
-            refreshInterval,
-            LoadSettingsAsync);
-
-        return new ReadOnlySettingCollectionProvider(
-            SettingDescriptorCollectionProvider,
-            parentSettings,
-            dataSource);
-    }
-
-    private static async ValueTask<IReadOnlyCollection<Setting>?> LoadSettingsAsync<TState>(
-        PeriodicPollingCollectionContext<Setting, (TState state, LoadSettingsAsyncDelegate<TState> loadSettingsAsync)> context,
-        CancellationToken cancellationToken)
-    {
-        var (state, loadSettingsAsync) = context.State;
-        return await loadSettingsAsync(state, cancellationToken);
-    }
+    public IReadOnlySettingCollectionProvider Create(
+        IEnumerable<ICollectionDataSource<Setting>> dataSources,
+        bool owns = false
+    ) => new ReadOnlySettingCollectionProvider(SettingDescriptorCollectionProvider, dataSources, owns);
 }
-
-// private async ValueTask<IReadOnlyCollection<Setting>> LoadSettingsAsync(CancellationToken cancellationToken)
-// {
-//     await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-//
-//     var serverStore = storeManager.GetStore<IServerStore>();
-//     var settingsJson = await serverStore.GetSettingsAsync(cancellationToken);
-//
-//     var settings = settingsJson.Deserialize<IReadOnlyCollection<Setting>>() ??
-//                    throw new InvalidOperationException("Failed to deserialize settings.");
-//
-//     return settings;
-// }

@@ -67,7 +67,7 @@ public interface ICollectionDataSourceFactory
     /// <param name="state">The state instance to pass to the refresh method when polling for updates.</param>
     /// <param name="initialCollection">The initial collection of items to use when the data source is first created.</param>
     /// <param name="refreshInterval">The interval at which to poll for updates.</param>
-    /// <param name="getCollectionAsync">The delegate to call to refresh the collection of items.</param>
+    /// <param name="refreshCollectionAsync">The delegate to call to refresh the collection of items.</param>
     /// <param name="handleExceptionAsync">The delegate to call to handle exceptions that occur during the refresh of the collection.</param>
     /// <typeparam name="TItem">The type of items in the collection.</typeparam>
     /// <typeparam name="TState">The type of the state parameter used during refresh calls.</typeparam>
@@ -76,6 +76,6 @@ public interface ICollectionDataSourceFactory
         TState state,
         IReadOnlyCollection<TItem> initialCollection,
         TimeSpan refreshInterval,
-        GetCollectionAsyncDelegate<TItem, TState> getCollectionAsync,
+        RefreshCollectionAsyncDelegate<TItem, TState> refreshCollectionAsync,
         HandleExceptionAsyncDelegate? handleExceptionAsync = default);
 }

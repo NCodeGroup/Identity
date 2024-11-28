@@ -16,24 +16,15 @@
 
 #endregion
 
-using NCode.Identity.Persistence.DataContracts;
-using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence.DataContracts;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Tenants.Providers;
+namespace NCode.Collections.Providers.PeriodicPolling;
 
 /// <summary>
-/// Represents the state used to load the tenant's <see cref="SecretKey"/> collection.
+/// Represents a method that is periodically called to refresh a collection.
 /// </summary>
-public class LoadSecretsState
-{
-    /// <summary>
-    /// Gets or sets the tenant identifier.
-    /// </summary>
-    public required string TenantId { get; init; }
-
-    /// <summary>
-    /// Gets or sets the last known <see cref="PersistedSecret"/> collection.
-    /// </summary>
-    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> Secrets { get; set; }
-}
+[PublicAPI]
+public delegate ValueTask<RefreshCollectionResult<TItem>> RefreshCollectionAsyncDelegate<TItem, in TState>(
+    TState state,
+    IReadOnlyCollection<TItem> current,
+    CancellationToken cancellationToken);

@@ -178,9 +178,9 @@ public abstract class CommonClientAuthenticationHandler(
         PersistedClient persistedClient,
         CancellationToken cancellationToken)
     {
-        var settings = SettingSerializer.DeserializeSettings(
-            openIdContext.Tenant.SettingsProvider.Collection,
-            persistedClient.Settings);
+        var clientSettings = SettingSerializer.DeserializeSettings(persistedClient.Settings);
+        var parentSettings = openIdContext.Tenant.SettingsProvider.Collection;
+        var effectiveSettings = parentSettings.Merge(clientSettings);
 
         var secrets = SecretSerializer.DeserializeSecrets(
             persistedClient.Secrets,
@@ -189,7 +189,7 @@ public abstract class CommonClientAuthenticationHandler(
         var publicClient = await ClientFactory.CreatePublicClientAsync(
             openIdContext,
             persistedClient.ClientId,
-            settings,
+            effectiveSettings,
             secrets,
             persistedClient.RedirectUrls,
             cancellationToken);

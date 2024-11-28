@@ -25,48 +25,17 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction.
 /// </summary>
 public class DefaultSettingSerializer(
-    OpenIdServer server,
-    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
+    OpenIdServer server
 ) : ISettingSerializer
 {
     private OpenIdServer Server { get; } = server;
-    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
-    public ISettingCollection DeserializeSettings(JsonElement settingsJson)
-    {
-        // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-        switch (settingsJson.ValueKind)
+    public IReadOnlyCollection<Setting> DeserializeSettings(JsonElement settingsJson)
+        => settingsJson.ValueKind switch
         {
-            case JsonValueKind.Null:
-            case JsonValueKind.Undefined:
-                return new SettingCollection(SettingDescriptorCollectionProvider);
-
-            case JsonValueKind.Object:
-                var settings = settingsJson.Deserialize<IEnumerable<Setting>>(Server.JsonSerializerOptions);
-                return new SettingCollection(SettingDescriptorCollectionProvider, settings ?? []);
-
-            default:
-                throw new JsonException("Expected an object or null value.");
-        }
-    }
-
-    /// <inheritdoc />
-    public IReadOnlySettingCollection DeserializeSettings(IReadOnlySettingCollection parentSettings, JsonElement settingsJson)
-    {
-        // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-        switch (settingsJson.ValueKind)
-        {
-            case JsonValueKind.Null:
-            case JsonValueKind.Undefined:
-                return parentSettings;
-
-            case JsonValueKind.Object:
-                var settings = settingsJson.Deserialize<IEnumerable<Setting>>(Server.JsonSerializerOptions);
-                return settings == null ? parentSettings : parentSettings.Merge(settings);
-
-            default:
-                throw new JsonException("Expected an object or null value.");
-        }
-    }
+            JsonValueKind.Null or JsonValueKind.Undefined => Array.Empty<Setting>(),
+            JsonValueKind.Object => settingsJson.Deserialize<IReadOnlyCollection<Setting>>(Server.JsonSerializerOptions) ?? [],
+            _ => throw new JsonException("Expected an object or null value.")
+        };
 }

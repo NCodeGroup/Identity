@@ -32,16 +32,7 @@ public readonly record struct ConcurrentState<TValue>(
     TValue Value,
     [MaxLength(MaxLengths.ConcurrencyToken)]
     string ConcurrencyToken
-) : ISupportConcurrencyToken
-{
-    /// <summary>
-    /// Operator overload to convert a <see cref="ConcurrentState{TValue}"/> instance to the underlying value.
-    /// </summary>
-    /// <param name="concurrentState">The <see cref="ConcurrentState{TValue}"/> instance.</param>
-    /// <returns>The underlying value.</returns>
-    public static implicit operator TValue(ConcurrentState<TValue> concurrentState)
-        => concurrentState.Value;
-}
+) : ISupportConcurrencyToken;
 
 /// <summary>
 /// Provides a factory for creating instances of <see cref="ConcurrentState{TValue}"/>.

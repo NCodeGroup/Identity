@@ -63,14 +63,14 @@ public class DefaultCollectionDataSourceFactory : ICollectionDataSourceFactory
         TState state,
         IReadOnlyCollection<TItem> initialCollection,
         TimeSpan refreshInterval,
-        GetCollectionAsyncDelegate<TItem, TState> getCollectionAsync,
+        RefreshCollectionAsyncDelegate<TItem, TState> refreshCollectionAsync,
         HandleExceptionAsyncDelegate? handleExceptionAsync = default)
     {
         return new PeriodicPollingCollectionDataSource<TItem, TState>(
             state,
             initialCollection,
             refreshInterval,
-            getCollectionAsync,
+            refreshCollectionAsync,
             handleExceptionAsync);
     }
 }

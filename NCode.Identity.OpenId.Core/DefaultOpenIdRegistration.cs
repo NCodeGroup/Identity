@@ -87,6 +87,10 @@ public static class DefaultOpenIdRegistration
             DefaultSettingDescriptorCollectionProvider>();
 
         serviceCollection.TryAddSingleton<
+            IReadOnlySettingCollectionProviderFactory,
+            DefaultReadOnlySettingCollectionProviderFactory>();
+
+        serviceCollection.TryAddSingleton<
             ISettingDescriptorJsonProvider,
             DefaultSettingDescriptorJsonProvider>();
 

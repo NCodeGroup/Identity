@@ -17,6 +17,7 @@
 #endregion
 
 using System.Linq.Expressions;
+using System.Text.Json;
 using IdGen;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
@@ -141,6 +142,28 @@ public class TenantStore(
         return await TryGetAsync(
             tenant => tenant.NormalizedDomainName == normalizedDomainName,
             cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
+        string tenantId,
+        ConcurrentState<JsonElement> lastKnownState,
+        CancellationToken cancellationToken)
+    {
+        var normalizedTenantId = Normalize(tenantId);
+
+        var entity = await DbContext.Tenants
+            .Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
+            .SingleAsync(cancellationToken);
+
+        var concurrencyToken = entity.SettingsConcurrencyToken;
+        if (string.Equals(concurrencyToken, lastKnownState.ConcurrencyToken, StringComparison.Ordinal))
+        {
+            return lastKnownState;
+        }
+
+        var settingsJson = entity.SettingsJson;
+        return ConcurrentState.Create(settingsJson, concurrencyToken);
     }
 
     /// <inheritdoc />

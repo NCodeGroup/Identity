@@ -88,9 +88,9 @@ public abstract class OpenIdTenantProvider(
     protected IOpenIdTenantCache TenantCache { get; } = tenantCache;
 
     /// <summary>
-    /// Gets the <see cref="ISettingDescriptorCollectionProvider"/> used to provide setting descriptors.
+    /// Gets the <see cref="IReadOnlySettingCollectionProviderFactory"/> used to create <see cref="IReadOnlySettingCollectionProvider"/> instances.
     /// </summary>
-    protected abstract ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
+    protected abstract IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; }
 
     /// <summary>
     /// Gets the <see cref="ISettingSerializer"/> used to serialize/deserialize settings.
@@ -296,18 +296,54 @@ public abstract class OpenIdTenantProvider(
             propertyBag,
             cancellationToken);
 
-        var tenantOnlySettings = SettingSerializer.DeserializeSettings(persistedTenant.SettingsState.Value);
-        var tenantOnlySettingsDataSource = CollectionDataSourceFactory.CreateStatic(tenantOnlySettings);
+        var initialSettingsJson = persistedTenant.SettingsState.Value;
+        var initialSettings = SettingSerializer.DeserializeSettings(initialSettingsJson);
+
+        var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
+            persistedTenant,
+            initialSettings,
+            ServerOptions.Tenant.SettingsPeriodicRefreshInterval,
+            RefreshSettingsAsync);
 
         var dataSources = new List<ICollectionDataSource<Setting>>
         {
             OpenIdServer.SettingsProvider.AsDataSource(),
-            tenantOnlySettingsDataSource
+            periodicPollingSource
         };
 
-        // TODO: use periodic polling for tenant settings
-        var provider = new ReadOnlySettingCollectionProvider(SettingDescriptorCollectionProvider, dataSources, owns: true);
-        return AsyncSharedReference.Create<IReadOnlySettingCollectionProvider>(provider);
+        var provider = SettingCollectionProviderFactory.Create(
+            dataSources,
+            owns: true);
+
+        return provider.AsSharedReference();
+    }
+
+    private async ValueTask<RefreshCollectionResult<Setting>> RefreshSettingsAsync(
+        PersistedTenant state,
+        IReadOnlyCollection<Setting> current,
+        CancellationToken cancellationToken)
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenantId = state.TenantId;
+        var prevSettingsState = state.SettingsState;
+
+        var (newSettingsJson, newConcurrencyToken) = await store.GetSettingsAsync(
+            tenantId,
+            prevSettingsState,
+            cancellationToken);
+
+        var prevConcurrencyToken = prevSettingsState.ConcurrencyToken;
+        if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
+            return RefreshCollectionResultFactory.Unchanged<Setting>();
+
+        var newSettings = SettingSerializer.DeserializeSettings(newSettingsJson);
+
+        // update the state after successfully deserializing the settings
+        state.SettingsState = ConcurrentState.Create(newSettingsJson, newConcurrencyToken);
+
+        return RefreshCollectionResultFactory.Changed(newSettings);
     }
 
     /// <summary>
@@ -400,54 +436,46 @@ public abstract class OpenIdTenantProvider(
             propertyBag,
             cancellationToken);
 
-        var refreshInterval = ServerOptions.Tenant.SecretKeyPeriodicRefreshInterval;
+        var refreshInterval = ServerOptions.Tenant.SecretsPeriodicRefreshInterval;
         var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.SecretsState.Value, out _);
 
-        var state = new LoadSecretsState
-        {
-            TenantId = tenantId,
-            Secrets = persistedTenant.SecretsState
-        };
-
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            state,
+            persistedTenant,
             initialCollection,
             refreshInterval,
-            LoadSecretsAsync);
+            RefreshSecretsAsync);
 
         var provider = SecretKeyCollectionProviderFactory.Create(dataSource);
-        return AsyncSharedReference.Create(provider);
+
+        return provider.AsSharedReference();
     }
 
-    /// <summary>
-    /// Loads a <see cref="SecretKey"/> collection given the specified <paramref name="context"/>.
-    /// </summary>
-    /// <param name="context">The <see cref="PeriodicPollingCollectionContext{TKey, TState}"/> instance that contains the current state and context information.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="SecretKey"/> collection.</returns>
-    protected virtual async ValueTask<IReadOnlyCollection<SecretKey>?> LoadSecretsAsync(
-        PeriodicPollingCollectionContext<SecretKey, LoadSecretsState> context,
+    private async ValueTask<RefreshCollectionResult<SecretKey>> RefreshSecretsAsync(
+        PersistedTenant state,
+        IReadOnlyCollection<SecretKey> current,
         CancellationToken cancellationToken)
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var state = context.State;
-        var (persistedSecrets, nextConcurrencyToken) = await store.GetSecretsAsync(
-            state.TenantId,
-            state.Secrets,
+        var tenantId = state.TenantId;
+        var prevPersistedSecrets = state.SecretsState;
+
+        var (newPersistedSecrets, newConcurrencyToken) = await store.GetSecretsAsync(
+            tenantId,
+            prevPersistedSecrets,
             cancellationToken);
 
-        var prevConcurrencyToken = state.Secrets.ConcurrencyToken;
-        if (string.Equals(prevConcurrencyToken, nextConcurrencyToken, StringComparison.Ordinal))
-            return null;
+        var prevConcurrencyToken = prevPersistedSecrets.ConcurrencyToken;
+        if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
+            return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var secrets = SecretSerializer.DeserializeSecrets(persistedSecrets, out _);
+        var newSecrets = SecretSerializer.DeserializeSecrets(newPersistedSecrets, out _);
 
         // update the state after successfully deserializing the secrets
-        state.Secrets = ConcurrentState.Create(persistedSecrets, nextConcurrencyToken);
+        state.SecretsState = ConcurrentState.Create(newPersistedSecrets, newConcurrencyToken);
 
-        return secrets;
+        return RefreshCollectionResultFactory.Changed(newSecrets);
     }
 
     /// <summary>
@@ -480,6 +508,6 @@ public abstract class OpenIdTenantProvider(
             tenantSecrets,
             propertyBag);
 
-        return ValueTask.FromResult(AsyncSharedReference.Create(tenant));
+        return ValueTask.FromResult(tenant.AsSharedReference());
     }
 }

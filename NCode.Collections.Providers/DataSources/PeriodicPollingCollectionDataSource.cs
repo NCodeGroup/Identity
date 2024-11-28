@@ -41,7 +41,7 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
 
     private TState State { get; }
     private IReadOnlyCollection<TItem> CurrentCollection { get; set; }
-    private GetCollectionAsyncDelegate<TItem, TState> GetCollectionAsync { get; }
+    private RefreshCollectionAsyncDelegate<TItem, TState> RefreshCollectionAsync { get; }
     private HandleExceptionAsyncDelegate HandleExceptionAsync { get; }
 
     private CancellationTokenSource PeriodicCancellationSource { get; } = new();
@@ -61,10 +61,10 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
     /// <summary>
     /// Initializes a new instance of the <see cref="PeriodicPollingCollectionDataSource{TItem,TState}"/> class.
     /// </summary>
-    /// <param name="state">Contains the state instance that is passed to the <see cref="GetCollectionAsync"/> delegate.</param>
+    /// <param name="state">Contains the state instance that is passed to the <see cref="RefreshCollectionAsync"/> delegate.</param>
     /// <param name="initialCollection">The initial collection.</param>
     /// <param name="refreshInterval">The period of time between each refresh.</param>
-    /// <param name="getCollectionAsync">The function to refresh the collection periodically.</param>
+    /// <param name="refreshCollectionAsync">The function to refresh the collection periodically.</param>
     /// <param name="handleExceptionAsync">The function to handle exceptions that occur during the refresh.
     /// If the exception is re-thrown, the periodic refresh will stop and no further updates will be made.
     /// The default behavior is to re-throw the exception.
@@ -73,12 +73,12 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
         TState state,
         IReadOnlyCollection<TItem> initialCollection,
         TimeSpan refreshInterval,
-        GetCollectionAsyncDelegate<TItem, TState> getCollectionAsync,
+        RefreshCollectionAsyncDelegate<TItem, TState> refreshCollectionAsync,
         HandleExceptionAsyncDelegate? handleExceptionAsync = default)
     {
         State = state;
         CurrentCollection = initialCollection;
-        GetCollectionAsync = getCollectionAsync;
+        RefreshCollectionAsync = refreshCollectionAsync;
         HandleExceptionAsync = handleExceptionAsync ?? DefaultHandleExceptionAsync;
 
         PeriodicTimer = new PeriodicTimer(refreshInterval);
@@ -163,7 +163,7 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
             {
                 try
                 {
-                    await RefreshCollectionAsync(cancellationToken);
+                    await InvokeRefreshCollectionAsync(cancellationToken);
                 }
                 catch (OperationCanceledException exception)
                     when (exception.CancellationToken == cancellationToken)
@@ -184,15 +184,16 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
         }
     }
 
-    private async ValueTask RefreshCollectionAsync(CancellationToken cancellationToken)
+    private async ValueTask InvokeRefreshCollectionAsync(CancellationToken cancellationToken)
     {
-        var context = new PeriodicPollingCollectionContext<TItem, TState>(State, CurrentCollection);
-        var collection = await GetCollectionAsync(context, cancellationToken);
-        if (collection is null) return;
-        await NotifyChangeAsync(collection);
+        var result = await RefreshCollectionAsync(State, CurrentCollection, cancellationToken);
+        if (result.IsChanged)
+        {
+            await NotifyChangeAsync(result.NewCollection);
+        }
     }
 
-    private async ValueTask NotifyChangeAsync(IReadOnlyCollection<TItem> collection)
+    private async ValueTask NotifyChangeAsync(IReadOnlyCollection<TItem> newCollection)
     {
         if (IsDisposed) return;
 
@@ -210,7 +211,7 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
 
                 RefreshChangeToken();
 
-                CurrentCollection = collection;
+                CurrentCollection = newCollection;
             }
 
             if (oldTokenSource is not null)

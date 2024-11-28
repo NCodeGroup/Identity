@@ -50,17 +50,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory
-) : OpenIdTenantProvider(
-    templateBinderFactory,
-    serverOptionsAccessor.Value,
-    openIdServer,
-    storeManagerFactory,
-    tenantCache,
-    settingSerializer,
-    secretSerializer,
-    secretKeyCollectionProviderFactory,
-    collectionDataSourceFactory
-)
+) : OpenIdTenantProvider
 {
     private Regex? DomainNameRegex { get; set; }
 
@@ -74,7 +64,34 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     protected override PathString TenantPath => TenantOptions.TenantPath;
 
     /// <inheritdoc />
+    protected override TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
+
+    /// <inheritdoc />
+    protected override OpenIdServerOptions ServerOptions { get; } = serverOptionsAccessor.Value;
+
+    /// <inheritdoc />
+    protected override OpenIdServer OpenIdServer { get; } = openIdServer;
+
+    /// <inheritdoc />
+    protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+
+    /// <inheritdoc />
+    protected override IOpenIdTenantCache TenantCache { get; } = tenantCache;
+
+    /// <inheritdoc />
     protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
+
+    /// <inheritdoc />
+    protected override ISettingSerializer SettingSerializer { get; } = settingSerializer;
+
+    /// <inheritdoc />
+    protected override ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    /// <inheritdoc />
+    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+
+    /// <inheritdoc />
+    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
 
     private async ValueTask<PersistedTenant> GetTenantByDomainAsync(string domainName, CancellationToken cancellationToken)
     {

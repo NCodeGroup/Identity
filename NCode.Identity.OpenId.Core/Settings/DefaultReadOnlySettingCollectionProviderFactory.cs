@@ -34,5 +34,8 @@ public class DefaultReadOnlySettingCollectionProviderFactory(
     public IReadOnlySettingCollectionProvider Create(
         IEnumerable<ICollectionDataSource<Setting>> dataSources,
         bool owns = false
-    ) => new ReadOnlySettingCollectionProvider(SettingDescriptorCollectionProvider, dataSources, owns);
+    ) => new ReadOnlySettingCollectionProvider(
+        SettingDescriptorCollectionProvider,
+        dataSources,
+        owns);
 }

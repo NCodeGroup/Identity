@@ -52,17 +52,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory
-) : OpenIdTenantProvider(
-    templateBinderFactory,
-    serverOptionsAccessor.Value,
-    openIdServer,
-    storeManagerFactory,
-    tenantCache,
-    settingSerializer,
-    secretSerializer,
-    secretKeyCollectionProviderFactory,
-    collectionDataSourceFactory
-), IAsyncDisposable
+) : OpenIdTenantProvider, IAsyncDisposable
 {
     private AsyncSharedReferenceLease<OpenIdTenant> CachedTenant { get; set; }
 
@@ -76,7 +66,34 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     protected override PathString TenantPath => TenantOptions.TenantPath;
 
     /// <inheritdoc />
+    protected override TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
+
+    /// <inheritdoc />
+    protected override OpenIdServerOptions ServerOptions { get; } = serverOptionsAccessor.Value;
+
+    /// <inheritdoc />
+    protected override OpenIdServer OpenIdServer { get; } = openIdServer;
+
+    /// <inheritdoc />
+    protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+
+    /// <inheritdoc />
+    protected override IOpenIdTenantCache TenantCache { get; } = tenantCache;
+
+    /// <inheritdoc />
     protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
+
+    /// <inheritdoc />
+    protected override ISettingSerializer SettingSerializer { get; } = settingSerializer;
+
+    /// <inheritdoc />
+    protected override ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    /// <inheritdoc />
+    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+
+    /// <inheritdoc />
+    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()

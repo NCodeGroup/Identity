@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 
 /// <summary>
 /// Provides a default implementation of <see cref="IOpenIdTenantProvider"/> that dynamically loads the tenant
-/// configuration using a route parameter (aka path) from a HTTP request.
+/// configuration using a route parameter (aka path) from an HTTP request.
 /// </summary>
 public class DefaultDynamicByPathOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
@@ -46,17 +46,7 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory
-) : OpenIdTenantProvider(
-    templateBinderFactory,
-    serverOptionsAccessor.Value,
-    openIdServer,
-    storeManagerFactory,
-    tenantCache,
-    settingSerializer,
-    secretSerializer,
-    secretKeyCollectionProviderFactory,
-    collectionDataSourceFactory
-)
+) : OpenIdTenantProvider
 {
     private DynamicByPathOpenIdTenantOptions TenantOptions =>
         ServerOptions.Tenant.DynamicByPath ?? throw MissingTenantOptionsException();
@@ -68,7 +58,34 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     protected override PathString TenantPath => TenantOptions.TenantPath;
 
     /// <inheritdoc />
+    protected override TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
+
+    /// <inheritdoc />
+    protected override OpenIdServerOptions ServerOptions { get; } = serverOptionsAccessor.Value;
+
+    /// <inheritdoc />
+    protected override OpenIdServer OpenIdServer { get; } = openIdServer;
+
+    /// <inheritdoc />
+    protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+
+    /// <inheritdoc />
+    protected override IOpenIdTenantCache TenantCache { get; } = tenantCache;
+
+    /// <inheritdoc />
     protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
+
+    /// <inheritdoc />
+    protected override ISettingSerializer SettingSerializer { get; } = settingSerializer;
+
+    /// <inheritdoc />
+    protected override ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    /// <inheritdoc />
+    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+
+    /// <inheritdoc />
+    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
 
     /// <inheritdoc />
     protected override async ValueTask<TenantDescriptor> GetTenantDescriptorAsync(

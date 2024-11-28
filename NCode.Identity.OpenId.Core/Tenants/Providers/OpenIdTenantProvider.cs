@@ -45,47 +45,45 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 /// Provides a common base implementation of the <see cref="IOpenIdTenantProvider"/> abstraction.
 /// </summary>
 [PublicAPI]
-public abstract class OpenIdTenantProvider(
-    TemplateBinderFactory templateBinderFactory,
-    OpenIdServerOptions serverOptions,
-    OpenIdServer openIdServer,
-    IStoreManagerFactory storeManagerFactory,
-    IOpenIdTenantCache tenantCache,
-    ISettingSerializer settingSerializer,
-    ISecretSerializer secretSerializer,
-    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
-    ICollectionDataSourceFactory collectionDataSourceFactory
-) : IOpenIdTenantProvider
+public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
 {
     [MemberNotNullWhen(true, nameof(TenantRouteOrNull))]
     private bool TenantRouteHasValue { get; set; }
 
     private RoutePattern? TenantRouteOrNull { get; set; }
 
+    /// <inheritdoc />
+    public abstract string ProviderCode { get; }
+
+    /// <summary>
+    /// Gets the relative base path for the tenant.
+    /// </summary>
+    protected abstract PathString TenantPath { get; }
+
     /// <summary>
     /// Gets the <see cref="TemplateBinderFactory"/> used to bind route templates.
     /// </summary>
-    protected TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
+    protected abstract TemplateBinderFactory TemplateBinderFactory { get; }
 
     /// <summary>
     /// Gets the <see cref="OpenIdServerOptions"/> used to configure the OpenID server.
     /// </summary>
-    protected OpenIdServerOptions ServerOptions { get; } = serverOptions;
+    protected abstract OpenIdServerOptions ServerOptions { get; }
 
     /// <summary>
     /// Gets the <see cref="OpenIdServer"/> used to provide OpenID server functionality.
     /// </summary>
-    protected OpenIdServer OpenIdServer { get; } = openIdServer;
+    protected abstract OpenIdServer OpenIdServer { get; }
 
     /// <summary>
     /// Gets the <see cref="IStoreManagerFactory"/> used to create <see cref="IStoreManager"/> instances.
     /// </summary>
-    protected IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    protected abstract IStoreManagerFactory StoreManagerFactory { get; }
 
     /// <summary>
     /// Gets the <see cref="IOpenIdTenantCache"/> used to cache tenant instances.
     /// </summary>
-    protected IOpenIdTenantCache TenantCache { get; } = tenantCache;
+    protected abstract IOpenIdTenantCache TenantCache { get; }
 
     /// <summary>
     /// Gets the <see cref="IReadOnlySettingCollectionProviderFactory"/> used to create <see cref="IReadOnlySettingCollectionProvider"/> instances.
@@ -95,30 +93,22 @@ public abstract class OpenIdTenantProvider(
     /// <summary>
     /// Gets the <see cref="ISettingSerializer"/> used to serialize/deserialize settings.
     /// </summary>
-    protected ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    protected abstract ISettingSerializer SettingSerializer { get; }
 
     /// <summary>
     /// Gets the <see cref="ISecretSerializer"/> used to serialize/deserialize secrets.
     /// </summary>
-    protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    protected abstract ISecretSerializer SecretSerializer { get; }
 
     /// <summary>
     /// Gets the <see cref="ISecretKeyCollectionProviderFactory"/> used to create <see cref="ISecretKeyCollectionProvider"/> instances.
     /// </summary>
-    protected ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+    protected abstract ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; }
 
     /// <summary>
     /// Gets the <see cref="ICollectionDataSourceFactory"/> used to create <see cref="ICollectionDataSource{T}"/> instances.
     /// </summary>
-    protected ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
-
-    /// <inheritdoc />
-    public abstract string ProviderCode { get; }
-
-    /// <summary>
-    /// Gets the relative base path for the tenant.
-    /// </summary>
-    protected abstract PathString TenantPath { get; }
+    protected abstract ICollectionDataSourceFactory CollectionDataSourceFactory { get; }
 
     /// <summary>
     /// Attempts to load a <see cref="PersistedTenant"/> using the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.

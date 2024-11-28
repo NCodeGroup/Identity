@@ -32,13 +32,14 @@ public class DefaultOpenIdTenant(
     TenantDescriptor tenantDescriptor,
     string issuer,
     UriDescriptor baseAddress,
-    IReadOnlySettingCollection tenantSettings,
-    AsyncSharedReferenceLease<ISecretKeyCollectionProvider> secretKeyReference,
+    AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> settingsReference,
+    AsyncSharedReferenceLease<ISecretKeyCollectionProvider> secretsReference,
     IPropertyBag propertyBag
 ) : OpenIdTenant
 {
     private TenantDescriptor TenantDescriptor { get; } = tenantDescriptor;
-    private AsyncSharedReferenceLease<ISecretKeyCollectionProvider> SecretKeyReference { get; set; } = secretKeyReference.AddReference();
+    private AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> SettingsReference { get; set; } = settingsReference.AddReference();
+    private AsyncSharedReferenceLease<ISecretKeyCollectionProvider> SecretsReference { get; set; } = secretsReference.AddReference();
 
     /// <inheritdoc />
     public override string TenantId => TenantDescriptor.TenantId;
@@ -53,10 +54,10 @@ public class DefaultOpenIdTenant(
     public override UriDescriptor BaseAddress { get; } = baseAddress;
 
     /// <inheritdoc />
-    public override IReadOnlySettingCollection Settings { get; } = tenantSettings;
+    public override IReadOnlySettingCollectionProvider SettingsProvider => SettingsReference.Value;
 
     /// <inheritdoc />
-    public override ISecretKeyCollectionProvider SecretKeyCollectionProvider => SecretKeyReference.Value;
+    public override ISecretKeyCollectionProvider SecretsProvider => SecretsReference.Value;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = propertyBag;
@@ -64,7 +65,10 @@ public class DefaultOpenIdTenant(
     /// <inheritdoc />
     protected override async ValueTask DisposeAsyncCore()
     {
-        await SecretKeyReference.DisposeAsync();
-        SecretKeyReference = default;
+        await SettingsReference.DisposeAsync();
+        SettingsReference = default;
+
+        await SecretsReference.DisposeAsync();
+        SecretsReference = default;
     }
 }

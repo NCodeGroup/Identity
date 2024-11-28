@@ -53,7 +53,7 @@ public class DefaultDiscoverMetadataHandler(
         IDictionary<string, object> metadata,
         bool showAll)
     {
-        var settings = openIdContext.Tenant.Settings;
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
         var settingsToShow = settings.Where(setting => showAll || setting.Descriptor.IsDiscoverable);
         foreach (var setting in settingsToShow)
         {

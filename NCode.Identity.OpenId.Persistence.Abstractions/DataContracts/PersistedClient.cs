@@ -58,6 +58,7 @@ public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrency
     /// </summary>
     public required bool IsDisabled { get; set; }
 
+    // TODO: rename to SettingsJson
     /// <summary>
     /// Gets or sets the serialized JSON for the client settings.
     /// </summary>

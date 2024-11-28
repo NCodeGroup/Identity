@@ -49,7 +49,8 @@ public class DefaultOpenIdTenantCache(
         }
     };
 
-    private static string GetCacheKey(TenantDescriptor tenantDescriptor) => tenantDescriptor.TenantId;
+    private static string GetCacheKey(TenantDescriptor tenantDescriptor) =>
+        $"{nameof(DefaultOpenIdTenantCache)}:{tenantDescriptor.TenantId}";
 
     private static void EvictionCallback(object key, object? value, EvictionReason reason, object? state)
     {

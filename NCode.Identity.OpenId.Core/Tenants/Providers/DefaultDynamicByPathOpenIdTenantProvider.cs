@@ -44,7 +44,8 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
-    ICollectionDataSourceFactory collectionDataSourceFactory
+    ICollectionDataSourceFactory collectionDataSourceFactory,
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -65,6 +66,9 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
 
     /// <inheritdoc />
     protected override PathString TenantPath => TenantOptions.TenantPath;
+
+    /// <inheritdoc />
+    protected override ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
     protected override async ValueTask<TenantDescriptor> GetTenantDescriptorAsync(

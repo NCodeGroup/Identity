@@ -22,20 +22,20 @@ using NCode.Collections.Providers.DataSources;
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides a default implementation for the <see cref="ISettingCollectionProvider"/> interface.
+/// Provides a default implementation for the <see cref="IReadOnlySettingCollectionProvider"/> interface.
 /// </summary>
-public class SettingCollectionProvider(
+public class ReadOnlySettingCollectionProvider(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     IEnumerable<ICollectionDataSource<Setting>> dataSources,
     bool owns = false
-) : BaseCollectionProvider<Setting, ISettingCollection>(
+) : BaseCollectionProvider<Setting, IReadOnlySettingCollection>(
     new CompositeCollectionDataSource<Setting>(dataSources) { Owns = owns, CombineFunc = Merge }
-), ISettingCollectionProvider
+), IReadOnlySettingCollectionProvider
 {
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
-    protected override ISettingCollection CreateCollection(IEnumerable<Setting> items)
+    protected override IReadOnlySettingCollection CreateCollection(IEnumerable<Setting> items)
     {
         return new SettingCollection(SettingDescriptorCollectionProvider, items);
     }

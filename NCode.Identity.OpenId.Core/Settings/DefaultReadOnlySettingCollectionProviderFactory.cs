@@ -22,19 +22,19 @@ using NCode.Collections.Providers.PeriodicPolling;
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISettingCollectionProviderFactory"/> abstraction.
+/// Provides a default implementation of the <see cref="IReadOnlySettingCollectionProviderFactory"/> abstraction.
 /// </summary>
-public class DefaultSettingCollectionProviderFactory(
+public class DefaultReadOnlySettingCollectionProviderFactory(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ICollectionDataSourceFactory collectionDataSourceFactory
-) : ISettingCollectionProviderFactory
+) : IReadOnlySettingCollectionProviderFactory
 {
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
     private ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
 
     /// <inheritdoc />
-    public async ValueTask<ISettingCollectionProvider> CreateProviderAsync<TState>(
-        ISettingCollectionProvider? parentSettings,
+    public async ValueTask<IReadOnlySettingCollectionProvider> CreateProviderAsync<TState>(
+        IReadOnlySettingCollectionProvider? parentSettings,
         TState state,
         TimeSpan refreshInterval,
         LoadSettingsAsyncDelegate<TState> loadSettingsAsync,
@@ -48,7 +48,7 @@ public class DefaultSettingCollectionProviderFactory(
             refreshInterval,
             LoadSettingsAsync);
 
-        return new SettingCollectionProvider(
+        return new ReadOnlySettingCollectionProvider(
             SettingDescriptorCollectionProvider,
             parentSettings,
             dataSource);

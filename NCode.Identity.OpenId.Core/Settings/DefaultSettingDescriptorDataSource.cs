@@ -223,7 +223,7 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.ClaimTypesSupported,
-                Default = new[] { OpenIdConstants.ClaimTypes.Normal },
+                Default = [OpenIdConstants.ClaimTypes.Normal],
 
                 IsDiscoverable = true,
                 OnMerge = Intersect
@@ -333,14 +333,14 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.PromptValuesSupported,
-                Default = new[]
-                {
+                Default =
+                [
                     OpenIdConstants.PromptTypes.None,
                     OpenIdConstants.PromptTypes.Login,
                     OpenIdConstants.PromptTypes.Consent,
                     OpenIdConstants.PromptTypes.SelectAccount,
                     OpenIdConstants.PromptTypes.CreateAccount
-                },
+                ],
 
                 IsDiscoverable = true,
                 OnMerge = Intersect
@@ -485,12 +485,12 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.ResponseModesSupported,
-                Default = new[]
-                {
+                Default =
+                [
                     OpenIdConstants.ResponseModes.Query,
                     OpenIdConstants.ResponseModes.Fragment,
                     OpenIdConstants.ResponseModes.FormPost
-                },
+                ],
 
                 IsDiscoverable = true,
                 OnMerge = Intersect
@@ -500,12 +500,12 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.ResponseTypesSupported,
-                Default = new[]
-                {
+                Default =
+                [
                     OpenIdConstants.ResponseTypes.Code,
                     OpenIdConstants.ResponseTypes.IdToken,
                     OpenIdConstants.ResponseTypes.Token
-                },
+                ],
 
                 IsDiscoverable = true,
                 OnMerge = Intersect,
@@ -516,15 +516,15 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.ScopesSupported,
-                Default = new[]
-                {
+                Default =
+                [
                     OpenIdConstants.ScopeTypes.OpenId,
                     OpenIdConstants.ScopeTypes.Profile,
                     OpenIdConstants.ScopeTypes.Email,
                     OpenIdConstants.ScopeTypes.Address,
                     OpenIdConstants.ScopeTypes.Phone,
                     OpenIdConstants.ScopeTypes.OfflineAccess
-                },
+                ],
 
                 IsDiscoverable = true,
                 OnMerge = Intersect

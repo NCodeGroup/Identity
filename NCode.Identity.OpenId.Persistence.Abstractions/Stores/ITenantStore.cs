@@ -69,12 +69,14 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// Gets the <see cref="PersistedSecret"/> collection for the specified <paramref name="tenantId"/>.
     /// </summary>
     /// <param name="tenantId">The natural key of the <see cref="PersistedTenant"/> instance to retrieve.</param>
+    /// <param name="lastKnownState">The last known state of the <see cref="PersistedSecret"/> collection.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the collection of
     /// <see cref="PersistedSecret"/> instances for the specified <paramref name="tenantId"/>.</returns>
     /// <returns></returns>
-    ValueTask<ReadOnlyConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
+    ValueTask<ConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
         string tenantId,
+        ConcurrentState<IReadOnlyCollection<PersistedSecret>> lastKnownState,
         CancellationToken cancellationToken);
 }

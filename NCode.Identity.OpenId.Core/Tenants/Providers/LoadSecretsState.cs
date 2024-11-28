@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,22 +16,24 @@
 
 #endregion
 
-using System.ComponentModel.DataAnnotations;
-using JetBrains.Annotations;
+using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.Persistence.DataContracts;
+namespace NCode.Identity.OpenId.Tenants.Providers;
 
 /// <summary>
-/// Provides the ability to check for optimistic concurrency violations by using a random value that compared to
-/// the existing value in a database. The random value is automatically generated every time a row is inserted or
-/// updated in the database.
+/// Represents the state used to load the tenant's <see cref="SecretKey"/> collection.
 /// </summary>
-[PublicAPI]
-public interface ISupportConcurrencyToken
+public class LoadSecretsState
 {
     /// <summary>
-    /// Gets a value that is used to check for optimistic concurrency violations.
+    /// Gets or sets the tenant identifier.
     /// </summary>
-    [MaxLength(MaxLengths.ConcurrencyToken)]
-    string ConcurrencyToken { get; }
+    public required string TenantId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the last known <see cref="PersistedSecret"/> collection.
+    /// </summary>
+    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> Secrets { get; set; }
 }

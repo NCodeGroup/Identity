@@ -179,7 +179,7 @@ public abstract class CommonClientAuthenticationHandler(
         CancellationToken cancellationToken)
     {
         var settings = SettingSerializer.DeserializeSettings(
-            openIdContext.Tenant.Settings,
+            openIdContext.Tenant.SettingsProvider.Collection,
             persistedClient.Settings);
 
         var secrets = SecretSerializer.DeserializeSecrets(

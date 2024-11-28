@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
@@ -49,7 +50,8 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
-    ICollectionDataSourceFactory collectionDataSourceFactory
+    ICollectionDataSourceFactory collectionDataSourceFactory,
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : OpenIdTenantProvider(
     templateBinderFactory,
     serverOptionsAccessor.Value,
@@ -72,6 +74,9 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
 
     /// <inheritdoc />
     protected override PathString TenantPath => TenantOptions.TenantPath;
+
+    /// <inheritdoc />
+    protected override ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
@@ -132,15 +137,22 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
         if (persistedTenant is not null)
             return persistedTenant;
 
+        var settingsJson = JsonSerializer.SerializeToElement(null, typeof(object));
+        var settingsState = ConcurrentState.Create(settingsJson, Guid.NewGuid().ToString());
+
+        var secretsState = ConcurrentState.Create<IReadOnlyCollection<PersistedSecret>>(
+            Array.Empty<PersistedSecret>(),
+            Guid.NewGuid().ToString());
+
         persistedTenant = new PersistedTenant
         {
             TenantId = tenantId,
-            DisplayName = TenantOptions.DisplayName,
             DomainName = null,
             ConcurrencyToken = Guid.NewGuid().ToString(),
             IsDisabled = false,
-            Settings = JsonSerializer.SerializeToElement(null, typeof(object)),
-            Secrets = Array.Empty<PersistedSecret>()
+            DisplayName = TenantOptions.DisplayName,
+            SettingsState = settingsState,
+            SecretsState = secretsState
         };
 
         await store.AddAsync(persistedTenant, cancellationToken);

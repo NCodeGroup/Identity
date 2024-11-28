@@ -16,17 +16,18 @@
 
 #endregion
 
-using JetBrains.Annotations;
-using NCode.Collections.Providers;
-
 namespace NCode.Identity.OpenId.Settings;
 
-/// <summary>
-/// Provides the composition root (i.e. top-level collection) of <see cref="Setting"/> instances by
-/// aggregating multiple data sources and providing change notifications.
-/// </summary>
-[PublicAPI]
-public interface ISettingCollectionProvider : ICollectionProvider<Setting, ISettingCollection>
+public delegate ValueTask<IReadOnlyCollection<Setting>> LoadSettingsAsyncDelegate<in TState>(
+    TState state,
+    CancellationToken cancellationToken);
+
+public interface IReadOnlySettingCollectionProviderFactory
 {
-    // nothing
+    ValueTask<IReadOnlySettingCollectionProvider> CreateProviderAsync<TState>(
+        IReadOnlySettingCollectionProvider? parentSettings,
+        TState state,
+        TimeSpan refreshInterval,
+        LoadSettingsAsyncDelegate<TState> loadSettingsAsync,
+        CancellationToken cancellationToken);
 }

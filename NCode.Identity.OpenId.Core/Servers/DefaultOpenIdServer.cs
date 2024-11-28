@@ -35,14 +35,14 @@ namespace NCode.Identity.OpenId.Servers;
 /// Provides a default implementation of the <see cref="OpenIdServer"/> abstraction.
 /// </summary>
 public class DefaultOpenIdServer(
-    IKnownParameterCollectionProvider knownParameterCollectionProvider,
+    IKnownParameterCollectionProvider knownParametersProvider,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
-    ISettingCollectionProvider settingCollectionProvider,
-    ISecretKeyCollectionProvider secretKeyCollectionProvider
+    IReadOnlySettingCollectionProvider settingsProvider,
+    ISecretKeyCollectionProvider secretsProvider
 ) : OpenIdServer, IOpenIdErrorFactory
 {
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
-    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
+    private IKnownParameterCollectionProvider KnownParametersProvider { get; } = knownParametersProvider;
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
 
     /// <inheritdoc />
@@ -53,13 +53,13 @@ public class DefaultOpenIdServer(
     public override IOpenIdErrorFactory ErrorFactory => this;
 
     /// <inheritdoc />
-    public override IKnownParameterCollection KnownParameters => KnownParameterCollectionProvider.Collection;
+    public override IKnownParameterCollection KnownParameters => KnownParametersProvider.Collection;
 
     /// <inheritdoc />
-    public override ISettingCollectionProvider SettingCollectionProvider { get; } = settingCollectionProvider;
+    public override IReadOnlySettingCollectionProvider SettingsProvider { get; } = settingsProvider;
 
     /// <inheritdoc />
-    public override ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; } = secretKeyCollectionProvider;
+    public override ISecretKeyCollectionProvider SecretsProvider { get; } = secretsProvider;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();

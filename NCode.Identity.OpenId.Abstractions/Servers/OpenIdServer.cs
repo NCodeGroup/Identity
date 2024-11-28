@@ -50,14 +50,14 @@ public abstract class OpenIdServer
     public abstract IKnownParameterCollection KnownParameters { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISettingCollectionProvider"/> which contains settings scoped to the server.
+    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains settings scoped to the server.
     /// </summary>
-    public abstract ISettingCollectionProvider SettingCollectionProvider { get; }
+    public abstract IReadOnlySettingCollectionProvider SettingsProvider { get; }
 
     /// <summary>
     /// Gets the <see cref="ISecretKeyCollectionProvider"/> which contains secrets only known to the server.
     /// </summary>
-    public abstract ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; }
+    public abstract ISecretKeyCollectionProvider SecretsProvider { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
@@ -53,7 +54,7 @@ public class TenantStore(
         CancellationToken cancellationToken)
     {
         var tenantId = NextId(persistedTenant.Id);
-        var secrets = new List<TenantSecretEntity>(persistedTenant.Secrets.Count);
+        var secrets = new List<TenantSecretEntity>(persistedTenant.SecretsState.Value.Count);
 
         var tenantEntity = new TenantEntity
         {
@@ -63,15 +64,15 @@ public class TenantStore(
             DomainName = persistedTenant.DomainName,
             NormalizedDomainName = Normalize(persistedTenant.DomainName),
             ConcurrencyToken = NextConcurrencyToken(),
-            SettingsConcurrencyToken = NextConcurrencyToken(),
-            SecretsConcurrencyToken = NextConcurrencyToken(),
+            SettingsConcurrencyToken = persistedTenant.SettingsState.ConcurrencyToken,
+            SecretsConcurrencyToken = persistedTenant.SecretsState.ConcurrencyToken,
             IsDisabled = persistedTenant.IsDisabled,
             DisplayName = persistedTenant.DisplayName,
-            SettingsJson = persistedTenant.SettingsJson,
+            SettingsJson = persistedTenant.SettingsState.Value,
             Secrets = secrets
         };
 
-        foreach (var persistedSecret in persistedTenant.Secrets)
+        foreach (var persistedSecret in persistedTenant.SecretsState.Value)
         {
             var secretEntity = MapNew(tenantEntity, persistedSecret);
 
@@ -104,11 +105,11 @@ public class TenantStore(
         var tenantEntity = await GetEntityByIdAsync(persistedTenant.Id, cancellationToken);
 
         tenantEntity.ConcurrencyToken = NextConcurrencyToken();
-        tenantEntity.SettingsConcurrencyToken = NextConcurrencyToken();
+        tenantEntity.SettingsConcurrencyToken = persistedTenant.SettingsState.ConcurrencyToken;
         // we don't update the secrets concurrency token here because that is a disconnected entity collection
         tenantEntity.IsDisabled = persistedTenant.IsDisabled;
         tenantEntity.DisplayName = persistedTenant.DisplayName;
-        tenantEntity.SettingsJson = persistedTenant.SettingsJson;
+        tenantEntity.SettingsJson = persistedTenant.SettingsState.Value;
     }
 
     /// <inheritdoc />
@@ -143,13 +144,24 @@ public class TenantStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlyCollection<PersistedSecret>> GetSecretsAsync(
+    public async ValueTask<ConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
         string tenantId,
+        ConcurrentState<IReadOnlyCollection<PersistedSecret>> lastKnownState,
         CancellationToken cancellationToken)
     {
         var normalizedTenantId = Normalize(tenantId);
 
-        var secrets = await DbContext.TenantSecrets
+        var concurrencyToken = await DbContext.Tenants
+            .Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
+            .Select(tenant => tenant.SecretsConcurrencyToken)
+            .SingleAsync(cancellationToken);
+
+        if (string.Equals(concurrencyToken, lastKnownState.ConcurrencyToken, StringComparison.Ordinal))
+        {
+            return lastKnownState;
+        }
+
+        IReadOnlyCollection<PersistedSecret> secrets = await DbContext.TenantSecrets
             .Include(tenantSecret => tenantSecret.Tenant)
             .Include(tenantSecret => tenantSecret.Secret)
             .Where(tenantSecret => tenantSecret.Tenant.NormalizedTenantId == normalizedTenantId)
@@ -157,12 +169,7 @@ public class TenantStore(
             .Select(secret => MapExisting(secret))
             .ToListAsync(cancellationToken);
 
-        var concurrencyToken = await DbContext.Tenants
-            .Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
-            .Select(tenant => tenant.SecretsConcurrencyToken)
-            .SingleAsync(cancellationToken);
-
-        return secrets;
+        return ConcurrentState.Create(secrets, concurrencyToken);
     }
 
     //
@@ -178,12 +185,10 @@ public class TenantStore(
             TenantId = tenant.TenantId,
             DomainName = tenant.DomainName,
             ConcurrencyToken = tenant.ConcurrencyToken,
-            SettingsConcurrencyToken = tenant.SettingsConcurrencyToken,
-            SecretsConcurrencyToken = tenant.SecretsConcurrencyToken,
             IsDisabled = tenant.IsDisabled,
             DisplayName = tenant.DisplayName,
-            SettingsJson = tenant.SettingsJson,
-            Secrets = MapExisting(tenant.Secrets).ToList(),
+            SettingsState = ConcurrentState.Create(tenant.SettingsJson, tenant.SettingsConcurrencyToken),
+            SecretsState = ConcurrentState.Create(MapExisting(tenant.Secrets), tenant.SecretsConcurrencyToken)
         });
     }
 

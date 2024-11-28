@@ -274,8 +274,8 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     /// </summary>
     /// <param name="collection">The collection of <see cref="SecretEntity"/> instances to map.</param>
     /// <returns>The newly mapped collection of <see cref="PersistedSecret"/> DTOs.</returns>
-    protected static IEnumerable<PersistedSecret> MapExisting(IEnumerable<ISupportSecret> collection) =>
-        collection.Select(MapExisting);
+    protected static IReadOnlyCollection<PersistedSecret> MapExisting(IEnumerable<ISupportSecret> collection) =>
+        collection.Select(MapExisting).ToList();
 
     #endregion
 }

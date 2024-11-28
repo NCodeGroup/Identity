@@ -189,7 +189,7 @@ public class ClientStore(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             Settings = client.Settings,
-            Secrets = MapExisting(client.Secrets).ToList(),
+            Secrets = MapExisting(client.Secrets),
             RedirectUrls = client.Urls
                 .Where(url => url.UrlType == UrlTypes.RedirectUrl)
                 .Select(url => url.UrlValue)

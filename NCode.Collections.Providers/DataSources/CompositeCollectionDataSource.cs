@@ -50,7 +50,7 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
     /// <summary>
     /// Gets or sets a function that is used to combine the items from the individual data sources.
-    /// The default is to concatenate the items.
+    /// The default is to concatenate all the items.
     /// </summary>
     public Func<IEnumerable<IEnumerable<T>>, IEnumerable<T>> CombineFunc { get; init; } = DefaultCombineFunc;
 

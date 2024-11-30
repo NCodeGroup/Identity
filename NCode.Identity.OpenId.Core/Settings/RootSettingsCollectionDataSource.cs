@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> for a collection of <see cref="Setting"/> instances
 /// that are loaded from a <see cref="IConfigurationSection"/> and the default values from <see cref="ISettingDescriptorCollectionProvider"/>.
 /// </summary>
-public class RootSettingsCollectionDataSource : ICollectionDataSource<Setting>, IDisposable
+public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<Setting>
 {
     private IConfigurationSection ConfigurationSection { get; }
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; }
@@ -176,7 +176,7 @@ public class RootSettingsCollectionDataSource : ICollectionDataSource<Setting>, 
 
         LoadDefaults(settings);
         LoadSupportedAlgorithms(settings);
-        LoadOthers(settings);
+        LoadFromConfiguration(settings);
 
         return settings.AsEnumerable();
     }
@@ -246,7 +246,7 @@ public class RootSettingsCollectionDataSource : ICollectionDataSource<Setting>, 
         settings.Set(SettingKeys.RequestObjectEncryptionZipValuesSupported, encryptionZipValuesSupported);
     }
 
-    private void LoadOthers(SettingCollection settings)
+    private void LoadFromConfiguration(SettingCollection settings)
     {
         var descriptors = SettingDescriptorCollectionProvider.Collection;
         foreach (var settingSection in ConfigurationSection.GetChildren())

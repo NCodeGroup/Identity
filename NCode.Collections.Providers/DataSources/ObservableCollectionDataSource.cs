@@ -30,7 +30,7 @@ namespace NCode.Collections.Providers.DataSources;
 /// </summary>
 /// <typeparam name="T">The type of items in the collection.</typeparam>
 [PublicAPI]
-public sealed class ObservableCollectionDataSource<T> : ICollectionDataSource<T>, IDisposable
+public sealed class ObservableCollectionDataSource<T> : IDisposableCollectionDataSource<T>
 {
     private bool Owns { get; }
     private object SyncObj { get; } = new();

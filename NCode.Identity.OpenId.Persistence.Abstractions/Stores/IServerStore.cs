@@ -17,13 +17,22 @@
 #endregion
 
 using System.Text.Json;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.Stores;
 
 public interface IServerStore : IStore
 {
-    ValueTask<JsonElement> GetSettingsAsync(CancellationToken cancellationToken);
+    ValueTask<PersistedServer> GetAsync(CancellationToken cancellationToken);
 
-    ValueTask UpdateSettingsAsync(JsonElement settings, CancellationToken cancellationToken);
+    ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
+        ConcurrentState<JsonElement> lastKnownState,
+        CancellationToken cancellationToken);
+
+    ValueTask<ConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
+        ConcurrentState<IReadOnlyCollection<PersistedSecret>> lastKnownState,
+        CancellationToken cancellationToken);
 }

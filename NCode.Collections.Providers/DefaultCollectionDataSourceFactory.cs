@@ -28,7 +28,7 @@ namespace NCode.Collections.Providers;
 public class DefaultCollectionDataSourceFactory : ICollectionDataSourceFactory
 {
     /// <inheritdoc />
-    public ICollectionDataSource<T> CreateComposite<T>(
+    public IAsyncDisposableCollectionDataSource<T> CreateComposite<T>(
         IEnumerable<ICollectionDataSource<T>> dataSources,
         bool owns = false)
     {
@@ -49,7 +49,7 @@ public class DefaultCollectionDataSourceFactory : ICollectionDataSourceFactory
     }
 
     /// <inheritdoc />
-    public ICollectionDataSource<T> CreateObservable<T>(
+    public IDisposableCollectionDataSource<T> CreateObservable<T>(
         ObservableCollection<T> observableCollection,
         bool owns = true)
     {
@@ -59,7 +59,7 @@ public class DefaultCollectionDataSourceFactory : ICollectionDataSourceFactory
     }
 
     /// <inheritdoc />
-    public ICollectionDataSource<TItem> CreatePeriodicPolling<TItem, TState>(
+    public IAsyncDisposableCollectionDataSource<TItem> CreatePeriodicPolling<TItem, TState>(
         TState state,
         IReadOnlyCollection<TItem> initialCollection,
         TimeSpan refreshInterval,

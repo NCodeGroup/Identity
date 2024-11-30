@@ -35,7 +35,7 @@ public interface ICollectionDataSourceFactory
     /// <param name="owns">Specifies whether the created data source instance should own the provided data source instances.</param>
     /// <typeparam name="T">The type of items in the collection.</typeparam>
     /// <returns>The newly created data source instance.</returns>
-    ICollectionDataSource<T> CreateComposite<T>(
+    IAsyncDisposableCollectionDataSource<T> CreateComposite<T>(
         IEnumerable<ICollectionDataSource<T>> dataSources,
         bool owns = false);
 
@@ -57,7 +57,7 @@ public interface ICollectionDataSourceFactory
     /// <param name="owns">Specifies whether the created data source instance should own the provided observable collection of items.</param>
     /// <typeparam name="T">The type of items in the collection.</typeparam>
     /// <returns>The newly created data source instance.</returns>
-    ICollectionDataSource<T> CreateObservable<T>(
+    IDisposableCollectionDataSource<T> CreateObservable<T>(
         ObservableCollection<T> observableCollection,
         bool owns = true);
 
@@ -72,7 +72,7 @@ public interface ICollectionDataSourceFactory
     /// <typeparam name="TItem">The type of items in the collection.</typeparam>
     /// <typeparam name="TState">The type of the state parameter used during refresh calls.</typeparam>
     /// <returns>The newly created data source instance.</returns>
-    ICollectionDataSource<TItem> CreatePeriodicPolling<TItem, TState>(
+    IAsyncDisposableCollectionDataSource<TItem> CreatePeriodicPolling<TItem, TState>(
         TState state,
         IReadOnlyCollection<TItem> initialCollection,
         TimeSpan refreshInterval,

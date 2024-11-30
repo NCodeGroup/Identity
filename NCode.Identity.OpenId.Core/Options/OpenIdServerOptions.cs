@@ -28,6 +28,23 @@ namespace NCode.Identity.OpenId.Options;
 public class OpenIdServerOptions
 {
     /// <summary>
+    /// Gets or sets the period of time after which the settings for the server are refreshed.
+    /// The default value is 5 minutes.
+    /// </summary>
+    public TimeSpan SettingsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
+
+    /// <summary>
+    /// Gets or sets the period of time after which the secrets for the server are refreshed.
+    /// The default value is 15 minutes.
+    /// </summary>
+    public TimeSpan SecretsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(15.0);
+
+    /// <summary>
+    /// Gets or sets the name of the configuration section that contains the settings for the server.
+    /// </summary>
+    public string? SettingsSectionName { get; set; }
+
+    /// <summary>
     /// Gets or sets the options that indicate how the server will determine the tenant.
     /// </summary>
     public OpenIdTenantOptions Tenant { get; set; } = new();

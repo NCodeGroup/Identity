@@ -100,9 +100,9 @@ public static partial class OpenIdConstants
     /// </summary>
     public static class TenantProviderCodes
     {
-        public const string StaticSingle = "StaticSingle";
-        public const string DynamicByHost = "DynamicByHost";
-        public const string DynamicByPath = "DynamicByPath";
+        public const string StaticSingle = nameof(StaticSingle);
+        public const string DynamicByHost = nameof(DynamicByHost);
+        public const string DynamicByPath = nameof(DynamicByPath);
     }
 
     /// <summary>

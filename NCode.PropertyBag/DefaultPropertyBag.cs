@@ -37,10 +37,14 @@ public class DefaultPropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagK
         var newBag = new DefaultPropertyBag();
 
         var items = ItemsOrNull;
-        if (items is { Count: > 0 })
-        {
-            newBag.ItemsOrNull = new Dictionary<PropertyBagKey, object?>(items);
-        }
+        if (items is not { Count: > 0 })
+            return newBag;
+
+        var newItems = items.Select(item => item.Value is ICloneable cloneable ?
+            new KeyValuePair<PropertyBagKey, object?>(item.Key, cloneable.Clone()) :
+            item);
+
+        newBag.ItemsOrNull = new Dictionary<PropertyBagKey, object?>(newItems);
 
         return newBag;
     }
@@ -52,6 +56,20 @@ public class DefaultPropertyBag : IPropertyBag, IReadOnlyDictionary<PropertyBagK
     {
         Items[key] = value;
         return this;
+    }
+
+    /// <inheritdoc />
+    public IPropertyBag Remove(PropertyBagKey key)
+    {
+        Items.Remove(key);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public IPropertyBagScope Scope<T>(PropertyBagKey<T> key, T value)
+    {
+        Set(key, value);
+        return new DefaultPropertyBagScope(this, key);
     }
 
     /// <inheritdoc />

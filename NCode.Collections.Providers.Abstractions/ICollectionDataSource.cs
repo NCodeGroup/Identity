@@ -36,3 +36,21 @@ public interface ICollectionDataSource<out T> : ISupportChangeToken
     /// </summary>
     IEnumerable<T> Collection { get; }
 }
+
+/// <summary>
+/// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
+/// </summary>
+[PublicAPI]
+public interface IDisposableCollectionDataSource<out T> : ICollectionDataSource<T>, IDisposable
+{
+    // nothing
+}
+
+/// <summary>
+/// Provides a collection of <typeparamref name="T"/> instances and notifications when changes occur.
+/// </summary>
+[PublicAPI]
+public interface IAsyncDisposableCollectionDataSource<out T> : ICollectionDataSource<T>, IAsyncDisposable
+{
+    // nothing
+}

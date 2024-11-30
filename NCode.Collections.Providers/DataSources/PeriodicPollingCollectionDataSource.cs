@@ -32,7 +32,7 @@ namespace NCode.Collections.Providers.DataSources;
 /// <typeparam name="TState">The type of the state parameter used during refresh calls.</typeparam>
 [PublicAPI]
 public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
-    : ICollectionDataSource<TItem>, IAsyncDisposable
+    : IAsyncDisposableCollectionDataSource<TItem>
 {
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }

@@ -35,4 +35,21 @@ public interface IPropertyBag : IReadOnlyPropertyBag
     /// <typeparam name="T">The type of the value to set in the property bag.</typeparam>
     /// <returns>The <see cref="IPropertyBag"/> instance for method chaining.</returns>
     IPropertyBag Set<T>(PropertyBagKey<T> key, T value);
+
+    /// <summary>
+    /// Removes the value associated with the specified <paramref name="key"/> from the property bag.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed value to remove from the property bag.</param>
+    /// <returns>The <see cref="IPropertyBag"/> instance for method chaining.</returns>
+    IPropertyBag Remove(PropertyBagKey key);
+
+    /// <summary>
+    /// Temporarily sets a strongly typed value for the specified <paramref name="key"/> in the property bag
+    /// that will be removed when the returned <see cref="IPropertyBagScope"/> is disposed.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed value to set in the property bag.</param>
+    /// <param name="value">The strongly typed value to set in the property bag.</param>
+    /// <typeparam name="T">The type of the value to set in the property bag.</typeparam>
+    /// <returns>The <see cref="IPropertyBagScope"/> instance which will remove the value when disposed.</returns>
+    IPropertyBagScope Scope<T>(PropertyBagKey<T> key, T value);
 }

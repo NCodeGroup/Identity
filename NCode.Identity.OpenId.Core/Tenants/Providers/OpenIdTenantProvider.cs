@@ -142,6 +142,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
             return persistedTenant;
 
         persistedTenant = await TryGetTenantByIdAsync(tenantId, cancellationToken);
+        propertyBag.Set(persistedTenant);
 
         if (persistedTenant == null)
             throw OpenIdServer.ErrorFactory
@@ -203,32 +204,42 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         await using var tenantSettings = await GetTenantSettingsAsync(
             httpContext,
             tenantDescriptor,
-            tenantPropertyBag, cancellationToken);
+            tenantPropertyBag,
+            cancellationToken);
 
         var tenantBaseAddress = await GetTenantBaseAddressAsync(
             httpContext,
             tenantDescriptor,
             tenantSettings,
-            tenantPropertyBag, cancellationToken);
+            tenantPropertyBag,
+            cancellationToken);
 
         var tenantIssuer = await GetTenantIssuerAsync(
             httpContext,
             tenantDescriptor,
             tenantBaseAddress,
-            tenantSettings, tenantPropertyBag, cancellationToken);
+            tenantSettings,
+            tenantPropertyBag,
+            cancellationToken);
 
         await using var tenantSecrets = await GetTenantSecretsAsync(
             httpContext,
             tenantDescriptor,
             tenantIssuer,
-            tenantBaseAddress, tenantSettings, tenantPropertyBag, cancellationToken);
+            tenantBaseAddress,
+            tenantSettings,
+            tenantPropertyBag,
+            cancellationToken);
 
         await using var newTenantReference = await CreateTenantAsync(
             httpContext,
             tenantDescriptor,
             tenantIssuer,
             tenantBaseAddress,
-            tenantSettings, tenantSecrets, tenantPropertyBag, cancellationToken);
+            tenantSettings,
+            tenantSecrets,
+            tenantPropertyBag,
+            cancellationToken);
 
         await TenantCache.SetAsync(
             tenantDescriptor,
@@ -271,8 +282,9 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
+        var tenantId = tenantDescriptor.TenantId;
         var persistedTenant = await GetTenantByIdAsync(
-            tenantDescriptor.TenantId,
+            tenantId,
             propertyBag,
             cancellationToken);
 
@@ -299,15 +311,15 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     }
 
     private async ValueTask<RefreshCollectionResult<Setting>> RefreshSettingsAsync(
-        PersistedTenant state,
+        PersistedTenant persistedTenant,
         IReadOnlyCollection<Setting> current,
         CancellationToken cancellationToken)
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var tenantId = state.TenantId;
-        var prevSettingsState = state.SettingsState;
+        var tenantId = persistedTenant.TenantId;
+        var prevSettingsState = persistedTenant.SettingsState;
 
         var (newSettingsJson, newConcurrencyToken) = await store.GetSettingsAsync(
             tenantId,
@@ -321,7 +333,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         var newSettings = SettingSerializer.DeserializeSettings(newSettingsJson);
 
         // update the state after successfully deserializing the settings
-        state.SettingsState = ConcurrentState.Create(newSettingsJson, newConcurrencyToken);
+        persistedTenant.SettingsState = ConcurrentState.Create(newSettingsJson, newConcurrencyToken);
 
         return RefreshCollectionResultFactory.Changed(newSettings);
     }
@@ -381,7 +393,9 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
-        if (tenantSettings.Value.Collection.TryGet(SettingKeys.TenantIssuer, out var setting) && !string.IsNullOrEmpty(setting.Value))
+        var settings = tenantSettings.Value.Collection;
+
+        if (settings.TryGet(SettingKeys.TenantIssuer, out var setting) && !string.IsNullOrEmpty(setting.Value))
         {
             return ValueTask.FromResult(setting.Value);
         }
@@ -425,21 +439,21 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
             refreshInterval,
             RefreshSecretsAsync);
 
-        var provider = SecretKeyCollectionProviderFactory.Create(dataSource);
+        var provider = SecretKeyCollectionProviderFactory.Create(dataSource, owns: true);
 
         return provider.AsSharedReference();
     }
 
     private async ValueTask<RefreshCollectionResult<SecretKey>> RefreshSecretsAsync(
-        PersistedTenant state,
+        PersistedTenant persistedTenant,
         IReadOnlyCollection<SecretKey> current,
         CancellationToken cancellationToken)
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var tenantId = state.TenantId;
-        var prevPersistedSecrets = state.SecretsState;
+        var tenantId = persistedTenant.TenantId;
+        var prevPersistedSecrets = persistedTenant.SecretsState;
 
         var (newPersistedSecrets, newConcurrencyToken) = await store.GetSecretsAsync(
             tenantId,
@@ -453,7 +467,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         var newSecrets = SecretSerializer.DeserializeSecrets(newPersistedSecrets, out _);
 
         // update the state after successfully deserializing the secrets
-        state.SecretsState = ConcurrentState.Create(newPersistedSecrets, newConcurrencyToken);
+        persistedTenant.SecretsState = ConcurrentState.Create(newPersistedSecrets, newConcurrencyToken);
 
         return RefreshCollectionResultFactory.Changed(newSecrets);
     }

@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
@@ -145,8 +144,6 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     /// <inheritdoc />
     protected override async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
     {
-        Debug.Assert(tenantId == TenantOptions.TenantId, "The tenantId should match the configured tenantId.");
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 

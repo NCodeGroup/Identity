@@ -17,22 +17,25 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Identity.OpenId.Persistence.DataContracts;
+using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
-using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Persistence.Stores;
+namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
-public interface IServerStore : IStore
+/// <summary>
+/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> server.
+/// </summary>
+[PublicAPI]
+public class PersistedServer
 {
-    ValueTask<PersistedServer> GetAsync(CancellationToken cancellationToken);
+    /// <summary>
+    /// Gets or sets the serialized JSON for the tenant settings.
+    /// </summary>
+    public required ConcurrentState<JsonElement> SettingsState { get; set; }
 
-    ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
-        ConcurrentState<JsonElement> lastKnownState,
-        CancellationToken cancellationToken);
-
-    ValueTask<ConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
-        ConcurrentState<IReadOnlyCollection<PersistedSecret>> lastKnownState,
-        CancellationToken cancellationToken);
+    /// <summary>
+    /// Gets or sets the collection of secrets only known to this tenant.
+    /// </summary>
+    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; set; }
 }

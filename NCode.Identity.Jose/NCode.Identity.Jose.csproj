@@ -15,7 +15,7 @@
         <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0"/>
         <PackageReference Include="NCode.Base64Url" Version="1.1.2"/>
-        <PackageReference Include="NCode.Disposables" Version="5.1.0" />
+        <PackageReference Include="NCode.Disposables" Version="5.2.1" />
         <PackageReference Include="NCode.StringSegments" Version="3.0.0" />
         <PackageReference Include="Nerdbank.Streams" Version="2.11.74" />
     </ItemGroup>

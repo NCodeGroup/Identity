@@ -168,7 +168,7 @@ public abstract class BaseCollectionProvider<TItem, TCollection> :
     {
         if (IsDisposed) return;
 
-        List<IAsyncDisposable>? disposables;
+        List<object>? disposables;
 
         lock (SyncObj)
         {
@@ -179,23 +179,18 @@ public abstract class BaseCollectionProvider<TItem, TCollection> :
 
             if (Owns)
             {
-                switch (DataSource)
-                {
-                    case IAsyncDisposable asyncDisposable:
-                        disposables.Add(asyncDisposable);
-                        break;
-
-                    case IDisposable disposable:
-                        disposables.Add(AsyncDisposable.Adapt(disposable));
-                        break;
-                }
+                disposables.Add(DataSource);
             }
 
             if (ChangeTokenRegistrations is { Count: > 0 })
-                disposables.AddRange(ChangeTokenRegistrations.Select(AsyncDisposable.Adapt));
+            {
+                disposables.AddRange(ChangeTokenRegistrations);
+            }
 
             if (ChangeTokenSource is not null)
-                disposables.Add(AsyncDisposable.Adapt(ChangeTokenSource));
+            {
+                disposables.Add(ChangeTokenSource);
+            }
 
             CollectionOrNull = default;
             ChangeTokenRegistrations = null;

@@ -32,7 +32,7 @@ namespace NCode.Collections.Providers.DataSources;
 /// Therefore, it does not dispose them. See the following for more information: https://stackoverflow.com/a/30287923/2502089
 /// </remarks>
 [PublicAPI]
-public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>, IAsyncDisposable
+public sealed class CompositeCollectionDataSource<T> : IAsyncDisposableCollectionDataSource<T>
 {
     private object SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
@@ -109,7 +109,7 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
     {
         if (IsDisposed) return;
 
-        List<IAsyncDisposable>? disposables;
+        List<object>? disposables;
 
         lock (SyncObj)
         {
@@ -120,26 +120,18 @@ public sealed class CompositeCollectionDataSource<T> : ICollectionDataSource<T>,
 
             if (Owns)
             {
-                foreach (var dataSource in DataSources)
-                {
-                    switch (dataSource)
-                    {
-                        case IAsyncDisposable asyncDisposable:
-                            disposables.Add(asyncDisposable);
-                            break;
-
-                        case IDisposable disposable:
-                            disposables.Add(AsyncDisposable.Adapt(disposable));
-                            break;
-                    }
-                }
+                disposables.AddRange(DataSources);
             }
 
             if (ChangeTokenRegistrations is { Count: > 0 })
-                disposables.AddRange(ChangeTokenRegistrations.Select(AsyncDisposable.Adapt));
+            {
+                disposables.AddRange(ChangeTokenRegistrations);
+            }
 
             if (ChangeTokenSource is not null)
-                disposables.Add(AsyncDisposable.Adapt(ChangeTokenSource));
+            {
+                disposables.Add(ChangeTokenSource);
+            }
 
             CollectionOrNull = null;
             ChangeTokenRegistrations = null;

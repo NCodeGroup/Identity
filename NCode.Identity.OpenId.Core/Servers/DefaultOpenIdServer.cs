@@ -38,7 +38,8 @@ public class DefaultOpenIdServer(
     IKnownParameterCollectionProvider knownParametersProvider,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
     IReadOnlySettingCollectionProvider settingsProvider,
-    ISecretKeyCollectionProvider secretsProvider
+    ISecretKeyCollectionProvider secretsProvider,
+    IPropertyBag propertyBag
 ) : OpenIdServer, IOpenIdErrorFactory
 {
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
@@ -62,7 +63,7 @@ public class DefaultOpenIdServer(
     public override ISecretKeyCollectionProvider SecretsProvider { get; } = secretsProvider;
 
     /// <inheritdoc />
-    public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
+    public override IPropertyBag PropertyBag { get; } = propertyBag;
 
     /// <inheritdoc />
     public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);

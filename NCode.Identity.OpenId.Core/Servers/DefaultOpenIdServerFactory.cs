@@ -88,8 +88,7 @@ public class DefaultOpenIdServerFactory(
         IReadOnlySettingCollectionProvider settingsProvider,
         ISecretKeyCollectionProvider secretsProvider,
         IPropertyBag propertyBag
-    ) => ActivatorUtilities.CreateInstance<DefaultOpenIdServer>(
-        ServiceProvider,
+    ) => new DefaultOpenIdServer(
         settingsProvider,
         secretsProvider,
         propertyBag);

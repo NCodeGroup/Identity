@@ -18,9 +18,9 @@
 #endregion
 
 using Moq;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
-using NCode.Identity.OpenId.Servers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parameters;
@@ -32,6 +32,7 @@ public class ParameterTests : IDisposable
     public void Dispose()
     {
         MockRepository.Verify();
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -65,7 +66,7 @@ public class ParameterTests : IDisposable
     public void Load_GivenEnumerable_ThenValid()
     {
         var mockParser = MockRepository.Create<ParameterParser<string>>();
-        var mockOpenIdServer = MockRepository.Create<OpenIdServer>();
+        var mockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
@@ -76,7 +77,7 @@ public class ParameterTests : IDisposable
             AllowMultipleStringValues = false
         };
 
-        var server = mockOpenIdServer.Object;
+        var environment = mockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
         var expectedParameter = new Parameter<string[]>
         {
@@ -86,17 +87,17 @@ public class ParameterTests : IDisposable
         };
 
         mockParser
-            .Setup(x => x.Load(server, descriptor, stringValues))
+            .Setup(x => x.Load(environment, descriptor, stringValues))
             .Returns(expectedParameter)
             .Verifiable();
 
         KnownParameter? knownParameterBase = knownParameter;
-        mockOpenIdServer
+        mockOpenIdEnvironment
             .Setup(x => x.KnownParameters.TryGet(parameterName, out knownParameterBase))
             .Returns(true)
             .Verifiable();
 
-        var actualParameter = Parameter.Load(server, parameterName, stringValues.AsEnumerable());
+        var actualParameter = Parameter.Load(environment, parameterName, stringValues.AsEnumerable());
         var typedParameter = Assert.IsType<Parameter<string[]>>(actualParameter);
 
         Assert.Equal(expectedParameter.Descriptor, typedParameter.Descriptor);

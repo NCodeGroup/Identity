@@ -22,10 +22,10 @@ using System.Text.Json.Serialization;
 using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Serialization;
-using NCode.Identity.OpenId.Servers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Serialization;
@@ -34,13 +34,13 @@ public class DelegatingJsonConverterTests : IDisposable
 {
     private MockRepository MockRepository { get; }
     private Mock<INullChangeToken> MockNullChangeToken { get; }
-    private Mock<OpenIdServer> MockOpenIdServer { get; }
+    private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
 
     public DelegatingJsonConverterTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockNullChangeToken = MockRepository.Create<INullChangeToken>();
-        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
+        MockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
     }
 
     public void Dispose()
@@ -54,7 +54,7 @@ public class DelegatingJsonConverterTests : IDisposable
         var knownParameterCollection = new KnownParameterCollection(
             new DefaultKnownParameterDataSource(MockNullChangeToken.Object).Collection);
 
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.KnownParameters)
             .Returns(knownParameterCollection)
             .Verifiable();
@@ -64,19 +64,19 @@ public class DelegatingJsonConverterTests : IDisposable
             Converters =
             {
                 new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(MockOpenIdServer.Object),
+                new OpenIdMessageJsonConverterFactory(MockOpenIdEnvironment.Object),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>()
             }
         };
 
         var inputMessage = new AuthorizationRequestMessage();
-        inputMessage.Initialize(MockOpenIdServer.Object, Array.Empty<Parameter>());
+        inputMessage.Initialize(MockOpenIdEnvironment.Object, Array.Empty<Parameter>());
 
         inputMessage.AuthorizationSourceType = AuthorizationSourceType.Union;
         inputMessage.Nonce = "nonce";
         inputMessage.DisplayType = OpenIdConstants.DisplayTypes.Popup;
         inputMessage.MaxAge = TimeSpan.FromMinutes(3.5);
-        inputMessage.Scopes = new[] { "scope1", "scope2" };
+        inputMessage.Scopes = ["scope1", "scope2"];
 
         var json = JsonSerializer.Serialize(inputMessage, jsonSerializerOptions);
 
@@ -94,7 +94,7 @@ public class DelegatingJsonConverterTests : IDisposable
         var knownParameterCollection = new KnownParameterCollection(
             new DefaultKnownParameterDataSource(MockNullChangeToken.Object).Collection);
 
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.KnownParameters)
             .Returns(knownParameterCollection)
             .Verifiable();
@@ -104,27 +104,27 @@ public class DelegatingJsonConverterTests : IDisposable
             Converters =
             {
                 new JsonStringEnumConverter(),
-                new OpenIdMessageJsonConverterFactory(MockOpenIdServer.Object),
+                new OpenIdMessageJsonConverterFactory(MockOpenIdEnvironment.Object),
                 new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
                 new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>()
             }
         };
 
-        var requestMessage = AuthorizationRequestMessage.Load(MockOpenIdServer.Object, Array.Empty<Parameter>());
+        var requestMessage = AuthorizationRequestMessage.Load(MockOpenIdEnvironment.Object, Array.Empty<Parameter>());
         requestMessage.AuthorizationSourceType = AuthorizationSourceType.Query;
         requestMessage.Nonce = "!nonce!";
         requestMessage.DisplayType = OpenIdConstants.DisplayTypes.Touch;
         requestMessage.MaxAge = TimeSpan.FromMinutes(5.0);
-        requestMessage.Scopes = new[] { "!scope1!", "!scope2!" };
+        requestMessage.Scopes = ["!scope1!", "!scope2!"];
         requestMessage.RedirectUri = new Uri("https://localhost/test");
 
-        var requestObject = AuthorizationRequestObject.Load(MockOpenIdServer.Object, Array.Empty<Parameter>());
+        var requestObject = AuthorizationRequestObject.Load(MockOpenIdEnvironment.Object, Array.Empty<Parameter>());
         requestObject.RequestObjectSource = RequestObjectSource.Remote;
         requestObject.Nonce = "nonce";
         requestObject.DisplayType = OpenIdConstants.DisplayTypes.Popup;
         requestObject.MaxAge = TimeSpan.FromMinutes(3.5);
-        requestObject.Scopes = new[] { "scope1", "scope2" };
+        requestObject.Scopes = ["scope1", "scope2"];
 
         const bool isContinuation = false;
         var inputMessage = new AuthorizationRequest(isContinuation, requestMessage, requestObject);

@@ -18,24 +18,20 @@
 #endregion
 
 using Moq;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Servers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parameters;
 
 public class ParameterLoaderTests : IDisposable
 {
-    private MockRepository MockRepository { get; }
-
-    public ParameterLoaderTests()
-    {
-        MockRepository = new MockRepository(MockBehavior.Strict);
-    }
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
     public void Dispose()
     {
         MockRepository.Verify();
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -47,10 +43,10 @@ public class ParameterLoaderTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var descriptor = new ParameterDescriptor(parameterName);
-        var mockOpenIdServer = MockRepository.Create<OpenIdServer>();
-        var server = mockOpenIdServer.Object;
+        var mockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
+        var environment = mockOpenIdEnvironment.Object;
 
-        var parameter = loader.Load(server, descriptor, stringValues);
+        var parameter = loader.Load(environment, descriptor, stringValues);
 
         Assert.Equal(descriptor, parameter.Descriptor);
         Assert.Equal(stringValues, parameter.StringValues);
@@ -65,10 +61,10 @@ public class ParameterLoaderTests : IDisposable
         var stringValues = new[] { "value1", "value2" };
 
         var descriptor = new ParameterDescriptor(parameterName);
-        var mockOpenIdServer = MockRepository.Create<OpenIdServer>();
-        var server = mockOpenIdServer.Object;
+        var mockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
+        var environment = mockOpenIdEnvironment.Object;
 
-        var parameter = loader.Load(server, descriptor, stringValues, stringValues);
+        var parameter = loader.Load(environment, descriptor, stringValues, stringValues);
 
         Assert.Equal(descriptor, parameter.Descriptor);
         Assert.Equal(stringValues, parameter.StringValues);

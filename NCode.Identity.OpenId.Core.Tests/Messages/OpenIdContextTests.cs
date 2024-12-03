@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Endpoints;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
@@ -32,6 +33,7 @@ namespace NCode.Identity.OpenId.Tests.Messages;
 public sealed class OpenIdContextTests : IDisposable
 {
     private MockRepository MockRepository { get; }
+    private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
     private Mock<OpenIdServer> MockOpenIdServer { get; }
     private Mock<OpenIdTenant> MockOpenIdTenant { get; }
     private AsyncSharedReferenceLease<OpenIdTenant> OpenIdTenantReference { get; }
@@ -42,6 +44,7 @@ public sealed class OpenIdContextTests : IDisposable
     public OpenIdContextTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
+        MockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
         MockOpenIdServer = MockRepository.Create<OpenIdServer>();
         MockOpenIdTenant = MockRepository.Create<OpenIdTenant>();
         OpenIdTenantReference = AsyncSharedReference.Create(MockOpenIdTenant.Object);
@@ -60,6 +63,7 @@ public sealed class OpenIdContextTests : IDisposable
     {
         var openIdContext = new DefaultOpenIdContext(
             MockHttpContext.Object,
+            MockOpenIdEnvironment.Object,
             MockOpenIdServer.Object,
             OpenIdTenantReference,
             MockMediator.Object,

@@ -20,6 +20,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Disposables;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
@@ -32,6 +33,7 @@ namespace NCode.Identity.OpenId.Endpoints;
 /// </summary>
 public class DefaultOpenIdContext(
     HttpContext httpContext,
+    OpenIdEnvironment openIdEnvironment,
     OpenIdServer openIdServer,
     AsyncSharedReferenceLease<OpenIdTenant> tenantReference,
     IMediator mediator,
@@ -44,6 +46,9 @@ public class DefaultOpenIdContext(
 
     /// <inheritdoc />
     public override HttpContext Http { get; } = httpContext;
+
+    /// <inheritdoc />
+    public override OpenIdEnvironment Environment { get; } = openIdEnvironment;
 
     /// <inheritdoc />
     public override OpenIdServer Server { get; } = openIdServer;

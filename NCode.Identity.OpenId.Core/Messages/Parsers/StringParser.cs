@@ -18,9 +18,9 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
@@ -31,7 +31,7 @@ public class StringParser : ParameterParser<string?>
 {
     /// <inheritdoc/>
     public override StringValues Serialize(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         string? parsedValue)
     {
@@ -40,7 +40,7 @@ public class StringParser : ParameterParser<string?>
 
     /// <inheritdoc/>
     public override string? Parse(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
@@ -52,7 +52,7 @@ public class StringParser : ParameterParser<string?>
                 return null;
 
             case 0:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
@@ -61,7 +61,7 @@ public class StringParser : ParameterParser<string?>
                 return string.Join(Separator, stringValues!);
 
             case > 1:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();

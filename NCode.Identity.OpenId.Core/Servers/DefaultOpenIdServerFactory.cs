@@ -35,17 +35,12 @@ using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Servers;
 
-public interface IOpenIdServerFactory
-{
-    ValueTask<OpenIdServer> CreateAsync(CancellationToken cancellationToken);
-}
-
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerFactory"/> abstraction.
 /// </summary>
 [PublicAPI]
 public class DefaultOpenIdServerFactory(
-    IOptions<OpenIdServerOptions> optionsAccessor,
+    IOptions<OpenIdOptions> optionsAccessor,
     IServiceProvider serviceProvider,
     IConfiguration configuration,
     ISettingSerializer settingSerializer,
@@ -56,9 +51,7 @@ public class DefaultOpenIdServerFactory(
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
 ) : IOpenIdServerFactory
 {
-    private const string DefaultConfigurationSectionName = "server:settings";
-
-    private OpenIdServerOptions Options { get; } = optionsAccessor.Value;
+    private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
     private IConfiguration Configuration { get; } = configuration;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -71,7 +64,7 @@ public class DefaultOpenIdServerFactory(
     /// <inheritdoc />
     public async ValueTask<OpenIdServer> CreateAsync(CancellationToken cancellationToken)
     {
-        var disposables = new List<object>();
+        var disposables = new List<object>(2);
         var propertyBag = PropertyBagFactory.Create();
         var persistedServer = await GetPersistedServerAsync(propertyBag, cancellationToken);
         try
@@ -135,10 +128,7 @@ public class DefaultOpenIdServerFactory(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var configurationSectionName = Options.SettingsSectionName;
-        if (string.IsNullOrEmpty(configurationSectionName))
-            configurationSectionName = DefaultConfigurationSectionName;
-
+        var configurationSectionName = $"{Options.SectionName}:{OpenIdServerOptions.SettingsSubsection}";
         var configurationSection = Configuration.GetSection(configurationSectionName);
 
         var dataSource = ActivatorUtilities.CreateInstance<RootSettingsCollectionDataSource>(
@@ -160,7 +150,7 @@ public class DefaultOpenIdServerFactory(
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedServer,
             initialSettings,
-            Options.SettingsPeriodicRefreshInterval,
+            Options.Server.SettingsPeriodicRefreshInterval,
             RefreshSettingsAsync);
 
         return ValueTask.FromResult(dataSource);
@@ -184,7 +174,7 @@ public class DefaultOpenIdServerFactory(
         var newSettings = SettingSerializer.DeserializeSettings(newSettingsJson);
 
         // update the state after successfully deserializing the settings
-        persistedServer.SettingsState = ConcurrentState.Create(newSettingsJson, newConcurrencyToken);
+        persistedServer.SettingsState = ConcurrentStateFactory.Create(newSettingsJson, newConcurrencyToken);
 
         return RefreshCollectionResultFactory.Changed(newSettings);
     }
@@ -201,7 +191,7 @@ public class DefaultOpenIdServerFactory(
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedServer,
             initialSecrets,
-            Options.SecretsPeriodicRefreshInterval,
+            Options.Server.SecretsPeriodicRefreshInterval,
             RefreshSecretsAsync);
 
         var provider = SecretKeyCollectionProviderFactory.Create(dataSource, owns: true);
@@ -227,7 +217,7 @@ public class DefaultOpenIdServerFactory(
         var newSecrets = SecretSerializer.DeserializeSecrets(newPersistedSecrets, out _);
 
         // update the state after successfully deserializing the secrets
-        persistedServer.SecretsState = ConcurrentState.Create(newPersistedSecrets, newConcurrencyToken);
+        persistedServer.SecretsState = ConcurrentStateFactory.Create(newPersistedSecrets, newConcurrencyToken);
 
         return RefreshCollectionResultFactory.Changed(newSecrets);
     }

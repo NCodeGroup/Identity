@@ -19,6 +19,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
@@ -36,6 +37,11 @@ public abstract class OpenIdContext : IAsyncDisposable
     /// Gets the <see cref="HttpContext"/> associated with the current request.
     /// </summary>
     public abstract HttpContext Http { get; }
+
+    /// <summary>
+    /// Gets the <see cref="OpenIdEnvironment"/> associated with the current request.
+    /// </summary>
+    public abstract OpenIdEnvironment Environment { get; }
 
     /// <summary>
     /// Gets the <see cref="OpenIdServer"/> associated with the current request.

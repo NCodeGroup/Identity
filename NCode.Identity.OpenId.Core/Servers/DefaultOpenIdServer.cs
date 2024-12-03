@@ -17,14 +17,6 @@
 
 #endregion
 
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using NCode.Identity.OpenId.Claims;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.PropertyBag;
@@ -35,27 +27,11 @@ namespace NCode.Identity.OpenId.Servers;
 /// Provides a default implementation of the <see cref="OpenIdServer"/> abstraction.
 /// </summary>
 public class DefaultOpenIdServer(
-    IKnownParameterCollectionProvider knownParametersProvider,
-    ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
     IReadOnlySettingCollectionProvider settingsProvider,
     ISecretKeyCollectionProvider secretsProvider,
     IPropertyBag propertyBag
-) : OpenIdServer, IOpenIdErrorFactory
+) : OpenIdServer
 {
-    private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
-    private IKnownParameterCollectionProvider KnownParametersProvider { get; } = knownParametersProvider;
-    private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
-
-    /// <inheritdoc />
-    public override JsonSerializerOptions JsonSerializerOptions =>
-        JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
-
-    /// <inheritdoc />
-    public override IOpenIdErrorFactory ErrorFactory => this;
-
-    /// <inheritdoc />
-    public override IKnownParameterCollection KnownParameters => KnownParametersProvider.Collection;
-
     /// <inheritdoc />
     public override IReadOnlySettingCollectionProvider SettingsProvider { get; } = settingsProvider;
 
@@ -64,29 +40,4 @@ public class DefaultOpenIdServer(
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = propertyBag;
-
-    /// <inheritdoc />
-    public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
-
-    private JsonSerializerOptions CreateJsonSerializerOptions() =>
-        new(JsonSerializerDefaults.Web)
-        {
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-
-            // TODO: provide a way to customize this list
-            Converters =
-            {
-                new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
-                new OpenIdMessageJsonConverterFactory(this),
-                new AuthorizationRequestJsonConverter(),
-                new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
-                new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
-                new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
-                new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
-                new SettingCollectionJsonConverter(SettingDescriptorJsonProvider),
-                new ClaimJsonConverter(),
-                new ClaimsIdentityJsonConverter()
-            }
-        };
 }

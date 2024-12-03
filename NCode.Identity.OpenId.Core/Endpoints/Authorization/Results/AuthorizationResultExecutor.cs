@@ -23,17 +23,17 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using NCode.CryptoMemory;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 
 internal class AuthorizationResultExecutor(
-    OpenIdServer openIdServer
+    OpenIdEnvironment openIdEnvironment
 ) : IResultExecutor<AuthorizationResult>
 {
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
     public async ValueTask ExecuteAsync(HttpContext httpContext, AuthorizationResult result, CancellationToken cancellationToken)
     {
@@ -44,7 +44,7 @@ internal class AuthorizationResultExecutor(
         // instead of returning a redirect response.
         if (result.Error is { StatusCode: not null })
         {
-            var httpResult = TypedResults.Json(result.Error, OpenIdServer.JsonSerializerOptions, statusCode: result.Error.StatusCode);
+            var httpResult = TypedResults.Json(result.Error, OpenIdEnvironment.JsonSerializerOptions, statusCode: result.Error.StatusCode);
             await httpResult.ExecuteAsync(httpContext);
             return;
         }
@@ -89,6 +89,7 @@ internal class AuthorizationResultExecutor(
                     StringComparer.OrdinalIgnoreCase) :
             [];
 
+        // TODO: fix this warning
         var parameters = existingParameters.Union(message);
         var serializedParameters = SerializeUriParameters(parameters);
 

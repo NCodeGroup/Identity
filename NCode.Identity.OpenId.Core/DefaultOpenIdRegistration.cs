@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
@@ -100,13 +101,26 @@ public static class DefaultOpenIdRegistration
 
         // server
 
-        serviceCollection.AddSingleton<DefaultOpenIdServer>();
+        serviceCollection.TryAddSingleton<
+            IOpenIdServerFactory,
+            DefaultOpenIdServerFactory>();
 
-        serviceCollection.TryAddSingleton<OpenIdServer>(serviceProvider =>
-            serviceProvider.GetRequiredService<DefaultOpenIdServer>());
+        serviceCollection.TryAddSingleton<
+            IOpenIdServerProvider,
+            DefaultOpenIdServerProvider>();
 
-        serviceCollection.TryAddSingleton<IOpenIdErrorFactory>(serviceProvider =>
-            serviceProvider.GetRequiredService<DefaultOpenIdServer>());
+        // environment
+
+        serviceCollection.TryAddSingleton<
+            DefaultOpenIdEnvironment>();
+
+        serviceCollection.TryAddSingleton<
+            OpenIdEnvironment,
+            DefaultOpenIdEnvironment>();
+
+        serviceCollection.TryAddSingleton<
+            IOpenIdErrorFactory,
+            DefaultOpenIdEnvironment>();
 
         return serviceCollection;
     }

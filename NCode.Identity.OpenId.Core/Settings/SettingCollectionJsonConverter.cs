@@ -28,16 +28,15 @@ namespace NCode.Identity.OpenId.Settings;
 /// </summary>
 public class SettingCollectionJsonConverter(
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider
-) : JsonConverter<IReadOnlyCollection<Setting>>
+) : JsonConverter<IEnumerable<Setting>>
 {
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
 
     /// <inheritdoc />
-    public override bool CanConvert(Type typeToConvert) =>
-        typeof(IReadOnlyCollection<Setting>).IsAssignableFrom(typeToConvert);
+    public override bool CanConvert(Type typeToConvert) => typeof(List<Setting>).IsAssignableTo(typeToConvert);
 
     /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, IReadOnlyCollection<Setting> settings, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, IEnumerable<Setting> settings, JsonSerializerOptions options)
     {
         writer.WriteStartObject();
 
@@ -51,7 +50,7 @@ public class SettingCollectionJsonConverter(
     }
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<Setting> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override IEnumerable<Setting> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
             throw new JsonException();

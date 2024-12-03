@@ -23,27 +23,22 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="LoadAuthorizationSourceCommand"/> message.
 /// </summary>
-public class DefaultLoadAuthorizationSourceHandler(
-    OpenIdServer openIdServer,
-    IOpenIdErrorFactory errorFactory
-) : ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>
+public class DefaultLoadAuthorizationSourceHandler : ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>
 {
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
     /// <inheritdoc />
     public async ValueTask<IAuthorizationSource> HandleAsync(
         LoadAuthorizationSourceCommand command,
         CancellationToken cancellationToken)
     {
         var openIdContext = command.OpenIdContext;
+        var openIdEnvironment = openIdContext.Environment;
+
         var httpContext = openIdContext.Http;
         var httpRequest = httpContext.Request;
 
@@ -60,7 +55,8 @@ public class DefaultLoadAuthorizationSourceHandler(
             const string expectedContentType = "application/x-www-form-urlencoded";
             if (!httpRequest.ContentType?.StartsWith(expectedContentType, StringComparison.OrdinalIgnoreCase) ?? false)
             {
-                throw ErrorFactory
+                throw openIdEnvironment
+                    .ErrorFactory
                     .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
                     .WithDescription($"The content type of POST requests must be '{expectedContentType}', received '{httpRequest.ContentType}'.")
                     .WithStatusCode(StatusCodes.Status415UnsupportedMediaType)
@@ -72,7 +68,8 @@ public class DefaultLoadAuthorizationSourceHandler(
         }
         else
         {
-            throw ErrorFactory
+            throw openIdEnvironment
+                .ErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
                 .WithStatusCode(StatusCodes.Status405MethodNotAllowed)
                 .AsException();
@@ -82,10 +79,10 @@ public class DefaultLoadAuthorizationSourceHandler(
         var parameters = properties.Select(property =>
         {
             var descriptor = new ParameterDescriptor(property.Key);
-            return descriptor.Loader.Load(OpenIdServer, descriptor, property.Value);
+            return descriptor.Loader.Load(openIdEnvironment, descriptor, property.Value);
         });
 
-        var message = AuthorizationSource.Load(OpenIdServer, parameters);
+        var message = AuthorizationSource.Load(openIdEnvironment, parameters);
         message.AuthorizationSourceType = sourceType;
 
         return message;

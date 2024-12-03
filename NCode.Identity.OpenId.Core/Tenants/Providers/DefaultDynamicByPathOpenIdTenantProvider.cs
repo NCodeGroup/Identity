@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
@@ -37,8 +38,9 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 /// </summary>
 public class DefaultDynamicByPathOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
-    IOptions<OpenIdServerOptions> serverOptionsAccessor,
-    OpenIdServer openIdServer,
+    IOptions<OpenIdOptions> optionsAccessor,
+    OpenIdEnvironment openIdEnvironment,
+    IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
@@ -49,7 +51,7 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
 ) : OpenIdTenantProvider
 {
     private DynamicByPathOpenIdTenantOptions TenantOptions =>
-        ServerOptions.Tenant.DynamicByPath ?? throw MissingTenantOptionsException();
+        OpenIdOptions.Tenant.DynamicByPath ?? throw MissingTenantOptionsException();
 
     /// <inheritdoc />
     public override string ProviderCode => OpenIdConstants.TenantProviderCodes.DynamicByPath;
@@ -61,10 +63,13 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     protected override TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
 
     /// <inheritdoc />
-    protected override OpenIdServerOptions ServerOptions { get; } = serverOptionsAccessor.Value;
+    protected override OpenIdOptions OpenIdOptions { get; } = optionsAccessor.Value;
 
     /// <inheritdoc />
-    protected override OpenIdServer OpenIdServer { get; } = openIdServer;
+    protected override OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+
+    /// <inheritdoc />
+    protected override IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
 
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;

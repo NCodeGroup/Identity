@@ -17,6 +17,7 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
@@ -39,10 +40,10 @@ public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportErr
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdError"/> class with the specified <see cref="OpenIdServer"/> and error code.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> associated with the current instance.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> associated with the current instance.</param>
     /// <param name="errorCode">The value for the <c>error</c> parameter.</param>
-    public OpenIdError(OpenIdServer openIdServer, string errorCode)
-        : base(openIdServer)
+    public OpenIdError(OpenIdEnvironment openIdEnvironment, string errorCode)
+        : base(openIdEnvironment)
     {
         Code = errorCode;
     }

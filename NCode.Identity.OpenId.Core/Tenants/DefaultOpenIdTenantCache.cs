@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// with a sliding expiration to cache <see cref="OpenIdTenant"/> instances.
 /// </summary>
 public class DefaultOpenIdTenantCache(
-    IOptions<OpenIdServerOptions> serverOptionsAccessor,
+    IOptions<OpenIdOptions> optionsAccessor,
     IMemoryCache memoryCache
 ) : IOpenIdTenantCache
 {
@@ -38,7 +38,7 @@ public class DefaultOpenIdTenantCache(
 
     private MemoryCacheEntryOptions MemoryCacheEntryOptions { get; } = new()
     {
-        SlidingExpiration = serverOptionsAccessor.Value.Tenant.TenantCacheExpiration,
+        SlidingExpiration = optionsAccessor.Value.Tenant.TenantCacheExpiration,
 
         PostEvictionCallbacks =
         {

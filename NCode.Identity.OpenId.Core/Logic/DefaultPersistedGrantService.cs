@@ -20,10 +20,10 @@
 using System.Text.Json;
 using IdGen;
 using NCode.Identity.Jose.Extensions;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Logic;
@@ -33,17 +33,17 @@ namespace NCode.Identity.OpenId.Logic;
 /// </summary>
 public class DefaultPersistedGrantService(
     TimeProvider timeProvider,
+    OpenIdEnvironment openIdEnvironment,
     ICryptoService cryptoService,
     IIdGenerator<long> idGenerator,
-    IStoreManagerFactory storeManagerFactory,
-    OpenIdServer openIdServer
+    IStoreManagerFactory storeManagerFactory
 ) : IPersistedGrantService
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IIdGenerator<long> IdGenerator { get; } = idGenerator;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     private string GetHashedKey(string grantKey) =>
         CryptoService.HashValue(
@@ -69,7 +69,7 @@ public class DefaultPersistedGrantService(
 
         var payload = JsonSerializer.SerializeToElement(
             grant.Payload,
-            OpenIdServer.JsonSerializerOptions);
+            OpenIdEnvironment.JsonSerializerOptions);
 
         var envelope = new PersistedGrant
         {
@@ -128,7 +128,7 @@ public class DefaultPersistedGrantService(
 
         var status = GetStatus(utcNow, envelope);
         var payload = envelope.Payload.Deserialize<TPayload>(
-            OpenIdServer.JsonSerializerOptions);
+            OpenIdEnvironment.JsonSerializerOptions);
 
         if (payload is null)
             throw new InvalidOperationException("The payload could not be deserialized.");
@@ -179,7 +179,7 @@ public class DefaultPersistedGrantService(
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var payload = envelope.Payload.Deserialize<TPayload>(
-            OpenIdServer.JsonSerializerOptions);
+            OpenIdEnvironment.JsonSerializerOptions);
 
         if (payload is null)
             throw new InvalidOperationException("The payload could not be deserialized.");

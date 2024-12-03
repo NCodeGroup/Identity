@@ -35,10 +35,8 @@ public interface IOpenIdTenantFactory
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> associated with the current request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
-    /// <see cref="OpenIdTenant"/> instance.</returns>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created <see cref="OpenIdTenant"/> instance.</returns>
     ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
         IPropertyBag propertyBag,

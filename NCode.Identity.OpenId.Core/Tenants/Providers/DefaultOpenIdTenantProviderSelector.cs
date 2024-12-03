@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 /// Provides a default implementation of the <see cref="IOpenIdTenantProviderSelector"/> abstraction.
 /// </summary>
 public class DefaultOpenIdTenantProviderSelector(
-    IOptions<OpenIdServerOptions> serverOptionsAccessor,
+    IOptions<OpenIdOptions> optionsAccessor,
     IEnumerable<IOpenIdTenantProvider> tenantProviders
 ) : IOpenIdTenantProviderSelector
 {
@@ -37,7 +37,7 @@ public class DefaultOpenIdTenantProviderSelector(
 
     private IOpenIdTenantProvider? TenantProviderOrNull { get; set; }
 
-    private OpenIdServerOptions ServerOptions { get; } = serverOptionsAccessor.Value;
+    private OpenIdOptions OpenIdOptions { get; } = optionsAccessor.Value;
 
     private IEnumerable<IOpenIdTenantProvider> TenantProviders { get; } = tenantProviders;
 
@@ -47,7 +47,7 @@ public class DefaultOpenIdTenantProviderSelector(
         if (TenantProviderHasValue)
             return TenantProviderOrNull;
 
-        var providerCode = ServerOptions.Tenant.ProviderCode;
+        var providerCode = OpenIdOptions.Tenant.ProviderCode;
         var tenantProvider = TenantProviders.FirstOrDefault(
             provider => string.Equals(
                 providerCode,

@@ -21,9 +21,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Endpoints.Continue.Models;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Models;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Continue.Logic;
 
@@ -32,15 +32,15 @@ namespace NCode.Identity.OpenId.Endpoints.Continue.Logic;
 /// </summary>
 public class DefaultContinueService(
     TimeProvider timeProvider,
-    OpenIdServer openIdServer,
     LinkGenerator linkGenerator,
+    OpenIdEnvironment openIdEnvironment,
     ICryptoService cryptoService,
     IPersistedGrantService persistedGrantService
 ) : IContinueService
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
@@ -70,7 +70,7 @@ public class DefaultContinueService(
 
         var payloadJson = JsonSerializer.SerializeToElement(
             payload,
-            OpenIdServer.JsonSerializerOptions);
+            OpenIdEnvironment.JsonSerializerOptions);
 
         var continueEnvelope = new ContinueEnvelope
         {

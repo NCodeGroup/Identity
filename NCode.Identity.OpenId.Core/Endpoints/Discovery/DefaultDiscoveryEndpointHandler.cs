@@ -25,7 +25,6 @@ using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Endpoints.Discovery.Commands;
 using NCode.Identity.OpenId.Endpoints.Discovery.Results;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Discovery;
 
@@ -33,12 +32,10 @@ namespace NCode.Identity.OpenId.Endpoints.Discovery;
 /// Provides a default implementation of the required services and handlers used by the discovery endpoint.
 /// </summary>
 public class DefaultDiscoveryEndpointHandler(
-    IOpenIdContextFactory contextFactory,
-    OpenIdServer openIdServer
+    IOpenIdContextFactory contextFactory
 ) : IOpenIdEndpointProvider
 {
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -57,6 +54,8 @@ public class DefaultDiscoveryEndpointHandler(
             mediator,
             cancellationToken);
 
+        var openIdEnvironment = openIdContext.Environment;
+
         var result = new DiscoveryResult
         {
             Issuer = openIdContext.Tenant.Issuer
@@ -67,6 +66,6 @@ public class DefaultDiscoveryEndpointHandler(
             cancellationToken
         );
 
-        return TypedResults.Json(result, OpenIdServer.JsonSerializerOptions);
+        return TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);
     }
 }

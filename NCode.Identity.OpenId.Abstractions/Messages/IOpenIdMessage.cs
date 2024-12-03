@@ -19,7 +19,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Messages;
 
@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Messages;
 public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
 {
     /// <summary>
-    /// Gets the <see cref="OpenIdServer"/> for the current instance.
+    /// Gets the <see cref="OpenIdEnvironment"/> for the current instance.
     /// </summary>
-    OpenIdServer OpenIdServer { get; }
+    OpenIdEnvironment OpenIdEnvironment { get; }
 }

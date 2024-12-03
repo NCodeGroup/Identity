@@ -18,18 +18,17 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints;
 
 internal class OpenIdMiddleware(
     RequestDelegate next,
-    OpenIdServer openIdServer
-)
+    OpenIdEnvironment openIdEnvironment)
 {
     private RequestDelegate Next { get; } = next;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
     public async Task InvokeAsync(HttpContext httpContext)
     {
@@ -43,7 +42,7 @@ internal class OpenIdMiddleware(
 
             var result = TypedResults.Json(
                 openIdError,
-                OpenIdServer.JsonSerializerOptions,
+                OpenIdEnvironment.JsonSerializerOptions,
                 statusCode: openIdError.StatusCode);
 
             await result.ExecuteAsync(httpContext);

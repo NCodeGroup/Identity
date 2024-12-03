@@ -21,7 +21,6 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
@@ -32,13 +31,11 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// </summary>
 public class DefaultCreateAuthorizationTicketHandler(
     TimeProvider timeProvider,
-    OpenIdServer openIdServer,
     IAuthorizationCodeService authorizationCodeService,
     ITokenService tokenService
 ) : ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IAuthorizationCodeService AuthorizationCodeService { get; } = authorizationCodeService;
     private ITokenService TokenService { get; } = tokenService;
 
@@ -51,7 +48,7 @@ public class DefaultCreateAuthorizationTicketHandler(
 
         var responseTypes = authorizationRequest.ResponseTypes;
 
-        var ticket = AuthorizationTicket.Create(OpenIdServer);
+        var ticket = AuthorizationTicket.Create(openIdContext.Environment);
 
         ticket.CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         ticket.State = authorizationRequest.State;

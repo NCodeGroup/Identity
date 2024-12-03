@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Endpoints.Continue;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
@@ -42,14 +43,12 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization;
 /// Provides a default implementation of the required services and handlers used by the authorization endpoint.
 /// </summary>
 public class DefaultAuthorizationEndpointHandler(
-    OpenIdServer openIdServer,
-    IOpenIdErrorFactory errorFactory,
+    OpenIdEnvironment openIdEnvironment,
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService
 ) : IOpenIdEndpointProvider, IContinueProvider
 {
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
 
@@ -57,7 +56,7 @@ public class DefaultAuthorizationEndpointHandler(
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapMethods(
             OpenIdConstants.EndpointPaths.Authorization,
-            new[] { HttpMethods.Get, HttpMethods.Post },
+            [HttpMethods.Get, HttpMethods.Post],
             HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Authorization)
         .WithOpenIdDiscoverable();
@@ -86,7 +85,8 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (!authResult.HasClient)
         {
-            return ErrorFactory
+            return OpenIdEnvironment
+                .ErrorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsResult();
@@ -128,7 +128,8 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var openIdError = exception is OpenIdException openIdException ?
                 openIdException.Error :
-                ErrorFactory
+                OpenIdEnvironment
+                    .ErrorFactory
                     .Create(OpenIdConstants.ErrorCodes.ServerError)
                     .WithException(exception);
 
@@ -151,7 +152,8 @@ public class DefaultAuthorizationEndpointHandler(
         {
             if (responseModeStringValues.Count > 1)
             {
-                throw ErrorFactory
+                throw OpenIdEnvironment
+                    .ErrorFactory
                     .TooManyParameterValues(OpenIdConstants.Parameters.ResponseMode)
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .WithState(state)
@@ -161,7 +163,8 @@ public class DefaultAuthorizationEndpointHandler(
             effectiveResponseMode = responseModeStringValues.ToString();
             if (!settings.ResponseModesSupported.Contains(effectiveResponseMode))
             {
-                throw ErrorFactory
+                throw OpenIdEnvironment
+                    .ErrorFactory
                     .InvalidParameterValue(OpenIdConstants.Parameters.ResponseMode)
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .WithState(state)
@@ -175,7 +178,8 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
         {
-            throw ErrorFactory
+            throw OpenIdEnvironment
+                .ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
@@ -184,7 +188,8 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (!Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
         {
-            throw ErrorFactory
+            throw OpenIdEnvironment
+                .ErrorFactory
                 .InvalidRequest("The specified 'redirect_uri' is not valid absolute URI.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
@@ -202,7 +207,8 @@ public class DefaultAuthorizationEndpointHandler(
         var isSafe = (settings.AllowLoopbackRedirect && redirectUri.IsLoopback) || redirectUrls.Contains(effectiveUrl);
         if (!isSafe)
         {
-            throw ErrorFactory
+            throw OpenIdEnvironment
+                .ErrorFactory
                 .UnauthorizedClient("The specified 'redirect_uri' is not valid for the associated 'client_id'.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
@@ -246,7 +252,8 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (!authenticateResult.IsSuccess)
         {
-            var openIdError = ErrorFactory
+            var openIdError = OpenIdEnvironment
+                .ErrorFactory
                 .AccessDenied("Unable to authenticate the end-user.")
                 .WithState(clientRedirectContext.State)
                 .WithException(authenticateResult.Error);
@@ -303,7 +310,8 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (authResult.IsUndefined)
         {
-            return ErrorFactory
+            return OpenIdEnvironment
+                .ErrorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsResult();
@@ -313,7 +321,7 @@ public class DefaultAuthorizationEndpointHandler(
                            authResult.ConfidentialClient ??
                            throw new InvalidOperationException();
 
-        var authorizationRequest = continuePayload.Deserialize<IAuthorizationRequest>(OpenIdServer.JsonSerializerOptions);
+        var authorizationRequest = continuePayload.Deserialize<IAuthorizationRequest>(OpenIdEnvironment.JsonSerializerOptions);
         if (authorizationRequest == null)
             throw new InvalidOperationException("JSON deserialization returned null.");
 

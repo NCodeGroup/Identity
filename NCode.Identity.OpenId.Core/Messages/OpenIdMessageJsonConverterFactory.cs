@@ -19,7 +19,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Messages;
 
@@ -28,10 +28,10 @@ namespace NCode.Identity.OpenId.Messages;
 /// instances to and from JSON.
 /// </summary>
 public class OpenIdMessageJsonConverterFactory(
-    OpenIdServer openIdServer
+    OpenIdEnvironment openIdEnvironment
 ) : JsonConverterFactory
 {
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
     /// <inheritdoc />
     public override bool CanConvert(Type typeToConvert)
@@ -43,6 +43,6 @@ public class OpenIdMessageJsonConverterFactory(
     public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
         var typeOfConverter = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
-        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, OpenIdServer);
+        return (JsonConverter?)Activator.CreateInstance(typeOfConverter, OpenIdEnvironment);
     }
 }

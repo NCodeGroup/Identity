@@ -25,7 +25,6 @@ using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
@@ -36,13 +35,11 @@ namespace NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 /// </summary>
 public class DefaultClientCredentialsGrantHandler(
     TimeProvider timeProvider,
-    OpenIdServer openIdServer,
     IOpenIdErrorFactory errorFactory,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private ITokenService TokenService { get; } = tokenService;
 
@@ -96,7 +93,8 @@ public class DefaultClientCredentialsGrantHandler(
         var scopes = tokenRequest.Scopes;
         Debug.Assert(scopes is not null);
 
-        var tokenResponse = TokenResponse.Create(OpenIdServer);
+        var openIdEnvironment = openIdContext.Environment;
+        var tokenResponse = TokenResponse.Create(openIdEnvironment);
 
         tokenResponse.Scopes = scopes;
 

@@ -20,8 +20,8 @@
 using System.Collections;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
@@ -45,7 +45,7 @@ internal class AuthorizationRequest(
 
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 
-    public OpenIdServer OpenIdServer => OriginalRequestMessage.OpenIdServer;
+    public OpenIdEnvironment OpenIdEnvironment => OriginalRequestMessage.OpenIdEnvironment;
 
     public bool IsContinuation { get; set; } = isContinuation;
 
@@ -78,7 +78,8 @@ internal class AuthorizationRequest(
     public string ClientId =>
         OriginalRequestObject?.ClientId ??
         OriginalRequestMessage.ClientId ??
-        throw OpenIdServer.ErrorFactory
+        throw OpenIdEnvironment
+            .ErrorFactory
             .MissingParameter(OpenIdConstants.Parameters.ClientId)
             .AsException();
 
@@ -127,7 +128,8 @@ internal class AuthorizationRequest(
     public Uri RedirectUri =>
         OriginalRequestObject?.RedirectUri ??
         OriginalRequestMessage.RedirectUri ??
-        throw OpenIdServer.ErrorFactory
+        throw OpenIdEnvironment
+            .ErrorFactory
             .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
             .AsException();
 
@@ -162,6 +164,7 @@ internal class AuthorizationRequest(
 
         return OriginalRequestMessage
             .ExceptBy(OriginalRequestObject.Keys, kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
+            // TODO: fix this
             .Union(OriginalRequestObject);
     }
 

@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,20 +16,17 @@
 
 #endregion
 
-using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
-using NCode.Identity.OpenId.Environments;
-
-namespace NCode.Identity.OpenId.Messages;
+namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
-/// Represents the base interface for <c>OAuth</c> or <c>OpenID Connect</c> request and response messages.
+/// Factory for creating a new <see cref="OpenIdServer"/> instance.
 /// </summary>
-[PublicAPI]
-public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
+public interface IOpenIdServerFactory
 {
     /// <summary>
-    /// Gets the <see cref="OpenIdEnvironment"/> for the current instance.
+    /// Factory method to create a new <see cref="OpenIdServer"/> instance.
     /// </summary>
-    OpenIdEnvironment OpenIdEnvironment { get; }
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created <see cref="OpenIdServer"/> instance.</returns>
+    ValueTask<OpenIdServer> CreateAsync(CancellationToken cancellationToken);
 }

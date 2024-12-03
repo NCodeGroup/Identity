@@ -62,7 +62,14 @@ internal class Startup(IConfiguration configuration)
 
         services.AddHttpClient();
 
-        services.Configure<OpenIdServerOptions>(Configuration.GetSection("server"));
+        var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
+        if (string.IsNullOrEmpty(openIdOptionsSectionName))
+        {
+            openIdOptionsSectionName = OpenIdOptions.DefaultSectionName;
+        }
+
+        services.Configure<OpenIdOptions>(Configuration.GetSection(openIdOptionsSectionName));
+        services.Configure<OpenIdOptions>(options => options.SectionName = openIdOptionsSectionName);
 
         services.AddSecureDataProtectionServices();
         services.AddSecretServices();

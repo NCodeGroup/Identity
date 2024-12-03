@@ -19,7 +19,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
@@ -48,35 +48,35 @@ public abstract class Parameter
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use while loading the parameter.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     public static Parameter Load(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         string parameterName,
         IEnumerable<string> stringValues)
     {
-        return Load(openIdServer, parameterName, stringValues.ToArray());
+        return Load(openIdEnvironment, parameterName, stringValues.ToArray());
     }
 
     /// <summary>
     /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use while loading the parameter.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     public static Parameter Load(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         string parameterName,
         StringValues stringValues)
     {
-        var descriptor = openIdServer.KnownParameters.TryGet(parameterName, out var knownParameter) ?
+        var descriptor = openIdEnvironment.KnownParameters.TryGet(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
 
-        return descriptor.Loader.Load(openIdServer, descriptor, stringValues);
+        return descriptor.Loader.Load(openIdEnvironment, descriptor, stringValues);
     }
 }
 

@@ -27,7 +27,6 @@ using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
@@ -38,14 +37,12 @@ namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 /// </summary>
 public class DefaultAuthorizationCodeGrantHandler(
     TimeProvider timeProvider,
-    OpenIdServer openIdServer,
     IOpenIdErrorFactory errorFactory,
     IPersistedGrantService persistedGrantService,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
@@ -120,12 +117,13 @@ public class DefaultAuthorizationCodeGrantHandler(
         AuthorizationGrant authorizationGrant,
         CancellationToken cancellationToken)
     {
+        var openIdEnvironment = openIdContext.Environment;
         var (authorizationRequest, subjectAuthentication) = authorizationGrant;
 
         var originalScopes = authorizationRequest.Scopes;
         var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 
-        var tokenResponse = TokenResponse.Create(OpenIdServer);
+        var tokenResponse = TokenResponse.Create(openIdEnvironment);
 
         tokenResponse.Scopes = effectiveScopes;
 

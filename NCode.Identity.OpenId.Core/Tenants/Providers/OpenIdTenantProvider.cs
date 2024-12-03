@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Routing.Template;
 using NCode.Collections.Providers;
 using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Options;
@@ -66,14 +67,19 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     protected abstract TemplateBinderFactory TemplateBinderFactory { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdServerOptions"/> used to configure the OpenID server.
+    /// Gets the <see cref="OpenIdOptions"/> used to configure OpenID.
     /// </summary>
-    protected abstract OpenIdServerOptions ServerOptions { get; }
+    protected abstract OpenIdOptions OpenIdOptions { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdServer"/> used to provide OpenID server functionality.
+    /// Gets the <see cref="OpenIdEnvironment"/> that provides various OpenID server environment settings.
     /// </summary>
-    protected abstract OpenIdServer OpenIdServer { get; }
+    protected abstract OpenIdEnvironment OpenIdEnvironment { get; }
+
+    /// <summary>
+    /// Gets the <see cref="OpenIdServerProvider"/> used to get the current <see cref="OpenIdServer"/> instance.
+    /// </summary>
+    protected abstract IOpenIdServerProvider OpenIdServerProvider { get; }
 
     /// <summary>
     /// Gets the <see cref="IStoreManagerFactory"/> used to create <see cref="IStoreManager"/> instances.
@@ -145,14 +151,16 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         propertyBag.Set(persistedTenant);
 
         if (persistedTenant == null)
-            throw OpenIdServer.ErrorFactory
+            throw OpenIdEnvironment
+                .ErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithStatusCode(StatusCodes.Status404NotFound)
                 .WithDescription($"The tenant with identifier '{tenantId}' could not be found.")
                 .AsException();
 
         if (persistedTenant.IsDisabled)
-            throw OpenIdServer.ErrorFactory
+            throw OpenIdEnvironment
+                .ErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithStatusCode(StatusCodes.Status404NotFound)
                 .WithDescription($"The tenant with identifier '{tenantId}' is disabled.")
@@ -282,6 +290,8 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
+        var openIdServer = await OpenIdServerProvider.GetAsync(cancellationToken);
+
         var tenantId = tenantDescriptor.TenantId;
         var persistedTenant = await GetTenantByIdAsync(
             tenantId,
@@ -294,12 +304,12 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedTenant,
             initialSettings,
-            ServerOptions.Tenant.SettingsPeriodicRefreshInterval,
+            OpenIdOptions.Tenant.SettingsPeriodicRefreshInterval,
             RefreshSettingsAsync);
 
         var dataSources = new List<ICollectionDataSource<Setting>>
         {
-            OpenIdServer.SettingsProvider.AsDataSource(),
+            openIdServer.SettingsProvider.AsDataSource(),
             periodicPollingSource
         };
 
@@ -333,7 +343,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         var newSettings = SettingSerializer.DeserializeSettings(newSettingsJson);
 
         // update the state after successfully deserializing the settings
-        persistedTenant.SettingsState = ConcurrentState.Create(newSettingsJson, newConcurrencyToken);
+        persistedTenant.SettingsState = ConcurrentStateFactory.Create(newSettingsJson, newConcurrencyToken);
 
         return RefreshCollectionResultFactory.Changed(newSettings);
     }
@@ -430,7 +440,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
             propertyBag,
             cancellationToken);
 
-        var refreshInterval = ServerOptions.Tenant.SecretsPeriodicRefreshInterval;
+        var refreshInterval = OpenIdOptions.Tenant.SecretsPeriodicRefreshInterval;
         var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.SecretsState.Value, out _);
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
@@ -467,7 +477,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         var newSecrets = SecretSerializer.DeserializeSecrets(newPersistedSecrets, out _);
 
         // update the state after successfully deserializing the secrets
-        persistedTenant.SecretsState = ConcurrentState.Create(newPersistedSecrets, newConcurrencyToken);
+        persistedTenant.SecretsState = ConcurrentStateFactory.Create(newPersistedSecrets, newConcurrencyToken);
 
         return RefreshCollectionResultFactory.Changed(newSecrets);
     }

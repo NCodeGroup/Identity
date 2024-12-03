@@ -19,8 +19,8 @@
 
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
@@ -34,13 +34,13 @@ public interface IJsonParser
     /// Parses and loads JSON into a <see cref="Parameter"/> given an <see cref="Utf8JsonReader"/>.
     /// </summary>
     /// <param name="reader">The <see cref="Utf8JsonReader"/> to read from.</param>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when parsing the value.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     Parameter Read(
         ref Utf8JsonReader reader,
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options);
 
@@ -48,12 +48,12 @@ public interface IJsonParser
     /// Serializes the JSON value from a <see cref="Parameter"/> into the given <see cref="Utf8JsonWriter"/>.
     /// </summary>
     /// <param name="writer">The <see cref="Utf8JsonWriter"/> to write to.</param>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when serializing the value.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use when serializing the value.</param>
     /// <param name="parameter">The <see cref="Parameter"/> to serialize as JSON.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     void Write(
         Utf8JsonWriter writer,
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         Parameter parameter,
         JsonSerializerOptions options);
 }

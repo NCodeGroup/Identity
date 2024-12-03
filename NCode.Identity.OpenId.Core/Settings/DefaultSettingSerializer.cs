@@ -17,7 +17,7 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -25,17 +25,17 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction.
 /// </summary>
 public class DefaultSettingSerializer(
-    OpenIdServer server
+    OpenIdEnvironment openIdEnvironment
 ) : ISettingSerializer
 {
-    private OpenIdServer Server { get; } = server;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
     /// <inheritdoc />
     public IReadOnlyCollection<Setting> DeserializeSettings(JsonElement settingsJson)
         => settingsJson.ValueKind switch
         {
             JsonValueKind.Null or JsonValueKind.Undefined => Array.Empty<Setting>(),
-            JsonValueKind.Object => settingsJson.Deserialize<IReadOnlyCollection<Setting>>(Server.JsonSerializerOptions) ?? [],
+            JsonValueKind.Object => settingsJson.Deserialize<IReadOnlyCollection<Setting>>(OpenIdEnvironment.JsonSerializerOptions) ?? [],
             _ => throw new JsonException("Expected an object or null value.")
         };
 }

@@ -20,8 +20,8 @@
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
@@ -47,59 +47,59 @@ public abstract class ParameterParser<T> : ParameterLoader, IJsonParser
     /// <summary>
     /// Returns the specified <paramref name="parsedValue"/> formatted as <see cref="StringValues"/>.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when serializing the value.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use when serializing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to serialize.</param>
     /// <param name="parsedValue">The value to serialize.</param>
     /// <returns>The value formatted as <see cref="StringValues"/>.</returns>
     public abstract StringValues Serialize(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue);
 
     /// <summary>
     /// Parses the specified string values into a type-specific value.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when parsing the value.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <returns>The parsed type-specific value.</returns>
     public abstract T Parse(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues);
 
     /// <summary>
     /// Parses and loads a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when parsing the value.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
     public override Parameter Load(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
-        var parsedValue = Parse(openIdServer, descriptor, stringValues);
-        return Load(openIdServer, descriptor, stringValues, parsedValue);
+        var parsedValue = Parse(openIdEnvironment, descriptor, stringValues);
+        return Load(openIdEnvironment, descriptor, stringValues, parsedValue);
     }
 
     /// <inheritdoc />
     public virtual Parameter Read(
         ref Utf8JsonReader reader,
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
         var parsedValue = JsonSerializer.Deserialize<T>(ref reader, options);
-        var stringValues = Serialize(openIdServer, descriptor, parsedValue);
-        return descriptor.Loader.Load(openIdServer, descriptor, stringValues, parsedValue);
+        var stringValues = Serialize(openIdEnvironment, descriptor, parsedValue);
+        return descriptor.Loader.Load(openIdEnvironment, descriptor, stringValues, parsedValue);
     }
 
     /// <inheritdoc />
     public virtual void Write(
         Utf8JsonWriter writer,
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         Parameter parameter,
         JsonSerializerOptions options)
     {

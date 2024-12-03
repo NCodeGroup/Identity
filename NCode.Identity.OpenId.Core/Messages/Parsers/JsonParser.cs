@@ -22,9 +22,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
@@ -39,12 +39,12 @@ public class JsonParser<T> : ParameterParser<T?>
     /// Gets the <see cref="JsonConverter{T}"/> that is used to (de)serialize the JSON payload.
     /// The default implementation retrieves the <see cref="JsonConverter{T}"/> from the <see cref="JsonSerializerOptions"/>.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use when parsing the value.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use when parsing the value.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to be parsed.</param>
     /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
     /// <returns>The <see cref="JsonConverter{T}"/> to (de)serialize the JSON payload.</returns>
     protected virtual JsonConverter<T?> GetJsonConverter(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options
     ) => (JsonConverter<T?>)options.GetConverter(typeof(T));
@@ -52,14 +52,14 @@ public class JsonParser<T> : ParameterParser<T?>
     /// <inheritdoc/>
     public override Parameter Read(
         ref Utf8JsonReader reader,
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options)
     {
-        var converter = GetJsonConverter(openIdServer, descriptor, options);
+        var converter = GetJsonConverter(openIdEnvironment, descriptor, options);
         var parsedValue = converter.Read(ref reader, typeof(T), options);
         var stringValues = JsonSerializer.Serialize(parsedValue, options);
-        return descriptor.Loader.Load(openIdServer, descriptor, stringValues, parsedValue);
+        return descriptor.Loader.Load(openIdEnvironment, descriptor, stringValues, parsedValue);
     }
 
     // TODO: unit tests for Write
@@ -67,7 +67,7 @@ public class JsonParser<T> : ParameterParser<T?>
     /// <inheritdoc/>
     public override void Write(
         Utf8JsonWriter writer,
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         Parameter parameter,
         JsonSerializerOptions options)
     {
@@ -75,23 +75,23 @@ public class JsonParser<T> : ParameterParser<T?>
         writer.WritePropertyName(descriptor.ParameterName);
 
         var typedParameter = (Parameter<T>)parameter;
-        var converter = GetJsonConverter(openIdServer, descriptor, options);
+        var converter = GetJsonConverter(openIdEnvironment, descriptor, options);
 
         converter.Write(writer, typedParameter.ParsedValue, options);
     }
 
     /// <inheritdoc/>
     public override StringValues Serialize(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue)
     {
-        return JsonSerializer.Serialize(parsedValue, openIdServer.JsonSerializerOptions);
+        return JsonSerializer.Serialize(parsedValue, openIdEnvironment.JsonSerializerOptions);
     }
 
     /// <inheritdoc/>
     public override T? Parse(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
@@ -103,13 +103,13 @@ public class JsonParser<T> : ParameterParser<T?>
                 return default;
 
             case 0:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
@@ -120,11 +120,11 @@ public class JsonParser<T> : ParameterParser<T?>
 
         try
         {
-            return JsonSerializer.Deserialize<T>(json, openIdServer.JsonSerializerOptions);
+            return JsonSerializer.Deserialize<T>(json, openIdEnvironment.JsonSerializerOptions);
         }
         catch (Exception exception)
         {
-            throw openIdServer.ErrorFactory
+            throw openIdEnvironment.ErrorFactory
                 .FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest)
                 .WithException(exception)
                 .AsException();
@@ -143,7 +143,7 @@ public class JsonParser<T, TConverter> : JsonParser<T>
 {
     /// <inheritdoc />
     protected override JsonConverter<T?> GetJsonConverter(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         JsonSerializerOptions options
     ) => new TConverter();

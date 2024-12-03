@@ -23,10 +23,10 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
@@ -37,19 +37,18 @@ namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 /// </summary>
 public class DefaultRefreshTokenGrantHandler(
     TimeProvider timeProvider,
-    OpenIdServer openIdServer,
-    IOpenIdErrorFactory errorFactory,
+    OpenIdEnvironment openIdEnvironment,
     IPersistedGrantService persistedGrantService,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
 
-    private IOpenIdError InvalidGrantError => ErrorFactory
+    private IOpenIdError InvalidGrantError => OpenIdEnvironment
+        .ErrorFactory
         .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
@@ -71,7 +70,8 @@ public class DefaultRefreshTokenGrantHandler(
 
         var refreshToken = tokenRequest.RefreshToken;
         if (string.IsNullOrEmpty(refreshToken))
-            throw ErrorFactory
+            throw OpenIdEnvironment
+                .ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RefreshToken)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
@@ -150,7 +150,7 @@ public class DefaultRefreshTokenGrantHandler(
 
         var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 
-        var tokenResponse = TokenResponse.Create(OpenIdServer);
+        var tokenResponse = TokenResponse.Create(OpenIdEnvironment);
 
         tokenResponse.Scopes = effectiveScopes;
 

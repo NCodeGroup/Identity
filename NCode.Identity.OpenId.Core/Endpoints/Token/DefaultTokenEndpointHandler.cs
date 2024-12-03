@@ -28,7 +28,6 @@ using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Endpoints.Token;
 
@@ -40,13 +39,11 @@ namespace NCode.Identity.OpenId.Endpoints.Token;
 /// Provides a default implementation of the required services and handlers used by the token endpoint.
 /// </summary>
 public class DefaultTokenEndpointHandler(
-    OpenIdServer openIdServer,
     IOpenIdErrorFactory errorFactory,
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService
 ) : IOpenIdEndpointProvider
 {
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
@@ -100,10 +97,11 @@ public class DefaultTokenEndpointHandler(
                 .AsResult();
         }
 
+        var openIdEnvironment = openIdContext.Environment;
         var openIdClient = authResult.Client;
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
-        var tokenRequest = TokenRequest.Load(OpenIdServer, formData);
+        var tokenRequest = TokenRequest.Load(openIdEnvironment, formData);
 
         // for simple validations before selecting the handler and materializing any grants
         await mediator.SendAsync(
@@ -127,6 +125,6 @@ public class DefaultTokenEndpointHandler(
             tokenRequest,
             cancellationToken);
 
-        return TypedResults.Json(tokenResponse, OpenIdServer.JsonSerializerOptions);
+        return TypedResults.Json(tokenResponse, openIdEnvironment.JsonSerializerOptions);
     }
 }

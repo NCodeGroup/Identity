@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Disposables;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -42,8 +43,9 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 /// </summary>
 public sealed class DefaultStaticSingleOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
-    IOptions<OpenIdServerOptions> serverOptionsAccessor,
-    OpenIdServer openIdServer,
+    IOptions<OpenIdOptions> optionsAccessor,
+    OpenIdEnvironment openIdEnvironment,
+    IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
     ISettingSerializer settingSerializer,
@@ -56,7 +58,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     private AsyncSharedReferenceLease<OpenIdTenant> CachedTenant { get; set; }
 
     private StaticSingleOpenIdTenantOptions TenantOptions =>
-        ServerOptions.Tenant.StaticSingle ?? throw MissingTenantOptionsException();
+        OpenIdOptions.Tenant.StaticSingle ?? throw MissingTenantOptionsException();
 
     /// <inheritdoc />
     public override string ProviderCode => OpenIdConstants.TenantProviderCodes.StaticSingle;
@@ -68,10 +70,13 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     protected override TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
 
     /// <inheritdoc />
-    protected override OpenIdServerOptions ServerOptions { get; } = serverOptionsAccessor.Value;
+    protected override OpenIdOptions OpenIdOptions { get; } = optionsAccessor.Value;
 
     /// <inheritdoc />
-    protected override OpenIdServer OpenIdServer { get; } = openIdServer;
+    protected override OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+
+    /// <inheritdoc />
+    protected override IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
 
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -152,9 +157,9 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
             return persistedTenant;
 
         var settingsJson = JsonSerializer.SerializeToElement(null, typeof(object));
-        var settingsState = ConcurrentState.Create(settingsJson, Guid.NewGuid().ToString());
+        var settingsState = ConcurrentStateFactory.Create(settingsJson, Guid.NewGuid().ToString());
 
-        var secretsState = ConcurrentState.Create<IReadOnlyCollection<PersistedSecret>>(
+        var secretsState = ConcurrentStateFactory.Create<IReadOnlyCollection<PersistedSecret>>(
             Array.Empty<PersistedSecret>(),
             Guid.NewGuid().ToString());
 

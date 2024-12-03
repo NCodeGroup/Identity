@@ -19,7 +19,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
@@ -37,26 +37,26 @@ public class ParameterLoader
     /// <summary>
     /// Loads a <see cref="Parameter"/> given its string values.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use while loading the parameter.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while loading the parameter.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to load.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly loaded parameter.</returns>
     public virtual Parameter Load(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues
-    ) => Load(openIdServer, descriptor, stringValues, stringValues);
+    ) => Load(openIdEnvironment, descriptor, stringValues, stringValues);
 
     /// <summary>
     /// Loads a <see cref="Parameter"/> given its string values and parsed value.
     /// </summary>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> to use while loading the parameter.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while loading the parameter.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to load.</param>
     /// <param name="stringValues">The string values for the parameter.</param>
     /// <param name="parsedValue">The parsed value for the parameter.</param>
     /// <returns>The newly loaded parameter.</returns>
     public virtual Parameter<T> Load<T>(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues,
         T? parsedValue

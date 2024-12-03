@@ -19,9 +19,9 @@
 
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
@@ -32,7 +32,7 @@ public class UriParser : ParameterParser<Uri?>
 {
     /// <inheritdoc/>
     public override StringValues Serialize(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         Uri? parsedValue)
     {
@@ -44,7 +44,7 @@ public class UriParser : ParameterParser<Uri?>
 
     /// <inheritdoc/>
     public override Uri? Parse(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
@@ -56,13 +56,13 @@ public class UriParser : ParameterParser<Uri?>
                 return null;
 
             case 0:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
@@ -71,7 +71,7 @@ public class UriParser : ParameterParser<Uri?>
         if (Uri.TryCreate(stringValues[0], UriKind.Absolute, out var uri))
             return uri;
 
-        throw openIdServer
+        throw openIdEnvironment
             .ErrorFactory
             .InvalidParameterValue(descriptor.ParameterName)
             .AsException();

@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,25 +21,28 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Options;
 
 /// <summary>
-/// Contains the options used to configure the OpenID server.
+/// Contains the options used to configure OpenID.
 /// </summary>
 [PublicAPI]
-public class OpenIdServerOptions
+public class OpenIdOptions
 {
     /// <summary>
-    /// Contains the configuration subsection name for the settings of the server.
+    /// Gets the default name of the configuration section.
     /// </summary>
-    public const string SettingsSubsection = "Server:Settings";
+    public const string DefaultSectionName = "OpenId";
 
     /// <summary>
-    /// Gets or sets the period of time after which the settings for the server are refreshed.
-    /// The default value is 5 minutes.
+    /// Gets or sets the name of the configuration section.
     /// </summary>
-    public TimeSpan SettingsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
+    public string SectionName { get; set; } = DefaultSectionName;
 
     /// <summary>
-    /// Gets or sets the period of time after which the secrets for the server are refreshed.
-    /// The default value is 15 minutes.
+    /// Gets or sets the configurable options for server features.
     /// </summary>
-    public TimeSpan SecretsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(15.0);
+    public OpenIdServerOptions Server { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the configurable options for tenant features.
+    /// </summary>
+    public OpenIdTenantOptions Tenant { get; set; } = new();
 }

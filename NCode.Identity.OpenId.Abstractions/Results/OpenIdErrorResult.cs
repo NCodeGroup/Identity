@@ -40,7 +40,7 @@ public class OpenIdErrorResult : IResult, ISupportResult, ISupportError
     {
         var result = TypedResults.Json(
             Error,
-            Error.OpenIdServer.JsonSerializerOptions,
+            Error.OpenIdEnvironment.JsonSerializerOptions,
             statusCode: Error.StatusCode);
         await result.ExecuteAsync(httpContext);
     }

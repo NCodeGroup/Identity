@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,28 +16,34 @@
 
 #endregion
 
+using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets;
+using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Results;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Environments;
 
 /// <summary>
-/// Provides contextual information and configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.
+/// Provides contextual information about the OpenID environment.
 /// </summary>
 [PublicAPI]
-public abstract class OpenIdServer
+public abstract class OpenIdEnvironment
 {
     /// <summary>
-    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains settings scoped to the server.
+    /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.
     /// </summary>
-    public abstract IReadOnlySettingCollectionProvider SettingsProvider { get; }
+    public abstract JsonSerializerOptions JsonSerializerOptions { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyCollectionProvider"/> which contains secrets only known to the server.
+    /// Gets the <see cref="IKnownParameterCollection"/> which contains all known parameters.
     /// </summary>
-    public abstract ISecretKeyCollectionProvider SecretsProvider { get; }
+    public abstract IKnownParameterCollection KnownParameters { get; }
+
+    /// <summary>
+    /// Gets the <see cref="IOpenIdErrorFactory"/> that can be used to create error responses
+    /// </summary>
+    public abstract IOpenIdErrorFactory ErrorFactory { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

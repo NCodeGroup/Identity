@@ -44,10 +44,10 @@ public class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationReq
             return null;
 
         var requestMessage = envelope.OriginalRequestMessage;
-        Debug.Assert(requestMessage.OpenIdServer != null);
+        Debug.Assert(requestMessage.OpenIdEnvironment != null);
 
         var requestObject = envelope.OriginalRequestObject;
-        Debug.Assert(requestObject == null || requestObject.OpenIdServer == requestMessage.OpenIdServer);
+        Debug.Assert(requestObject == null || requestObject.OpenIdEnvironment == requestMessage.OpenIdEnvironment);
 
         return new AuthorizationRequest(envelope.IsContinuation, requestMessage, requestObject);
     }

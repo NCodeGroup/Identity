@@ -80,7 +80,7 @@ public class OpenIdResult<T> : IResult, ISupportError
     public async Task ExecuteAsync(HttpContext httpContext)
     {
         IOpenIdMessage message = Succeeded ? Response : Error;
-        var jsonSerializerOptions = message.OpenIdServer.JsonSerializerOptions;
+        var jsonSerializerOptions = message.OpenIdEnvironment.JsonSerializerOptions;
         var statusCode = message is ISupportStatusCode supportStatusCode ? supportStatusCode.StatusCode : null;
         var result = TypedResults.Json(
             message,

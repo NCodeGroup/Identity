@@ -19,9 +19,9 @@
 
 using System.Globalization;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
@@ -32,7 +32,7 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
 {
     /// <inheritdoc/>
     public override StringValues Serialize(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         TimeSpan? parsedValue)
     {
@@ -45,7 +45,7 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
 
     /// <inheritdoc/>
     public override TimeSpan? Parse(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
@@ -55,13 +55,13 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
                 return null;
 
             case 0:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1 when !descriptor.AllowMultipleStringValues:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
@@ -76,7 +76,7 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
             }
             else
             {
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .InvalidParameterValue(descriptor.ParameterName)
                     .AsException();

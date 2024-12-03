@@ -163,7 +163,7 @@ public class TenantStore(
         }
 
         var settingsJson = entity.SettingsJson;
-        return ConcurrentState.Create(settingsJson, concurrencyToken);
+        return ConcurrentStateFactory.Create(settingsJson, concurrencyToken);
     }
 
     /// <inheritdoc />
@@ -192,7 +192,7 @@ public class TenantStore(
             .Select(secret => MapExisting(secret))
             .ToListAsync(cancellationToken);
 
-        return ConcurrentState.Create(secrets, concurrencyToken);
+        return ConcurrentStateFactory.Create(secrets, concurrencyToken);
     }
 
     //
@@ -210,8 +210,8 @@ public class TenantStore(
             ConcurrencyToken = tenant.ConcurrencyToken,
             IsDisabled = tenant.IsDisabled,
             DisplayName = tenant.DisplayName,
-            SettingsState = ConcurrentState.Create(tenant.SettingsJson, tenant.SettingsConcurrencyToken),
-            SecretsState = ConcurrentState.Create(MapExisting(tenant.Secrets), tenant.SecretsConcurrencyToken)
+            SettingsState = ConcurrentStateFactory.Create(tenant.SettingsJson, tenant.SettingsConcurrencyToken),
+            SecretsState = ConcurrentStateFactory.Create(MapExisting(tenant.Secrets), tenant.SecretsConcurrencyToken)
         });
     }
 

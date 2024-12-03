@@ -18,9 +18,9 @@
 #endregion
 
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
@@ -32,7 +32,7 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
 {
     /// <inheritdoc/>
     public override StringValues Serialize(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         IReadOnlyCollection<string>? parsedValue)
     {
@@ -51,7 +51,7 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
 
     /// <inheritdoc/>
     public override IReadOnlyCollection<string>? Parse(
-        OpenIdServer openIdServer,
+        OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
@@ -63,7 +63,7 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
                 return null;
 
             case 0:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
@@ -74,7 +74,7 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
                     .ToHashSet(StringComparer.Ordinal);
 
             case > 1:
-                throw openIdServer
+                throw openIdEnvironment
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();

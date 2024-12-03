@@ -20,9 +20,9 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Messages;
 
@@ -32,22 +32,22 @@ namespace NCode.Identity.OpenId.Messages;
 /// </summary>
 /// <typeparam name="T">The type of the <see cref="IOpenIdMessage"/> instance to serialize and deserialize.</typeparam>
 public class OpenIdMessageJsonConverter<T>(
-    OpenIdServer openIdServer
+    OpenIdEnvironment openIdEnvironment
 ) : JsonConverter<T?>
     where T : OpenIdMessage
 {
     private const string TypeKey = "$type";
     private const string PropertiesKey = "$properties";
 
-    private OpenIdServer OpenIdServer { get; } = openIdServer;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
     internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
-        var descriptor = OpenIdServer.KnownParameters.TryGet(parameterName, out var knownParameter) ?
+        var descriptor = OpenIdEnvironment.KnownParameters.TryGet(parameterName, out var knownParameter) ?
             new ParameterDescriptor(knownParameter) :
             new ParameterDescriptor(parameterName);
         var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Singleton;
-        return jsonParser.Read(ref reader, OpenIdServer, descriptor, options);
+        return jsonParser.Read(ref reader, OpenIdEnvironment, descriptor, options);
     }
 
     private static T CreateMessage(Type messageType)
@@ -93,7 +93,7 @@ public class OpenIdMessageJsonConverter<T>(
             {
                 case JsonTokenType.EndObject:
                     messageOrNull ??= CreateMessage(messageType);
-                    messageOrNull.Initialize(OpenIdServer, parameters);
+                    messageOrNull.Initialize(OpenIdEnvironment, parameters);
                     return messageOrNull;
 
                 case JsonTokenType.PropertyName:
@@ -169,7 +169,7 @@ public class OpenIdMessageJsonConverter<T>(
         foreach (var parameter in message.Parameters.Values)
         {
             var jsonParser = parameter.Descriptor.Loader as IJsonParser ?? DefaultJsonParser.Singleton;
-            jsonParser.Write(writer, OpenIdServer, parameter, options);
+            jsonParser.Write(writer, OpenIdEnvironment, parameter, options);
         }
 
         writer.WriteEndObject();

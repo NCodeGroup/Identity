@@ -20,11 +20,11 @@
 using System.Buffers;
 using System.Text.Json;
 using Moq;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
@@ -35,12 +35,12 @@ namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
 public class JsonParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<OpenIdServer> MockOpenIdServer { get; }
+    private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
 
     public JsonParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
+        MockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
     }
 
     public void Dispose()
@@ -70,7 +70,7 @@ public class JsonParserTests : IDisposable
 
         Assert.True(reader.Read());
 
-        var parameter = parser.Read(ref reader, MockOpenIdServer.Object, descriptor, jsonSerializerOptions);
+        var parameter = parser.Read(ref reader, MockOpenIdEnvironment.Object, descriptor, jsonSerializerOptions);
         var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(parameter);
 
         Assert.Equal(expectedValueAsJson, typedParameter.StringValues);
@@ -82,13 +82,13 @@ public class JsonParserTests : IDisposable
     {
         var parser = new JsonParser<TestNestedObject>();
 
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
         const string parameterName = "parameterName";
         var descriptor = new ParameterDescriptor(parameterName);
 
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
@@ -96,7 +96,7 @@ public class JsonParserTests : IDisposable
         var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
         var expectedValueAsJson = JsonSerializer.Serialize(expectedValue);
 
-        var stringValues = parser.Serialize(server, descriptor, expectedValue);
+        var stringValues = parser.Serialize(environment, descriptor, expectedValue);
         Assert.Equal(expectedValueAsJson, stringValues);
     }
 
@@ -104,7 +104,7 @@ public class JsonParserTests : IDisposable
     public void Parse_GivenEmpty_WhenOptional_ThenValid()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -117,7 +117,7 @@ public class JsonParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(server, descriptor, stringValues);
+        var result = parser.Parse(environment, descriptor, stringValues);
         Assert.Null(result);
     }
 
@@ -125,13 +125,13 @@ public class JsonParserTests : IDisposable
     public void Parse_GivenEmpty_WhenRequired_ThenThrows()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -165,20 +165,20 @@ public class JsonParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(server, descriptor, stringValues));
+            parser.Parse(environment, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -212,17 +212,17 @@ public class JsonParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(server, descriptor, stringValues));
+            parser.Parse(environment, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenValidJson_ThenValid()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
@@ -239,7 +239,7 @@ public class JsonParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(server, descriptor, expectedValueAsJson);
+        var result = parser.Parse(environment, descriptor, expectedValueAsJson);
         Assert.Equal(expectedValueAsJson, JsonSerializer.Serialize(result));
     }
 
@@ -247,10 +247,10 @@ public class JsonParserTests : IDisposable
     public void Parse_GivenInvalidJson_ThenThrows()
     {
         var parser = new JsonParser<TestNestedObject>();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
         var jsonSerializerOptions = new JsonSerializerOptions();
 
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.JsonSerializerOptions)
             .Returns(jsonSerializerOptions)
             .Verifiable();
@@ -259,7 +259,7 @@ public class JsonParserTests : IDisposable
         const string stringValues = "@invalid_json$";
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -291,7 +291,7 @@ public class JsonParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         var exception = Assert.Throws<OpenIdException>(() =>
-            parser.Parse(server, descriptor, stringValues));
+            parser.Parse(environment, descriptor, stringValues));
 
         var innerException = mockOpenIdError.Object.Exception;
         Assert.NotNull(innerException);

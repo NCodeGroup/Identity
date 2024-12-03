@@ -19,11 +19,11 @@
 
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
@@ -33,29 +33,30 @@ namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
 public class TimeSpanParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<OpenIdServer> MockOpenIdServer { get; }
+    private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
 
     public TimeSpanParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
+        MockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
     }
 
     public void Dispose()
     {
         MockRepository.Verify();
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
     public void Serialize_GivenNull_ThenEmpty()
     {
         var parser = new TimeSpanParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var descriptor = new ParameterDescriptor(parameterName);
 
-        var stringValue = parser.Serialize(server, descriptor, null);
+        var stringValue = parser.Serialize(environment, descriptor, null);
         Assert.Equal(StringValues.Empty, stringValue);
     }
 
@@ -63,14 +64,14 @@ public class TimeSpanParserTests : IDisposable
     public void Serialize_GivenValue_ThenValid()
     {
         var parser = new TimeSpanParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var descriptor = new ParameterDescriptor(parameterName);
 
         var timeSpan = TimeSpan.FromSeconds(123.456);
 
-        var stringValue = parser.Serialize(server, descriptor, timeSpan);
+        var stringValue = parser.Serialize(environment, descriptor, timeSpan);
         Assert.Equal("123", stringValue);
     }
 
@@ -78,7 +79,7 @@ public class TimeSpanParserTests : IDisposable
     public void Parse_GivenNull_WhenOptional_ThenValid()
     {
         var parser = new TimeSpanParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -91,7 +92,7 @@ public class TimeSpanParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(server, descriptor, stringValues);
+        var result = parser.Parse(environment, descriptor, stringValues);
         Assert.Null(result);
     }
 
@@ -99,13 +100,13 @@ public class TimeSpanParserTests : IDisposable
     public void Parse_GivenNull_WhenRequired_ThenThrows()
     {
         var parser = new TimeSpanParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -139,20 +140,20 @@ public class TimeSpanParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(server, descriptor, stringValues));
+            parser.Parse(environment, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_DisallowMultipleValues_ThenThrows()
     {
         var parser = new TimeSpanParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "123", "456" };
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -186,14 +187,14 @@ public class TimeSpanParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(server, descriptor, stringValues));
+            parser.Parse(environment, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_AllowMultipleValues_ThenValid()
     {
         var parser = new TimeSpanParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "123", "456" };
@@ -207,7 +208,7 @@ public class TimeSpanParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(server, descriptor, stringValues);
+        var result = parser.Parse(environment, descriptor, stringValues);
         Assert.Equal(expectedValue, result);
     }
 
@@ -215,7 +216,7 @@ public class TimeSpanParserTests : IDisposable
     public void Parse_GivenSingleValue_ThenValid()
     {
         var parser = new TimeSpanParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "123" };
@@ -229,7 +230,7 @@ public class TimeSpanParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(server, descriptor, stringValues);
+        var result = parser.Parse(environment, descriptor, stringValues);
         Assert.Equal(expectedValue, result);
     }
 }

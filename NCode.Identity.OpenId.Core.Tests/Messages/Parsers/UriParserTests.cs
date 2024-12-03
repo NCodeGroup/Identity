@@ -19,10 +19,10 @@
 
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Servers;
 using Xunit;
 using UriParser = NCode.Identity.OpenId.Messages.Parsers.UriParser;
 
@@ -33,27 +33,28 @@ namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
 public class UriParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
-    private Mock<OpenIdServer> MockOpenIdServer { get; }
+    private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
 
     public UriParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdServer = MockRepository.Create<OpenIdServer>();
+        MockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
     }
 
     public void Dispose()
     {
         MockRepository.Verify();
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
     public void Serialize_GivenNull_ThenEmpty()
     {
         var parser = new UriParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(new KnownParameter<Uri?>("parameterName", parser) { AllowMissingStringValues = false });
 
-        var stringValue = parser.Serialize(server, descriptor, null);
+        var stringValue = parser.Serialize(environment, descriptor, null);
         Assert.Equal(StringValues.Empty, stringValue);
     }
 
@@ -61,12 +62,12 @@ public class UriParserTests : IDisposable
     public void Serialize_GivenValue_ThenValid()
     {
         var parser = new UriParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(new KnownParameter<Uri?>("parameterName", parser) { AllowMissingStringValues = false });
 
         var uri = new Uri("http://localhost/path1/path2?key1=value1&key2");
 
-        var stringValue = parser.Serialize(server, descriptor, uri);
+        var stringValue = parser.Serialize(environment, descriptor, uri);
         Assert.Equal(uri.AbsoluteUri, stringValue);
     }
 
@@ -74,7 +75,7 @@ public class UriParserTests : IDisposable
     public void Parse_GivenNull_WhenOptional_ThenValid()
     {
         var parser = new UriParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
@@ -87,7 +88,7 @@ public class UriParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(server, descriptor, stringValues);
+        var result = parser.Parse(environment, descriptor, stringValues);
         Assert.Null(result);
     }
 
@@ -95,13 +96,13 @@ public class UriParserTests : IDisposable
     public void Parse_GivenNull_WhenRequired_ThenThrows()
     {
         var parser = new UriParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -135,20 +136,20 @@ public class UriParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(server, descriptor, stringValues));
+            parser.Parse(environment, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new UriParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "123", "456" };
 
         var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdServer
+        MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
@@ -182,14 +183,14 @@ public class UriParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         Assert.Throws<OpenIdException>(() =>
-            parser.Parse(server, descriptor, stringValues));
+            parser.Parse(environment, descriptor, stringValues));
     }
 
     [Fact]
     public void Parse_GivenSingleValue_ThenValid()
     {
         var parser = new UriParser();
-        var server = MockOpenIdServer.Object;
+        var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
         const string url = "http://localhost/path1/path2?key1=value1&key2";
@@ -204,7 +205,7 @@ public class UriParserTests : IDisposable
 
         var descriptor = new ParameterDescriptor(knownParameter);
 
-        var result = parser.Parse(server, descriptor, stringValues);
+        var result = parser.Parse(environment, descriptor, stringValues);
         Assert.Equal(expectedValue, result);
     }
 }

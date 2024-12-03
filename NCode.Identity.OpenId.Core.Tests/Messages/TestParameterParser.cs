@@ -19,48 +19,45 @@
 
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
-using NCode.Identity.OpenId.Servers;
 
 namespace NCode.Identity.OpenId.Tests.Messages;
 
-internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, OpenIdServer server, ParameterDescriptor descriptor, JsonSerializerOptions options);
+internal delegate Parameter ReadJsonDelegate(ref Utf8JsonReader reader, OpenIdEnvironment environment, ParameterDescriptor descriptor, JsonSerializerOptions options);
 
-internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, OpenIdServer server, Parameter parameter, JsonSerializerOptions options);
+internal delegate void WriteJsonDelegate(Utf8JsonWriter writer, OpenIdEnvironment environment, Parameter parameter, JsonSerializerOptions options);
 
 internal interface ITestParameterParser
 {
-    StringValues Serialize(OpenIdServer server, string? value);
+    StringValues Serialize(OpenIdEnvironment environment, string? value);
 
-    string Parse(OpenIdServer server, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
+    string Parse(OpenIdEnvironment environment, ParameterDescriptor descriptor, StringValues stringValues, bool ignoreErrors = false);
 }
 
-internal class TestParameterParser : ParameterParser<string>
+internal class TestParameterParser(
+    ITestParameterParser innerParser,
+    ReadJsonDelegate? readJsonDelegate,
+    WriteJsonDelegate? writeJsonDelegate
+) : ParameterParser<string>
 {
-    private ITestParameterParser InnerParser { get; }
-    private ReadJsonDelegate? ReadJsonDelegate { get; }
-    private WriteJsonDelegate? WriteJsonDelegate { get; }
+    private ITestParameterParser InnerParser { get; } = innerParser;
+    private ReadJsonDelegate? ReadJsonDelegate { get; } = readJsonDelegate;
+    private WriteJsonDelegate? WriteJsonDelegate { get; } = writeJsonDelegate;
 
-    public TestParameterParser(ITestParameterParser innerParser, ReadJsonDelegate? readJsonDelegate, WriteJsonDelegate? writeJsonDelegate)
+    public override StringValues Serialize(OpenIdEnvironment openIdEnvironment, ParameterDescriptor descriptor, string? parsedValue)
     {
-        InnerParser = innerParser;
-        ReadJsonDelegate = readJsonDelegate;
-        WriteJsonDelegate = writeJsonDelegate;
+        return InnerParser.Serialize(openIdEnvironment, parsedValue);
     }
 
-    public override StringValues Serialize(OpenIdServer openIdServer, ParameterDescriptor descriptor, string? parsedValue)
+    public override string Parse(OpenIdEnvironment openIdEnvironment, ParameterDescriptor descriptor, StringValues stringValues)
     {
-        return InnerParser.Serialize(openIdServer, parsedValue);
+        return InnerParser.Parse(openIdEnvironment, descriptor, stringValues);
     }
 
-    public override string Parse(OpenIdServer openIdServer, ParameterDescriptor descriptor, StringValues stringValues)
-    {
-        return InnerParser.Parse(openIdServer, descriptor, stringValues);
-    }
-
-    public override Parameter Read(ref Utf8JsonReader reader, OpenIdServer openIdServer, ParameterDescriptor descriptor, JsonSerializerOptions options) =>
-        ReadJsonDelegate?.Invoke(ref reader, openIdServer, descriptor, options) ??
+    public override Parameter Read(ref Utf8JsonReader reader, OpenIdEnvironment openIdEnvironment, ParameterDescriptor descriptor, JsonSerializerOptions options) =>
+        ReadJsonDelegate?.Invoke(ref reader, openIdEnvironment, descriptor, options) ??
         new Parameter<string>
         {
             Descriptor = descriptor,
@@ -68,8 +65,8 @@ internal class TestParameterParser : ParameterParser<string>
             ParsedValue = string.Empty
         };
 
-    public override void Write(Utf8JsonWriter writer, OpenIdServer openIdServer, Parameter parameter, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, OpenIdEnvironment openIdEnvironment, Parameter parameter, JsonSerializerOptions options)
     {
-        WriteJsonDelegate?.Invoke(writer, openIdServer, parameter, options);
+        WriteJsonDelegate?.Invoke(writer, openIdEnvironment, parameter, options);
     }
 }

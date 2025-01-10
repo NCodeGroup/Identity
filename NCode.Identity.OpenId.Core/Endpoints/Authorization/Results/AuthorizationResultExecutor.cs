@@ -89,8 +89,7 @@ internal class AuthorizationResultExecutor(
                     StringComparer.OrdinalIgnoreCase) :
             [];
 
-        // TODO: fix this warning
-        var parameters = existingParameters.Union(message);
+        var parameters = existingParameters.Concat(message);
         var serializedParameters = SerializeUriParameters(parameters);
 
         var uriBuilder = new UriBuilder(redirectUri);

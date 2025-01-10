@@ -164,8 +164,7 @@ internal class AuthorizationRequest(
 
         return OriginalRequestMessage
             .ExceptBy(OriginalRequestObject.Keys, kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
-            // TODO: fix this
-            .Union(OriginalRequestObject);
+            .Concat(OriginalRequestObject);
     }
 
     public int Count =>

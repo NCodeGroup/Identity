@@ -125,7 +125,7 @@ public class DefaultClientCredentialsGrantHandler(
                 AccessToken = tokenResponse.AccessToken
             };
 
-            var securityToken = await TokenService.CreateAccessTokenAsync(
+            var securityToken = await TokenService.CreateIdTokenAsync(
                 openIdContext,
                 openIdClient,
                 newRequest,

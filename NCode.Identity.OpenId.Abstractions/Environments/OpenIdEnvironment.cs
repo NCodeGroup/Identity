@@ -18,6 +18,7 @@
 
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.DataProtection;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.PropertyBag;
@@ -34,6 +35,11 @@ public abstract class OpenIdEnvironment
     /// Gets the <see cref="JsonSerializerOptions"/> to be used for any JSON serialization.
     /// </summary>
     public abstract JsonSerializerOptions JsonSerializerOptions { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ISecureDataProtector"/> that can be used to protect and unprotect data.
+    /// </summary>
+    public abstract ISecureDataProtector SecureDataProtector { get; }
 
     /// <summary>
     /// Gets the <see cref="IKnownParameterCollection"/> which contains all known parameters.

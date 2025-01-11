@@ -20,11 +20,12 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
+using NCode.CryptoMemory;
 
 namespace NCode.Identity.DataProtection;
 
 /// <summary>
-/// Provides a implementation of the <see cref="ISecureDataProtector"/> abstraction that delegates to an <see cref="IDataProtector"/> instance.
+/// Provides an implementation of the <see cref="ISecureDataProtector"/> abstraction that delegates to an <see cref="IDataProtector"/> instance.
 /// </summary>
 [PublicAPI]
 public class DelegatingSecureDataProtector(
@@ -58,11 +59,11 @@ public class DelegatingSecureDataProtector(
 
     /// <inheritdoc />
     public bool TryUnprotect(
-        byte[] protectedBytes,
+        ReadOnlySpan<byte> protectedBytes,
         Span<byte> plaintext,
         out int bytesWritten)
     {
-        var plaintextBytes = DataProtector.Unprotect(protectedBytes);
+        var plaintextBytes = DataProtector.Unprotect(protectedBytes.ToArray());
 
         // pin the plaintextBytes quickly in order to prevent the GC from moving it around
         var plaintextHandle = GCHandle.Alloc(plaintextBytes, GCHandleType.Pinned);
@@ -76,6 +77,33 @@ public class DelegatingSecureDataProtector(
         {
             CryptographicOperations.ZeroMemory(plaintextBytes);
             plaintextHandle.Free();
+        }
+    }
+
+    /// <inheritdoc />
+    public IDisposable Unprotect(ReadOnlySpan<byte> protectedBytes, out Span<byte> plaintext)
+    {
+        var byteCount = SecureMemoryPool<byte>.PageSize;
+        while (true)
+        {
+            var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
+            try
+            {
+                var buffer = lease.Memory.Span;
+                if (TryUnprotect(protectedBytes, buffer, out var bytesWritten))
+                {
+                    plaintext = buffer[..bytesWritten];
+                    return lease;
+                }
+            }
+            catch
+            {
+                lease.Dispose();
+                throw;
+            }
+
+            lease.Dispose();
+            byteCount = checked(byteCount * 2);
         }
     }
 }

@@ -26,7 +26,6 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 /// <summary>
 /// Represents a mediator command to load the source of an authorization message.
 /// </summary>
-/// <param name="OpenIdContext"></param>
 [PublicAPI]
 public readonly record struct LoadAuthorizationSourceCommand(
     OpenIdContext OpenIdContext

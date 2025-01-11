@@ -38,20 +38,21 @@ public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAcce
         var (openIdContext, _, tokenContext, subjectClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
-        // TODO: what about client authentication?
-        var subject = tokenRequest.SubjectAuthentication?.Subject ??
-                      throw new InvalidOperationException("Subject is required.");
+        if (!tokenRequest.SubjectAuthentication.HasValue)
+        {
+            return ValueTask.CompletedTask;
+        }
 
+        var (_, authenticationProperties, subject, _) = tokenRequest.SubjectAuthentication.Value;
+
+        var hasAuthTime = false;
         var claimTypes = new HashSet<string>(StringComparer.Ordinal)
         {
             JoseClaimNames.Payload.Sub,
             JoseClaimNames.Payload.AuthTime
         };
 
-        var hasAuthTime = false;
-
         var claims = subject.Claims.Where(claim => claimTypes.Contains(claim.Type));
-
         foreach (var claim in claims)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -61,21 +62,23 @@ public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAcce
             subjectClaims.Add(claim);
         }
 
-        if (!hasAuthTime)
+        if (hasAuthTime)
         {
-            var issuer = openIdContext.Tenant.Issuer;
-            var authTime = tokenRequest.SubjectAuthentication?.AuthenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
-
-            var claim = new Claim(
-                JoseClaimNames.Payload.AuthTime,
-                authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
-                ClaimValueTypes.Integer64,
-                issuer,
-                issuer,
-                subject);
-
-            subjectClaims.Add(claim);
+            return ValueTask.CompletedTask;
         }
+
+        var issuer = openIdContext.Tenant.Issuer;
+        var authTime = authenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
+
+        var authTimeClaim = new Claim(
+            JoseClaimNames.Payload.AuthTime,
+            authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
+            ClaimValueTypes.Integer64,
+            issuer,
+            issuer,
+            subject);
+
+        subjectClaims.Add(authTimeClaim);
 
         return ValueTask.CompletedTask;
     }

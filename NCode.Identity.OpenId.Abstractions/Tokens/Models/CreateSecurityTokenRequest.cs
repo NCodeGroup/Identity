@@ -73,7 +73,7 @@ public readonly record struct CreateSecurityTokenRequest
     public string? RefreshToken { get; init; }
 
     /// <summary>
-    /// Gets or sets the <see cref="SubjectAuthentication"/> that contains the information about the authenticated user.
+    /// Gets or sets the <see cref="SubjectAuthentication"/> that contains the information about the authenticated end-user.
     /// </summary>
     public SubjectAuthentication? SubjectAuthentication { get; init; }
 

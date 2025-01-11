@@ -30,6 +30,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.DataProtection.Abstractions\NCode.Identity.DataProtection.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.PropertyBag.Abstractions\NCode.PropertyBag.Abstractions.csproj"/>
     </ItemGroup>

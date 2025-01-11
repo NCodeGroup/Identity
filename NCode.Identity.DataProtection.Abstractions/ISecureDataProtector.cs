@@ -41,7 +41,18 @@ public interface ISecureDataProtector : ISecureDataProtectionProvider
     /// <param name="bytesWritten">The number of bytes written to <paramref name="plaintext"/>.</param>
     /// <returns><c>true></c> if there was enough room in <paramref name="plaintext"/> to copy all bytes; otherwise, <c>false</c>.</returns>
     bool TryUnprotect(
-        byte[] protectedBytes,
+        ReadOnlySpan<byte> protectedBytes,
         Span<byte> plaintext,
         out int bytesWritten);
+
+    /// <summary>
+    /// Cryptographically unprotects a piece of protected data.
+    /// </summary>
+    /// <param name="protectedBytes">The protected data to unprotect.</param>
+    /// <param name="plaintext">Destination for the plaintext data of the protected data.</param>
+    /// <returns>An <see cref="IDisposable"/> that controls the lifetime of the plaintext data from a memory pool.</returns>
+    public IDisposable Unprotect(
+        ReadOnlySpan<byte> protectedBytes,
+        out Span<byte> plaintext
+    );
 }

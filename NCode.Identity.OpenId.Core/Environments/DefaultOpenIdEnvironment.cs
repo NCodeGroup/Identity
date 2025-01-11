@@ -18,6 +18,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NCode.Identity.DataProtection;
 using NCode.Identity.OpenId.Claims;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Messages;
@@ -34,7 +35,8 @@ namespace NCode.Identity.OpenId.Environments;
 /// </summary>
 public class DefaultOpenIdEnvironment(
     IKnownParameterCollectionProvider knownParametersProvider,
-    ISettingDescriptorJsonProvider settingDescriptorJsonProvider
+    ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
+    ISecureDataProtectionProvider secureDataProtectionProvider
 ) : OpenIdEnvironment, IOpenIdErrorFactory
 {
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
@@ -44,6 +46,10 @@ public class DefaultOpenIdEnvironment(
     /// <inheritdoc />
     public override JsonSerializerOptions JsonSerializerOptions =>
         JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
+
+    /// <inheritdoc />
+    public override ISecureDataProtector SecureDataProtector { get; } =
+        secureDataProtectionProvider.CreateProtector("NCode.Identity.OpenId");
 
     /// <inheritdoc />
     public override IKnownParameterCollection KnownParameters => KnownParametersProvider.Collection;

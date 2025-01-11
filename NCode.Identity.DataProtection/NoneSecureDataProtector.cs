@@ -47,10 +47,17 @@ public sealed class NoneSecureDataProtector : ISecureDataProtector
     }
 
     /// <inheritdoc />
-    public bool TryUnprotect(byte[] protectedBytes, Span<byte> plaintext, out int bytesWritten)
+    public bool TryUnprotect(ReadOnlySpan<byte> protectedBytes, Span<byte> plaintext, out int bytesWritten)
     {
-        var result = protectedBytes.AsSpan().TryCopyTo(plaintext);
+        var result = protectedBytes.TryCopyTo(plaintext);
         bytesWritten = result ? protectedBytes.Length : 0;
         return result;
+    }
+
+    /// <inheritdoc />
+    public IDisposable Unprotect(ReadOnlySpan<byte> protectedBytes, out Span<byte> plaintext)
+    {
+        plaintext = protectedBytes.ToArray();
+        return EmptyDisposable.Singleton;
     }
 }

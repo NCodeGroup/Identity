@@ -19,7 +19,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
-using NCode.CryptoMemory;
 using NCode.Identity.DataProtection;
 
 namespace NCode.Identity.Secrets;
@@ -30,46 +29,6 @@ namespace NCode.Identity.Secrets;
 [PublicAPI]
 public static class SecureDataProtectorExtensions
 {
-    /// <summary>
-    /// Cryptographically unprotects a piece of protected data.
-    /// </summary>
-    /// <param name="dataProtector">The <see cref="ISecureDataProtector"/> instance.</param>
-    /// <param name="protectedBytes">The protected data to unprotect.</param>
-    /// <param name="plaintext">Destination for the plaintext data of the protected data.</param>
-    /// <returns>An <see cref="IDisposable"/> that controls the lifetime of the plaintext data from a memory pool.</returns>
-    public static IDisposable Unprotect(
-        this ISecureDataProtector dataProtector,
-        byte[] protectedBytes,
-        out Span<byte> plaintext
-    )
-    {
-        var byteCount = SecureMemoryPool<byte>.PageSize;
-        while (true)
-        {
-            var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
-            try
-            {
-                var buffer = lease.Memory.Span;
-                if (dataProtector.TryUnprotect(
-                        protectedBytes,
-                        buffer,
-                        out var bytesWritten))
-                {
-                    plaintext = buffer[..bytesWritten];
-                    return lease;
-                }
-            }
-            catch
-            {
-                lease.Dispose();
-                throw;
-            }
-
-            lease.Dispose();
-            byteCount = checked(byteCount * 2);
-        }
-    }
-
     /// <summary>
     /// Cryptographically unprotects asymmetric key material that is <c>PKCS#8</c> encoded.
     /// </summary>

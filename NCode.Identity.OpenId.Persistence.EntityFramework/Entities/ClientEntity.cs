@@ -74,7 +74,7 @@ public class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the serialized JSON for the client settings.
     /// </summary>
-    public required JsonElement Settings { get; set; }
+    public required JsonElement SettingsJson { get; set; }
 
     //
 

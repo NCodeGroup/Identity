@@ -178,7 +178,7 @@ public abstract class CommonClientAuthenticationHandler(
         PersistedClient persistedClient,
         CancellationToken cancellationToken)
     {
-        var clientSettings = SettingSerializer.DeserializeSettings(persistedClient.Settings);
+        var clientSettings = SettingSerializer.DeserializeSettings(persistedClient.SettingsJson);
         var parentSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var effectiveSettings = parentSettings.Merge(clientSettings);
 

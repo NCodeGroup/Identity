@@ -22,7 +22,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
-using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 
@@ -252,7 +251,7 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <summary>
     /// Create an empty <c>OAuth</c> or <c>OpenID Connect</c> message.
     /// </summary>
-    /// <param name="openIdEnvironment">The <see cref="OpenIdContext"/> instance.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
     public static T Create(OpenIdEnvironment openIdEnvironment)
     {

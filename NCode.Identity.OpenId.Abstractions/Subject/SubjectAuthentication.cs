@@ -23,7 +23,7 @@ using Microsoft.AspNetCore.Authentication;
 namespace NCode.Identity.OpenId.Subject;
 
 /// <summary>
-/// Contains the contextual information about the subject (aka user) and how the subject was authenticated.
+/// Contains the contextual information about the subject (aka end-user) and how the subject was authenticated.
 /// </summary>
 [PublicAPI]
 public readonly record struct SubjectAuthentication(

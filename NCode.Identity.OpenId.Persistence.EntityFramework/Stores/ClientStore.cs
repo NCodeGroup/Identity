@@ -65,7 +65,7 @@ public class ClientStore(
             NormalizedClientId = Normalize(persistedClient.ClientId),
             ConcurrencyToken = NextConcurrencyToken(),
             IsDisabled = persistedClient.IsDisabled,
-            Settings = persistedClient.Settings,
+            SettingsJson = persistedClient.SettingsJson,
             Tenant = tenant,
             Urls = urls,
             Secrets = secrets
@@ -126,7 +126,7 @@ public class ClientStore(
 
         clientEntity.ConcurrencyToken = NextConcurrencyToken();
         clientEntity.IsDisabled = persistedClient.IsDisabled;
-        clientEntity.Settings = persistedClient.Settings;
+        clientEntity.SettingsJson = persistedClient.SettingsJson;
     }
 
     /// <inheritdoc />
@@ -188,7 +188,7 @@ public class ClientStore(
             ClientId = client.ClientId,
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
-            Settings = client.Settings,
+            SettingsJson = client.SettingsJson,
             Secrets = MapExisting(client.Secrets),
             RedirectUrls = client.Urls
                 .Where(url => url.UrlType == UrlTypes.RedirectUrl)

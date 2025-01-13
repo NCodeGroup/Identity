@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
@@ -50,7 +51,7 @@ public class DefaultClientCredentialsGrantHandler(
     };
 
     /// <inheritdoc />
-    public async ValueTask<ITokenResponse> HandleAsync(
+    public async ValueTask<IOpenIdResponse> HandleAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
@@ -59,10 +60,9 @@ public class DefaultClientCredentialsGrantHandler(
         var mediator = openIdContext.Mediator;
 
         if (!openIdClient.IsConfidential)
-            throw ErrorFactory
+            return ErrorFactory
                 .InvalidClient()
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
+                .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var confidentialClient = openIdClient.ConfidentialClient;
         var clientCredentialsGrant = new ClientCredentialsGrant(confidentialClient);

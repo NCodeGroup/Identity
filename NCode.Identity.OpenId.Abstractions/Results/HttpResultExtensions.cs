@@ -20,6 +20,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Results;
 
@@ -29,6 +30,17 @@ namespace NCode.Identity.OpenId.Results;
 [PublicAPI]
 public static class HttpResultExtensions
 {
+    /// <summary>
+    /// Wraps the <see cref="IOpenIdResponse"/> in an <see cref="IResult"/>.
+    /// </summary>
+    /// <param name="response">The <see cref="IOpenIdResponse"/> to wrap.</param>
+    /// <returns>The <see cref="IResult"/> instance.</returns>
+    public static OpenIdResult<T> AsResult<T>(this T response)
+        where T : class, IOpenIdResponse
+    {
+        return new OpenIdResult<T>(response);
+    }
+
     /// <summary>
     /// Wraps the HTTP <see cref="IResult"/> in a <see cref="HttpResultException"/>.
     /// </summary>

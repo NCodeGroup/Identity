@@ -18,19 +18,20 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Subject;
 
 /// <summary>
-/// Contains the result after attempting to authenticate a user.
+/// Contains the result after attempting to authenticate an end-user.
 /// </summary>
 [PublicAPI]
 public readonly struct AuthenticateSubjectResult
 {
     /// <summary>
-    /// Gets the <see cref="Exception"/> for a failed authentication result.
+    /// Gets the <see cref="IOpenIdError"/> for a failed authentication result.
     /// </summary>
-    public Exception? Error { get; }
+    public IOpenIdError? Error { get; }
 
     /// <summary>
     /// Gets the <see cref="SubjectAuthentication"/> for a successful authentication result.
@@ -57,8 +58,8 @@ public readonly struct AuthenticateSubjectResult
     /// <summary>
     /// Initializes a new instance of <see cref="AuthenticateSubjectResult"/> for when authentication failed.
     /// </summary>
-    /// <param name="error">The <see cref="Exception"/> for a failed authentication result.</param>
-    public AuthenticateSubjectResult(Exception error)
+    /// <param name="error">The <see cref="IOpenIdError"/> for a failed authentication result.</param>
+    public AuthenticateSubjectResult(IOpenIdError error)
     {
         Error = error;
         Ticket = null;

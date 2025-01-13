@@ -77,6 +77,11 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     protected abstract OpenIdEnvironment OpenIdEnvironment { get; }
 
     /// <summary>
+    /// Gets the <see cref="IOpenIdErrorFactory"/> that can be used to create error responses
+    /// </summary>
+    protected abstract IOpenIdErrorFactory OpenIdErrorFactory { get; }
+
+    /// <summary>
     /// Gets the <see cref="OpenIdServerProvider"/> used to get the current <see cref="OpenIdServer"/> instance.
     /// </summary>
     protected abstract IOpenIdServerProvider OpenIdServerProvider { get; }
@@ -151,16 +156,14 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         propertyBag.Set(persistedTenant);
 
         if (persistedTenant == null)
-            throw OpenIdEnvironment
-                .ErrorFactory
+            throw OpenIdErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithStatusCode(StatusCodes.Status404NotFound)
                 .WithDescription($"The tenant with identifier '{tenantId}' could not be found.")
                 .AsException();
 
         if (persistedTenant.IsDisabled)
-            throw OpenIdEnvironment
-                .ErrorFactory
+            throw OpenIdErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithStatusCode(StatusCodes.Status404NotFound)
                 .WithDescription($"The tenant with identifier '{tenantId}' is disabled.")

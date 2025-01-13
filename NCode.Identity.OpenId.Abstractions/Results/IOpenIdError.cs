@@ -23,10 +23,10 @@ using NCode.Identity.OpenId.Messages;
 namespace NCode.Identity.OpenId.Results;
 
 /// <summary>
-/// Contains the details for an <c>OAuth</c> or <c>OpenID Connect</c> error.
+/// Contains the details for an <c>OAuth</c> or <c>OpenID Connect</c> error response.
 /// </summary>
 [PublicAPI]
-public interface IOpenIdError : IOpenIdMessage, ISupportStatusCode
+public interface IOpenIdError : IOpenIdResponse, ISupportStatusCode
 {
     /// <summary>
     /// Gets or sets the <see cref="Exception"/> that triggered the <c>OAuth</c> or <c>OpenID Connect</c> error.

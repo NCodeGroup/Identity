@@ -94,7 +94,7 @@ public static class DefaultTokenEndpointRegistration
             DefaultPasswordGrantHandler>());
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<AuthenticatePasswordGrantCommand, SubjectAuthentication>,
+            ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>,
             DefaultAuthenticatePasswordGrantHandler>();
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<

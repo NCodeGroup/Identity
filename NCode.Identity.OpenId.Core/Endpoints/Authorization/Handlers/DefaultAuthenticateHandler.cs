@@ -17,11 +17,11 @@
 #endregion
 
 using System.Diagnostics;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Extensions;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
@@ -30,9 +30,11 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// Provides a default implementation of a handler for the <see cref="AuthenticateCommand"/> message.
 /// </summary>
 public class DefaultAuthenticateHandler(
+    IOpenIdErrorFactory errorFactory,
     IAuthenticationSchemeProvider authenticationSchemeProvider
 ) : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectResult>
 {
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; } = authenticationSchemeProvider;
 
     private bool DefaultSignInSchemeFetched { get; set; }
@@ -69,7 +71,10 @@ public class DefaultAuthenticateHandler(
 
         if (baseResult.Failure is not null)
         {
-            return new AuthenticateSubjectResult(baseResult.Failure);
+            var error = ErrorFactory
+                .AccessDenied("Unable to authenticate the end-user.")
+                .WithException(baseResult.Failure);
+            return new AuthenticateSubjectResult(error);
         }
 
         Debug.Assert(baseResult.Succeeded);
@@ -77,10 +82,9 @@ public class DefaultAuthenticateHandler(
         var baseTicket = baseResult.Ticket;
         var authenticationScheme = baseTicket.AuthenticationScheme;
         var authenticationProperties = baseTicket.Properties;
+        var subject = baseTicket.Principal;
 
-        var subject = baseTicket.Principal.Identity as ClaimsIdentity ??
-                      throw new InvalidOperationException("The authenticated ticket must contain a claims identity.");
-
+        // TODO
         var subjectId = subject.Claims.GetSubjectIdOrDefault() ??
                         throw new InvalidOperationException("The authenticated identity must contain a 'sub' claim.");
 

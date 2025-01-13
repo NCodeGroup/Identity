@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.DataContracts;
@@ -45,6 +46,7 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     OpenIdEnvironment openIdEnvironment,
+    IOpenIdErrorFactory openIdErrorFactory,
     IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
@@ -74,6 +76,9 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
 
     /// <inheritdoc />
     protected override OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+
+    /// <inheritdoc />
+    protected override IOpenIdErrorFactory OpenIdErrorFactory { get; } = openIdErrorFactory;
 
     /// <inheritdoc />
     protected override IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;

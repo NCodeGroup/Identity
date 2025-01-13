@@ -23,11 +23,23 @@ using NCode.Identity.Jose;
 namespace NCode.Identity.OpenId.Extensions;
 
 /// <summary>
-/// Provides extension methods for <see cref="IEnumerable{Claim}"/> to get the subject id.
+/// Provides extension methods for claims aware objects.
 /// </summary>
 [PublicAPI]
 public static class SubjectExtensions
 {
+    /// <summary>
+    /// Gets the <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
+    /// </summary>
+    /// <param name="principal">The <see cref="ClaimsPrincipal"/> to get the <see cref="ClaimsIdentity"/> from.</param>
+    /// <returns>The <see cref="ClaimsIdentity"/> from the <see cref="ClaimsPrincipal"/>.</returns>
+    public static ClaimsIdentity GetClaimsIdentity(this ClaimsPrincipal principal)
+    {
+        return principal.Identity as ClaimsIdentity ?? principal.Identities.First();
+    }
+
+    // TODO: reconsider/refactor
+
     /// <summary>
     /// Gets the subject id from a collection of claims.
     /// </summary>
@@ -37,7 +49,7 @@ public static class SubjectExtensions
     /// <returns>The subject id if found; otherwise <c>null</c>.</returns>
     public static string? GetSubjectIdOrDefault(
         this IEnumerable<Claim> claims,
-        bool allowNameId = false,
+        bool allowNameId = true,
         bool allowUpn = false)
     {
         string? nameId = null;

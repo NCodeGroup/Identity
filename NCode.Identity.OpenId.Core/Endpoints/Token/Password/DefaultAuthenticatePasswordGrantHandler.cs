@@ -26,10 +26,10 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 /// Provides a default implementation of a handler for the <see cref="AuthenticatePasswordGrantCommand"/> message
 /// that returns <see cref="SubjectAuthentication"/>.
 /// </summary>
-public class DefaultAuthenticatePasswordGrantHandler : ICommandResponseHandler<AuthenticatePasswordGrantCommand, SubjectAuthentication>
+public class DefaultAuthenticatePasswordGrantHandler : ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>
 {
     /// <inheritdoc />
-    public ValueTask<SubjectAuthentication> HandleAsync(
+    public ValueTask<AuthenticateSubjectResult> HandleAsync(
         AuthenticatePasswordGrantCommand command,
         CancellationToken cancellationToken)
     {

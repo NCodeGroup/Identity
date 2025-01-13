@@ -34,11 +34,15 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// </summary>
 public class DefaultLoadAuthorizationRequestHandler(
     ILogger<DefaultLoadAuthorizationRequestHandler> logger,
+    OpenIdEnvironment openIdEnvironment,
+    IOpenIdErrorFactory errorFactory,
     IJsonWebTokenService jsonWebTokenService,
     IHttpClientFactory httpClientFactory
 ) : ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>
 {
     private ILogger<DefaultLoadAuthorizationRequestHandler> Logger { get; } = logger;
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
 
@@ -47,7 +51,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         LoadAuthorizationRequestCommand command,
         CancellationToken cancellationToken)
     {
-        var (openIdContext, openIdClient, authorizationSource) = command;
+        var (_, openIdClient, authorizationSource) = command;
 
         // the following will parse string-values into strongly-typed parameters and may throw
         var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
@@ -57,7 +61,6 @@ public class DefaultLoadAuthorizationRequestHandler(
         // https://datatracker.ietf.org/doc/html/rfc9126
 
         var requestObject = await LoadRequestObjectAsync(
-            openIdContext.Environment,
             openIdClient,
             requestMessage,
             cancellationToken);
@@ -72,7 +75,6 @@ public class DefaultLoadAuthorizationRequestHandler(
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
-        OpenIdEnvironment openIdEnvironment,
         OpenIdClient openIdClient,
         IAuthorizationRequestMessage requestMessage,
         CancellationToken cancellationToken)
@@ -86,8 +88,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         if (requestUri is not null)
         {
             if (!openIdClient.Settings.RequestUriParameterSupported)
-                throw openIdEnvironment
-                    .ErrorFactory
+                throw ErrorFactory
                     .RequestUriNotSupported()
                     .AsException();
 
@@ -95,13 +96,11 @@ public class DefaultLoadAuthorizationRequestHandler(
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri;
 
             if (!string.IsNullOrEmpty(requestJwt))
-                throw openIdEnvironment
-                    .ErrorFactory
+                throw ErrorFactory
                     .InvalidRequest("Both the 'request' and 'request_uri' parameters cannot be present at the same time.", errorCode)
                     .AsException();
 
             requestJwt = await FetchRequestUriAsync(
-                openIdEnvironment,
                 openIdClient,
                 requestUri,
                 cancellationToken);
@@ -109,8 +108,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         else if (!string.IsNullOrEmpty(requestJwt))
         {
             if (!openIdClient.Settings.RequestParameterSupported)
-                throw openIdEnvironment
-                    .ErrorFactory
+                throw ErrorFactory
                     .RequestParameterNotSupported()
                     .AsException();
 
@@ -150,8 +148,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to decode JWT");
-            throw openIdEnvironment
-                .ErrorFactory
+            throw ErrorFactory
                 .FailedToDecodeJwt(errorCode)
                 .WithException(exception)
                 .AsException();
@@ -160,7 +157,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         try
         {
             // this will deserialize the object using: OpenIdMessageJsonConverterFactory => OpenIdMessageJsonConverter => OpenIdMessage.Load
-            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(openIdEnvironment.JsonSerializerOptions);
+            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(OpenIdEnvironment.JsonSerializerOptions);
             if (requestObject == null)
                 throw new InvalidOperationException("JSON deserialization returned null.");
 
@@ -171,8 +168,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to deserialize JSON");
-            throw openIdEnvironment
-                .ErrorFactory
+            throw ErrorFactory
                 .FailedToDeserializeJson(errorCode)
                 .WithException(exception)
                 .AsException();
@@ -180,7 +176,6 @@ public class DefaultLoadAuthorizationRequestHandler(
     }
 
     private async ValueTask<string> FetchRequestUriAsync(
-        OpenIdEnvironment openIdEnvironment,
         OpenIdClient openIdClient,
         Uri requestUri,
         CancellationToken cancellationToken)
@@ -197,16 +192,14 @@ public class DefaultLoadAuthorizationRequestHandler(
         {
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                throw openIdEnvironment
-                    .ErrorFactory
+                throw ErrorFactory
                     .InvalidRequestUri($"The http status code of the response must be 200 OK. Received {(int)response.StatusCode} {response.StatusCode}.")
                     .AsException();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
             var expectedContentType = clientSettings.RequestUriExpectedContentType;
             if (clientSettings.RequestUriRequireStrictContentType && !string.Equals(contentType, expectedContentType, StringComparison.Ordinal))
-                throw openIdEnvironment
-                    .ErrorFactory
+                throw ErrorFactory
                     .InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.")
                     .AsException();
 
@@ -215,8 +208,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to fetch the request URI");
-            throw openIdEnvironment
-                .ErrorFactory
+            throw ErrorFactory
                 .InvalidRequestUri("Failed to fetch the request URI")
                 .WithException(exception)
                 .AsException();

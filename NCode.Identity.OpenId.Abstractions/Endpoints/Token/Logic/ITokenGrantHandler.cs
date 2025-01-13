@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Logic;
 
@@ -40,8 +41,8 @@ public interface ITokenGrantHandler
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
     /// <param name="tokenRequest">The <see cref="ITokenRequest"/> that represents the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ITokenResponse"/> for a successful result.</returns>
-    ValueTask<ITokenResponse> HandleAsync(
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="IOpenIdResponse"/>.</returns>
+    ValueTask<IOpenIdResponse> HandleAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,

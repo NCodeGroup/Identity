@@ -32,4 +32,4 @@ public readonly record struct AuthenticatePasswordGrantCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     ITokenRequest TokenRequest
-) : ICommand<SubjectAuthentication>;
+) : ICommand<AuthenticateSubjectResult>;

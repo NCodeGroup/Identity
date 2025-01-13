@@ -46,10 +46,6 @@ public static class DefaultEndpointRegistration
             DefaultOpenIdEndpointRouteBuilder>();
 
         serviceCollection.TryAddSingleton<
-            IResultExecutor<OpenIdErrorResult>,
-            OpenIdErrorResultExecutor>();
-
-        serviceCollection.TryAddSingleton<
             IResultExecutor<OpenIdRedirectResult>,
             OpenIdRedirectResultExecutor>();
 

@@ -23,6 +23,8 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Subject;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
@@ -34,10 +36,12 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 /// </summary>
 public class DefaultPasswordGrantHandler(
     TimeProvider timeProvider,
+    IOpenIdErrorFactory errorFactory,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private ITokenService TokenService { get; } = tokenService;
 
     /// <inheritdoc />
@@ -47,7 +51,7 @@ public class DefaultPasswordGrantHandler(
     };
 
     /// <inheritdoc />
-    public async ValueTask<ITokenResponse> HandleAsync(
+    public async ValueTask<IOpenIdResponse> HandleAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
@@ -55,12 +59,25 @@ public class DefaultPasswordGrantHandler(
     {
         var mediator = openIdContext.Mediator;
 
-        var subjectAuthentication = await mediator.SendAsync<AuthenticatePasswordGrantCommand, SubjectAuthentication>(
+        var authenticateResult = await mediator.SendAsync<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>(
             new AuthenticatePasswordGrantCommand(
                 openIdContext,
                 openIdClient,
                 tokenRequest),
             cancellationToken);
+
+        if (authenticateResult.IsError)
+        {
+            return authenticateResult.Error;
+        }
+
+        if (!authenticateResult.IsSuccess)
+        {
+            // TODO
+            return ErrorFactory.InvalidGrant("TODO");
+        }
+
+        var subjectAuthentication = authenticateResult.Ticket.Value;
 
         var passwordGrant = new PasswordGrant(subjectAuthentication);
 

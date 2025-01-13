@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Messages;
@@ -24,66 +23,33 @@ using NCode.Identity.OpenId.Messages;
 namespace NCode.Identity.OpenId.Results;
 
 /// <summary>
-/// An implementation of <see cref="IResult"/> that when executed, issues the response for an
-/// <c>OAuth</c> or <c>OpenID Connect</c> operation that may have succeeded or failed.
+/// Provides an implementation of <see cref="IResult"/> that when executed, will render an <see cref="IOpenIdResponse"/> as a JSON response.
 /// </summary>
 [PublicAPI]
-public class OpenIdResult<T> : IResult, ISupportError
-    where T : class, IOpenIdMessage
+public class OpenIdResult<T> : IResult
+    where T : class, IOpenIdResponse
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdResult{T}"/> class for a failed operation.
+    /// Initializes a new instance of the <see cref="OpenIdResult{T}"/> class.
     /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> that contains information about the failure of the operation.</param>
-    public OpenIdResult(IOpenIdError error)
-        : this(error, null)
-    {
-        // nothing
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdResult{T}"/> class for a successful operation.
-    /// </summary>
-    /// <param name="response">The response that contains the parameters for a successful <c>OAuth</c> or <c>OpenID Connect</c>
-    /// operation.
-    /// </param>
+    /// <param name="response">The <see cref="IOpenIdResponse"/> that contains information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.</param>
     public OpenIdResult(T response)
-        : this(null, response)
     {
-        // nothing
-    }
-
-    private OpenIdResult(IOpenIdError? error, T? response)
-    {
-        Error = error;
         Response = response;
     }
 
     /// <summary>
-    /// Gets a value indicating whether the authorization operation was successful.
+    /// Gets the response that contains the information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.
     /// </summary>
-    [MemberNotNullWhen(false, nameof(Error))]
-    [MemberNotNullWhen(true, nameof(Response))]
-    public bool Succeeded => Response != null;
-
-    /// <summary>
-    /// Gets the <see cref="IOpenIdError"/> that contains information about the failure of the operation.
-    /// </summary>
-    public IOpenIdError? Error { get; }
-
-    /// <summary>
-    /// Gets the response that contains the parameters for a successful <c>OAuth</c> or <c>OpenID Connect</c> operation.
-    /// </summary>
-    public T? Response { get; }
+    public T Response { get; }
 
     /// <inheritdoc />
     public async Task ExecuteAsync(HttpContext httpContext)
     {
-        IOpenIdMessage message = Succeeded ? Response : Error;
-        var jsonSerializerOptions = message.OpenIdEnvironment.JsonSerializerOptions;
-        var statusCode = message is ISupportStatusCode supportStatusCode ? supportStatusCode.StatusCode : null;
+        var jsonSerializerOptions = Response.OpenIdEnvironment.JsonSerializerOptions;
+        var statusCode = Response is ISupportStatusCode supportStatusCode ? supportStatusCode.StatusCode : null;
         var result = TypedResults.Json(
-            message,
+            Response,
             jsonSerializerOptions,
             statusCode: statusCode);
         await result.ExecuteAsync(httpContext);

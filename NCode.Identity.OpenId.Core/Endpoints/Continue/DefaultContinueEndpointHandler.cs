@@ -93,7 +93,7 @@ public class DefaultContinueEndpointHandler(
 
         var continueEnvelope = persistedGrant.Payload;
         var provider = ContinueProviderSelector.SelectProvider(continueEnvelope.Code);
-        var result = await provider.ContinueAsync(openIdContext, continueEnvelope.Payload, cancellationToken);
+        var result = await provider.ContinueAsync(openIdContext, continueEnvelope.PayloadJson, cancellationToken);
 
         return result;
     }

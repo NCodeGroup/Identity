@@ -19,6 +19,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Extensions;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Tokens.Commands;
 
@@ -76,7 +77,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAcce
             ClaimValueTypes.Integer64,
             issuer,
             issuer,
-            subject);
+            subject.GetClaimsIdentity());
 
         subjectClaims.Add(authTimeClaim);
 

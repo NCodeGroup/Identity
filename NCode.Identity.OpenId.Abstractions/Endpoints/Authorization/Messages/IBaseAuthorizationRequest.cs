@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 /// The base interface for all <c>OAuth</c> or <c>OpenID Connect</c> authorization request messages.
 /// </summary>
 [PublicAPI]
-public interface IBaseAuthorizationRequest : IOpenIdMessage
+public interface IBaseAuthorizationRequest : IOpenIdRequest
 {
     /// <summary>
     /// Gets a value indicating where the authorization request was loaded from.

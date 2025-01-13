@@ -29,8 +29,12 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="LoadAuthorizationSourceCommand"/> message.
 /// </summary>
-public class DefaultLoadAuthorizationSourceHandler : ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>
+public class DefaultLoadAuthorizationSourceHandler(
+    IOpenIdErrorFactory errorFactory
+) : ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>
 {
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
+
     /// <inheritdoc />
     public async ValueTask<IAuthorizationSource> HandleAsync(
         LoadAuthorizationSourceCommand command,
@@ -55,8 +59,7 @@ public class DefaultLoadAuthorizationSourceHandler : ICommandResponseHandler<Loa
             const string expectedContentType = "application/x-www-form-urlencoded";
             if (!httpRequest.ContentType?.StartsWith(expectedContentType, StringComparison.OrdinalIgnoreCase) ?? false)
             {
-                throw openIdEnvironment
-                    .ErrorFactory
+                throw ErrorFactory
                     .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
                     .WithDescription($"The content type of POST requests must be '{expectedContentType}', received '{httpRequest.ContentType}'.")
                     .WithStatusCode(StatusCodes.Status415UnsupportedMediaType)
@@ -68,8 +71,7 @@ public class DefaultLoadAuthorizationSourceHandler : ICommandResponseHandler<Loa
         }
         else
         {
-            throw openIdEnvironment
-                .ErrorFactory
+            throw ErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
                 .WithStatusCode(StatusCodes.Status405MethodNotAllowed)
                 .AsException();

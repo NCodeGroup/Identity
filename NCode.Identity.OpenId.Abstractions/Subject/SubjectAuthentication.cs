@@ -29,6 +29,6 @@ namespace NCode.Identity.OpenId.Subject;
 public readonly record struct SubjectAuthentication(
     string AuthenticationScheme,
     AuthenticationProperties AuthenticationProperties,
-    ClaimsIdentity Subject,
+    ClaimsPrincipal Subject,
     string SubjectId
 );

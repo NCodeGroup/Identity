@@ -18,17 +18,18 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints;
 
 internal class OpenIdMiddleware(
     RequestDelegate next,
-    OpenIdEnvironment openIdEnvironment)
+    IOpenIdErrorFactory errorFactory
+)
 {
     private RequestDelegate Next { get; } = next;
-    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     public async Task InvokeAsync(HttpContext httpContext)
     {
@@ -36,20 +37,21 @@ internal class OpenIdMiddleware(
         {
             await Next(httpContext);
         }
-        catch (OpenIdException exception)
+        catch (Exception exception)
         {
-            var openIdError = exception.Error;
+            var result = exception switch
+            {
+                OpenIdException openIdException => openIdException.Error.AsResult(),
+                HttpResultException httpResultException => httpResultException.HttpResult,
+                _ => ErrorFactory
+                    .Create(OpenIdConstants.ErrorCodes.ServerError)
+                    .WithException(exception)
+                    .AsResult()
+            };
 
-            var result = TypedResults.Json(
-                openIdError,
-                OpenIdEnvironment.JsonSerializerOptions,
-                statusCode: openIdError.StatusCode);
+            // TODO: use mediator to publish error event
 
             await result.ExecuteAsync(httpContext);
-        }
-        catch (HttpResultException exception)
-        {
-            await exception.HttpResult.ExecuteAsync(httpContext);
         }
     }
 }

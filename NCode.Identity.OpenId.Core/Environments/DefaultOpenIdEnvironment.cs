@@ -18,6 +18,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.DataProtection;
 using NCode.Identity.OpenId.Claims;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
@@ -34,12 +35,16 @@ namespace NCode.Identity.OpenId.Environments;
 /// Provides a default implementation of the <see cref="OpenIdEnvironment"/> abstraction.
 /// </summary>
 public class DefaultOpenIdEnvironment(
+    IServiceProvider serviceProvider,
     IKnownParameterCollectionProvider knownParametersProvider,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
     ISecureDataProtectionProvider secureDataProtectionProvider
-) : OpenIdEnvironment, IOpenIdErrorFactory
+) : OpenIdEnvironment
 {
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
+    private IOpenIdErrorFactory? ErrorFactoryOrNull { get; set; }
+
+    private IServiceProvider ServiceProvider { get; } = serviceProvider;
     private IKnownParameterCollectionProvider KnownParametersProvider { get; } = knownParametersProvider;
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
 
@@ -55,13 +60,11 @@ public class DefaultOpenIdEnvironment(
     public override IKnownParameterCollection KnownParameters => KnownParametersProvider.Collection;
 
     /// <inheritdoc />
-    public override IOpenIdErrorFactory ErrorFactory => this;
+    public override IOpenIdErrorFactory ErrorFactory =>
+        ErrorFactoryOrNull ??= ServiceProvider.GetRequiredService<IOpenIdErrorFactory>();
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
-
-    /// <inheritdoc />
-    public IOpenIdError Create(string errorCode) => new OpenIdError(this, errorCode);
 
     private JsonSerializerOptions CreateJsonSerializerOptions() =>
         new(JsonSerializerDefaults.Web)

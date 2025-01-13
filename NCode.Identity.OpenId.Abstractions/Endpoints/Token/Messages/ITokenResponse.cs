@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 /// Represents the message for an <c>OAuth</c> or <c>OpenID Connect</c> token response.
 /// </summary>
 [PublicAPI]
-public interface ITokenResponse : IOpenIdMessage
+public interface ITokenResponse : IOpenIdResponse
 {
     /// <summary>
     /// Gets or sets the <c>access_token</c> parameter.

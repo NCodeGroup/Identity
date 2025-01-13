@@ -115,7 +115,8 @@ public class DefaultAuthorizeHandler(
             return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
-        if (authenticationTicket is not { Subject.IsAuthenticated: true })
+        var isAuthenticated = authenticationTicket.Subject.Identities.All(identity => identity.IsAuthenticated);
+        if (!isAuthenticated)
         {
             if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
@@ -252,7 +253,7 @@ public class DefaultAuthorizeHandler(
         return result.IsActive;
     }
 
-    private bool ValidateMaxAge(ClaimsIdentity subject, TimeSpan? maxAge, TimeSpan clockSkew)
+    private bool ValidateMaxAge(ClaimsPrincipal subject, TimeSpan? maxAge, TimeSpan clockSkew)
     {
         /*
          * max_age

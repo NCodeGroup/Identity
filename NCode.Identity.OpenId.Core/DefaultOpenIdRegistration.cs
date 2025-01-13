@@ -112,15 +112,12 @@ public static class DefaultOpenIdRegistration
         // environment
 
         serviceCollection.TryAddSingleton<
-            DefaultOpenIdEnvironment>();
-
-        serviceCollection.TryAddSingleton<
             OpenIdEnvironment,
             DefaultOpenIdEnvironment>();
 
         serviceCollection.TryAddSingleton<
             IOpenIdErrorFactory,
-            DefaultOpenIdEnvironment>();
+            DefaultOpenIdErrorFactory>();
 
         return serviceCollection;
     }

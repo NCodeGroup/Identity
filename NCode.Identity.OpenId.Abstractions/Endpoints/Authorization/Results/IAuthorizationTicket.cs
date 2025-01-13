@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 /// Contains the parameters for a successful <c>OAuth</c> or <c>OpenID Connect</c> authorization response.
 /// </summary>
 [PublicAPI]
-public interface IAuthorizationTicket : IOpenIdMessage
+public interface IAuthorizationTicket : IOpenIdResponse
 {
     /// <summary>
     /// Gets or sets when this ticket was created.

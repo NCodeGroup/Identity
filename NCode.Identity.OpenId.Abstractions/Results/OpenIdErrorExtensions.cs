@@ -18,7 +18,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Exceptions;
 
 namespace NCode.Identity.OpenId.Results;
@@ -29,19 +28,6 @@ namespace NCode.Identity.OpenId.Results;
 [PublicAPI]
 public static class OpenIdErrorExtensions
 {
-    /// <summary>
-    /// Wraps the <see cref="IOpenIdError"/> in an <see cref="IResult"/>.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to wrap.</param>
-    /// <returns>The <see cref="IResult"/> instance.</returns>
-    public static IResult AsResult(this IOpenIdError error)
-    {
-        // ReSharper disable once SuspiciousTypeConversion.Global
-        // Justification: external code may implement the ISupportResult interface
-        var result = error is ISupportResult supportResult ? supportResult.Result : null;
-        return result ?? new OpenIdErrorResult { Error = error };
-    }
-
     /// <summary>
     /// Wraps the <see cref="IOpenIdError"/> in an <see cref="OpenIdException"/>.
     /// </summary>
@@ -120,6 +106,18 @@ public static class OpenIdErrorExtensions
     public static IOpenIdError WithState(this IOpenIdError error, string? state)
     {
         error.State = state;
+        return error;
+    }
+
+    /// <summary>
+    /// Sets the <c>error</c> parameter.
+    /// </summary>
+    /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>
+    /// <param name="code">The value to set.</param>
+    /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+    public static IOpenIdError WithCode(this IOpenIdError error, string code)
+    {
+        error.Code = code;
         return error;
     }
 }

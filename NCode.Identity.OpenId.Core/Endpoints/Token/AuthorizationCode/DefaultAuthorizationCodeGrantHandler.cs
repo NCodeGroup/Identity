@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Tokens;
@@ -55,7 +56,7 @@ public class DefaultAuthorizationCodeGrantHandler(
     };
 
     /// <inheritdoc />
-    public async ValueTask<ITokenResponse> HandleAsync(
+    public async ValueTask<IOpenIdResponse> HandleAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
@@ -65,10 +66,9 @@ public class DefaultAuthorizationCodeGrantHandler(
 
         var authorizationCode = tokenRequest.AuthorizationCode;
         if (string.IsNullOrEmpty(authorizationCode))
-            throw ErrorFactory
+            return ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.AuthorizationCode)
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
+                .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var grantId = new PersistedGrantId
         {
@@ -82,10 +82,9 @@ public class DefaultAuthorizationCodeGrantHandler(
             cancellationToken);
 
         if (!persistedGrantOrNull.HasValue)
-            throw ErrorFactory
+            return ErrorFactory
                 .InvalidGrant("The provided authorization code is invalid, expired, or revoked.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
+                .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var persistedGrant = persistedGrantOrNull.Value;
         Debug.Assert(persistedGrant.Status == PersistedGrantStatus.Active);

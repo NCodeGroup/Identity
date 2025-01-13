@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Tokens;
@@ -38,17 +39,18 @@ namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 public class DefaultRefreshTokenGrantHandler(
     TimeProvider timeProvider,
     OpenIdEnvironment openIdEnvironment,
+    IOpenIdErrorFactory openIdErrorFactory,
     IPersistedGrantService persistedGrantService,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+    private IOpenIdErrorFactory OpenIdErrorFactory { get; } = openIdErrorFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
 
-    private IOpenIdError InvalidGrantError => OpenIdEnvironment
-        .ErrorFactory
+    private IOpenIdError InvalidGrantError => OpenIdErrorFactory
         .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
@@ -59,7 +61,7 @@ public class DefaultRefreshTokenGrantHandler(
     };
 
     /// <inheritdoc />
-    public async ValueTask<ITokenResponse> HandleAsync(
+    public async ValueTask<IOpenIdResponse> HandleAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
@@ -70,11 +72,9 @@ public class DefaultRefreshTokenGrantHandler(
 
         var refreshToken = tokenRequest.RefreshToken;
         if (string.IsNullOrEmpty(refreshToken))
-            throw OpenIdEnvironment
-                .ErrorFactory
+            return OpenIdErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RefreshToken)
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
+                .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
@@ -90,12 +90,12 @@ public class DefaultRefreshTokenGrantHandler(
             cancellationToken);
 
         if (!persistedGrantOrNull.HasValue)
-            throw InvalidGrantError.AsException("The refresh token was not found.");
+            return InvalidGrantError;
 
         var persistedGrant = persistedGrantOrNull.Value;
         if (persistedGrant.Status != PersistedGrantStatus.Active)
             // TODO: refresh_token_reuse_policy (none, revoke_all)
-            throw InvalidGrantError.AsException("The refresh token is not active.");
+            return InvalidGrantError;
 
         var refreshTokenGrant = persistedGrant.Payload;
 

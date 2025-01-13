@@ -75,7 +75,7 @@ public class DefaultContinueService(
         var continueEnvelope = new ContinueEnvelope
         {
             Code = continueCode,
-            Payload = payloadJson
+            PayloadJson = payloadJson
         };
 
         var persistedGrantId = new PersistedGrantId

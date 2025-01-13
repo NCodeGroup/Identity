@@ -34,5 +34,5 @@ public readonly struct ContinueEnvelope
     /// <summary>
     /// Gets or sets the <see cref="JsonElement"/> payload that contains any required data to continue the operation.
     /// </summary>
-    public required JsonElement Payload { get; init; }
+    public required JsonElement PayloadJson { get; init; }
 }

@@ -44,6 +44,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     OpenIdEnvironment openIdEnvironment,
+    IOpenIdErrorFactory openIdErrorFactory,
     IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
@@ -73,6 +74,9 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
 
     /// <inheritdoc />
     protected override OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+
+    /// <inheritdoc />
+    protected override IOpenIdErrorFactory OpenIdErrorFactory { get; } = openIdErrorFactory;
 
     /// <inheritdoc />
     protected override IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;

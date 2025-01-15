@@ -37,5 +37,5 @@ public class DiscoveryResult
     /// Gets or sets the additional properties for an <c>OAuth</c> or<c>OpenID Connect</c> response.
     /// </summary>
     [JsonExtensionData]
-    public Dictionary<string, object> Metadata { get; set; } = new(StringComparer.Ordinal);
+    public Dictionary<string, object> Metadata { get; set; } = new();
 }

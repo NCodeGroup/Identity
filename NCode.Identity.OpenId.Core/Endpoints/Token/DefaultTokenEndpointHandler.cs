@@ -125,6 +125,6 @@ public class DefaultTokenEndpointHandler(
             tokenRequest,
             cancellationToken);
 
-        return TypedResults.Json(tokenResponse, openIdEnvironment.JsonSerializerOptions);
+        return tokenResponse.AsResult();
     }
 }

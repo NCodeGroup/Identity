@@ -64,11 +64,12 @@ public class DefaultOpenIdClientFactory(
         JsonElement? confirmation,
         CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult<OpenIdConfidentialClient>(
-            new DefaultOpenIdConfidentialClient(
-                publicClient,
-                method,
-                secretKey,
-                confirmation));
+        OpenIdConfidentialClient confidentialClient = new DefaultOpenIdConfidentialClient(
+            publicClient,
+            method,
+            secretKey,
+            confirmation);
+
+        return ValueTask.FromResult(confidentialClient);
     }
 }

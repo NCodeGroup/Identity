@@ -84,7 +84,7 @@ public class DefaultValidateRefreshTokenGrantHandler(
                 cancellationToken);
 
             if (!isSubjectActive)
-                throw InvalidGrantError.AsException("The user is not active.");
+                throw InvalidGrantError.AsException("The end-user is not active.");
         }
     }
 

@@ -17,10 +17,14 @@
 #endregion
 
 using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 
@@ -34,19 +38,56 @@ public class DefaultValidatePasswordGrantHandler(
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
+    private IOpenIdError InvalidGrantError => ErrorFactory
+        .InvalidGrant("The provided password grant is invalid, expired, or revoked.")
+        .WithStatusCode(StatusCodes.Status400BadRequest);
+
     /// <inheritdoc />
-    public ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         ValidateTokenGrantCommand<PasswordGrant> command,
         CancellationToken cancellationToken)
     {
-        var (_, openIdClient, tokenRequest, passwordGrant) = command;
+        var (openIdContext, openIdClient, tokenRequest, passwordGrant) = command;
+        var subjectAuthentication = passwordGrant.SubjectAuthentication;
 
         // DefaultClientAuthenticationService already performs this check for us
         Debug.Assert(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
 
+        var isSubjectActive = await ValidateSubjectIsActiveAsync(
+            openIdContext,
+            openIdClient,
+            tokenRequest,
+            subjectAuthentication,
+            cancellationToken);
+
+        if (!isSubjectActive)
+            throw InvalidGrantError.AsException("The end-user is not active.");
+
         // TODO...
         throw new NotImplementedException();
+    }
+
+    private static async ValueTask<bool> ValidateSubjectIsActiveAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IOpenIdMessage openIdMessage,
+        SubjectAuthentication subjectAuthentication,
+        CancellationToken cancellationToken)
+    {
+        var result = new ValidateSubjectIsActiveResult();
+
+        var command = new ValidateSubjectIsActiveCommand(
+            openIdContext,
+            openIdClient,
+            openIdMessage,
+            subjectAuthentication,
+            result);
+
+        var mediator = openIdContext.Mediator;
+        await mediator.SendAsync(command, cancellationToken);
+
+        return result.IsActive;
     }
 }

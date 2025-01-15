@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
@@ -44,6 +45,10 @@ public class DefaultPasswordGrantHandler(
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private ITokenService TokenService { get; } = tokenService;
 
+    private IOpenIdError InvalidGrantError => ErrorFactory
+        .InvalidGrant("The provided password grant is invalid, expired, or revoked.")
+        .WithStatusCode(StatusCodes.Status400BadRequest);
+
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -66,15 +71,9 @@ public class DefaultPasswordGrantHandler(
                 tokenRequest),
             cancellationToken);
 
-        if (authenticateResult.IsError)
-        {
-            return authenticateResult.Error;
-        }
-
         if (!authenticateResult.IsSuccess)
         {
-            // TODO
-            return ErrorFactory.InvalidGrant("TODO");
+            return authenticateResult.Error ?? InvalidGrantError;
         }
 
         var subjectAuthentication = authenticateResult.Ticket.Value;

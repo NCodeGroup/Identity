@@ -35,11 +35,10 @@ public static class HttpResultExtensions
     /// </summary>
     /// <param name="response">The <see cref="IOpenIdResponse"/> to wrap.</param>
     /// <returns>The <see cref="IResult"/> instance.</returns>
-    public static OpenIdResult<T> AsResult<T>(this T response)
-        where T : class, IOpenIdResponse
-    {
-        return new OpenIdResult<T>(response);
-    }
+    public static IResult AsResult<T>(this T response)
+        where T : class, IOpenIdResponse =>
+        // ReSharper disable once SuspiciousTypeConversion.Global
+        response is IResultProvider resultProvider ? resultProvider.AsResult() : new OpenIdResult<T>(response);
 
     /// <summary>
     /// Wraps the HTTP <see cref="IResult"/> in a <see cref="HttpResultException"/>.

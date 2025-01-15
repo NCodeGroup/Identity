@@ -23,18 +23,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using NCode.CryptoMemory;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 
-internal class AuthorizationResultExecutor(
-    OpenIdEnvironment openIdEnvironment
-) : IResultExecutor<AuthorizationResult>
+internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
 {
-    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
-
     public async ValueTask ExecuteAsync(HttpContext httpContext, AuthorizationResult result, CancellationToken cancellationToken)
     {
         var httpResponse = httpContext.Response;
@@ -44,7 +39,7 @@ internal class AuthorizationResultExecutor(
         // instead of returning a redirect response.
         if (result.Error is { StatusCode: not null })
         {
-            var httpResult = TypedResults.Json(result.Error, OpenIdEnvironment.JsonSerializerOptions, statusCode: result.Error.StatusCode);
+            var httpResult = result.Error.AsResult();
             await httpResult.ExecuteAsync(httpContext);
             return;
         }

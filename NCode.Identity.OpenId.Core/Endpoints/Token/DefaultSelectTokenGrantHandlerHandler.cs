@@ -37,9 +37,9 @@ public class DefaultSelectTokenGrantHandlerHandler(
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
-    private Dictionary<string, ITokenGrantHandler> HandlersByGrantType { get; } = handlers
+    private ILookup<string, ITokenGrantHandler> HandlersByGrantType { get; } = handlers
         .SelectMany(handler => handler.GrantTypes.Select(grantType => (grantType, handler)))
-        .ToDictionary(pair => pair.grantType, pair => pair.handler, StringComparer.Ordinal);
+        .ToLookup(pair => pair.grantType, pair => pair.handler, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public ValueTask<ITokenGrantHandler> HandleAsync(
@@ -73,7 +73,23 @@ public class DefaultSelectTokenGrantHandlerHandler(
                 .AsException();
         }
 
-        if (!HandlersByGrantType.TryGetValue(grantType, out var handler))
+        ITokenGrantHandler? selectedHandler = null;
+        var candidateHandlers = HandlersByGrantType[grantType];
+        foreach (var candidateHandler in candidateHandlers)
+        {
+            if (selectedHandler != null)
+            {
+                // unsupported_grant_type
+                throw ErrorFactory
+                    .UnsupportedGrantType("The provided grant type has multiple handlers.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .AsException("Invalid authorization server configuration. Multiple handlers for the same grant type have been registered.");
+            }
+
+            selectedHandler = candidateHandler;
+        }
+
+        if (selectedHandler == null)
         {
             // unsupported_grant_type
             throw ErrorFactory
@@ -84,6 +100,6 @@ public class DefaultSelectTokenGrantHandlerHandler(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        return ValueTask.FromResult(handler);
+        return ValueTask.FromResult(selectedHandler);
     }
 }

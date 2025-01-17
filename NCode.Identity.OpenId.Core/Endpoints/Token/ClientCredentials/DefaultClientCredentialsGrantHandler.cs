@@ -106,49 +106,18 @@ public class DefaultClientCredentialsGrantHandler(
             EffectiveScopes = scopes
         };
 
-        {
-            var securityToken = await TokenService.CreateAccessTokenAsync(
-                openIdContext,
-                openIdClient,
-                securityTokenRequest,
-                cancellationToken);
+        var securityToken = await TokenService.CreateAccessTokenAsync(
+            openIdContext,
+            openIdClient,
+            securityTokenRequest,
+            cancellationToken);
 
-            tokenResponse.AccessToken = securityToken.TokenValue;
-            tokenResponse.ExpiresIn = securityToken.TokenPeriod.Duration;
-            tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
-        }
+        tokenResponse.AccessToken = securityToken.TokenValue;
+        tokenResponse.ExpiresIn = securityToken.TokenPeriod.Duration;
+        tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
-        {
-            var newRequest = securityTokenRequest with
-            {
-                AccessToken = tokenResponse.AccessToken
-            };
-
-            var securityToken = await TokenService.CreateIdTokenAsync(
-                openIdContext,
-                openIdClient,
-                newRequest,
-                cancellationToken);
-
-            tokenResponse.IdToken = securityToken.TokenValue;
-        }
-
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
-        {
-            var newRequest = securityTokenRequest with
-            {
-                AccessToken = tokenResponse.AccessToken
-            };
-
-            var securityToken = await TokenService.CreateRefreshTokenAsync(
-                openIdContext,
-                openIdClient,
-                newRequest,
-                cancellationToken);
-
-            tokenResponse.RefreshToken = securityToken.TokenValue;
-        }
+        Debug.Assert(!scopes.Contains(OpenIdConstants.ScopeTypes.OpenId));
+        Debug.Assert(!scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess));
 
         return tokenResponse;
     }

@@ -76,22 +76,22 @@ public class DefaultValidateRefreshTokenGrantHandler(
 
         if (subjectAuthentication.HasValue)
         {
-            var isSubjectActive = await ValidateSubjectIsActiveAsync(
+            var subjectIsActive = await GetSubjectIsActiveAsync(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
                 subjectAuthentication.Value,
                 cancellationToken);
 
-            if (!isSubjectActive)
+            if (!subjectIsActive)
                 throw InvalidGrantError.AsException("The end-user is not active.");
         }
     }
 
-    private static async ValueTask<bool> ValidateSubjectIsActiveAsync(
+    private static async ValueTask<bool> GetSubjectIsActiveAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        IOpenIdMessage openIdMessage,
+        IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
@@ -100,7 +100,7 @@ public class DefaultValidateRefreshTokenGrantHandler(
         var command = new ValidateSubjectIsActiveCommand(
             openIdContext,
             openIdClient,
-            openIdMessage,
+            openIdRequest,
             subjectAuthentication,
             result);
 

@@ -46,7 +46,7 @@ public class DefaultPasswordGrantHandler(
     private ITokenService TokenService { get; } = tokenService;
 
     private IOpenIdError InvalidGrantError => ErrorFactory
-        .InvalidGrant("The provided password grant is invalid, expired, or revoked.")
+        .InvalidGrant("The provided credentials are invalid, expired, or revoked.")
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
@@ -64,11 +64,17 @@ public class DefaultPasswordGrantHandler(
     {
         var mediator = openIdContext.Mediator;
 
+        if (string.IsNullOrEmpty(tokenRequest.Username))
+        {
+            return InvalidGrantError;
+        }
+
         var authenticateResult = await mediator.SendAsync<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>(
             new AuthenticatePasswordGrantCommand(
                 openIdContext,
                 openIdClient,
-                tokenRequest),
+                tokenRequest
+            ),
             cancellationToken);
 
         if (!authenticateResult.IsSuccess)

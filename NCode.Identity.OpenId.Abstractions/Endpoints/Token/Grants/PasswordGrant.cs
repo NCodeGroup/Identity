@@ -22,7 +22,7 @@ using NCode.Identity.OpenId.Subject;
 namespace NCode.Identity.OpenId.Endpoints.Token.Grants;
 
 /// <summary>
-/// Represents a password grant.
+/// Represents a Resource Owner Password Credentials Grant.
 /// </summary>
 [PublicAPI]
 public readonly record struct PasswordGrant(

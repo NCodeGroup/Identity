@@ -43,9 +43,7 @@ public class DefaultValidateTokenRequestHandler(
         CancellationToken cancellationToken)
     {
         var (_, openIdClient, tokenRequest) = command;
-
         var settings = openIdClient.Settings;
-        var requestedScopes = tokenRequest.Scopes;
 
         // DefaultClientAuthenticationService already performs this check for us
         Debug.Assert(
@@ -53,6 +51,7 @@ public class DefaultValidateTokenRequestHandler(
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
 
         // scopes_supported
+        var requestedScopes = tokenRequest.Scopes;
         var hasInvalidScopes = requestedScopes?.Except(settings.ScopesSupported).Any() ?? false;
         if (hasInvalidScopes)
             // invalid_scope

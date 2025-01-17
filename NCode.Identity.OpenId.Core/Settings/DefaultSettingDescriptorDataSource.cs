@@ -253,7 +253,6 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.DisplayValuesSupported,
-                // TODO: Default
 
                 IsDiscoverable = true,
                 OnMerge = Intersect
@@ -263,11 +262,11 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.GrantTypesSupported,
-                Default = new[]
-                {
+                Default =
+                [
                     OpenIdConstants.GrantTypes.AuthorizationCode,
                     OpenIdConstants.GrantTypes.Implicit
-                },
+                ],
 
                 IsDiscoverable = true,
                 OnMerge = Intersect
@@ -543,7 +542,6 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.SubjectTypesSupported,
-                // TODO: Default
 
                 IsDiscoverable = true,
                 OnMerge = Intersect

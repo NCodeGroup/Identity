@@ -58,6 +58,10 @@ public class DefaultValidateTokenRequestHandler(
             // invalid_scope
             throw InvalidScopeError.AsException();
 
+        // additional validation occurs in:
+        // - DefaultSelectTokenGrantHandlerHandler
+        // - The specific token grant handler
+
         return ValueTask.CompletedTask;
     }
 }

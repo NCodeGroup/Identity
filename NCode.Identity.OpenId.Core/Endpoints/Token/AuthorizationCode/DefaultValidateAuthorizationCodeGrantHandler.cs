@@ -57,6 +57,8 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
 
+        // see DefaultValidateTokenRequestHandler for additional validation such as scope, etc
+
         // client_id from authorization request
         if (!string.Equals(openIdClient.ClientId, authorizationRequest.ClientId, StringComparison.Ordinal))
             throw ErrorFactory

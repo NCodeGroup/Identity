@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Subject;
 public readonly record struct ValidateSubjectIsActiveCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    IOpenIdMessage OpenIdMessage,
+    IOpenIdRequest OpenIdRequest,
     SubjectAuthentication SubjectAuthentication,
     ValidateSubjectIsActiveResult Result
 ) : ICommand;

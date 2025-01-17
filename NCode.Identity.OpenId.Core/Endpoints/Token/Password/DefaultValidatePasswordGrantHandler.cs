@@ -55,24 +55,23 @@ public class DefaultValidatePasswordGrantHandler(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
 
-        var isSubjectActive = await ValidateSubjectIsActiveAsync(
+        // see DefaultValidateTokenRequestHandler for additional validation such as scope, etc
+
+        var subjectIsActive = await GetSubjectIsActiveAsync(
             openIdContext,
             openIdClient,
             tokenRequest,
             subjectAuthentication,
             cancellationToken);
 
-        if (!isSubjectActive)
+        if (!subjectIsActive)
             throw InvalidGrantError.AsException("The end-user is not active.");
-
-        // TODO...
-        throw new NotImplementedException();
     }
 
-    private static async ValueTask<bool> ValidateSubjectIsActiveAsync(
+    private static async ValueTask<bool> GetSubjectIsActiveAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        IOpenIdMessage openIdMessage,
+        IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
@@ -81,7 +80,7 @@ public class DefaultValidatePasswordGrantHandler(
         var command = new ValidateSubjectIsActiveCommand(
             openIdContext,
             openIdClient,
-            openIdMessage,
+            openIdRequest,
             subjectAuthentication,
             result);
 

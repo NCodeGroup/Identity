@@ -16,8 +16,10 @@
 
 #endregion
 
+using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Password;
@@ -26,14 +28,22 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 /// Provides a default implementation of a handler for the <see cref="AuthenticatePasswordGrantCommand"/> message
 /// that returns <see cref="SubjectAuthentication"/>.
 /// </summary>
-public class DefaultAuthenticatePasswordGrantHandler : ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>
+public class DefaultAuthenticatePasswordGrantHandler(
+    ILogger<DefaultAuthenticatePasswordGrantHandler> logger,
+    IOpenIdErrorFactory errorFactory
+) : ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>
 {
+    private ILogger<DefaultAuthenticatePasswordGrantHandler> Logger { get; } = logger;
+
+    private IOpenIdError UnsupportedGrantTypeError { get; } =
+        errorFactory.UnsupportedGrantType("The resource owner password credential type is not supported.");
+
     /// <inheritdoc />
     public ValueTask<AuthenticateSubjectResult> HandleAsync(
         AuthenticatePasswordGrantCommand command,
         CancellationToken cancellationToken)
     {
-        // TODO...
-        throw new NotImplementedException();
+        Logger.LogWarning("The resource owner password credential type is not supported. Please register an implementation of `ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>`.");
+        return ValueTask.FromResult(new AuthenticateSubjectResult(UnsupportedGrantTypeError));
     }
 }

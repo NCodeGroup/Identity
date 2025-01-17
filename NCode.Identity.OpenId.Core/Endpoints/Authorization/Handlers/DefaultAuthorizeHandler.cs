@@ -126,7 +126,7 @@ public class DefaultAuthorizeHandler(
                 return new AuthorizationResult(redirectUri, responseMode, error);
             }
 
-            Logger.LogInformation("The user is not authenticated.");
+            Logger.LogInformation("The end-user is not authenticated.");
 
             var continueUrl = await ContinueService.GetContinueUrlAsync(
                 openIdContext,
@@ -147,12 +147,14 @@ public class DefaultAuthorizeHandler(
             return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
         }
 
-        if (!await ValidateSubjectIsActiveAsync(
-                openIdContext,
-                openIdClient,
-                authorizationRequest,
-                authenticationTicket,
-                cancellationToken))
+        var subjectIsActive = await GetSubjectIsActiveAsync(
+            openIdContext,
+            openIdClient,
+            authorizationRequest,
+            authenticationTicket,
+            cancellationToken);
+
+        if (!subjectIsActive)
         {
             if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
@@ -162,7 +164,7 @@ public class DefaultAuthorizeHandler(
                 return new AuthorizationResult(redirectUri, responseMode, error);
             }
 
-            Logger.LogInformation("The user is not active.");
+            Logger.LogInformation("The end-user is not active.");
 
             var continueUrl = await ContinueService.GetContinueUrlAsync(
                 openIdContext,
@@ -231,10 +233,10 @@ public class DefaultAuthorizeHandler(
         return null;
     }
 
-    private static async ValueTask<bool> ValidateSubjectIsActiveAsync(
+    private static async ValueTask<bool> GetSubjectIsActiveAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        IOpenIdMessage openIdMessage,
+        IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
@@ -243,7 +245,7 @@ public class DefaultAuthorizeHandler(
         var command = new ValidateSubjectIsActiveCommand(
             openIdContext,
             openIdClient,
-            openIdMessage,
+            openIdRequest,
             subjectAuthentication,
             result);
 

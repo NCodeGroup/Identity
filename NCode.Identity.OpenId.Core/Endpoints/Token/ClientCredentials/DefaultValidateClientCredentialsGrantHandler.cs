@@ -46,6 +46,8 @@ public class DefaultValidateClientCredentialsGrantHandler(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
 
+        // see DefaultValidateTokenRequestHandler for additional validation such as scope, etc
+
         // TODO...
         throw new NotImplementedException();
     }

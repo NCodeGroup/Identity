@@ -16,7 +16,7 @@
 
 #endregion
 
-using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Mediator;
@@ -34,21 +34,37 @@ public class DefaultValidateClientCredentialsGrantHandler(
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
+    private IOpenIdError InvalidScopeError => ErrorFactory
+        .InvalidScope()
+        .WithStatusCode(StatusCodes.Status400BadRequest);
+
     /// <inheritdoc />
     public ValueTask HandleAsync(
         ValidateTokenGrantCommand<ClientCredentialsGrant> command,
         CancellationToken cancellationToken)
     {
-        var (_, openIdClient, tokenRequest, clientCredentialsGrant) = command;
+        var (_, _, tokenRequest, _) = command;
 
-        // DefaultClientAuthenticationService already performs this check for us
-        Debug.Assert(
-            string.IsNullOrEmpty(tokenRequest.ClientId) ||
-            string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
+        // see DefaultValidateTokenRequestHandler for additional validation
 
-        // see DefaultValidateTokenRequestHandler for additional validation such as scope, etc
+        // scopes
+        var scopes = tokenRequest.Scopes ?? Array.Empty<string>();
 
-        // TODO...
-        throw new NotImplementedException();
+        // scope: openid
+        if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+            // invalid_scope
+            throw InvalidScopeError
+                .WithDescription("The 'openid' scope is not allowed with the 'client_credentials' grant type.")
+                .AsException();
+
+        // scope: offline_access (i.e. refresh_token)
+        // https://www.rfc-editor.org/rfc/rfc6749#section-4.4.3
+        if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+            // invalid_scope
+            throw InvalidScopeError
+                .WithDescription("The 'offline_access' scope is not allowed with the 'client_credentials' grant type.")
+                .AsException();
+
+        return ValueTask.CompletedTask;
     }
 }

@@ -54,6 +54,8 @@ public class DefaultValidateRefreshTokenGrantHandler(
         var (clientId, originalScopes, _, subjectAuthentication) = refreshTokenGrant;
         var settings = openIdClient.Settings;
 
+        // see DefaultValidateTokenRequestHandler for additional validation
+
         if (!string.Equals(clientId, openIdClient.ClientId, StringComparison.Ordinal))
             throw InvalidGrantError.AsException("The refresh token belongs to a different client.");
 

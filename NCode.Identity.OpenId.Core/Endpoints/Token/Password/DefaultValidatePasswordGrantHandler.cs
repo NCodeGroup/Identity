@@ -50,12 +50,12 @@ public class DefaultValidatePasswordGrantHandler(
         var (openIdContext, openIdClient, tokenRequest, passwordGrant) = command;
         var subjectAuthentication = passwordGrant.SubjectAuthentication;
 
+        // see DefaultValidateTokenRequestHandler for additional validation
+
         // DefaultClientAuthenticationService already performs this check for us
         Debug.Assert(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
-
-        // see DefaultValidateTokenRequestHandler for additional validation such as scope, etc
 
         var subjectIsActive = await GetSubjectIsActiveAsync(
             openIdContext,

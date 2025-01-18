@@ -78,7 +78,7 @@ public class GrantStore(
             ExpiresWhen = persistedGrant.ExpiresWhen?.ToUniversalTime(),
             RevokedWhen = persistedGrant.RevokedWhen?.ToUniversalTime(),
             ConsumedWhen = persistedGrant.ConsumedWhen?.ToUniversalTime(),
-            Payload = persistedGrant.Payload,
+            PayloadJson = persistedGrant.PayloadJson,
             Tenant = tenant,
             Client = client
         };
@@ -218,7 +218,7 @@ public class GrantStore(
             ExpiresWhen = entity.ExpiresWhen,
             RevokedWhen = entity.RevokedWhen,
             ConsumedWhen = entity.ConsumedWhen,
-            Payload = entity.Payload
+            PayloadJson = entity.PayloadJson
         });
     }
 

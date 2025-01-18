@@ -67,7 +67,7 @@ public class DefaultPersistedGrantService(
 
         var expiresWhen = createdWhen + lifetime;
 
-        var payload = JsonSerializer.SerializeToElement(
+        var payloadJson = JsonSerializer.SerializeToElement(
             grant.Payload,
             OpenIdEnvironment.JsonSerializerOptions);
 
@@ -83,7 +83,7 @@ public class DefaultPersistedGrantService(
             ExpiresWhen = expiresWhen,
             RevokedWhen = null,
             ConsumedWhen = null,
-            Payload = payload
+            PayloadJson = payloadJson
         };
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -124,10 +124,10 @@ public class DefaultPersistedGrantService(
             cancellationToken);
 
         if (envelope == null)
-            return default;
+            return null;
 
         var status = GetStatus(utcNow, envelope);
-        var payload = envelope.Payload.Deserialize<TPayload>(
+        var payload = envelope.PayloadJson.Deserialize<TPayload>(
             OpenIdEnvironment.JsonSerializerOptions);
 
         if (payload is null)
@@ -162,12 +162,12 @@ public class DefaultPersistedGrantService(
             cancellationToken);
 
         if (envelope == null)
-            return default;
+            return null;
 
         var status = GetStatus(utcNow, envelope);
         var isConsumed = envelope.ConsumedWhen is not null;
         if (status != PersistedGrantStatus.Active || isConsumed)
-            return default;
+            return null;
 
         await store.SetConsumedOnceAsync(
             grantId.TenantId,
@@ -178,7 +178,7 @@ public class DefaultPersistedGrantService(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        var payload = envelope.Payload.Deserialize<TPayload>(
+        var payload = envelope.PayloadJson.Deserialize<TPayload>(
             OpenIdEnvironment.JsonSerializerOptions);
 
         if (payload is null)

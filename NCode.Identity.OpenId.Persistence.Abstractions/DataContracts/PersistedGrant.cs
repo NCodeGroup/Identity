@@ -89,5 +89,5 @@ public class PersistedGrant : ISupportId, ISupportTenantId
     /// <summary>
     /// Gets or sets the serialized JSON for the payload.
     /// </summary>
-    public required JsonElement Payload { get; init; }
+    public required JsonElement PayloadJson { get; init; }
 }

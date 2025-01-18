@@ -31,6 +31,11 @@ namespace NCode.CryptoMemory;
 public class SecureMemoryPool<T> : MemoryPool<T>
 {
     /// <summary>
+    /// The default high pressure threshold when the memory pool should trim cached memory.
+    /// </summary>
+    public const double DefaultHighPressureThreshold = 0.90;
+
+    /// <summary>
     /// The fixed size of the memory buffer.
     /// Most operating systems have a page size of 4096 bytes.
     /// </summary>
@@ -39,11 +44,18 @@ public class SecureMemoryPool<T> : MemoryPool<T>
     /// <summary>
     /// Gets a singleton instance of <see cref="SecureMemoryPool{T}"/>.
     /// </summary>
-    public new static MemoryPool<T> Shared { get; } = new SecureMemoryPool<T>();
+    public new static SecureMemoryPool<T> Shared { get; } = new();
 
     private int _disposed;
     private bool IsDisposed => Volatile.Read(ref _disposed) != 0;
     private ConcurrentQueue<SecureMemory<T>> MemoryQueue { get; } = new();
+
+    /// <summary>
+    /// Gets or sets the high pressure threshold when the memory pool should trim cached memory.
+    /// The value should be between 0.0 and 1.0.
+    /// The default value is <see cref="DefaultHighPressureThreshold"/>.
+    /// </summary>
+    public double HighPressureThreshold { get; set; } = DefaultHighPressureThreshold;
 
     /// <inheritdoc />
     public override int MaxBufferSize => Array.MaxLength;
@@ -60,9 +72,7 @@ public class SecureMemoryPool<T> : MemoryPool<T>
     {
         var memoryInfo = GC.GetGCMemoryInfo();
 
-        // TODO: reevaluate the threshold, make it configurable, etc.
-        const double highPressureThreshold = 0.90;
-        var isPressureHigh = memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * highPressureThreshold;
+        var isPressureHigh = memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * HighPressureThreshold;
         if (isPressureHigh)
         {
             MemoryQueue.Clear();

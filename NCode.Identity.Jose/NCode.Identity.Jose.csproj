@@ -15,6 +15,7 @@
         <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0"/>
         <PackageReference Include="NCode.Base64Url" Version="1.1.2"/>
+        <PackageReference Include="NCode.CryptoMemory" Version="2.0.0" />
         <PackageReference Include="NCode.Disposables" Version="5.2.1" />
         <PackageReference Include="NCode.StringSegments" Version="3.0.0" />
         <PackageReference Include="Nerdbank.Streams" Version="2.11.74" />
@@ -34,7 +35,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj"/>
-        <ProjectReference Include="..\NCode.CryptoMemory\NCode.CryptoMemory.csproj"/>
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj"/>
         <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
     </ItemGroup>

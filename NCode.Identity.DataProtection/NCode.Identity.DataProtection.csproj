@@ -7,13 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NCode.CryptoMemory\NCode.CryptoMemory.csproj" />
       <ProjectReference Include="..\NCode.Identity.DataProtection.Abstractions\NCode.Identity.DataProtection.Abstractions.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" PrivateAssets="All" />
       <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.7" />
+      <PackageReference Include="NCode.CryptoMemory" Version="2.0.0" />
     </ItemGroup>
 
 </Project>

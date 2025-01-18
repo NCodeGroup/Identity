@@ -8,7 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.CryptoMemory\NCode.CryptoMemory.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.PropertyBag\NCode.PropertyBag.csproj" />
     </ItemGroup>
@@ -18,6 +17,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
         <PackageReference Include="NCode.Base64Url" Version="1.1.2" />
+        <PackageReference Include="NCode.CryptoMemory" Version="2.0.0" />
     </ItemGroup>
 
     <ItemGroup>

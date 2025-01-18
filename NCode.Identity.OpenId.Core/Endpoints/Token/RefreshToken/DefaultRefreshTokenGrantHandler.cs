@@ -39,18 +39,18 @@ namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 public class DefaultRefreshTokenGrantHandler(
     TimeProvider timeProvider,
     OpenIdEnvironment openIdEnvironment,
-    IOpenIdErrorFactory openIdErrorFactory,
+    IOpenIdErrorFactory errorFactory,
     IPersistedGrantService persistedGrantService,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
-    private IOpenIdErrorFactory OpenIdErrorFactory { get; } = openIdErrorFactory;
+    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
 
-    private IOpenIdError InvalidGrantError => OpenIdErrorFactory
+    private IOpenIdError InvalidGrantError => ErrorFactory
         .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
@@ -72,9 +72,11 @@ public class DefaultRefreshTokenGrantHandler(
 
         var refreshToken = tokenRequest.RefreshToken;
         if (string.IsNullOrEmpty(refreshToken))
-            return OpenIdErrorFactory
+        {
+            return ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RefreshToken)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
+        }
 
         var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 

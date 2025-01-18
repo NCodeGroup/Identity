@@ -64,9 +64,12 @@ public class DefaultPasswordGrantHandler(
     {
         var mediator = openIdContext.Mediator;
 
-        if (string.IsNullOrEmpty(tokenRequest.Username))
+        var username = tokenRequest.Username;
+        if (string.IsNullOrEmpty(username))
         {
-            return InvalidGrantError;
+            return ErrorFactory
+                .MissingParameter(OpenIdConstants.Parameters.Username)
+                .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
         var authenticateResult = await mediator.SendAsync<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>(

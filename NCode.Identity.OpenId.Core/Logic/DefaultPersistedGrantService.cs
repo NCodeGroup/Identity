@@ -49,7 +49,7 @@ public class DefaultPersistedGrantService(
         CryptoService.HashValue(
             grantKey,
             HashAlgorithmType.Sha256,
-            BinaryEncodingType.Base64); // TODO: will this cause collation issues?
+            BinaryEncodingType.Base64);
 
     /// <inheritdoc />
     public async ValueTask AddAsync<TPayload>(

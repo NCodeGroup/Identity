@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Claims;
+using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Logic;
@@ -67,4 +68,9 @@ public class OpenIdOptions
             allowNameId: true,
             allowUpn: true
         );
+
+    /// <summary>
+    /// Gets a list of delegates that can configure the <see cref="JsonSerializerOptions"/> used by OpenID.
+    /// </summary>
+    public IList<Action<JsonSerializerOptions>> JsonOptionsConfigurators { get; } = [];
 }

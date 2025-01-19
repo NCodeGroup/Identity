@@ -1,7 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,18 +16,20 @@
 
 #endregion
 
-using JetBrains.Annotations;
+using NCode.Identity.OpenId.Environments;
 
-namespace NCode.Identity.OpenId.Results;
+namespace NCode.Identity.OpenId.Errors;
 
 /// <summary>
-/// Provides the ability to associate an <see cref="IOpenIdError"/> with the current instance.
+/// Provides a default implementation of the <see cref="IOpenIdErrorFactory"/> abstraction.
 /// </summary>
-[PublicAPI]
-public interface ISupportError
+public class DefaultOpenIdErrorFactory(
+    OpenIdEnvironment openIdEnvironment
+) : IOpenIdErrorFactory
 {
-    /// <summary>
-    /// Gets the <see cref="IOpenIdError"/> that contains detailed error information.
-    /// </summary>
-    IOpenIdError? Error { get; }
+    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+
+    /// <inheritdoc />
+    public IOpenIdError Create(string errorCode) =>
+        new OpenIdError(OpenIdEnvironment, errorCode);
 }

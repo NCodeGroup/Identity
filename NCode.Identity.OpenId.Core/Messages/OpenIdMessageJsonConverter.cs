@@ -157,6 +157,8 @@ public class OpenIdMessageJsonConverter<T>(
 
         writer.WriteStartObject();
 
+        // TODO: how to exclude $type and $properties from the output?
+
         var typeOfMessage = message.GetType();
         writer.WriteString(TypeKey, typeOfMessage.AssemblyQualifiedName);
 

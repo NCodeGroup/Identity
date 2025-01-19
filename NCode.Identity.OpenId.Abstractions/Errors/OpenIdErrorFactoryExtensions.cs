@@ -19,7 +19,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Results;
+namespace NCode.Identity.OpenId.Errors;
 
 /// <summary>
 /// Provides extension methods for <see cref="IOpenIdErrorFactory"/> that can be used to create specific

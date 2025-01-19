@@ -24,12 +24,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Clients;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
@@ -230,7 +232,6 @@ public class DefaultAuthorizationEndpointHandler(
                 authorizationRequest),
             cancellationToken);
 
-        // TODO: is it okay to reauthenticate after continuations?
         var authenticateResult = await mediator.SendAsync<AuthenticateCommand, AuthenticateSubjectResult>(
             new AuthenticateCommand(
                 openIdContext,
@@ -284,8 +285,6 @@ public class DefaultAuthorizationEndpointHandler(
         JsonElement continuePayloadJson,
         CancellationToken cancellationToken)
     {
-        // TODO: extract additional parameters from the HTTP request
-
         var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
             openIdContext,
             cancellationToken);

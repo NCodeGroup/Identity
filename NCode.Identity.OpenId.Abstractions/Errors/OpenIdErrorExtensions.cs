@@ -20,7 +20,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Exceptions;
 
-namespace NCode.Identity.OpenId.Results;
+namespace NCode.Identity.OpenId.Errors;
 
 /// <summary>
 /// Provides extension methods for the <see cref="IOpenIdError"/> abstraction.

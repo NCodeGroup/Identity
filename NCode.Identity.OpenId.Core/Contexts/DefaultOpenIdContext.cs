@@ -26,7 +26,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Endpoints;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdContext"/> abstraction.
@@ -63,7 +63,7 @@ public class DefaultOpenIdContext(
     public override IPropertyBag PropertyBag { get; } = propertyBag;
 
     /// <inheritdoc />
-    public override string EndpointName => EndpointNameOrDefault ??= LoadEndpointName();
+    public override string EndpointName => EndpointNameOrDefault ??= GetEndpointName();
 
     /// <inheritdoc />
     protected override async ValueTask DisposeAsyncCore()
@@ -72,7 +72,7 @@ public class DefaultOpenIdContext(
         TenantReference = default;
     }
 
-    private string LoadEndpointName() =>
+    private string GetEndpointName() =>
         Http
             .GetEndpoint()?
             .Metadata

@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Mediator;
 
-namespace NCode.Identity.OpenId.Endpoints;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Provides the ability to create an <see cref="OpenIdContext"/> instance that encapsulates all

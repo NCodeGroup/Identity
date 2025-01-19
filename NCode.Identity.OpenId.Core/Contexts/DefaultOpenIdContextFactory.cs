@@ -23,7 +23,7 @@ using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
 
-namespace NCode.Identity.OpenId.Endpoints;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdContextFactory"/> abstraction.
@@ -61,6 +61,7 @@ public class DefaultOpenIdContextFactory(
             mediator,
             propertyBag);
 
+        httpContext.Features.Set(new OpenIdContextFeature { OpenIdContext = openIdContext });
         httpContext.Response.RegisterForDisposeAsync(openIdContext);
 
         return openIdContext;

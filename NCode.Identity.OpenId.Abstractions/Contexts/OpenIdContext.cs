@@ -25,7 +25,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Endpoints;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Encapsulates all OpenID-specific information about an individual OpenID request.

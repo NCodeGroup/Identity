@@ -19,6 +19,8 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Exceptions;
 
 namespace NCode.Identity.OpenId.Endpoints;
 
@@ -29,7 +31,7 @@ namespace NCode.Identity.OpenId.Endpoints;
 public static class OpenIdEndpointConventionBuilderExtensions
 {
     /// <summary>
-    /// Adds <see cref="OpenIdEndpointDiscoverableMetadata"/> to the <see cref="IEndpointConventionBuilder"/> to indicate whether the endpoint is discoverable.
+    /// Adds <see cref="IOpenIdEndpointDiscoverableMetadata"/> to the <see cref="IEndpointConventionBuilder"/> to indicate whether the endpoint is discoverable.
     /// </summary>
     /// <param name="builder">The <see cref="IEndpointConventionBuilder"/> instance.</param>
     /// <param name="isDiscoverable">Specifies whether the endpoint is discoverable. Default is <c>true</c>.</param>
@@ -42,4 +44,30 @@ public static class OpenIdEndpointConventionBuilderExtensions
             {
                 IsDiscoverable = isDiscoverable
             });
+
+    /// <summary>
+    /// Adds <see cref="IOpenIdEndpointExceptionHandlerMetadata"/> to the <see cref="IEndpointConventionBuilder"/> to indicate the exception handler for the endpoint.
+    /// </summary>
+    /// <param name="builder">The <see cref="IEndpointConventionBuilder"/> instance.</param>
+    /// <param name="getter">The delegate to get the <see cref="IOpenIdExceptionHandler"/> instance.</param>
+    /// <typeparam name="TBuilder">The type of the <see cref="IEndpointConventionBuilder"/> instance.</typeparam>
+    /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
+    public static TBuilder WithOpenIdExceptionHandler<TBuilder>(
+        this TBuilder builder,
+        Func<HttpContext, CancellationToken, ValueTask<IOpenIdExceptionHandler>> getter)
+        where TBuilder : IEndpointConventionBuilder
+        => builder.WithMetadata(new OpenIdEndpointExceptionHandlerMetadata(getter));
+
+    /// <summary>
+    /// Adds <see cref="IOpenIdExceptionHandler"/> to the <see cref="IEndpointConventionBuilder"/> to indicate the exception handler for the endpoint.
+    /// </summary>
+    /// <param name="builder">The <see cref="IEndpointConventionBuilder"/> instance.</param>
+    /// <param name="exceptionHandler">The <see cref="IOpenIdExceptionHandler"/> instance.</param>
+    /// <typeparam name="TBuilder">The type of the <see cref="IEndpointConventionBuilder"/> instance.</typeparam>
+    /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
+    public static TBuilder WithOpenIdExceptionHandler<TBuilder>(
+        this TBuilder builder,
+        IOpenIdExceptionHandler exceptionHandler)
+        where TBuilder : IEndpointConventionBuilder
+        => builder.WithOpenIdExceptionHandler((_, _) => ValueTask.FromResult(exceptionHandler));
 }

@@ -19,8 +19,9 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Results;
 
-namespace NCode.Identity.OpenId.Results;
+namespace NCode.Identity.OpenId.Errors;
 
 /// <summary>
 /// Contains the details for an <c>OAuth</c> or <c>OpenID Connect</c> error response.

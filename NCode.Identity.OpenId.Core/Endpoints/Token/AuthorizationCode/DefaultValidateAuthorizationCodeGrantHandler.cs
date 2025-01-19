@@ -21,9 +21,9 @@ using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 

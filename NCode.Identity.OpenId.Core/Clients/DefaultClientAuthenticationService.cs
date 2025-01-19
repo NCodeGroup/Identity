@@ -18,8 +18,8 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Endpoints;
-using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Errors;
 
 namespace NCode.Identity.OpenId.Clients;
 

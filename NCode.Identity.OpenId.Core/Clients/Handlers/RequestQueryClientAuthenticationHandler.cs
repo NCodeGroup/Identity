@@ -67,7 +67,7 @@ public class RequestQueryClientAuthenticationHandler(
         return await AuthenticateClientAsync(
             openIdContext,
             clientId.ToString(),
-            clientSecret: string.Empty,
+            clientSecret: ReadOnlyMemory<char>.Empty,
             hasClientSecret: false,
             cancellationToken);
     }

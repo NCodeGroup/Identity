@@ -16,13 +16,17 @@
 
 #endregion
 
+using System.Buffers;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
+using NCode.Disposables;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
+using Base64Url = NCode.Encoders.Base64Url;
 
 namespace NCode.Identity.OpenId.Clients.Handlers;
 
@@ -47,7 +51,43 @@ public class BasicClientAuthenticationHandler(
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
     private static string UriDecode(string value) =>
-        Uri.UnescapeDataString(value.Replace("+", "%20"));
+        Uri.UnescapeDataString(value.Replace('+', ' '));
+
+    private static IDisposable UriDecode(
+        bool isSensitive,
+        ReadOnlyMemory<char> encoded,
+        out ReadOnlyMemory<char> decoded)
+    {
+        var source = encoded.Span;
+        if (!source.ContainsAny('%', '+'))
+        {
+            decoded = encoded;
+            return Disposable.Empty;
+        }
+
+        var pool = isSensitive ?
+            SecureMemoryPool<char>.Shared :
+            MemoryPool<char>.Shared;
+
+        var lease = pool.Rent(encoded.Length);
+        var buffer = lease.Memory;
+        try
+        {
+            var destination = buffer.Span;
+            source.Replace(destination, '+', ' ');
+
+            var decodeResult = Uri.TryUnescapeDataString(destination, destination, out var unescapedLength);
+            Debug.Assert(decodeResult);
+
+            decoded = buffer[..unescapedLength];
+            return lease;
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.Basic;
@@ -63,52 +103,73 @@ public class BasicClientAuthenticationHandler(
             // not basic auth, let another handler try
             return ClientAuthenticationResult.Undefined;
 
-        var authorizationValue = authorizationHeader[0];
-        if (string.IsNullOrEmpty(authorizationValue))
+        var authorizationValue = authorizationHeader[0].AsMemory();
+        if (authorizationValue.IsEmpty)
             // not basic auth, let another handler try
             return ClientAuthenticationResult.Undefined;
 
         const string prefix = "Basic ";
-        if (!authorizationValue.StartsWith(prefix, StringComparison.Ordinal))
+        if (!authorizationValue.Span.StartsWith(prefix, StringComparison.Ordinal))
             // not basic auth, let another handler try
             return ClientAuthenticationResult.Undefined;
 
-        var encoded = authorizationValue[prefix.Length..].Trim();
-        if (string.IsNullOrEmpty(encoded))
+        var encodedCredentials = authorizationValue[prefix.Length..].Trim();
+        if (encodedCredentials.IsEmpty)
             return new ClientAuthenticationResult(ErrorInvalidHeader);
 
-        // TODO: check for exceptions
-        var credentials = SecureEncoding.UTF8.GetString(Convert.FromBase64String(encoded));
-        if (string.IsNullOrEmpty(credentials))
-            return new ClientAuthenticationResult(ErrorInvalidHeader);
-
-        var indexOfColon = credentials.IndexOf(':');
-        var encodedClientId = indexOfColon == -1 ? credentials : credentials[..indexOfColon];
-        var clientId = UriDecode(encodedClientId);
-        if (string.IsNullOrEmpty(clientId))
-            return new ClientAuthenticationResult(ErrorInvalidHeader);
-
-        var tenantId = openIdContext.Tenant.TenantId;
-        var persistedClient = await TryGetPersistedClientAsync(tenantId, clientId, cancellationToken);
-        if (persistedClient is null || persistedClient.IsDisabled)
-            return new ClientAuthenticationResult(ErrorInvalidClient);
-
-        var publicClient = await CreatePublicClientAsync(
+        return await AuthenticateCredentialsAsync(
             openIdContext,
-            persistedClient,
+            encodedCredentials,
             cancellationToken);
+    }
+
+    private async ValueTask<ClientAuthenticationResult> AuthenticateCredentialsAsync(
+        OpenIdContext openIdContext,
+        ReadOnlyMemory<char> encodedCredentials,
+        CancellationToken cancellationToken)
+    {
+        var base64ByteCount = Base64Url.GetByteCountForDecode(encodedCredentials.Length);
+        using var base64Lease = CryptoPool.Rent(base64ByteCount, isSensitive: true, out Span<byte> base64Bytes);
+
+        var base64Result = Convert.TryFromBase64Chars(encodedCredentials.Span, base64Bytes, out var base64BytesWritten);
+        Debug.Assert(base64Result && base64BytesWritten == base64ByteCount);
+
+        var decodeCharCount = SecureEncoding.UTF8.GetCharCount(base64Bytes);
+        using var decodeLease = SecureMemoryPool<char>.Shared.Rent(decodeCharCount);
+
+        var decodeBuffer = decodeLease.Memory[..decodeCharCount];
+        var decodeSpan = decodeBuffer.Span;
+
+        var decodeResult = SecureEncoding.UTF8.TryGetChars(base64Bytes, decodeSpan, out var decodeCharsWritten);
+        Debug.Assert(decodeResult && decodeCharsWritten == decodeCharCount);
+
+        var indexOfColon = decodeSpan.IndexOf(':');
+
+        var encodedClientId = indexOfColon == -1 ? decodeSpan : decodeSpan[..indexOfColon];
+        var clientId = UriDecode(encodedClientId.ToString());
 
         if (indexOfColon == -1)
-            return new ClientAuthenticationResult(publicClient);
+        {
+            return await AuthenticateClientAsync(
+                openIdContext,
+                clientId,
+                ReadOnlyMemory<char>.Empty,
+                hasClientSecret: false,
+                cancellationToken);
+        }
 
-        // TODO: use secure memory operations
-        var encodedClientSecret = credentials[(indexOfColon + 1)..];
-        var clientSecret = UriDecode(encodedClientSecret);
-        var clientSecretBytes = SecureEncoding.UTF8.GetBytes(clientSecret);
+        var encodedClientSecret = decodeBuffer[(indexOfColon + 1)..];
+
+        using var secretLease = UriDecode(
+            isSensitive: true,
+            encodedClientSecret,
+            out var clientSecret);
 
         return await AuthenticateClientAsync(
-            publicClient,
-            clientSecretBytes,
+            openIdContext,
+            clientId,
+            clientSecret,
+            hasClientSecret: true,
             cancellationToken);
     }
 }

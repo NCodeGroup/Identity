@@ -227,7 +227,6 @@ public static class SettingNames
     /// </summary>
     public const string RequestUriExpectedContentType = "request_uri_expected_content_type";
 
-    // TODO: rename value?
     /// <summary>
     /// Contains the name of <c>require_pkce</c> setting.
     /// </summary>

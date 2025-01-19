@@ -27,8 +27,6 @@ using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose;
 
-// TODO: breakout the verify overloads into extension methods
-
 partial class JoseSerializer
 {
     private static void AssertJwsDetached(CompactJwt compactJwt)

@@ -53,7 +53,7 @@ public static class DefaultValidationKeyResolver
         if (header.TryGetPropertyValue<string>(JoseClaimNames.Header.Kid, out var keyId) &&
             secretKeys.TryGetByKeyId(keyId, out var specificKey))
         {
-            return new[] { specificKey };
+            return [specificKey];
         }
 
         // attempt to lookup by certificate thumbprint
@@ -62,12 +62,12 @@ public static class DefaultValidationKeyResolver
 
         if (hasThumbprintSha1 && secretKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
         {
-            return new[] { specificKey };
+            return [specificKey];
         }
 
         if (hasThumbprintSha256 && secretKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
         {
-            return new[] { specificKey };
+            return [specificKey];
         }
 
         if (hasThumbprintSha1 || hasThumbprintSha256)
@@ -99,12 +99,12 @@ public static class DefaultValidationKeyResolver
 
                 if (hasThumbprintSha1 && VerifyCertificateHash(certificate, HashAlgorithmName.SHA1, expectedSha1, actualHash))
                 {
-                    return new[] { secretKey };
+                    return [secretKey];
                 }
 
                 if (hasThumbprintSha256 && VerifyCertificateHash(certificate, HashAlgorithmName.SHA256, expectedSha256, actualHash))
                 {
-                    return new[] { secretKey };
+                    return [secretKey];
                 }
             }
         }

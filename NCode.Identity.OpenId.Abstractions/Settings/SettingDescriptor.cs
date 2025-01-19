@@ -69,8 +69,6 @@ public abstract class SettingDescriptor
     /// <returns>The <see cref="Setting"/> instance from the result of the merge.</returns>
     public abstract Setting Merge(Setting current, Setting other);
 
-    // TODO: is there a better name for the following?
-
     /// <summary>
     /// Used to format the setting's value to be returned in the discovery document.
     /// </summary>

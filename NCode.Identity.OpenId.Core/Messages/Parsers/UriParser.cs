@@ -20,8 +20,8 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 

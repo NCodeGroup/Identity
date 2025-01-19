@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Mediator;
 
 namespace NCode.Identity.OpenId.Endpoints.Discovery.Commands;

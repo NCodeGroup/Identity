@@ -20,6 +20,7 @@
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Endpoints.Continue;
 

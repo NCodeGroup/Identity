@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,25 +17,24 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Contexts;
+using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Exceptions;
 
-namespace NCode.Identity.OpenId.Clients;
+namespace NCode.Identity.OpenId.Endpoints;
 
 /// <summary>
-/// Provides the ability to authenticate an OpenID client from the current HTTP request using various registered authentication methods.
+/// Represents metadata for an <c>OAuth</c> or <c>OpenID Connect</c> endpoint that provides its own exception handling.
 /// </summary>
 [PublicAPI]
-public interface IClientAuthenticationService
+public interface IOpenIdEndpointExceptionHandlerMetadata
 {
     /// <summary>
-    /// Attempts to authenticate an OpenID client from the current HTTP request.
-    /// The authentication result may be undefined, contain a public client, a confidential client, or an error.
+    /// Gets the <see cref="IOpenIdExceptionHandler"/> for the associated endpoint.
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation,
-    /// containing the <see cref="ClientAuthenticationResult"/> from the client authentication process.</returns>
-    ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
-        OpenIdContext openIdContext,
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="IOpenIdExceptionHandler"/> instance.</returns>
+    ValueTask<IOpenIdExceptionHandler> GetExceptionHandlerAsync(
+        HttpContext httpContext,
         CancellationToken cancellationToken);
 }

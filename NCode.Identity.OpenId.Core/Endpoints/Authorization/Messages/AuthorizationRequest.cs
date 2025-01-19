@@ -21,7 +21,7 @@ using System.Collections;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Errors;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 

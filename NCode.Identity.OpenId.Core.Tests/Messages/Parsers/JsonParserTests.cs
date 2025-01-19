@@ -21,10 +21,10 @@ using System.Buffers;
 using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
-using NCode.Identity.OpenId.Results;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parsers;

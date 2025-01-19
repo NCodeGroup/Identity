@@ -19,8 +19,8 @@
 using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.DataProtection;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Results;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Environments;

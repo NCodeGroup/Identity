@@ -18,11 +18,11 @@
 #endregion
 
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 
-namespace NCode.Identity.OpenId.Messages;
+namespace NCode.Identity.OpenId.Errors;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdError"/> abstraction.

@@ -18,7 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Errors;
 
 namespace NCode.Identity.OpenId.Exceptions;
 

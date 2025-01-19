@@ -20,9 +20,9 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Options;
-using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;

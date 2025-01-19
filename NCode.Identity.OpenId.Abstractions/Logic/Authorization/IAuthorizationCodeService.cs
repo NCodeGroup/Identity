@@ -18,7 +18,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Endpoints;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Subject;
 using NCode.Identity.OpenId.Tokens.Models;

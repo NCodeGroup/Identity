@@ -17,8 +17,8 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Endpoints;
-using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;

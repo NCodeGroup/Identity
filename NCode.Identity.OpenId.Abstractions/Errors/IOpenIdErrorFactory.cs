@@ -16,19 +16,19 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Mediator;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+namespace NCode.Identity.OpenId.Errors;
 
 /// <summary>
-/// Represents a mediator command to validate an authorization request.
+/// Provides the ability to create an <see cref="IOpenIdError"/> instance that represents an <c>OAuth</c> or <c>OpenID Connect</c> error.
 /// </summary>
 [PublicAPI]
-public readonly record struct ValidateAuthorizationRequestCommand(
-    OpenIdContext OpenIdContext,
-    OpenIdClient OpenIdClient,
-    IAuthorizationRequest AuthorizationRequest
-) : ICommand;
+public interface IOpenIdErrorFactory
+{
+    /// <summary>
+    /// Creates an <see cref="IOpenIdError"/> instance for an <c>OAuth</c> or <c>OpenID Connect</c> error.
+    /// </summary>
+    /// <param name="errorCode">The <c>error</c> parameter for the <c>OAuth</c> or <c>OpenID Connect</c> error.</param>
+    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+    IOpenIdError Create(string errorCode);
+}

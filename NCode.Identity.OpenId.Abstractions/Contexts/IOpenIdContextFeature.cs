@@ -1,6 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,20 +17,17 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Tokens.Models;
 
-namespace NCode.Identity.OpenId.Tokens.Commands;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
-/// Represents a mediator command to get the access token payload claims.
+/// Provides the <see cref="OpenIdContext"/> for the current HTTP request.
 /// </summary>
 [PublicAPI]
-public readonly record struct GetAccessTokenPayloadClaimsCommand(
-    OpenIdContext OpenIdContext,
-    OpenIdClient OpenIdClient,
-    SecurityTokenContext TokenContext,
-    IDictionary<string, object> PayloadClaims
-) : ICommand;
+public interface IOpenIdContextFeature
+{
+    /// <summary>
+    /// Gets the <see cref="OpenIdContext"/> for the current HTTP request.
+    /// </summary>
+    OpenIdContext OpenIdContext { get; }
+}

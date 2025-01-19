@@ -22,7 +22,7 @@ using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Endpoints;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Models;
@@ -121,7 +121,6 @@ public class DefaultTokenService(
             SubjectClaims = subjectClaims,
             ExtraPayloadClaims = payloadClaims,
 
-            // TODO: can we use mediator for these too?
             ExtraSignatureHeaderClaims = tokenRequest.ExtraSignatureHeaderClaims,
             ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims
         };
@@ -207,7 +206,6 @@ public class DefaultTokenService(
             SubjectClaims = subjectClaims,
             ExtraPayloadClaims = payloadClaims,
 
-            // TODO: can we use mediator for these too?
             ExtraSignatureHeaderClaims = tokenRequest.ExtraSignatureHeaderClaims,
             ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims
         };

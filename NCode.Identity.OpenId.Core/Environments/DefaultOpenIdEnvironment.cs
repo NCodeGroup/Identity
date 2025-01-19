@@ -19,12 +19,14 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NCode.Identity.DataProtection;
 using NCode.Identity.OpenId.Claims;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Settings;
 using NCode.PropertyBag;
@@ -41,12 +43,17 @@ public class DefaultOpenIdEnvironment(
     ISecureDataProtectionProvider secureDataProtectionProvider
 ) : OpenIdEnvironment
 {
+    // to prevent issues with recursive dependencies, we use lazy initialization
+    private OpenIdOptions? OpenIdOptionsOrNull { get; set; }
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
     private IOpenIdErrorFactory? ErrorFactoryOrNull { get; set; }
 
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
     private IKnownParameterCollectionProvider KnownParametersProvider { get; } = knownParametersProvider;
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
+
+    private OpenIdOptions OpenIdOptions => OpenIdOptionsOrNull ??=
+        ServiceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
     /// <inheritdoc />
     public override JsonSerializerOptions JsonSerializerOptions =>
@@ -66,13 +73,13 @@ public class DefaultOpenIdEnvironment(
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
 
-    private JsonSerializerOptions CreateJsonSerializerOptions() =>
-        new(JsonSerializerDefaults.Web)
+    private JsonSerializerOptions CreateJsonSerializerOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
             ReadCommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true,
 
-            // TODO: provide a way to customize this list
             Converters =
             {
                 new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
@@ -87,4 +94,12 @@ public class DefaultOpenIdEnvironment(
                 new ClaimsIdentityJsonConverter()
             }
         };
+
+        foreach (var configurator in OpenIdOptions.JsonOptionsConfigurators)
+        {
+            configurator(options);
+        }
+
+        return options;
+    }
 }

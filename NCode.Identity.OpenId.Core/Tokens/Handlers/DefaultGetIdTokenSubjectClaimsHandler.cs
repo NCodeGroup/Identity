@@ -18,9 +18,10 @@
 
 using System.Globalization;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Extensions;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Tokens.Commands;
 
 namespace NCode.Identity.OpenId.Tokens.Handlers;
@@ -31,17 +32,24 @@ namespace NCode.Identity.OpenId.Tokens.Handlers;
 /// Provides a default implementation for a <see cref="GetIdTokenSubjectClaimsCommand"/> handler that generates the subject
 /// claims for an id token.
 /// </summary>
-public class DefaultGetIdTokenSubjectClaimsHandler : ICommandHandler<GetIdTokenSubjectClaimsCommand>
+public class DefaultGetIdTokenSubjectClaimsHandler(
+    IOptions<OpenIdOptions> optionsAccessor
+) : ICommandHandler<GetIdTokenSubjectClaimsCommand>
 {
+    private OpenIdOptions Options { get; } = optionsAccessor.Value;
+
     /// <inheritdoc />
     public ValueTask HandleAsync(GetIdTokenSubjectClaimsCommand command, CancellationToken cancellationToken)
     {
         var (openIdContext, _, tokenContext, subjectClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
-        // TODO: what about client authentication?
-        var subject = tokenRequest.SubjectAuthentication?.Subject ??
-                      throw new InvalidOperationException("Subject is required.");
+        if (!tokenRequest.SubjectAuthentication.HasValue)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        var subject = tokenRequest.SubjectAuthentication.Value.Subject;
 
         // required: sub, auth_time, idp, amr
         // optional: acr
@@ -112,13 +120,15 @@ public class DefaultGetIdTokenSubjectClaimsHandler : ICommandHandler<GetIdTokenS
             var issuer = openIdContext.Tenant.Issuer;
             var authTime = tokenRequest.SubjectAuthentication?.AuthenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
 
+            var identity = Options.GetSubjectIdentity(subject);
+
             var claim = new Claim(
                 JoseClaimNames.Payload.AuthTime,
                 authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
                 ClaimValueTypes.Integer64,
                 issuer,
                 issuer,
-                subject.GetClaimsIdentity());
+                identity);
 
             subjectClaims.Add(claim);
         }

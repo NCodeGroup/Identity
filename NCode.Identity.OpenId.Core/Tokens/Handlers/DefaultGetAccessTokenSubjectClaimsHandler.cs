@@ -18,9 +18,10 @@
 
 using System.Globalization;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Extensions;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Tokens.Commands;
 
 namespace NCode.Identity.OpenId.Tokens.Handlers;
@@ -31,8 +32,12 @@ namespace NCode.Identity.OpenId.Tokens.Handlers;
 /// Provides a default implementation for a <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that generates the
 /// subject claims for an access token.
 /// </summary>
-public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAccessTokenSubjectClaimsCommand>
+public class DefaultGetAccessTokenSubjectClaimsHandler(
+    IOptions<OpenIdOptions> optionsAccessor
+) : ICommandHandler<GetAccessTokenSubjectClaimsCommand>
 {
+    private OpenIdOptions Options { get; } = optionsAccessor.Value;
+
     /// <inheritdoc />
     public ValueTask HandleAsync(GetAccessTokenSubjectClaimsCommand command, CancellationToken cancellationToken)
     {
@@ -71,13 +76,15 @@ public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAcce
         var issuer = openIdContext.Tenant.Issuer;
         var authTime = authenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
 
+        var identity = Options.GetSubjectIdentity(subject);
+
         var authTimeClaim = new Claim(
             JoseClaimNames.Payload.AuthTime,
             authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
             ClaimValueTypes.Integer64,
             issuer,
             issuer,
-            subject.GetClaimsIdentity());
+            identity);
 
         subjectClaims.Add(authTimeClaim);
 

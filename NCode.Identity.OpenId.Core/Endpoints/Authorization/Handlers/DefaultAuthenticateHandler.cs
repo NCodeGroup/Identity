@@ -18,9 +18,10 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
-using NCode.Identity.OpenId.Extensions;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Subject;
 
@@ -30,10 +31,12 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// Provides a default implementation of a handler for the <see cref="AuthenticateCommand"/> message.
 /// </summary>
 public class DefaultAuthenticateHandler(
+    IOptions<OpenIdOptions> optionsAccessor,
     IOpenIdErrorFactory errorFactory,
     IAuthenticationSchemeProvider authenticationSchemeProvider
 ) : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectResult>
 {
+    private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; } = authenticationSchemeProvider;
 
@@ -71,9 +74,7 @@ public class DefaultAuthenticateHandler(
 
         if (baseResult.Failure is not null)
         {
-            var error = ErrorFactory
-                .AccessDenied("Unable to authenticate the end-user.")
-                .WithException(baseResult.Failure);
+            var error = ErrorFactory.AccessDenied("Unable to authenticate the end-user.").WithException(baseResult.Failure);
             return new AuthenticateSubjectResult(error);
         }
 
@@ -84,9 +85,12 @@ public class DefaultAuthenticateHandler(
         var authenticationProperties = baseTicket.Properties;
         var subject = baseTicket.Principal;
 
-        // TODO
-        var subjectId = subject.Claims.GetSubjectIdOrDefault() ??
-                        throw new InvalidOperationException("The authenticated identity must contain a 'sub' claim.");
+        var subjectId = Options.GetSubjectId(subject);
+        if (string.IsNullOrEmpty(subjectId))
+        {
+            var error = ErrorFactory.AccessDenied("Unable to determine the the end-user's subject id.");
+            return new AuthenticateSubjectResult(error);
+        }
 
         var ticket = new SubjectAuthentication(
             authenticationScheme,

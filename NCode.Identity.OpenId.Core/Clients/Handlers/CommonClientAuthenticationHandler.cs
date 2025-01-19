@@ -91,7 +91,7 @@ public abstract class CommonClientAuthenticationHandler(
     protected async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
         string clientId,
-        string clientSecret,
+        ReadOnlyMemory<char> clientSecret,
         bool hasClientSecret,
         CancellationToken cancellationToken)
     {
@@ -106,8 +106,12 @@ public abstract class CommonClientAuthenticationHandler(
         if (!hasClientSecret)
             return new ClientAuthenticationResult(publicClient);
 
-        // TODO: use secure memory operations
-        var clientSecretBytes = SecureEncoding.UTF8.GetBytes(clientSecret);
+        var clientSecretChars = clientSecret.Span;
+        var byteCount = SecureEncoding.UTF8.GetByteCount(clientSecretChars);
+        using var _ = CryptoPool.Rent(byteCount, isSensitive: true, out Memory<byte> clientSecretBytes);
+
+        var decodeResult = SecureEncoding.UTF8.TryGetBytes(clientSecretChars, clientSecretBytes.Span, out var bytesWritten);
+        Debug.Assert(decodeResult && bytesWritten == byteCount);
 
         return await AuthenticateClientAsync(
             publicClient,
@@ -119,7 +123,7 @@ public abstract class CommonClientAuthenticationHandler(
     /// Authenticates the client using the specified <paramref name="publicClient"/> and <paramref name="clientSecretBytes"/>.
     /// </summary>
     /// <param name="publicClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
-    /// <param name="clientSecretBytes">Contains the client secret as a byte array.</param>
+    /// <param name="clientSecretBytes">Contains the client secret as a byte buffer.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ClientAuthenticationResult"/>.</returns>
     protected async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(

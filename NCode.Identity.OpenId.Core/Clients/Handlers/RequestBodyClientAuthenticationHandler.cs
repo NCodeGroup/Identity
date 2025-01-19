@@ -60,7 +60,7 @@ public class RequestBodyClientAuthenticationHandler(
         return await AuthenticateClientAsync(
             openIdContext,
             clientId.ToString(),
-            clientSecret.ToString(),
+            clientSecret.ToString().AsMemory(),
             hasClientSecret,
             cancellationToken);
     }

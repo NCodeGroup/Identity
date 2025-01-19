@@ -111,7 +111,6 @@ public class DefaultSecretKeyFactory(
         AsymmetricSecretKeyFactoryDelegate<T> factory
     ) where T : AsymmetricSecretKey
     {
-        // TODO: should we validate the algorithm from the certificate matches the algorithm from the key?
         var protectedPkcs8PrivateKey = ExportProtectedPkcs8PrivateKey(asymmetricAlgorithm);
         var certificateRawData = certificate?.Export(X509ContentType.Cert); // this will not include the private key
         return factory(protectedPkcs8PrivateKey, certificateRawData);

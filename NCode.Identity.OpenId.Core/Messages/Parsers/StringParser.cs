@@ -58,7 +58,7 @@ public class StringParser : ParameterParser<string?>
                     .AsException();
 
             case > 1 when descriptor.AllowMultipleStringValues:
-                return string.Join(Separator, stringValues!);
+                return string.Join(Separator, stringValues.AsEnumerable());
 
             case > 1:
                 throw openIdEnvironment

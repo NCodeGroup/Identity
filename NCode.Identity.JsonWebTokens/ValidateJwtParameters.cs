@@ -108,13 +108,13 @@ public class ValidateJwtParameters
     /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).
     /// </summary>
     public CreateClaimsIdentityAsync CreateClaimsIdentityAsync { get; set; } =
-        static (decodedJet, _, authenticationType, nameClaimType, roleClaimType, _) =>
+        static (decodedJwt, _, authenticationType, nameClaimType, roleClaimType, _) =>
             ValueTask.FromResult(
                 DefaultClaimsIdentityFactory.CreateClaimsIdentity(
                     authenticationType,
                     nameClaimType,
                     roleClaimType,
-                    decodedJet.Payload));
+                    decodedJwt.Payload));
 
     /// <summary>
     /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.

@@ -25,8 +25,6 @@ using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.JsonWebTokens;
 
-// TODO: would we gain anything by making this a struct?
-
 /// <summary>
 /// Contains the parameters used to encode a Json Web Token (JWT) security token.
 /// </summary>

@@ -22,8 +22,6 @@ using Microsoft.AspNetCore.Authentication;
 
 namespace NCode.Identity.OpenId.Settings;
 
-// TODO: better xmldoc descriptions
-
 /// <summary>
 /// Provides a wrapper on top of <see cref="ISettingCollection"/> that provides strongly typed access to known settings.
 /// </summary>

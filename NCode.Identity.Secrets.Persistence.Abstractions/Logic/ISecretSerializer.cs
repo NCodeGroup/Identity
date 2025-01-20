@@ -20,7 +20,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.Secrets.Persistence;
+namespace NCode.Identity.Secrets.Persistence.Logic;
 
 /// <summary>
 /// Provides the ability to serialize and deserialize secrets from persisted storage.

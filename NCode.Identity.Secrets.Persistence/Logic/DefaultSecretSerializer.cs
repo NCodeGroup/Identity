@@ -19,20 +19,24 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
-using NCode.CryptoMemory;
-using NCode.Encoders;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.Secrets.Persistence;
+namespace NCode.Identity.Secrets.Persistence.Logic;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretSerializer"/> abstraction.
 /// </summary>
 public class DefaultSecretSerializer(
-    ISecretKeyFactory secretKeyFactory
+    ISecretKeyFactory secretKeyFactory,
+    IEnumerable<ISecretEncoding> secretEncodings
 ) : ISecretSerializer
 {
+    private const string ActiveEncodingType = SecretEncodingTypes.Basic;
+
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
+
+    private Dictionary<string, ISecretEncoding> SecretEncodings { get; } =
+        secretEncodings.ToDictionary(x => x.EncodingType, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public IReadOnlyCollection<SecretKey> DeserializeSecrets(
@@ -90,12 +94,17 @@ public class DefaultSecretSerializer(
     private EccSecretKey CreateUsingEcc(KeyMetadata metadata, Memory<byte> privateKeyBytes) =>
         SecretKeyFactory.CreateEccPkcs8(metadata, privateKeyBytes.Span);
 
-    private static T CreateSecretKey<T>(
+    private T CreateSecretKey<T>(
         PersistedSecret persistedSecret,
         Func<KeyMetadata, Memory<byte>, T> factory,
         out bool requiresMigration
     ) where T : SecretKey
     {
+        if (!SecretEncodings.TryGetValue(persistedSecret.EncodingType, out var secretEncoding))
+        {
+            throw new InvalidOperationException($"The '{persistedSecret.EncodingType}' secret encoding type is not supported.");
+        }
+
         var metadata = new KeyMetadata
         {
             TenantId = persistedSecret.TenantId,
@@ -105,21 +114,19 @@ public class DefaultSecretSerializer(
             ExpiresWhen = persistedSecret.ExpiresWhen
         };
 
-        // TODO: Add support for multiple versions using some kind of provider/registry for supported formats.
+        var secretKey = secretEncoding.Decode(
+            persistedSecret.EncodedValue,
+            privateKeyBytes => factory(metadata, privateKeyBytes)
+        );
 
-        // $v1$base64url
-        const string prefixV1 = "$v1$";
-        if (!persistedSecret.EncodedValue.StartsWith(prefixV1))
-            throw new InvalidOperationException("The encoded secret value is not in a supported format.");
+        Debug.Assert(secretKey.KeySizeBits == persistedSecret.KeySizeBits);
 
-        var base64Url = persistedSecret.EncodedValue[prefixV1.Length..];
-        var byteCount = Base64Url.GetByteCountForDecode(base64Url.Length);
-        using var _ = CryptoPool.Rent(byteCount, isSensitive: true, out Memory<byte> rawBytes);
+        requiresMigration = !string.Equals(
+            ActiveEncodingType,
+            persistedSecret.EncodingType,
+            StringComparison.Ordinal
+        );
 
-        var decodeResult = Base64Url.TryDecode(base64Url, rawBytes.Span, out var bytesWritten);
-        Debug.Assert(decodeResult && bytesWritten == byteCount);
-
-        requiresMigration = false;
-        return factory(metadata, rawBytes);
+        return secretKey;
     }
 }

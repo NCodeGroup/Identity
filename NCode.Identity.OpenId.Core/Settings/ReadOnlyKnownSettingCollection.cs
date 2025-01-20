@@ -153,6 +153,10 @@ public class ReadOnlyKnownSettingCollection(
         Store.GetValue(SettingKeys.RequireCodeChallenge);
 
     /// <inheritdoc />
+    public bool RequireRequestObject =>
+        Store.GetValue(SettingKeys.RequireRequestObject);
+
+    /// <inheritdoc />
     public IReadOnlyCollection<string> ResponseModesSupported =>
         Store.GetValue(SettingKeys.ResponseModesSupported);
 

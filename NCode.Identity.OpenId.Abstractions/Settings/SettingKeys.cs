@@ -278,6 +278,12 @@ public static class SettingKeys
         new(SettingNames.RequireCodeChallenge);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_request_object' setting.
+    /// </summary>
+    public static SettingKey<bool> RequireRequestObject =>
+        new(SettingNames.RequireRequestObject);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_request_uri_registration' setting.
     /// </summary>
     public static SettingKey<bool> RequireRequestUriRegistration =>

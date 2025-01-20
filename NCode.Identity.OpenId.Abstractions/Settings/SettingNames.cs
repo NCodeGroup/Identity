@@ -233,6 +233,11 @@ public static class SettingNames
     public const string RequireCodeChallenge = "require_pkce";
 
     /// <summary>
+    /// Contains the name of <c>require_request_object</c> setting.
+    /// </summary>
+    public const string RequireRequestObject = "require_request_object";
+
+    /// <summary>
     /// Contains the name of <c>require_request_uri_registration</c> setting.
     /// </summary>
     public const string RequireRequestUriRegistration = "require_request_uri_registration";

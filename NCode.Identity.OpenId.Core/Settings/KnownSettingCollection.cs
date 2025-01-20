@@ -242,6 +242,13 @@ public class KnownSettingCollection(
         set => Store.Set(SettingKeys.RequireCodeChallenge, value);
     }
 
+    /// <inheritdoc cref="IKnownSettingCollection.RequireRequestObject" />
+    public bool RequireRequestObject
+    {
+        get => Store.GetValue(SettingKeys.RequireRequestObject);
+        set => Store.Set(SettingKeys.RequireRequestObject, value);
+    }
+
     /// <inheritdoc cref="IKnownSettingCollection.ResponseModesSupported" />
     public IReadOnlyCollection<string> ResponseModesSupported
     {

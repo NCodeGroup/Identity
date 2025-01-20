@@ -189,6 +189,11 @@ public interface IKnownSettingCollection : ISettingCollection
     bool RequireCodeChallenge { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the use of the <c>request</c> or <c>request_uri</c> parameter is required during authorization.
+    /// </summary>
+    bool RequireRequestObject { get; set; }
+
+    /// <summary>
     /// Gets or sets the value of the 'response_modes_supported' setting.
     /// </summary>
     IReadOnlyCollection<string> ResponseModesSupported { get; set; }

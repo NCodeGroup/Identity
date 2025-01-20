@@ -187,6 +187,11 @@ public class DefaultValidateAuthorizationRequestHandler(
 
         // perform configurable checks...
 
+        if (request.OriginalRequestObject is null && clientSettings.RequireRequestObject)
+            throw ErrorFactory
+                .InvalidRequest("The configuration requires the use of either request or request_uri parameters.")
+                .AsException();
+
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
         if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
             throw ErrorFactory

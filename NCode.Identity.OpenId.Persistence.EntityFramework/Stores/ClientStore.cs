@@ -194,7 +194,6 @@ public class ClientStore(
                 .Where(url => url.UrlType == UrlTypes.RedirectUrl)
                 .Select(url => url.UrlValue)
                 .ToList(),
-            // TODO: RequireRequestObject
         });
     }
 

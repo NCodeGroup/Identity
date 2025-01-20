@@ -50,6 +50,9 @@ public class TenantStore(
     protected override OpenIdDbContext DbContext { get; } = dbContext;
 
     /// <inheritdoc />
+    public override bool IsRemoveSupported => false;
+
+    /// <inheritdoc />
     public override async ValueTask AddAsync(
         PersistedTenant persistedTenant,
         CancellationToken cancellationToken)
@@ -118,8 +121,7 @@ public class TenantStore(
         long id,
         CancellationToken cancellationToken)
     {
-        // TODO: do we really want to support this?
-        throw new NotImplementedException();
+        throw new NotSupportedException();
     }
 
     /// <inheritdoc />

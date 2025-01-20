@@ -81,6 +81,9 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     #region IStore
 
     /// <inheritdoc />
+    public virtual bool IsRemoveSupported => true;
+
+    /// <inheritdoc />
     public abstract ValueTask AddAsync(TItem item, CancellationToken cancellationToken);
 
     /// <inheritdoc />

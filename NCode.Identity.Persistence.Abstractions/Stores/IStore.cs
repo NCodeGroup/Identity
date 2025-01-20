@@ -53,6 +53,11 @@ public interface IStore<T, in TKey> : IStore
     where TKey : IEquatable<TKey>
 {
     /// <summary>
+    /// Gets a value indicating whether the store supports removing persisted entities.
+    /// </summary>
+    bool IsRemoveSupported { get; }
+
+    /// <summary>
     /// Adds a new persisted entity to the store.
     /// </summary>
     /// <param name="item">The entity to add to the store.</param>
@@ -68,6 +73,7 @@ public interface IStore<T, in TKey> : IStore
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    /// <exception cref="NotSupportedException">Thrown when the store does not support removing entities.</exception>
     ValueTask RemoveByIdAsync(TKey id, CancellationToken cancellationToken);
 
     /// <summary>

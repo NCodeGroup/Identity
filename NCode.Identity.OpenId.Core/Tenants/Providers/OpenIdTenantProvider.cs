@@ -32,13 +32,12 @@ using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;

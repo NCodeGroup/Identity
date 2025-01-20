@@ -62,6 +62,11 @@ public static class MaxLengths
     public const int SecretType = 100;
 
     /// <summary>
+    /// Specifies the maximum length of a <c>EncodingType</c>.
+    /// </summary>
+    public const int EncodingType = 100;
+
+    /// <summary>
     /// Specifies the maximum length of a <c>ClientId</c>.
     /// </summary>
     public const int ClientId = 300;

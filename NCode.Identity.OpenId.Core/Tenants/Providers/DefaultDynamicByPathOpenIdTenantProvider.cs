@@ -28,7 +28,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;

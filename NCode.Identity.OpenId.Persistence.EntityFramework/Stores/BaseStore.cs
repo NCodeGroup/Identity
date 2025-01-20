@@ -237,6 +237,7 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         ExpiresWhen = secret.ExpiresWhen.ToUniversalTime(),
         SecretType = secret.SecretType,
         KeySizeBits = secret.KeySizeBits,
+        EncodingType = secret.EncodingType,
         EncodedValue = secret.EncodedValue,
         Tenant = tenant
     };
@@ -258,6 +259,7 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         ExpiresWhen = secret.ExpiresWhen,
         SecretType = secret.SecretType,
         KeySizeBits = secret.KeySizeBits,
+        EncodingType = secret.EncodingType,
         EncodedValue = secret.EncodedValue
     };
 

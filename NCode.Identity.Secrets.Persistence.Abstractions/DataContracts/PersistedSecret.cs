@@ -57,8 +57,7 @@ public class PersistedSecret : ISupportId, ISupportTenantId, ISupportConcurrency
     /// <summary>
     /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to
     /// indicate that this secret is intended for use with any compatible algorithm.
-    /// Valid values are defined in RFC 7517 Section 4.2:
-    /// https://tools.ietf.org/html/rfc7517#section-4.2
+    /// See <see cref="SecretKeyUses"/> for possible values.
     /// </summary>
     [MaxLength(MaxLengths.SecretUse)]
     public required string? Use { get; init; }
@@ -95,9 +94,15 @@ public class PersistedSecret : ISupportId, ISupportTenantId, ISupportConcurrency
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets or sets the <c>base64url</c> encoded value of the key material.
-    /// Any additional details about how the key material is encoded, encrypted,
-    /// versioned, etc. must be self-contained within this value.
+    /// Gets or sets any identifying information about how the key material is encoded, encrypted, versioned, etc.
+    /// See <see cref="SecretEncodingTypes"/> for possible values.
+    /// </summary>
+    public required string EncodingType { get; init; }
+
+    /// <summary>
+    /// Gets or sets the encoded value of the key material.
+    /// Any details about how the key material is encoded, encrypted, versioned, etc.
+    /// must be described in the <see cref="EncodingType"/> property.
     /// </summary>
     public required string EncodedValue { get; init; }
 }

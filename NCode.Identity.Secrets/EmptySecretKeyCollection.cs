@@ -19,12 +19,14 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets;
 
 /// <summary>
 /// Provides an <see cref="ISecretKeyCollection"/> implementation that is empty.
 /// </summary>
+[PublicAPI]
 public sealed class EmptySecretKeyCollection : ISecretKeyCollection
 {
     /// <summary>

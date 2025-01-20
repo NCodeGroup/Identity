@@ -21,7 +21,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
-using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Logic;
 
 namespace NCode.Identity.OpenId.Clients.Handlers;
 

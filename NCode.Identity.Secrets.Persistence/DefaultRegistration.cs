@@ -19,6 +19,8 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Secrets.Persistence.Encodings;
+using NCode.Identity.Secrets.Persistence.Logic;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -37,10 +39,24 @@ public static class DefaultRegistration
     {
         serviceCollection.VerifySecretServicesAreRegistered();
 
-        serviceCollection.TryAddSingleton<
-            ISecretSerializer,
-            DefaultSecretSerializer>();
+        serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
 
+        serviceCollection.AddSecretEncoding<BasicSecretEncoding>();
+
+        return serviceCollection;
+    }
+
+    /// <summary>
+    /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
+    /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
+    /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
+    public static IServiceCollection AddSecretEncoding<T>(
+        this IServiceCollection serviceCollection
+    ) where T : class, ISecretEncoding
+    {
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ISecretEncoding, T>());
         return serviceCollection;
     }
 }

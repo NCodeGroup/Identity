@@ -36,9 +36,14 @@ public static class HttpResultExtensions
     /// <param name="response">The <see cref="IOpenIdResponse"/> to wrap.</param>
     /// <returns>The <see cref="IResult"/> instance.</returns>
     public static IResult AsResult<T>(this T response)
-        where T : class, IOpenIdResponse =>
+        where T : class, IOpenIdResponse
+    {
+        // prevent metadata from being serialized into the HTTP response
+        response.SerializationOptions = SerializationOptions.HttpResult;
+
         // ReSharper disable once SuspiciousTypeConversion.Global
-        response is IResultProvider resultProvider ? resultProvider.AsResult() : new OpenIdResult<T>(response);
+        return response is IResultProvider resultProvider ? resultProvider.AsResult() : new OpenIdResult<T>(response);
+    }
 
     /// <summary>
     /// Wraps the HTTP <see cref="IResult"/> in a <see cref="HttpResultException"/>.

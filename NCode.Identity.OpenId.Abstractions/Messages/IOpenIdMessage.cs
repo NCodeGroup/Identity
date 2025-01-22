@@ -33,4 +33,9 @@ public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
     /// Gets the <see cref="OpenIdEnvironment"/> for the current instance.
     /// </summary>
     OpenIdEnvironment OpenIdEnvironment { get; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="SerializationOptions"/> for the current instance.
+    /// </summary>
+    SerializationOptions SerializationOptions { get; set; }
 }

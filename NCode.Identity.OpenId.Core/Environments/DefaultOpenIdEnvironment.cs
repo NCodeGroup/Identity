@@ -18,6 +18,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Identity.DataProtection;
@@ -99,6 +100,10 @@ public class DefaultOpenIdEnvironment(
         {
             configurator(options);
         }
+
+        options.TypeInfoResolver ??= new DefaultJsonTypeInfoResolver();
+
+        options.MakeReadOnly();
 
         return options;
     }

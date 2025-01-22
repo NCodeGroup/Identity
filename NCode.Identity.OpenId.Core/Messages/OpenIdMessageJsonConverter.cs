@@ -77,7 +77,7 @@ public class OpenIdMessageJsonConverter<T>(
         var messageType = typeof(T);
 
         if (reader.TokenType == JsonTokenType.Null)
-            return default;
+            return null;
 
         if (reader.TokenType != JsonTokenType.StartObject)
             throw new JsonException();
@@ -157,12 +157,17 @@ public class OpenIdMessageJsonConverter<T>(
 
         writer.WriteStartObject();
 
-        // TODO: how to exclude $type and $properties from the output?
+        var serializationOptions = message.SerializationOptions;
 
-        var typeOfMessage = message.GetType();
-        writer.WriteString(TypeKey, typeOfMessage.AssemblyQualifiedName);
+        var writeType = !serializationOptions.HasFlag(SerializationOptions.IgnoreWritingType);
+        if (writeType)
+        {
+            var typeOfMessage = message.GetType();
+            writer.WriteString(TypeKey, typeOfMessage.AssemblyQualifiedName);
+        }
 
-        if (message is ISupportProperties supportProperties)
+        var writeProperties = !serializationOptions.HasFlag(SerializationOptions.IgnoreWritingProperties);
+        if (writeProperties && message is ISupportProperties supportProperties)
         {
             writer.WritePropertyName(PropertiesKey);
             supportProperties.SerializeProperties(writer, options);

@@ -43,6 +43,9 @@ public class OpenIdMessage : IOpenIdMessage
     private Dictionary<string, Parameter>? ParameterStoreOrNull { get; set; }
     private Dictionary<string, Parameter> ParameterStore => ParameterStoreOrNull ??= new Dictionary<string, Parameter>(StringComparer.OrdinalIgnoreCase);
 
+    /// <inheritdoc />
+    public SerializationOptions SerializationOptions { get; set; }
+
     /// <summary>
     /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenID Connect</c> parameters.
     /// </summary>

@@ -46,20 +46,23 @@ public abstract class SettingDescriptor
     /// <summary>
     /// Gets a value indicating whether the default value is set.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(BoxedDefaultOrNull))]
     public abstract bool HasDefault { get; }
 
     /// <summary>
-    /// Gets the boxed default value for the setting if set, otherwise returns <see langword="null"/>.
-    /// </summary>
-    public abstract object? BoxedDefaultOrNull { get; }
-
-    /// <summary>
     /// Factory method used to create a new <see cref="Setting"/> instance with the specified <paramref name="value"/>.
+    /// The <paramref name="value"/> must be castable to <see cref="ValueType"/>.
     /// </summary>
     /// <param name="value">The value for the setting.</param>
     /// <returns>The newly created <see cref="Setting"/> instance.</returns>
     public abstract Setting Create(object value);
+
+    /// <summary>
+    /// Factory method used to create a new <see cref="Setting"/> instance with the default value if supported,
+    /// otherwise throws an <see cref="InvalidOperationException"/>.
+    /// </summary>
+    /// <returns>The newly created <see cref="Setting"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when a default value is not supported.</exception>
+    public abstract Setting CreateDefault();
 
     /// <summary>
     /// Used to merge two <see cref="Setting"/> instances into a new <see cref="Setting"/> instance.
@@ -95,11 +98,7 @@ public class SettingDescriptor<TValue> : SettingDescriptor
 
     /// <inheritdoc />
     [MemberNotNullWhen(true, nameof(DefaultOrNull))]
-    [MemberNotNullWhen(true, nameof(BoxedDefaultOrNull))]
     public override bool HasDefault => DefaultOrNull is not null;
-
-    /// <inheritdoc />
-    public override object? BoxedDefaultOrNull => DefaultOrNull;
 
     /// <summary>
     /// Gets or sets the default value for the setting.
@@ -139,6 +138,10 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <inheritdoc />
     public override Setting Create(object value)
         => Create((TValue)value);
+
+    /// <inheritdoc />
+    public override Setting CreateDefault()
+        => HasDefault ? Create(Default) : throw new InvalidOperationException();
 
     /// <summary>
     /// Factory method used to create a new <see cref="Setting{TValue}"/> instance with the specified <paramref name="value"/>.

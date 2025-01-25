@@ -187,7 +187,7 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
         {
             if (descriptor.HasDefault)
             {
-                settings.Set(descriptor.Create(descriptor.BoxedDefaultOrNull));
+                settings.Set(descriptor.CreateDefault());
             }
         }
     }

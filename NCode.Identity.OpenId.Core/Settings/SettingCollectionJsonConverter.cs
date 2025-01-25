@@ -59,6 +59,12 @@ public class SettingCollectionJsonConverter(
 
         while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
         {
+            if (reader.TokenType == JsonTokenType.Comment)
+            {
+                // skip
+                continue;
+            }
+
             if (reader.TokenType != JsonTokenType.PropertyName)
                 throw new JsonException();
 

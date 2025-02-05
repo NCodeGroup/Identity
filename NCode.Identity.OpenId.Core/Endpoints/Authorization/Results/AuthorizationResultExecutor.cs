@@ -44,8 +44,8 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
             return;
         }
 
-        IOpenIdMessage? error = result.Error;
-        IOpenIdMessage? ticket = result.Ticket;
+        IBaseOpenIdMessage? error = result.Error;
+        IBaseOpenIdMessage? ticket = result.Ticket;
 
         var message = error ?? ticket ?? throw new InvalidOperationException("Both error and ticket are null.");
 
@@ -67,7 +67,7 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
         }
     }
 
-    private static Uri GetFinalRedirectUri(Uri redirectUri, string responseMode, IOpenIdMessage message)
+    private static Uri GetFinalRedirectUri(Uri redirectUri, string responseMode, IBaseOpenIdMessage message)
     {
         if (responseMode == OpenIdConstants.ResponseModes.FormPost)
         {
@@ -167,7 +167,7 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
     private const string FormPostJavascript = "window.addEventListener('load',function(){document.forms[0].submit();});";
     private const string FormPostHtml = $"<html><head><title>Working...</title></head><body><form method='POST' action='{FormPostAction}'>{FormPostChildren}<noscript><p>Script is disabled. Click Submit to continue.</p><input type='submit' value='Submit'/></noscript></form><script language='javascript'>{FormPostJavascript}</script></body></html>";
 
-    private static async ValueTask ExecuteUsingFormPostAsync(HttpResponse httpResponse, Uri redirectUri, IOpenIdMessage message, CancellationToken cancellationToken)
+    private static async ValueTask ExecuteUsingFormPostAsync(HttpResponse httpResponse, Uri redirectUri, IBaseOpenIdMessage message, CancellationToken cancellationToken)
     {
         httpResponse.Headers.Pragma = "no-cache";
         httpResponse.Headers.CacheControl = "no-store, no-cache, max-age=0";
@@ -185,7 +185,7 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
         await httpResponse.WriteAsync(html, SecureEncoding.UTF8, cancellationToken);
     }
 
-    private static string GetFormPostHtml(Uri redirectUri, IOpenIdMessage message)
+    private static string GetFormPostHtml(Uri redirectUri, IBaseOpenIdMessage message)
     {
         var parameters = message.SelectMany(kvp =>
             kvp.Value.Select(value =>

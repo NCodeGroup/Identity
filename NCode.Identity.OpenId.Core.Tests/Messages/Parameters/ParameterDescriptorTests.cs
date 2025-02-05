@@ -66,7 +66,7 @@ public class ParameterDescriptorTests : IDisposable
         const bool allowMissingStringValues = true;
         const bool allowMultipleStringValues = true;
 
-        var descriptor = new ParameterDescriptor(parameterName);
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
         Assert.Equal(parameterName, descriptor.ParameterName);
         Assert.Null(descriptor.KnownParameter);
@@ -103,8 +103,8 @@ public class ParameterDescriptorTests : IDisposable
     {
         const string parameterName = "parameterName";
 
-        var descriptor1 = new ParameterDescriptor(parameterName);
-        object descriptor2 = new ParameterDescriptor(parameterName);
+        var descriptor1 = new ParameterDescriptor(parameterName, ParameterLoader.Default);
+        object descriptor2 = new ParameterDescriptor(parameterName, ParameterLoader.Default);
         var result = descriptor1.Equals(descriptor2);
         Assert.True(result);
     }
@@ -137,8 +137,8 @@ public class ParameterDescriptorTests : IDisposable
     {
         const string parameterName = "parameterName";
 
-        var descriptor1 = new ParameterDescriptor(parameterName);
-        var descriptor2 = new ParameterDescriptor(parameterName);
+        var descriptor1 = new ParameterDescriptor(parameterName, ParameterLoader.Default);
+        var descriptor2 = new ParameterDescriptor(parameterName, ParameterLoader.Default);
         var result = descriptor1.Equals(descriptor2);
         Assert.True(result);
     }
@@ -170,8 +170,8 @@ public class ParameterDescriptorTests : IDisposable
     {
         const string parameterName = "parameterName";
 
-        var descriptor1 = new ParameterDescriptor(parameterName);
-        var descriptor2 = new ParameterDescriptor(parameterName);
+        var descriptor1 = new ParameterDescriptor(parameterName, ParameterLoader.Default);
+        var descriptor2 = new ParameterDescriptor(parameterName, ParameterLoader.Default);
         Assert.Equal(descriptor1.GetHashCode(), descriptor2.GetHashCode());
     }
 }

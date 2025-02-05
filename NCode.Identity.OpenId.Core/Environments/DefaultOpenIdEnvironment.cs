@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Messages.Parsers;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Settings;
@@ -41,7 +42,8 @@ public class DefaultOpenIdEnvironment(
     IServiceProvider serviceProvider,
     IKnownParameterCollectionProvider knownParametersProvider,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
-    ISecureDataProtectionProvider secureDataProtectionProvider
+    ISecureDataProtectionProvider secureDataProtectionProvider,
+    IOpenIdMessageFactorySelector messageFactorySelector
 ) : OpenIdEnvironment
 {
     // to prevent issues with recursive dependencies, we use lazy initialization
@@ -52,6 +54,7 @@ public class DefaultOpenIdEnvironment(
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
     private IKnownParameterCollectionProvider KnownParametersProvider { get; } = knownParametersProvider;
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
+    private IOpenIdMessageFactorySelector MessageFactorySelector { get; } = messageFactorySelector;
 
     private OpenIdOptions OpenIdOptions => OpenIdOptionsOrNull ??=
         ServiceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
@@ -74,6 +77,18 @@ public class DefaultOpenIdEnvironment(
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
 
+    /// <inheritdoc />
+    public override ParameterDescriptor GetParameterDescriptor(string parameterName)
+    {
+        return KnownParameters.TryGet(parameterName, out var knownParameter) ?
+            new ParameterDescriptor(knownParameter) :
+            new ParameterDescriptor(parameterName, ParameterLoader.Default);
+    }
+
+    /// <inheritdoc />
+    public override IOpenIdMessage CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters) =>
+        MessageFactorySelector.GetFactory(typeDiscriminator).Create(parameters);
+
     private JsonSerializerOptions CreateJsonSerializerOptions()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
@@ -83,6 +98,7 @@ public class DefaultOpenIdEnvironment(
 
             Converters =
             {
+                new StringValuesJsonConverter(),
                 new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
                 new OpenIdMessageJsonConverterFactory(this),
                 new AuthorizationRequestJsonConverter(),

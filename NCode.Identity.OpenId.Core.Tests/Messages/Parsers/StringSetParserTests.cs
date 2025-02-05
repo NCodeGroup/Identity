@@ -54,9 +54,9 @@ public class StringSetParserTests : IDisposable
         var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
-        var descriptor = new ParameterDescriptor(parameterName);
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
-        var parsedValue = (IReadOnlyCollection<string>?)null;
+        IReadOnlyCollection<string>? parsedValue = null;
 
         var stringValues = parser.Serialize(environment, descriptor, parsedValue);
         Assert.Equal(StringValues.Empty, stringValues);
@@ -69,7 +69,7 @@ public class StringSetParserTests : IDisposable
         var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
-        var descriptor = new ParameterDescriptor(parameterName);
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
         var parsedValue = Array.Empty<string>();
 

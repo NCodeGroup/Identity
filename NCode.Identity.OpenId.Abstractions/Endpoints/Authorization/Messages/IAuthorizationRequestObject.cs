@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,9 +14,11 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
@@ -24,7 +27,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 /// object only.
 /// </summary>
 [PublicAPI]
-public interface IAuthorizationRequestObject : IBaseAuthorizationRequestValues
+public interface IAuthorizationRequestObject : IOpenIdMessage, IBaseAuthorizationRequestValues
 {
     /// <summary>
     /// Gets a value indicating where the <c>request object</c> was loaded from.

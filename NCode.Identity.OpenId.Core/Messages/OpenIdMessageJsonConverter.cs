@@ -17,12 +17,11 @@
 
 #endregion
 
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Messages;
 
@@ -34,47 +33,37 @@ namespace NCode.Identity.OpenId.Messages;
 public class OpenIdMessageJsonConverter<T>(
     OpenIdEnvironment openIdEnvironment
 ) : JsonConverter<T?>
-    where T : OpenIdMessage
+    where T : class, IOpenIdMessage
 {
     private const string TypeKey = "$type";
-    private const string PropertiesKey = "$properties";
+    private const string FormatKey = "$format";
 
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
-    internal Parameter LoadParameter(string parameterName, ref Utf8JsonReader reader, JsonSerializerOptions options)
+    internal virtual IParameter ReadParameter(
+        ref Utf8JsonReader reader,
+        string parameterName,
+        SerializationFormat format,
+        JsonSerializerOptions options)
     {
-        var descriptor = OpenIdEnvironment.KnownParameters.TryGet(parameterName, out var knownParameter) ?
-            new ParameterDescriptor(knownParameter) :
-            new ParameterDescriptor(parameterName);
-        var jsonParser = descriptor.Loader as IJsonParser ?? DefaultJsonParser.Singleton;
-        return jsonParser.Read(ref reader, OpenIdEnvironment, descriptor, options);
+        var descriptor = OpenIdEnvironment.GetParameterDescriptor(parameterName);
+        return descriptor.Loader.Read(ref reader, OpenIdEnvironment, descriptor, format, options);
     }
 
-    private static T CreateMessage(Type messageType)
+    internal T CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters)
     {
-        if (messageType == typeof(IOpenIdMessage))
-            messageType = typeof(OpenIdMessage);
-
-        if (!typeof(T).IsAssignableFrom(messageType))
+        var message = OpenIdEnvironment.CreateMessage(typeDiscriminator, parameters);
+        if (message is not T typedMessage)
             throw new InvalidOperationException();
 
-        if (!typeof(OpenIdMessage).IsAssignableFrom(messageType))
-            throw new InvalidOperationException();
-
-        const BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-        var hasDefaultConstructor = messageType.GetConstructor(bindingFlags, Type.EmptyTypes) != null;
-        if (!hasDefaultConstructor)
-            throw new InvalidOperationException();
-
-        const bool nonPublic = true;
-        return (T)(Activator.CreateInstance(messageType, nonPublic) ?? throw new InvalidOperationException());
+        return typedMessage;
     }
 
     /// <inheritdoc />
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         T? messageOrNull = null;
-        var messageType = typeof(T);
+        var typeDiscriminator = nameof(OpenIdMessage);
 
         if (reader.TokenType == JsonTokenType.Null)
             return null;
@@ -82,7 +71,10 @@ public class OpenIdMessageJsonConverter<T>(
         if (reader.TokenType != JsonTokenType.StartObject)
             throw new JsonException();
 
-        var parameters = new List<Parameter>();
+        const SerializationFormat defaultFormat = SerializationFormat.OpenId;
+        SerializationFormat? formatOrNull = null;
+
+        var parameters = new List<IParameter>();
 
         while (reader.Read())
         {
@@ -91,9 +83,12 @@ public class OpenIdMessageJsonConverter<T>(
             // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
             switch (reader.TokenType)
             {
+                case JsonTokenType.Comment:
+                    continue;
+
                 case JsonTokenType.EndObject:
-                    messageOrNull ??= CreateMessage(messageType);
-                    messageOrNull.Initialize(OpenIdEnvironment, parameters);
+                    messageOrNull ??= CreateMessage(typeDiscriminator, parameters);
+                    messageOrNull.SerializationFormat = formatOrNull ?? defaultFormat;
                     return messageOrNull;
 
                 case JsonTokenType.PropertyName:
@@ -113,33 +108,35 @@ public class OpenIdMessageJsonConverter<T>(
                 if (reader.TokenType != JsonTokenType.String)
                     throw new JsonException();
 
-                var messageTypeName = reader.GetString();
-                if (string.IsNullOrEmpty(messageTypeName))
+                typeDiscriminator = reader.GetString();
+                if (string.IsNullOrEmpty(typeDiscriminator))
                     throw new JsonException();
 
-                const bool throwOnError = false;
-                messageType = Type.GetType(messageTypeName, throwOnError) ?? throw new InvalidOperationException();
-
                 continue;
             }
 
-            if (parameterName == PropertiesKey)
+            if (parameterName == FormatKey)
             {
-                // TODO: unit tests
-
-                messageOrNull ??= CreateMessage(messageType);
-
-                if (messageOrNull is not ISupportProperties supportProperties)
+                var formatName = reader.GetString();
+                if (!Enum.TryParse(formatName, ignoreCase: true, out SerializationFormat format))
                 {
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("Unable to parse the serialization format.");
                 }
 
-                supportProperties.DeserializeProperties(ref reader, options);
+                if (formatOrNull.HasValue && formatOrNull.Value != format)
+                {
+                    throw new InvalidOperationException("The serialization format has already been set and cannot be changed.");
+                }
+
+                formatOrNull = format;
 
                 continue;
             }
 
-            var parameter = LoadParameter(parameterName, ref reader, options);
+            // when not specified, default to OpenId serialization (aka string values)
+            var effectiveFormat = formatOrNull ??= defaultFormat;
+
+            var parameter = ReadParameter(ref reader, parameterName, effectiveFormat, options);
             parameters.Add(parameter);
         }
 
@@ -157,28 +154,47 @@ public class OpenIdMessageJsonConverter<T>(
 
         writer.WriteStartObject();
 
-        var serializationOptions = message.SerializationOptions;
+        var format = message.SerializationFormat;
+        var asJson = format == SerializationFormat.Json;
 
-        var writeType = !serializationOptions.HasFlag(SerializationOptions.IgnoreWritingType);
-        if (writeType)
+        if (asJson)
         {
-            var typeOfMessage = message.GetType();
-            writer.WriteString(TypeKey, typeOfMessage.AssemblyQualifiedName);
-        }
-
-        var writeProperties = !serializationOptions.HasFlag(SerializationOptions.IgnoreWritingProperties);
-        if (writeProperties && message is ISupportProperties supportProperties)
-        {
-            writer.WritePropertyName(PropertiesKey);
-            supportProperties.SerializeProperties(writer, options);
+            writer.WriteString(TypeKey, message.TypeDiscriminator);
+            writer.WriteString(FormatKey, format.ToString().ToLowerInvariant());
         }
 
         foreach (var parameter in message.Parameters.Values)
         {
-            var jsonParser = parameter.Descriptor.Loader as IJsonParser ?? DefaultJsonParser.Singleton;
-            jsonParser.Write(writer, OpenIdEnvironment, parameter, options);
+            if (!ShouldSerialize(parameter.Descriptor.ProhibitedSerializationFormats, format))
+                continue;
+
+            var parameterName = parameter.Descriptor.ParameterName;
+            var parameterValue = GetValueToSerialize(parameter, format);
+
+            writer.WritePropertyName(parameterName);
+            JsonSerializer.Serialize(writer, parameterValue, options);
         }
 
         writer.WriteEndObject();
     }
+
+    internal virtual bool ShouldSerialize(SerializationFormats prohibitedFormats, SerializationFormat format) =>
+        !prohibitedFormats.HasFlag((SerializationFormats)(int)format);
+
+    internal virtual object? GetValueToSerialize(IParameter parameter, SerializationFormat format) =>
+        format switch
+        {
+            SerializationFormat.Unspecified => throw new InvalidOperationException(),
+            SerializationFormat.Json => parameter.GetParsedValue(),
+            SerializationFormat.OpenId => GetOpenIdValue(parameter.StringValues),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
+
+    internal virtual string? GetOpenIdValue(StringValues stringValues) =>
+        stringValues.Count switch
+        {
+            0 => null,
+            1 => stringValues[0],
+            _ => string.Join(OpenIdConstants.ParameterSeparatorChar, stringValues.AsEnumerable())
+        };
 }

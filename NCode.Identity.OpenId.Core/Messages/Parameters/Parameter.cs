@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// Contains the parsed value and string values from which a parameter was parsed from.
 /// </summary>
 [PublicAPI]
-public abstract class Parameter
+public abstract class Parameter : IParameter
 {
     /// <summary>
     /// Gets the <see cref="ParameterDescriptor"/> that describes this parameter.
@@ -40,19 +40,24 @@ public abstract class Parameter
     public required StringValues StringValues { get; init; }
 
     /// <summary>
-    /// Clones this <see cref="Parameter"/> instance.
+    /// Gets the value that this parameter was parsed with.
     /// </summary>
-    /// <returns>The newly cloned <see cref="Parameter"/> instance.</returns>
-    public abstract Parameter Clone();
+    public abstract object? GetParsedValue();
 
     /// <summary>
-    /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
+    /// Clones this <see cref="IParameter"/> instance.
+    /// </summary>
+    /// <returns>The newly cloned <see cref="IParameter"/> instance.</returns>
+    public abstract IParameter Clone();
+
+    /// <summary>
+    /// Helper method to parse and load a <see cref="IParameter"/> given its string values.
     /// </summary>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public static Parameter Load(
+    public static IParameter Load(
         OpenIdEnvironment openIdEnvironment,
         string parameterName,
         IEnumerable<string> stringValues)
@@ -61,23 +66,40 @@ public abstract class Parameter
     }
 
     /// <summary>
-    /// Helper method to parse and load a <see cref="Parameter"/> given its string values.
+    /// Helper method to parse and load a <see cref="IParameter"/> given its string values.
     /// </summary>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while loading the parameter.</param>
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
-    public static Parameter Load(
+    public static IParameter Load(
         OpenIdEnvironment openIdEnvironment,
         string parameterName,
         StringValues stringValues)
     {
-        var descriptor = openIdEnvironment.KnownParameters.TryGet(parameterName, out var knownParameter) ?
-            new ParameterDescriptor(knownParameter) :
-            new ParameterDescriptor(parameterName);
-
+        var descriptor = openIdEnvironment.GetParameterDescriptor(parameterName);
         return descriptor.Loader.Load(openIdEnvironment, descriptor, stringValues);
     }
+
+    /// <summary>
+    /// Creates a <see cref="IParameter"/> given its string values and parsed value.
+    /// </summary>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while creating the parameter.</param>
+    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to create.</param>
+    /// <param name="stringValues">The string values for the parameter.</param>
+    /// <param name="parsedValue">The parsed value for the parameter.</param>
+    /// <returns>The newly created parameter.</returns>
+    public static IParameter<T> Create<T>(
+        OpenIdEnvironment openIdEnvironment,
+        ParameterDescriptor descriptor,
+        StringValues stringValues,
+        T? parsedValue
+    ) => new Parameter<T>
+    {
+        Descriptor = descriptor,
+        StringValues = stringValues,
+        ParsedValue = parsedValue
+    };
 }
 
 /// <summary>
@@ -85,12 +107,15 @@ public abstract class Parameter
 /// </summary>
 /// <typeparam name="T">The type of the parameter's parsed value.</typeparam>
 [PublicAPI]
-public class Parameter<T> : Parameter
+public class Parameter<T> : Parameter, IParameter<T>
 {
     /// <summary>
     /// Gets the value that this parameter was parsed with.
     /// </summary>
     public T? ParsedValue { get; init; }
+
+    /// <inheritdoc />
+    public override object? GetParsedValue() => ParsedValue;
 
     /// <inheritdoc />
     public override Parameter Clone() => new Parameter<T>

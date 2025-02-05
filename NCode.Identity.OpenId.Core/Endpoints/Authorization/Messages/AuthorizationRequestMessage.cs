@@ -17,17 +17,35 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages.Parameters;
+
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 internal class AuthorizationRequestMessage :
-    BaseAuthorizationRequestMessage<
-        AuthorizationRequestMessage,
-        AuthorizationRequestMessageProperties>,
+    BaseAuthorizationRequestMessage<AuthorizationRequestMessage>,
     IAuthorizationRequestMessage
 {
+    public AuthorizationRequestMessage()
+    {
+        // nothing
+    }
+
+    public AuthorizationRequestMessage(OpenIdEnvironment openIdEnvironment)
+        : base(openIdEnvironment)
+    {
+        // nothing
+    }
+
+    public AuthorizationRequestMessage(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
+        : base(openIdEnvironment, parameters, cloneParameters)
+    {
+        // nothing
+    }
+
     public AuthorizationSourceType AuthorizationSourceType
     {
-        get => Properties.AuthorizationSourceType;
-        set => Properties.AuthorizationSourceType = value;
+        get => GetKnownParameter(KnownParameters.AuthorizationSourceType);
+        set => SetKnownParameter(KnownParameters.AuthorizationSourceType, value);
     }
 }

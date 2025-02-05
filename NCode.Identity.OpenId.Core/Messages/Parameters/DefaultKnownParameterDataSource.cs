@@ -42,13 +42,13 @@ public class DefaultKnownParameterDataSource(
 
             var fromFields = type
                 .GetFields()
-                .Where(x => x.FieldType == typeof(KnownParameter))
+                .Where(x => typeof(KnownParameter).IsAssignableFrom(x.FieldType))
                 .Select(x => x.GetValue(null))
                 .OfType<KnownParameter>();
 
             var fromProperties = type
                 .GetProperties()
-                .Where(x => x.PropertyType == typeof(KnownParameter) && x.CanRead)
+                .Where(x => typeof(KnownParameter).IsAssignableFrom(x.PropertyType) && x.CanRead)
                 .Select(x => x.GetValue(null))
                 .OfType<KnownParameter>();
 

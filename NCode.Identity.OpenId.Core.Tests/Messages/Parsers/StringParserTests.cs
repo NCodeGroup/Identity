@@ -53,7 +53,7 @@ public class StringParserTests : IDisposable
         var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
-        var descriptor = new ParameterDescriptor(parameterName);
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
         const string parsedValue = "parsedValue";
 

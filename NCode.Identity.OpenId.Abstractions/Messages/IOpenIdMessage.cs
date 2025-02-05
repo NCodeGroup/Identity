@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,24 +17,49 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
-/// Represents the base interface for <c>OAuth</c> or <c>OpenID Connect</c> request and response messages.
+/// Represents the base interface for all <c>OAuth</c> or <c>OpenID Connect</c> messages
+/// that use the standard implementation.
 /// </summary>
 [PublicAPI]
-public interface IOpenIdMessage : IReadOnlyDictionary<string, StringValues>
+public interface IOpenIdMessage : IBaseOpenIdMessage
 {
     /// <summary>
-    /// Gets the <see cref="OpenIdEnvironment"/> for the current instance.
+    /// Gets the <see cref="string"/> value that is used to discriminate this object's <see cref="Type"/>
+    /// when serializing and deserializing as JSON.
     /// </summary>
-    OpenIdEnvironment OpenIdEnvironment { get; }
+    string TypeDiscriminator { get; }
 
     /// <summary>
-    /// Gets or sets the <see cref="SerializationOptions"/> for the current instance.
+    /// Gets or sets the <see cref="SerializationFormat"/> for the current instance.
     /// </summary>
-    SerializationOptions SerializationOptions { get; set; }
+    SerializationFormat SerializationFormat { get; set; }
+
+    /// <summary>
+    /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenID Connect</c> parameters.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
+    IReadOnlyDictionary<string, IParameter> Parameters { get; }
+
+    /// <summary>
+    /// Initializes the current instance with an <see cref="OpenIdEnvironment"/>.
+    /// </summary>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
+    void Initialize(OpenIdEnvironment openIdEnvironment);
+
+    /// <summary>
+    /// Initializes the current instance with an <see cref="OpenIdEnvironment"/> and collection of <see cref="IParameter"/> values.
+    /// </summary>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance.</param>
+    /// <param name="parameters">The collection of <see cref="IParameter"/> values.</param>
+    /// <param name="cloneParameters"><c>true</c> if the <see cref="IParameter"/> instances should be deep-cloned; otherwise,
+    /// <c>false</c>. The default value is <c>false</c>.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
+    void Initialize(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false);
 }

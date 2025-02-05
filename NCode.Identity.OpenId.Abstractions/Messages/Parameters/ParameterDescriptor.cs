@@ -18,7 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
@@ -36,16 +36,19 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     {
         ParameterName = knownParameter.Name;
         KnownParameter = knownParameter;
+        Loader = knownParameter.Loader;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ParameterDescriptor"/> struct using a parameter name.
     /// </summary>
     /// <param name="parameterName">The name of the parameter.</param>
-    public ParameterDescriptor(string parameterName)
+    /// <param name="loader">The <see cref="IParameterLoader"/> that can be used to parse and load the parameter.</param>
+    public ParameterDescriptor(string parameterName, IParameterLoader loader)
     {
         ParameterName = parameterName;
         KnownParameter = null;
+        Loader = loader;
     }
 
     /// <summary>
@@ -77,11 +80,15 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public bool AllowMultipleStringValues => KnownParameter?.AllowMultipleStringValues ?? false;
 
     /// <summary>
-    /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given
-    /// <see cref="StringValues"/>. Uses the result from <see cref="KnownParameter"/> if one was provided; otherwise
-    /// always returns <see cref="ParameterLoader.Default"/>.
+    /// Gets a value indicating which serialization formats are prohibited for the parameter. Returns the result from
+    /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <see cref="SerializationFormats.None"/>.
     /// </summary>
-    public ParameterLoader Loader => KnownParameter?.Loader ?? ParameterLoader.Default;
+    public SerializationFormats ProhibitedSerializationFormats => KnownParameter?.ProhibitedSerializationFormats ?? SerializationFormats.None;
+
+    /// <summary>
+    /// Gets the <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.
+    /// </summary>
+    public IParameterLoader Loader { get; }
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) =>

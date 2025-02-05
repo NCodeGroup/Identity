@@ -23,6 +23,7 @@ using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 using Xunit;
@@ -59,7 +60,7 @@ public class JsonParserTests : IDisposable
         var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
         var expectedValueAsJson = JsonSerializer.Serialize(expectedValue);
 
-        var descriptor = new ParameterDescriptor(parameterName);
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
         var buffer = new ArrayBufferWriter<byte>();
         var writer = new Utf8JsonWriter(buffer);
@@ -70,7 +71,9 @@ public class JsonParserTests : IDisposable
 
         Assert.True(reader.Read());
 
-        var parameter = parser.Read(ref reader, MockOpenIdEnvironment.Object, descriptor, jsonSerializerOptions);
+        const SerializationFormat format = SerializationFormat.Json; // TODO
+
+        var parameter = parser.Read(ref reader, MockOpenIdEnvironment.Object, descriptor, format, jsonSerializerOptions);
         var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(parameter);
 
         Assert.Equal(expectedValueAsJson, typedParameter.StringValues);
@@ -86,7 +89,7 @@ public class JsonParserTests : IDisposable
         var jsonSerializerOptions = new JsonSerializerOptions();
 
         const string parameterName = "parameterName";
-        var descriptor = new ParameterDescriptor(parameterName);
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
         MockOpenIdEnvironment
             .Setup(x => x.JsonSerializerOptions)

@@ -22,34 +22,44 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Contains constants for various <see cref="ParameterParser{T}"/> implementations that are used by <c>OAuth</c>
+/// Contains constants for various <see cref="IParameterParser{T}"/> implementations that are used by <c>OAuth</c>
 /// and <c>OpenID Connect</c> messages.
 /// </summary>
 public static class ParameterParsers
 {
     /// <summary>
-    /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="IRequestClaims"/> from a JSON payload.
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="IRequestClaims"/> from a JSON payload.
     /// </summary>
     public static readonly JsonParser<IRequestClaims> RequestClaims = new();
 
     /// <summary>
-    /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="string"/> values.
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="string"/> values.
     /// </summary>
     public static readonly StringParser String = new();
 
     /// <summary>
-    /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse string lists which are separated by the
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse string lists which are separated by the
     /// space ' ' character.
     /// </summary>
     public static readonly StringSetParser StringSet = new();
 
     /// <summary>
-    /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="TimeSpan"/> values.
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="TimeSpan"/> values.
     /// </summary>
     public static readonly TimeSpanParser TimeSpan = new();
 
     /// <summary>
-    /// Gets a <see cref="ParameterParser{T}"/> that can be used to parse <see cref="Uri"/> values.
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="Uri"/> values.
     /// </summary>
     public static readonly UriParser Uri = new();
+
+    /// <summary>
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="bool"/> values.
+    /// </summary>
+    public static readonly BoolParser Bool = new();
+
+    /// <summary>
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="DateTimeOffset"/> values.
+    /// </summary>
+    public static readonly DateTimeOffsetParser DateTimeOffset = new();
 }

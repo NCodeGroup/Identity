@@ -81,15 +81,14 @@ public class RequestClaimDictionary :
 
     #region IEnumerable Members
 
+    [MustDisposeResource]
     IEnumerator IEnumerable.GetEnumerator()
     {
-        // since KeyValuePair is a struct, it doesn't support variance
-        throw new NotSupportedException();
+        return Inner.GetEnumerator();
     }
 
     [MustDisposeResource]
-    IEnumerator<KeyValuePair<string, RequestClaim?>> IEnumerable<KeyValuePair<string, RequestClaim?>>.
-        GetEnumerator()
+    IEnumerator<KeyValuePair<string, RequestClaim?>> IEnumerable<KeyValuePair<string, RequestClaim?>>.GetEnumerator()
     {
         return Inner.GetEnumerator();
     }
@@ -149,7 +148,8 @@ public class RequestClaimDictionary :
 
     ICollection<RequestClaim?> IDictionary<string, RequestClaim?>.Values => Inner.Values;
 
-    RequestClaim? IDictionary<string, RequestClaim?>.this[string key]
+    /// <inheritdoc cref="IDictionary{TKey,TValue}.this" />
+    public RequestClaim? this[string key]
     {
         get => Inner[key];
         set => Inner[key] = value;

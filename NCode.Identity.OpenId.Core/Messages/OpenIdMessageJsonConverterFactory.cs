@@ -24,7 +24,7 @@ using NCode.Identity.OpenId.Environments;
 namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
-/// Provides a <see cref="JsonConverterFactory"/> implementation that can serialize and deserialize <see cref="OpenIdMessage"/>
+/// Provides a <see cref="JsonConverterFactory"/> implementation that can serialize and deserialize <see cref="IOpenIdMessage"/>
 /// instances to and from JSON.
 /// </summary>
 public class OpenIdMessageJsonConverterFactory(
@@ -36,7 +36,7 @@ public class OpenIdMessageJsonConverterFactory(
     /// <inheritdoc />
     public override bool CanConvert(Type typeToConvert)
     {
-        return typeof(OpenIdMessage).IsAssignableFrom(typeToConvert);
+        return typeof(IOpenIdMessage).IsAssignableFrom(typeToConvert);
     }
 
     /// <inheritdoc />

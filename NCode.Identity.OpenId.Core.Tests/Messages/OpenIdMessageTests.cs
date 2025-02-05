@@ -108,7 +108,7 @@ public class OpenIdMessageTests : IDisposable
         var environment = MockOpenIdEnvironment.Object;
         var parameter = new Parameter<string[]>
         {
-            Descriptor = new ParameterDescriptor(parameterName),
+            Descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default),
             StringValues = expectedValue
         };
         message.Initialize(environment, [parameter]);
@@ -320,21 +320,10 @@ public class OpenIdMessageTests : IDisposable
         message.Initialize(environment, Array.Empty<Parameter>());
 
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter<TestNestedObject>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues,
-            ParsedValue = parsedValue
-        };
 
         mockParameterParser
             .Setup(x => x.Serialize(environment, descriptor, parsedValue))
             .Returns(stringValues)
-            .Verifiable();
-
-        mockParameterParser
-            .Setup(x => x.Load(environment, descriptor, stringValues, parsedValue))
-            .Returns(parameter)
             .Verifiable();
 
         message.SetKnownParameter(knownParameter, parsedValue);
@@ -379,21 +368,10 @@ public class OpenIdMessageTests : IDisposable
 
         parsedValue.NestedPropertyName1 = "NestedPropertyValue2";
         stringValues = JsonSerializer.Serialize(parsedValue);
-        parameter = new Parameter<TestNestedObject>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues,
-            ParsedValue = parsedValue
-        };
 
         mockParameterParser
             .Setup(x => x.Serialize(environment, descriptor, parsedValue))
             .Returns(stringValues)
-            .Verifiable();
-
-        mockParameterParser
-            .Setup(x => x.Load(environment, descriptor, stringValues, parsedValue))
-            .Returns(parameter)
             .Verifiable();
 
         message.SetKnownParameter(knownParameter, parsedValue);

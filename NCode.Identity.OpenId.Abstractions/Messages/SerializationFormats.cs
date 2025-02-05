@@ -21,30 +21,24 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
-/// Specifies the options for when serializing an <see cref="IOpenIdMessage"/> instance.
+/// A complimentary enumeration to <see cref="SerializationFormat"/> that allows for multiple serialization formats to be specified.
 /// </summary>
 [Flags]
 [PublicAPI]
-public enum SerializationOptions
+public enum SerializationFormats
 {
     /// <summary>
-    /// Indicates that no special options are applied when serializing the <see cref="IOpenIdMessage"/> instance.
+    /// Indicates that no serialization formats are specified.
     /// </summary>
     None = 0,
 
     /// <summary>
-    /// Indicates that the <see cref="IOpenIdMessage"/> instance is being serialized as an HTTP response
-    /// where the <c>$type</c> and <c>$properties</c> metadata properties should be ignored.
+    /// Indicates that the <see cref="SerializationFormat.Json"/> serialization format is specified.
     /// </summary>
-    HttpResult = IgnoreWritingType | IgnoreWritingProperties,
+    Json = 1,
 
     /// <summary>
-    /// Indicates that the <c>$type</c> metadata property should be ignored when serializing the <see cref="IOpenIdMessage"/> instance.
+    /// Indicates that the <see cref="SerializationFormat.OpenId"/> serialization format is specified.
     /// </summary>
-    IgnoreWritingType = 1,
-
-    /// <summary>
-    /// Indicates that the <c>$properties</c> metadata property should be ignored when serializing the <see cref="IOpenIdMessage"/> instance.
-    /// </summary>
-    IgnoreWritingProperties = 2,
+    OpenId = 2,
 }

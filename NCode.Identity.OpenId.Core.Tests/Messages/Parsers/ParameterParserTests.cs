@@ -17,24 +17,29 @@
 
 #endregion
 
+using System.Text.Json;
+using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Messages.Parsers;
 using Xunit;
+
+// ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
 
 public class ParameterParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
+
     private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
-    private Mock<ITestParameterParser> MockTestParameterParser { get; }
 
     public ParameterParserTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
-        MockTestParameterParser = MockRepository.Create<ITestParameterParser>();
     }
 
     public void Dispose()
@@ -46,40 +51,174 @@ public class ParameterParserTests : IDisposable
     [Fact]
     public void Separator_ThenValid()
     {
-        var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
-
-        Assert.Equal(OpenIdConstants.ParameterSeparatorString, parser.Separator);
+        var parameterParser = new TestParameterParser<object>();
+        Assert.Equal(OpenIdConstants.ParameterSeparatorString, parameterParser.Separator);
     }
 
     [Fact]
     public void StringComparison_ThenValid()
     {
-        var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
-
-        Assert.Equal(StringComparison.Ordinal, parser.StringComparison);
+        var parameterParser = new TestParameterParser<object>();
+        Assert.Equal(StringComparison.Ordinal, parameterParser.StringComparison);
     }
 
     [Fact]
     public void Load_ThenValid()
     {
-        var parser = new TestParameterParser(MockTestParameterParser.Object, null, null);
-        var environment = MockOpenIdEnvironment.Object;
-
-        const bool ignoreErrors = false;
         const string parameterName = "parameterName";
-        const string stringValues = "stringValues";
+        StringValues stringValues = "stringValues";
         const string parsedValue = "parsedValue";
 
-        var descriptor = new ParameterDescriptor(parameterName);
+        var environment = MockOpenIdEnvironment.Object;
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
+        var parameter = Parameter.Create(environment, descriptor, stringValues, parsedValue);
 
-        MockTestParameterParser
-            .Setup(x => x.Parse(environment, descriptor, stringValues, ignoreErrors))
-            .Returns(parsedValue)
-            .Verifiable();
+        var parameterParser = new TestParameterParser<string>();
 
-        var parameter = parser.Load(environment, descriptor, stringValues);
-        var typedParameter = Assert.IsType<Parameter<string>>(parameter);
-        Assert.Equal(stringValues, typedParameter.StringValues);
-        Assert.Same(parsedValue, typedParameter.ParsedValue);
+        parameterParser.ParseCallback = (env, desc, values) =>
+        {
+            Assert.Same(environment, env);
+            Assert.Equal(descriptor, desc);
+            Assert.Equal(stringValues, values);
+            return parsedValue;
+        };
+
+        parameterParser.CreateCallback = (env, desc, values, value) =>
+        {
+            Assert.Same(environment, env);
+            Assert.Equal(descriptor, desc);
+            Assert.Equal(stringValues, values);
+            Assert.Equal(parsedValue, value);
+            return parameter;
+        };
+
+        var result = parameterParser.Load(environment, descriptor, stringValues);
+        Assert.Same(result, parameter);
+    }
+
+    [Fact]
+    public void Read_String_OpenId()
+    {
+        const string parameterName = "parameterName";
+        StringValues stringValues = "stringValues";
+        const string parsedValue = "parsedValue";
+        const SerializationFormat format = SerializationFormat.OpenId;
+
+        var options = JsonSerializerOptions.Web;
+        var jsonData = JsonSerializer.SerializeToUtf8Bytes(parsedValue);
+        var reader = new Utf8JsonReader(jsonData);
+        Assert.True(reader.Read());
+
+        var environment = MockOpenIdEnvironment.Object;
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
+        var parameter = Parameter.Create(environment, descriptor, stringValues, parsedValue);
+
+        var parameterParser = new TestParameterParser<string>();
+
+        parameterParser.DeserializeCallback = () => stringValues;
+
+        parameterParser.ParseCallback = (env, desc, values) =>
+        {
+            Assert.Same(environment, env);
+            Assert.Equal(descriptor, desc);
+            Assert.Equal(stringValues, values);
+            return parsedValue;
+        };
+
+        parameterParser.CreateCallback = (env, desc, values, value) =>
+        {
+            Assert.Same(environment, env);
+            Assert.Equal(descriptor, desc);
+            Assert.Equal(stringValues, values);
+            Assert.Equal(parsedValue, value);
+            return parameter;
+        };
+
+        var result = parameterParser.Read(ref reader, environment, descriptor, format, options);
+        Assert.Same(result, parameter);
+    }
+
+    [Fact]
+    public void Read_String_Json()
+    {
+        const string parameterName = "parameterName";
+        StringValues stringValues = "stringValues";
+        const string parsedValue = nameof(parsedValue);
+        const SerializationFormat format = SerializationFormat.Json;
+
+        var options = JsonSerializerOptions.Web;
+        var jsonData = JsonSerializer.SerializeToUtf8Bytes(parsedValue);
+        var reader = new Utf8JsonReader(jsonData);
+        Assert.True(reader.Read());
+
+        var environment = MockOpenIdEnvironment.Object;
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
+        var parameter = Parameter.Create(environment, descriptor, stringValues, parsedValue);
+
+        var parameterParser = new TestParameterParser<string>();
+
+        parameterParser.DeserializeCallback = () => parsedValue;
+
+        parameterParser.SerializeCallback = (env, desc, value) =>
+        {
+            Assert.Same(environment, env);
+            Assert.Equal(descriptor, desc);
+            Assert.Same(parsedValue, value);
+            return stringValues;
+        };
+
+        parameterParser.CreateCallback = (env, desc, values, value) =>
+        {
+            Assert.Same(environment, env);
+            Assert.Equal(descriptor, desc);
+            Assert.Equal(stringValues, values);
+            Assert.Equal(parsedValue, value);
+            return parameter;
+        };
+
+        var result = parameterParser.Read(ref reader, environment, descriptor, format, options);
+        Assert.Same(result, parameter);
+    }
+
+    [Fact]
+    public void Read_NonString_Json()
+    {
+        const string parameterName = "parameterName";
+        StringValues stringValues = "stringValues";
+        var parsedValue = new object();
+        const SerializationFormat format = SerializationFormat.Json;
+
+        var options = JsonSerializerOptions.Web;
+        var jsonData = JsonSerializer.SerializeToUtf8Bytes(parsedValue);
+        var reader = new Utf8JsonReader(jsonData);
+        Assert.True(reader.Read());
+
+        var environment = MockOpenIdEnvironment.Object;
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
+        var parameter = Parameter.Create(environment, descriptor, stringValues, parsedValue);
+
+        var parameterParser = new TestParameterParser<object>();
+
+        parameterParser.DeserializeCallback = () => parsedValue;
+
+        parameterParser.SerializeCallback = (env, desc, value) =>
+        {
+            Assert.Same(environment, env);
+            Assert.Equal(descriptor, desc);
+            Assert.Same(parsedValue, value);
+            return stringValues;
+        };
+
+        parameterParser.CreateCallback = (env, desc, values, value) =>
+        {
+            Assert.Same(environment, env);
+            Assert.Equal(descriptor, desc);
+            Assert.Equal(stringValues, values);
+            Assert.Equal(parsedValue, value);
+            return parameter;
+        };
+
+        var result = parameterParser.Read(ref reader, environment, descriptor, format, options);
+        Assert.Same(result, parameter);
     }
 }

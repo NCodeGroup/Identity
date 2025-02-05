@@ -18,7 +18,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
@@ -33,13 +32,10 @@ public abstract class KnownParameter
     /// Initializes a new instance of the <see cref="KnownParameter"/> class.
     /// </summary>
     /// <param name="name">The name of the parameter.</param>
-    /// <param name="loader">The <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.</param>
+    /// <param name="loader">The <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <c>null</c> or empty.</exception>
-    protected KnownParameter(string name, ParameterLoader loader)
+    protected KnownParameter(string name, IParameterLoader loader)
     {
-        if (string.IsNullOrEmpty(name))
-            throw new ArgumentNullException(nameof(name));
-
         Name = name;
         Loader = loader;
     }
@@ -73,9 +69,15 @@ public abstract class KnownParameter
     public bool AllowMultipleStringValues { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="ParameterLoader"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.
+    /// Gets a value indicating which serialization formats are prohibited for the parameter.
+    /// The default value is <see cref="SerializationFormats.None"/>.
     /// </summary>
-    public ParameterLoader Loader { get; }
+    public SerializationFormats ProhibitedSerializationFormats { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.
+    /// </summary>
+    public IParameterLoader Loader { get; }
 }
 
 /// <summary>
@@ -89,8 +91,8 @@ public class KnownParameter<T> : KnownParameter
     /// Initializes a new instance of the <see cref="KnownParameter{T}"/> class.
     /// </summary>
     /// <param name="name">The name of the parameter.</param>
-    /// <param name="parser">The <see cref="ParameterParser{T}"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.</param>
-    public KnownParameter(string name, ParameterParser<T> parser)
+    /// <param name="parser">The <see cref="IParameterParser{T}"/> that can be used to parse and load <see cref="IParameter"/> values.</param>
+    public KnownParameter(string name, IParameterParser<T> parser)
         : base(name, parser)
     {
         Parser = parser;
@@ -100,7 +102,7 @@ public class KnownParameter<T> : KnownParameter
     public override Type ValueType => typeof(T);
 
     /// <summary>
-    /// Gets the <see cref="ParameterParser{T}"/> that can be used to parse and return a <see cref="Parameter"/> given <see cref="StringValues"/>.
+    /// Gets the <see cref="IParameterParser{T}"/> that can be used to parse and load <see cref="IParameter"/> values.
     /// </summary>
-    public ParameterParser<T> Parser { get; }
+    public IParameterParser<T> Parser { get; }
 }

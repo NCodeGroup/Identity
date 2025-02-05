@@ -39,7 +39,10 @@ public static class HttpResultExtensions
         where T : class, IOpenIdResponse
     {
         // prevent metadata from being serialized into the HTTP response
-        response.SerializationOptions = SerializationOptions.HttpResult;
+        if (response is IOpenIdMessage message)
+        {
+            message.SerializationFormat = SerializationFormat.OpenId;
+        }
 
         // ReSharper disable once SuspiciousTypeConversion.Global
         return response is IResultProvider resultProvider ? resultProvider.AsResult() : new OpenIdResult<T>(response);

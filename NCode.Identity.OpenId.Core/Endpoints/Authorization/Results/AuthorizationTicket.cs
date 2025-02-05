@@ -22,20 +22,15 @@ using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 
-internal class AuthorizationTicketProperties
-{
-    public DateTimeOffset CreatedWhen { get; set; }
-}
-
 internal class AuthorizationTicket :
-    OpenIdMessage<AuthorizationTicket, AuthorizationTicketProperties>,
+    OpenIdMessage<AuthorizationTicket>,
     IAuthorizationTicket
 {
     /// <inheritdoc />
     public DateTimeOffset CreatedWhen
     {
-        get => Properties.CreatedWhen;
-        set => Properties.CreatedWhen = value;
+        get => GetKnownParameter(KnownParameters.CreatedWhen);
+        set => SetKnownParameter(KnownParameters.CreatedWhen, value);
     }
 
     /// <inheritdoc />

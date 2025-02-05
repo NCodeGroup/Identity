@@ -17,15 +17,32 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-internal abstract class BaseAuthorizationRequestMessage<T, TProperties> : OpenIdMessage<T, TProperties>
-    where T : OpenIdMessage<T, TProperties>, new()
-    where TProperties : class, new()
+internal abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
+    where T : OpenIdMessage<T>, new()
 {
+    protected BaseAuthorizationRequestMessage()
+    {
+        // nothing
+    }
+
+    protected BaseAuthorizationRequestMessage(OpenIdEnvironment openIdEnvironment)
+        : base(openIdEnvironment)
+    {
+        // nothing
+    }
+
+    protected BaseAuthorizationRequestMessage(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
+        : base(openIdEnvironment, parameters, cloneParameters)
+    {
+        // nothing
+    }
+
     public IReadOnlyCollection<string>? AcrValues
     {
         get => GetKnownParameter(KnownParameters.AcrValues);

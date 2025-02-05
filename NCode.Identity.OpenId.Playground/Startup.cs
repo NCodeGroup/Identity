@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Endpoints.Discovery;
 using NCode.Identity.OpenId.Endpoints.Token;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Tenants;
@@ -77,6 +78,7 @@ internal class Startup(IConfiguration configuration)
         services.AddJsonWebTokenServices();
 
         services.AddOpenIdServices();
+        services.AddOpenIdMessages();
 
         services.AddMediatorServices();
         services.AddTenantServices();

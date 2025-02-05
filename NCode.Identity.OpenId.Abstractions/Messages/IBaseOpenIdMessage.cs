@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,11 +14,23 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using JetBrains.Annotations;
+using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 
-internal class AuthorizationRequestObjectProperties
+namespace NCode.Identity.OpenId.Messages;
+
+/// <summary>
+/// Represents the base interface for all <c>OAuth</c> or <c>OpenID Connect</c> messages.
+/// </summary>
+[PublicAPI]
+public interface IBaseOpenIdMessage : IReadOnlyDictionary<string, StringValues>
 {
-    public RequestObjectSource RequestObjectSource { get; set; }
+    /// <summary>
+    /// Gets the <see cref="OpenIdEnvironment"/> for the current instance.
+    /// </summary>
+    OpenIdEnvironment OpenIdEnvironment { get; }
 }

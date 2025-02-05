@@ -20,6 +20,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.DataProtection;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.PropertyBag;
 
@@ -55,4 +56,20 @@ public abstract class OpenIdEnvironment
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ParameterDescriptor"/> for the specified parameter name.
+    /// </summary>
+    /// <param name="parameterName">The name of the parameter.</param>
+    /// <returns>The <see cref="ParameterDescriptor"/> for the specified parameter name.</returns>
+    public abstract ParameterDescriptor GetParameterDescriptor(string parameterName);
+
+    /// <summary>
+    /// Creates a new <see cref="IOpenIdMessage"/> instance using the specified <paramref name="typeDiscriminator"/>
+    /// and <paramref name="parameters"/>.
+    /// </summary>
+    /// <param name="typeDiscriminator">A <see cref="string"/> value that is used to discriminate the message type.</param>
+    /// <param name="parameters">The collection of parameters to be used to initialize the new message.</param>
+    /// <returns>The newly created <see cref="IOpenIdMessage"/> instance.</returns>
+    public abstract IOpenIdMessage CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters);
 }

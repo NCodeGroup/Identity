@@ -23,6 +23,7 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 
@@ -80,7 +81,7 @@ public class DefaultLoadAuthorizationSourceHandler(
         // we manually load the parameters without parsing because that will occur later
         var parameters = properties.Select(property =>
         {
-            var descriptor = new ParameterDescriptor(property.Key);
+            var descriptor = new ParameterDescriptor(property.Key, ParameterLoader.Default);
             return descriptor.Loader.Load(openIdEnvironment, descriptor, property.Value);
         });
 

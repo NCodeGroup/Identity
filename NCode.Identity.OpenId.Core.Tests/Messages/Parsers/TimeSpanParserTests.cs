@@ -54,7 +54,7 @@ public class TimeSpanParserTests : IDisposable
         var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
-        var descriptor = new ParameterDescriptor(parameterName);
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
         var stringValue = parser.Serialize(environment, descriptor, null);
         Assert.Equal(StringValues.Empty, stringValue);
@@ -67,7 +67,7 @@ public class TimeSpanParserTests : IDisposable
         var environment = MockOpenIdEnvironment.Object;
 
         const string parameterName = "parameterName";
-        var descriptor = new ParameterDescriptor(parameterName);
+        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
         var timeSpan = TimeSpan.FromSeconds(123.456);
 

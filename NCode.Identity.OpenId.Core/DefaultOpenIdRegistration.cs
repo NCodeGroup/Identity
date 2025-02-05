@@ -26,7 +26,6 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Logic;
-using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
@@ -67,16 +66,6 @@ public static class DefaultOpenIdRegistration
         serviceCollection.TryAddSingleton<
             IPersistedGrantService,
             DefaultPersistedGrantService>();
-
-        // parameters
-
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICollectionDataSource<KnownParameter>,
-            DefaultKnownParameterDataSource>());
-
-        serviceCollection.TryAddSingleton<
-            IKnownParameterCollectionProvider,
-            DefaultKnownParameterCollectionProvider>();
 
         // settings
 

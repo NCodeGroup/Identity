@@ -25,7 +25,7 @@ using NCode.Identity.OpenId.Messages.Parameters;
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Provides an implementation of <see cref="ParameterParser{T}"/> that parses string collections which are separated by
+/// Provides an implementation of <see cref="IParameterParser{T}"/> that parses string collections which are separated by
 /// the space ' ' character.
 /// </summary>
 public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>

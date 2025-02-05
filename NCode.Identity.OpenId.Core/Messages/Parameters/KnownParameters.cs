@@ -38,6 +38,16 @@ public static class KnownParameters
         };
 
     /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>$authorization_source_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="AuthorizationSourceType"/> result.
+    /// </summary>
+    public static readonly KnownParameter<AuthorizationSourceType> AuthorizationSourceType =
+        new(OpenIdConstants.Parameters.AuthorizationSourceType, EnumParser<AuthorizationSourceType>.Singleton)
+        {
+            AllowMissingStringValues = true,
+            ProhibitedSerializationFormats = SerializationFormats.OpenId,
+        };
+
+    /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>claims</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IRequestClaims"/> result.
     /// </summary>
     public static readonly KnownParameter<IRequestClaims?> Claims =
@@ -71,6 +81,16 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.ClientSecret, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
+        };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>$created_when</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="DateTimeOffset"/> result.
+    /// </summary>
+    public static readonly KnownParameter<DateTimeOffset> CreatedWhen =
+        new(OpenIdConstants.Parameters.CreatedWhen, ParameterParsers.DateTimeOffset)
+        {
+            AllowMissingStringValues = true,
+            ProhibitedSerializationFormats = SerializationFormats.OpenId,
         };
 
     /// <summary>
@@ -242,6 +262,16 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.Request, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
+        };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>$request_object_source</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="RequestObjectSource"/> result.
+    /// </summary>
+    public static readonly KnownParameter<RequestObjectSource> RequestObjectSource =
+        new(OpenIdConstants.Parameters.RequestObjectSource, EnumParser<RequestObjectSource>.Singleton)
+        {
+            AllowMissingStringValues = true,
+            ProhibitedSerializationFormats = SerializationFormats.OpenId,
         };
 
     /// <summary>

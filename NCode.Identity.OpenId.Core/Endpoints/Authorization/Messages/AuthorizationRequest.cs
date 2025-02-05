@@ -22,7 +22,6 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
@@ -43,8 +42,6 @@ internal class AuthorizationRequest(
         grantType == OpenIdConstants.GrantTypes.AuthorizationCode ?
             OpenIdConstants.ResponseModes.Query :
             OpenIdConstants.ResponseModes.Fragment;
-
-    public SerializationOptions SerializationOptions { get; set; }
 
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 

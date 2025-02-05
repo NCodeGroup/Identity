@@ -57,6 +57,11 @@ public static partial class OpenIdConstants
         public const string AuthorizationCode = "code";
 
         /// <summary>
+        /// Contains the name of <c>$authorization_source_type</c> parameter.
+        /// </summary>
+        public const string AuthorizationSourceType = "$authorization_source_type";
+
+        /// <summary>
         /// Contains the name of <c>auth_time</c> parameter.
         /// </summary>
         public const string AuthTime = "auth_time";
@@ -110,6 +115,11 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>code_verifier</c> parameter.
         /// </summary>
         public const string CodeVerifier = "code_verifier";
+
+        /// <summary>
+        /// Contains the name of <c>$created_when</c> parameter.
+        /// </summary>
+        public const string CreatedWhen = "$created_when";
 
         /// <summary>
         /// Contains the name of <c>device_code</c> parameter.
@@ -240,6 +250,11 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>request_id</c> parameter.
         /// </summary>
         public const string RequestId = "request_id";
+
+        /// <summary>
+        /// Contains the name of <c>$request_object_source</c> parameter.
+        /// </summary>
+        public const string RequestObjectSource = "$request_object_source";
 
         /// <summary>
         /// Contains the name of <c>request_uri</c> parameter.

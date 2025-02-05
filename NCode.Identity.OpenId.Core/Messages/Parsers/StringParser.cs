@@ -25,7 +25,7 @@ using NCode.Identity.OpenId.Messages.Parameters;
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Provides an implementation of <see cref="ParameterParser{T}"/> that can parse <see cref="string"/> values.
+/// Provides an implementation of <see cref="IParameterParser{T}"/> that can parse <see cref="string"/> values.
 /// </summary>
 public class StringParser : ParameterParser<string?>
 {

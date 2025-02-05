@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,9 +16,15 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Messages;
 
-internal class AuthorizationRequestMessageProperties
+namespace NCode.Identity.OpenId.Tests.Messages;
+
+internal class TestOpenIdMessageNoDefaultConstructor : OpenIdMessage
 {
-    public AuthorizationSourceType AuthorizationSourceType { get; set; }
+    // ReSharper disable once UnusedParameter.Local
+    public TestOpenIdMessageNoDefaultConstructor(object unused)
+    {
+        // nothing
+    }
 }

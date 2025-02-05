@@ -134,7 +134,7 @@ public class DefaultAuthorizationEndpointHandler(
         }
     }
 
-    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IOpenIdMessage authorizationSource)
+    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IBaseOpenIdMessage authorizationSource)
     {
         var settings = openIdClient.Settings;
 

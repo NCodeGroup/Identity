@@ -32,6 +32,7 @@ public class SettingCollectionJsonConverterTests : BaseTests
     private JsonSerializerOptions JsonSerializerOptions { get; }
 
     private static readonly string[] ListStringValue = ["one", "two"];
+    private static readonly string[] ListEnumValue = ["base64", "hex"];
 
     public SettingCollectionJsonConverterTests()
     {
@@ -102,7 +103,7 @@ public class SettingCollectionJsonConverterTests : BaseTests
             scalar_bool_setting = true,
             scalar_datetimeoffset_setting = now,
             list_string_setting = ListStringValue,
-            list_enum_setting = new[] { "page", "touch" }
+            list_enum_setting = ListEnumValue
         });
 
         var json = JsonSerializer.Serialize(settings, JsonSerializerOptions);

@@ -64,7 +64,7 @@ public class ParameterDescriptorTests : IDisposable
     {
         const string parameterName = "parameterName";
         const bool allowMissingStringValues = true;
-        const bool allowMultipleStringValues = true;
+        const bool allowMultipleStringValues = false;
 
         var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 

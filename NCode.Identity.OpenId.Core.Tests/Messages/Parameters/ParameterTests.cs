@@ -91,10 +91,9 @@ public class ParameterTests : IDisposable
             .Returns(expectedParameter)
             .Verifiable();
 
-        KnownParameter? knownParameterBase = knownParameter;
         mockOpenIdEnvironment
-            .Setup(x => x.KnownParameters.TryGet(parameterName, out knownParameterBase))
-            .Returns(true)
+            .Setup(x => x.GetParameterDescriptor(parameterName))
+            .Returns(descriptor)
             .Verifiable();
 
         var actualParameter = Parameter.Load(environment, parameterName, stringValues.AsEnumerable());

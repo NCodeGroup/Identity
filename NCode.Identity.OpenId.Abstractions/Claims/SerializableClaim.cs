@@ -54,4 +54,9 @@ public class SerializableClaim
     /// Gets or sets the value for the <see cref="Claim.Properties"/> property.
     /// </summary>
     public required IDictionary<string, string> Properties { get; init; }
+
+    /// <summary>
+    /// Gets or sets the unique reference identifier for the <see cref="Claim.Subject"/> property.
+    /// </summary>
+    public string? SubjectRef { get; init; }
 }

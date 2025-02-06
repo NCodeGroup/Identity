@@ -40,6 +40,7 @@ namespace NCode.Identity.OpenId.Environments;
 /// </summary>
 public class DefaultOpenIdEnvironment(
     IServiceProvider serviceProvider,
+    IClaimsSerializer claimsSerializer,
     IKnownParameterCollectionProvider knownParametersProvider,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
     ISecureDataProtectionProvider secureDataProtectionProvider,
@@ -52,6 +53,7 @@ public class DefaultOpenIdEnvironment(
     private IOpenIdErrorFactory? ErrorFactoryOrNull { get; set; }
 
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
+    private IClaimsSerializer ClaimsSerializer { get; } = claimsSerializer;
     private IKnownParameterCollectionProvider KnownParametersProvider { get; } = knownParametersProvider;
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
     private IOpenIdMessageFactorySelector MessageFactorySelector { get; } = messageFactorySelector;
@@ -105,8 +107,9 @@ public class DefaultOpenIdEnvironment(
                 new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
                 new SettingCollectionJsonConverter(SettingDescriptorJsonProvider),
-                new ClaimJsonConverter(),
-                new ClaimsIdentityJsonConverter()
+                new ClaimJsonConverter(ClaimsSerializer),
+                new ClaimsIdentityJsonConverter(ClaimsSerializer),
+                new ClaimsPrincipalJsonConverter(ClaimsSerializer),
             }
         };
 

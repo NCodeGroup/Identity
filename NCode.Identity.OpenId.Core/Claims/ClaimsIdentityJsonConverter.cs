@@ -16,10 +16,10 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Claims;
 
@@ -27,99 +27,40 @@ namespace NCode.Identity.OpenId.Claims;
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="ClaimsIdentity"/>
 /// instances to and from JSON.
 /// </summary>
+[PublicAPI]
 public class ClaimsIdentityJsonConverter : JsonConverter<ClaimsIdentity>
 {
+    private IClaimsSerializer Serializer { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ClaimsIdentityJsonConverter"/> class.
+    /// </summary>
+    public ClaimsIdentityJsonConverter()
+        : this(ClaimsSerializer.Singleton)
+    {
+        // nothing
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ClaimsIdentityJsonConverter"/> class with the specified <see cref="IClaimsSerializer"/>.
+    /// </summary>
+    /// <param name="serializer">The <see cref="IClaimsSerializer"/> to use for serialization and deserialization.</param>
+    public ClaimsIdentityJsonConverter(IClaimsSerializer serializer)
+    {
+        Serializer = serializer;
+    }
+
     /// <inheritdoc />
     public override ClaimsIdentity? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var serializableIdentity = JsonSerializer.Deserialize<SerializableClaimsIdentity>(ref reader, options);
-
-        return HydrateIdentity(serializableIdentity);
-    }
-
-    [return: NotNullIfNotNull(nameof(serializableIdentity))]
-    private static ClaimsIdentity? HydrateIdentity(SerializableClaimsIdentity? serializableIdentity)
-    {
-        if (serializableIdentity is null)
-        {
-            return null;
-        }
-
-        var claimsIdentity = new ClaimsIdentity(
-            identity: null,
-            claims: null,
-            serializableIdentity.AuthenticationType,
-            serializableIdentity.NameClaimType,
-            serializableIdentity.RoleClaimType)
-        {
-            Label = serializableIdentity.Label,
-            BootstrapContext = serializableIdentity.BootstrapContext,
-            Actor = HydrateIdentity(serializableIdentity.Actor)
-        };
-
-        foreach (var serializableClaim in serializableIdentity.Claims)
-        {
-            HydrateClaim(serializableClaim, claimsIdentity);
-        }
-
-        return claimsIdentity;
-    }
-
-    private static void HydrateClaim(SerializableClaim serializableClaim, ClaimsIdentity subject)
-    {
-        var claim = new Claim(
-            serializableClaim.Type,
-            serializableClaim.Value,
-            serializableClaim.ValueType,
-            serializableClaim.Issuer,
-            serializableClaim.OriginalIssuer,
-            subject
-        );
-
-        foreach (var (key, value) in serializableClaim.Properties)
-        {
-            claim.Properties[key] = value;
-        }
-
-        subject.AddClaim(claim);
+        var serializable = JsonSerializer.Deserialize<SerializableClaimsIdentity>(ref reader, options);
+        return serializable != null ? Serializer.DeserializeIdentity(serializable) : null;
     }
 
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, ClaimsIdentity value, JsonSerializerOptions options)
     {
-        var serializableClaimsIdentity = SerializeIdentity(value);
-        JsonSerializer.Serialize(serializableClaimsIdentity, options);
-    }
-
-    [return: NotNullIfNotNull(nameof(identity))]
-    private static SerializableClaimsIdentity? SerializeIdentity(ClaimsIdentity? identity)
-    {
-        if (identity is null)
-        {
-            return null;
-        }
-
-        var actor = SerializeIdentity(identity.Actor);
-
-        var claims = identity.Claims.Select(claim => new SerializableClaim
-        {
-            Type = claim.Type,
-            Value = claim.Value,
-            ValueType = claim.ValueType,
-            Issuer = claim.Issuer,
-            OriginalIssuer = claim.OriginalIssuer,
-            Properties = claim.Properties,
-        }).ToList();
-
-        return new SerializableClaimsIdentity
-        {
-            Label = identity.Label,
-            BootstrapContext = identity.BootstrapContext as string, // we only allow strings
-            AuthenticationType = identity.AuthenticationType,
-            NameClaimType = identity.NameClaimType,
-            RoleClaimType = identity.RoleClaimType,
-            Actor = actor,
-            Claims = claims
-        };
+        var serializable = Serializer.SerializeIdentity(value);
+        JsonSerializer.Serialize(serializable, options);
     }
 }

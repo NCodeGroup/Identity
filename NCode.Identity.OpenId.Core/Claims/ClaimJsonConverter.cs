@@ -19,6 +19,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Claims;
 
@@ -26,45 +27,40 @@ namespace NCode.Identity.OpenId.Claims;
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="Claim"/> instances
 /// to and from JSON.
 /// </summary>
+[PublicAPI]
 public class ClaimJsonConverter : JsonConverter<Claim>
 {
+    private IClaimsSerializer Serializer { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ClaimJsonConverter"/> class.
+    /// </summary>
+    public ClaimJsonConverter()
+        : this(ClaimsSerializer.Singleton)
+    {
+        // nothing
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ClaimJsonConverter"/> class with the specified <see cref="IClaimsSerializer"/>.
+    /// </summary>
+    /// <param name="serializer">The <see cref="IClaimsSerializer"/> to use for serialization and deserialization.</param>
+    public ClaimJsonConverter(IClaimsSerializer serializer)
+    {
+        Serializer = serializer;
+    }
+
     /// <inheritdoc />
     public override Claim? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var serializableClaim = JsonSerializer.Deserialize<SerializableClaim>(ref reader, options);
-
-        if (serializableClaim is null)
-        {
-            return null;
-        }
-
-        var claim = new Claim(
-            serializableClaim.Type,
-            serializableClaim.Value,
-            serializableClaim.ValueType,
-            serializableClaim.Issuer,
-            serializableClaim.OriginalIssuer);
-
-        foreach (var (key, value) in serializableClaim.Properties)
-        {
-            claim.Properties[key] = value;
-        }
-
-        return claim;
+        var serializable = JsonSerializer.Deserialize<SerializableClaim>(ref reader, options);
+        return serializable != null ? Serializer.DeserializeClaim(serializable) : null;
     }
 
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, Claim value, JsonSerializerOptions options)
     {
-        var serializableClaim = new SerializableClaim
-        {
-            Type = value.Type,
-            Value = value.Value,
-            ValueType = value.ValueType,
-            Issuer = value.Issuer,
-            OriginalIssuer = value.OriginalIssuer,
-            Properties = value.Properties
-        };
-        JsonSerializer.Serialize(writer, serializableClaim, options);
+        var serializable = Serializer.SerializeClaim(value);
+        JsonSerializer.Serialize(writer, serializable, options);
     }
 }

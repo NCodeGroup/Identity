@@ -26,6 +26,12 @@ namespace NCode.Identity.OpenId.Claims;
 public class SerializableClaimsIdentity
 {
     /// <summary>
+    /// Gets or sets the unique reference identifier for the <see cref="ClaimsIdentity"/> instance.
+    /// This value is used for <c>subject</c> references from <see cref="Claim"/>.
+    /// </summary>
+    public required string ReferenceId { get; init; }
+
+    /// <summary>
     /// Gets or sets the value for the <see cref="ClaimsIdentity.Label"/> property.
     /// </summary>
     public required string? Label { get; init; }

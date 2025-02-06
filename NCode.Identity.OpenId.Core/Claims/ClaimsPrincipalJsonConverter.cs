@@ -1,6 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -24,43 +24,43 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Claims;
 
 /// <summary>
-/// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="Claim"/> instances
-/// to and from JSON.
+/// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="ClaimsPrincipal"/>
+/// instances to and from JSON.
 /// </summary>
 [PublicAPI]
-public class ClaimJsonConverter : JsonConverter<Claim>
+public class ClaimsPrincipalJsonConverter : JsonConverter<ClaimsPrincipal>
 {
     private IClaimsSerializer Serializer { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ClaimJsonConverter"/> class.
+    /// Initializes a new instance of the <see cref="ClaimsPrincipalJsonConverter"/> class.
     /// </summary>
-    public ClaimJsonConverter()
+    public ClaimsPrincipalJsonConverter()
         : this(ClaimsSerializer.Singleton)
     {
         // nothing
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ClaimJsonConverter"/> class with the specified <see cref="IClaimsSerializer"/>.
+    /// Initializes a new instance of the <see cref="ClaimsPrincipalJsonConverter"/> class with the specified <see cref="IClaimsSerializer"/>.
     /// </summary>
     /// <param name="serializer">The <see cref="IClaimsSerializer"/> to use for serialization and deserialization.</param>
-    public ClaimJsonConverter(IClaimsSerializer serializer)
+    public ClaimsPrincipalJsonConverter(IClaimsSerializer serializer)
     {
         Serializer = serializer;
     }
 
     /// <inheritdoc />
-    public override Claim? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override ClaimsPrincipal? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var serializable = JsonSerializer.Deserialize<SerializableClaim>(ref reader, options);
-        return serializable != null ? Serializer.DeserializeClaim(serializable) : null;
+        var serializable = JsonSerializer.Deserialize<SerializableClaimsPrincipal>(ref reader, options);
+        return serializable != null ? Serializer.DeserializePrincipal(serializable) : null;
     }
 
     /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, Claim value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, ClaimsPrincipal value, JsonSerializerOptions options)
     {
-        var serializable = Serializer.SerializeClaim(value);
-        JsonSerializer.Serialize(writer, serializable, options);
+        var serializable = Serializer.SerializePrincipal(value);
+        JsonSerializer.Serialize(serializable, options);
     }
 }

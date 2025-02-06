@@ -30,4 +30,8 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Serialization\" />
+    </ItemGroup>
+
 </Project>

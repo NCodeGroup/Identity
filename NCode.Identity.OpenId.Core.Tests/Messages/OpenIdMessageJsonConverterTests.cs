@@ -458,7 +458,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal("Json", jsonReader.GetString());
+        Assert.Equal("json", jsonReader.GetString());
 
         // }
 
@@ -551,7 +551,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal("Json", jsonReader.GetString());
+        Assert.Equal("json", jsonReader.GetString());
 
         // parameterName=stringValue
 
@@ -673,7 +673,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal("Json", jsonReader.GetString());
+        Assert.Equal("json", jsonReader.GetString());
 
         // parameterName=[value1, value2]
 

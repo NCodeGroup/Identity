@@ -45,6 +45,6 @@ public class DefaultKnownParameterDataSourceTests : BaseTests
     public void Collection_Valid()
     {
         var results = DataSource.Collection;
-        Assert.Equal(35, results.Count());
+        Assert.Equal(38, results.Count());
     }
 }

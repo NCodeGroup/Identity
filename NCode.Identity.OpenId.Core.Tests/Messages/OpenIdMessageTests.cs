@@ -28,20 +28,13 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages;
 
-public class OpenIdMessageTests : IDisposable
+public class OpenIdMessageTests : BaseTests
 {
-    private MockRepository MockRepository { get; }
     private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
 
     public OpenIdMessageTests()
     {
-        MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
-    }
-
-    public void Dispose()
-    {
-        MockRepository.Verify();
+        MockOpenIdEnvironment = CreateStrictMock<OpenIdEnvironment>();
     }
 
     [Fact]
@@ -121,7 +114,7 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void GetKnownParameter_WhenNotFound_ThenValid()
     {
-        var mockParameterParser = MockRepository.Create<ParameterParser<TestNestedObject?>>();
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
 
         const string parameterName = "parameterName";
 
@@ -142,7 +135,7 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void GetKnownParameter_WhenParsedValueIsSet_ThenReturnParsedValue()
     {
-        var mockParameterParser = MockRepository.Create<ParameterParser<TestNestedObject?>>();
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
 
         const string parameterName = "parameterName";
         var stringValues = new StringValues("invalid_json");
@@ -172,7 +165,7 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void GetKnownParameter_WhenParsedValueIsNotSet_ThenReturnDefault()
     {
-        var mockParameterParser = MockRepository.Create<ParameterParser<TestNestedObject?>>();
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
 
         const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
@@ -205,7 +198,7 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void SetKnownParameter_WhenContextIsNull_ThenThrows()
     {
-        var mockParameterParser = MockRepository.Create<ParameterParser<TestNestedObject?>>();
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
 
         const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
@@ -228,7 +221,7 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void SetKnownParameter_GivenNullParsedValue_ThenRemovesParameter()
     {
-        var mockParameterParser = MockRepository.Create<ParameterParser<TestNestedObject?>>();
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
 
         const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
@@ -262,7 +255,7 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void SetKnownParameter_WhenNullParserResult_ThenRemovesParameter()
     {
-        var mockParameterParser = MockRepository.Create<ParameterParser<TestNestedObject?>>();
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
 
         const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
@@ -300,14 +293,16 @@ public class OpenIdMessageTests : IDisposable
     [Fact]
     public void SetKnownParameter_WhenEmpty_ThenParameterAdded()
     {
-        var mockParameterParser = MockRepository.Create<ParameterParser<TestNestedObject?>>();
+        const string parameterName = nameof(parameterName);
 
-        const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
         {
             NestedPropertyName1 = "NestedPropertyValue"
         };
         var stringValues = JsonSerializer.Serialize(parsedValue);
+
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
+        var mockParameter = CreateStrictMock<IParameter<TestNestedObject>>();
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
@@ -326,28 +321,31 @@ public class OpenIdMessageTests : IDisposable
             .Returns(stringValues)
             .Verifiable();
 
+        mockParameterParser
+            .Setup(x => x.Create(environment, descriptor, stringValues, parsedValue))
+            .Returns(mockParameter.Object)
+            .Verifiable();
+
         message.SetKnownParameter(knownParameter, parsedValue);
 
         var (actualParameterName, actualParameter) = Assert.Single(message.Parameters);
-        var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(actualParameter);
-
         Assert.Equal(parameterName, actualParameterName);
-        Assert.Equal(parameterName, typedParameter.Descriptor.ParameterName);
-        Assert.Equal(stringValues, typedParameter.StringValues);
-        Assert.Equal(parsedValue, typedParameter.ParsedValue);
+        Assert.Same(mockParameter.Object, actualParameter);
     }
 
     [Fact]
     public void SetKnownParameter_WhenExisting_ThenParameterReplaced()
     {
-        var mockParameterParser = MockRepository.Create<ParameterParser<TestNestedObject?>>();
+        const string parameterName = nameof(parameterName);
 
-        const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
         {
             NestedPropertyName1 = "NestedPropertyValue1"
         };
         var stringValues = JsonSerializer.Serialize(parsedValue);
+
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
+        var mockParameter = CreateStrictMock<IParameter<TestNestedObject>>();
 
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
         {
@@ -374,14 +372,15 @@ public class OpenIdMessageTests : IDisposable
             .Returns(stringValues)
             .Verifiable();
 
+        mockParameterParser
+            .Setup(x => x.Create(environment, descriptor, stringValues, parsedValue))
+            .Returns(mockParameter.Object)
+            .Verifiable();
+
         message.SetKnownParameter(knownParameter, parsedValue);
 
         var (actualParameterName, actualParameter) = Assert.Single(message.Parameters);
-        var typedParameter = Assert.IsType<Parameter<TestNestedObject>>(actualParameter);
-
         Assert.Equal(parameterName, actualParameterName);
-        Assert.Equal(parameterName, typedParameter.Descriptor.ParameterName);
-        Assert.Equal(stringValues, typedParameter.StringValues);
-        Assert.Equal(parsedValue, typedParameter.ParsedValue);
+        Assert.Same(mockParameter.Object, actualParameter);
     }
 }

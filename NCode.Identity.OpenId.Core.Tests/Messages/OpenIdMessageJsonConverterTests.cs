@@ -425,13 +425,14 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         var jsonWriter = new Utf8JsonWriter(bufferWriter);
         var jsonSerializerOptions = JsonSerializerOptions.Web;
 
-        var message = new OpenIdMessage(environment, Array.Empty<Parameter>())
-        {
-            SerializationFormat = SerializationFormat.Json
-        };
+        var message = new OpenIdMessage(environment, Array.Empty<Parameter>());
+
+        Assert.Equal(SerializationFormat.Unspecified, message.SerializationFormat);
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);
         jsonWriter.Flush();
+
+        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         var jsonReader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
@@ -518,13 +519,15 @@ public class OpenIdMessageJsonConverterTests : BaseTests
             StringValues = stringValue,
             ParsedValue = stringValue
         };
-        var message = new OpenIdMessage(environment, [parameter])
-        {
-            SerializationFormat = SerializationFormat.Json
-        };
+
+        var message = new OpenIdMessage(environment, [parameter]);
+
+        Assert.Equal(SerializationFormat.Unspecified, message.SerializationFormat);
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);
         jsonWriter.Flush();
+
+        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         var jsonReader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
@@ -588,6 +591,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
             StringValues = stringValue,
             ParsedValue = stringValue
         };
+
         var message = new OpenIdMessage(environment, [parameter])
         {
             SerializationFormat = SerializationFormat.OpenId
@@ -640,13 +644,15 @@ public class OpenIdMessageJsonConverterTests : BaseTests
             StringValues = stringValues,
             ParsedValue = stringValues
         };
-        var message = new OpenIdMessage(environment, [parameter])
-        {
-            SerializationFormat = SerializationFormat.Json
-        };
+
+        var message = new OpenIdMessage(environment, [parameter]);
+
+        Assert.Equal(SerializationFormat.Unspecified, message.SerializationFormat);
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);
         jsonWriter.Flush();
+
+        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         var jsonReader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
@@ -714,16 +720,17 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         const string parameterName = nameof(parameterName);
         var stringValues = new[] { "value1", "value2" };
 
-        var message = new OpenIdMessage();
         var parameter = new Parameter<string[]>
         {
             Descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default),
             StringValues = stringValues,
             ParsedValue = stringValues
         };
-        message.Initialize(environment, [parameter]);
 
-        message.SerializationFormat = SerializationFormat.OpenId;
+        var message = new OpenIdMessage(environment, [parameter])
+        {
+            SerializationFormat = SerializationFormat.OpenId
+        };
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);
         jsonWriter.Flush();

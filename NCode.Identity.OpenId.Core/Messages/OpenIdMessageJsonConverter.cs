@@ -165,7 +165,7 @@ public class OpenIdMessageJsonConverter<T>(
 
         foreach (var parameter in message.Parameters.Values)
         {
-            if (!ShouldSerialize(parameter.Descriptor.ProhibitedSerializationFormats, format))
+            if (!ShouldSerialize(parameter.Descriptor.IgnoredSerializationFormats, format))
                 continue;
 
             var parameterName = parameter.Descriptor.ParameterName;
@@ -178,8 +178,8 @@ public class OpenIdMessageJsonConverter<T>(
         writer.WriteEndObject();
     }
 
-    internal virtual bool ShouldSerialize(SerializationFormats prohibitedFormats, SerializationFormat format) =>
-        !prohibitedFormats.HasFlag((SerializationFormats)(int)format);
+    internal virtual bool ShouldSerialize(SerializationFormats ignoredFormats, SerializationFormat format) =>
+        !ignoredFormats.HasFlag((SerializationFormats)(int)format);
 
     internal virtual object? GetValueToSerialize(IParameter parameter, SerializationFormat format) =>
         format switch

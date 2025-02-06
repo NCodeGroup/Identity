@@ -69,10 +69,10 @@ public abstract class KnownParameter
     public bool AllowMultipleStringValues { get; init; }
 
     /// <summary>
-    /// Gets a value indicating which serialization formats are prohibited for the parameter.
+    /// Gets a value indicating which serialization formats are ignored for the parameter.
     /// The default value is <see cref="SerializationFormats.None"/>.
     /// </summary>
-    public SerializationFormats ProhibitedSerializationFormats { get; init; }
+    public SerializationFormats IgnoredSerializationFormats { get; init; }
 
     /// <summary>
     /// Gets the <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.

@@ -44,7 +44,7 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.AuthorizationSourceType, EnumParser<AuthorizationSourceType>.Singleton)
         {
             AllowMissingStringValues = true,
-            ProhibitedSerializationFormats = SerializationFormats.OpenId,
+            IgnoredSerializationFormats = SerializationFormats.OpenId,
         };
 
     /// <summary>
@@ -90,7 +90,7 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.CreatedWhen, ParameterParsers.DateTimeOffset)
         {
             AllowMissingStringValues = true,
-            ProhibitedSerializationFormats = SerializationFormats.OpenId,
+            IgnoredSerializationFormats = SerializationFormats.OpenId,
         };
 
     /// <summary>
@@ -271,7 +271,7 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.RequestObjectSource, EnumParser<RequestObjectSource>.Singleton)
         {
             AllowMissingStringValues = true,
-            ProhibitedSerializationFormats = SerializationFormats.OpenId,
+            IgnoredSerializationFormats = SerializationFormats.OpenId,
         };
 
     /// <summary>

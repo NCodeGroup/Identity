@@ -104,8 +104,6 @@ public class DefaultOpenIdEnvironment(
                 new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
-                new DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>(),
-                new DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>(),
                 new SettingCollectionJsonConverter(SettingDescriptorJsonProvider),
                 new ClaimJsonConverter(),
                 new ClaimsIdentityJsonConverter()

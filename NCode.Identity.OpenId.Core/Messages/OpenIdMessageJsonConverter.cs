@@ -19,6 +19,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -30,6 +31,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// instances to and from JSON.
 /// </summary>
 /// <typeparam name="T">The type of the <see cref="IOpenIdMessage"/> instance to serialize and deserialize.</typeparam>
+[PublicAPI]
 public class OpenIdMessageJsonConverter<T>(
     OpenIdEnvironment openIdEnvironment
 ) : JsonConverter<T?>
@@ -40,7 +42,7 @@ public class OpenIdMessageJsonConverter<T>(
 
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
-    internal virtual IParameter ReadParameter(
+    internal IParameter ReadParameter(
         ref Utf8JsonReader reader,
         string parameterName,
         SerializationFormat format,
@@ -50,7 +52,7 @@ public class OpenIdMessageJsonConverter<T>(
         return descriptor.Loader.Read(ref reader, OpenIdEnvironment, descriptor, format, options);
     }
 
-    internal T CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters)
+    internal virtual T CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters)
     {
         var message = OpenIdEnvironment.CreateMessage(typeDiscriminator, parameters);
         if (message is not T typedMessage)
@@ -150,6 +152,11 @@ public class OpenIdMessageJsonConverter<T>(
         {
             writer.WriteNullValue();
             return;
+        }
+
+        if (message.SerializationFormat == SerializationFormat.Unspecified)
+        {
+            message.SerializationFormat = SerializationFormat.Json;
         }
 
         writer.WriteStartObject();

@@ -71,8 +71,6 @@ public class AuthorizationRequestTests : BaseTests
 
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            SerializationFormat = SerializationFormat.Json,
-            //
             AuthorizationSourceType = AuthorizationSourceType.Form,
             //
             RequestJwt = "RequestJwt",
@@ -121,8 +119,6 @@ public class AuthorizationRequestTests : BaseTests
 
         var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object)
         {
-            SerializationFormat = SerializationFormat.Json,
-            //
             RequestObjectSource = RequestObjectSource.Remote,
             //
             AcrValues = ["AcrValue1", "AcrValue2"],

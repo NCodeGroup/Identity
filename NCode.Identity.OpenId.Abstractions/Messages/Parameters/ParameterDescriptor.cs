@@ -80,10 +80,10 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public bool AllowMultipleStringValues => KnownParameter?.AllowMultipleStringValues ?? false;
 
     /// <summary>
-    /// Gets a value indicating which serialization formats are prohibited for the parameter. Returns the result from
+    /// Gets a value indicating which serialization formats are ignored for the parameter. Returns the result from
     /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <see cref="SerializationFormats.None"/>.
     /// </summary>
-    public SerializationFormats ProhibitedSerializationFormats => KnownParameter?.ProhibitedSerializationFormats ?? SerializationFormats.None;
+    public SerializationFormats IgnoredSerializationFormats => KnownParameter?.IgnoredSerializationFormats ?? SerializationFormats.None;
 
     /// <summary>
     /// Gets the <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.

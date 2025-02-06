@@ -758,12 +758,12 @@ public class OpenIdMessageJsonConverterTests : BaseTests
     [InlineData(SerializationFormats.Json, SerializationFormat.OpenId, true)]
     [InlineData(SerializationFormats.Json | SerializationFormats.OpenId, SerializationFormat.Json, false)]
     [InlineData(SerializationFormats.Json | SerializationFormats.OpenId, SerializationFormat.OpenId, false)]
-    public void ShouldSerialize_Valid(SerializationFormats prohibitedFormats, SerializationFormat format, bool expectedResult)
+    public void ShouldSerialize_Valid(SerializationFormats ignoredFormats, SerializationFormat format, bool expectedResult)
     {
         var environment = MockOpenIdEnvironment.Object;
         var converter = new OpenIdMessageJsonConverter<IOpenIdMessage>(environment);
 
-        var result = converter.ShouldSerialize(prohibitedFormats, format);
+        var result = converter.ShouldSerialize(ignoredFormats, format);
         Assert.Equal(expectedResult, result);
     }
 

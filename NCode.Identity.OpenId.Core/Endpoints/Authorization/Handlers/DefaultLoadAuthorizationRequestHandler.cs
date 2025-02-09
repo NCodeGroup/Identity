@@ -156,7 +156,7 @@ public class DefaultLoadAuthorizationRequestHandler(
 
         try
         {
-            // this will deserialize the object using: OpenIdMessageJsonConverterFactory => OpenIdMessageJsonConverter => OpenIdMessage.Load
+            // this will deserialize the object using OpenIdMessageJsonConverter
             var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(OpenIdEnvironment.JsonSerializerOptions);
             if (requestObject == null)
                 throw new InvalidOperationException("JSON deserialization returned null.");

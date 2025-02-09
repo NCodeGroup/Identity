@@ -34,7 +34,11 @@ public static class KnownParameters
     /// <summary>
     /// A reusable delegate that indicates that a parameter should only be serialized when the format is <see cref="SerializationFormat.Json"/>.
     /// </summary>
-    public static bool ShouldSerializeAsJsonOnly(OpenIdEnvironment openIdEnvironment, IParameter parameter, SerializationFormat format) =>
+    public static bool ShouldSerializeAsJsonOnly(
+        OpenIdEnvironment openIdEnvironment,
+        IParameter parameter,
+        SerializationFormat format
+    ) =>
         format == SerializationFormat.Json;
 
     /// <summary>

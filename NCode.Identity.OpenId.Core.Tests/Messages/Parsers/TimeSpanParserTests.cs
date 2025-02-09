@@ -48,7 +48,7 @@ public class TimeSpanParserTests : IDisposable
     }
 
     [Fact]
-    public void Serialize_GivenNull_ThenEmpty()
+    public void Format_GivenNull_ThenEmpty()
     {
         var parser = new TimeSpanParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -56,12 +56,12 @@ public class TimeSpanParserTests : IDisposable
         const string parameterName = "parameterName";
         var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
-        var stringValue = parser.Serialize(environment, descriptor, null);
-        Assert.Equal(StringValues.Empty, stringValue);
+        var stringValues = parser.Format(environment, descriptor, null);
+        Assert.Equal(StringValues.Empty, stringValues);
     }
 
     [Fact]
-    public void Serialize_GivenValue_ThenValid()
+    public void Format_GivenValue_ThenValid()
     {
         var parser = new TimeSpanParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -71,8 +71,8 @@ public class TimeSpanParserTests : IDisposable
 
         var timeSpan = TimeSpan.FromSeconds(123.456);
 
-        var stringValue = parser.Serialize(environment, descriptor, timeSpan);
-        Assert.Equal("123", stringValue);
+        var stringValues = parser.Format(environment, descriptor, timeSpan);
+        Assert.Equal("123", stringValues);
     }
 
     [Fact]

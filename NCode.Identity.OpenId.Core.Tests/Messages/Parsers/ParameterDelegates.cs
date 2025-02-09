@@ -44,6 +44,14 @@ internal delegate IParameter ReadParameterDelegate(
     JsonSerializerOptions options
 );
 
+internal delegate void WriteParameterDelegate(
+    Utf8JsonWriter writer,
+    OpenIdEnvironment openIdEnvironment,
+    IParameter parameter,
+    SerializationFormat format,
+    JsonSerializerOptions options
+);
+
 internal delegate StringValues SerializeParameterDelegate<in T>(
     OpenIdEnvironment openIdEnvironment,
     ParameterDescriptor descriptor,

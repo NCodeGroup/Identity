@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class StringParser : ParameterParser<string?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(
+    public override StringValues Format(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         string? parsedValue)

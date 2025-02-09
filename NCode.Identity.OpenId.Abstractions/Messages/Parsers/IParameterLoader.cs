@@ -74,4 +74,20 @@ public interface IParameterLoader
         SerializationFormat format,
         JsonSerializerOptions options
     );
+
+    /// <summary>
+    /// Serializes the specified <see cref="IParameter"/> to JSON.
+    /// </summary>
+    /// <param name="writer">The <see cref="Utf8JsonWriter"/> to write to.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use when serializing the value.</param>
+    /// <param name="parameter">The <see cref="IParameter"/> to serialize.</param>
+    /// <param name="format">The serialization format to use.</param>
+    /// <param name="options">The <see cref="JsonSerializerOptions"/> being used.</param>
+    void Write(
+        Utf8JsonWriter writer,
+        OpenIdEnvironment openIdEnvironment,
+        IParameter parameter,
+        SerializationFormat format,
+        JsonSerializerOptions options
+    );
 }

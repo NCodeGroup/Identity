@@ -42,7 +42,7 @@ internal class TestParameterParser<T> : ParameterParser<T>
         (IParameter<T1>?)CreateCallback?.Invoke(openIdEnvironment, descriptor, stringValues, parsedValue) ??
         throw new NotImplementedException();
 
-    public override StringValues Serialize(
+    public override StringValues Format(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue

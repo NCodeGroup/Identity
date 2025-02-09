@@ -44,7 +44,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
     public virtual StringComparison StringComparison => StringComparison.Ordinal;
 
     /// <inheritdoc />
-    public abstract StringValues Serialize(
+    public abstract StringValues Format(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue);
@@ -88,7 +88,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
         else
         {
             var parsedValue = Deserialize<T>(ref reader, options);
-            var stringValues = Serialize(openIdEnvironment, descriptor, parsedValue);
+            var stringValues = Format(openIdEnvironment, descriptor, parsedValue);
             return Create(openIdEnvironment, descriptor, stringValues, parsedValue);
         }
     }

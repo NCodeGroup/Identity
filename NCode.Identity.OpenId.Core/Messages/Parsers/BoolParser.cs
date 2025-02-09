@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class BoolParser : ParameterParser<bool>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(
+    public override StringValues Format(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         bool parsedValue

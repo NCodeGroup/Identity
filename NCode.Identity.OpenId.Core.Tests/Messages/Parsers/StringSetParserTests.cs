@@ -48,7 +48,7 @@ public class StringSetParserTests : IDisposable
     }
 
     [Fact]
-    public void Serialize_GivenNull_ThenEmpty()
+    public void Format_GivenNull_ThenEmpty()
     {
         var parser = new StringSetParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -58,12 +58,12 @@ public class StringSetParserTests : IDisposable
 
         IReadOnlyCollection<string>? parsedValue = null;
 
-        var stringValues = parser.Serialize(environment, descriptor, parsedValue);
+        var stringValues = parser.Format(environment, descriptor, parsedValue);
         Assert.Equal(StringValues.Empty, stringValues);
     }
 
     [Fact]
-    public void Serialize_GivenEmpty_ThenEmpty()
+    public void Format_GivenEmpty_ThenEmpty()
     {
         var parser = new StringSetParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -73,7 +73,7 @@ public class StringSetParserTests : IDisposable
 
         var parsedValue = Array.Empty<string>();
 
-        var stringValues = parser.Serialize(environment, descriptor, parsedValue);
+        var stringValues = parser.Format(environment, descriptor, parsedValue);
         Assert.Equal(StringValues.Empty, stringValues);
     }
 

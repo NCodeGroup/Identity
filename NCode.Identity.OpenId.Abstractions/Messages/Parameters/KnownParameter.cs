@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
@@ -69,10 +70,10 @@ public abstract class KnownParameter
     public bool AllowMultipleStringValues { get; init; }
 
     /// <summary>
-    /// Gets a value indicating which serialization formats are ignored for the parameter.
-    /// The default value is <see cref="SerializationFormats.None"/>.
+    /// Gets a delegate that determines whether the specified parameter should be serialized for the given
+    /// <see cref="OpenIdEnvironment"/>, <see cref="IParameter"/>, and <see cref="SerializationFormat"/>.
     /// </summary>
-    public SerializationFormats IgnoredSerializationFormats { get; init; }
+    public Func<OpenIdEnvironment, IParameter, SerializationFormat, bool>? ShouldSerialize { get; init; }
 
     /// <summary>
     /// Gets the <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.

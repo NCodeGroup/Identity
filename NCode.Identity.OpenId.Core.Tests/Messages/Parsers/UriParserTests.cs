@@ -48,18 +48,18 @@ public class UriParserTests : IDisposable
     }
 
     [Fact]
-    public void Serialize_GivenNull_ThenEmpty()
+    public void Format_GivenNull_ThenEmpty()
     {
         var parser = new UriParser();
         var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(new KnownParameter<Uri?>("parameterName", parser) { AllowMissingStringValues = false });
 
-        var stringValue = parser.Serialize(environment, descriptor, null);
-        Assert.Equal(StringValues.Empty, stringValue);
+        var stringValues = parser.Format(environment, descriptor, null);
+        Assert.Equal(StringValues.Empty, stringValues);
     }
 
     [Fact]
-    public void Serialize_GivenValue_ThenValid()
+    public void Format_GivenValue_ThenValid()
     {
         var parser = new UriParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -67,8 +67,8 @@ public class UriParserTests : IDisposable
 
         var uri = new Uri("http://localhost/path1/path2?key1=value1&key2");
 
-        var stringValue = parser.Serialize(environment, descriptor, uri);
-        Assert.Equal(uri.AbsoluteUri, stringValue);
+        var stringValues = parser.Format(environment, descriptor, uri);
+        Assert.Equal(uri.AbsoluteUri, stringValues);
     }
 
     [Fact]

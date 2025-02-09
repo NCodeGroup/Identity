@@ -21,7 +21,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 
@@ -165,11 +164,6 @@ public class OpenIdMessageJsonConverter<T>(
             return;
         }
 
-        if (message.SerializationFormat == SerializationFormat.Unspecified)
-        {
-            message.SerializationFormat = SerializationFormat.Json;
-        }
-
         writer.WriteStartObject();
 
         var format = message.SerializationFormat;
@@ -183,36 +177,9 @@ public class OpenIdMessageJsonConverter<T>(
 
         foreach (var parameter in message.Parameters.Values)
         {
-            if (!ShouldSerialize(parameter.Descriptor.IgnoredSerializationFormats, format))
-                continue;
-
-            var parameterName = parameter.Descriptor.ParameterName;
-            var parameterValue = GetValueToSerialize(parameter, format);
-
-            writer.WritePropertyName(parameterName);
-            JsonSerializer.Serialize(writer, parameterValue, options);
+            parameter.Descriptor.Loader.Write(writer, OpenIdEnvironment, parameter, format, options);
         }
 
         writer.WriteEndObject();
     }
-
-    internal virtual bool ShouldSerialize(SerializationFormats ignoredFormats, SerializationFormat format) =>
-        !ignoredFormats.HasFlag((SerializationFormats)(int)format);
-
-    internal virtual object? GetValueToSerialize(IParameter parameter, SerializationFormat format) =>
-        format switch
-        {
-            SerializationFormat.Unspecified => throw new InvalidOperationException(),
-            SerializationFormat.Json => parameter.GetParsedValue(),
-            SerializationFormat.OpenId => GetOpenIdValue(parameter.StringValues),
-            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
-        };
-
-    internal virtual string? GetOpenIdValue(StringValues stringValues) =>
-        stringValues.Count switch
-        {
-            0 => null,
-            1 => stringValues[0],
-            _ => string.Join(OpenIdConstants.ParameterSeparatorChar, stringValues.AsEnumerable())
-        };
 }

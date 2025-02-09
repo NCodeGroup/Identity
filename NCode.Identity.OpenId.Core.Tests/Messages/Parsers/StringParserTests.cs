@@ -47,7 +47,7 @@ public class StringParserTests : IDisposable
     }
 
     [Fact]
-    public void Serialize_ThenValid()
+    public void Format_ThenValid()
     {
         var parser = new StringParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -57,8 +57,8 @@ public class StringParserTests : IDisposable
 
         const string parsedValue = "parsedValue";
 
-        var stringValue = parser.Serialize(environment, descriptor, parsedValue);
-        Assert.Equal(parsedValue, stringValue);
+        var stringValues = parser.Format(environment, descriptor, parsedValue);
+        Assert.Equal(parsedValue, stringValues);
     }
 
     [Fact]

@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
@@ -80,10 +81,12 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public bool AllowMultipleStringValues => KnownParameter?.AllowMultipleStringValues ?? false;
 
     /// <summary>
-    /// Gets a value indicating which serialization formats are ignored for the parameter. Returns the result from
-    /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <see cref="SerializationFormats.None"/>.
+    /// Gets a delegate that determines whether the specified parameter should be serialized for the given
+    /// <see cref="OpenIdEnvironment"/>, <see cref="IParameter"/>, and <see cref="SerializationFormat"/>.
+    /// Returns the result from <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>true</c>.
     /// </summary>
-    public SerializationFormats IgnoredSerializationFormats => KnownParameter?.IgnoredSerializationFormats ?? SerializationFormats.None;
+    public Func<OpenIdEnvironment, IParameter, SerializationFormat, bool> ShouldSerialize =>
+        KnownParameter?.ShouldSerialize ?? ((_, _, _) => true);
 
     /// <summary>
     /// Gets the <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.

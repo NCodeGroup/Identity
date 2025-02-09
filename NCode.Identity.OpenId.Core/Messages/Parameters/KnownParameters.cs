@@ -17,8 +17,10 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
@@ -26,8 +28,15 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Contains constants for various <see cref="KnownParameters"/> used by <c>OAuth</c> and <c>OpenID Connect</c> messages.
 /// </summary>
+[PublicAPI]
 public static class KnownParameters
 {
+    /// <summary>
+    /// A reusable delegate that indicates that a parameter should only be serialized when the format is <see cref="SerializationFormat.Json"/>.
+    /// </summary>
+    public static bool ShouldSerializeAsJsonOnly(OpenIdEnvironment openIdEnvironment, IParameter parameter, SerializationFormat format) =>
+        format == SerializationFormat.Json;
+
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>acr_values</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
     /// </summary>
@@ -44,7 +53,7 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.AuthorizationSourceType, EnumParser<AuthorizationSourceType>.Singleton)
         {
             AllowMissingStringValues = true,
-            IgnoredSerializationFormats = SerializationFormats.OpenId,
+            ShouldSerialize = ShouldSerializeAsJsonOnly,
         };
 
     /// <summary>
@@ -90,7 +99,7 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.CreatedWhen, ParameterParsers.DateTimeOffset)
         {
             AllowMissingStringValues = true,
-            IgnoredSerializationFormats = SerializationFormats.OpenId,
+            ShouldSerialize = ShouldSerializeAsJsonOnly,
         };
 
     /// <summary>
@@ -271,7 +280,7 @@ public static class KnownParameters
         new(OpenIdConstants.Parameters.RequestObjectSource, EnumParser<RequestObjectSource>.Singleton)
         {
             AllowMissingStringValues = true,
-            IgnoredSerializationFormats = SerializationFormats.OpenId,
+            ShouldSerialize = ShouldSerializeAsJsonOnly,
         };
 
     /// <summary>

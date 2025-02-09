@@ -31,7 +31,7 @@ internal class ProxyParameterParser<T> : ProxyParameterLoader, IParameterParser<
     public SerializeParameterDelegate<T>? SerializeCallback { get; set; }
     public ParseParameterDelegate<T>? ParseCallback { get; set; }
 
-    public StringValues Serialize(
+    public StringValues Format(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue

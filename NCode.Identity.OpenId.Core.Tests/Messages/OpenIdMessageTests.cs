@@ -281,7 +281,7 @@ public class OpenIdMessageTests : BaseTests
         message.Initialize(environment, [parameter]);
 
         mockParameterParser
-            .Setup(x => x.Serialize(environment, descriptor, parsedValue))
+            .Setup(x => x.Format(environment, descriptor, parsedValue))
             .Returns(StringValues.Empty)
             .Verifiable();
 
@@ -317,7 +317,7 @@ public class OpenIdMessageTests : BaseTests
         var descriptor = new ParameterDescriptor(knownParameter);
 
         mockParameterParser
-            .Setup(x => x.Serialize(environment, descriptor, parsedValue))
+            .Setup(x => x.Format(environment, descriptor, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 
@@ -368,7 +368,7 @@ public class OpenIdMessageTests : BaseTests
         stringValues = JsonSerializer.Serialize(parsedValue);
 
         mockParameterParser
-            .Setup(x => x.Serialize(environment, descriptor, parsedValue))
+            .Setup(x => x.Format(environment, descriptor, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 

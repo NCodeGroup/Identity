@@ -58,7 +58,7 @@ public class EnumParser<T> : ParameterParser<T>
     }
 
     /// <inheritdoc/>
-    public override StringValues Serialize(
+    public override StringValues Format(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T parsedValue

@@ -41,7 +41,7 @@ public class JsonParserTests : BaseTests
     }
 
     [Fact]
-    public void Serialize_ThenValid()
+    public void Format_ThenValid()
     {
         const string parameterName = nameof(parameterName);
 
@@ -59,7 +59,7 @@ public class JsonParserTests : BaseTests
         var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
         var expectedValueAsJson = JsonSerializer.Serialize(expectedValue, jsonSerializerOptions);
 
-        var stringValues = parser.Serialize(environment, descriptor, expectedValue);
+        var stringValues = parser.Format(environment, descriptor, expectedValue);
         Assert.Equal(expectedValueAsJson, stringValues);
     }
 

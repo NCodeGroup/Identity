@@ -27,17 +27,12 @@ namespace NCode.Identity.OpenId.Messages;
 public enum SerializationFormat
 {
     /// <summary>
-    /// Represents a value that hasn't been initialized yet and its value is unknown.
-    /// </summary>
-    Unspecified = 0,
-
-    /// <summary>
     /// Indicates that a value should be serialized as JSON.
     /// </summary>
-    Json = 1,
+    Json = 0,
 
     /// <summary>
     /// Indicates that value should be serialized using OpenID standards.
     /// </summary>
-    OpenId = 2,
+    OpenId = 1,
 }

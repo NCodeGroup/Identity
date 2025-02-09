@@ -213,7 +213,7 @@ public class OpenIdMessage : IOpenIdMessage
         }
 
         var descriptor = new ParameterDescriptor(knownParameter);
-        var stringValues = knownParameter.Parser.Serialize(OpenIdEnvironmentOrNull, descriptor, parsedValue);
+        var stringValues = knownParameter.Parser.Format(OpenIdEnvironmentOrNull, descriptor, parsedValue);
         if (StringValues.IsNullOrEmpty(stringValues))
         {
             ParameterStore.Remove(parameterName);

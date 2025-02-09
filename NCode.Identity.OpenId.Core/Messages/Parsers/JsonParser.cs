@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class JsonParser<T> : ParameterParser<T?>
 {
     /// <inheritdoc/>
-    public override StringValues Serialize(
+    public override StringValues Format(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue)

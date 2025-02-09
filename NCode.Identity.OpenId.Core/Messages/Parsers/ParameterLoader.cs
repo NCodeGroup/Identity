@@ -36,19 +36,43 @@ public class ParameterLoader : IParameterLoader
     /// </summary>
     public static ParameterLoader Default { get; } = new();
 
-    private static StringValues ToStringValues(string? value) =>
+    /// <summary>
+    /// Converts the specified OpenId string value to an <see cref="StringValues"/> instance.
+    /// </summary>
+    /// <param name="value">The OpenId string value to convert.</param>
+    /// <returns>The <see cref="StringValues"/> instance.</returns>
+    protected internal virtual StringValues ToStringValues(string? value) =>
         value switch
         {
             null => StringValues.Empty,
             _ => new StringValues(value.Split(OpenIdConstants.ParameterSeparatorChar))
         };
 
-    private static string? FromStringValues(StringValues stringValues) =>
+    /// <summary>
+    /// Converts the specified <see cref="StringValues"/> instance to a formatted OpenId string value.
+    /// </summary>
+    /// <param name="stringValues">The <see cref="StringValues"/> to convert.</param>
+    /// <returns>The formatted OpenId string value.</returns>
+    protected internal virtual string? FromStringValues(StringValues stringValues) =>
         stringValues.Count switch
         {
             0 => null,
             1 => stringValues[0],
             _ => string.Join(OpenIdConstants.ParameterSeparatorChar, stringValues.AsEnumerable())
+        };
+
+    /// <summary>
+    /// Gets the value to serialize for the specified <paramref name="parameter"/> and <paramref name="format"/>.
+    /// </summary>
+    /// <param name="parameter">The parameter to serialize.</param>
+    /// <param name="format">The serialization format to use.</param>
+    /// <returns>The value to serialize.</returns>
+    protected internal virtual object? GetValueToSerialize(IParameter parameter, SerializationFormat format) =>
+        format switch
+        {
+            SerializationFormat.Json => parameter.GetParsedValue(),
+            SerializationFormat.OpenId => FromStringValues(parameter.StringValues),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
         };
 
     /// <summary>
@@ -119,5 +143,27 @@ public class ParameterLoader : IParameterLoader
             default:
                 throw new ArgumentOutOfRangeException(nameof(format), format, null);
         }
+    }
+
+    /// <inheritdoc />
+    public virtual void Write(
+        Utf8JsonWriter writer,
+        OpenIdEnvironment openIdEnvironment,
+        IParameter parameter,
+        SerializationFormat format,
+        JsonSerializerOptions options
+    )
+    {
+        var descriptor = parameter.Descriptor;
+        if (!descriptor.ShouldSerialize(openIdEnvironment, parameter, format))
+        {
+            return;
+        }
+
+        var parameterName = descriptor.ParameterName;
+        var parameterValue = GetValueToSerialize(parameter, format);
+
+        writer.WritePropertyName(parameterName);
+        JsonSerializer.Serialize(writer, parameterValue, options);
     }
 }

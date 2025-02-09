@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Text.Json;
-using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
@@ -427,12 +426,10 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         var message = new OpenIdMessage(environment, Array.Empty<Parameter>());
 
-        Assert.Equal(SerializationFormat.Unspecified, message.SerializationFormat);
+        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);
         jsonWriter.Flush();
-
-        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         var jsonReader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
@@ -522,12 +519,10 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         var message = new OpenIdMessage(environment, [parameter]);
 
-        Assert.Equal(SerializationFormat.Unspecified, message.SerializationFormat);
+        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);
         jsonWriter.Flush();
-
-        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         var jsonReader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
@@ -647,12 +642,10 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         var message = new OpenIdMessage(environment, [parameter]);
 
-        Assert.Equal(SerializationFormat.Unspecified, message.SerializationFormat);
+        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         converter.Write(jsonWriter, message, jsonSerializerOptions);
         jsonWriter.Flush();
-
-        Assert.Equal(SerializationFormat.Json, message.SerializationFormat);
 
         var jsonReader = new Utf8JsonReader(bufferWriter.WrittenSpan);
 
@@ -756,99 +749,5 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.EndObject, jsonReader.TokenType);
-    }
-
-    [Theory]
-    [InlineData(SerializationFormats.None, SerializationFormat.Json, true)]
-    [InlineData(SerializationFormats.None, SerializationFormat.OpenId, true)]
-    [InlineData(SerializationFormats.Json, SerializationFormat.Json, false)]
-    [InlineData(SerializationFormats.Json, SerializationFormat.OpenId, true)]
-    [InlineData(SerializationFormats.Json | SerializationFormats.OpenId, SerializationFormat.Json, false)]
-    [InlineData(SerializationFormats.Json | SerializationFormats.OpenId, SerializationFormat.OpenId, false)]
-    public void ShouldSerialize_Valid(SerializationFormats ignoredFormats, SerializationFormat format, bool expectedResult)
-    {
-        var environment = MockOpenIdEnvironment.Object;
-        var converter = new OpenIdMessageJsonConverter<IOpenIdMessage>(environment);
-
-        var result = converter.ShouldSerialize(ignoredFormats, format);
-        Assert.Equal(expectedResult, result);
-    }
-
-    [Fact]
-    public void GetValueToSerialize_FormatJson_Valid()
-    {
-        const SerializationFormat format = SerializationFormat.Json;
-        const string parsedValue = nameof(parsedValue);
-
-        var mockConverter = CreatePartialMock<OpenIdMessageJsonConverter<IOpenIdMessage>>(MockOpenIdEnvironment.Object);
-        var mockParameter = CreateStrictMock<IParameter>();
-
-        mockParameter
-            .Setup(x => x.GetParsedValue())
-            .Returns(parsedValue)
-            .Verifiable();
-
-        var converter = mockConverter.Object;
-
-        var result = converter.GetValueToSerialize(mockParameter.Object, format);
-        Assert.Equal(parsedValue, result);
-    }
-
-    [Fact]
-    public void GetValueToSerialize_FormatOpenId_Valid()
-    {
-        const SerializationFormat format = SerializationFormat.OpenId;
-        const string openIdValue = nameof(openIdValue);
-
-        var mockConverter = CreatePartialMock<OpenIdMessageJsonConverter<IOpenIdMessage>>(MockOpenIdEnvironment.Object);
-
-        StringValues stringValues = new[] { "stringValue1", "stringValue2" };
-        mockConverter
-            .Setup(x => x.GetOpenIdValue(stringValues))
-            .Returns(openIdValue)
-            .Verifiable();
-
-        var mockParameter = CreateStrictMock<IParameter>();
-        mockParameter
-            .Setup(x => x.StringValues)
-            .Returns(stringValues)
-            .Verifiable();
-
-        var converter = mockConverter.Object;
-
-        var result = converter.GetValueToSerialize(mockParameter.Object, format);
-        Assert.Equal(openIdValue, result);
-    }
-
-    [Fact]
-    public void GetOpenIdValue_GivenEmpty_Valid()
-    {
-        var converter = new OpenIdMessageJsonConverter<IOpenIdMessage>(MockOpenIdEnvironment.Object);
-
-        var stringValues = StringValues.Empty;
-        var result = converter.GetOpenIdValue(stringValues);
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void GetOpenIdValue_GivenSingle_Valid()
-    {
-        var converter = new OpenIdMessageJsonConverter<IOpenIdMessage>(MockOpenIdEnvironment.Object);
-
-        const string stringValue = nameof(stringValue);
-        StringValues stringValues = new[] { stringValue };
-        var result = converter.GetOpenIdValue(stringValues);
-        Assert.Equal(stringValue, result);
-    }
-
-    [Fact]
-    public void GetOpenIdValue_GivenMultiple_Valid()
-    {
-        var converter = new OpenIdMessageJsonConverter<IOpenIdMessage>(MockOpenIdEnvironment.Object);
-
-        var stringValuesArray = new[] { "stringValue1", "stringValue2" };
-        StringValues stringValues = stringValuesArray;
-        var result = converter.GetOpenIdValue(stringValues);
-        Assert.Equal(string.Join(' ', stringValuesArray), result);
     }
 }

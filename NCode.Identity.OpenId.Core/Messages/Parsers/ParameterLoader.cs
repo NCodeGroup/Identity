@@ -154,13 +154,7 @@ public class ParameterLoader : IParameterLoader
         JsonSerializerOptions options
     )
     {
-        var descriptor = parameter.Descriptor;
-        if (!descriptor.ShouldSerialize(openIdEnvironment, parameter, format))
-        {
-            return;
-        }
-
-        var parameterName = descriptor.ParameterName;
+        var parameterName = parameter.Descriptor.ParameterName;
         var parameterValue = GetValueToSerialize(parameter, format);
 
         writer.WritePropertyName(parameterName);

@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
@@ -40,7 +41,17 @@ public class OpenIdMessageJsonConverter<T>(
     private const string TypeKey = "$type";
     private const string FormatKey = "$format";
 
+    // ReSharper disable once StaticMemberInGenericType
+    private static string DefaultTypeDiscriminator { get; } = GetDefaultTypeDiscriminator();
+
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+
+    private static string GetDefaultTypeDiscriminator()
+    {
+        var type = typeof(T);
+        var attribute = type.GetCustomAttribute<OpenIdTypeDiscriminatorAttribute>();
+        return attribute?.TypeDiscriminator ?? (type.IsClass ? type.Name : nameof(OpenIdMessage));
+    }
 
     internal IParameter ReadParameter(
         ref Utf8JsonReader reader,
@@ -65,7 +76,7 @@ public class OpenIdMessageJsonConverter<T>(
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         T? messageOrNull = null;
-        var typeDiscriminator = nameof(OpenIdMessage);
+        var typeDiscriminator = DefaultTypeDiscriminator;
 
         if (reader.TokenType == JsonTokenType.Null)
             return null;

@@ -123,12 +123,12 @@ public class ParameterLoader : IParameterLoader
                 {
                     if (!descriptor.AllowMissingStringValues)
                     {
-                        throw new InvalidOperationException();
+                        throw new InvalidOperationException("The parameter is configured to not allow missing string values.");
                     }
                 }
                 else if (reader.TokenType != JsonTokenType.String)
                 {
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("The default implementation of ParameterLoader only supports string values.");
                 }
 
                 var parsedValue = reader.GetString();

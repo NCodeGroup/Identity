@@ -29,25 +29,16 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 [PublicAPI]
 public abstract class Parameter : IParameter
 {
-    /// <summary>
-    /// Gets the <see cref="ParameterDescriptor"/> that describes this parameter.
-    /// </summary>
+    /// <inheritdoc />
     public required ParameterDescriptor Descriptor { get; init; }
 
-    /// <summary>
-    /// Gets the <see cref="StringValues"/> that this parameter was loaded with.
-    /// </summary>
+    /// <inheritdoc />
     public required StringValues StringValues { get; init; }
 
-    /// <summary>
-    /// Gets the value that this parameter was parsed with.
-    /// </summary>
+    /// <inheritdoc />
     public abstract object? GetParsedValue();
 
-    /// <summary>
-    /// Clones this <see cref="IParameter"/> instance.
-    /// </summary>
-    /// <returns>The newly cloned <see cref="IParameter"/> instance.</returns>
+    /// <inheritdoc />
     public abstract IParameter Clone();
 
     /// <summary>
@@ -109,9 +100,7 @@ public abstract class Parameter : IParameter
 [PublicAPI]
 public class Parameter<T> : Parameter, IParameter<T>
 {
-    /// <summary>
-    /// Gets the value that this parameter was parsed with.
-    /// </summary>
+    /// <inheritdoc />
     public T? ParsedValue { get; init; }
 
     /// <inheritdoc />

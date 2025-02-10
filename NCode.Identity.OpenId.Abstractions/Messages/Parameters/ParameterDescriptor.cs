@@ -75,12 +75,6 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public bool SortStringValues => KnownParameter?.SortStringValues ?? false;
 
     /// <summary>
-    /// Gets a value indicating whether the parameter allows multiple string values when parsing. Returns the result from
-    /// <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>false</c>.
-    /// </summary>
-    public bool AllowMultipleStringValues => KnownParameter?.AllowMultipleStringValues ?? false;
-
-    /// <summary>
     /// Gets a delegate that determines whether the specified parameter should be serialized for the given
     /// <see cref="OpenIdEnvironment"/>, <see cref="IParameter"/>, and <see cref="SerializationFormat"/>.
     /// Returns the result from <see cref="KnownParameter"/> if one was provided; otherwise always returns <c>true</c>.

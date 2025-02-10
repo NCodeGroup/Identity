@@ -16,6 +16,9 @@
 
 #endregion
 
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
@@ -39,22 +42,26 @@ public class EnumParser<T> : ParameterParser<T>
     private static JsonNamingPolicy JsonNamingPolicy => JsonNamingPolicy.SnakeCaseLower;
     private static bool HasFlagsAttribute { get; } = typeof(T).IsDefined(typeof(FlagsAttribute), false);
 
-    private static Dictionary<string, T> NameMap { get; } = Enum
-        .GetValues<T>()
-        .ToDictionary(
+    private static T[] Values { get; } = Enum.GetValues<T>();
+
+    private static Dictionary<string, T> NameMap { get; } =
+        Values.ToDictionary(
             ConvertToString,
             value => value,
-            StringComparer.Ordinal
+            StringComparer.OrdinalIgnoreCase
         );
+
+    private static Dictionary<string, T>.AlternateLookup<ReadOnlySpan<char>> NameLookup { get; } =
+        NameMap.GetAlternateLookup<ReadOnlySpan<char>>();
 
     private static string ConvertToString(T value)
     {
         return JsonNamingPolicy.ConvertName(value.ToString());
     }
 
-    private static bool TryParse(string value, out T result)
+    private static bool TryParseValue(ReadOnlySpan<char> value, out T result)
     {
-        return NameMap.TryGetValue(value, out result) || Enum.TryParse(value, ignoreCase: false, out result);
+        return NameLookup.TryGetValue(value, out result) || Enum.TryParse(value, ignoreCase: true, out result);
     }
 
     /// <inheritdoc/>
@@ -69,12 +76,12 @@ public class EnumParser<T> : ParameterParser<T>
             return ConvertToString(parsedValue);
         }
 
-        var values = Enum
-            .GetValues<T>()
+        var stringValues = Values
             .Where(flagValue => parsedValue.HasFlag(flagValue))
-            .Select(ConvertToString);
+            .Select(ConvertToString)
+            .ToArray();
 
-        return string.Join(Separator, values);
+        return stringValues;
     }
 
     /// <inheritdoc/>
@@ -95,26 +102,122 @@ public class EnumParser<T> : ParameterParser<T>
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
 
-            case > 1 when !descriptor.AllowMultipleStringValues:
+            case > 1 when !HasFlagsAttribute:
                 throw openIdEnvironment
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
-
-            default:
-                var valueToParse = HasFlagsAttribute ?
-                    string.Join(',', stringValues.AsEnumerable().SelectMany(stringValue => (stringValue ?? string.Empty).Split(Separator))) :
-                    stringValues.ToString();
-
-                if (!TryParse(valueToParse, out var parsedValue))
-                {
-                    throw openIdEnvironment
-                        .ErrorFactory
-                        .InvalidParameterValue(descriptor.ParameterName)
-                        .AsException();
-                }
-
-                return parsedValue;
         }
+
+        if (HasFlagsAttribute)
+        {
+            return ParseFlags(openIdEnvironment, descriptor, stringValues);
+        }
+
+        var stringValue = stringValues[0];
+        Debug.Assert(stringValue is not null);
+
+        return ParseValue(
+            openIdEnvironment,
+            descriptor,
+            stringValue.AsSpan()
+        );
+    }
+
+    private static T ParseValue(
+        OpenIdEnvironment openIdEnvironment,
+        ParameterDescriptor descriptor,
+        ReadOnlySpan<char> value
+    )
+    {
+        if (!TryParseValue(value, out var parsedValue))
+        {
+            throw openIdEnvironment
+                .ErrorFactory
+                .InvalidParameterValue(descriptor.ParameterName)
+                .AsException();
+        }
+
+        return parsedValue;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private T ParseFlags(
+        OpenIdEnvironment openIdEnvironment,
+        ParameterDescriptor descriptor,
+        StringValues stringValues
+    )
+    {
+        Unsafe.SkipInit(out T result);
+
+        var underlyingType = typeof(T).GetEnumUnderlyingType();
+
+        if (underlyingType == typeof(byte))
+        {
+            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, byte>(ref result));
+        }
+        else if (underlyingType == typeof(sbyte))
+        {
+            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, sbyte>(ref result));
+        }
+        else if (underlyingType == typeof(short))
+        {
+            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, short>(ref result));
+        }
+        else if (underlyingType == typeof(ushort))
+        {
+            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, ushort>(ref result));
+        }
+        else if (underlyingType == typeof(int))
+        {
+            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, int>(ref result));
+        }
+        else if (underlyingType == typeof(uint))
+        {
+            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, uint>(ref result));
+        }
+        else if (underlyingType == typeof(long))
+        {
+            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, long>(ref result));
+        }
+        else if (underlyingType == typeof(ulong))
+        {
+            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, ulong>(ref result));
+        }
+        else
+        {
+            // we chose to not support the rare enum underlying types
+            throw new InvalidOperationException("Unsupported enum underlying type encountered.");
+        }
+
+        return result;
+    }
+
+    private void ParseFlags<TUnderlying>(
+        OpenIdEnvironment openIdEnvironment,
+        ParameterDescriptor descriptor,
+        StringValues stringValues,
+        out TUnderlying result
+    )
+        where TUnderlying : struct, INumber<TUnderlying>, IBitwiseOperators<TUnderlying, TUnderlying, TUnderlying>
+    {
+        TUnderlying accumulator = default;
+
+        foreach (var stringValue in stringValues.AsEnumerable())
+        {
+            if (string.IsNullOrEmpty(stringValue))
+                continue;
+
+            var stringSpan = stringValue.AsSpan();
+            foreach (var range in stringSpan.Split(Separator))
+            {
+                var valueToParse = stringSpan[range];
+                var parsedValue = ParseValue(openIdEnvironment, descriptor, valueToParse);
+
+                accumulator |= Unsafe.As<T, TUnderlying>(ref parsedValue);
+            }
+        }
+
+        result = accumulator;
     }
 }

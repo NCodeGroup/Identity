@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -46,7 +47,6 @@ public class ParameterTests : IDisposable
         var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -69,12 +69,12 @@ public class ParameterTests : IDisposable
         var mockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
 
         const string parameterName = "parameterName";
-        var stringValues = new[] { "value1", "value2" };
+        var parsedValue = new[] { "value1", "value2" };
+        StringValues stringValues = parsedValue;
 
         var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var environment = mockOpenIdEnvironment.Object;
@@ -83,7 +83,7 @@ public class ParameterTests : IDisposable
         {
             Descriptor = descriptor,
             StringValues = stringValues,
-            ParsedValue = stringValues
+            ParsedValue = parsedValue
         };
 
         mockParser
@@ -96,7 +96,7 @@ public class ParameterTests : IDisposable
             .Returns(descriptor)
             .Verifiable();
 
-        var actualParameter = Parameter.Load(environment, parameterName, stringValues.AsEnumerable());
+        var actualParameter = Parameter.Load(environment, parameterName, stringValues);
         var typedParameter = Assert.IsType<Parameter<string[]>>(actualParameter);
 
         Assert.Equal(expectedParameter.Descriptor, typedParameter.Descriptor);

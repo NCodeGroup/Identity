@@ -46,7 +46,7 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
             parsedValue.Order() :
             parsedValue.AsEnumerable();
 
-        return string.Join(Separator, values);
+        return values.ToArray();
     }
 
     /// <inheritdoc/>
@@ -67,22 +67,14 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
                     .ErrorFactory
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
-
-            case > 1 when descriptor.AllowMultipleStringValues:
-                return stringValues
-                    .SelectMany(stringValue => stringValue!.Split(Separator))
-                    .ToHashSet(StringComparer.Ordinal);
-
-            case > 1:
-                throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
-                    .AsException();
-
-            default:
-                return stringValues[0]!
-                    .Split(Separator)
-                    .ToHashSet(StringComparer.Ordinal);
         }
+
+        return stringValues
+            .AsEnumerable()
+            .SelectMany(stringValue =>
+                (stringValue ?? string.Empty).Split(
+                    Separator,
+                    StringSplitOptions.RemoveEmptyEntries))
+            .ToHashSet(StringComparer.Ordinal);
     }
 }

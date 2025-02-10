@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
@@ -60,29 +61,24 @@ public class TimeSpanParser : ParameterParser<TimeSpan?>
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
 
-            case > 1 when !descriptor.AllowMultipleStringValues:
+            case > 1:
                 throw openIdEnvironment
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
         }
 
-        var value = TimeSpan.Zero;
-        foreach (var stringValue in stringValues)
+        var stringValue = stringValues[0];
+        Debug.Assert(stringValue is not null);
+
+        if (!int.TryParse(stringValue, CultureInfo.InvariantCulture, out var seconds))
         {
-            if (int.TryParse(stringValue, out var seconds))
-            {
-                value += TimeSpan.FromSeconds(seconds);
-            }
-            else
-            {
-                throw openIdEnvironment
-                    .ErrorFactory
-                    .InvalidParameterValue(descriptor.ParameterName)
-                    .AsException();
-            }
+            throw openIdEnvironment
+                .ErrorFactory
+                .InvalidParameterValue(descriptor.ParameterName)
+                .AsException();
         }
 
-        return value;
+        return TimeSpan.FromSeconds(seconds);
     }
 }

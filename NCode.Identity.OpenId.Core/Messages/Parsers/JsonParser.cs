@@ -54,8 +54,6 @@ public class JsonParser<T> : ParameterParser<T?>
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
-        Debug.Assert(!descriptor.AllowMultipleStringValues);
-
         switch (stringValues.Count)
         {
             case 0 when descriptor.AllowMissingStringValues:
@@ -74,12 +72,12 @@ public class JsonParser<T> : ParameterParser<T?>
                     .AsException();
         }
 
-        var json = stringValues[0];
-        Debug.Assert(json is not null);
+        var stringValue = stringValues[0];
+        Debug.Assert(stringValue is not null);
 
         try
         {
-            return JsonSerializer.Deserialize<T>(json, openIdEnvironment.JsonSerializerOptions);
+            return JsonSerializer.Deserialize<T>(stringValue, openIdEnvironment.JsonSerializerOptions);
         }
         catch (Exception exception)
         {

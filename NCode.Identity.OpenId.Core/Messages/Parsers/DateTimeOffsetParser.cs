@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
@@ -60,17 +61,19 @@ public class DateTimeOffsetParser : ParameterParser<DateTimeOffset>
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
-
-            default:
-                if (!long.TryParse(stringValues[0], NumberStyles.None, CultureInfo.InvariantCulture, out var unixTimeSeconds))
-                {
-                    throw openIdEnvironment
-                        .ErrorFactory
-                        .InvalidParameterValue(descriptor.ParameterName)
-                        .AsException();
-                }
-
-                return DateTimeOffset.FromUnixTimeSeconds(unixTimeSeconds);
         }
+
+        var stringValue = stringValues[0];
+        Debug.Assert(stringValue is not null);
+
+        if (!long.TryParse(stringValues[0], NumberStyles.None, CultureInfo.InvariantCulture, out var unixTimeSeconds))
+        {
+            throw openIdEnvironment
+                .ErrorFactory
+                .InvalidParameterValue(descriptor.ParameterName)
+                .AsException();
+        }
+
+        return DateTimeOffset.FromUnixTimeSeconds(unixTimeSeconds);
     }
 }

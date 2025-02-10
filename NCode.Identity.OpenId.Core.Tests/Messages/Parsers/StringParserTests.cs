@@ -29,21 +29,13 @@ namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
 
 // TODO: unit tests for IgnoreErrors
 
-public class StringParserTests : IDisposable
+public class StringParserTests : BaseTests
 {
-    private MockRepository MockRepository { get; }
     private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
 
     public StringParserTests()
     {
-        MockRepository = new MockRepository(MockBehavior.Strict);
-        MockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
-    }
-
-    public void Dispose()
-    {
-        MockRepository.Verify();
-        GC.SuppressFinalize(this);
+        MockOpenIdEnvironment = CreateStrictMock<OpenIdEnvironment>();
     }
 
     [Fact]
@@ -90,13 +82,13 @@ public class StringParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        var mockOpenIdErrorFactory = CreateStrictMock<IOpenIdErrorFactory>();
         MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
 
-        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        var mockOpenIdError = CreateStrictMock<IOpenIdError>();
         mockOpenIdErrorFactory
             .Setup(x => x.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
             .Returns(mockOpenIdError.Object)
@@ -128,28 +120,7 @@ public class StringParserTests : IDisposable
     }
 
     [Fact]
-    public void Parse_GivenMultipleValues_WhenAllowMultipleValues_ThenValid()
-    {
-        var parser = new StringParser();
-        var environment = MockOpenIdEnvironment.Object;
-
-        const string parameterName = "parameterName";
-        var stringValues = new[] { "value1", "value2" };
-        var expectedResult = string.Join(" ", stringValues);
-
-        var knownParameter = new KnownParameter<string?>(parameterName, parser)
-        {
-            AllowMissingStringValues = true,
-        };
-
-        var descriptor = new ParameterDescriptor(knownParameter);
-
-        var result = parser.Parse(environment, descriptor, stringValues);
-        Assert.Equal(expectedResult, result);
-    }
-
-    [Fact]
-    public void Parse_GivenMultipleValues_WhenDisallowMultipleValues_ThenThrows()
+    public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new StringParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -157,13 +128,13 @@ public class StringParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
 
-        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
+        var mockOpenIdErrorFactory = CreateStrictMock<IOpenIdErrorFactory>();
         MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockOpenIdErrorFactory.Object)
             .Verifiable();
 
-        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
+        var mockOpenIdError = CreateStrictMock<IOpenIdError>();
         mockOpenIdErrorFactory
             .Setup(x => x.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
             .Returns(mockOpenIdError.Object)

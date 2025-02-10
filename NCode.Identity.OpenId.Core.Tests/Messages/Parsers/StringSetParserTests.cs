@@ -144,53 +144,7 @@ public class StringSetParserTests : IDisposable
     }
 
     [Fact]
-    public void Parse_GivenMultipleValues_WhenDisallowMultipleValues_ThenThrows()
-    {
-        var parser = new StringSetParser();
-        var environment = MockOpenIdEnvironment.Object;
-
-        const string parameterName = "parameterName";
-        var stringValues = new[] { "value1", "value2" };
-
-        var mockOpenIdErrorFactory = MockRepository.Create<IOpenIdErrorFactory>();
-        MockOpenIdEnvironment
-            .Setup(x => x.ErrorFactory)
-            .Returns(mockOpenIdErrorFactory.Object)
-            .Verifiable();
-
-        var mockOpenIdError = MockRepository.Create<IOpenIdError>();
-        mockOpenIdErrorFactory
-            .Setup(x => x.Create(OpenIdConstants.ErrorCodes.InvalidRequest))
-            .Returns(mockOpenIdError.Object)
-            .Verifiable();
-
-        mockOpenIdError
-            .Setup(x => x.Code)
-            .Returns(OpenIdConstants.ErrorCodes.InvalidRequest)
-            .Verifiable();
-
-        mockOpenIdError
-            .SetupSet(x => x.Description = $"The request includes the '{parameterName}' parameter more than once.")
-            .Verifiable();
-
-        mockOpenIdError
-            .Setup(x => x.Exception)
-            .Returns((Exception?)null)
-            .Verifiable();
-
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
-        {
-            AllowMissingStringValues = false,
-        };
-
-        var descriptor = new ParameterDescriptor(knownParameter);
-
-        Assert.Throws<OpenIdException>(() =>
-            parser.Parse(environment, descriptor, stringValues));
-    }
-
-    [Fact]
-    public void Parse_GivenMultipleValues_WhenAllowMultipleValues_ThenValid()
+    public void Parse_GivenMultipleValues_ThenValid()
     {
         var parser = new StringSetParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -210,7 +164,7 @@ public class StringSetParserTests : IDisposable
     }
 
     [Fact]
-    public void Parse_GivenDuplicateValues_WhenAllowMultipleValues_ThenDistinctValues()
+    public void Parse_GivenDuplicateValues_ThenDistinctValues()
     {
         var parser = new StringSetParser();
         var environment = MockOpenIdEnvironment.Object;

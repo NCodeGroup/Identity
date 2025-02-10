@@ -69,12 +69,18 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
                     .AsException();
         }
 
-        return stringValues
-            .AsEnumerable()
-            .SelectMany(stringValue =>
-                (stringValue ?? string.Empty).Split(
-                    Separator,
-                    StringSplitOptions.RemoveEmptyEntries))
-            .ToHashSet(StringComparer.Ordinal);
+        var results = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var stringValue in stringValues)
+        {
+            var stringSpan = stringValue.AsSpan();
+            foreach (var range in stringSpan.Split(Separator))
+            {
+                var part = stringSpan[range];
+                results.Add(part.ToString());
+            }
+        }
+
+        return results;
     }
 }

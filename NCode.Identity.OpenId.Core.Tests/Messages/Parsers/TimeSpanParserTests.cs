@@ -142,7 +142,7 @@ public class TimeSpanParserTests : IDisposable
     }
 
     [Fact]
-    public void Parse_GivenMultipleValues_DisallowMultipleValues_ThenThrows()
+    public void Parse_GivenMultipleValues_ThenThrows()
     {
         var parser = new TimeSpanParser();
         var environment = MockOpenIdEnvironment.Object;
@@ -185,27 +185,6 @@ public class TimeSpanParserTests : IDisposable
 
         Assert.Throws<OpenIdException>(() =>
             parser.Parse(environment, descriptor, stringValues));
-    }
-
-    [Fact]
-    public void Parse_GivenMultipleValues_AllowMultipleValues_ThenValid()
-    {
-        var parser = new TimeSpanParser();
-        var environment = MockOpenIdEnvironment.Object;
-
-        const string parameterName = "parameterName";
-        var stringValues = new[] { "123", "456" };
-        var expectedValue = TimeSpan.FromSeconds(123 + 456);
-
-        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
-        {
-            AllowMissingStringValues = false,
-        };
-
-        var descriptor = new ParameterDescriptor(knownParameter);
-
-        var result = parser.Parse(environment, descriptor, stringValues);
-        Assert.Equal(expectedValue, result);
     }
 
     [Fact]

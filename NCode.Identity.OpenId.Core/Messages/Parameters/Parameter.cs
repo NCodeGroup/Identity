@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
@@ -48,10 +49,11 @@ public abstract class Parameter : IParameter
     /// <param name="parameterName">The name of parameter.</param>
     /// <param name="stringValues">The string values to parse for the parameter.</param>
     /// <returns>The newly parsed and loaded parameter.</returns>
+    [OverloadResolutionPriority(-1)]
     public static IParameter Load(
         OpenIdEnvironment openIdEnvironment,
         string parameterName,
-        IEnumerable<string> stringValues)
+        params IEnumerable<string> stringValues)
     {
         return Load(openIdEnvironment, parameterName, stringValues.ToArray());
     }

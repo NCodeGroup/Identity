@@ -36,30 +36,13 @@ public class ParameterLoader : IParameterLoader
     /// </summary>
     public static ParameterLoader Default { get; } = new();
 
-    /// <summary>
-    /// Converts the specified OpenId string value to an <see cref="StringValues"/> instance.
-    /// </summary>
-    /// <param name="value">The OpenId string value to convert.</param>
-    /// <returns>The <see cref="StringValues"/> instance.</returns>
+    /// <inheritdoc cref="IStringValuesConverter.ToStringValues"/>
     protected internal virtual StringValues ToStringValues(string? value) =>
-        value switch
-        {
-            null => StringValues.Empty,
-            _ => new StringValues(value.Split(OpenIdConstants.ParameterSeparatorChar))
-        };
+        StringValuesConverter.Singleton.ToStringValues(value);
 
-    /// <summary>
-    /// Converts the specified <see cref="StringValues"/> instance to a formatted OpenId string value.
-    /// </summary>
-    /// <param name="stringValues">The <see cref="StringValues"/> to convert.</param>
-    /// <returns>The formatted OpenId string value.</returns>
+    /// <inheritdoc cref="IStringValuesConverter.FromStringValues"/>
     protected internal virtual string? FromStringValues(StringValues stringValues) =>
-        stringValues.Count switch
-        {
-            0 => null,
-            1 => stringValues[0],
-            _ => string.Join(OpenIdConstants.ParameterSeparatorChar, stringValues.AsEnumerable())
-        };
+        StringValuesConverter.Singleton.FromStringValues(stringValues);
 
     /// <summary>
     /// Gets the value to serialize for the specified <paramref name="parameter"/> and <paramref name="format"/>.

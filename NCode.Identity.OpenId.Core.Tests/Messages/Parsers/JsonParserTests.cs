@@ -75,7 +75,6 @@ public class JsonParserTests : BaseTests
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             AllowMissingStringValues = true,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -122,7 +121,6 @@ public class JsonParserTests : BaseTests
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -169,7 +167,6 @@ public class JsonParserTests : BaseTests
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -198,7 +195,6 @@ public class JsonParserTests : BaseTests
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -249,7 +245,6 @@ public class JsonParserTests : BaseTests
         var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);

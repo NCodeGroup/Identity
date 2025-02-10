@@ -48,8 +48,6 @@ public class UriParser : ParameterParser<Uri?>
         ParameterDescriptor descriptor,
         StringValues stringValues)
     {
-        Debug.Assert(!descriptor.AllowMultipleStringValues);
-
         switch (stringValues.Count)
         {
             case 0 when descriptor.AllowMissingStringValues:
@@ -68,12 +66,17 @@ public class UriParser : ParameterParser<Uri?>
                     .AsException();
         }
 
-        if (Uri.TryCreate(stringValues[0], UriKind.Absolute, out var uri))
-            return uri;
+        var stringValue = stringValues[0];
+        Debug.Assert(stringValue is not null);
 
-        throw openIdEnvironment
-            .ErrorFactory
-            .InvalidParameterValue(descriptor.ParameterName)
-            .AsException();
+        if (!Uri.TryCreate(stringValue, UriKind.Absolute, out var uri))
+        {
+            throw openIdEnvironment
+                .ErrorFactory
+                .InvalidParameterValue(descriptor.ParameterName)
+                .AsException();
+        }
+
+        return uri;
     }
 }

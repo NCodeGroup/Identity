@@ -33,10 +33,9 @@ public class StringParser : ParameterParser<string?>
     public override StringValues Format(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        string? parsedValue)
-    {
-        return parsedValue;
-    }
+        string? parsedValue
+    ) =>
+        ToStringValues(parsedValue);
 
     /// <inheritdoc/>
     public override string? Parse(
@@ -57,17 +56,13 @@ public class StringParser : ParameterParser<string?>
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
 
-            case > 1 when descriptor.AllowMultipleStringValues:
-                return string.Join(Separator, stringValues.AsEnumerable());
-
             case > 1:
                 throw openIdEnvironment
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
-
-            default:
-                return stringValues[0];
         }
+
+        return stringValues[0];
     }
 }

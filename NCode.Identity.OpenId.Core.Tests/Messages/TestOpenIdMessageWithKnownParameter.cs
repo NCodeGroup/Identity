@@ -29,7 +29,6 @@ internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage<TestOpenIdMes
         new("test-nested-object", new JsonParser<ITestNestedObject>())
         {
             AllowMissingStringValues = true,
-            AllowMultipleStringValues = false
         };
 
     public ITestNestedObject? TestNestedObject

@@ -89,7 +89,6 @@ public class StringSetParserTests : IDisposable
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = true,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -136,7 +135,6 @@ public class StringSetParserTests : IDisposable
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -183,7 +181,6 @@ public class StringSetParserTests : IDisposable
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -204,7 +201,6 @@ public class StringSetParserTests : IDisposable
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = true
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -225,7 +221,6 @@ public class StringSetParserTests : IDisposable
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = true
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -247,7 +242,6 @@ public class StringSetParserTests : IDisposable
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
@@ -269,7 +263,6 @@ public class StringSetParserTests : IDisposable
         var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
-            AllowMultipleStringValues = false
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);

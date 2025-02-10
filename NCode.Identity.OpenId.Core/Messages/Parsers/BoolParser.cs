@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -59,17 +60,19 @@ public class BoolParser : ParameterParser<bool>
                     .ErrorFactory
                     .TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
-
-            default:
-                if (!bool.TryParse(stringValues[0], out var parsedValue))
-                {
-                    throw openIdEnvironment
-                        .ErrorFactory
-                        .InvalidParameterValue(descriptor.ParameterName)
-                        .AsException();
-                }
-
-                return parsedValue;
         }
+
+        var stringValue = stringValues[0];
+        Debug.Assert(stringValue is not null);
+
+        if (!bool.TryParse(stringValue, out var parsedValue))
+        {
+            throw openIdEnvironment
+                .ErrorFactory
+                .InvalidParameterValue(descriptor.ParameterName)
+                .AsException();
+        }
+
+        return parsedValue;
     }
 }

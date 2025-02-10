@@ -64,12 +64,6 @@ public abstract class KnownParameter
     public bool SortStringValues { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the parameter allows multiple string values when parsing.
-    /// The default value is <c>false</c>.
-    /// </summary>
-    public bool AllowMultipleStringValues { get; init; }
-
-    /// <summary>
     /// Gets a delegate that determines whether the specified parameter should be serialized for the given
     /// <see cref="OpenIdEnvironment"/>, <see cref="IParameter"/>, and <see cref="SerializationFormat"/>.
     /// </summary>

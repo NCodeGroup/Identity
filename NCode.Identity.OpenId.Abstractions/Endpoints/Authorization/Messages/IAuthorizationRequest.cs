@@ -26,7 +26,9 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 /// values from the request message (query or form) and the request (JAR) object.
 /// </summary>
 [PublicAPI]
-public interface IAuthorizationRequest : IBaseAuthorizationRequest
+public interface IAuthorizationRequest :
+    IBaseAuthorizationRequest,
+    ISupportClone<IAuthorizationRequest>
 {
     /// <summary>
     /// Gets or sets a boolean indicating whether the current authorization request has been continued from user interaction.

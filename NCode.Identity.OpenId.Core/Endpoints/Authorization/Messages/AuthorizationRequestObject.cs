@@ -17,37 +17,61 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-internal class AuthorizationRequestObject :
+/// <summary>
+/// Provides a default implementation of the <see cref="IAuthorizationRequestObject"/> abstraction.
+/// </summary>
+[PublicAPI]
+public class AuthorizationRequestObject :
     BaseAuthorizationRequestMessage<AuthorizationRequestObject>,
     IAuthorizationRequestObject
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthorizationRequestObject"/> class.
+    /// </summary>
     public AuthorizationRequestObject()
     {
         // nothing
     }
 
+    /// <inheritdoc />
+    protected AuthorizationRequestObject(AuthorizationRequestObject other)
+        : base(other)
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
     public AuthorizationRequestObject(OpenIdEnvironment openIdEnvironment)
         : base(openIdEnvironment)
     {
         // nothing
     }
 
+    /// <inheritdoc />
     public AuthorizationRequestObject(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
         : base(openIdEnvironment, parameters, cloneParameters)
     {
         // nothing
     }
 
+    /// <inheritdoc />
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Jar;
 
+    /// <inheritdoc />
     public RequestObjectSource RequestObjectSource
     {
         get => GetKnownParameter(KnownParameters.RequestObjectSource);
         set => SetKnownParameter(KnownParameters.RequestObjectSource, value);
     }
+
+    /// <inheritdoc />
+    public override AuthorizationRequestObject Clone() => new(this);
+
+    IAuthorizationRequestObject ISupportClone<IAuthorizationRequestObject>.Clone() => Clone();
 }

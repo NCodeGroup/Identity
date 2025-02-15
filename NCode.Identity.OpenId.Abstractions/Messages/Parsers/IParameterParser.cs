@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
@@ -55,4 +56,12 @@ public interface IParameterParser<T> : IParameterLoader
         ParameterDescriptor descriptor,
         StringValues stringValues
     );
+
+    /// <summary>
+    /// Clones the specified <paramref name="value"/>.
+    /// </summary>
+    /// <param name="value">The value to clone.</param>
+    /// <returns>The cloned value.</returns>
+    [return: NotNullIfNotNull(nameof(value))]
+    T? Clone(T? value);
 }

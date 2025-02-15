@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 
@@ -24,8 +25,24 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenResponse"/> abstraction.
 /// </summary>
+[PublicAPI]
 public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TokenResponse"/> class.
+    /// </summary>
+    public TokenResponse()
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
+    protected TokenResponse(TokenResponse other)
+        : base(other)
+    {
+        // nothing
+    }
+
     /// <inheritdoc />
     public string? AccessToken
     {
@@ -67,4 +84,7 @@ public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
         get => GetKnownParameter(KnownParameters.TokenType);
         set => SetKnownParameter(KnownParameters.TokenType, value);
     }
+
+    /// <inheritdoc />
+    public override TokenResponse Clone() => new(this);
 }

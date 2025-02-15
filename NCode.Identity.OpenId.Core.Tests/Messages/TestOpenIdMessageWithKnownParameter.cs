@@ -25,6 +25,17 @@ namespace NCode.Identity.OpenId.Tests.Messages;
 
 internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage<TestOpenIdMessageWithKnownParameter>
 {
+    public TestOpenIdMessageWithKnownParameter()
+    {
+        // nothing
+    }
+
+    protected TestOpenIdMessageWithKnownParameter(TestOpenIdMessageWithKnownParameter other)
+        : base(other)
+    {
+        // nothing
+    }
+
     public static KnownParameter<ITestNestedObject?> KnownParameter { get; } =
         new("test-nested-object", new JsonParser<ITestNestedObject>())
         {
@@ -36,4 +47,6 @@ internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage<TestOpenIdMes
         get => GetKnownParameter(KnownParameter);
         set => SetKnownParameter(KnownParameter, value);
     }
+
+    public override TestOpenIdMessageWithKnownParameter Clone() => new(this);
 }

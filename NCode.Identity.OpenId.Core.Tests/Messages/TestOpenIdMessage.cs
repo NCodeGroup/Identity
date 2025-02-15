@@ -35,6 +35,12 @@ internal class TestOpenIdMessage : OpenIdMessage<TestOpenIdMessage>, ITestOpenId
         // nothing
     }
 
+    protected TestOpenIdMessage(TestOpenIdMessage other)
+        : base(other)
+    {
+        // nothing
+    }
+
     public TestOpenIdMessage(OpenIdEnvironment environment, params Parameter[] parameters)
         : base(environment, parameters)
     {
@@ -46,4 +52,6 @@ internal class TestOpenIdMessage : OpenIdMessage<TestOpenIdMessage>, ITestOpenId
     {
         // nothing
     }
+
+    public override TestOpenIdMessage Clone() => new(this);
 }

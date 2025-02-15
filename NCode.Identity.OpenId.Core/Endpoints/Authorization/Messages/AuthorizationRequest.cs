@@ -25,12 +25,38 @@ using NCode.Identity.OpenId.Errors;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
-internal class AuthorizationRequest(
-    bool isContinuation,
-    IAuthorizationRequestMessage requestMessage,
-    IAuthorizationRequestObject? requestObject
-) : IAuthorizationRequest
+/// <summary>
+/// Provides a default implementation of the <see cref="IAuthorizationRequest"/> abstraction.
+/// </summary>
+[PublicAPI]
+public class AuthorizationRequest : IAuthorizationRequest
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthorizationRequest"/> class.
+    /// </summary>
+    /// <param name="isContinuation">Indicates whether this request is a continuation of a previous request.</param>
+    /// <param name="requestMessage">The original request message.</param>
+    /// <param name="requestObject">The original request object.</param>
+    public AuthorizationRequest(bool isContinuation,
+        IAuthorizationRequestMessage requestMessage,
+        IAuthorizationRequestObject? requestObject)
+    {
+        IsContinuation = isContinuation;
+        OriginalRequestMessage = requestMessage;
+        OriginalRequestObject = requestObject;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the current class that is a clone of another instance.
+    /// </summary>
+    /// <param name="other">The other instance to clone.</param>
+    protected AuthorizationRequest(AuthorizationRequest other)
+    {
+        IsContinuation = other.IsContinuation;
+        OriginalRequestMessage = other.OriginalRequestMessage.Clone();
+        OriginalRequestObject = other.OriginalRequestObject?.Clone();
+    }
+
     private static string DetermineGrantType(IReadOnlyCollection<string> responseTypes) =>
         responseTypes.Contains(OpenIdConstants.ResponseTypes.Code) ?
             responseTypes.Count == 1 ?
@@ -43,15 +69,20 @@ internal class AuthorizationRequest(
             OpenIdConstants.ResponseModes.Query :
             OpenIdConstants.ResponseModes.Fragment;
 
+    /// <inheritdoc />
     public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
 
+    /// <inheritdoc />
     public OpenIdEnvironment OpenIdEnvironment => OriginalRequestMessage.OpenIdEnvironment;
 
-    public bool IsContinuation { get; set; } = isContinuation;
+    /// <inheritdoc />
+    public bool IsContinuation { get; set; }
 
-    public IAuthorizationRequestMessage OriginalRequestMessage { get; } = requestMessage;
+    /// <inheritdoc />
+    public IAuthorizationRequestMessage OriginalRequestMessage { get; }
 
-    public IAuthorizationRequestObject? OriginalRequestObject { get; } = requestObject;
+    /// <inheritdoc />
+    public IAuthorizationRequestObject? OriginalRequestObject { get; }
 
     /*
      * The Authorization Server MUST assemble the set of Authorization Request parameters to be used from the Request Object value and the
@@ -61,20 +92,24 @@ internal class AuthorizationRequest(
      * as specified in Sections 3.1.2.2, 3.2.2.2, or 3.3.2.2.
      */
 
+    /// <inheritdoc />
     public IReadOnlyCollection<string> AcrValues =>
         OriginalRequestObject?.AcrValues ??
         OriginalRequestMessage.AcrValues ??
         Array.Empty<string>();
 
+    /// <inheritdoc />
     public IRequestClaims? Claims =>
         OriginalRequestObject?.Claims ??
         OriginalRequestMessage.Claims;
 
+    /// <inheritdoc />
     public IReadOnlyCollection<string> ClaimsLocales =>
         OriginalRequestObject?.ClaimsLocales ??
         OriginalRequestMessage.ClaimsLocales ??
         Array.Empty<string>();
 
+    /// <inheritdoc />
     public string ClientId =>
         OriginalRequestObject?.ClientId ??
         OriginalRequestMessage.ClientId ??
@@ -83,48 +118,59 @@ internal class AuthorizationRequest(
             .MissingParameter(OpenIdConstants.Parameters.ClientId)
             .AsException();
 
+    /// <inheritdoc />
     public string? CodeChallenge =>
         OriginalRequestObject?.CodeChallenge ??
         OriginalRequestMessage.CodeChallenge;
 
+    /// <inheritdoc />
     public string CodeChallengeMethod =>
         OriginalRequestObject?.CodeChallengeMethod ??
         OriginalRequestMessage.CodeChallengeMethod ??
         OpenIdConstants.CodeChallengeMethods.Plain;
 
+    /// <inheritdoc />
     public string? CodeVerifier =>
         OriginalRequestObject?.CodeVerifier ??
         OriginalRequestMessage.CodeVerifier;
 
+    /// <inheritdoc />
     public string DisplayType =>
         OriginalRequestObject?.DisplayType ??
         OriginalRequestMessage.DisplayType ??
         OpenIdConstants.DisplayTypes.Page;
 
+    /// <inheritdoc />
     public string GrantType =>
         DetermineGrantType(ResponseTypes);
 
+    /// <inheritdoc />
     public string? IdTokenHint =>
         OriginalRequestObject?.IdTokenHint ??
         OriginalRequestMessage.IdTokenHint;
 
+    /// <inheritdoc />
     public string? LoginHint =>
         OriginalRequestObject?.LoginHint ??
         OriginalRequestMessage.LoginHint;
 
+    /// <inheritdoc />
     public TimeSpan? MaxAge =>
         OriginalRequestObject?.MaxAge ??
         OriginalRequestMessage.MaxAge;
 
+    /// <inheritdoc />
     public string? Nonce =>
         OriginalRequestObject?.Nonce ??
         OriginalRequestMessage.Nonce;
 
+    /// <inheritdoc />
     public IReadOnlyCollection<string> PromptTypes =>
         OriginalRequestObject?.PromptTypes ??
         OriginalRequestMessage.PromptTypes ??
         Array.Empty<string>();
 
+    /// <inheritdoc />
     public Uri RedirectUri =>
         OriginalRequestObject?.RedirectUri ??
         OriginalRequestMessage.RedirectUri ??
@@ -133,25 +179,30 @@ internal class AuthorizationRequest(
             .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
             .AsException();
 
+    /// <inheritdoc />
     public string ResponseMode =>
         OriginalRequestObject?.ResponseMode ??
         OriginalRequestMessage.ResponseMode ??
         DetermineDefaultResponseMode(GrantType);
 
+    /// <inheritdoc />
     public IReadOnlyCollection<string> ResponseTypes =>
         OriginalRequestObject?.ResponseTypes ??
         OriginalRequestMessage.ResponseTypes ??
         Array.Empty<string>();
 
+    /// <inheritdoc />
     public IReadOnlyCollection<string> Scopes =>
         OriginalRequestObject?.Scopes ??
         OriginalRequestMessage.Scopes ??
         Array.Empty<string>();
 
+    /// <inheritdoc />
     public string? State =>
         OriginalRequestObject?.State ??
         OriginalRequestMessage.State;
 
+    /// <inheritdoc />
     public IReadOnlyCollection<string> UiLocales =>
         OriginalRequestObject?.UiLocales ??
         OriginalRequestMessage.UiLocales ??
@@ -167,28 +218,35 @@ internal class AuthorizationRequest(
             .Concat(OriginalRequestObject);
     }
 
+    /// <inheritdoc />
     public int Count =>
         GetUnion().Count();
 
+    /// <inheritdoc />
     public IEnumerable<string> Keys =>
         GetUnion().Select(kvp => kvp.Key);
 
+    /// <inheritdoc />
     public IEnumerable<StringValues> Values =>
         GetUnion().Select(kvp => kvp.Value);
 
+    /// <inheritdoc />
     public StringValues this[string key] =>
         OriginalRequestObject?.TryGetValue(key, out var value) ?? false ?
             value :
             OriginalRequestMessage[key];
 
+    /// <inheritdoc />
     public bool ContainsKey(string key) =>
         OriginalRequestObject?.ContainsKey(key) ??
         OriginalRequestMessage.ContainsKey(key);
 
+    /// <inheritdoc />
     public bool TryGetValue(string key, out StringValues value) =>
         OriginalRequestObject?.TryGetValue(key, out value) ??
         OriginalRequestMessage.TryGetValue(key, out value);
 
+    /// <inheritdoc />
     [MustDisposeResource]
     public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() =>
         GetUnion().GetEnumerator();
@@ -196,4 +254,7 @@ internal class AuthorizationRequest(
     [MustDisposeResource]
     IEnumerator IEnumerable.GetEnumerator() =>
         GetEnumerator();
+
+    /// <inheritdoc />
+    public IAuthorizationRequest Clone() => new AuthorizationRequest(this);
 }

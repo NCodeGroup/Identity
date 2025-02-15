@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -83,4 +84,9 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
 
         return results;
     }
+
+    /// <inheritdoc/>
+    [return: NotNullIfNotNull(nameof(value))]
+    public override IReadOnlyCollection<string>? Clone(IReadOnlyCollection<string>? value) =>
+        value is null ? null : new HashSet<string>(value, StringComparer.Ordinal);
 }

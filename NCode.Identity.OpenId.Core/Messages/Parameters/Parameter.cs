@@ -21,6 +21,7 @@ using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
@@ -109,10 +110,17 @@ public class Parameter<T> : Parameter, IParameter<T>
     public override object? GetParsedValue() => ParsedValue;
 
     /// <inheritdoc />
-    public override Parameter Clone() => new Parameter<T>
+    public override Parameter Clone()
     {
-        Descriptor = Descriptor,
-        StringValues = StringValues,
-        ParsedValue = ParsedValue
-    };
+        var clonedValue = Descriptor.Loader is IParameterParser<T> parser ?
+            parser.Clone(ParsedValue) :
+            ParsedValue;
+
+        return new Parameter<T>
+        {
+            Descriptor = Descriptor,
+            StringValues = StringValues,
+            ParsedValue = clonedValue
+        };
+    }
 }

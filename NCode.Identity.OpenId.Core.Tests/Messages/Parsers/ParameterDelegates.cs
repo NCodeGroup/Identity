@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
@@ -62,4 +63,9 @@ internal delegate T ParseParameterDelegate<out T>(
     OpenIdEnvironment openIdEnvironment,
     ParameterDescriptor descriptor,
     StringValues stringValues
+);
+
+[return: NotNullIfNotNull("value")]
+internal delegate T? CloneParameterDelegate<T>(
+    T? value
 );

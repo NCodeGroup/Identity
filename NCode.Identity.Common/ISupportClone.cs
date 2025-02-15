@@ -1,6 +1,6 @@
 #region Copyright Preamble
-//
-//    Copyright @ 2023 NCode Group
+
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -13,20 +13,23 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+namespace NCode.Identity;
 
 /// <summary>
-/// Represents an <c>OAuth</c> or <c>OpenID Connect</c> authorization request loaded from query or form data that isn't parsed
-/// and only contains string-values.
+/// Specifies that the current instance supports cloning.
 /// </summary>
+/// <typeparam name="T">The type of the instance to clone.</typeparam>
 [PublicAPI]
-public interface IAuthorizationSource :
-    IBaseAuthorizationRequest,
-    ISupportClone<IAuthorizationSource>
+public interface ISupportClone<out T>
 {
-    // nothing
+    /// <summary>
+    /// Creates a deep copy of the current instance.
+    /// </summary>
+    /// <returns>The cloned instance.</returns>
+    T Clone();
 }

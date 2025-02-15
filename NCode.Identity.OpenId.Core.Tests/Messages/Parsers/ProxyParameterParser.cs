@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
@@ -30,6 +31,7 @@ internal class ProxyParameterParser<T> : ProxyParameterLoader, IParameterParser<
 {
     public SerializeParameterDelegate<T>? SerializeCallback { get; set; }
     public ParseParameterDelegate<T>? ParseCallback { get; set; }
+    public CloneParameterDelegate<T>? CloneCallback { get; set; }
 
     public StringValues Format(
         OpenIdEnvironment openIdEnvironment,
@@ -51,5 +53,13 @@ internal class ProxyParameterParser<T> : ProxyParameterLoader, IParameterParser<
         if (ParseCallback == null)
             throw new NotImplementedException();
         return ParseCallback(openIdEnvironment, descriptor, stringValues);
+    }
+
+    [return: NotNullIfNotNull("value")]
+    public T? Clone(T? value)
+    {
+        if (CloneCallback == null)
+            throw new NotImplementedException();
+        return CloneCallback(value);
     }
 }

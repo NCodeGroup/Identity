@@ -17,15 +17,35 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 
-internal class AuthorizationTicket :
+/// <summary>
+/// Provides a default implementation of the <see cref="IAuthorizationTicket"/> abstraction.
+/// </summary>
+[PublicAPI]
+public class AuthorizationTicket :
     OpenIdMessage<AuthorizationTicket>,
     IAuthorizationTicket
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthorizationTicket"/> class.
+    /// </summary>
+    public AuthorizationTicket()
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
+    protected AuthorizationTicket(AuthorizationTicket other)
+        : base(other)
+    {
+        // nothing
+    }
+
     /// <inheritdoc />
     public DateTimeOffset CreatedWhen
     {
@@ -81,4 +101,7 @@ internal class AuthorizationTicket :
         get => GetKnownParameter(KnownParameters.Issuer);
         set => SetKnownParameter(KnownParameters.Issuer, value);
     }
+
+    /// <inheritdoc />
+    public override AuthorizationTicket Clone() => new(this);
 }

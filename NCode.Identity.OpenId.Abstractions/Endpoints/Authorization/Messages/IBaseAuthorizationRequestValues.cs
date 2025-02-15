@@ -26,97 +26,97 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
 {
     /// <summary>
-    /// Gets the <c>acr_values</c> parameter.
+    /// Gets or sets the <c>acr_values</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? AcrValues { get; }
+    IReadOnlyCollection<string>? AcrValues { get; set; }
 
     /// <summary>
-    /// Gets the <c>claims</c> parameter.
+    /// Gets or sets the <c>claims</c> parameter.
     /// </summary>
-    IRequestClaims? Claims { get; }
+    IRequestClaims? Claims { get; set; }
 
     /// <summary>
-    /// Gets the <c>claims_locales</c> parameter.
+    /// Gets or sets the <c>claims_locales</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? ClaimsLocales { get; }
+    IReadOnlyCollection<string>? ClaimsLocales { get; set; }
 
     /// <summary>
-    /// Gets the <c>client_id</c> parameter.
+    /// Gets or sets the <c>client_id</c> parameter.
     /// </summary>
-    string? ClientId { get; }
+    string? ClientId { get; set; }
 
     /// <summary>
-    /// Gets the <c>code_challenge</c> parameter.
+    /// Gets or sets the <c>code_challenge</c> parameter.
     /// </summary>
-    string? CodeChallenge { get; }
+    string? CodeChallenge { get; set; }
 
     /// <summary>
-    /// Gets the <c>code_challenge_method</c> parameter.
+    /// Gets or sets the <c>code_challenge_method</c> parameter.
     /// </summary>
-    string? CodeChallengeMethod { get; }
+    string? CodeChallengeMethod { get; set; }
 
     /// <summary>
-    /// Gets the <c>code_verifier</c> parameter.
+    /// Gets or sets the <c>code_verifier</c> parameter.
     /// </summary>
-    string? CodeVerifier { get; }
+    string? CodeVerifier { get; set; }
 
     /// <summary>
-    /// Gets the <c>display</c> parameter.
+    /// Gets or sets the <c>display</c> parameter.
     /// </summary>
-    string? DisplayType { get; }
+    string? DisplayType { get; set; }
 
     /// <summary>
-    /// Gets the <c>id_token_hint</c> parameter.
+    /// Gets or sets the <c>id_token_hint</c> parameter.
     /// </summary>
-    string? IdTokenHint { get; }
+    string? IdTokenHint { get; set; }
 
     /// <summary>
-    /// Gets the <c>login_hint</c> parameter.
+    /// Gets or sets the <c>login_hint</c> parameter.
     /// </summary>
-    string? LoginHint { get; }
+    string? LoginHint { get; set; }
 
     /// <summary>
-    /// Gets the <c>max_age</c> parameter.
+    /// Gets or sets the <c>max_age</c> parameter.
     /// </summary>
-    TimeSpan? MaxAge { get; }
+    TimeSpan? MaxAge { get; set; }
 
     /// <summary>
-    /// Gets the <c>nonce</c> parameter.
+    /// Gets or sets the <c>nonce</c> parameter.
     /// </summary>
-    string? Nonce { get; }
+    string? Nonce { get; set; }
 
     /// <summary>
-    /// Gets the <c>prompt</c> parameter.
+    /// Gets or sets the <c>prompt</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? PromptTypes { get; }
+    IReadOnlyCollection<string>? PromptTypes { get; set; }
 
     /// <summary>
-    /// Gets the <c>redirect_uri</c> parameter.
+    /// Gets or sets the <c>redirect_uri</c> parameter.
     /// </summary>
-    Uri? RedirectUri { get; }
+    Uri? RedirectUri { get; set; }
 
     /// <summary>
-    /// Gets the <c>response_mode</c> parameter.
+    /// Gets or sets the <c>response_mode</c> parameter.
     /// </summary>
-    string? ResponseMode { get; }
+    string? ResponseMode { get; set; }
 
     /// <summary>
-    /// Gets the <c>response_type</c> parameter.
+    /// Gets or sets the <c>response_type</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? ResponseTypes { get; }
+    IReadOnlyCollection<string>? ResponseTypes { get; set; }
 
     /// <summary>
-    /// Gets the <c>scope</c> parameter.
+    /// Gets or sets the <c>scope</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? Scopes { get; }
+    IReadOnlyCollection<string>? Scopes { get; set; }
 
     /// <summary>
-    /// Gets the <c>state</c> parameter.
+    /// Gets or sets the <c>state</c> parameter.
     /// </summary>
-    string? State { get; }
+    string? State { get; set; }
 
     /// <summary>
-    /// Gets the <c>ui_locales</c> parameter.
+    /// Gets or sets the <c>ui_locales</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? UiLocales { get; }
+    IReadOnlyCollection<string>? UiLocales { get; set; }
 }

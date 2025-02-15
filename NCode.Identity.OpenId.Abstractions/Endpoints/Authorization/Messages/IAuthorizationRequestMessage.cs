@@ -33,12 +33,12 @@ public interface IAuthorizationRequestMessage :
     ISupportClone<IAuthorizationRequestMessage>
 {
     /// <summary>
-    /// Gets the <c>request</c> parameter.
+    /// Gets or sets the <c>request</c> parameter.
     /// </summary>
-    string? RequestJwt { get; }
+    string? RequestJwt { get; set; }
 
     /// <summary>
-    /// Gets the <c>request_uri</c> parameter.
+    /// Gets or sets the <c>request_uri</c> parameter.
     /// </summary>
-    Uri? RequestUri { get; }
+    Uri? RequestUri { get; set; }
 }

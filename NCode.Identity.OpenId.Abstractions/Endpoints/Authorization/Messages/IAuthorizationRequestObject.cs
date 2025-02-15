@@ -33,7 +33,7 @@ public interface IAuthorizationRequestObject :
     ISupportClone<IAuthorizationRequestObject>
 {
     /// <summary>
-    /// Gets a value indicating where the <c>request object</c> was loaded from.
+    /// Gets or sets a value indicating where the <c>request object</c> was loaded from.
     /// </summary>
-    RequestObjectSource RequestObjectSource { get; }
+    RequestObjectSource RequestObjectSource { get; set; }
 }

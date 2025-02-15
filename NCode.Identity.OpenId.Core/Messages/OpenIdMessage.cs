@@ -136,8 +136,8 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
         IsInitialized = true;
     }
 
-    /// <inheritdoc cref="ISupportClone{T}.Clone"/>
-    protected virtual IOpenIdMessage CloneMessage() => new OpenIdMessage(this);
+    /// <inheritdoc />
+    public virtual IOpenIdMessage CloneMessage() => new OpenIdMessage(this);
 
     /// <inheritdoc />
     IOpenIdMessage ISupportClone<IOpenIdMessage>.Clone() => CloneMessage();
@@ -326,5 +326,5 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     public abstract T Clone();
 
     /// <inheritdoc />
-    protected override IOpenIdMessage CloneMessage() => Clone();
+    public override IOpenIdMessage CloneMessage() => Clone();
 }

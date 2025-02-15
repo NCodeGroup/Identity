@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// <see cref="KnownParameter"/> objects for <c>OAuth</c> or <c>OpenID Connect</c> parameters.
 /// </summary>
 [PublicAPI]
-public class OpenIdMessage : IOpenIdMessage
+public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
 {
     private static Exception NotInitializedException => new InvalidOperationException("Not initialized");
 
@@ -46,19 +46,19 @@ public class OpenIdMessage : IOpenIdMessage
     public virtual string TypeDiscriminator => nameof(OpenIdMessage);
 
     /// <inheritdoc />
-    public virtual SerializationFormat SerializationFormat { get; set; }
+    public SerializationFormat SerializationFormat { get; set; }
 
     /// <summary>
     /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenID Connect</c> parameters.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
-    public virtual IReadOnlyDictionary<string, IParameter> Parameters => ParameterStore;
+    public IReadOnlyDictionary<string, IParameter> Parameters => ParameterStore;
 
     /// <summary>
     /// Gets the <see cref="OpenIdEnvironment"/> for the current instance.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
-    public virtual OpenIdEnvironment OpenIdEnvironment => OpenIdEnvironmentOrNull ?? throw NotInitializedException;
+    public OpenIdEnvironment OpenIdEnvironment => OpenIdEnvironmentOrNull ?? throw NotInitializedException;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdMessage"/> class.
@@ -66,6 +66,16 @@ public class OpenIdMessage : IOpenIdMessage
     public OpenIdMessage()
     {
         // nothing
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the current class that is a clone of another instance.
+    /// </summary>
+    /// <param name="other">The other instance to clone.</param>
+    protected OpenIdMessage(OpenIdMessage other)
+        : this(other.OpenIdEnvironment, other.Parameters.Values, cloneParameters: true)
+    {
+        SerializationFormat = other.SerializationFormat;
     }
 
     /// <summary>
@@ -125,6 +135,12 @@ public class OpenIdMessage : IOpenIdMessage
 
         IsInitialized = true;
     }
+
+    /// <inheritdoc cref="ISupportClone{T}.Clone"/>
+    protected virtual IOpenIdMessage CloneMessage() => new OpenIdMessage(this);
+
+    /// <inheritdoc />
+    IOpenIdMessage ISupportClone<IOpenIdMessage>.Clone() => CloneMessage();
 
     /// <inheritdoc />
     public int Count => ParameterStore.Count;
@@ -283,6 +299,13 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     }
 
     /// <inheritdoc />
+    protected OpenIdMessage(T other)
+        : base(other)
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
     protected OpenIdMessage(OpenIdEnvironment openIdEnvironment)
         : base(openIdEnvironment)
     {
@@ -298,4 +321,10 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
 
     /// <inheritdoc />
     public override string TypeDiscriminator => typeof(T).Name;
+
+    /// <inheritdoc cref="ISupportClone{T}.Clone"/>
+    public abstract T Clone();
+
+    /// <inheritdoc />
+    protected override IOpenIdMessage CloneMessage() => Clone();
 }

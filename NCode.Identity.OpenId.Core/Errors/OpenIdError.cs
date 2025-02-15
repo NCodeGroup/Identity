@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -27,12 +28,20 @@ namespace NCode.Identity.OpenId.Errors;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdError"/> abstraction.
 /// </summary>
+[PublicAPI]
 public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportError
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdError"/> class.
     /// </summary>
     public OpenIdError()
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
+    protected OpenIdError(OpenIdError other)
+        : base(other)
     {
         // nothing
     }
@@ -83,4 +92,7 @@ public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportErr
         get => GetKnownParameter(KnownParameters.State);
         set => SetKnownParameter(KnownParameters.State, value);
     }
+
+    /// <inheritdoc />
+    public override OpenIdError Clone() => new(this);
 }

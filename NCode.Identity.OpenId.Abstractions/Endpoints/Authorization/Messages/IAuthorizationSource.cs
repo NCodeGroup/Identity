@@ -24,7 +24,9 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 /// and only contains string-values.
 /// </summary>
 [PublicAPI]
-public interface IAuthorizationSource : IBaseAuthorizationRequest
+public interface IAuthorizationSource :
+    IBaseAuthorizationRequest,
+    ISupportClone<IAuthorizationSource>
 {
     // nothing
 }

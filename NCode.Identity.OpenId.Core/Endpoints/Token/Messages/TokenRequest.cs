@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 
@@ -25,8 +26,24 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenRequest"/> abstraction.
 /// </summary>
+[PublicAPI]
 public class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TokenRequest"/> class.
+    /// </summary>
+    public TokenRequest()
+    {
+        // nothing
+    }
+
+    /// <inheritdoc />
+    protected TokenRequest(TokenRequest other)
+        : base(other)
+    {
+        // nothing
+    }
+
     /// <inheritdoc />
     public string? AuthorizationCode
     {
@@ -89,4 +106,7 @@ public class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
         get => GetKnownParameter(KnownParameters.Username);
         set => SetKnownParameter(KnownParameters.Username, value);
     }
+
+    /// <inheritdoc />
+    public override TokenRequest Clone() => new(this);
 }

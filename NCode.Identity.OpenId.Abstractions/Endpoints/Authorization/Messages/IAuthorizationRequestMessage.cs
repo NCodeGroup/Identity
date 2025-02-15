@@ -27,7 +27,10 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 /// message only.
 /// </summary>
 [PublicAPI]
-public interface IAuthorizationRequestMessage : IOpenIdMessage, IBaseAuthorizationRequestValues
+public interface IAuthorizationRequestMessage :
+    IOpenIdMessage,
+    IBaseAuthorizationRequestValues,
+    ISupportClone<IAuthorizationRequestMessage>
 {
     /// <summary>
     /// Gets the <c>request</c> parameter.

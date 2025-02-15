@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
@@ -92,4 +93,9 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
             return Create(openIdEnvironment, descriptor, stringValues, parsedValue);
         }
     }
+
+    /// <inheritdoc />
+    [return: NotNullIfNotNull(nameof(value))]
+    public virtual T? Clone(T? value) =>
+        value is ICloneable cloneable ? (T)cloneable.Clone() : value;
 }

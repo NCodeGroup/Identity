@@ -62,4 +62,7 @@ public interface IOpenIdMessage : IBaseOpenIdMessage
     /// <c>false</c>. The default value is <c>false</c>.</param>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
     void Initialize(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false);
+
+    /// <inheritdoc cref="ISupportClone{T}.Clone"/>
+    IOpenIdMessage CloneMessage();
 }

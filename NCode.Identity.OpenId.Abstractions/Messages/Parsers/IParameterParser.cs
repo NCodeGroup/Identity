@@ -51,7 +51,7 @@ public interface IParameterParser<T> : IParameterLoader
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to parse.</param>
     /// <param name="stringValues">The <see cref="StringValues"/> to parse.</param>
     /// <returns>The parsed type-specific value.</returns>
-    T Parse(
+    T? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues

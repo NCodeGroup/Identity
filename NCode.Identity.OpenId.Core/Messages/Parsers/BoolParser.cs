@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// <summary>
 /// Provides an implementation of <see cref="IParameterParser{T}"/> that can parse <see cref="bool"/> values.
 /// </summary>
+[PublicAPI]
 public class BoolParser : ParameterParser<bool>
 {
     /// <inheritdoc/>

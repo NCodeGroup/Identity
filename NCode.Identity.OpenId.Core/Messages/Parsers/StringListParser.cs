@@ -18,6 +18,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -29,7 +30,8 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// Provides an implementation of <see cref="IParameterParser{T}"/> that parses string collections which are separated by
 /// the space ' ' character.
 /// </summary>
-public class StringListParser : ParameterParser<List<string>?>
+[PublicAPI]
+public class StringListParser : ParameterParser<List<string>>
 {
     /// <inheritdoc/>
     public override StringValues GetStringValues(

@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// Provides an implementation of <see cref="IParameterParser{T}"/> that can parse <see cref="string"/> values.
 /// </summary>
 [PublicAPI]
-public class StringParser : ParameterParser<string?>
+public class StringParser : ParameterParser<string>
 {
     /// <inheritdoc/>
     public override StringValues GetStringValues(

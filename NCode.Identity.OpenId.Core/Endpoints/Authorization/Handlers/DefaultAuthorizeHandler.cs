@@ -61,18 +61,9 @@ public class DefaultAuthorizeHandler(
         var (openIdContext, openIdClient, authorizationRequest, authenticationTicket) = command;
 
         var clientSettings = openIdClient.Settings;
-        var isContinuation = authorizationRequest.IsContinuation;
+        var promptTypes = authorizationRequest.PromptTypes;
 
-        // prevent infinite loops from continuations and user interaction
-        var effectivePromptTypes = isContinuation ?
-            [OpenIdConstants.PromptTypes.None] :
-            authorizationRequest.PromptTypes;
-
-        // TODO
-        // authorizationRequest.PromptTypes = effectivePromptTypes;
-        // authorizationRequest.OriginalRequestMessage.PromptTypes;
-
-        if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
+        if (promptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
         {
             Logger.LogInformation("Client requested account creation.");
 
@@ -113,8 +104,8 @@ public class DefaultAuthorizeHandler(
         }
 
         var reAuthenticate =
-            effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.Login) ||
-            effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.SelectAccount);
+            promptTypes.Contains(OpenIdConstants.PromptTypes.Login) ||
+            promptTypes.Contains(OpenIdConstants.PromptTypes.SelectAccount);
 
         if (reAuthenticate)
         {
@@ -142,7 +133,7 @@ public class DefaultAuthorizeHandler(
         var isAuthenticated = authenticationTicket.Subject.Identities.All(identity => identity.IsAuthenticated);
         if (!isAuthenticated)
         {
-            if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.None))
+            if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
                 var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;
@@ -180,7 +171,7 @@ public class DefaultAuthorizeHandler(
 
         if (!subjectIsActive)
         {
-            if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.None))
+            if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
                 var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;
@@ -219,7 +210,7 @@ public class DefaultAuthorizeHandler(
         // check MaxAge
         if (!ValidateMaxAge(authenticationTicket.Subject, authorizationRequest.MaxAge, clientSettings.ClockSkew))
         {
-            if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.None))
+            if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
                 var error = ErrorFactory.LoginRequired();
                 var redirectUri = authorizationRequest.RedirectUri;

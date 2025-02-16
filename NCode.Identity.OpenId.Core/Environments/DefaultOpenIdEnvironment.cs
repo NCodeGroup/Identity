@@ -100,6 +100,7 @@ public class DefaultOpenIdEnvironment(
 
             Converters =
             {
+                new UriJsonConverter(),
                 new StringValuesJsonConverter(),
                 new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
                 new OpenIdMessageJsonConverterFactory(this),

@@ -60,7 +60,7 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.AcrValues" />
-    public IReadOnlyCollection<string>? AcrValues
+    public List<string>? AcrValues
     {
         get => GetKnownParameter(KnownParameters.AcrValues);
         set => SetKnownParameter(KnownParameters.AcrValues, value);
@@ -74,7 +74,7 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.ClaimsLocales" />
-    public IReadOnlyCollection<string>? ClaimsLocales
+    public List<string>? ClaimsLocales
     {
         get => GetKnownParameter(KnownParameters.ClaimsLocales);
         set => SetKnownParameter(KnownParameters.ClaimsLocales, value);
@@ -144,7 +144,7 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.PromptTypes" />
-    public IReadOnlyCollection<string>? PromptTypes
+    public List<string>? PromptTypes
     {
         get => GetKnownParameter(KnownParameters.PromptType);
         set => SetKnownParameter(KnownParameters.PromptType, value);
@@ -179,14 +179,14 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.ResponseTypes" />
-    public IReadOnlyCollection<string>? ResponseTypes
+    public List<string>? ResponseTypes
     {
         get => GetKnownParameter(KnownParameters.ResponseTypes);
         set => SetKnownParameter(KnownParameters.ResponseTypes, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.Scopes" />
-    public IReadOnlyCollection<string>? Scopes
+    public List<string>? Scopes
     {
         get => GetKnownParameter(KnownParameters.Scopes);
         set => SetKnownParameter(KnownParameters.Scopes, value);
@@ -200,7 +200,7 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.UiLocales" />
-    public IReadOnlyCollection<string>? UiLocales
+    public List<string>? UiLocales
     {
         get => GetKnownParameter(KnownParameters.UiLocales);
         set => SetKnownParameter(KnownParameters.UiLocales, value);

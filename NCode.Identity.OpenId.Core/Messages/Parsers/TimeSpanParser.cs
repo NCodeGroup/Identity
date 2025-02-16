@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class TimeSpanParser : ParameterParser<TimeSpan?>
 {
     /// <inheritdoc/>
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         TimeSpan? parsedValue)

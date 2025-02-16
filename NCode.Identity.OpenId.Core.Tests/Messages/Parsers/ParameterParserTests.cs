@@ -49,20 +49,6 @@ public class ParameterParserTests : IDisposable
     }
 
     [Fact]
-    public void Separator_ThenValid()
-    {
-        var parameterParser = new TestParameterParser<object>();
-        Assert.Equal(OpenIdConstants.ParameterSeparatorString, parameterParser.Separator);
-    }
-
-    [Fact]
-    public void StringComparison_ThenValid()
-    {
-        var parameterParser = new TestParameterParser<object>();
-        Assert.Equal(StringComparison.Ordinal, parameterParser.StringComparison);
-    }
-
-    [Fact]
     public void Load_ThenValid()
     {
         const string parameterName = "parameterName";
@@ -71,9 +57,8 @@ public class ParameterParserTests : IDisposable
 
         var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
-        var parameter = Parameter.Create(environment, descriptor, stringValues, parsedValue);
-
         var parameterParser = new TestParameterParser<string>();
+        var parameter = Parameter.Create(environment, descriptor, parameterParser, parsedValue);
 
         parameterParser.ParseCallback = (env, desc, values) =>
         {
@@ -87,7 +72,6 @@ public class ParameterParserTests : IDisposable
         {
             Assert.Same(environment, env);
             Assert.Equal(descriptor, desc);
-            Assert.Equal(stringValues, values);
             Assert.Equal(parsedValue, value);
             return parameter;
         };
@@ -101,7 +85,7 @@ public class ParameterParserTests : IDisposable
     {
         const string parameterName = "parameterName";
         StringValues stringValues = "stringValues";
-        const string parsedValue = "parsedValue";
+        StringValues parsedValue = "parsedValue";
         const SerializationFormat format = SerializationFormat.OpenId;
 
         var options = JsonSerializerOptions.Web;
@@ -110,8 +94,9 @@ public class ParameterParserTests : IDisposable
         Assert.True(reader.Read());
 
         var environment = MockOpenIdEnvironment.Object;
-        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
-        var parameter = Parameter.Create(environment, descriptor, stringValues, parsedValue);
+        var parser = ParameterParsers.StringValues;
+        var descriptor = new ParameterDescriptor(parameterName, parser);
+        var parameter = Parameter.Create(environment, descriptor, parser, parsedValue);
 
         var parameterParser = new TestParameterParser<string>();
 
@@ -129,7 +114,6 @@ public class ParameterParserTests : IDisposable
         {
             Assert.Same(environment, env);
             Assert.Equal(descriptor, desc);
-            Assert.Equal(stringValues, values);
             Assert.Equal(parsedValue, value);
             return parameter;
         };
@@ -152,8 +136,9 @@ public class ParameterParserTests : IDisposable
         Assert.True(reader.Read());
 
         var environment = MockOpenIdEnvironment.Object;
-        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
-        var parameter = Parameter.Create(environment, descriptor, stringValues, parsedValue);
+        var parser = ParameterParsers.StringValues;
+        var descriptor = new ParameterDescriptor(parameterName, parser);
+        var parameter = Parameter.Create(environment, descriptor, parser, parsedValue);
 
         var parameterParser = new TestParameterParser<string>();
 
@@ -171,7 +156,6 @@ public class ParameterParserTests : IDisposable
         {
             Assert.Same(environment, env);
             Assert.Equal(descriptor, desc);
-            Assert.Equal(stringValues, values);
             Assert.Equal(parsedValue, value);
             return parameter;
         };
@@ -185,7 +169,7 @@ public class ParameterParserTests : IDisposable
     {
         const string parameterName = "parameterName";
         StringValues stringValues = "stringValues";
-        var parsedValue = new object();
+        StringValues parsedValue = "parsedValue";
         const SerializationFormat format = SerializationFormat.Json;
 
         var options = JsonSerializerOptions.Web;
@@ -194,8 +178,9 @@ public class ParameterParserTests : IDisposable
         Assert.True(reader.Read());
 
         var environment = MockOpenIdEnvironment.Object;
-        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
-        var parameter = Parameter.Create(environment, descriptor, stringValues, parsedValue);
+        var parser = ParameterParsers.StringValues;
+        var descriptor = new ParameterDescriptor(parameterName, parser);
+        var parameter = Parameter.Create(environment, descriptor, parser, parsedValue);
 
         var parameterParser = new TestParameterParser<object>();
 
@@ -213,7 +198,6 @@ public class ParameterParserTests : IDisposable
         {
             Assert.Same(environment, env);
             Assert.Equal(descriptor, desc);
-            Assert.Equal(stringValues, values);
             Assert.Equal(parsedValue, value);
             return parameter;
         };

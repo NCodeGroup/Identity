@@ -17,13 +17,11 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Messages.Parameters;
-using NCode.Identity.OpenId.Messages.Parsers;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 
@@ -47,13 +45,13 @@ public class DefaultLoadAuthorizationSourceHandler(
         var httpContext = openIdContext.Http;
         var httpRequest = httpContext.Request;
 
-        AuthorizationSourceType sourceType;
-        IEnumerable<KeyValuePair<string, StringValues>> properties;
+        AuthorizationSourceType authorizationSourceType;
+        IOpenIdRequestValues requestValues;
 
         if (HttpMethods.IsGet(httpRequest.Method))
         {
-            sourceType = AuthorizationSourceType.Query;
-            properties = httpRequest.Query;
+            authorizationSourceType = AuthorizationSourceType.Query;
+            requestValues = new OpenIdRequestValuesUsingQuery(httpRequest.Query);
         }
         else if (HttpMethods.IsPost(httpRequest.Method))
         {
@@ -67,8 +65,9 @@ public class DefaultLoadAuthorizationSourceHandler(
                     .AsException();
             }
 
-            sourceType = AuthorizationSourceType.Form;
-            properties = await httpRequest.ReadFormAsync(cancellationToken);
+            authorizationSourceType = AuthorizationSourceType.Form;
+            var form = await httpRequest.ReadFormAsync(cancellationToken);
+            requestValues = new OpenIdRequestValuesUsingForm(form);
         }
         else
         {
@@ -78,16 +77,6 @@ public class DefaultLoadAuthorizationSourceHandler(
                 .AsException();
         }
 
-        // we manually load the parameters without parsing because that will occur later
-        var parameters = properties.Select(property =>
-        {
-            var descriptor = new ParameterDescriptor(property.Key, ParameterLoader.Default);
-            return descriptor.Loader.Load(openIdEnvironment, descriptor, property.Value);
-        });
-
-        var message = AuthorizationSource.Load(openIdEnvironment, parameters);
-        message.AuthorizationSourceType = sourceType;
-
-        return message;
+        return new AuthorizationSource(openIdEnvironment, authorizationSourceType, requestValues);
     }
 }

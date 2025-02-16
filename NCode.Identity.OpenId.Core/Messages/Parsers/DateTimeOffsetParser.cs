@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class DateTimeOffsetParser : ParameterParser<DateTimeOffset>
 {
     /// <inheritdoc/>
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         DateTimeOffset parsedValue

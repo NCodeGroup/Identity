@@ -1,6 +1,7 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+//
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@
 
 #endregion
 
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -25,53 +26,67 @@ using NCode.Identity.OpenId.Messages.Parameters;
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Provides an implementation of <see cref="IParameterParser{T}"/> that can parse <see cref="bool"/> values.
+/// Provides an implementation of <see cref="IParameterParser{T}"/> that parses string collections which are separated by
+/// the space ' ' character.
 /// </summary>
-public class BoolParser : ParameterParser<bool>
+public class StringListParser : ParameterParser<List<string>?>
 {
     /// <inheritdoc/>
     public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        bool parsedValue
-    ) => parsedValue ? "true" : "false";
+        List<string>? parsedValue)
+    {
+        if (parsedValue is null)
+            return StringValues.Empty;
+
+        if (parsedValue.Count == 0)
+            return StringValues.Empty;
+
+        var values = descriptor.SortStringValues ?
+            parsedValue.Order() :
+            parsedValue.AsEnumerable();
+
+        return values.ToArray();
+    }
 
     /// <inheritdoc/>
-    public override bool Parse(
+    public override List<string>? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues
-    )
+        StringValues stringValues)
     {
+        // ReSharper disable once ConvertSwitchStatementToSwitchExpression
+        // That makes the code unreadable.
         switch (stringValues.Count)
         {
             case 0 when descriptor.AllowMissingStringValues:
-                return false;
+                return null;
 
             case 0:
                 throw openIdEnvironment
                     .ErrorFactory
                     .MissingParameter(descriptor.ParameterName)
                     .AsException();
-
-            case > 1:
-                throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
-                    .AsException();
         }
 
-        var stringValue = stringValues[0];
-        Debug.Assert(stringValue is not null);
+        var results = new List<string>();
 
-        if (!bool.TryParse(stringValue, out var parsedValue))
+        foreach (var stringValue in stringValues)
         {
-            throw openIdEnvironment
-                .ErrorFactory
-                .InvalidParameterValue(descriptor.ParameterName)
-                .AsException();
+            var stringSpan = stringValue.AsSpan();
+            foreach (var range in stringSpan.Split(OpenIdConstants.ParameterSeparatorChar))
+            {
+                var part = stringSpan[range];
+                results.Add(part.ToString());
+            }
         }
 
-        return parsedValue;
+        return results;
     }
+
+    /// <inheritdoc/>
+    [return: NotNullIfNotNull(nameof(value))]
+    public override List<string>? Clone(List<string>? value) =>
+        value?.ToList();
 }

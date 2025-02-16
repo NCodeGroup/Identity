@@ -56,7 +56,7 @@ public class TimeSpanParserTests : IDisposable
         const string parameterName = "parameterName";
         var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
-        var stringValues = parser.Format(environment, descriptor, null);
+        var stringValues = parser.GetStringValues(environment, descriptor, null);
         Assert.Equal(StringValues.Empty, stringValues);
     }
 
@@ -71,7 +71,7 @@ public class TimeSpanParserTests : IDisposable
 
         var timeSpan = TimeSpan.FromSeconds(123.456);
 
-        var stringValues = parser.Format(environment, descriptor, timeSpan);
+        var stringValues = parser.GetStringValues(environment, descriptor, timeSpan);
         Assert.Equal("123", stringValues);
     }
 

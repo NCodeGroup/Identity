@@ -39,52 +39,41 @@ public class ParameterTests : IDisposable
     [Fact]
     public void Constructor_ThenValid()
     {
-        var mockParser = MockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string[]>>();
 
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value1" };
 
-        var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
+        var knownParameter = new KnownParameter<string[]>(parameterName, mockParser.Object)
         {
             AllowMissingStringValues = false,
         };
 
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter<string[]>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues,
-            ParsedValue = stringValues
-        };
+        var parameter = new Parameter<string[]>(descriptor, mockParser.Object, stringValues);
 
         Assert.Equal(descriptor, parameter.Descriptor);
-        Assert.Equal(stringValues, parameter.StringValues);
         Assert.Same(stringValues, parameter.ParsedValue);
     }
 
     [Fact]
     public void Load_GivenEnumerable_ThenValid()
     {
-        var mockParser = MockRepository.Create<ParameterParser<string>>();
+        var mockParser = MockRepository.Create<ParameterParser<string[]>>();
         var mockOpenIdEnvironment = MockRepository.Create<OpenIdEnvironment>();
 
         const string parameterName = "parameterName";
         var parsedValue = new[] { "value1", "value2" };
         StringValues stringValues = parsedValue;
 
-        var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
+        var knownParameter = new KnownParameter<string[]>(parameterName, mockParser.Object)
         {
             AllowMissingStringValues = false,
         };
 
         var environment = mockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var expectedParameter = new Parameter<string[]>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues,
-            ParsedValue = parsedValue
-        };
+        var expectedParameter = new Parameter<string[]>(descriptor, mockParser.Object, parsedValue);
 
         mockParser
             .Setup(x => x.Load(environment, descriptor, stringValues))
@@ -100,7 +89,6 @@ public class ParameterTests : IDisposable
         var typedParameter = Assert.IsType<Parameter<string[]>>(actualParameter);
 
         Assert.Equal(expectedParameter.Descriptor, typedParameter.Descriptor);
-        Assert.Equal(expectedParameter.StringValues, typedParameter.StringValues);
         Assert.Same(expectedParameter.ParsedValue, typedParameter.ParsedValue);
     }
 }

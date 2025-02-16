@@ -31,17 +31,22 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public interface IParameterLoader
 {
     /// <summary>
-    /// Creates a <see cref="IParameter"/> given its string values and parsed value.
+    /// Gets the type of parameter that this instance can parse and load.
+    /// </summary>
+    Type ParameterType { get; }
+
+    /// <summary>
+    /// Creates a <see cref="IParameter"/> given its parsed value.
     /// </summary>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while creating the parameter.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to create.</param>
-    /// <param name="stringValues">The string values for the parameter.</param>
+    /// <param name="parser">The <see cref="IParameterParser{T}"/> to use while creating the parameter.</param>
     /// <param name="parsedValue">The parsed value for the parameter.</param>
     /// <returns>The newly created parameter.</returns>
     IParameter<T> Create<T>(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
+        IParameterParser<T> parser,
         T? parsedValue
     );
 

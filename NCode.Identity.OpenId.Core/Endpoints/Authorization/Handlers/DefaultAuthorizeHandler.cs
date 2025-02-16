@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
@@ -67,6 +68,10 @@ public class DefaultAuthorizeHandler(
             [OpenIdConstants.PromptTypes.None] :
             authorizationRequest.PromptTypes;
 
+        // TODO
+        // authorizationRequest.PromptTypes = effectivePromptTypes;
+        // authorizationRequest.OriginalRequestMessage.PromptTypes;
+
         if (effectivePromptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
         {
             Logger.LogInformation("Client requested account creation.");
@@ -79,6 +84,23 @@ public class DefaultAuthorizeHandler(
                 clientSettings.ContinueAuthorizationLifetime,
                 authorizationRequest,
                 cancellationToken);
+
+            var authenticationProperties = new AuthenticationProperties
+            {
+                RedirectUri = continueUrl
+            };
+
+            authenticationProperties.SetString(
+                OpenIdConstants.AuthenticationPropertyItems.TenantId,
+                openIdContext.Tenant.TenantId
+            );
+            authenticationProperties.SetString(
+                OpenIdConstants.AuthenticationPropertyItems.ClientId,
+                openIdClient.ClientId
+            );
+
+            // TODO
+            // return EmptyHttpResult.Instance;
 
             var redirectUrl = await InteractionService.GetCreateAccountUrlAsync(
                 openIdContext,

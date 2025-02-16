@@ -38,7 +38,7 @@ public interface IParameterParser<T> : IParameterLoader
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to serialize.</param>
     /// <param name="parsedValue">The value to serialize.</param>
     /// <returns>The value formatted as <see cref="StringValues"/>.</returns>
-    StringValues Format(
+    StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue

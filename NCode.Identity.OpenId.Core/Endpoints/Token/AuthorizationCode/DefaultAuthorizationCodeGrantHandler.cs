@@ -125,7 +125,7 @@ public class DefaultAuthorizationCodeGrantHandler(
 
         var tokenResponse = TokenResponse.Create(openIdEnvironment);
 
-        tokenResponse.Scopes = effectiveScopes;
+        tokenResponse.Scopes = effectiveScopes.ToList();
 
         var securityTokenRequest = new CreateSecurityTokenRequest
         {

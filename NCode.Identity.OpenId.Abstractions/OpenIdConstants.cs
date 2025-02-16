@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Authentication;
 
 namespace NCode.Identity.OpenId;
 
@@ -152,5 +153,19 @@ public static partial class OpenIdConstants
         public const string Basic = "basic";
         public const string RequestBody = "request_body";
         public const string RequestQuery = "request_query";
+    }
+
+    /// <summary>
+    /// Contains constants for various items that can be stored within <see cref="AuthenticationProperties"/>.
+    /// </summary>
+    /// <remarks>
+    /// Be aware that items are not the same as the properties within <see cref="AuthenticationProperties"/>.
+    /// Items are state values that are serialized for the authentication session.
+    /// Properties are only for flowing data between call sites.
+    /// </remarks>
+    public static class AuthenticationPropertyItems
+    {
+        public const string TenantId = ".tenant";
+        public const string ClientId = ".client";
     }
 }

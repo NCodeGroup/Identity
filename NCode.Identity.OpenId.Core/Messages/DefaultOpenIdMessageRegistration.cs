@@ -58,7 +58,6 @@ public static class DefaultOpenIdMessageRegistration
         serviceCollection.AddMessageFactory<OpenIdError>();
         serviceCollection.AddMessageFactory<OpenIdMessage>();
 
-        serviceCollection.AddMessageFactory<AuthorizationSource>();
         serviceCollection.AddMessageFactory<AuthorizationRequestMessage>();
         serviceCollection.AddMessageFactory<AuthorizationRequestObject>();
         serviceCollection.AddMessageFactory<AuthorizationTicket>();

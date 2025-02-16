@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
@@ -142,41 +141,6 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     /// <inheritdoc />
     IOpenIdMessage ISupportClone<IOpenIdMessage>.Clone() => CloneMessage();
 
-    /// <inheritdoc />
-    public int Count => ParameterStore.Count;
-
-    /// <inheritdoc />
-    public IEnumerable<string> Keys => ParameterStore.Keys;
-
-    /// <inheritdoc />
-    public IEnumerable<StringValues> Values => ParameterStore.Values.Select(parameter => parameter.StringValues);
-
-    /// <inheritdoc />
-    public StringValues this[string key] => ParameterStore[key].StringValues;
-
-    /// <inheritdoc />
-    public bool ContainsKey(string key) => ParameterStore.ContainsKey(key);
-
-    /// <inheritdoc />
-    public bool TryGetValue(string key, out StringValues value)
-    {
-        if (!ParameterStore.TryGetValue(key, out var parameter))
-        {
-            value = default;
-            return false;
-        }
-
-        value = parameter.StringValues;
-        return true;
-    }
-
-    /// <inheritdoc />
-    public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => ParameterStore
-        .Select(kvp => KeyValuePair.Create(kvp.Key, kvp.Value.StringValues))
-        .GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
     /// <summary>
     /// Sets a parameter in the current instance.
     /// </summary>
@@ -229,15 +193,8 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
         }
 
         var descriptor = new ParameterDescriptor(knownParameter);
-        var stringValues = knownParameter.Parser.Format(OpenIdEnvironmentOrNull, descriptor, parsedValue);
-        if (StringValues.IsNullOrEmpty(stringValues))
-        {
-            ParameterStore.Remove(parameterName);
-            return;
-        }
-
-        var parameter = knownParameter.Parser.Create(OpenIdEnvironmentOrNull, descriptor, stringValues, parsedValue);
-        ParameterStore[knownParameter.Name] = parameter;
+        var parameter = knownParameter.Parser.Create(OpenIdEnvironmentOrNull, descriptor, knownParameter.Parser, parsedValue);
+        ParameterStore[parameterName] = parameter;
     }
 }
 
@@ -284,13 +241,6 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
     public static T Load(OpenIdEnvironment openIdEnvironment, IEnumerable<KeyValuePair<string, StringValues>> properties) =>
         Load(openIdEnvironment, properties.Select(property => Parameter.Load(openIdEnvironment, property.Key, property.Value)));
-
-    /// <summary>
-    /// Clones an existing <c>OAuth</c> or <c>OpenID Connect</c> message by parsing its parameters using their original string-values.
-    /// </summary>
-    /// <param name="other">The <see cref="IBaseOpenIdMessage"/> to clone.</param>
-    /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(IBaseOpenIdMessage other) => Load(other.OpenIdEnvironment, other);
 
     /// <inheritdoc />
     protected OpenIdMessage()

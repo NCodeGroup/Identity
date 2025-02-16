@@ -39,14 +39,12 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class JsonParser<T> : ParameterParser<T?>
 {
     /// <inheritdoc/>
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        T? parsedValue)
-    {
-        var options = openIdEnvironment.JsonSerializerOptions;
-        return JsonSerializer.Serialize(parsedValue, options);
-    }
+        T? parsedValue
+    ) =>
+        JsonSerializer.Serialize(parsedValue, openIdEnvironment.JsonSerializerOptions);
 
     /// <inheritdoc/>
     public override T? Parse(

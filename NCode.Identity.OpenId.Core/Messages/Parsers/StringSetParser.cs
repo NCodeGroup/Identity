@@ -29,13 +29,13 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// Provides an implementation of <see cref="IParameterParser{T}"/> that parses string collections which are separated by
 /// the space ' ' character.
 /// </summary>
-public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
+public class StringSetParser : ParameterParser<HashSet<string>?>
 {
     /// <inheritdoc/>
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        IReadOnlyCollection<string>? parsedValue)
+        HashSet<string>? parsedValue)
     {
         if (parsedValue is null)
             return StringValues.Empty;
@@ -51,7 +51,7 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
     }
 
     /// <inheritdoc/>
-    public override IReadOnlyCollection<string>? Parse(
+    public override HashSet<string>? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues)
@@ -75,7 +75,7 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
         foreach (var stringValue in stringValues)
         {
             var stringSpan = stringValue.AsSpan();
-            foreach (var range in stringSpan.Split(Separator))
+            foreach (var range in stringSpan.Split(OpenIdConstants.ParameterSeparatorChar))
             {
                 var part = stringSpan[range];
                 results.Add(part.ToString());
@@ -87,6 +87,6 @@ public class StringSetParser : ParameterParser<IReadOnlyCollection<string>?>
 
     /// <inheritdoc/>
     [return: NotNullIfNotNull(nameof(value))]
-    public override IReadOnlyCollection<string>? Clone(IReadOnlyCollection<string>? value) =>
-        value is null ? null : new HashSet<string>(value, StringComparer.Ordinal);
+    public override HashSet<string>? Clone(HashSet<string>? value) =>
+        value?.ToHashSet(StringComparer.Ordinal);
 }

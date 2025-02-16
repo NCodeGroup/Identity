@@ -22,13 +22,14 @@ using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
 
 internal delegate IParameter CreateParameterDelegate(
     OpenIdEnvironment openIdEnvironment,
     ParameterDescriptor descriptor,
-    StringValues stringValues,
+    IParameterLoader parser,
     object? parsedValue
 );
 

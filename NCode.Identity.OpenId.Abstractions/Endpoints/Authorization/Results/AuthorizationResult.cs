@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Results;
 /// An implementation of <see cref="IResult"/> that when executed, issues the response for an
 /// <c>OAuth</c> or <c>OpenID Connect</c> authorization operation. This result is only used when the
 /// request has been validated, specifically the <c>client_id</c> and <c>redirect_uri</c> parameters
-/// from the request have been validated and it is safe to redirect the user agent back to the client.
+/// from the request have been validated, and it is safe to redirect the user agent back to the client.
 /// </summary>
 [PublicAPI]
 public class AuthorizationResult : IResult, ISupportError

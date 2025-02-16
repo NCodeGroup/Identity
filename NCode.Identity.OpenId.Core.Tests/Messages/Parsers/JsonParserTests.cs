@@ -59,7 +59,7 @@ public class JsonParserTests : BaseTests
         var expectedValue = new TestNestedObject { NestedPropertyName1 = "NestedPropertyValue" };
         var expectedValueAsJson = JsonSerializer.Serialize(expectedValue, jsonSerializerOptions);
 
-        var stringValues = parser.Format(environment, descriptor, expectedValue);
+        var stringValues = parser.GetStringValues(environment, descriptor, expectedValue);
         Assert.Equal(expectedValueAsJson, stringValues);
     }
 

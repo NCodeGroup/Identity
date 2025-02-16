@@ -26,19 +26,33 @@ using NCode.Identity.OpenId.Messages.Parsers;
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
 /// <summary>
-/// Contains the parsed value and string values from which a parameter was parsed from.
+/// Contains the parsed value and string values from which a parameter was loaded from.
 /// </summary>
 [PublicAPI]
 public abstract class Parameter : IParameter
 {
-    /// <inheritdoc />
-    public required ParameterDescriptor Descriptor { get; init; }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Parameter"/> class.
+    /// </summary>
+    protected Parameter(ParameterDescriptor descriptor)
+    {
+        Descriptor = descriptor;
+    }
+
+    /// <summary>
+    /// Clones an existing <see cref="Parameter"/> instance.
+    /// </summary>
+    /// <param name="other">The <see cref="Parameter"/> instance to clone.</param>
+    protected Parameter(Parameter other)
+    {
+        Descriptor = other.Descriptor;
+    }
 
     /// <inheritdoc />
-    public required StringValues StringValues { get; init; }
+    public ParameterDescriptor Descriptor { get; }
 
     /// <inheritdoc />
-    public abstract object? GetParsedValue();
+    public abstract StringValues GetStringValues(OpenIdEnvironment openIdEnvironment);
 
     /// <inheritdoc />
     public abstract IParameter Clone();
@@ -76,51 +90,60 @@ public abstract class Parameter : IParameter
     }
 
     /// <summary>
-    /// Creates a <see cref="IParameter"/> given its string values and parsed value.
+    /// Creates a <see cref="IParameter"/> given its parsed value.
     /// </summary>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while creating the parameter.</param>
     /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to create.</param>
-    /// <param name="stringValues">The string values for the parameter.</param>
+    /// <param name="parser">The <see cref="IParameterParser{T}"/> to use when creating the parameter.</param>
     /// <param name="parsedValue">The parsed value for the parameter.</param>
     /// <returns>The newly created parameter.</returns>
     public static IParameter<T> Create<T>(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
+        IParameterParser<T> parser,
         T? parsedValue
-    ) => new Parameter<T>
-    {
-        Descriptor = descriptor,
-        StringValues = stringValues,
-        ParsedValue = parsedValue
-    };
+    ) =>
+        new Parameter<T>(descriptor, parser, parsedValue);
 }
 
 /// <summary>
-/// Contains the parsed value and string values from which a parameter was parsed from.
+/// Contains the parsed value and string values from which a parameter was loaded from.
 /// </summary>
 /// <typeparam name="T">The type of the parameter's parsed value.</typeparam>
 [PublicAPI]
 public class Parameter<T> : Parameter, IParameter<T>
 {
     /// <inheritdoc />
-    public T? ParsedValue { get; init; }
+    public IParameterParser<T> Parser { get; }
 
     /// <inheritdoc />
-    public override object? GetParsedValue() => ParsedValue;
+    public T? ParsedValue { get; }
 
-    /// <inheritdoc />
-    public override Parameter Clone()
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Parameter{T}"/> class.
+    /// </summary>
+    public Parameter(ParameterDescriptor descriptor, IParameterParser<T> parser, T? parsedValue)
+        : base(descriptor)
     {
-        var clonedValue = Descriptor.Loader is IParameterParser<T> parser ?
-            parser.Clone(ParsedValue) :
-            ParsedValue;
-
-        return new Parameter<T>
-        {
-            Descriptor = Descriptor,
-            StringValues = StringValues,
-            ParsedValue = clonedValue
-        };
+        Parser = parser;
+        ParsedValue = parsedValue;
     }
+
+    /// <summary>
+    /// Clones an existing <see cref="Parameter{T}"/> instance.
+    /// </summary>
+    /// <param name="other">The <see cref="Parameter{T}"/> instance to clone.</param>
+    protected Parameter(Parameter<T> other)
+        : base(other)
+    {
+        Parser = other.Parser;
+        ParsedValue = Parser.Clone(other.ParsedValue);
+    }
+
+    /// <inheritdoc />
+    public override StringValues GetStringValues(OpenIdEnvironment openIdEnvironment) =>
+        Parser.GetStringValues(openIdEnvironment, Descriptor, ParsedValue);
+
+    /// <inheritdoc />
+    public override Parameter Clone() => new Parameter<T>(this);
 }

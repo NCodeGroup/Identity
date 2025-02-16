@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.Collections;
-using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -26,26 +24,6 @@ namespace NCode.Identity.OpenId.Tests.Messages;
 
 internal class TestOpenIdMessageNotImplemented : ITestOpenIdMessage
 {
-    public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() =>
-        throw new NotImplementedException();
-
-    IEnumerator IEnumerable.GetEnumerator() =>
-        GetEnumerator();
-
-    public int Count => throw new NotImplementedException();
-
-    public bool ContainsKey(string key) =>
-        throw new NotImplementedException();
-
-    public bool TryGetValue(string key, out StringValues value) =>
-        throw new NotImplementedException();
-
-    public StringValues this[string key] => throw new NotImplementedException();
-
-    public IEnumerable<string> Keys => throw new NotImplementedException();
-
-    public IEnumerable<StringValues> Values => throw new NotImplementedException();
-
     public OpenIdEnvironment OpenIdEnvironment => throw new NotImplementedException();
 
     public string TypeDiscriminator => throw new NotImplementedException();

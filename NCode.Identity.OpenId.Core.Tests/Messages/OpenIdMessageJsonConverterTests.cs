@@ -508,14 +508,11 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         var jsonSerializerOptions = JsonSerializerOptions.Web;
 
         const string parameterName = nameof(parameterName);
-        const string stringValue = nameof(stringValue);
+        const string parsedValue = nameof(parsedValue);
 
-        var parameter = new Parameter<string>
-        {
-            Descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default),
-            StringValues = stringValue,
-            ParsedValue = stringValue
-        };
+        var parser = ParameterParsers.String;
+        var descriptor = new ParameterDescriptor(parameterName, parser);
+        var parameter = new Parameter<string?>(descriptor, parser, parsedValue);
 
         var message = new OpenIdMessage(environment, [parameter]);
 
@@ -559,7 +556,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal(stringValue, jsonReader.GetString());
+        Assert.Equal(parsedValue, jsonReader.GetString());
 
         // }
 
@@ -578,14 +575,11 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         var jsonSerializerOptions = JsonSerializerOptions.Web;
 
         const string parameterName = nameof(parameterName);
-        const string stringValue = nameof(stringValue);
+        const string parsedValue = nameof(parsedValue);
 
-        var parameter = new Parameter<string>
-        {
-            Descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default),
-            StringValues = stringValue,
-            ParsedValue = stringValue
-        };
+        var parser = ParameterParsers.String;
+        var descriptor = new ParameterDescriptor(parameterName, parser);
+        var parameter = new Parameter<string?>(descriptor, parser, parsedValue);
 
         var message = new OpenIdMessage(environment, [parameter])
         {
@@ -610,7 +604,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal(stringValue, jsonReader.GetString());
+        Assert.Equal(parsedValue, jsonReader.GetString());
 
         // }
 
@@ -631,14 +625,11 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         var jsonSerializerOptions = JsonSerializerOptions.Web;
 
         const string parameterName = nameof(parameterName);
-        var stringValues = new[] { "value1", "value2" };
+        var parsedValue = new HashSet<string> { "value1", "value2" };
 
-        var parameter = new Parameter<string[]>
-        {
-            Descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default),
-            StringValues = stringValues,
-            ParsedValue = stringValues
-        };
+        var parser = ParameterParsers.StringSet;
+        var descriptor = new ParameterDescriptor(parameterName, parser);
+        var parameter = new Parameter<HashSet<string>?>(descriptor, parser, parsedValue);
 
         var message = new OpenIdMessage(environment, [parameter]);
 
@@ -685,11 +676,11 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal(stringValues[0], jsonReader.GetString());
+        Assert.Equal(parsedValue.ElementAt(0), jsonReader.GetString());
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal(stringValues[1], jsonReader.GetString());
+        Assert.Equal(parsedValue.ElementAt(1), jsonReader.GetString());
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.EndArray, jsonReader.TokenType);
@@ -711,14 +702,11 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         var jsonSerializerOptions = JsonSerializerOptions.Web;
 
         const string parameterName = nameof(parameterName);
-        var stringValues = new[] { "value1", "value2" };
+        var parsedValue = new HashSet<string> { "value1", "value2" };
 
-        var parameter = new Parameter<string[]>
-        {
-            Descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default),
-            StringValues = stringValues,
-            ParsedValue = stringValues
-        };
+        var parser = ParameterParsers.StringSet;
+        var descriptor = new ParameterDescriptor(parameterName, parser);
+        var parameter = new Parameter<HashSet<string>?>(descriptor, parser, parsedValue);
 
         var message = new OpenIdMessage(environment, [parameter])
         {
@@ -743,7 +731,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
 
         Assert.True(jsonReader.Read());
         Assert.Equal(JsonTokenType.String, jsonReader.TokenType);
-        Assert.Equal(string.Join(' ', stringValues), jsonReader.GetString());
+        Assert.Equal(string.Join(' ', parsedValue), jsonReader.GetString());
 
         // }
 

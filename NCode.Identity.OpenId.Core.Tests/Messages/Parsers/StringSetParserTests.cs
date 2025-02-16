@@ -28,8 +28,6 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
 
-// TODO: unit tests for IgnoreErrors
-
 public class StringSetParserTests : IDisposable
 {
     private MockRepository MockRepository { get; }
@@ -56,9 +54,9 @@ public class StringSetParserTests : IDisposable
         const string parameterName = "parameterName";
         var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
-        IReadOnlyCollection<string>? parsedValue = null;
+        HashSet<string>? parsedValue = null;
 
-        var stringValues = parser.Format(environment, descriptor, parsedValue);
+        var stringValues = parser.GetStringValues(environment, descriptor, parsedValue);
         Assert.Equal(StringValues.Empty, stringValues);
     }
 
@@ -71,9 +69,9 @@ public class StringSetParserTests : IDisposable
         const string parameterName = "parameterName";
         var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
 
-        var parsedValue = Array.Empty<string>();
+        var parsedValue = new HashSet<string>();
 
-        var stringValues = parser.Format(environment, descriptor, parsedValue);
+        var stringValues = parser.GetStringValues(environment, descriptor, parsedValue);
         Assert.Equal(StringValues.Empty, stringValues);
     }
 
@@ -86,7 +84,7 @@ public class StringSetParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        var knownParameter = new KnownParameter<HashSet<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = true,
         };
@@ -132,7 +130,7 @@ public class StringSetParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        var knownParameter = new KnownParameter<HashSet<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
         };
@@ -152,7 +150,7 @@ public class StringSetParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2" };
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        var knownParameter = new KnownParameter<HashSet<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
         };
@@ -172,7 +170,7 @@ public class StringSetParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = new[] { "value1", "value2", "value1", "value2" };
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        var knownParameter = new KnownParameter<HashSet<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
         };
@@ -180,7 +178,7 @@ public class StringSetParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         var result = parser.Parse(environment, descriptor, stringValues);
-        Assert.Equal(stringValues.Distinct(), result);
+        Assert.Equal(stringValues.ToHashSet(), result);
     }
 
     [Fact]
@@ -193,7 +191,7 @@ public class StringSetParserTests : IDisposable
         const string stringValues = "value1 value2";
         var expectedResult = new[] { "value1", "value2" };
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        var knownParameter = new KnownParameter<HashSet<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
         };
@@ -214,7 +212,7 @@ public class StringSetParserTests : IDisposable
         const string stringValues = "value1 value2 value1 value2";
         var expectedResult = new[] { "value1", "value2" };
 
-        var knownParameter = new KnownParameter<IReadOnlyCollection<string>?>(parameterName, parser)
+        var knownParameter = new KnownParameter<HashSet<string>?>(parameterName, parser)
         {
             AllowMissingStringValues = false,
         };

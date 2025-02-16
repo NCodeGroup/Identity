@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
@@ -26,30 +27,18 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 /// Provides a default implementation of the <see cref="IAuthorizationSource"/> abstraction.
 /// </summary>
 [PublicAPI]
-public class AuthorizationSource :
-    OpenIdMessage<AuthorizationSource>,
-    IAuthorizationSource
+public class AuthorizationSource(
+    OpenIdEnvironment openIdEnvironment,
+    AuthorizationSourceType authorizationSourceType,
+    IOpenIdRequestValues requestValues
+) : IAuthorizationSource
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AuthorizationSource"/> class.
-    /// </summary>
-    public AuthorizationSource()
-    {
-        // nothing
-    }
+    /// <inheritdoc />
+    public OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
     /// <inheritdoc />
-    protected AuthorizationSource(AuthorizationSource other)
-        : base(other)
-    {
-        AuthorizationSourceType = other.AuthorizationSourceType;
-    }
+    public AuthorizationSourceType AuthorizationSourceType { get; } = authorizationSourceType;
 
     /// <inheritdoc />
-    public AuthorizationSourceType AuthorizationSourceType { get; set; }
-
-    /// <inheritdoc />
-    public override AuthorizationSource Clone() => new(this);
-
-    IAuthorizationSource ISupportClone<IAuthorizationSource>.Clone() => Clone();
+    public IOpenIdRequestValues RequestValues { get; } = requestValues;
 }

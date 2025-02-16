@@ -50,12 +50,12 @@ public readonly record struct CreateSecurityTokenRequest
     /// <summary>
     /// Gets or sets the original scopes that were requested by the client application.
     /// </summary>
-    public required IReadOnlyCollection<string> OriginalScopes { get; init; }
+    public required IReadOnlyList<string> OriginalScopes { get; init; }
 
     /// <summary>
     /// Gets or sets the effective scopes that will be used to generate the token.
     /// </summary>
-    public required IReadOnlyCollection<string> EffectiveScopes { get; init; }
+    public required IReadOnlyList<string> EffectiveScopes { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>code</c> value that was provided by the client application.

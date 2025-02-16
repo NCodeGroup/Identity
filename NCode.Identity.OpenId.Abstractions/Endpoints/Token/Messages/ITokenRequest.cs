@@ -65,7 +65,7 @@ public interface ITokenRequest : IOpenIdRequest
     /// <summary>
     /// Gets or sets a <see cref="string"/> collection containing the scopes requested by the client.
     /// </summary>
-    IReadOnlyCollection<string>? Scopes { get; set; }
+    List<string>? Scopes { get; set; }
 
     /// <summary>
     /// Gets or sets a <see cref="string"/> value containing the username of the resource owner.

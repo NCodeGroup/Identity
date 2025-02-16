@@ -29,18 +29,21 @@ namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
 [PublicAPI]
 internal class ProxyParameterLoader : IParameterLoader
 {
+    public Func<Type>? ParameterTypeCallback { get; set; }
     public CreateParameterDelegate? CreateCallback { get; set; }
     public LoadParameterDelegate? LoadCallback { get; set; }
     public ReadParameterDelegate? ReadCallback { get; set; }
     public WriteParameterDelegate? WriteCallback { get; set; }
 
+    public Type ParameterType => ParameterTypeCallback?.Invoke() ?? throw new NotImplementedException();
+
     public IParameter<T> Create<T>(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
+        IParameterParser<T> parser,
         T? parsedValue
     ) =>
-        (IParameter<T>?)CreateCallback?.Invoke(openIdEnvironment, descriptor, stringValues, parsedValue) ??
+        (IParameter<T>?)CreateCallback?.Invoke(openIdEnvironment, descriptor, parser, parsedValue) ??
         throw new NotImplementedException();
 
     public IParameter Load(

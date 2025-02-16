@@ -155,7 +155,7 @@ public class DefaultRefreshTokenGrantHandler(
 
         var tokenResponse = TokenResponse.Create(OpenIdEnvironment);
 
-        tokenResponse.Scopes = effectiveScopes;
+        tokenResponse.Scopes = effectiveScopes.ToList();
 
         var securityTokenRequest = new CreateSecurityTokenRequest
         {

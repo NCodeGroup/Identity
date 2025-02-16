@@ -32,38 +32,32 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 [PublicAPI]
 public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
 {
-    /// <summary>
-    /// Gets the value which is used to delimit string lists in <c>OAuth</c> and <c>OpenID Connect</c> parameters.
-    /// The default value is the space ' ' character.
-    /// </summary>
-    public virtual string Separator => OpenIdConstants.ParameterSeparatorString;
-
-    /// <summary>
-    /// Gets the <see cref="StringComparison"/> that should be used when comparing string values.
-    /// The default value is <see cref="StringComparison.Ordinal"/>.
-    /// </summary>
-    public virtual StringComparison StringComparison => StringComparison.Ordinal;
+    /// <inheritdoc />
+    public override Type ParameterType => typeof(T);
 
     /// <inheritdoc />
-    public abstract StringValues Format(
+    public abstract StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        T? parsedValue);
+        T? parsedValue
+    );
 
     /// <inheritdoc />
     public abstract T Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues);
+        StringValues stringValues
+    );
 
     /// <inheritdoc />
     public override IParameter Load(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues)
+        StringValues stringValues
+    )
     {
         var parsedValue = Parse(openIdEnvironment, descriptor, stringValues);
-        return Create(openIdEnvironment, descriptor, stringValues, parsedValue);
+        return Create(openIdEnvironment, descriptor, this, parsedValue);
     }
 
     /// <summary>
@@ -78,19 +72,48 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         SerializationFormat format,
-        JsonSerializerOptions options)
+        JsonSerializerOptions options
+    )
     {
         if (reader.TokenType == JsonTokenType.String && format != SerializationFormat.Json)
         {
             var stringValues = Deserialize<StringValues>(ref reader, options);
             var parsedValue = Parse(openIdEnvironment, descriptor, stringValues);
-            return Create(openIdEnvironment, descriptor, stringValues, parsedValue);
+            return Create(openIdEnvironment, descriptor, this, parsedValue);
         }
         else
         {
             var parsedValue = Deserialize<T>(ref reader, options);
-            var stringValues = Format(openIdEnvironment, descriptor, parsedValue);
-            return Create(openIdEnvironment, descriptor, stringValues, parsedValue);
+            return Create(openIdEnvironment, descriptor, this, parsedValue);
+        }
+    }
+
+    /// <inheritdoc />
+    public override void Write(
+        Utf8JsonWriter writer,
+        OpenIdEnvironment openIdEnvironment,
+        IParameter parameter,
+        SerializationFormat format,
+        JsonSerializerOptions options
+    )
+    {
+        var parameterName = parameter.Descriptor.ParameterName;
+        writer.WritePropertyName(parameterName);
+
+        switch (format)
+        {
+            case SerializationFormat.Json:
+                var parsedValue = ((IParameter<T>)parameter).ParsedValue;
+                JsonSerializer.Serialize(writer, parsedValue, options);
+                break;
+
+            case SerializationFormat.OpenId:
+                var stringValues = parameter.GetStringValues(openIdEnvironment);
+                JsonSerializer.Serialize(writer, stringValues, options);
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(format), format, null);
         }
     }
 

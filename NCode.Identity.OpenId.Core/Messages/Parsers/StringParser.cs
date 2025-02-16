@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -27,15 +28,15 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// <summary>
 /// Provides an implementation of <see cref="IParameterParser{T}"/> that can parse <see cref="string"/> values.
 /// </summary>
+[PublicAPI]
 public class StringParser : ParameterParser<string?>
 {
     /// <inheritdoc/>
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         string? parsedValue
-    ) =>
-        ToStringValues(parsedValue);
+    ) => parsedValue;
 
     /// <inheritdoc/>
     public override string? Parse(

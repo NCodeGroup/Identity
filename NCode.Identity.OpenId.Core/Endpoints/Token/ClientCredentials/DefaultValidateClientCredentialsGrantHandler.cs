@@ -48,7 +48,7 @@ public class DefaultValidateClientCredentialsGrantHandler(
         // see DefaultValidateTokenRequestHandler for additional validation
 
         // scopes
-        var scopes = tokenRequest.Scopes ?? Array.Empty<string>();
+        var scopes = tokenRequest.Scopes ?? [];
 
         // scope: openid
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))

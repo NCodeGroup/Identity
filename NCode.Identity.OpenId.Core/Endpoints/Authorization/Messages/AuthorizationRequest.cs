@@ -17,9 +17,7 @@
 
 #endregion
 
-using System.Collections;
 using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 
@@ -57,6 +55,9 @@ public class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestObject = other.OriginalRequestObject?.Clone();
     }
 
+    private static IReadOnlyList<T> Coalesce<T>(IReadOnlyList<T>? first, IReadOnlyList<T>? second) =>
+        first ?? second ?? Array.Empty<T>();
+
     private static string DetermineGrantType(IReadOnlyCollection<string> responseTypes) =>
         responseTypes.Contains(OpenIdConstants.ResponseTypes.Code) ?
             responseTypes.Count == 1 ?
@@ -93,10 +94,10 @@ public class AuthorizationRequest : IAuthorizationRequest
      */
 
     /// <inheritdoc />
-    public IReadOnlyCollection<string> AcrValues =>
-        OriginalRequestObject?.AcrValues ??
-        OriginalRequestMessage.AcrValues ??
-        Array.Empty<string>();
+    public IReadOnlyList<string> AcrValues => Coalesce(
+        OriginalRequestObject?.AcrValues,
+        OriginalRequestMessage.AcrValues
+    );
 
     /// <inheritdoc />
     public IRequestClaims? Claims =>
@@ -104,10 +105,10 @@ public class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestMessage.Claims;
 
     /// <inheritdoc />
-    public IReadOnlyCollection<string> ClaimsLocales =>
-        OriginalRequestObject?.ClaimsLocales ??
-        OriginalRequestMessage.ClaimsLocales ??
-        Array.Empty<string>();
+    public IReadOnlyList<string> ClaimsLocales => Coalesce(
+        OriginalRequestObject?.ClaimsLocales,
+        OriginalRequestMessage.ClaimsLocales
+    );
 
     /// <inheritdoc />
     public string ClientId =>
@@ -165,10 +166,10 @@ public class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestMessage.Nonce;
 
     /// <inheritdoc />
-    public IReadOnlyCollection<string> PromptTypes =>
-        OriginalRequestObject?.PromptTypes ??
-        OriginalRequestMessage.PromptTypes ??
-        Array.Empty<string>();
+    public IReadOnlyList<string> PromptTypes => Coalesce(
+        OriginalRequestObject?.PromptTypes,
+        OriginalRequestMessage.PromptTypes
+    );
 
     /// <inheritdoc />
     public Uri RedirectUri =>
@@ -186,16 +187,16 @@ public class AuthorizationRequest : IAuthorizationRequest
         DetermineDefaultResponseMode(GrantType);
 
     /// <inheritdoc />
-    public IReadOnlyCollection<string> ResponseTypes =>
-        OriginalRequestObject?.ResponseTypes ??
-        OriginalRequestMessage.ResponseTypes ??
-        Array.Empty<string>();
+    public IReadOnlyList<string> ResponseTypes => Coalesce(
+        OriginalRequestObject?.ResponseTypes,
+        OriginalRequestMessage.ResponseTypes
+    );
 
     /// <inheritdoc />
-    public IReadOnlyCollection<string> Scopes =>
-        OriginalRequestObject?.Scopes ??
-        OriginalRequestMessage.Scopes ??
-        Array.Empty<string>();
+    public IReadOnlyList<string> Scopes => Coalesce(
+        OriginalRequestObject?.Scopes,
+        OriginalRequestMessage.Scopes
+    );
 
     /// <inheritdoc />
     public string? State =>
@@ -203,57 +204,10 @@ public class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestMessage.State;
 
     /// <inheritdoc />
-    public IReadOnlyCollection<string> UiLocales =>
-        OriginalRequestObject?.UiLocales ??
-        OriginalRequestMessage.UiLocales ??
-        Array.Empty<string>();
-
-    private IEnumerable<KeyValuePair<string, StringValues>> GetUnion()
-    {
-        if (OriginalRequestObject == null || OriginalRequestObject.Count == 0)
-            return OriginalRequestMessage;
-
-        return OriginalRequestMessage
-            .ExceptBy(OriginalRequestObject.Keys, kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
-            .Concat(OriginalRequestObject);
-    }
-
-    /// <inheritdoc />
-    public int Count =>
-        GetUnion().Count();
-
-    /// <inheritdoc />
-    public IEnumerable<string> Keys =>
-        GetUnion().Select(kvp => kvp.Key);
-
-    /// <inheritdoc />
-    public IEnumerable<StringValues> Values =>
-        GetUnion().Select(kvp => kvp.Value);
-
-    /// <inheritdoc />
-    public StringValues this[string key] =>
-        OriginalRequestObject?.TryGetValue(key, out var value) ?? false ?
-            value :
-            OriginalRequestMessage[key];
-
-    /// <inheritdoc />
-    public bool ContainsKey(string key) =>
-        OriginalRequestObject?.ContainsKey(key) ??
-        OriginalRequestMessage.ContainsKey(key);
-
-    /// <inheritdoc />
-    public bool TryGetValue(string key, out StringValues value) =>
-        OriginalRequestObject?.TryGetValue(key, out value) ??
-        OriginalRequestMessage.TryGetValue(key, out value);
-
-    /// <inheritdoc />
-    [MustDisposeResource]
-    public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() =>
-        GetUnion().GetEnumerator();
-
-    [MustDisposeResource]
-    IEnumerator IEnumerable.GetEnumerator() =>
-        GetEnumerator();
+    public IReadOnlyList<string> UiLocales => Coalesce(
+        OriginalRequestObject?.UiLocales,
+        OriginalRequestMessage.UiLocales
+    );
 
     /// <inheritdoc />
     public IAuthorizationRequest Clone() => new AuthorizationRequest(this);

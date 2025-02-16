@@ -85,12 +85,12 @@ public class DefaultValidateAuthorizationRequestHandler(
          * request and request_uri parameters MUST NOT be included in Request Objects.
          */
 
-        if (requestObject.ContainsKey(OpenIdConstants.Parameters.Request))
+        if (requestObject.Parameters.ContainsKey(OpenIdConstants.Parameters.Request))
             throw ErrorFactory
                 .InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode)
                 .AsException();
 
-        if (requestObject.ContainsKey(OpenIdConstants.Parameters.RequestUri))
+        if (requestObject.Parameters.ContainsKey(OpenIdConstants.Parameters.RequestUri))
             throw ErrorFactory
                 .InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode)
                 .AsException();

@@ -34,7 +34,6 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Subject;
 
@@ -134,15 +133,16 @@ public class DefaultAuthorizationEndpointHandler(
         }
     }
 
-    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IBaseOpenIdMessage authorizationSource)
+    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IAuthorizationSource authorizationSource)
     {
         var settings = openIdClient.Settings;
 
-        var hasState = authorizationSource.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
+        var hasState = authorizationSource.RequestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
         var state = hasState && !StringValues.IsNullOrEmpty(stateStringValues) ? stateStringValues.ToString() : null;
 
+        var hasResponseMode = authorizationSource.RequestValues.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
         string effectiveResponseMode;
-        var hasResponseMode = !authorizationSource.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
+
         if (hasResponseMode)
         {
             if (responseModeStringValues.Count > 1)
@@ -169,7 +169,7 @@ public class DefaultAuthorizationEndpointHandler(
             effectiveResponseMode = OpenIdConstants.ResponseModes.Query;
         }
 
-        if (!authorizationSource.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
+        if (!authorizationSource.RequestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
         {
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
@@ -303,7 +303,11 @@ public class DefaultAuthorizationEndpointHandler(
 
         authorizationRequest.IsContinuation = true;
 
-        var clientRedirectContext = GetClientRedirectContext(openIdClient, authorizationRequest);
+        var clientRedirectContext = new ClientRedirectContext(
+            authorizationRequest.RedirectUri,
+            authorizationRequest.ResponseMode,
+            authorizationRequest.State
+        );
 
         var result = await ProcessAuthorizationRequestAsync(
             openIdContext,

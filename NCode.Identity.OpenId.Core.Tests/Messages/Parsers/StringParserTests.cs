@@ -49,7 +49,7 @@ public class StringParserTests : BaseTests
 
         const string parsedValue = "parsedValue";
 
-        var stringValues = parser.Format(environment, descriptor, parsedValue);
+        var stringValues = parser.GetStringValues(environment, descriptor, parsedValue);
         Assert.Equal(parsedValue, stringValues);
     }
 

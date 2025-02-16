@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Grants;
 [PublicAPI]
 public readonly record struct RefreshTokenGrant(
     string ClientId,
-    IReadOnlyCollection<string> OriginalScopes,
-    IReadOnlyCollection<string> EffectiveScopes,
+    IReadOnlyList<string> OriginalScopes,
+    IReadOnlyList<string> EffectiveScopes,
     SubjectAuthentication? SubjectAuthentication
 );

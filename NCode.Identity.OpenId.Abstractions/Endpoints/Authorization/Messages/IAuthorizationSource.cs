@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,9 +14,11 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
@@ -24,9 +27,10 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 /// and only contains string-values.
 /// </summary>
 [PublicAPI]
-public interface IAuthorizationSource :
-    IBaseAuthorizationRequest,
-    ISupportClone<IAuthorizationSource>
+public interface IAuthorizationSource : IBaseAuthorizationRequest
 {
-    // nothing
+    /// <summary>
+    /// Gets the <see cref="IOpenIdRequestValues"/> for the authorization request.
+    /// </summary>
+    IOpenIdRequestValues RequestValues { get; }
 }

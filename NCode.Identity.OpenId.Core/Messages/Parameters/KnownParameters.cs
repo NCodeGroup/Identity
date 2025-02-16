@@ -42,10 +42,10 @@ public static class KnownParameters
         format == SerializationFormat.Json;
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>acr_values</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>acr_values</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<IReadOnlyCollection<string>?> AcrValues =
-        new(OpenIdConstants.Parameters.AcrValues, ParameterParsers.StringSet)
+    public static readonly KnownParameter<List<string>?> AcrValues =
+        new(OpenIdConstants.Parameters.AcrValues, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
         };
@@ -70,10 +70,10 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>claims_locales</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>claims_locales</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<IReadOnlyCollection<string>?> ClaimsLocales =
-        new(OpenIdConstants.Parameters.ClaimsLocales, ParameterParsers.StringSet)
+    public static readonly KnownParameter<List<string>?> ClaimsLocales =
+        new(OpenIdConstants.Parameters.ClaimsLocales, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
         };
@@ -242,10 +242,10 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>prompt</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>prompt</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<IReadOnlyCollection<string>?> PromptType =
-        new(OpenIdConstants.Parameters.Prompt, ParameterParsers.StringSet)
+    public static readonly KnownParameter<List<string>?> PromptType =
+        new(OpenIdConstants.Parameters.Prompt, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
         };
@@ -306,20 +306,20 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>response_type</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>response_type</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<IReadOnlyCollection<string>?> ResponseTypes =
-        new(OpenIdConstants.Parameters.ResponseType, ParameterParsers.StringSet)
+    public static readonly KnownParameter<List<string>?> ResponseTypes =
+        new(OpenIdConstants.Parameters.ResponseType, ParameterParsers.StringList)
         {
             AllowMissingStringValues = false,
             SortStringValues = true,
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>scope</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>scope</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<IReadOnlyCollection<string>?> Scopes =
-        new(OpenIdConstants.Parameters.Scope, ParameterParsers.StringSet)
+    public static readonly KnownParameter<List<string>?> Scopes =
+        new(OpenIdConstants.Parameters.Scope, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
         };
@@ -334,10 +334,10 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>ui_locales</c> message parameter which parses <see cref="StringValues"/> into an <see cref="IReadOnlyCollection{String}"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>ui_locales</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<IReadOnlyCollection<string>?> UiLocales =
-        new(OpenIdConstants.Parameters.UiLocales, ParameterParsers.StringSet)
+    public static readonly KnownParameter<List<string>?> UiLocales =
+        new(OpenIdConstants.Parameters.UiLocales, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
         };

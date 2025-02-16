@@ -29,118 +29,46 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// Provides the ability parse and load <see cref="IParameter"/> values.
 /// </summary>
 [PublicAPI]
-public class ParameterLoader : IParameterLoader
+public abstract class ParameterLoader : IParameterLoader
 {
     /// <summary>
-    /// Gets a default implementation of <see cref="IParameterLoader"/> that simply returns a newly initialized <see cref="IParameter"/> object.
+    /// Gets the default <see cref="ParameterLoader"/> instance that can be used to load and parse unknown parameter types.
     /// </summary>
-    public static ParameterLoader Default { get; } = new();
+    public static ParameterLoader Default => ParameterParsers.StringValues;
 
-    /// <inheritdoc cref="IStringValuesConverter.ToStringValues"/>
-    protected internal virtual StringValues ToStringValues(string? value) =>
-        StringValuesConverter.Singleton.ToStringValues(value);
+    /// <inheritdoc />
+    public abstract Type ParameterType { get; }
 
-    /// <inheritdoc cref="IStringValuesConverter.FromStringValues"/>
-    protected internal virtual string? FromStringValues(StringValues stringValues) =>
-        StringValuesConverter.Singleton.FromStringValues(stringValues);
-
-    /// <summary>
-    /// Gets the value to serialize for the specified <paramref name="parameter"/> and <paramref name="format"/>.
-    /// </summary>
-    /// <param name="parameter">The parameter to serialize.</param>
-    /// <param name="format">The serialization format to use.</param>
-    /// <returns>The value to serialize.</returns>
-    protected internal virtual object? GetValueToSerialize(IParameter parameter, SerializationFormat format) =>
-        format switch
-        {
-            SerializationFormat.Json => parameter.GetParsedValue(),
-            SerializationFormat.OpenId => FromStringValues(parameter.StringValues),
-            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
-        };
-
-    /// <summary>
-    /// Creates a <see cref="IParameter"/> given its string values and parsed value.
-    /// </summary>
-    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while creating the parameter.</param>
-    /// <param name="descriptor">The <see cref="ParameterDescriptor"/> that describes the parameter to create.</param>
-    /// <param name="stringValues">The string values for the parameter.</param>
-    /// <param name="parsedValue">The parsed value for the parameter.</param>
-    /// <returns>The newly created parameter.</returns>
+    /// <inheritdoc />
     public virtual IParameter<T> Create<T>(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
+        IParameterParser<T> parser,
         T? parsedValue
-    ) => Parameter.Create(
-        openIdEnvironment,
-        descriptor,
-        stringValues,
-        parsedValue
-    );
+    ) => Parameter.Create(openIdEnvironment, descriptor, parser, parsedValue);
 
     /// <inheritdoc />
-    public virtual IParameter Load(
+    public abstract IParameter Load(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues
-    ) => Create(
-        openIdEnvironment,
-        descriptor,
-        stringValues,
-        FromStringValues(stringValues)
     );
 
     /// <inheritdoc />
-    public virtual IParameter Read(
+    public abstract IParameter Read(
         ref Utf8JsonReader reader,
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         SerializationFormat format,
-        JsonSerializerOptions options)
-    {
-        switch (format)
-        {
-            case SerializationFormat.Json:
-            case SerializationFormat.OpenId:
-                if (reader.TokenType == JsonTokenType.Null)
-                {
-                    if (!descriptor.AllowMissingStringValues)
-                    {
-                        throw new InvalidOperationException("The parameter is configured to not allow missing string values.");
-                    }
-                }
-                else if (reader.TokenType != JsonTokenType.String)
-                {
-                    throw new InvalidOperationException("The default implementation of ParameterLoader only supports string values.");
-                }
-
-                var parsedValue = reader.GetString();
-
-                return Create(
-                    openIdEnvironment,
-                    descriptor,
-                    ToStringValues(parsedValue),
-                    parsedValue
-                );
-
-            default:
-                throw new ArgumentOutOfRangeException(nameof(format), format, null);
-        }
-    }
+        JsonSerializerOptions options
+    );
 
     /// <inheritdoc />
-    public virtual void Write(
+    public abstract void Write(
         Utf8JsonWriter writer,
         OpenIdEnvironment openIdEnvironment,
         IParameter parameter,
         SerializationFormat format,
         JsonSerializerOptions options
-    )
-    {
-        var parameterName = parameter.Descriptor.ParameterName;
-        var parameterValue = GetValueToSerialize(parameter, format);
-
-        writer.WritePropertyName(parameterName);
-        JsonSerializer.Serialize(writer, parameterValue, options);
-    }
+    );
 }

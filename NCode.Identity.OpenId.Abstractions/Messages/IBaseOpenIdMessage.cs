@@ -18,7 +18,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Messages;
@@ -27,7 +26,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// Represents the base interface for all <c>OAuth</c> or <c>OpenID Connect</c> messages.
 /// </summary>
 [PublicAPI]
-public interface IBaseOpenIdMessage : IReadOnlyDictionary<string, StringValues>
+public interface IBaseOpenIdMessage
 {
     /// <summary>
     /// Gets the <see cref="OpenIdEnvironment"/> for the current instance.

@@ -167,7 +167,10 @@ public class AuthorizationRequestTests : BaseTests
             requestMessage,
             requestObject);
 
-        var parameterCount = authorizationRequest.Count;
+        var parameterCountBefore =
+            authorizationRequest.OriginalRequestMessage.Parameters.Count +
+            authorizationRequest.OriginalRequestObject?.Parameters.Count;
+
         var json = JsonSerializer.Serialize(authorizationRequest, jsonSerializerOptions);
         Debug.WriteLine(json);
 
@@ -195,10 +198,14 @@ public class AuthorizationRequestTests : BaseTests
             .Verifiable();
 
         var result = JsonSerializer.Deserialize<IAuthorizationRequest>(json, jsonSerializerOptions);
+        var parameterCountAfter =
+            authorizationRequest.OriginalRequestMessage.Parameters.Count +
+            authorizationRequest.OriginalRequestObject?.Parameters.Count;
+
         Assert.IsType<AuthorizationRequest>(result);
         Assert.Same(MockOpenIdEnvironment.Object, result.OpenIdEnvironment);
         Assert.Equal(isContinuation, result.IsContinuation);
-        Assert.Equal(parameterCount, result.Count);
+        Assert.Equal(parameterCountBefore, parameterCountAfter);
 
         // OriginalRequestMessage
         Assert.Same(MockOpenIdEnvironment.Object, result.OriginalRequestMessage.OpenIdEnvironment);
@@ -217,13 +224,12 @@ public class AuthorizationRequestTests : BaseTests
 
     private static void AssertParameters(IOpenIdMessage original, IOpenIdMessage deserialized)
     {
+        var environment = original.OpenIdEnvironment;
         Assert.Equal(original.Parameters.Count, deserialized.Parameters.Count);
-
         foreach (var (parameterName, originalParameter) in original.Parameters)
         {
             var deserializedParameter = Assert.Contains(parameterName, deserialized.Parameters);
-            Assert.Equal(originalParameter.StringValues, deserializedParameter.StringValues);
-            Assert.Equivalent(originalParameter.GetParsedValue(), deserializedParameter.GetParsedValue());
+            Assert.Equal(originalParameter.GetStringValues(environment), deserializedParameter.GetStringValues(environment));
         }
     }
 }

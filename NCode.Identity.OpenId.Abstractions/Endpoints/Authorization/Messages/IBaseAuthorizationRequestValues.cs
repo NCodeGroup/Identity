@@ -1,4 +1,5 @@
 #region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using JetBrains.Annotations;
@@ -28,7 +30,7 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     /// <summary>
     /// Gets or sets the <c>acr_values</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? AcrValues { get; set; }
+    List<string>? AcrValues { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>claims</c> parameter.
@@ -38,7 +40,7 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     /// <summary>
     /// Gets or sets the <c>claims_locales</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? ClaimsLocales { get; set; }
+    List<string>? ClaimsLocales { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>client_id</c> parameter.
@@ -88,7 +90,7 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     /// <summary>
     /// Gets or sets the <c>prompt</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? PromptTypes { get; set; }
+    List<string>? PromptTypes { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>redirect_uri</c> parameter.
@@ -103,12 +105,12 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     /// <summary>
     /// Gets or sets the <c>response_type</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? ResponseTypes { get; set; }
+    List<string>? ResponseTypes { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>scope</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? Scopes { get; set; }
+    List<string>? Scopes { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>state</c> parameter.
@@ -118,5 +120,5 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     /// <summary>
     /// Gets or sets the <c>ui_locales</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? UiLocales { get; set; }
+    List<string>? UiLocales { get; set; }
 }

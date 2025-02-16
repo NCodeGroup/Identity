@@ -65,7 +65,7 @@ public class EnumParser<T> : ParameterParser<T>
     }
 
     /// <inheritdoc/>
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T parsedValue
@@ -142,7 +142,7 @@ public class EnumParser<T> : ParameterParser<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T ParseFlags(
+    private static T ParseFlags(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues
@@ -193,7 +193,7 @@ public class EnumParser<T> : ParameterParser<T>
         return result;
     }
 
-    private void ParseFlags<TUnderlying>(
+    private static void ParseFlags<TUnderlying>(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues,
@@ -209,7 +209,7 @@ public class EnumParser<T> : ParameterParser<T>
                 continue;
 
             var stringSpan = stringValue.AsSpan();
-            foreach (var range in stringSpan.Split(Separator))
+            foreach (var range in stringSpan.Split(OpenIdConstants.ParameterSeparatorChar))
             {
                 var valueToParse = stringSpan[range];
                 var parsedValue = ParseValue(openIdEnvironment, descriptor, valueToParse);

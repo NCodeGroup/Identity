@@ -49,7 +49,7 @@ public interface IAuthorizationRequest :
     /// <summary>
     /// Gets the <c>acr_values</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string> AcrValues { get; }
+    IReadOnlyList<string> AcrValues { get; }
 
     /// <summary>
     /// Gets the <c>claims</c> parameter.
@@ -59,7 +59,7 @@ public interface IAuthorizationRequest :
     /// <summary>
     /// Gets the <c>claims_locales</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string> ClaimsLocales { get; }
+    IReadOnlyList<string> ClaimsLocales { get; }
 
     /// <summary>
     /// Gets the <c>client_id</c> parameter.
@@ -114,7 +114,7 @@ public interface IAuthorizationRequest :
     /// <summary>
     /// Gets the <c>prompt_type</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string> PromptTypes { get; }
+    IReadOnlyList<string> PromptTypes { get; }
 
     /// <summary>
     /// Gets the <c>redirect_uri</c> parameter.
@@ -129,12 +129,12 @@ public interface IAuthorizationRequest :
     /// <summary>
     /// Gets the <c>response_type</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string> ResponseTypes { get; }
+    IReadOnlyList<string> ResponseTypes { get; }
 
     /// <summary>
     /// Gets the <c>scope</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string> Scopes { get; }
+    IReadOnlyList<string> Scopes { get; }
 
     /// <summary>
     /// Gets the <c>state</c> parameter.
@@ -144,5 +144,5 @@ public interface IAuthorizationRequest :
     /// <summary>
     /// Gets the <c>ui_locales</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string> UiLocales { get; }
+    IReadOnlyList<string> UiLocales { get; }
 }

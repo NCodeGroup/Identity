@@ -50,7 +50,7 @@ public interface ITokenResponse : IOpenIdResponse
     /// <summary>
     /// Gets or sets the <c>scope</c> parameter.
     /// </summary>
-    IReadOnlyCollection<string>? Scopes { get; set; }
+    List<string>? Scopes { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>token_type</c> parameter.

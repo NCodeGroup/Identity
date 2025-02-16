@@ -33,7 +33,7 @@ internal class ProxyParameterParser<T> : ProxyParameterLoader, IParameterParser<
     public ParseParameterDelegate<T>? ParseCallback { get; set; }
     public CloneParameterDelegate<T>? CloneCallback { get; set; }
 
-    public StringValues Format(
+    public StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue

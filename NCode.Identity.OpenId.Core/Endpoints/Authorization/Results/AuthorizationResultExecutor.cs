@@ -44,8 +44,8 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
             return;
         }
 
-        IBaseOpenIdMessage? error = result.Error;
-        IBaseOpenIdMessage? ticket = result.Ticket;
+        IOpenIdMessageResponse? error = result.Error;
+        IOpenIdMessageResponse? ticket = result.Ticket;
 
         var message = error ?? ticket ?? throw new InvalidOperationException("Both error and ticket are null.");
 
@@ -67,25 +67,36 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
         }
     }
 
-    private static Uri GetFinalRedirectUri(Uri redirectUri, string responseMode, IBaseOpenIdMessage message)
+    private static Uri GetFinalRedirectUri(Uri redirectUri, string responseMode, IOpenIdMessageResponse message)
     {
         if (responseMode == OpenIdConstants.ResponseModes.FormPost)
         {
             return redirectUri;
         }
 
+        var environment = message.OpenIdEnvironment;
         var useQuery = responseMode == OpenIdConstants.ResponseModes.Query;
-        var existingParameters = useQuery ?
+
+        var queryOnlyParameters = useQuery ?
             QueryHelpers
                 .ParseQuery(redirectUri.Query)
                 .ExceptBy(
-                    message.Keys,
-                    kvp => kvp.Key,
+                    message.Parameters.Keys,
+                    tuple => tuple.Key,
                     StringComparer.OrdinalIgnoreCase) :
             [];
 
-        var parameters = existingParameters.Concat(message);
-        var serializedParameters = SerializeUriParameters(parameters);
+        var messageOnlyParameters = message.Parameters.Select(tuple =>
+        {
+            var (key, parameter) = tuple;
+            return KeyValuePair.Create(
+                key,
+                parameter.GetStringValues(environment)
+            );
+        });
+
+        var allParameters = queryOnlyParameters.Concat(messageOnlyParameters);
+        var serializedParameters = SerializeUriParameters(allParameters);
 
         var uriBuilder = new UriBuilder(redirectUri);
         if (useQuery)
@@ -167,7 +178,12 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
     private const string FormPostJavascript = "window.addEventListener('load',function(){document.forms[0].submit();});";
     private const string FormPostHtml = $"<html><head><title>Working...</title></head><body><form method='POST' action='{FormPostAction}'>{FormPostChildren}<noscript><p>Script is disabled. Click Submit to continue.</p><input type='submit' value='Submit'/></noscript></form><script language='javascript'>{FormPostJavascript}</script></body></html>";
 
-    private static async ValueTask ExecuteUsingFormPostAsync(HttpResponse httpResponse, Uri redirectUri, IBaseOpenIdMessage message, CancellationToken cancellationToken)
+    private static async ValueTask ExecuteUsingFormPostAsync(
+        HttpResponse httpResponse,
+        Uri redirectUri,
+        IOpenIdMessageResponse message,
+        CancellationToken cancellationToken
+    )
     {
         httpResponse.Headers.Pragma = "no-cache";
         httpResponse.Headers.CacheControl = "no-store, no-cache, max-age=0";
@@ -185,24 +201,28 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
         await httpResponse.WriteAsync(html, SecureEncoding.UTF8, cancellationToken);
     }
 
-    private static string GetFormPostHtml(Uri redirectUri, IBaseOpenIdMessage message)
+    private static string GetFormPostHtml(Uri redirectUri, IOpenIdMessageResponse message)
     {
-        var parameters = message.SelectMany(kvp =>
-            kvp.Value.Select(value =>
-                KeyValuePair.Create(kvp.Key, value)
-            )
-        );
+        var environment = message.OpenIdEnvironment;
+        var parameters = message.Parameters.Select(tuple =>
+        {
+            var (key, parameter) = tuple;
+            return KeyValuePair.Create(
+                key,
+                parameter.GetStringValues(environment)
+            );
+        });
 
         // In the Form, encode spaces as '+'
         // But Uri.EscapeDataString uses '%20', so replace them
 
         var children = parameters.Aggregate(
             new StringBuilder(),
-            (builder, kvp) => builder
+            (builder, tuple) => builder
                 .Append("<input type='hidden' name='")
-                .Append(EncodeFormParameter(kvp.Key))
+                .Append(EncodeFormParameter(tuple.Key))
                 .Append("' value='")
-                .Append(EncodeFormParameter(kvp.Value))
+                .Append(EncodeFormParameter(tuple.Value))
                 .Append("'/>")
         );
 

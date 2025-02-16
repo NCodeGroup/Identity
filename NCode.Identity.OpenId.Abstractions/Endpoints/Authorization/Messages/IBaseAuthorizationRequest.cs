@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 public interface IBaseAuthorizationRequest : IOpenIdRequest
 {
     /// <summary>
-    /// Gets a value indicating where the authorization request was loaded from.
+    /// Gets a value indicating where the request values were loaded from.
     /// </summary>
     AuthorizationSourceType AuthorizationSourceType { get; }
 }

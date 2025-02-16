@@ -54,7 +54,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         var (_, openIdClient, authorizationSource) = command;
 
         // the following will parse string-values into strongly-typed parameters and may throw
-        var requestMessage = AuthorizationRequestMessage.Load(authorizationSource);
+        var requestMessage = AuthorizationRequestMessage.Load(OpenIdEnvironment, authorizationSource.RequestValues);
         requestMessage.AuthorizationSourceType = authorizationSource.AuthorizationSourceType;
 
         // TODO: add support for OAuth 2.0 Pushed Authorization Requests (PAR)

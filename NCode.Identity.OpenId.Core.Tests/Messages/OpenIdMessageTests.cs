@@ -79,39 +79,6 @@ public class OpenIdMessageTests : BaseTests
     }
 
     [Fact]
-    public void TryGetValue_WhenNotFound_ThenReturnsEmpty()
-    {
-        var environment = MockOpenIdEnvironment.Object;
-        var message = new OpenIdMessage();
-        message.Initialize(environment, Array.Empty<Parameter>());
-
-        var success = message.TryGetValue("non-existent-key", out var stringValues);
-        Assert.False(success);
-        Assert.Equal(StringValues.Empty, stringValues);
-    }
-
-    [Fact]
-    public void TryGetValue_WhenFound_ThenValid()
-    {
-        var message = new OpenIdMessage();
-
-        const string parameterName = "parameterName";
-        var expectedValue = new[] { "value1", "value2" };
-
-        var environment = MockOpenIdEnvironment.Object;
-        var parameter = new Parameter<string[]>
-        {
-            Descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default),
-            StringValues = expectedValue
-        };
-        message.Initialize(environment, [parameter]);
-
-        var getSuccess = message.TryGetValue(parameterName, out var actualValue);
-        Assert.True(getSuccess);
-        Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
     public void GetKnownParameter_WhenNotFound_ThenValid()
     {
         var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
@@ -134,13 +101,11 @@ public class OpenIdMessageTests : BaseTests
     [Fact]
     public void GetKnownParameter_WhenParsedValueIsSet_ThenReturnParsedValue()
     {
-        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
-
         const string parameterName = "parameterName";
-        var stringValues = new StringValues("invalid_json");
         var parsedValue = new TestNestedObject();
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject>>();
+        var knownParameter = new KnownParameter<TestNestedObject>(parameterName, mockParameterParser.Object)
         {
             AllowMissingStringValues = true,
         };
@@ -148,12 +113,7 @@ public class OpenIdMessageTests : BaseTests
         var message = new OpenIdMessage();
         var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter<TestNestedObject>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues,
-            ParsedValue = parsedValue
-        };
+        var parameter = new Parameter<TestNestedObject>(descriptor, mockParameterParser.Object, parsedValue);
         message.Initialize(environment, [parameter]);
 
         var result = message.GetKnownParameter(knownParameter);
@@ -163,16 +123,14 @@ public class OpenIdMessageTests : BaseTests
     [Fact]
     public void GetKnownParameter_WhenParsedValueIsNotSet_ThenReturnDefault()
     {
-        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
-
         const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
         {
             NestedPropertyName1 = "NestedPropertyValue"
         };
-        var stringValues = JsonSerializer.Serialize(parsedValue);
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject>>();
+        var knownParameter = new KnownParameter<TestNestedObject>(parameterName, mockParameterParser.Object)
         {
             AllowMissingStringValues = false,
         };
@@ -180,11 +138,7 @@ public class OpenIdMessageTests : BaseTests
         var message = new OpenIdMessage();
         var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter<TestNestedObject>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues
-        };
+        var parameter = new Parameter<TestNestedObject>(descriptor, mockParameterParser.Object, parsedValue);
         message.Initialize(environment, [parameter]);
 
         var result = message.GetKnownParameter(knownParameter);
@@ -217,16 +171,14 @@ public class OpenIdMessageTests : BaseTests
     [Fact]
     public void SetKnownParameter_GivenNullParsedValue_ThenRemovesParameter()
     {
-        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
-
         const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
         {
             NestedPropertyName1 = "NestedPropertyValue"
         };
-        var stringValues = JsonSerializer.Serialize(parsedValue);
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject>>();
+        var knownParameter = new KnownParameter<TestNestedObject>(parameterName, mockParameterParser.Object)
         {
             AllowMissingStringValues = true,
         };
@@ -234,12 +186,7 @@ public class OpenIdMessageTests : BaseTests
         var message = new OpenIdMessage();
         var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter<TestNestedObject>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues,
-            ParsedValue = parsedValue
-        };
+        var parameter = new Parameter<TestNestedObject>(descriptor, mockParameterParser.Object, parsedValue);
         message.Initialize(environment, [parameter]);
 
         message.SetKnownParameter(knownParameter, null);
@@ -250,16 +197,14 @@ public class OpenIdMessageTests : BaseTests
     [Fact]
     public void SetKnownParameter_WhenNullParserResult_ThenRemovesParameter()
     {
-        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
-
         const string parameterName = "parameterName";
         var parsedValue = new TestNestedObject
         {
             NestedPropertyName1 = "NestedPropertyValue"
         };
-        var stringValues = JsonSerializer.Serialize(parsedValue);
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject>>();
+        var knownParameter = new KnownParameter<TestNestedObject>(parameterName, mockParameterParser.Object)
         {
             AllowMissingStringValues = true,
         };
@@ -267,15 +212,11 @@ public class OpenIdMessageTests : BaseTests
         var message = new OpenIdMessage();
         var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter<TestNestedObject>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues
-        };
+        var parameter = new Parameter<TestNestedObject>(descriptor, mockParameterParser.Object, parsedValue);
         message.Initialize(environment, [parameter]);
 
         mockParameterParser
-            .Setup(x => x.Format(environment, descriptor, parsedValue))
+            .Setup(x => x.GetStringValues(environment, descriptor, parsedValue))
             .Returns(StringValues.Empty)
             .Verifiable();
 
@@ -295,10 +236,10 @@ public class OpenIdMessageTests : BaseTests
         };
         var stringValues = JsonSerializer.Serialize(parsedValue);
 
-        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject>>();
         var mockParameter = CreateStrictMock<IParameter<TestNestedObject>>();
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
+        var knownParameter = new KnownParameter<TestNestedObject>(parameterName, mockParameterParser.Object)
         {
             AllowMissingStringValues = true,
         };
@@ -310,12 +251,12 @@ public class OpenIdMessageTests : BaseTests
         var descriptor = new ParameterDescriptor(knownParameter);
 
         mockParameterParser
-            .Setup(x => x.Format(environment, descriptor, parsedValue))
+            .Setup(x => x.GetStringValues(environment, descriptor, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 
         mockParameterParser
-            .Setup(x => x.Create(environment, descriptor, stringValues, parsedValue))
+            .Setup(x => x.Create(environment, descriptor, mockParameterParser.Object, parsedValue))
             .Returns(mockParameter.Object)
             .Verifiable();
 
@@ -337,10 +278,10 @@ public class OpenIdMessageTests : BaseTests
         };
         var stringValues = JsonSerializer.Serialize(parsedValue);
 
-        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject?>>();
+        var mockParameterParser = CreateStrictMock<ParameterParser<TestNestedObject>>();
         var mockParameter = CreateStrictMock<IParameter<TestNestedObject>>();
 
-        var knownParameter = new KnownParameter<TestNestedObject?>(parameterName, mockParameterParser.Object)
+        var knownParameter = new KnownParameter<TestNestedObject>(parameterName, mockParameterParser.Object)
         {
             AllowMissingStringValues = true,
         };
@@ -348,24 +289,18 @@ public class OpenIdMessageTests : BaseTests
         var message = new OpenIdMessage();
         var environment = MockOpenIdEnvironment.Object;
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = new Parameter<TestNestedObject>
-        {
-            Descriptor = descriptor,
-            StringValues = stringValues,
-            ParsedValue = parsedValue
-        };
+        var parameter = new Parameter<TestNestedObject>(descriptor, mockParameterParser.Object, parsedValue);
         message.Initialize(environment, [parameter]);
 
         parsedValue.NestedPropertyName1 = "NestedPropertyValue2";
-        stringValues = JsonSerializer.Serialize(parsedValue);
 
         mockParameterParser
-            .Setup(x => x.Format(environment, descriptor, parsedValue))
+            .Setup(x => x.GetStringValues(environment, descriptor, parsedValue))
             .Returns(stringValues)
             .Verifiable();
 
         mockParameterParser
-            .Setup(x => x.Create(environment, descriptor, stringValues, parsedValue))
+            .Setup(x => x.Create(environment, descriptor, mockParameterParser.Object, parsedValue))
             .Returns(mockParameter.Object)
             .Verifiable();
 

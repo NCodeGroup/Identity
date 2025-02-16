@@ -17,6 +17,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
@@ -25,6 +26,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// Contains constants for various <see cref="IParameterParser{T}"/> implementations that are used by <c>OAuth</c>
 /// and <c>OpenID Connect</c> messages.
 /// </summary>
+[PublicAPI]
 public static class ParameterParsers
 {
     /// <summary>
@@ -38,10 +40,21 @@ public static class ParameterParsers
     public static readonly StringParser String = new();
 
     /// <summary>
-    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse string lists which are separated by the
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse string collections which are separated by the
     /// space ' ' character.
     /// </summary>
     public static readonly StringSetParser StringSet = new();
+
+    /// <summary>
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse string collections which are separated by the
+    /// space ' ' character.
+    /// </summary>
+    public static readonly StringListParser StringList = new();
+
+    /// <summary>
+    /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="StringValues"/> values.
+    /// </summary>
+    public static readonly StringValuesParser StringValues = new();
 
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="TimeSpan"/> values.

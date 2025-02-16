@@ -30,12 +30,11 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class BoolParser : ParameterParser<bool>
 {
     /// <inheritdoc/>
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         bool parsedValue
-    ) =>
-        parsedValue ? "true" : "false";
+    ) => parsedValue ? "true" : "false";
 
     /// <inheritdoc/>
     public override bool Parse(

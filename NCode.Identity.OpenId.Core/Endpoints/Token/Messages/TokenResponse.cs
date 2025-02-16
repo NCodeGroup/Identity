@@ -72,7 +72,7 @@ public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
     }
 
     /// <inheritdoc />
-    public IReadOnlyCollection<string>? Scopes
+    public List<string>? Scopes
     {
         get => GetKnownParameter(KnownParameters.Scopes);
         set => SetKnownParameter(KnownParameters.Scopes, value);

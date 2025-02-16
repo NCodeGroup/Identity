@@ -36,13 +36,16 @@ internal class TestParameterParser<T> : ParameterParser<T>
     public override IParameter<T1> Create<T1>(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues,
+        IParameterParser<T1> parser,
         T1? parsedValue
-    ) where T1 : default =>
-        (IParameter<T1>?)CreateCallback?.Invoke(openIdEnvironment, descriptor, stringValues, parsedValue) ??
-        throw new NotImplementedException();
+    ) where T1 : default
+    {
+        if (CreateCallback == null)
+            throw new NotImplementedException();
+        return (IParameter<T1>)CreateCallback(openIdEnvironment, descriptor, parser, parsedValue);
+    }
 
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue

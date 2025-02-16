@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 public class UriParser : ParameterParser<Uri?>
 {
     /// <inheritdoc/>
-    public override StringValues Format(
+    public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         Uri? parsedValue)

@@ -17,7 +17,6 @@
 
 #endregion
 
-using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -27,8 +26,6 @@ using NCode.Identity.OpenId.Messages.Parsers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
-
-// TODO: unit tests for IgnoreErrors
 
 public class TimeSpanParserTests : IDisposable
 {
@@ -45,19 +42,6 @@ public class TimeSpanParserTests : IDisposable
     {
         MockRepository.Verify();
         GC.SuppressFinalize(this);
-    }
-
-    [Fact]
-    public void Format_GivenNull_ThenEmpty()
-    {
-        var parser = new TimeSpanParser();
-        var environment = MockOpenIdEnvironment.Object;
-
-        const string parameterName = "parameterName";
-        var descriptor = new ParameterDescriptor(parameterName, ParameterLoader.Default);
-
-        var stringValues = parser.GetStringValues(environment, descriptor, null);
-        Assert.Equal(StringValues.Empty, stringValues);
     }
 
     [Fact]
@@ -84,7 +68,7 @@ public class TimeSpanParserTests : IDisposable
         const string parameterName = "parameterName";
         var stringValues = Array.Empty<string>();
 
-        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        var knownParameter = new KnownParameter<TimeSpan>(parameterName, parser)
         {
             AllowMissingStringValues = true,
         };
@@ -92,7 +76,7 @@ public class TimeSpanParserTests : IDisposable
         var descriptor = new ParameterDescriptor(knownParameter);
 
         var result = parser.Parse(environment, descriptor, stringValues);
-        Assert.Null(result);
+        Assert.Equal(TimeSpan.Zero, result);
     }
 
     [Fact]
@@ -130,7 +114,7 @@ public class TimeSpanParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        var knownParameter = new KnownParameter<TimeSpan>(parameterName, parser)
         {
             AllowMissingStringValues = false,
         };
@@ -176,7 +160,7 @@ public class TimeSpanParserTests : IDisposable
             .Returns((Exception?)null)
             .Verifiable();
 
-        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        var knownParameter = new KnownParameter<TimeSpan>(parameterName, parser)
         {
             AllowMissingStringValues = false,
         };
@@ -197,7 +181,7 @@ public class TimeSpanParserTests : IDisposable
         var stringValues = new[] { "123" };
         var expectedValue = TimeSpan.FromSeconds(123);
 
-        var knownParameter = new KnownParameter<TimeSpan?>(parameterName, parser)
+        var knownParameter = new KnownParameter<TimeSpan>(parameterName, parser)
         {
             AllowMissingStringValues = false,
         };

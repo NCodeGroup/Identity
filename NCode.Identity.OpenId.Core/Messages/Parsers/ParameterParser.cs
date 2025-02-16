@@ -43,7 +43,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
     );
 
     /// <inheritdoc />
-    public abstract T Parse(
+    public abstract T? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues

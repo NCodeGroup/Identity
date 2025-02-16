@@ -36,7 +36,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// must be configured within <see cref="OpenIdEnvironment.JsonSerializerOptions"/>.
 /// </typeparam>
 [PublicAPI]
-public class JsonParser<T> : ParameterParser<T?>
+public class JsonParser<T> : ParameterParser<T>
 {
     /// <inheritdoc/>
     public override StringValues GetStringValues(

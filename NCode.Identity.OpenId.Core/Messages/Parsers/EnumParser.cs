@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -31,6 +32,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// Provides an implementation of <see cref="IParameterParser{T}"/> that can parse <see cref="Enum"/> values.
 /// </summary>
 /// <typeparam name="T">The type of the <see cref="Enum"/> to parse.</typeparam>
+[PublicAPI]
 public class EnumParser<T> : ParameterParser<T>
     where T : struct, Enum
 {

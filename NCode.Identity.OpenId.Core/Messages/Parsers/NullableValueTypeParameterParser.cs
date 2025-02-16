@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,50 +19,39 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
 /// <summary>
-/// Provides an implementation of <see cref="IParameterParser{T}"/> that can parse <see cref="string"/> values.
+/// Provides an implementation of <see cref="IParameterParser{T}"/> that parses nullable value types.
 /// </summary>
+/// <typeparam name="T">The type of parameter to parse.</typeparam>
 [PublicAPI]
-public class StringParser : ParameterParser<string>
+public class NullableValueTypeParameterParser<T>(
+    IParameterParser<T> parser
+) : ParameterParser<T?>
+    where T : struct
 {
+    private IParameterParser<T> Parser { get; } = parser;
+
     /// <inheritdoc/>
     public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        string? parsedValue
-    ) => parsedValue;
+        T? parsedValue
+    ) =>
+        parsedValue.HasValue ?
+            Parser.GetStringValues(openIdEnvironment, descriptor, parsedValue.Value) :
+            StringValues.Empty;
 
     /// <inheritdoc/>
-    public override string? Parse(
+    public override T? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues)
-    {
-        // ReSharper disable once ConvertSwitchStatementToSwitchExpression
-        // That makes the code unreadable.
-        switch (stringValues.Count)
-        {
-            case 0 when descriptor.AllowMissingStringValues:
-                return null;
-
-            case 0:
-                throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
-                    .AsException();
-
-            case > 1:
-                throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
-                    .AsException();
-        }
-
-        return stringValues[0];
-    }
+        StringValues stringValues
+    ) =>
+        stringValues.Count == 0 && descriptor.AllowMissingStringValues ?
+            null :
+            Parser.Parse(openIdEnvironment, descriptor, stringValues);
 }

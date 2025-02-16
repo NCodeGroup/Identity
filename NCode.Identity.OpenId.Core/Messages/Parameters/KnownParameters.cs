@@ -44,7 +44,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>acr_values</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<List<string>?> AcrValues =
+    public static readonly KnownParameter<List<string>> AcrValues =
         new(OpenIdConstants.Parameters.AcrValues, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
@@ -63,7 +63,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>claims</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IRequestClaims"/> result.
     /// </summary>
-    public static readonly KnownParameter<IRequestClaims?> Claims =
+    public static readonly KnownParameter<IRequestClaims> Claims =
         new(OpenIdConstants.Parameters.Claims, ParameterParsers.RequestClaims)
         {
             AllowMissingStringValues = true,
@@ -72,7 +72,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>claims_locales</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<List<string>?> ClaimsLocales =
+    public static readonly KnownParameter<List<string>> ClaimsLocales =
         new(OpenIdConstants.Parameters.ClaimsLocales, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
@@ -81,7 +81,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>client_id</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> ClientId =
+    public static readonly KnownParameter<string> ClientId =
         new(OpenIdConstants.Parameters.ClientId, ParameterParsers.String)
         {
             AllowMissingStringValues = false,
@@ -90,7 +90,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>client_secret</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> ClientSecret =
+    public static readonly KnownParameter<string> ClientSecret =
         new(OpenIdConstants.Parameters.ClientSecret, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -109,7 +109,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>code</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> AuthorizationCode =
+    public static readonly KnownParameter<string> AuthorizationCode =
         new(OpenIdConstants.Parameters.AuthorizationCode, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -118,7 +118,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>code_challenge</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> CodeChallenge =
+    public static readonly KnownParameter<string> CodeChallenge =
         new(OpenIdConstants.Parameters.CodeChallenge, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -127,7 +127,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>code_challenge_method</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> CodeChallengeMethod =
+    public static readonly KnownParameter<string> CodeChallengeMethod =
         new(OpenIdConstants.Parameters.CodeChallengeMethod, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -136,7 +136,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>code_verifier</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> CodeVerifier =
+    public static readonly KnownParameter<string> CodeVerifier =
         new(OpenIdConstants.Parameters.CodeVerifier, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -145,7 +145,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>display</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> DisplayType =
+    public static readonly KnownParameter<string> DisplayType =
         new(OpenIdConstants.Parameters.Display, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -154,7 +154,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>grant_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> GrantType =
+    public static readonly KnownParameter<string> GrantType =
         new(OpenIdConstants.Parameters.GrantType, ParameterParsers.String)
         {
             AllowMissingStringValues = false,
@@ -163,7 +163,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>id_token</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> IdToken =
+    public static readonly KnownParameter<string> IdToken =
         new(OpenIdConstants.Parameters.IdToken, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -172,7 +172,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>id_token_hint</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> IdTokenHint =
+    public static readonly KnownParameter<string> IdTokenHint =
         new(OpenIdConstants.Parameters.IdTokenHint, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -181,7 +181,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>access_token</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> AccessToken =
+    public static readonly KnownParameter<string> AccessToken =
         new(OpenIdConstants.Parameters.AccessToken, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -190,7 +190,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>token_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> TokenType =
+    public static readonly KnownParameter<string> TokenType =
         new(OpenIdConstants.Parameters.TokenType, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -200,7 +200,7 @@ public static class KnownParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>expires_in</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<TimeSpan?> ExpiresIn =
-        new(OpenIdConstants.Parameters.ExpiresIn, ParameterParsers.TimeSpan)
+        new(OpenIdConstants.Parameters.ExpiresIn, ParameterParsers.TimeSpan.AsNullableValue())
         {
             AllowMissingStringValues = true,
         };
@@ -208,7 +208,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>login_hint</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> LoginHint =
+    public static readonly KnownParameter<string> LoginHint =
         new(OpenIdConstants.Parameters.LoginHint, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -218,7 +218,7 @@ public static class KnownParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>max_age</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="TimeSpan"/> result.
     /// </summary>
     public static readonly KnownParameter<TimeSpan?> MaxAge =
-        new(OpenIdConstants.Parameters.MaxAge, ParameterParsers.TimeSpan)
+        new(OpenIdConstants.Parameters.MaxAge, ParameterParsers.TimeSpan.AsNullableValue())
         {
             AllowMissingStringValues = true,
         };
@@ -226,7 +226,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>nonce</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> Nonce =
+    public static readonly KnownParameter<string> Nonce =
         new(OpenIdConstants.Parameters.Nonce, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -235,7 +235,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>password</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> Password =
+    public static readonly KnownParameter<string> Password =
         new(OpenIdConstants.Parameters.Password, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -244,7 +244,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>prompt</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<List<string>?> PromptType =
+    public static readonly KnownParameter<List<string>> PromptType =
         new(OpenIdConstants.Parameters.Prompt, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
@@ -253,7 +253,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>redirect_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="Uri"/> result.
     /// </summary>
-    public static readonly KnownParameter<Uri?> RedirectUri =
+    public static readonly KnownParameter<Uri> RedirectUri =
         new(OpenIdConstants.Parameters.RedirectUri, ParameterParsers.Uri)
         {
             AllowMissingStringValues = false,
@@ -262,7 +262,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>refresh_token</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> RefreshToken =
+    public static readonly KnownParameter<string> RefreshToken =
         new(OpenIdConstants.Parameters.RefreshToken, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -271,7 +271,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>request</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> RequestJwt =
+    public static readonly KnownParameter<string> RequestJwt =
         new(OpenIdConstants.Parameters.Request, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -290,7 +290,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>request_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="Uri"/> result.
     /// </summary>
-    public static readonly KnownParameter<Uri?> RequestUri =
+    public static readonly KnownParameter<Uri> RequestUri =
         new(OpenIdConstants.Parameters.RequestUri, ParameterParsers.Uri)
         {
             AllowMissingStringValues = true,
@@ -299,7 +299,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>response_mode</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> ResponseMode =
+    public static readonly KnownParameter<string> ResponseMode =
         new(OpenIdConstants.Parameters.ResponseMode, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -308,7 +308,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>response_type</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<List<string>?> ResponseTypes =
+    public static readonly KnownParameter<List<string>> ResponseTypes =
         new(OpenIdConstants.Parameters.ResponseType, ParameterParsers.StringList)
         {
             AllowMissingStringValues = false,
@@ -318,7 +318,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>scope</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<List<string>?> Scopes =
+    public static readonly KnownParameter<List<string>> Scopes =
         new(OpenIdConstants.Parameters.Scope, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
@@ -327,7 +327,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>state</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> State =
+    public static readonly KnownParameter<string> State =
         new(OpenIdConstants.Parameters.State, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -336,7 +336,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>ui_locales</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
-    public static readonly KnownParameter<List<string>?> UiLocales =
+    public static readonly KnownParameter<List<string>> UiLocales =
         new(OpenIdConstants.Parameters.UiLocales, ParameterParsers.StringList)
         {
             AllowMissingStringValues = true,
@@ -345,7 +345,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>username</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> Username =
+    public static readonly KnownParameter<string> Username =
         new(OpenIdConstants.Parameters.Username, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -354,7 +354,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>iss</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> Issuer =
+    public static readonly KnownParameter<string> Issuer =
         new(OpenIdConstants.Parameters.IssuerShort, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -363,7 +363,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>error</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> ErrorCode =
+    public static readonly KnownParameter<string> ErrorCode =
         new(OpenIdConstants.Parameters.ErrorCode, ParameterParsers.String)
         {
             AllowMissingStringValues = false,
@@ -372,7 +372,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>error_description</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<string?> ErrorDescription =
+    public static readonly KnownParameter<string> ErrorDescription =
         new(OpenIdConstants.Parameters.ErrorDescription, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
@@ -381,7 +381,7 @@ public static class KnownParameters
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>error_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
-    public static readonly KnownParameter<Uri?> ErrorUri =
+    public static readonly KnownParameter<Uri> ErrorUri =
         new(OpenIdConstants.Parameters.ErrorUri, ParameterParsers.Uri)
         {
             AllowMissingStringValues = true,

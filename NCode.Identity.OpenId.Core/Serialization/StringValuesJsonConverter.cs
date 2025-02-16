@@ -24,6 +24,7 @@ namespace NCode.Identity.OpenId.Serialization;
 
 /// <summary>
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="StringValues"/>
+/// instances to and from JSON.
 /// </summary>
 public class StringValuesJsonConverter : JsonConverter<StringValues>
 {

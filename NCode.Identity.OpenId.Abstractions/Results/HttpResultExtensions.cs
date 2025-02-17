@@ -31,11 +31,11 @@ namespace NCode.Identity.OpenId.Results;
 public static class HttpResultExtensions
 {
     /// <summary>
-    /// Wraps the <see cref="IOpenIdResponse"/> in an <see cref="IResult"/>.
+    /// Wraps the <see cref="IOpenIdResponse"/> in an HTTP <see cref="IResult"/>.
     /// </summary>
     /// <param name="response">The <see cref="IOpenIdResponse"/> to wrap.</param>
     /// <returns>The <see cref="IResult"/> instance.</returns>
-    public static IResult AsResult<T>(this T response)
+    public static IResult AsHttpResult<T>(this T response)
         where T : class, IOpenIdResponse
     {
         // prevent metadata from being serialized into the HTTP response

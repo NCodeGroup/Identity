@@ -84,7 +84,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var error = authResult.Error ?? ErrorFactory.InvalidClient();
             error.StatusCode = StatusCodes.Status400BadRequest;
-            return error.AsResult();
+            return error.AsHttpResult();
         }
 
         // the following tries its best to not throw for OpenID protocol errors
@@ -293,7 +293,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var error = authResult.Error ?? ErrorFactory.InvalidClient();
             error.StatusCode = StatusCodes.Status400BadRequest;
-            return error.AsResult();
+            return error.AsHttpResult();
         }
 
         var openIdClient = authResult.Client;
@@ -304,7 +304,10 @@ public class DefaultAuthorizationEndpointHandler(
         authorizationRequest.IsContinuation = true;
 
         // prevent infinite loops from continuations and user interaction
-        authorizationRequest.OriginalRequestMessage.PromptTypes = [];
+        authorizationRequest.OriginalRequestMessage.PromptTypes =
+        [
+            OpenIdConstants.PromptTypes.None
+        ];
 
         var clientRedirectContext = new ClientRedirectContext(
             authorizationRequest.RedirectUri,

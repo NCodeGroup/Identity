@@ -71,7 +71,7 @@ public class DefaultTokenEndpointHandler(
             return ErrorFactory
                 .InvalidRequest("Only POST requests with Content-Type 'application/x-www-form-urlencoded' are supported.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsResult();
+                .AsHttpResult();
         }
 
         var openIdContext = await ContextFactory.CreateAsync(
@@ -88,7 +88,7 @@ public class DefaultTokenEndpointHandler(
             // TODO: add support for 401 with WWW-Authenticate header
             var error = authResult.Error;
             error.StatusCode ??= StatusCodes.Status400BadRequest;
-            return error.AsResult();
+            return error.AsHttpResult();
         }
 
         if (!authResult.HasClient)
@@ -96,7 +96,7 @@ public class DefaultTokenEndpointHandler(
             return ErrorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsResult();
+                .AsHttpResult();
         }
 
         var openIdEnvironment = openIdContext.Environment;
@@ -127,6 +127,6 @@ public class DefaultTokenEndpointHandler(
             tokenRequest,
             cancellationToken);
 
-        return tokenResponse.AsResult();
+        return tokenResponse.AsHttpResult();
     }
 }

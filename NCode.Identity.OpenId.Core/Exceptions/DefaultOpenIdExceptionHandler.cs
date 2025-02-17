@@ -40,12 +40,12 @@ public class DefaultOpenIdExceptionHandler(
         var result = exception switch
         {
             HttpResultException httpResultException => httpResultException.HttpResult,
-            OpenIdException openIdException => openIdException.Error.AsResult(),
+            OpenIdException openIdException => openIdException.Error.AsHttpResult(),
             _ => ErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithStatusCode(StatusCodes.Status500InternalServerError)
                 .WithException(exception)
-                .AsResult()
+                .AsHttpResult()
         };
 
         return ValueTask.FromResult(result);

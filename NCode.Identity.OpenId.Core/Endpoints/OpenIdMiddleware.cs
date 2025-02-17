@@ -42,7 +42,7 @@ internal class OpenIdMiddleware(RequestDelegate next, IOpenIdExceptionHandler ex
         }
         catch (OpenIdException exception)
         {
-            result = exception.Error.AsResult();
+            result = exception.Error.AsHttpResult();
         }
         catch (Exception exception)
         {

@@ -39,7 +39,7 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
         // instead of returning a redirect response.
         if (result.Error is { StatusCode: not null })
         {
-            var httpResult = result.Error.AsResult();
+            var httpResult = result.Error.AsHttpResult();
             await httpResult.ExecuteAsync(httpContext);
             return;
         }

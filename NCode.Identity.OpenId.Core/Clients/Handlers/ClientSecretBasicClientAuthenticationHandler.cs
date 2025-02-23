@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Clients.Handlers;
 /// <summary>
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses HTTP Basic Authentication.
 /// </summary>
-public class BasicClientAuthenticationHandler(
+public class ClientSecretBasicClientAuthenticationHandler(
     IOpenIdErrorFactory errorFactory,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
@@ -90,7 +90,7 @@ public class BasicClientAuthenticationHandler(
     }
 
     /// <inheritdoc />
-    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.Basic;
+    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(

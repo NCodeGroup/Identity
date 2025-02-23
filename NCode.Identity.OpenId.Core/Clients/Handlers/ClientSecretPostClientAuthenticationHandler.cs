@@ -26,25 +26,19 @@ using NCode.Identity.Secrets.Persistence.Logic;
 namespace NCode.Identity.OpenId.Clients.Handlers;
 
 /// <summary>
-/// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses <c>client_id</c> from the HTTP Request Query.
-/// This handler also ensures that the <c>client_secret</c> is not passed in the query string.
+/// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses <c>client_id</c> and <c>client_secret</c> from the HTTP Request Body.
 /// </summary>
-public class RequestQueryClientAuthenticationHandler(
+public class ClientSecretPostClientAuthenticationHandler(
     IOpenIdErrorFactory errorFactory,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer
-) :
-    CommonClientAuthenticationHandler(errorFactory, storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
+) : CommonClientAuthenticationHandler(errorFactory, storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
     IClientAuthenticationHandler
 {
-    private IOpenIdError ErrorSecretInQuery { get; } = errorFactory
-        .InvalidRequest("The client secret must not be passed in the query string.")
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
     /// <inheritdoc />
-    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.RequestQuery;
+    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
@@ -53,22 +47,21 @@ public class RequestQueryClientAuthenticationHandler(
     {
         var httpRequest = openIdContext.Http.Request;
 
-        if (!HttpMethods.IsGet(httpRequest.Method))
+        if (!HttpMethods.IsPost(httpRequest.Method))
             return ClientAuthenticationResult.Undefined;
 
-        var query = httpRequest.Query;
+        var form = await httpRequest.ReadFormAsync(cancellationToken);
 
-        if (!query.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId))
+        if (!form.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId))
             return ClientAuthenticationResult.Undefined;
 
-        if (query.ContainsKey(OpenIdConstants.Parameters.ClientSecret))
-            return new ClientAuthenticationResult(ErrorSecretInQuery);
+        var hasClientSecret = form.TryGetValue(OpenIdConstants.Parameters.ClientSecret, out var clientSecret);
 
         return await AuthenticateClientAsync(
             openIdContext,
             clientId.ToString(),
-            clientSecret: ReadOnlyMemory<char>.Empty,
-            hasClientSecret: false,
+            clientSecret.ToString().AsMemory(),
+            hasClientSecret,
             cancellationToken);
     }
 }

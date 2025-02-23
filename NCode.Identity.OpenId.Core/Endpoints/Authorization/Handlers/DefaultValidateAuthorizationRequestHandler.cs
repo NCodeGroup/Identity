@@ -302,16 +302,16 @@ public class DefaultValidateAuthorizationRequestHandler(
             throw ErrorFactory.InvalidScope().AsException();
         }
 
+        // TODO: other checks...
+
         // token_endpoint_auth_methods_supported
         // token_endpoint_auth_signing_alg_values_supported
 
         // ui_locales_supported
 
-        // other checks...
-
-        // TODO: add support for Resource Indicators
+        // Resource Indicators
         // https://datatracker.ietf.org/doc/html/rfc8707
 
-        // TODO: check session cookie
+        // check session cookie
     }
 }

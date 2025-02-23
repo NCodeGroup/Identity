@@ -46,15 +46,15 @@ public static class DefaultClientRegistration
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             IClientAuthenticationHandler,
-            BasicClientAuthenticationHandler>());
+            ClientSecretBasicClientAuthenticationHandler>());
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             IClientAuthenticationHandler,
-            RequestBodyClientAuthenticationHandler>());
+            ClientSecretPostClientAuthenticationHandler>());
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             IClientAuthenticationHandler,
-            RequestQueryClientAuthenticationHandler>());
+            NoneClientAuthenticationHandler>());
 
         return serviceCollection;
     }

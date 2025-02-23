@@ -150,9 +150,11 @@ public static partial class OpenIdConstants
     /// </summary>
     public static class ClientAuthenticationMethods
     {
-        public const string Basic = "basic";
-        public const string RequestBody = "request_body";
-        public const string RequestQuery = "request_query";
+        public const string None = "none";
+        public const string ClientSecretPost = "client_secret_post";
+        public const string ClientSecretBasic = "client_secret_basic";
+        public const string ClientSecretJwt = "client_secret_jwt";
+        public const string PrivateKeyJwt = "private_key_jwt";
     }
 
     /// <summary>

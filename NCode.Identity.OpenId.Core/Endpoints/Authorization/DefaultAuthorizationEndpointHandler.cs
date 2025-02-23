@@ -426,12 +426,6 @@ public class DefaultAuthorizationEndpointHandler(
 
         authorizationRequest.IsContinuation = true;
 
-        // prevent infinite loops from continuations and user interaction
-        authorizationRequest.OriginalRequestMessage.PromptTypes =
-        [
-            OpenIdConstants.PromptTypes.None
-        ];
-
         var clientRedirectContext = new ClientRedirectContext(
             authorizationRequest.RedirectUri,
             authorizationRequest.ResponseMode,

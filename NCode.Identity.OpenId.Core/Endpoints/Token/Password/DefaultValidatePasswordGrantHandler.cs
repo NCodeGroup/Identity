@@ -59,6 +59,8 @@ public class DefaultValidatePasswordGrantHandler(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
 
+        // TODO: verify tenant
+
         var subjectIsActive = await GetSubjectIsActiveAsync(
             openIdContext,
             openIdClient,

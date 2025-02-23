@@ -284,6 +284,20 @@ public class KnownSettingCollection(
         set => Store.Set(SettingKeys.SubjectMaxAge, value);
     }
 
+    /// <inheritdoc cref="IKnownSettingCollection.SubjectType" />
+    public string SubjectType
+    {
+        get => Store.GetValue(SettingKeys.SubjectType);
+        set => Store.Set(SettingKeys.SubjectType, value);
+    }
+
+    /// <inheritdoc cref="IKnownSettingCollection.SubjectTypesSupported" />
+    public IReadOnlyCollection<string> SubjectTypesSupported
+    {
+        get => Store.GetValue(SettingKeys.SubjectTypesSupported);
+        set => Store.Set(SettingKeys.SubjectTypesSupported, value);
+    }
+
     //
 
     /// <inheritdoc />

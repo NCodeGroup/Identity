@@ -217,4 +217,14 @@ public interface IKnownSettingCollection : ISettingCollection
     /// Gets or sets the maximum age of the subject's authentication time.
     /// </summary>
     TimeSpan SubjectMaxAge { get; set; }
+
+    /// <summary>
+    /// Gets or sets the value for the 'subject_type' setting.
+    /// </summary>
+    string SubjectType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the value for the 'subject_types_supported' setting.
+    /// </summary>
+    IReadOnlyCollection<string> SubjectTypesSupported { get; set; }
 }

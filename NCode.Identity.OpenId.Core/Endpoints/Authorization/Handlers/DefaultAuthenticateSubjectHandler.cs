@@ -91,6 +91,9 @@ public class DefaultAuthenticateSubjectHandler(
         var subject = baseTicket.Principal;
 
         // TODO: provide a way to normalize/canonicalize the external subject ID to a local subject ID
+        // TODO: add support for PPID (Pairwise Pseudonymous Identifier, aka unique user ID per client/RP)
+        // TODO: use the subject_type setting
+
         var subjectId = Options.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {

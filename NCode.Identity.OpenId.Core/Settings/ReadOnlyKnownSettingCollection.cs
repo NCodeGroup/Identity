@@ -176,6 +176,14 @@ public class ReadOnlyKnownSettingCollection(
     public TimeSpan SubjectMaxAge =>
         Store.GetValue(SettingKeys.SubjectMaxAge);
 
+    /// <inheritdoc />
+    public string SubjectType =>
+        Store.GetValue(SettingKeys.SubjectType);
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<string> SubjectTypesSupported =>
+        Store.GetValue(SettingKeys.SubjectTypesSupported);
+
     //
 
     /// <inheritdoc />

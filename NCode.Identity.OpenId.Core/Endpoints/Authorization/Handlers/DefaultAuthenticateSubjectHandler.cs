@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
@@ -30,7 +31,8 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message.
 /// </summary>
-public class DefaultAuthenticateHandler(
+[PublicAPI]
+public class DefaultAuthenticateSubjectHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     IOpenIdErrorFactory errorFactory,
     IAuthenticationSchemeProvider authenticationSchemeProvider
@@ -42,6 +44,9 @@ public class DefaultAuthenticateHandler(
 
     private bool DefaultSignInSchemeFetched { get; set; }
     private string? DefaultSignInSchemeName { get; set; }
+
+    internal virtual AuthenticateSubjectDisposition Failed(IOpenIdError error) => new(error);
+    internal virtual AuthenticateSubjectDisposition Authenticated(SubjectAuthentication ticket) => new(ticket);
 
     /// <inheritdoc />
     public async ValueTask<AuthenticateSubjectDisposition> HandleAsync(
@@ -74,8 +79,7 @@ public class DefaultAuthenticateHandler(
 
         if (baseResult.Failure is not null)
         {
-            var error = ErrorFactory.AccessDenied("Failed to authenticate the end-user.").WithException(baseResult.Failure);
-            return new AuthenticateSubjectDisposition(error);
+            return Failed(ErrorFactory.AccessDenied("Failed to authenticate the end-user.").WithException(baseResult.Failure));
         }
 
         Debug.Assert(baseResult.Succeeded);
@@ -88,16 +92,16 @@ public class DefaultAuthenticateHandler(
         var subjectId = Options.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {
-            var error = ErrorFactory.AccessDenied("Unable to determine the the end-user's subject id.");
-            return new AuthenticateSubjectDisposition(error);
+            return Failed(ErrorFactory.AccessDenied("Unable to determine the the end-user's subject id."));
         }
 
         var ticket = new SubjectAuthentication(
             authenticationScheme,
             authenticationProperties,
             subject,
-            subjectId);
+            subjectId
+        );
 
-        return new AuthenticateSubjectDisposition(ticket);
+        return Authenticated(ticket);
     }
 }

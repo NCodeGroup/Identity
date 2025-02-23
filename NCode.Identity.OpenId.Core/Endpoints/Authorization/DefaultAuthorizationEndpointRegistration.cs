@@ -28,6 +28,7 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Mediator.Middleware;
 using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization;
@@ -71,11 +72,19 @@ public static class DefaultAuthorizationEndpointRegistration
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
-            DefaultAuthenticateHandler>();
+            DefaultAuthenticateSubjectHandler>();
+
+        serviceCollection.TryAddSingleton<
+            ICommandResponsePostProcessor<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
+            DefaultAuthenticateSubjectPostProcessor>();
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
             DefaultAuthorizeSubjectHandler>();
+
+        serviceCollection.TryAddSingleton<
+            ICommandResponsePostProcessor<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
+            DefaultAuthorizeSubjectPostProcessor>();
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>,

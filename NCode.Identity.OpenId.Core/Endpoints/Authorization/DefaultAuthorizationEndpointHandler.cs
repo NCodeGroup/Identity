@@ -310,7 +310,7 @@ public class DefaultAuthorizationEndpointHandler(
                 new AuthorizationResult(
                     redirectUri,
                     effectiveResponseMode,
-                    authenticateSubjectDisposition.Error.WithState(clientRedirectContext.State)
+                    authenticateSubjectDisposition.Error
                 )
             );
         }
@@ -343,7 +343,7 @@ public class DefaultAuthorizationEndpointHandler(
                 new AuthorizationResult(
                     redirectUri,
                     effectiveResponseMode,
-                    authorizeSubjectDisposition.Error.WithState(clientRedirectContext.State)
+                    authorizeSubjectDisposition.Error
                 )
             );
         }

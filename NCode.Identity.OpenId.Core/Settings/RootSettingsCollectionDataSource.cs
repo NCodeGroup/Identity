@@ -244,6 +244,8 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
         settings.Set(SettingKeys.UserInfoEncryptionZipValuesSupported, encryptionZipValuesSupported);
         settings.Set(SettingKeys.AccessTokenEncryptionZipValuesSupported, encryptionZipValuesSupported);
         settings.Set(SettingKeys.RequestObjectEncryptionZipValuesSupported, encryptionZipValuesSupported);
+
+        settings.Set(SettingKeys.TokenEndpointAuthSigningAlgValuesSupported, signingAlgValuesSupported);
     }
 
     private void LoadFromConfiguration(SettingCollection settings)

@@ -304,8 +304,6 @@ public class DefaultValidateAuthorizationRequestHandler(
 
         // TODO: other checks...
 
-        // token_endpoint_auth_signing_alg_values_supported
-
         // ui_locales_supported
 
         // Resource Indicators

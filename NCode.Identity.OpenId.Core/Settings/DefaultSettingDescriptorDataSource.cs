@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Clients;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -28,7 +29,8 @@ namespace NCode.Identity.OpenId.Settings;
 /// </summary>
 [PublicAPI]
 public class DefaultSettingDescriptorDataSource(
-    INullChangeToken nullChangeToken
+    INullChangeToken nullChangeToken,
+    IEnumerable<IClientAuthenticationHandler> clientAuthenticationHandlers
 ) : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsNonStdDiscoverable = false;
@@ -57,6 +59,10 @@ public class DefaultSettingDescriptorDataSource(
     ) => current.Intersect(other).ToList();
 
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
+
+    private List<string> TokenEndpointAuthMethodsSupported { get; } = clientAuthenticationHandlers
+        .Select(handler => handler.AuthenticationMethod)
+        .ToList();
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken;
@@ -598,14 +604,7 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.TokenEndpointAuthMethodsSupported,
-                Default =
-                [
-                    OpenIdConstants.ClientAuthenticationMethods.None,
-                    OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
-                    OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-                    // TODO: OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt,
-                    // TODO: OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-                ],
+                Default = TokenEndpointAuthMethodsSupported,
 
                 IsDiscoverable = true,
                 OnMerge = Intersect

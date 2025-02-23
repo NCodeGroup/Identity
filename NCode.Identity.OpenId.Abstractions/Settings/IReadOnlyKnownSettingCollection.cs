@@ -216,4 +216,14 @@ public interface IReadOnlyKnownSettingCollection : IReadOnlySettingCollection
     /// Gets the maximum age of the subject's authentication time.
     /// </summary>
     TimeSpan SubjectMaxAge { get; }
+
+    /// <summary>
+    /// Gets the value for the 'subject_type' setting.
+    /// </summary>
+    string SubjectType { get; }
+
+    /// <summary>
+    /// Gets the value for the 'subject_types_supported' setting.
+    /// </summary>
+    IReadOnlyCollection<string> SubjectTypesSupported { get; }
 }

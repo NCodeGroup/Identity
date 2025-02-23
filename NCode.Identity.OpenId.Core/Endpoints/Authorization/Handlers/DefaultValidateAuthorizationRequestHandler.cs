@@ -302,8 +302,6 @@ public class DefaultValidateAuthorizationRequestHandler(
             throw ErrorFactory.InvalidScope().AsException();
         }
 
-        // subject_types_supported
-
         // token_endpoint_auth_methods_supported
         // token_endpoint_auth_signing_alg_values_supported
 

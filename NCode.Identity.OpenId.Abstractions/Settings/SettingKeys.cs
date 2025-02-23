@@ -332,6 +332,12 @@ public static class SettingKeys
         new(SettingNames.SubjectMaxAge);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_type' setting.
+    /// </summary>
+    public static SettingKey<string> SubjectType =>
+        new(SettingNames.SubjectType);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_types_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> SubjectTypesSupported =>

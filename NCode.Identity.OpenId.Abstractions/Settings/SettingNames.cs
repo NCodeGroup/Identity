@@ -278,6 +278,11 @@ public static class SettingNames
     public const string SubjectMaxAge = "subject_max_age";
 
     /// <summary>
+    /// Contains the name of <c>subject_type</c> setting.
+    /// </summary>
+    public const string SubjectType = "subject_type";
+
+    /// <summary>
     /// Contains the name of <c>subject_types_supported</c> setting.
     /// </summary>
     public const string SubjectTypesSupported = "subject_types_supported";

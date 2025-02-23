@@ -159,12 +159,21 @@ public static partial class OpenIdConstants
     /// Contains constants for various items that can be stored within <see cref="AuthenticationProperties"/>.
     /// </summary>
     /// <remarks>
-    /// Be aware that items are not the same as the properties within <see cref="AuthenticationProperties"/>.
+    /// Be aware that items are not the same as the parameters within <see cref="AuthenticationProperties"/>.
     /// Items are state values that are serialized for the authentication session.
-    /// Properties are only for flowing data between call sites.
+    /// Parameters are only for flowing data between call sites.
     /// </remarks>
     public static class AuthenticationPropertyItems
     {
         public const string TenantId = ".tenant";
+    }
+
+    public static class SubjectTypes
+    {
+        public const string Public = "public";
+
+        // https://docs.safewhere.com/identify/concepts/connections/oauth/advanced-topics/oauth-ppid.html
+        // example: base64urlencode(HS256Signature(sectorIdentifier + client_id + salt, key))
+        public const string Pairwise = "pairwise";
     }
 }

@@ -562,7 +562,15 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = SettingNames.SubjectMaxAge,
-                Default = TimeSpan.MaxValue,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace
+            };
+
+            // subject_type
+            yield return new SettingDescriptor<string>
+            {
+                Name = SettingNames.SubjectType,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace
@@ -574,7 +582,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = SettingNames.SubjectTypesSupported,
 
                 IsDiscoverable = true,
-                OnMerge = Intersect
+                OnMerge = Replace
             };
 
             // tenant_issuer

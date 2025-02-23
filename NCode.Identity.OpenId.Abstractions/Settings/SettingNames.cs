@@ -68,6 +68,11 @@ public static class SettingNames
     public const string AcrValuesSupported = "acr_values_supported";
 
     /// <summary>
+    /// Contains the name of <c>allowed_identity_providers</c> setting.
+    /// </summary>
+    public const string AllowedIdentityProviders = "allowed_identity_providers";
+
+    /// <summary>
     /// Contains the name of <c>allow_loopback_redirect</c> setting.
     /// </summary>
     public const string AllowLoopbackRedirect = "allow_loopback_redirect";
@@ -266,6 +271,11 @@ public static class SettingNames
     /// Contains the name of <c>service_documentation</c> setting.
     /// </summary>
     public const string ServiceDocumentation = "service_documentation";
+
+    /// <summary>
+    /// Contains the name of <c>subject_max_age</c> setting.
+    /// </summary>
+    public const string SubjectMaxAge = "subject_max_age";
 
     /// <summary>
     /// Contains the name of <c>subject_types_supported</c> setting.

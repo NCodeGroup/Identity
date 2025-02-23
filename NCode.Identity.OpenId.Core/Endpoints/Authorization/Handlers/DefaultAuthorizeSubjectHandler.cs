@@ -24,10 +24,12 @@ using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Models;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
@@ -47,8 +49,10 @@ public class DefaultAuthorizeSubjectHandler(
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     internal virtual AuthorizeSubjectDisposition Failed(IOpenIdError error) => new(error);
-    internal virtual AuthorizeSubjectDisposition Authorized() => new(RequiresChallenge: false);
-    internal virtual AuthorizeSubjectDisposition RequiresChallenge() => new(RequiresChallenge: true);
+    internal virtual AuthorizeSubjectDisposition Authorized() => new(ChallengeRequired: false);
+    internal virtual AuthorizeSubjectDisposition ChallengeRequired() => new(ChallengeRequired: true);
+    internal virtual AuthorizeSubjectDisposition LoginRequired() => Failed(ErrorFactory.LoginRequired());
+    internal virtual AuthorizeSubjectDisposition InteractionRequired(bool noPrompt) => noPrompt ? LoginRequired() : ChallengeRequired();
 
     /// <inheritdoc />
     public async ValueTask<AuthorizeSubjectDisposition> HandleAsync(
@@ -57,13 +61,14 @@ public class DefaultAuthorizeSubjectHandler(
     {
         var (openIdContext, openIdClient, authorizationRequest, authenticationTicket) = command;
 
+        var tenant = openIdContext.Tenant;
         var clientSettings = openIdClient.Settings;
         var promptTypes = authorizationRequest.PromptTypes;
 
         if (promptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
         {
             Logger.LogInformation("Client requested account creation.");
-            return RequiresChallenge();
+            return ChallengeRequired();
         }
 
         var reAuthenticate =
@@ -73,21 +78,20 @@ public class DefaultAuthorizeSubjectHandler(
         if (reAuthenticate)
         {
             Logger.LogInformation("Client requested re-authentication.");
-            return RequiresChallenge();
+            return ChallengeRequired();
         }
 
+        var noPrompt = promptTypes.Contains(OpenIdConstants.PromptTypes.None);
+
+        // check that subject is authenticated
         var isAuthenticated = authenticationTicket.Subject.Identities.All(identity => identity.IsAuthenticated);
         if (!isAuthenticated)
         {
-            if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
-            {
-                return Failed(ErrorFactory.LoginRequired());
-            }
-
             Logger.LogInformation("The end-user is not authenticated.");
-            return RequiresChallenge();
+            return InteractionRequired(noPrompt);
         }
 
+        // check that subject is active
         var subjectIsActive = await GetSubjectIsActiveAsync(
             openIdContext,
             openIdClient,
@@ -97,41 +101,97 @@ public class DefaultAuthorizeSubjectHandler(
 
         if (!subjectIsActive)
         {
-            if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
-            {
-                return Failed(ErrorFactory.LoginRequired());
-            }
-
             Logger.LogInformation("The end-user is not active.");
-            return RequiresChallenge();
+            return InteractionRequired(noPrompt);
         }
 
-        // TODO: check that tenant from subject matches the current tenant
+        // check TenantId
+        var expectedTenantId = tenant.TenantId;
+        var receivedTenantId = GetReceivedTenantId(authenticationTicket);
+        if (!string.Equals(expectedTenantId, receivedTenantId, StringComparison.Ordinal))
+        {
+            Logger.LogInformation("The end-user's tenant does not match the current tenant.");
+            return InteractionRequired(noPrompt);
+        }
 
-        // TODO: check that IdP from subject matches the request's ACR
-        // example acr value: urn:ncode:oidc:idp:google
+        // check requested IdP
+        var receivedIdp = authenticationTicket.Subject.FindFirstValue(JoseClaimNames.Payload.Idp);
+        if (!IsRequestedIdpValid(receivedIdp, authorizationRequest))
+        {
+            Logger.LogInformation("The end-user's IdP does not match the requested IdP.");
+            return InteractionRequired(noPrompt);
+        }
+
+        // check allowed IdP
+        if (!IsReceivedIdpAllowed(receivedIdp, clientSettings))
+        {
+            Logger.LogInformation("The end-user's IdP is not allowed according to the client's settings.");
+            return InteractionRequired(noPrompt);
+        }
+
+        // check the request's MaxAge
+        var authTime = GetAuthTime(authenticationTicket.Subject);
+        if (!ValidateMaxAge(authTime, authorizationRequest.MaxAge, clientSettings.ClockSkew))
+        {
+            Logger.LogInformation("The end-user's authentication time is too old from the request's MaxAge.");
+            return InteractionRequired(noPrompt);
+        }
+
+        // check the client's MaxAge
+        if (!ValidateMaxAge(authTime, clientSettings.SubjectMaxAge, clientSettings.ClockSkew))
+        {
+            Logger.LogInformation("The end-user's authentication time is too old from the client's MaxAge.");
+            return InteractionRequired(noPrompt);
+        }
 
         // TODO: check consent
 
-        // check MaxAge
-        if (!ValidateMaxAge(authenticationTicket.Subject, authorizationRequest.MaxAge, clientSettings.ClockSkew))
-        {
-            if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
-            {
-                return Failed(ErrorFactory.LoginRequired());
-            }
+        return Authorized();
+    }
 
-            Logger.LogInformation("MaxAge exceeded.");
-            return RequiresChallenge();
+    private static bool IsReceivedIdpAllowed(string? receivedIdp, IReadOnlyKnownSettingCollection settings)
+    {
+        var allowed = settings.AllowedIdentityProviders;
+        return allowed.Count == 0 || allowed.Contains(receivedIdp, StringComparer.Ordinal);
+    }
+
+    private static bool IsRequestedIdpValid(string? receivedIdp, IAuthorizationRequest authorizationRequest)
+    {
+        // if no specific acr values were requested, then any idp is valid
+        var acrValues = authorizationRequest.AcrValues;
+        if (acrValues.Count == 0)
+        {
+            return true;
         }
 
-        // TODO: check local idp restrictions
+        // TODO: move this constant somewhere else
+        const string prefix = "idp:";
 
-        // TODO: check external idp restrictions
+        var anyRequested = false;
+        var requestedIdpValues = acrValues
+            .Where(value => value.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(value => value[prefix.Length..]);
 
-        // TODO: check client's user SSO timeout
+        foreach (var requestedIdp in requestedIdpValues)
+        {
+            // if the received idp matches any requested idp, then the idp is valid
+            if (string.Equals(requestedIdp, receivedIdp, StringComparison.Ordinal))
+            {
+                return true;
+            }
 
-        return Authorized();
+            anyRequested = true;
+        }
+
+        // if no specific idp values were requested, then any idp is valid
+        return !anyRequested;
+    }
+
+    private static string? GetReceivedTenantId(SubjectAuthentication subjectAuthentication)
+    {
+        // when we challenge, we store the tenant id in the authentication properties
+        var tenantId = subjectAuthentication.AuthenticationProperties.GetString(OpenIdConstants.AuthenticationPropertyItems.TenantId);
+        return !string.IsNullOrEmpty(tenantId) ? tenantId : subjectAuthentication.Subject.FindFirstValue(JoseClaimNames.Payload.Tid);
     }
 
     private static async ValueTask<bool> GetSubjectIsActiveAsync(
@@ -156,7 +216,18 @@ public class DefaultAuthorizeSubjectHandler(
         return result.IsActive;
     }
 
-    private bool ValidateMaxAge(ClaimsPrincipal subject, TimeSpan? maxAge, TimeSpan clockSkew)
+    private static DateTimeOffset? GetAuthTime(ClaimsPrincipal subject)
+    {
+        var authTimeClaim = subject.FindFirst(JoseClaimNames.Payload.AuthTime);
+        if (authTimeClaim is null || !long.TryParse(authTimeClaim.Value, out var authTimeSeconds))
+        {
+            return null;
+        }
+
+        return DateTimeOffset.FromUnixTimeSeconds(authTimeSeconds);
+    }
+
+    private bool ValidateMaxAge(DateTimeOffset? authTime, TimeSpan? maxAge, TimeSpan clockSkew)
     {
         /*
          * max_age
@@ -167,13 +238,12 @@ public class DefaultAuthorizeSubjectHandler(
          * Claim Value.
          */
 
-        if (!maxAge.HasValue)
+        if (!maxAge.HasValue || maxAge == TimeSpan.MaxValue)
         {
             return true;
         }
 
-        var authTimeClaim = subject.FindFirst(JoseClaimNames.Payload.AuthTime);
-        if (authTimeClaim is null || !long.TryParse(authTimeClaim.Value, out var authTimeSeconds))
+        if (!authTime.HasValue)
         {
             return false;
         }
@@ -181,10 +251,7 @@ public class DefaultAuthorizeSubjectHandler(
         // use 'long/ticks' vs 'DateTime/DateTimeOffset' comparisons to avoid overflow exceptions
 
         var nowTicks = TimeProvider.GetTimestampWithPrecisionInSeconds();
-
-        var authTime = DateTimeOffset.FromUnixTimeSeconds(authTimeSeconds);
-        var authTimeTicks = authTime.UtcTicks;
-
+        var authTimeTicks = authTime.Value.UtcTicks;
         var maxAgeTicks = maxAge.Value.Ticks;
         var clockSkewTicks = clockSkew.Ticks;
 

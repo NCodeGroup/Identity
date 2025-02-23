@@ -25,11 +25,11 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 /// <summary>
 /// Represents the disposition of authorizing a subject (aka end-user).
 /// </summary>
-/// <param name="RequiresChallenge">Indicates whether the authorization request requires a challenge from the user-agent.</param>
+/// <param name="ChallengeRequired">Indicates whether the authorization request requires a challenge from the user-agent.</param>
 /// <param name="Error">Contains the <see cref="IOpenIdError"/> to be returned to the user-agent.</param>
 [PublicAPI]
 public readonly record struct AuthorizeSubjectDisposition(
-    bool RequiresChallenge,
+    bool ChallengeRequired,
     IOpenIdError? Error = null
 )
 {
@@ -43,7 +43,7 @@ public readonly record struct AuthorizeSubjectDisposition(
     /// Initializes a new instance of the <see cref="AuthorizeSubjectDisposition"/> class.
     /// </summary>
     public AuthorizeSubjectDisposition()
-        : this(RequiresChallenge: false, Error: null)
+        : this(ChallengeRequired: false, Error: null)
     {
         // nothing
     }
@@ -54,7 +54,7 @@ public readonly record struct AuthorizeSubjectDisposition(
     /// </summary>
     /// <param name="error">The <see cref="IOpenIdError"/> to be returned to the user-agent.</param>
     public AuthorizeSubjectDisposition(IOpenIdError error)
-        : this(RequiresChallenge: false, error)
+        : this(ChallengeRequired: false, error)
     {
         // nothing
     }

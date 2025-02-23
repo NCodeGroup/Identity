@@ -45,6 +45,7 @@ public class DefaultAuthenticateSubjectHandler(
     private bool DefaultAuthenticateSchemeFetched { get; set; }
     private string? DefaultAuthenticateSchemeName { get; set; }
 
+    internal virtual AuthenticateSubjectDisposition Undefined() => new();
     internal virtual AuthenticateSubjectDisposition Failed(IOpenIdError error) => new(error);
     internal virtual AuthenticateSubjectDisposition Authenticated(SubjectAuthentication ticket) => new(ticket);
 
@@ -74,7 +75,7 @@ public class DefaultAuthenticateSubjectHandler(
 
         if (baseResult.None)
         {
-            return default;
+            return Undefined();
         }
 
         if (baseResult.Failure is not null)

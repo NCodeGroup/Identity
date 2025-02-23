@@ -64,6 +64,12 @@ public interface IKnownSettingCollection : ISettingCollection
     string AccessTokenType { get; set; }
 
     /// <summary>
+    /// Gets or sets the value for the 'allowed_identity_providers' setting.
+    /// An empty collection indicates that any identity provider is allowed.
+    /// </summary>
+    IReadOnlyCollection<string> AllowedIdentityProviders { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the loopback address (i.e. 127.0.0.1 or localhost) is allowed to be
     /// used as a redirect address without being explicitly registered.
     /// </summary>
@@ -206,4 +212,9 @@ public interface IKnownSettingCollection : ISettingCollection
     /// Gets or sets the value of the 'scopes_supported' setting.
     /// </summary>
     IReadOnlyCollection<string> ScopesSupported { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum age of the subject's authentication time.
+    /// </summary>
+    TimeSpan SubjectMaxAge { get; set; }
 }

@@ -171,6 +171,16 @@ public class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace
             };
 
+            // allowed_identity_providers
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = SettingNames.AllowedIdentityProviders,
+                Default = [],
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace
+            };
+
             // authorization_authenticate_scheme
             yield return new SettingDescriptor<string>
             {
@@ -545,6 +555,16 @@ public class DefaultSettingDescriptorDataSource(
                 Name = SettingNames.ServiceDocumentation,
 
                 IsDiscoverable = true,
+                OnMerge = Replace
+            };
+
+            // subject_max_age
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = SettingNames.SubjectMaxAge,
+                Default = TimeSpan.MaxValue,
+
+                IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace
             };
 

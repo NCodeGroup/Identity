@@ -348,7 +348,7 @@ public class DefaultAuthorizationEndpointHandler(
             );
         }
 
-        if (authorizeSubjectDisposition.RequiresChallenge)
+        if (authorizeSubjectDisposition.ChallengeRequired)
         {
             return await ChallengeAsync(
                 openIdContext,

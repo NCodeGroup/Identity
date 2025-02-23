@@ -80,6 +80,8 @@ public class DefaultValidateRefreshTokenGrantHandler(
 
         if (subjectAuthentication.HasValue)
         {
+            // TODO: verify tenant
+
             var subjectIsActive = await GetSubjectIsActiveAsync(
                 openIdContext,
                 openIdClient,

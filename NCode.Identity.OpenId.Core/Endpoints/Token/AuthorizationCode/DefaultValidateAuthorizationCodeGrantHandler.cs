@@ -100,6 +100,8 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             // invalid_scope
             throw InvalidScopeError.AsException();
 
+        // TODO: verify tenant
+
         // TODO: validate resource
 
         // TODO: validate actual scope values

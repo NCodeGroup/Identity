@@ -17,8 +17,7 @@
 #endregion
 
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
@@ -26,81 +25,52 @@ using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
-using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="AuthorizeCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="AuthorizeSubjectCommand"/> message.
 /// </summary>
-public class DefaultAuthorizeHandler(
-    ILogger<DefaultAuthorizeHandler> logger,
+[PublicAPI]
+public class DefaultAuthorizeSubjectHandler(
+    ILogger<DefaultAuthorizeSubjectHandler> logger,
     TimeProvider timeProvider,
-    IOpenIdErrorFactory errorFactory,
-    IContinueService continueService,
-    IAuthorizationInteractionService interactionService
-) : ICommandResponseHandler<AuthorizeCommand, IResult?>
+    IOpenIdErrorFactory errorFactory
+) : ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>
 {
-    private ILogger<DefaultAuthorizeHandler> Logger { get; } = logger;
+    private ILogger<DefaultAuthorizeSubjectHandler> Logger { get; } = logger;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private IAuthorizationInteractionService InteractionService { get; } = interactionService;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-    private IContinueService ContinueService { get; } = continueService;
+
+    internal virtual AuthorizeSubjectDisposition Authorized() => new(RequiresChallenge: false);
+    internal virtual AuthorizeSubjectDisposition RequiresChallenge() => new(RequiresChallenge: true);
+
+    internal virtual AuthorizeSubjectDisposition Failed(Uri redirectUri, string responseMode, IOpenIdError error) =>
+        new(Result(redirectUri, responseMode, error));
+
+    internal virtual AuthorizationResult Result(Uri redirectUri, string responseMode, IOpenIdError error) =>
+        new(redirectUri, responseMode, error);
 
     /// <inheritdoc />
-    public async ValueTask<IResult?> HandleAsync(
-        AuthorizeCommand command,
+    public async ValueTask<AuthorizeSubjectDisposition> HandleAsync(
+        AuthorizeSubjectCommand command,
         CancellationToken cancellationToken)
     {
         var (openIdContext, openIdClient, authorizationRequest, authenticationTicket) = command;
 
         var clientSettings = openIdClient.Settings;
         var promptTypes = authorizationRequest.PromptTypes;
+        var state = authorizationRequest.State;
 
         if (promptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
         {
             Logger.LogInformation("Client requested account creation.");
-
-            var continueUrl = await ContinueService.GetContinueUrlAsync(
-                openIdContext,
-                OpenIdConstants.ContinueCodes.Authorization,
-                authorizationRequest.ClientId,
-                subjectId: null,
-                clientSettings.ContinueAuthorizationLifetime,
-                authorizationRequest,
-                cancellationToken);
-
-            var authenticationProperties = new AuthenticationProperties
-            {
-                RedirectUri = continueUrl
-            };
-
-            authenticationProperties.SetString(
-                OpenIdConstants.AuthenticationPropertyItems.TenantId,
-                openIdContext.Tenant.TenantId
-            );
-            authenticationProperties.SetString(
-                OpenIdConstants.AuthenticationPropertyItems.ClientId,
-                openIdClient.ClientId
-            );
-
-            // TODO
-            // return EmptyHttpResult.Instance;
-
-            var redirectUrl = await InteractionService.GetCreateAccountUrlAsync(
-                openIdContext,
-                openIdClient,
-                authorizationRequest,
-                continueUrl,
-                cancellationToken);
-
-            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
+            return RequiresChallenge();
         }
 
         var reAuthenticate =
@@ -110,24 +80,7 @@ public class DefaultAuthorizeHandler(
         if (reAuthenticate)
         {
             Logger.LogInformation("Client requested re-authentication.");
-
-            var continueUrl = await ContinueService.GetContinueUrlAsync(
-                openIdContext,
-                OpenIdConstants.ContinueCodes.Authorization,
-                authorizationRequest.ClientId,
-                subjectId: null,
-                clientSettings.ContinueAuthorizationLifetime,
-                authorizationRequest,
-                cancellationToken);
-
-            var redirectUrl = await InteractionService.GetLoginUrlAsync(
-                openIdContext,
-                openIdClient,
-                authorizationRequest,
-                continueUrl,
-                cancellationToken);
-
-            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
+            return RequiresChallenge();
         }
 
         var isAuthenticated = authenticationTicket.Subject.Identities.All(identity => identity.IsAuthenticated);
@@ -135,31 +88,14 @@ public class DefaultAuthorizeHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                var error = ErrorFactory.LoginRequired();
+                var error = ErrorFactory.LoginRequired().WithState(state);
                 var redirectUri = authorizationRequest.RedirectUri;
                 var responseMode = authorizationRequest.ResponseMode;
-                return new AuthorizationResult(redirectUri, responseMode, error);
+                return Failed(redirectUri, responseMode, error);
             }
 
             Logger.LogInformation("The end-user is not authenticated.");
-
-            var continueUrl = await ContinueService.GetContinueUrlAsync(
-                openIdContext,
-                OpenIdConstants.ContinueCodes.Authorization,
-                authorizationRequest.ClientId,
-                subjectId: null,
-                clientSettings.ContinueAuthorizationLifetime,
-                authorizationRequest,
-                cancellationToken);
-
-            var redirectUrl = await InteractionService.GetLoginUrlAsync(
-                openIdContext,
-                openIdClient,
-                authorizationRequest,
-                continueUrl,
-                cancellationToken);
-
-            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
+            return RequiresChallenge();
         }
 
         var subjectIsActive = await GetSubjectIsActiveAsync(
@@ -173,31 +109,14 @@ public class DefaultAuthorizeHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                var error = ErrorFactory.LoginRequired();
+                var error = ErrorFactory.LoginRequired().WithState(state);
                 var redirectUri = authorizationRequest.RedirectUri;
                 var responseMode = authorizationRequest.ResponseMode;
-                return new AuthorizationResult(redirectUri, responseMode, error);
+                return Failed(redirectUri, responseMode, error);
             }
 
             Logger.LogInformation("The end-user is not active.");
-
-            var continueUrl = await ContinueService.GetContinueUrlAsync(
-                openIdContext,
-                OpenIdConstants.ContinueCodes.Authorization,
-                authorizationRequest.ClientId,
-                subjectId: null,
-                clientSettings.ContinueAuthorizationLifetime,
-                authorizationRequest,
-                cancellationToken);
-
-            var redirectUrl = await InteractionService.GetLoginUrlAsync(
-                openIdContext,
-                openIdClient,
-                authorizationRequest,
-                continueUrl,
-                cancellationToken);
-
-            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
+            return RequiresChallenge();
         }
 
         // TODO: check that tenant from subject matches the current tenant
@@ -212,31 +131,14 @@ public class DefaultAuthorizeHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                var error = ErrorFactory.LoginRequired();
+                var error = ErrorFactory.LoginRequired().WithState(state);
                 var redirectUri = authorizationRequest.RedirectUri;
                 var responseMode = authorizationRequest.ResponseMode;
-                return new AuthorizationResult(redirectUri, responseMode, error);
+                return Failed(redirectUri, responseMode, error);
             }
 
             Logger.LogInformation("MaxAge exceeded.");
-
-            var continueUrl = await ContinueService.GetContinueUrlAsync(
-                openIdContext,
-                OpenIdConstants.ContinueCodes.Authorization,
-                authorizationRequest.ClientId,
-                subjectId: null,
-                clientSettings.ContinueAuthorizationLifetime,
-                authorizationRequest,
-                cancellationToken);
-
-            var redirectUrl = await InteractionService.GetLoginUrlAsync(
-                openIdContext,
-                openIdClient,
-                authorizationRequest,
-                continueUrl,
-                cancellationToken);
-
-            return new OpenIdRedirectResult { RedirectUrl = redirectUrl };
+            return RequiresChallenge();
         }
 
         // TODO: check local idp restrictions
@@ -245,7 +147,7 @@ public class DefaultAuthorizeHandler(
 
         // TODO: check client's user SSO timeout
 
-        return null;
+        return Authorized();
     }
 
     private static async ValueTask<bool> GetSubjectIsActiveAsync(
@@ -255,7 +157,7 @@ public class DefaultAuthorizeHandler(
         SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
-        var result = new ValidateSubjectIsActiveResult();
+        var result = new PositiveIsActiveResult();
 
         var command = new ValidateSubjectIsActiveCommand(
             openIdContext,

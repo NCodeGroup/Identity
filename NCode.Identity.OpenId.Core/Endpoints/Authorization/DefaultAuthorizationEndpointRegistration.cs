@@ -18,7 +18,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
@@ -30,7 +29,6 @@ using NCode.Identity.OpenId.Endpoints.Continue;
 using NCode.Identity.OpenId.Logic.Authorization;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization;
 
@@ -50,10 +48,6 @@ public static class DefaultAuthorizationEndpointRegistration
         serviceCollection.TryAddSingleton<
             IAuthorizationCodeService,
             DefaultAuthorizationCodeService>();
-
-        serviceCollection.TryAddSingleton<
-            IAuthorizationInteractionService,
-            NullAuthorizationInteractionService>();
 
         serviceCollection.AddSingleton<DefaultAuthorizationEndpointHandler>();
 
@@ -76,12 +70,12 @@ public static class DefaultAuthorizationEndpointRegistration
             DefaultValidateAuthorizationRequestHandler>();
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectResult>,
+            ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
             DefaultAuthenticateHandler>();
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<AuthorizeCommand, IResult?>,
-            DefaultAuthorizeHandler>();
+            ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
+            DefaultAuthorizeSubjectHandler>();
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>,

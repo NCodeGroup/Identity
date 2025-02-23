@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
@@ -50,7 +51,7 @@ public class DefaultContinueEndpointHandler(
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapMethods(
             OpenIdConstants.EndpointPaths.Continue,
-            new[] { HttpMethods.Get, HttpMethods.Post },
+            [HttpMethods.Get, HttpMethods.Post],
             HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Continue)
         .WithOpenIdDiscoverable(false);
@@ -81,7 +82,8 @@ public class DefaultContinueEndpointHandler(
 
         var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<ContinueEnvelope>(
             persistedGrantId,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (!persistedGrantOrNull.HasValue)
         {
@@ -94,8 +96,19 @@ public class DefaultContinueEndpointHandler(
 
         var continueEnvelope = persistedGrant.Payload;
         var provider = ContinueProviderSelector.SelectProvider(continueEnvelope.Code);
-        var result = await provider.ContinueAsync(openIdContext, continueEnvelope.PayloadJson, cancellationToken);
+        var disposition = await provider.ContinueAsync(openIdContext, continueEnvelope.PayloadJson, cancellationToken);
 
-        return result;
+        if (disposition.HasHttpResult)
+        {
+            return disposition.HttpResult;
+        }
+
+        if (disposition.WasHandled)
+        {
+            return EmptyHttpResult.Instance;
+        }
+
+        Logger.LogInformation("The continue provider did not handle the request.");
+        return TypedResults.BadRequest();
     }
 }

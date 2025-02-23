@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Models;
 
 namespace NCode.Identity.OpenId.Subject;
 
@@ -34,5 +35,5 @@ public readonly record struct ValidateSubjectIsActiveCommand(
     OpenIdClient OpenIdClient,
     IOpenIdRequest OpenIdRequest,
     SubjectAuthentication SubjectAuthentication,
-    ValidateSubjectIsActiveResult Result
+    PositiveIsActiveResult Result
 ) : ICommand;

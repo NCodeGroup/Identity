@@ -27,11 +27,12 @@ using NCode.Identity.OpenId.Subject;
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Represents a mediator command to authenticate a subject (aka user).
+/// Represents a mediator command to authorize a subject (aka end-user).
 /// </summary>
 [PublicAPI]
-public readonly record struct AuthenticateCommand(
+public readonly record struct AuthorizeSubjectCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    IAuthorizationRequest AuthorizationRequest
-) : ICommand<AuthenticateSubjectResult>;
+    IAuthorizationRequest AuthorizationRequest,
+    SubjectAuthentication SubjectAuthentication
+) : ICommand<AuthorizeSubjectDisposition>;

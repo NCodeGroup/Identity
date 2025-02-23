@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
@@ -44,7 +45,7 @@ public class AuthorizationResult : IResult, ISupportError
     public AuthorizationResult(Uri redirectUri, string responseMode, IOpenIdError error)
         : this(redirectUri, responseMode, error, null)
     {
-        // nothing
+        Debug.Assert(error.State is not null);
     }
 
     /// <summary>
@@ -57,7 +58,7 @@ public class AuthorizationResult : IResult, ISupportError
     public AuthorizationResult(Uri redirectUri, string responseMode, IAuthorizationTicket ticket)
         : this(redirectUri, responseMode, null, ticket)
     {
-        // nothing
+        Debug.Assert(ticket.State is not null);
     }
 
     private AuthorizationResult(Uri redirectUri, string responseMode, IOpenIdError? error, IAuthorizationTicket? ticket)

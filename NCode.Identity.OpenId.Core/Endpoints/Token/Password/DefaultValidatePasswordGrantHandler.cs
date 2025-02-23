@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Password;
@@ -76,7 +77,7 @@ public class DefaultValidatePasswordGrantHandler(
         SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
-        var result = new ValidateSubjectIsActiveResult();
+        var result = new PositiveIsActiveResult();
 
         var command = new ValidateSubjectIsActiveCommand(
             openIdContext,

@@ -18,8 +18,10 @@
 #endregion
 
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
@@ -35,7 +37,6 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization;
 
@@ -46,13 +47,15 @@ public class DefaultAuthorizationEndpointHandler(
     OpenIdEnvironment openIdEnvironment,
     IOpenIdErrorFactory errorFactory,
     IOpenIdContextFactory contextFactory,
-    IClientAuthenticationService clientAuthenticationService
+    IClientAuthenticationService clientAuthenticationService,
+    IContinueService continueService
 ) : IOpenIdEndpointProvider, IContinueProvider
 {
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
+    private IContinueService ContinueService { get; } = continueService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
@@ -109,15 +112,31 @@ public class DefaultAuthorizationEndpointHandler(
                 new LoadAuthorizationRequestCommand(
                     openIdContext,
                     openIdClient,
-                    authorizationSource),
-                cancellationToken);
+                    authorizationSource
+                ),
+                cancellationToken
+            );
 
-            return await ProcessAuthorizationRequestAsync(
+            var disposition = await ProcessAuthorizationRequestAsync(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,
                 clientRedirectContext,
-                cancellationToken);
+                cancellationToken
+            );
+
+            if (disposition.HasHttpResult)
+            {
+                return disposition.HttpResult;
+            }
+
+            if (disposition.WasHandled)
+            {
+                return EmptyHttpResult.Instance;
+            }
+
+            // TODO: log this
+            return TypedResults.BadRequest();
         }
         catch (Exception exception)
         {
@@ -208,15 +227,57 @@ public class DefaultAuthorizationEndpointHandler(
         return new ClientRedirectContext(redirectUri, effectiveResponseMode, state);
     }
 
-    private async ValueTask<IResult> ProcessAuthorizationRequestAsync(
+    private async ValueTask<OperationDisposition> ChallengeAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest authorizationRequest,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = openIdContext.Mediator;
+        var clientSettings = openIdClient.Settings;
+
+        var continueUrl = await ContinueService.GetContinueUrlAsync(
+            openIdContext,
+            OpenIdConstants.ContinueCodes.Authorization,
+            openIdClient.ClientId,
+            subjectId: null,
+            clientSettings.ContinueAuthorizationLifetime,
+            authorizationRequest,
+            cancellationToken
+        );
+
+        var authenticationProperties = new AuthenticationProperties
+        {
+            RedirectUri = continueUrl
+        };
+
+        authenticationProperties.SetString(
+            OpenIdConstants.AuthenticationPropertyItems.TenantId,
+            openIdContext.Tenant.TenantId
+        );
+
+        var disposition = await mediator.SendAsync<ChallengeAuthorizationCommand, OperationDisposition>(
+            new ChallengeAuthorizationCommand(
+                openIdContext,
+                openIdClient,
+                authorizationRequest,
+                authenticationProperties
+            ),
+            cancellationToken
+        );
+        return disposition;
+    }
+
+    private async ValueTask<OperationDisposition> ProcessAuthorizationRequestAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
         ClientRedirectContext clientRedirectContext,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var mediator = openIdContext.Mediator;
-
         var redirectUri = clientRedirectContext.RedirectUri;
 
         // the request object may have changed the response mode
@@ -229,49 +290,85 @@ public class DefaultAuthorizationEndpointHandler(
             new ValidateAuthorizationRequestCommand(
                 openIdContext,
                 openIdClient,
-                authorizationRequest),
-            cancellationToken);
+                authorizationRequest
+            ),
+            cancellationToken
+        );
 
-        var authenticateResult = await mediator.SendAsync<AuthenticateCommand, AuthenticateSubjectResult>(
-            new AuthenticateCommand(
+        var authenticateSubjectDisposition = await mediator.SendAsync<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>(
+            new AuthenticateSubjectCommand(
                 openIdContext,
                 openIdClient,
-                authorizationRequest),
-            cancellationToken);
+                authorizationRequest
+            ),
+            cancellationToken
+        );
 
-        if (!authenticateResult.IsSuccess)
+        if (authenticateSubjectDisposition.HasError)
         {
-            var error = authenticateResult.Error ?? ErrorFactory.AccessDenied("Unable to authenticate the end-user.");
-            error.State = clientRedirectContext.State;
-            return new AuthorizationResult(
-                redirectUri,
-                effectiveResponseMode,
-                error);
+            return new OperationDisposition(
+                new AuthorizationResult(
+                    redirectUri,
+                    effectiveResponseMode,
+                    authenticateSubjectDisposition.Error.WithState(clientRedirectContext.State)
+                )
+            );
         }
 
-        var authenticationTicket = authenticateResult.Ticket.Value;
-
-        // the following may require interaction which uses continuations
-        var authorizeResult = await mediator.SendAsync<AuthorizeCommand, IResult?>(
-            new AuthorizeCommand(
+        if (!authenticateSubjectDisposition.IsAuthenticated)
+        {
+            return await ChallengeAsync(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,
-                authenticationTicket),
-            cancellationToken);
+                cancellationToken
+            );
+        }
 
-        if (authorizeResult != null)
-            return authorizeResult;
+        var authenticationTicket = authenticateSubjectDisposition.Ticket.Value;
+
+        var authorizeSubjectDisposition = await mediator.SendAsync<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>(
+            new AuthorizeSubjectCommand(
+                openIdContext,
+                openIdClient,
+                authorizationRequest,
+                authenticationTicket
+            ),
+            cancellationToken
+        );
+
+        if (authorizeSubjectDisposition.HasAuthorizationResult)
+        {
+            return new OperationDisposition(authorizeSubjectDisposition.AuthorizationResult);
+        }
+
+        if (authorizeSubjectDisposition.RequiresChallenge)
+        {
+            return await ChallengeAsync(
+                openIdContext,
+                openIdClient,
+                authorizationRequest,
+                cancellationToken
+            );
+        }
 
         var authorizationTicket = await mediator.SendAsync<CreateAuthorizationTicketCommand, IAuthorizationTicket>(
             new CreateAuthorizationTicketCommand(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,
-                authenticationTicket),
-            cancellationToken);
+                authenticationTicket
+            ),
+            cancellationToken
+        );
 
-        return new AuthorizationResult(redirectUri, effectiveResponseMode, authorizationTicket);
+        return new OperationDisposition(
+            new AuthorizationResult(
+                redirectUri,
+                effectiveResponseMode,
+                authorizationTicket
+            )
+        );
     }
 
     #region IContinueProvider
@@ -280,7 +377,7 @@ public class DefaultAuthorizationEndpointHandler(
     public string ContinueCode => OpenIdConstants.ContinueCodes.Authorization;
 
     /// <inheritdoc />
-    public async ValueTask<IResult> ContinueAsync(
+    public async ValueTask<OperationDisposition> ContinueAsync(
         OpenIdContext openIdContext,
         JsonElement continuePayloadJson,
         CancellationToken cancellationToken)
@@ -293,7 +390,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var error = authResult.Error ?? ErrorFactory.InvalidClient();
             error.StatusCode = StatusCodes.Status400BadRequest;
-            return error.AsHttpResult();
+            return new OperationDisposition(error.AsHttpResult());
         }
 
         var openIdClient = authResult.Client;
@@ -315,14 +412,14 @@ public class DefaultAuthorizationEndpointHandler(
             authorizationRequest.State
         );
 
-        var result = await ProcessAuthorizationRequestAsync(
+        var disposition = await ProcessAuthorizationRequestAsync(
             openIdContext,
             openIdClient,
             authorizationRequest,
             clientRedirectContext,
-            cancellationToken);
-
-        return result;
+            cancellationToken
+        );
+        return disposition;
     }
 
     #endregion

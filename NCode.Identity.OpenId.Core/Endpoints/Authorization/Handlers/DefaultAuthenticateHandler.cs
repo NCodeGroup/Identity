@@ -28,13 +28,13 @@ using NCode.Identity.OpenId.Subject;
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="AuthenticateCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message.
 /// </summary>
 public class DefaultAuthenticateHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     IOpenIdErrorFactory errorFactory,
     IAuthenticationSchemeProvider authenticationSchemeProvider
-) : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectResult>
+) : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
@@ -44,8 +44,8 @@ public class DefaultAuthenticateHandler(
     private string? DefaultSignInSchemeName { get; set; }
 
     /// <inheritdoc />
-    public async ValueTask<AuthenticateSubjectResult> HandleAsync(
-        AuthenticateCommand command,
+    public async ValueTask<AuthenticateSubjectDisposition> HandleAsync(
+        AuthenticateSubjectCommand command,
         CancellationToken cancellationToken)
     {
         var (openIdContext, openIdClient, _) = command;
@@ -74,8 +74,8 @@ public class DefaultAuthenticateHandler(
 
         if (baseResult.Failure is not null)
         {
-            var error = ErrorFactory.AccessDenied("Unable to authenticate the end-user.").WithException(baseResult.Failure);
-            return new AuthenticateSubjectResult(error);
+            var error = ErrorFactory.AccessDenied("Failed to authenticate the end-user.").WithException(baseResult.Failure);
+            return new AuthenticateSubjectDisposition(error);
         }
 
         Debug.Assert(baseResult.Succeeded);
@@ -89,7 +89,7 @@ public class DefaultAuthenticateHandler(
         if (string.IsNullOrEmpty(subjectId))
         {
             var error = ErrorFactory.AccessDenied("Unable to determine the the end-user's subject id.");
-            return new AuthenticateSubjectResult(error);
+            return new AuthenticateSubjectDisposition(error);
         }
 
         var ticket = new SubjectAuthentication(
@@ -98,6 +98,6 @@ public class DefaultAuthenticateHandler(
             subject,
             subjectId);
 
-        return new AuthenticateSubjectResult(ticket);
+        return new AuthenticateSubjectDisposition(ticket);
     }
 }

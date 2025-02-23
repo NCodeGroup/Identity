@@ -21,13 +21,13 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Subject;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
@@ -73,7 +73,7 @@ public class DefaultPasswordGrantHandler(
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
-        var authenticateResult = await mediator.SendAsync<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>(
+        var disposition = await mediator.SendAsync<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>(
             new AuthenticatePasswordGrantCommand(
                 openIdContext,
                 openIdClient,
@@ -81,12 +81,12 @@ public class DefaultPasswordGrantHandler(
             ),
             cancellationToken);
 
-        if (!authenticateResult.IsSuccess)
+        if (!disposition.IsAuthenticated)
         {
-            return authenticateResult.Error ?? InvalidGrantError;
+            return disposition.Error ?? InvalidGrantError;
         }
 
-        var subjectAuthentication = authenticateResult.Ticket.Value;
+        var subjectAuthentication = disposition.Ticket.Value;
 
         var passwordGrant = new PasswordGrant(subjectAuthentication);
 

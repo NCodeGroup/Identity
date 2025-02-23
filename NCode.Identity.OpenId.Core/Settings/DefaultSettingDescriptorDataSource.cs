@@ -171,21 +171,31 @@ public class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace
             };
 
-            // authorization_code_lifetime
-            yield return new SettingDescriptor<TimeSpan>
+            // authorization_authenticate_scheme
+            yield return new SettingDescriptor<string>
             {
-                Name = SettingNames.AuthorizationCodeLifetime,
-                Default = TimeSpan.FromMinutes(5.0),
+                Name = SettingNames.AuthorizationAuthenticateScheme,
+                Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace
             };
 
-            // authorization_sign_in_scheme
+            // authorization_challenge_scheme
             yield return new SettingDescriptor<string>
             {
-                Name = SettingNames.AuthorizationSignInScheme,
+                Name = SettingNames.AuthorizationChallengeScheme,
                 Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace
+            };
+
+            // authorization_code_lifetime
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = SettingNames.AuthorizationCodeLifetime,
+                Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace

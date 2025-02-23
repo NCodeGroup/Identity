@@ -102,18 +102,25 @@ public class KnownSettingCollection(
         set => Store.Set(SettingKeys.AllowUnsafeTokenResponse, value);
     }
 
+    /// <inheritdoc cref="IKnownSettingCollection.AuthorizationAuthenticateScheme" />
+    public string AuthorizationAuthenticateScheme
+    {
+        get => Store.GetValue(SettingKeys.AuthorizationAuthenticateScheme);
+        set => Store.Set(SettingKeys.AuthorizationAuthenticateScheme, value);
+    }
+
+    /// <inheritdoc cref="IKnownSettingCollection.AuthorizationChallengeScheme" />
+    public string AuthorizationChallengeScheme
+    {
+        get => Store.GetValue(SettingKeys.AuthorizationChallengeScheme);
+        set => Store.Set(SettingKeys.AuthorizationChallengeScheme, value);
+    }
+
     /// <inheritdoc cref="IKnownSettingCollection.AuthorizationCodeLifetime" />
     public TimeSpan AuthorizationCodeLifetime
     {
         get => Store.GetValue(SettingKeys.AuthorizationCodeLifetime);
         set => Store.Set(SettingKeys.AuthorizationCodeLifetime, value);
-    }
-
-    /// <inheritdoc cref="IKnownSettingCollection.AuthorizationSignInScheme" />
-    public string AuthorizationSignInScheme
-    {
-        get => Store.GetValue(SettingKeys.AuthorizationSignInScheme);
-        set => Store.Set(SettingKeys.AuthorizationSignInScheme, value);
     }
 
     /// <inheritdoc cref="IKnownSettingCollection.ClockSkew" />

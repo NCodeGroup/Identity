@@ -83,14 +83,19 @@ public static class SettingNames
     public const string AllowUnsafeTokenResponse = "allow_unsafe_token_response";
 
     /// <summary>
+    /// Contains the name of <c>authorization_authenticate_scheme</c> setting.
+    /// </summary>
+    public const string AuthorizationAuthenticateScheme = "authorization_authenticate_scheme";
+
+    /// <summary>
+    /// Contains the name of <c>authorization_challenge_scheme</c> setting.
+    /// </summary>
+    public const string AuthorizationChallengeScheme = "authorization_challenge_scheme";
+
+    /// <summary>
     /// Contains the name of <c>authorization_code_lifetime</c> setting.
     /// </summary>
     public const string AuthorizationCodeLifetime = "authorization_code_lifetime";
-
-    /// <summary>
-    /// Contains the name of <c>authorization_sign_in_scheme</c> setting.
-    /// </summary>
-    public const string AuthorizationSignInScheme = "authorization_sign_in_scheme";
 
     /// <summary>
     /// Contains the name of <c>claims_locales_supported</c> setting.

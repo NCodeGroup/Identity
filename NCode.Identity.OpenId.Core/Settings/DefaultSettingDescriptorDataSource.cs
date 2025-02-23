@@ -598,6 +598,14 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.TokenEndpointAuthMethodsSupported,
+                Default =
+                [
+                    OpenIdConstants.ClientAuthenticationMethods.None,
+                    OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+                    OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+                    // TODO: OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt,
+                    // TODO: OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+                ],
 
                 IsDiscoverable = true,
                 OnMerge = Intersect

@@ -147,12 +147,25 @@ public static partial class OpenIdConstants
 
     /// <summary>
     /// Contains constants for various types of client authentication methods.
+    /// These values are used in the <c>token_endpoint_auth_methods_supported</c> metadata.
     /// </summary>
     public static class ClientAuthenticationMethods
     {
+        /// <summary>
+        /// Indicates that the client does not authenticate itself, either because it uses only the Implicit Flow (and so does not use the Token Endpoint) or because it is a Public Client with no Client Secret or other authentication mechanism.
+        /// </summary>
         public const string None = "none";
+
+        /// <summary>
+        /// Indicates that the authorization server uses the Client Credentials from the POST request body to authenticate the client.
+        /// </summary>
         public const string ClientSecretPost = "client_secret_post";
+
+        /// <summary>
+        /// Indicates that the authorization server uses the HTTP Basic authentication scheme to authenticate the client.
+        /// </summary>
         public const string ClientSecretBasic = "client_secret_basic";
+
         public const string ClientSecretJwt = "client_secret_jwt";
         public const string PrivateKeyJwt = "private_key_jwt";
     }

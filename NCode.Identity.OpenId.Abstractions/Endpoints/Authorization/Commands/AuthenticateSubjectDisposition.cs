@@ -19,25 +19,18 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Subject;
 
-namespace NCode.Identity.OpenId.Subject;
+namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Contains the result after attempting to authenticate an end-user.
+/// Represents the disposition of authenticating a subject (aka end-user).
 /// </summary>
+/// <param name="Error">Contains the <see cref="IOpenIdError"/> for a failed authentication result.</param>
+/// <param name="Ticket">Contains the <see cref="SubjectAuthentication"/> for a successful authentication result.</param>
 [PublicAPI]
-public readonly struct AuthenticateSubjectResult
+public readonly record struct AuthenticateSubjectDisposition(IOpenIdError? Error, SubjectAuthentication? Ticket)
 {
-    /// <summary>
-    /// Gets the <see cref="IOpenIdError"/> for a failed authentication result.
-    /// </summary>
-    public IOpenIdError? Error { get; }
-
-    /// <summary>
-    /// Gets the <see cref="SubjectAuthentication"/> for a successful authentication result.
-    /// </summary>
-    public SubjectAuthentication? Ticket { get; }
-
     /// <summary>
     /// Gets a boolean indicating whether the result is undefined.
     /// </summary>
@@ -47,31 +40,32 @@ public readonly struct AuthenticateSubjectResult
     /// Gets a boolean indicating whether authentication failed.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Error))]
-    public bool IsError => Error != null;
+    public bool HasError => Error != null;
 
     /// <summary>
     /// Gets a boolean indicating whether authentication succeeded.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Ticket))]
-    public bool IsSuccess => Ticket != null;
+    public bool IsAuthenticated => Ticket != null;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="AuthenticateSubjectResult"/> for when authentication failed.
+    /// Initializes a new instance of <see cref="AuthenticateSubjectDisposition"/> for when authentication failed.
     /// </summary>
     /// <param name="error">The <see cref="IOpenIdError"/> for a failed authentication result.</param>
-    public AuthenticateSubjectResult(IOpenIdError error)
+    public AuthenticateSubjectDisposition(IOpenIdError error)
+        // ReSharper disable once IntroduceOptionalParameters.Global
+        : this(error, Ticket: null)
     {
-        Error = error;
-        Ticket = null;
+        // nothing
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="AuthenticateSubjectResult"/> for when authentication succeeded.
+    /// Initializes a new instance of <see cref="AuthenticateSubjectDisposition"/> for when authentication succeeded.
     /// </summary>
     /// <param name="ticket">The <see cref="SubjectAuthentication"/> for a successful authentication result.</param>
-    public AuthenticateSubjectResult(SubjectAuthentication ticket)
+    public AuthenticateSubjectDisposition(SubjectAuthentication ticket)
+        : this(Error: null, ticket)
     {
-        Error = null;
-        Ticket = ticket;
+        // nothing
     }
 }

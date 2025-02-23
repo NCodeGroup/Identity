@@ -19,8 +19,8 @@
 
 using System.Text.Json;
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Continue;
 
@@ -41,8 +41,8 @@ public interface IContinueProvider
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="continuePayloadJson">The <see cref="JsonElement"/> which contains the payload for the continue operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="IResult"/> for the result of the operation.</returns>
-    ValueTask<IResult> ContinueAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OperationDisposition"/> for the operation.</returns>
+    ValueTask<OperationDisposition> ContinueAsync(
         OpenIdContext openIdContext,
         JsonElement continuePayloadJson,
         CancellationToken cancellationToken);

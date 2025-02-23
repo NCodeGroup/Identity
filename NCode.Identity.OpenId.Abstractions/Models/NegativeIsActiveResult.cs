@@ -18,23 +18,26 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Subject;
+namespace NCode.Identity.OpenId.Models;
 
 /// <summary>
-/// Contains the result of validating whether the subject is active or not.
+/// Contains an <see cref="IsActiveResult.IsActive"/> property indicating whether the result of the operation or context is active or not.
+/// The initial value is <c>false</c> and consumers can call the <see cref="SetActive"/> method to indicate that the result is active.
 /// </summary>
 [PublicAPI]
-public class ValidateSubjectIsActiveResult
+public class NegativeIsActiveResult : IsActiveResult
 {
     /// <summary>
-    /// Gets a <see cref="bool"/> value indicating whether the subject is active.
-    /// The initial value is <c>true</c> and handlers can call the <see cref="SetInactive"/> method
-    /// to indicate that the subject is not active.
+    /// Initializes a new instance of the <see cref="NegativeIsActiveResult"/> class
+    /// with <see cref="IsActiveResult.IsActive"/> initially set to <c>false</c>.
     /// </summary>
-    public bool IsActive { get; private set; } = true;
+    public NegativeIsActiveResult() : base(initial: false)
+    {
+        // nothing
+    }
 
     /// <summary>
-    /// Sets the result to indicate that the subject is not active.
+    /// Sets <see cref="IsActiveResult.IsActive"/> to indicate that the result of the operation or context is active.
     /// </summary>
-    public void SetInactive() => IsActive = false;
+    public void SetActive() => IsActive = true;
 }

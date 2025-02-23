@@ -20,6 +20,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 using NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
@@ -28,7 +29,6 @@ using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Password;
 using NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token;
 
@@ -94,7 +94,7 @@ public static class DefaultTokenEndpointRegistration
             DefaultPasswordGrantHandler>());
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectResult>,
+            ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>,
             DefaultAuthenticatePasswordGrantHandler>();
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<

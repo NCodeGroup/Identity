@@ -1,6 +1,6 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,20 +17,22 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Authentication;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
-using NCode.Identity.OpenId.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Results;
 
-namespace NCode.Identity.OpenId.Endpoints.Token.Commands;
+namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Represents a mediator command to authenticate a password grant request.
+/// Represents a mediator command to challenge a subject (aka an end-user must interactively provide their credentials).
 /// </summary>
 [PublicAPI]
-public readonly record struct AuthenticatePasswordGrantCommand(
+public readonly record struct ChallengeAuthorizationCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    ITokenRequest TokenRequest
-) : ICommand<AuthenticateSubjectDisposition>;
+    IAuthorizationRequest AuthorizationRequest,
+    AuthenticationProperties AuthenticationProperties
+) : ICommand<OperationDisposition>;

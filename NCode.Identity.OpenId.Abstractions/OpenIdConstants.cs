@@ -166,6 +166,5 @@ public static partial class OpenIdConstants
     public static class AuthenticationPropertyItems
     {
         public const string TenantId = ".tenant";
-        public const string ClientId = ".client";
     }
 }

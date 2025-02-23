@@ -18,7 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Endpoints.Authorization.Results;
+using NCode.Identity.OpenId.Errors;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
@@ -26,35 +26,35 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 /// Represents the disposition of authorizing a subject (aka end-user).
 /// </summary>
 /// <param name="RequiresChallenge">Indicates whether the authorization request requires a challenge from the user-agent.</param>
-/// <param name="AuthorizationResult">Contains the optional <see cref="Results.AuthorizationResult"/> to be returned to the user-agent.</param>
+/// <param name="Error">Contains the <see cref="IOpenIdError"/> to be returned to the user-agent.</param>
 [PublicAPI]
 public readonly record struct AuthorizeSubjectDisposition(
     bool RequiresChallenge,
-    AuthorizationResult? AuthorizationResult = null
+    IOpenIdError? Error = null
 )
 {
     /// <summary>
-    /// Gets a value indicating whether <see cref="AuthorizationResult"/> is not <see langword="null"/>.
+    /// Gets a value indicating whether <see cref="Error"/> is not <see langword="null"/>.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(AuthorizationResult))]
-    public bool HasAuthorizationResult => AuthorizationResult is not null;
+    [MemberNotNullWhen(true, nameof(Error))]
+    public bool HasError => Error is not null;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizeSubjectDisposition"/> class.
     /// </summary>
     public AuthorizeSubjectDisposition()
-        : this(RequiresChallenge: false, AuthorizationResult: null)
+        : this(RequiresChallenge: false, Error: null)
     {
         // nothing
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizeSubjectDisposition"/> class
-    /// that contains an <see cref="Results.AuthorizationResult"/> to be returned to the user-agent.
+    /// that contains an <see cref="IOpenIdError"/> to be returned to the user-agent.
     /// </summary>
-    /// <param name="authorizationResult">The <see cref="AuthorizationResult"/> to be returned to the user-agent.</param>
-    public AuthorizeSubjectDisposition(AuthorizationResult authorizationResult)
-        : this(RequiresChallenge: false, authorizationResult)
+    /// <param name="error">The <see cref="IOpenIdError"/> to be returned to the user-agent.</param>
+    public AuthorizeSubjectDisposition(IOpenIdError error)
+        : this(RequiresChallenge: false, error)
     {
         // nothing
     }

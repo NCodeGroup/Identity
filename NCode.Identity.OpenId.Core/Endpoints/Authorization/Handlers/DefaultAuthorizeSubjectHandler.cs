@@ -24,7 +24,6 @@ using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
-using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
@@ -47,14 +46,9 @@ public class DefaultAuthorizeSubjectHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
+    internal virtual AuthorizeSubjectDisposition Failed(IOpenIdError error) => new(error);
     internal virtual AuthorizeSubjectDisposition Authorized() => new(RequiresChallenge: false);
     internal virtual AuthorizeSubjectDisposition RequiresChallenge() => new(RequiresChallenge: true);
-
-    internal virtual AuthorizeSubjectDisposition Failed(Uri redirectUri, string responseMode, IOpenIdError error) =>
-        new(Result(redirectUri, responseMode, error));
-
-    internal virtual AuthorizationResult Result(Uri redirectUri, string responseMode, IOpenIdError error) =>
-        new(redirectUri, responseMode, error);
 
     /// <inheritdoc />
     public async ValueTask<AuthorizeSubjectDisposition> HandleAsync(
@@ -88,10 +82,7 @@ public class DefaultAuthorizeSubjectHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                var error = ErrorFactory.LoginRequired().WithState(state);
-                var redirectUri = authorizationRequest.RedirectUri;
-                var responseMode = authorizationRequest.ResponseMode;
-                return Failed(redirectUri, responseMode, error);
+                return Failed(ErrorFactory.LoginRequired().WithState(state));
             }
 
             Logger.LogInformation("The end-user is not authenticated.");
@@ -109,10 +100,7 @@ public class DefaultAuthorizeSubjectHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                var error = ErrorFactory.LoginRequired().WithState(state);
-                var redirectUri = authorizationRequest.RedirectUri;
-                var responseMode = authorizationRequest.ResponseMode;
-                return Failed(redirectUri, responseMode, error);
+                return Failed(ErrorFactory.LoginRequired().WithState(state));
             }
 
             Logger.LogInformation("The end-user is not active.");
@@ -131,10 +119,7 @@ public class DefaultAuthorizeSubjectHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                var error = ErrorFactory.LoginRequired().WithState(state);
-                var redirectUri = authorizationRequest.RedirectUri;
-                var responseMode = authorizationRequest.ResponseMode;
-                return Failed(redirectUri, responseMode, error);
+                return Failed(ErrorFactory.LoginRequired().WithState(state));
             }
 
             Logger.LogInformation("MaxAge exceeded.");

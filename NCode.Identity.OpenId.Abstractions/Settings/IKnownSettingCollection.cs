@@ -81,17 +81,21 @@ public interface IKnownSettingCollection : ISettingCollection
     bool AllowUnsafeTokenResponse { get; set; }
 
     /// <summary>
+    /// Gets or sets the authentication scheme corresponding to the middleware responsible for authenticating the user's identity.
+    /// When omitted, <see cref="AuthenticationOptions.DefaultAuthenticateScheme"/> is used as a fallback value.
+    /// </summary>
+    string AuthorizationAuthenticateScheme { get; set; }
+
+    /// <summary>
+    /// Gets or sets the authentication scheme corresponding to the middleware responsible for challenging the user's identity.
+    /// When omitted, <see cref="AuthenticationOptions.DefaultChallengeScheme"/> is used as a fallback value.
+    /// </summary>
+    string AuthorizationChallengeScheme { get; set; }
+
+    /// <summary>
     /// Gets or sets the lifetime of authorization codes issued to clients.
     /// </summary>
     TimeSpan AuthorizationCodeLifetime { get; set; }
-
-    /// <summary>
-    /// Gets or sets the authentication scheme corresponding to the middleware
-    /// responsible for persisting the user's identity after a successful authentication.
-    /// This value typically corresponds to a cookie middleware registered in the Startup class.
-    /// When omitted, <see cref="AuthenticationOptions.DefaultSignInScheme"/> is used as a fallback value.
-    /// </summary>
-    string AuthorizationSignInScheme { get; set; }
 
     /// <summary>
     /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.

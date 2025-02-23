@@ -73,12 +73,16 @@ public class ReadOnlyKnownSettingCollection(
         Store.GetValue(SettingKeys.AllowUnsafeTokenResponse);
 
     /// <inheritdoc />
-    public TimeSpan AuthorizationCodeLifetime =>
-        Store.GetValue(SettingKeys.AuthorizationCodeLifetime);
+    public string AuthorizationAuthenticateScheme =>
+        Store.GetValue(SettingKeys.AuthorizationAuthenticateScheme);
 
     /// <inheritdoc />
-    public string AuthorizationSignInScheme =>
-        Store.GetValue(SettingKeys.AuthorizationSignInScheme);
+    public string AuthorizationChallengeScheme =>
+        Store.GetValue(SettingKeys.AuthorizationChallengeScheme);
+
+    /// <inheritdoc />
+    public TimeSpan AuthorizationCodeLifetime =>
+        Store.GetValue(SettingKeys.AuthorizationCodeLifetime);
 
     /// <inheritdoc />
     public TimeSpan ClockSkew =>

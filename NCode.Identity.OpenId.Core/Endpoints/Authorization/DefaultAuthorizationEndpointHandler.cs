@@ -418,6 +418,7 @@ public class DefaultAuthorizationEndpointHandler(
             authorizationRequest.State
         );
 
+        // TODO: error handling
         var disposition = await ProcessAuthorizationRequestAsync(
             openIdContext,
             openIdClient,

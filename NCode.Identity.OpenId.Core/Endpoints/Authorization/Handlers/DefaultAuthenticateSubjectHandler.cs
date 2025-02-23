@@ -42,8 +42,8 @@ public class DefaultAuthenticateSubjectHandler(
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; } = authenticationSchemeProvider;
 
-    private bool DefaultSignInSchemeFetched { get; set; }
-    private string? DefaultSignInSchemeName { get; set; }
+    private bool DefaultAuthenticateSchemeFetched { get; set; }
+    private string? DefaultAuthenticateSchemeName { get; set; }
 
     internal virtual AuthenticateSubjectDisposition Failed(IOpenIdError error) => new(error);
     internal virtual AuthenticateSubjectDisposition Authenticated(SubjectAuthentication ticket) => new(ticket);
@@ -57,20 +57,20 @@ public class DefaultAuthenticateSubjectHandler(
 
         var httpContext = openIdContext.Http;
 
-        var signInSchemeName = openIdClient.Settings.AuthorizationSignInScheme;
-        if (string.IsNullOrEmpty(signInSchemeName))
+        var authenticateSchemeName = openIdClient.Settings.AuthorizationAuthenticateScheme;
+        if (string.IsNullOrEmpty(authenticateSchemeName))
         {
-            if (!DefaultSignInSchemeFetched)
+            if (!DefaultAuthenticateSchemeFetched)
             {
-                var signInScheme = await AuthenticationSchemeProvider.GetDefaultSignInSchemeAsync();
-                DefaultSignInSchemeName = signInScheme?.Name;
-                DefaultSignInSchemeFetched = true;
+                var authenticateScheme = await AuthenticationSchemeProvider.GetDefaultAuthenticateSchemeAsync();
+                DefaultAuthenticateSchemeName = authenticateScheme?.Name;
+                DefaultAuthenticateSchemeFetched = true;
             }
 
-            signInSchemeName = DefaultSignInSchemeName;
+            authenticateSchemeName = DefaultAuthenticateSchemeName;
         }
 
-        var baseResult = await httpContext.AuthenticateAsync(signInSchemeName);
+        var baseResult = await httpContext.AuthenticateAsync(authenticateSchemeName);
 
         if (baseResult.None)
         {

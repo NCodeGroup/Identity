@@ -104,10 +104,16 @@ public static class SettingKeys
         new(SettingNames.AuthorizationCodeLifetime);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_sign_in_scheme' setting.
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_authenticate_scheme' setting.
     /// </summary>
-    public static SettingKey<string> AuthorizationSignInScheme =>
-        new(SettingNames.AuthorizationSignInScheme);
+    public static SettingKey<string> AuthorizationAuthenticateScheme =>
+        new(SettingNames.AuthorizationAuthenticateScheme);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_challenge_scheme' setting.
+    /// </summary>
+    public static SettingKey<string> AuthorizationChallengeScheme =>
+        new(SettingNames.AuthorizationChallengeScheme);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'claims_locales_supported' setting.

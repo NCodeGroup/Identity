@@ -90,6 +90,7 @@ public class DefaultAuthenticateSubjectHandler(
         var authenticationProperties = baseTicket.Properties;
         var subject = baseTicket.Principal;
 
+        // TODO: provide a way to normalize/canonicalize the external subject ID to a local subject ID
         var subjectId = Options.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {

@@ -180,7 +180,8 @@ public class DefaultValidateAuthorizationRequestHandler(
                     .AsException();
         }
 
-        if (hasOpenIdScope && string.IsNullOrEmpty(request.Nonce) && (isImplicit || isHybrid))
+        var hasNonce = !string.IsNullOrEmpty(request.Nonce);
+        if (hasOpenIdScope && !hasNonce && (isImplicit || isHybrid))
             throw ErrorFactory
                 .InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.")
                 .AsException();
@@ -309,8 +310,6 @@ public class DefaultValidateAuthorizationRequestHandler(
         // ui_locales_supported
 
         // other checks...
-
-        // TODO: check allowed IdP from client configuration
 
         // TODO: add support for Resource Indicators
         // https://datatracker.ietf.org/doc/html/rfc8707

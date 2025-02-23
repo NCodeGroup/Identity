@@ -59,7 +59,6 @@ public class DefaultAuthorizeSubjectHandler(
 
         var clientSettings = openIdClient.Settings;
         var promptTypes = authorizationRequest.PromptTypes;
-        var state = authorizationRequest.State;
 
         if (promptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
         {
@@ -82,7 +81,7 @@ public class DefaultAuthorizeSubjectHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                return Failed(ErrorFactory.LoginRequired().WithState(state));
+                return Failed(ErrorFactory.LoginRequired());
             }
 
             Logger.LogInformation("The end-user is not authenticated.");
@@ -100,7 +99,7 @@ public class DefaultAuthorizeSubjectHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                return Failed(ErrorFactory.LoginRequired().WithState(state));
+                return Failed(ErrorFactory.LoginRequired());
             }
 
             Logger.LogInformation("The end-user is not active.");
@@ -119,7 +118,7 @@ public class DefaultAuthorizeSubjectHandler(
         {
             if (promptTypes.Contains(OpenIdConstants.PromptTypes.None))
             {
-                return Failed(ErrorFactory.LoginRequired().WithState(state));
+                return Failed(ErrorFactory.LoginRequired());
             }
 
             Logger.LogInformation("MaxAge exceeded.");

@@ -36,8 +36,12 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
     /// <inheritdoc />
     public ValueTask HandleAsync(GetIdTokenPayloadClaimsCommand command, CancellationToken cancellationToken)
     {
-        var (_, _, tokenContext, payloadClaims) = command;
+        var (openIdContext, _, tokenContext, payloadClaims) = command;
         var (tokenRequest, signingCredentials, _, _) = tokenContext;
+
+        // tid
+        var tenant = openIdContext.Tenant;
+        payloadClaims[JoseClaimNames.Payload.Tid] = tenant.TenantId;
 
         // nonce
         var nonce = tokenRequest.Nonce;
@@ -52,7 +56,8 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             tokenRequest.AccessToken,
             tokenRequest.State,
             payloadClaims,
-            signingCredentials);
+            signingCredentials
+        );
 
         // TODO: sid (if present from request)
 

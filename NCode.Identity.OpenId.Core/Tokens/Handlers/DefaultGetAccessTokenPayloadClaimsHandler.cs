@@ -36,12 +36,15 @@ public class DefaultGetAccessTokenPayloadClaimsHandler(
     /// <inheritdoc />
     public ValueTask HandleAsync(GetAccessTokenPayloadClaimsCommand command, CancellationToken cancellationToken)
     {
-        var (_, openIdClient, _, payloadClaims) = command;
+        var (openIdContext, openIdClient, _, payloadClaims) = command;
+
+        var tenant = openIdContext.Tenant;
 
         const int byteLength = 16; // aka 128 bits which is larger than the entropy of GUID v4 (122 bits)
         var tokenId = CryptoService.GenerateUrlSafeKey(byteLength);
 
         payloadClaims[JoseClaimNames.Payload.Jti] = tokenId;
+        payloadClaims[JoseClaimNames.Payload.Tid] = tenant.TenantId;
         payloadClaims[JoseClaimNames.Payload.ClientId] = openIdClient.ClientId;
 
         // TODO

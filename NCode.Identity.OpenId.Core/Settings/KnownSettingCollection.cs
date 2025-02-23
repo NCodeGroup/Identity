@@ -81,6 +81,13 @@ public class KnownSettingCollection(
         set => Store.Set(SettingKeys.AccessTokenType, value);
     }
 
+    /// <inheritdoc cref="IKnownSettingCollection.AllowedIdentityProviders" />
+    public IReadOnlyCollection<string> AllowedIdentityProviders
+    {
+        get => Store.GetValue(SettingKeys.AllowedIdentityProviders);
+        set => Store.Set(SettingKeys.AllowedIdentityProviders, value);
+    }
+
     /// <inheritdoc cref="IKnownSettingCollection.AllowLoopbackRedirect" />
     public bool AllowLoopbackRedirect
     {
@@ -268,6 +275,13 @@ public class KnownSettingCollection(
     {
         get => Store.GetValue(SettingKeys.ScopesSupported);
         set => Store.Set(SettingKeys.ScopesSupported, value);
+    }
+
+    /// <inheritdoc cref="IKnownSettingCollection.SubjectMaxAge" />
+    public TimeSpan SubjectMaxAge
+    {
+        get => Store.GetValue(SettingKeys.SubjectMaxAge);
+        set => Store.Set(SettingKeys.SubjectMaxAge, value);
     }
 
     //

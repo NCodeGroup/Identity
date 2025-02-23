@@ -80,6 +80,12 @@ public static class SettingKeys
         new(SettingNames.AcrValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'allowed_identity_providers' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> AllowedIdentityProviders =>
+        new(SettingNames.AllowedIdentityProviders);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'allow_loopback_redirect' setting.
     /// </summary>
     public static SettingKey<bool> AllowLoopbackRedirect =>
@@ -318,6 +324,12 @@ public static class SettingKeys
     /// </summary>
     public static SettingKey<string> ServiceDocumentation =>
         new(SettingNames.ServiceDocumentation);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_max_age' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> SubjectMaxAge =>
+        new(SettingNames.SubjectMaxAge);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_types_supported' setting.

@@ -61,6 +61,10 @@ public class ReadOnlyKnownSettingCollection(
         Store.GetValue(SettingKeys.AccessTokenType);
 
     /// <inheritdoc />
+    public IReadOnlyCollection<string> AllowedIdentityProviders =>
+        Store.GetValue(SettingKeys.AllowedIdentityProviders);
+
+    /// <inheritdoc />
     public bool AllowLoopbackRedirect =>
         Store.GetValue(SettingKeys.AllowLoopbackRedirect);
 
@@ -167,6 +171,10 @@ public class ReadOnlyKnownSettingCollection(
     /// <inheritdoc />
     public IReadOnlyCollection<string> ScopesSupported =>
         Store.GetValue(SettingKeys.ScopesSupported);
+
+    /// <inheritdoc />
+    public TimeSpan SubjectMaxAge =>
+        Store.GetValue(SettingKeys.SubjectMaxAge);
 
     //
 

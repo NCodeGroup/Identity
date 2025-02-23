@@ -63,6 +63,12 @@ public interface IReadOnlyKnownSettingCollection : IReadOnlySettingCollection
     string AccessTokenType { get; }
 
     /// <summary>
+    /// Gets the value for the 'allowed_identity_providers' setting.
+    /// An empty collection indicates that any identity provider is allowed.
+    /// </summary>
+    IReadOnlyCollection<string> AllowedIdentityProviders { get; }
+
+    /// <summary>
     /// Gets a value indicating whether the loopback address (i.e. 127.0.0.1 or localhost) is allowed to be
     /// used as a redirect address without being explicitly registered.
     /// </summary>
@@ -205,4 +211,9 @@ public interface IReadOnlyKnownSettingCollection : IReadOnlySettingCollection
     /// Gets the value of the 'scopes_supported' setting.
     /// </summary>
     IReadOnlyCollection<string> ScopesSupported { get; }
+
+    /// <summary>
+    /// Gets the maximum age of the subject's authentication time.
+    /// </summary>
+    TimeSpan SubjectMaxAge { get; }
 }

@@ -33,6 +33,7 @@ public static class JoseClaimNames
     /// <summary>
     /// Defines some of the standard claim names used in <c>JOSE</c> headers.
     /// </summary>
+    [PublicAPI]
     public static class Header
     {
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -75,6 +76,7 @@ public static class JoseClaimNames
     /// <summary>
     /// Defines some of the standard claim names used in <c>JOSE</c> payloads.
     /// </summary>
+    [PublicAPI]
     public static class Payload
     {
         /// <summary>
@@ -266,6 +268,11 @@ public static class JoseClaimNames
         /// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.2
         /// </summary>
         public const string Sub = "sub";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>tid</c> which represents the unique identifier for the tenant.
+        /// </summary>
+        public const string Tid = "tid";
 
         /// <summary>
         /// Contains a constant with the value: <c>updated_at</c>

@@ -337,9 +337,15 @@ public class DefaultAuthorizationEndpointHandler(
             cancellationToken
         );
 
-        if (authorizeSubjectDisposition.HasAuthorizationResult)
+        if (authorizeSubjectDisposition.HasError)
         {
-            return new OperationDisposition(authorizeSubjectDisposition.AuthorizationResult);
+            return new OperationDisposition(
+                new AuthorizationResult(
+                    redirectUri,
+                    effectiveResponseMode,
+                    authorizeSubjectDisposition.Error.WithState(clientRedirectContext.State)
+                )
+            );
         }
 
         if (authorizeSubjectDisposition.RequiresChallenge)

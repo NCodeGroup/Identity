@@ -34,13 +34,11 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 [PublicAPI]
 public class DefaultAuthenticateSubjectHandler(
     IOptions<OpenIdOptions> optionsAccessor,
-    IOpenIdErrorFactory errorFactory,
-    IAuthenticationSchemeProvider authenticationSchemeProvider
+    IOpenIdErrorFactory errorFactory
 ) : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-    private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; } = authenticationSchemeProvider;
 
     private bool DefaultAuthenticateSchemeFetched { get; set; }
     private string? DefaultAuthenticateSchemeName { get; set; }
@@ -58,17 +56,13 @@ public class DefaultAuthenticateSubjectHandler(
 
         var httpContext = openIdContext.Http;
 
+        // the default is "Identity.Application" which is compatible with Microsoft.AspNetCore.Identity
+        // this scheme returns the local application user identity but still allows SSO logins from external identity providers
+        // do not use the "Identity.External" scheme as it is only for external identity providers
         var authenticateSchemeName = openIdClient.Settings.AuthorizationAuthenticateScheme;
-        if (string.IsNullOrEmpty(authenticateSchemeName))
+        if (authenticateSchemeName == string.Empty)
         {
-            if (!DefaultAuthenticateSchemeFetched)
-            {
-                var authenticateScheme = await AuthenticationSchemeProvider.GetDefaultAuthenticateSchemeAsync();
-                DefaultAuthenticateSchemeName = authenticateScheme?.Name;
-                DefaultAuthenticateSchemeFetched = true;
-            }
-
-            authenticateSchemeName = DefaultAuthenticateSchemeName;
+            authenticateSchemeName = null;
         }
 
         var baseResult = await httpContext.AuthenticateAsync(authenticateSchemeName);
@@ -90,9 +84,7 @@ public class DefaultAuthenticateSubjectHandler(
         var authenticationProperties = baseTicket.Properties;
         var subject = baseTicket.Principal;
 
-        // TODO: provide a way to normalize/canonicalize the external subject ID to a local subject ID
-        // TODO: add support for PPID (Pairwise Pseudonymous Identifier, aka unique user ID per client/RP)
-        // TODO: use the subject_type setting
+        // TODO: use the subject_type setting to support PPID (Pairwise Pseudonymous Identifier), aka unique user ID per client/RP
 
         var subjectId = Options.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))

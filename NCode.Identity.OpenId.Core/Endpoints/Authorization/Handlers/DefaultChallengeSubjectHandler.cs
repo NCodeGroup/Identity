@@ -25,15 +25,11 @@ using NCode.Identity.OpenId.Results;
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="ChallengeAuthorizationCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="ChallengeSubjectCommand"/> message.
 /// </summary>
 [PublicAPI]
-public class DefaultChallengeAuthorizationHandler(
-    IAuthenticationSchemeProvider authenticationSchemeProvider
-) : ICommandResponseHandler<ChallengeAuthorizationCommand, OperationDisposition>
+public class DefaultChallengeSubjectHandler : ICommandResponseHandler<ChallengeSubjectCommand, OperationDisposition>
 {
-    private IAuthenticationSchemeProvider AuthenticationSchemeProvider { get; } = authenticationSchemeProvider;
-
     private bool DefaultChallengeSchemeFetched { get; set; }
     private string? DefaultChallengeSchemeName { get; set; }
 
@@ -41,24 +37,20 @@ public class DefaultChallengeAuthorizationHandler(
 
     /// <inheritdoc />
     public async ValueTask<OperationDisposition> HandleAsync(
-        ChallengeAuthorizationCommand command,
+        ChallengeSubjectCommand command,
         CancellationToken cancellationToken)
     {
         var (openIdContext, openIdClient, _, authenticationProperties) = command;
 
         var httpContext = openIdContext.Http;
 
+        // the default is "Identity.Application" which is compatible with Microsoft.AspNetCore.Identity
+        // this scheme returns the local application user identity but still allows SSO logins from external identity providers
+        // do not use the "Identity.External" scheme as it is only for external identity providers
         var challengeSchemeName = openIdClient.Settings.AuthorizationChallengeScheme;
-        if (string.IsNullOrEmpty(challengeSchemeName))
+        if (challengeSchemeName == string.Empty)
         {
-            if (!DefaultChallengeSchemeFetched)
-            {
-                var challengeScheme = await AuthenticationSchemeProvider.GetDefaultChallengeSchemeAsync();
-                DefaultChallengeSchemeName = challengeScheme?.Name;
-                DefaultChallengeSchemeFetched = true;
-            }
-
-            challengeSchemeName = DefaultChallengeSchemeName;
+            challengeSchemeName = null;
         }
 
         await httpContext.ChallengeAsync(challengeSchemeName, authenticationProperties);

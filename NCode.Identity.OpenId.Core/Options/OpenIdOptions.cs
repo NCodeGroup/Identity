@@ -63,10 +63,13 @@ public class OpenIdOptions
     /// and finally the <see cref="ClaimTypes.Upn"/> claim (if allowed).
     /// The <see cref="JoseClaimNames.Payload.Sub"/> claim will always take precedence over the other claims.
     /// </summary>
+    /// <remarks>
+    /// For compatibility, <see cref="ClaimTypes.NameIdentifier"/> should be allowed because it's used by <c>Microsoft.AspNetCore.Identity</c>.
+    /// </remarks>
     public GetSubjectIdDelegate GetSubjectId { get; set; } =
         DefaultClaimsPrincipalLogic.GetSubjectId(
             allowNameId: true,
-            allowUpn: true
+            allowUpn: false
         );
 
     /// <summary>

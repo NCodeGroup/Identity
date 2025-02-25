@@ -274,11 +274,14 @@ public class DefaultAuthorizationEndpointHandler(
 
         authenticationProperties.SetParameter(
             OpenIdConstants.Parameters.MaxAge,
+            // OpenIdConnectHandler use TimeSpan? just like we do
             authorizationRequest.MaxAge
         );
 
-        var disposition = await mediator.SendAsync<ChallengeAuthorizationCommand, OperationDisposition>(
-            new ChallengeAuthorizationCommand(
+        // additional authentication properties can be set via mediator middleware
+
+        var disposition = await mediator.SendAsync<ChallengeSubjectCommand, OperationDisposition>(
+            new ChallengeSubjectCommand(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,

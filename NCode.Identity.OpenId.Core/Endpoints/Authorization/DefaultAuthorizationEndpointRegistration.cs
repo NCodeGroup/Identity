@@ -87,8 +87,8 @@ public static class DefaultAuthorizationEndpointRegistration
             DefaultAuthorizeSubjectPostProcessor>();
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<ChallengeAuthorizationCommand, OperationDisposition>,
-            DefaultChallengeAuthorizationHandler>();
+            ICommandResponseHandler<ChallengeSubjectCommand, OperationDisposition>,
+            DefaultChallengeSubjectHandler>();
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>,

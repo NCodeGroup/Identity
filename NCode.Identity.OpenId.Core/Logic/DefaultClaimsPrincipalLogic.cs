@@ -55,6 +55,9 @@ public static class DefaultClaimsPrincipalLogic
     /// and finally the <see cref="ClaimTypes.Upn"/> claim (if allowed).
     /// The <see cref="JoseClaimNames.Payload.Sub"/> claim will always take precedence over the other claims.
     /// </summary>
+    /// <remarks>
+    /// For compatibility, <see cref="ClaimTypes.NameIdentifier"/> should be allowed because it's used by <c>Microsoft.AspNetCore.Identity</c>.
+    /// </remarks>
     /// <param name="allowNameId">Whether to allow the <see cref="ClaimTypes.NameIdentifier"/> claim to be used as the subject id.</param>
     /// <param name="allowUpn">Whether to allow the <see cref="ClaimTypes.Upn"/> claim to be used as the subject id.</param>
     public static GetSubjectIdDelegate GetSubjectId(bool allowNameId, bool allowUpn) => subject =>

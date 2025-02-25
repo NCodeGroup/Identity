@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
@@ -191,7 +192,10 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = SettingNames.AuthorizationAuthenticateScheme,
-                Default = string.Empty,
+
+                // we are compatible with Microsoft.AspNetCore.Identity
+                // do not use the "Identity.External" scheme as it is only for external identity providers
+                Default = IdentityConstants.ApplicationScheme,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace
@@ -201,7 +205,10 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = SettingNames.AuthorizationChallengeScheme,
-                Default = string.Empty,
+
+                // we are compatible with Microsoft.AspNetCore.Identity
+                // do not use the "Identity.External" scheme as it is only for external identity providers
+                Default = IdentityConstants.ApplicationScheme,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace

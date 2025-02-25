@@ -27,10 +27,10 @@ using NCode.Identity.OpenId.Results;
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Represents a mediator command to challenge a subject (aka an end-user must interactively provide their credentials).
+/// Represents a mediator command to challenge a subject (aka an end-user must interactively provide their credentials or use SSO).
 /// </summary>
 [PublicAPI]
-public readonly record struct ChallengeAuthorizationCommand(
+public readonly record struct ChallengeSubjectCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IAuthorizationRequest AuthorizationRequest,

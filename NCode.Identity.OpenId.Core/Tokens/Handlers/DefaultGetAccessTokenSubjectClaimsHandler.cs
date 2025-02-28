@@ -52,6 +52,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandler(
         var (_, authenticationProperties, subject, _) = tokenRequest.SubjectAuthentication.Value;
 
         var hasAuthTime = false;
+
         var claimTypes = new HashSet<string>(StringComparer.Ordinal)
         {
             JoseClaimNames.Payload.Sub,

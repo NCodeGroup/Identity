@@ -274,7 +274,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         authenticationProperties.SetParameter(
             OpenIdConstants.Parameters.MaxAge,
-            // OpenIdConnectHandler use TimeSpan? just like we do
+            // OpenIdConnectHandler uses TimeSpan? just like we do
             authorizationRequest.MaxAge
         );
 

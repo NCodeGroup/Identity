@@ -17,6 +17,7 @@
 #endregion
 
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Claims;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Tokens.Commands;
 
@@ -26,15 +27,19 @@ namespace NCode.Identity.OpenId.Tokens.Handlers;
 /// Provides a default implementation for a <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that generates the
 /// subject claims for an access token. Custom claims are added by additional handlers provided by the application.
 /// </summary>
-public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAccessTokenSubjectClaimsCommand>, ISupportMediatorPriority
+public class DefaultGetAccessTokenSubjectClaimsHandler(
+    IClaimsService claimsService
+) : ICommandHandler<GetAccessTokenSubjectClaimsCommand>, ISupportMediatorPriority
 {
+    private IClaimsService ClaimsService { get; } = claimsService;
+
     /// <inheritdoc />
     public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(GetAccessTokenSubjectClaimsCommand command, CancellationToken cancellationToken)
     {
-        var (_, _, tokenContext, subjectClaims) = command;
+        var (_, _, tokenContext, targetClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
         if (!tokenRequest.SubjectAuthentication.HasValue)
@@ -42,15 +47,23 @@ public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAcce
             return ValueTask.CompletedTask;
         }
 
-        var (_, _, subject, _) = tokenRequest.SubjectAuthentication.Value;
+        var (_, _, sourceClaims, _) = tokenRequest.SubjectAuthentication.Value;
 
-        var claimTypes = new HashSet<string>(StringComparer.Ordinal)
-        {
+        ClaimsService.CopyClaims(
+            sourceClaims,
+            targetClaims,
+            preventDuplicates: true,
+            JoseClaimNames.Payload.Idp,
             JoseClaimNames.Payload.Sub,
-            JoseClaimNames.Payload.AuthTime,
-        };
+            JoseClaimNames.Payload.AuthTime
+        );
 
-        DefaultTokenService.CopyClaims(subject, subjectClaims, claimTypes, cancellationToken);
+        ClaimsService.CopyClaims(
+            sourceClaims,
+            targetClaims,
+            preventDuplicates: false,
+            JoseClaimNames.Payload.Amr
+        );
 
         return ValueTask.CompletedTask;
     }

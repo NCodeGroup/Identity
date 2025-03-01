@@ -62,7 +62,7 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             signingCredentials
         );
 
-        // TODO: client_id, amr, acr, sid (if present from request), cnf
+        // TODO: client_id, acr, sid (if present from request), cnf
         // TODO: azp (https://bitbucket.org/openid/connect/issues/973/)
 
         return ValueTask.CompletedTask;

@@ -39,7 +39,7 @@ public class DefaultOpenIdConfidentialClient(
     public override string ClientId => PublicClient.ClientId;
 
     /// <inheritdoc />
-    public override IReadOnlyKnownSettingCollection Settings => PublicClient.Settings;
+    public override IReadOnlySettingCollection Settings => PublicClient.Settings;
 
     /// <inheritdoc />
     public override ISecretKeyCollection SecretKeys => PublicClient.SecretKeys;

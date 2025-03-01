@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Endpoints.Token;
 
@@ -55,7 +56,7 @@ public class DefaultValidateTokenRequestHandler(
 
         // scopes_supported
         var requestedScopes = tokenRequest.Scopes;
-        var hasInvalidScopes = requestedScopes?.Except(settings.ScopesSupported).Any() ?? false;
+        var hasInvalidScopes = requestedScopes?.Except(settings.GetValue(SettingKeys.ScopesSupported)).Any() ?? false;
         if (hasInvalidScopes)
             // invalid_scope
             throw InvalidScopeError.AsException();

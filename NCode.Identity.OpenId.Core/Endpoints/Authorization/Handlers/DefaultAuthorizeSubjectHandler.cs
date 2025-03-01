@@ -129,16 +129,18 @@ public class DefaultAuthorizeSubjectHandler(
             return InteractionRequired(noPrompt);
         }
 
+        var clockSkew = clientSettings.GetValue(SettingKeys.ClockSkew);
+
         // check the request's MaxAge
         var authTime = GetAuthTime(authenticationTicket.Subject);
-        if (!ValidateMaxAge(authTime, authorizationRequest.MaxAge, clientSettings.ClockSkew))
+        if (!ValidateMaxAge(authTime, authorizationRequest.MaxAge, clockSkew))
         {
             Logger.LogInformation("The end-user's authentication time is too old from the request's MaxAge.");
             return InteractionRequired(noPrompt);
         }
 
         // check the client's MaxAge
-        if (!ValidateMaxAge(authTime, clientSettings.SubjectMaxAge, clientSettings.ClockSkew))
+        if (!ValidateMaxAge(authTime, clientSettings.GetValue(SettingKeys.SubjectMaxAge), clockSkew))
         {
             Logger.LogInformation("The end-user's authentication time is too old from the client's MaxAge.");
             return InteractionRequired(noPrompt);
@@ -149,9 +151,9 @@ public class DefaultAuthorizeSubjectHandler(
         return Authorized();
     }
 
-    private static bool IsReceivedIdpAllowed(string? receivedIdp, IReadOnlyKnownSettingCollection settings)
+    private static bool IsReceivedIdpAllowed(string? receivedIdp, IReadOnlySettingCollection settings)
     {
-        var allowed = settings.AllowedIdentityProviders;
+        var allowed = settings.GetValue(SettingKeys.AllowedIdentityProviders);
         return allowed.Count == 0 || allowed.Contains(receivedIdp, StringComparer.Ordinal);
     }
 

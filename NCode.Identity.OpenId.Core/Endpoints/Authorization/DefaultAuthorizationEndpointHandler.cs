@@ -37,6 +37,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization;
 
@@ -174,7 +175,7 @@ public class DefaultAuthorizationEndpointHandler(
             }
 
             effectiveResponseMode = responseModeStringValues.ToString();
-            if (!settings.ResponseModesSupported.Contains(effectiveResponseMode))
+            if (!settings.GetValue(SettingKeys.ResponseModesSupported).Contains(effectiveResponseMode))
             {
                 throw ErrorFactory
                     .InvalidParameterValue(OpenIdConstants.Parameters.ResponseMode)
@@ -214,7 +215,8 @@ public class DefaultAuthorizationEndpointHandler(
             UriComponents.Path,
             UriFormat.UriEscaped);
 
-        var isSafe = (settings.AllowLoopbackRedirect && redirectUri.IsLoopback) || redirectUrls.Contains(effectiveUrl);
+        var allowLoopbackRedirect = settings.GetValue(SettingKeys.AllowLoopbackRedirect);
+        var isSafe = (allowLoopbackRedirect && redirectUri.IsLoopback) || redirectUrls.Contains(effectiveUrl);
         if (!isSafe)
         {
             throw ErrorFactory
@@ -242,7 +244,7 @@ public class DefaultAuthorizationEndpointHandler(
             OpenIdConstants.ContinueCodes.Authorization,
             openIdClient.ClientId,
             subjectId: null,
-            clientSettings.ContinueAuthorizationLifetime,
+            clientSettings.GetValue(SettingKeys.ContinueAuthorizationLifetime),
             authorizationRequest,
             cancellationToken
         );

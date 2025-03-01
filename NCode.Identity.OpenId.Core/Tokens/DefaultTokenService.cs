@@ -128,16 +128,16 @@ public class DefaultTokenService(
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmCollectionProvider.Collection,
-            settings.AccessTokenSigningAlgValuesSupported,
+            settings.GetValue(SettingKeys.AccessTokenSigningAlgValuesSupported),
             secretKeys
         );
 
         var encryptionCredentials = GetEncryptionCredentials(
             AlgorithmCollectionProvider.Collection,
-            settings.AccessTokenEncryptionRequired,
-            settings.AccessTokenEncryptionAlgValuesSupported,
-            settings.AccessTokenEncryptionEncValuesSupported,
-            settings.AccessTokenEncryptionZipValuesSupported,
+            settings.GetValue(SettingKeys.AccessTokenEncryptionRequired),
+            settings.GetValue(SettingKeys.AccessTokenEncryptionAlgValuesSupported),
+            settings.GetValue(SettingKeys.AccessTokenEncryptionEncValuesSupported),
+            settings.GetValue(SettingKeys.AccessTokenEncryptionZipValuesSupported),
             secretKeys
         );
 
@@ -185,7 +185,7 @@ public class DefaultTokenService(
             );
         }
 
-        var lifetime = settings.AccessTokenLifetime;
+        var lifetime = settings.GetValue(SettingKeys.AccessTokenLifetime);
         var createdWhen = tokenRequest.CreatedWhen;
         var expiresWhen = createdWhen + lifetime;
         var tokenPeriod = new TimePeriod(createdWhen, expiresWhen);
@@ -202,7 +202,7 @@ public class DefaultTokenService(
 
         var parameters = new EncodeJwtParameters
         {
-            TokenType = settings.AccessTokenType,
+            TokenType = settings.GetValue(SettingKeys.AccessTokenType),
 
             SigningCredentials = signingCredentials,
             EncryptionCredentials = encryptionCredentials,
@@ -246,16 +246,16 @@ public class DefaultTokenService(
 
         var signingCredentials = GetSigningCredentials(
             AlgorithmCollectionProvider.Collection,
-            settings.IdTokenSigningAlgValuesSupported,
+            settings.GetValue(SettingKeys.IdTokenSigningAlgValuesSupported),
             secretKeys
         );
 
         var encryptionCredentials = GetEncryptionCredentials(
             AlgorithmCollectionProvider.Collection,
-            settings.IdTokenEncryptionRequired,
-            settings.IdTokenEncryptionAlgValuesSupported,
-            settings.IdTokenEncryptionEncValuesSupported,
-            settings.IdTokenEncryptionZipValuesSupported,
+            settings.GetValue(SettingKeys.IdTokenEncryptionRequired),
+            settings.GetValue(SettingKeys.IdTokenEncryptionAlgValuesSupported),
+            settings.GetValue(SettingKeys.IdTokenEncryptionEncValuesSupported),
+            settings.GetValue(SettingKeys.IdTokenEncryptionZipValuesSupported),
             secretKeys
         );
 
@@ -290,7 +290,7 @@ public class DefaultTokenService(
             cancellationToken
         );
 
-        var lifetime = settings.IdTokenLifetime;
+        var lifetime = settings.GetValue(SettingKeys.IdTokenLifetime);
         var createdWhen = tokenRequest.CreatedWhen;
         var expiresWhen = createdWhen + lifetime;
         var tokenPeriod = new TimePeriod(createdWhen, expiresWhen);
@@ -374,9 +374,9 @@ public class DefaultTokenService(
         };
 
         var createdWhen = tokenRequest.CreatedWhen;
-        var expirationPolicy = settings.RefreshTokenExpirationPolicy;
+        var expirationPolicy = settings.GetValue(SettingKeys.RefreshTokenExpirationPolicy);
         var lifetime = expirationPolicy != OpenIdConstants.RefreshTokenExpirationPolicy.None ?
-            settings.RefreshTokenLifetime :
+            settings.GetValue(SettingKeys.RefreshTokenLifetime) :
             (TimeSpan?)null;
 
         await PersistedGrantService.AddAsync(

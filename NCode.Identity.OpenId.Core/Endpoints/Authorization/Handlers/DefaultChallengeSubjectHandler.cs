@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Authentication;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 
@@ -47,7 +48,7 @@ public class DefaultChallengeSubjectHandler : ICommandResponseHandler<ChallengeS
         // the default is "Identity.Application" which is compatible with Microsoft.AspNetCore.Identity
         // this scheme returns the local application user identity but still allows SSO logins from external identity providers
         // do not use the "Identity.External" scheme as it is only for external identity providers
-        var challengeSchemeName = openIdClient.Settings.AuthorizationChallengeScheme;
+        var challengeSchemeName = openIdClient.Settings.GetValue(SettingKeys.AuthorizationChallengeScheme);
         if (challengeSchemeName == string.Empty)
         {
             challengeSchemeName = null;

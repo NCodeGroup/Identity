@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Options;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
@@ -59,7 +60,7 @@ public class DefaultAuthenticateSubjectHandler(
         // the default is "Identity.Application" which is compatible with Microsoft.AspNetCore.Identity
         // this scheme returns the local application user identity but still allows SSO logins from external identity providers
         // do not use the "Identity.External" scheme as it is only for external identity providers
-        var authenticateSchemeName = openIdClient.Settings.AuthorizationAuthenticateScheme;
+        var authenticateSchemeName = openIdClient.Settings.GetValue(SettingKeys.AuthorizationAuthenticateScheme);
         if (authenticateSchemeName == string.Empty)
         {
             authenticateSchemeName = null;

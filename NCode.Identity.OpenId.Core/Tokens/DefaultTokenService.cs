@@ -57,32 +57,6 @@ public class DefaultTokenService(
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
-    /// <summary>
-    /// A helper method to copy claims from a <see cref="ClaimsPrincipal"/> to a new collection but only the specified claim types.
-    /// </summary>
-    /// <param name="source">The source <see cref="ClaimsPrincipal"/> to copy claims from.</param>
-    /// <param name="target">The target collection to copy claims to.</param>
-    /// <param name="claimTypes">The claim types to copy.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the operation.</param>
-    public static void CopyClaims(
-        ClaimsPrincipal source,
-        ICollection<Claim> target,
-        HashSet<string> claimTypes,
-        CancellationToken cancellationToken)
-    {
-        var claims = source.Claims
-            // include the configured claim types
-            .Where(claim => claimTypes.Contains(claim.Type))
-            // prevent duplicates claim types
-            .ExceptBy(target.Select(other => other.Type), other => other.Type);
-
-        foreach (var claim in claims)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            target.Add(claim);
-        }
-    }
-
     private static IEnumerable<Claim> FilterClaims(IReadOnlySettingCollection settings, IEnumerable<Claim> claims)
     {
         if (!settings.TryGetValue(SettingKeys.ClaimsSupportedIsStrict, out var claimsSupportedIsStrict) || !claimsSupportedIsStrict)

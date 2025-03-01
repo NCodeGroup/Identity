@@ -56,7 +56,6 @@ public class DefaultGetAccessTokenPayloadClaimsHandler(
         // cnf
         // [client claims] (Client.AlwaysSendClientClaims, Client.ClientClaimsPrefix)
         // scope (except offline_access unless subject is present)
-        // [required subject claims (sub, auth_time, idp, amr)]
         // [optional subject claims (acr)]
         // [api resource claims]
         // [api scope claims]

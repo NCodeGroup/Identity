@@ -74,6 +74,10 @@ public static class DefaultOpenIdRegistration
             IPersistedGrantService,
             DefaultPersistedGrantService>();
 
+        serviceCollection.TryAddSingleton<
+            IClaimsService,
+            DefaultClaimsService>();
+
         serviceCollection.TryAddSingleton<IClaimsSerializer>(
             ClaimsSerializer.Singleton);
 

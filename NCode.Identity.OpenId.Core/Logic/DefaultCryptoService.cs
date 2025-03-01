@@ -56,6 +56,7 @@ public class DefaultCryptoService : ICryptoService
         var lease = Disposable.Empty;
         try
         {
+            // ReSharper disable once UseCollectionExpression
             Span<byte> bytes = stackalloc byte[0];
 
             if (byteLength <= MaxStackAlloc)
@@ -94,6 +95,7 @@ public class DefaultCryptoService : ICryptoService
         var lease = Disposable.Empty;
         try
         {
+            // ReSharper disable once UseCollectionExpression
             Span<byte> hashBytes = stackalloc byte[0];
 
             var hashByteLength = (int)hashAlgorithmType;
@@ -128,6 +130,7 @@ public class DefaultCryptoService : ICryptoService
         var lease = Disposable.Empty;
         try
         {
+            // ReSharper disable once UseCollectionExpression
             Span<byte> dataBytes = stackalloc byte[0];
 
             var dataByteLength = effectiveEncoding.GetByteCount(data);

@@ -98,7 +98,7 @@ public class SettingCollection : ISettingCollection
             return true;
         }
 
-        setting = default;
+        setting = null;
         return false;
     }
 

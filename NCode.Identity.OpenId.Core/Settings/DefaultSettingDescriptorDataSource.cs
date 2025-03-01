@@ -34,6 +34,7 @@ public class DefaultSettingDescriptorDataSource(
     IEnumerable<IClientAuthenticationHandler> clientAuthenticationHandlers
 ) : ICollectionDataSource<SettingDescriptor>
 {
+    private const bool IsStdDiscoverable = true;
     private const bool IsNonStdDiscoverable = false;
 
     /// <summary>
@@ -144,7 +145,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.AcrValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -229,7 +230,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.ClaimsLocalesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -239,7 +240,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = SettingNames.ClaimsParameterSupported,
                 Default = false, // TODO: this is still a WIP
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace
             };
 
@@ -256,7 +257,7 @@ public class DefaultSettingDescriptorDataSource(
                     ..OpenIdConstants.ClaimsByScope.Phone,
                 ],
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -276,7 +277,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = SettingNames.ClaimTypesSupported,
                 Default = [OpenIdConstants.ClaimTypes.Normal],
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -305,7 +306,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.DisplayValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -319,7 +320,7 @@ public class DefaultSettingDescriptorDataSource(
                     OpenIdConstants.GrantTypes.Implicit
                 ],
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -328,7 +329,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.IdTokenEncryptionAlgValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -337,7 +338,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.IdTokenEncryptionEncValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -375,7 +376,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.IdTokenSigningAlgValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -392,7 +393,7 @@ public class DefaultSettingDescriptorDataSource(
                     OpenIdConstants.PromptTypes.CreateAccount
                 ],
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -431,7 +432,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.RequestObjectEncryptionAlgValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -440,7 +441,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.RequestObjectEncryptionEncValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -458,7 +459,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.RequestObjectSigningAlgValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -478,7 +479,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = SettingNames.RequestParameterSupported,
                 Default = true,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace
             };
 
@@ -488,7 +489,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = SettingNames.RequestUriParameterSupported,
                 Default = true,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace
             };
 
@@ -527,7 +528,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.RequireRequestUriRegistration,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace
             };
 
@@ -542,7 +543,7 @@ public class DefaultSettingDescriptorDataSource(
                     OpenIdConstants.ResponseModes.FormPost
                 ],
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -557,7 +558,7 @@ public class DefaultSettingDescriptorDataSource(
                     OpenIdConstants.ResponseTypes.Token
                 ],
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
                 OnFormat = FormatUniqueCombinations
             };
@@ -576,8 +577,18 @@ public class DefaultSettingDescriptorDataSource(
                     OpenIdConstants.ScopeTypes.OfflineAccess
                 ],
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
+            };
+
+            // send_id_claims_in_access_token
+            yield return new SettingDescriptor<bool>
+            {
+                Name = SettingNames.SendIdClaimsInAccessToken,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace
             };
 
             // service_documentation
@@ -585,7 +596,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.ServiceDocumentation,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace
             };
 
@@ -612,7 +623,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.SubjectTypesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace
             };
 
@@ -631,7 +642,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = SettingNames.TokenEndpointAuthMethodsSupported,
                 Default = TokenEndpointAuthMethodsSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -640,7 +651,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.TokenEndpointAuthSigningAlgValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -649,7 +660,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.UiLocalesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -658,7 +669,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.UserInfoEncryptionAlgValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -667,7 +678,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.UserInfoEncryptionEncValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
 
@@ -685,7 +696,7 @@ public class DefaultSettingDescriptorDataSource(
             {
                 Name = SettingNames.UserInfoSigningAlgValuesSupported,
 
-                IsDiscoverable = true,
+                IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect
             };
         }

@@ -326,6 +326,12 @@ public static class SettingKeys
         new(SettingNames.ScopesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_id_claims_in_access_token' setting.
+    /// </summary>
+    public static SettingKey<bool> SendIdClaimsInAccessToken =>
+        new(SettingNames.SendIdClaimsInAccessToken);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'service_documentation' setting.
     /// </summary>
     public static SettingKey<string> ServiceDocumentation =>

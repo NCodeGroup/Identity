@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 
@@ -87,7 +88,7 @@ public class DefaultLoadAuthorizationRequestHandler(
 
         if (requestUri is not null)
         {
-            if (!openIdClient.Settings.RequestUriParameterSupported)
+            if (!openIdClient.Settings.GetValue(SettingKeys.RequestUriParameterSupported))
                 throw ErrorFactory
                     .RequestUriNotSupported()
                     .AsException();
@@ -107,7 +108,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         }
         else if (!string.IsNullOrEmpty(requestJwt))
         {
-            if (!openIdClient.Settings.RequestParameterSupported)
+            if (!openIdClient.Settings.GetValue(SettingKeys.RequestParameterSupported))
                 throw ErrorFactory
                     .RequestParameterNotSupported()
                     .AsException();
@@ -129,7 +130,7 @@ public class DefaultLoadAuthorizationRequestHandler(
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();
 
-            var expectedAudience = openIdClient.Settings.RequestObjectExpectedAudience;
+            var expectedAudience = openIdClient.Settings.GetValue(SettingKeys.RequestObjectExpectedAudience);
             if (!string.IsNullOrEmpty(expectedAudience))
                 parameters.ValidateAudience(expectedAudience);
 
@@ -197,8 +198,8 @@ public class DefaultLoadAuthorizationRequestHandler(
                     .AsException();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            var expectedContentType = clientSettings.RequestUriExpectedContentType;
-            if (clientSettings.RequestUriRequireStrictContentType && !string.Equals(contentType, expectedContentType, StringComparison.Ordinal))
+            var expectedContentType = clientSettings.GetValue(SettingKeys.RequestUriExpectedContentType);
+            if (clientSettings.GetValue(SettingKeys.RequestUriRequireStrictContentType) && !string.Equals(contentType, expectedContentType, StringComparison.Ordinal))
                 throw ErrorFactory
                     .InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.")
                     .AsException();

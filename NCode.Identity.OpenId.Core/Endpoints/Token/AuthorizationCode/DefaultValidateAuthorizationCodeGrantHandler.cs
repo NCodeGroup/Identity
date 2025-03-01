@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 
@@ -98,7 +99,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             throw InvalidScopeError.AsException("The requested scope exceeds the scope granted by the resource owner.");
 
         // scopes_supported
-        var hasInvalidScopes = effectiveScopes.Except(settings.ScopesSupported).Any();
+        var hasInvalidScopes = effectiveScopes.Except(settings.GetValue(SettingKeys.ScopesSupported)).Any();
         if (hasInvalidScopes)
             // invalid_scope
             throw InvalidScopeError.AsException();
@@ -118,7 +119,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             tokenRequest.CodeVerifier,
             authorizationRequest.CodeChallenge,
             authorizationRequest.CodeChallengeMethod,
-            settings.RequireCodeChallenge);
+            settings.GetValue(SettingKeys.RequireCodeChallenge));
 
         return ValueTask.CompletedTask;
     }

@@ -21,6 +21,7 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Endpoints.Token;
 
@@ -64,7 +65,7 @@ public class DefaultSelectTokenGrantHandlerHandler(
         }
 
         // grant_types_supported
-        if (!clientSettings.GrantTypesSupported.Contains(grantType))
+        if (!clientSettings.GetValue(SettingKeys.GrantTypesSupported).Contains(grantType))
         {
             // unauthorized_client
             throw ErrorFactory

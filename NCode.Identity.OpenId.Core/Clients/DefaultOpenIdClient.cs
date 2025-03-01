@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Clients;
 /// </summary>
 public class DefaultOpenIdClient(
     string clientId,
-    IReadOnlyKnownSettingCollection settings,
+    IReadOnlySettingCollection settings,
     ISecretKeyCollection secretKeys,
     IReadOnlyCollection<string> redirectUrls,
     IPropertyBag propertyBag
@@ -37,7 +37,7 @@ public class DefaultOpenIdClient(
     public override string ClientId { get; } = clientId;
 
     /// <inheritdoc />
-    public override IReadOnlyKnownSettingCollection Settings { get; } = settings;
+    public override IReadOnlySettingCollection Settings { get; } = settings;
 
     /// <inheritdoc />
     public override ISecretKeyCollection SecretKeys { get; } = secretKeys;

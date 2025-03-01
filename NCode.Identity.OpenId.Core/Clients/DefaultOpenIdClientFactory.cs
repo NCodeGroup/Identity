@@ -42,13 +42,12 @@ public class DefaultOpenIdClientFactory(
         IReadOnlyCollection<string> redirectUrls,
         CancellationToken cancellationToken)
     {
-        var knownSettings = new ReadOnlyKnownSettingCollection(settings);
         var secretKeys = SecretKeyCollectionFactory.Create(secrets);
         var propertyBag = openIdContext.PropertyBag.Clone();
 
         OpenIdClient publicClient = new DefaultOpenIdClient(
             clientId,
-            knownSettings,
+            settings,
             secretKeys,
             redirectUrls,
             propertyBag);

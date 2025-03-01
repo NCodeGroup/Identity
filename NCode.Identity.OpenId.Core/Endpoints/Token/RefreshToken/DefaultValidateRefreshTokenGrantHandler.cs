@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Models;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
@@ -64,7 +65,7 @@ public class DefaultValidateRefreshTokenGrantHandler(
         if (!string.Equals(clientId, openIdClient.ClientId, StringComparison.Ordinal))
             throw InvalidGrantError.AsException("The refresh token belongs to a different client.");
 
-        if (!settings.ScopesSupported.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (!settings.GetValue(SettingKeys.ScopesSupported).Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
             throw InvalidGrantError.AsException("The client is prohibited from using refresh tokens.");
 
         // scope
@@ -77,7 +78,7 @@ public class DefaultValidateRefreshTokenGrantHandler(
             throw InvalidScopeError.AsException("The requested scope exceeds the scope granted by the resource owner.");
 
         // scopes_supported
-        var hasInvalidScopes = effectiveScopes.Except(settings.ScopesSupported).Any();
+        var hasInvalidScopes = effectiveScopes.Except(settings.GetValue(SettingKeys.ScopesSupported)).Any();
         if (hasInvalidScopes)
             throw InvalidScopeError.AsException();
 

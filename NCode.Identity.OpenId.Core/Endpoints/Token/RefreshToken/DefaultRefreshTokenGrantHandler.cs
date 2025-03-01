@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Models;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.OpenId.Tokens.Models;
 
@@ -110,7 +111,7 @@ public class DefaultRefreshTokenGrantHandler(
                 refreshTokenGrant),
             cancellationToken);
 
-        var rotationEnabled = settings.RefreshTokenRotationEnabled;
+        var rotationEnabled = settings.GetValue(SettingKeys.RefreshTokenRotationEnabled);
         if (rotationEnabled)
         {
             await PersistedGrantService.SetRevokedAsync(
@@ -126,11 +127,11 @@ public class DefaultRefreshTokenGrantHandler(
             refreshTokenGrant,
             cancellationToken);
 
-        var expirationPolicy = settings.RefreshTokenExpirationPolicy;
+        var expirationPolicy = settings.GetValue(SettingKeys.RefreshTokenExpirationPolicy);
         var useSlidingExpiration = expirationPolicy == OpenIdConstants.RefreshTokenExpirationPolicy.Sliding;
         if (useSlidingExpiration && !rotationEnabled)
         {
-            var lifetime = settings.RefreshTokenLifetime;
+            var lifetime = settings.GetValue(SettingKeys.RefreshTokenLifetime);
             var expiresWhen = utcNow + lifetime;
 
             await PersistedGrantService.UpdateExpirationAsync(
@@ -198,7 +199,7 @@ public class DefaultRefreshTokenGrantHandler(
         if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
         {
             var settings = openIdClient.Settings;
-            var rotationEnabled = settings.RefreshTokenRotationEnabled;
+            var rotationEnabled = settings.GetValue(SettingKeys.RefreshTokenRotationEnabled);
 
             if (rotationEnabled)
             {

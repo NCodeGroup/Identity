@@ -191,25 +191,25 @@ public class DefaultValidateAuthorizationRequestHandler(
 
         // perform configurable checks...
 
-        if (request.OriginalRequestObject is null && clientSettings.RequireRequestObject)
+        if (request.OriginalRequestObject is null && clientSettings.GetValue(SettingKeys.RequireRequestObject))
             throw ErrorFactory
                 .InvalidRequest("The configuration requires the use of either request or request_uri parameters.")
                 .AsException();
 
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
-        if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.Token) && !clientSettings.AllowUnsafeTokenResponse)
+        if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.Token) && !clientSettings.GetValue(SettingKeys.AllowUnsafeTokenResponse))
             throw ErrorFactory
                 .UnauthorizedClient("The configuration prohibits the use of unsafe token responses.")
                 .AsException();
 
         // require_pkce
-        if (!hasCodeChallenge && clientSettings.RequireCodeChallenge)
+        if (!hasCodeChallenge && clientSettings.GetValue(SettingKeys.RequireCodeChallenge))
             throw ErrorFactory
                 .UnauthorizedClient("The configuration requires the use of PKCE parameters.")
                 .AsException();
 
         // allow_plain_code_challenge_method
-        if (codeChallengeMethodIsPlain && !clientSettings.AllowPlainCodeChallengeMethod)
+        if (codeChallengeMethodIsPlain && !clientSettings.GetValue(SettingKeys.AllowPlainCodeChallengeMethod))
             throw ErrorFactory
                 .UnauthorizedClient("The configuration prohibits the plain PKCE method.")
                 .AsException();
@@ -300,7 +300,7 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // scopes_supported
-        if (requestedScopes.Except(clientSettings.ScopesSupported).Any())
+        if (requestedScopes.Except(clientSettings.GetValue(SettingKeys.ScopesSupported)).Any())
         {
             throw ErrorFactory.InvalidScope().AsException();
         }

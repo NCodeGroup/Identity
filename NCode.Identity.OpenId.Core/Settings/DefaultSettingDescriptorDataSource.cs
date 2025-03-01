@@ -237,7 +237,7 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = SettingNames.ClaimsParameterSupported,
-                Default = true,
+                Default = false, // TODO: this is still a WIP
 
                 IsDiscoverable = true,
                 OnMerge = Replace
@@ -247,9 +247,27 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = SettingNames.ClaimsSupported,
+                Default =
+                [
+                    ..OpenIdConstants.ProtocolClaims,
+                    ..OpenIdConstants.ClaimsByScope.Profile,
+                    ..OpenIdConstants.ClaimsByScope.Email,
+                    ..OpenIdConstants.ClaimsByScope.Address,
+                    ..OpenIdConstants.ClaimsByScope.Phone,
+                ],
 
                 IsDiscoverable = true,
                 OnMerge = Intersect
+            };
+
+            // claims_supported_is_strict
+            yield return new SettingDescriptor<bool>
+            {
+                Name = SettingNames.ClaimsSupportedIsStrict,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace
             };
 
             // claim_types_supported

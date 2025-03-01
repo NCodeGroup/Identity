@@ -29,10 +29,13 @@ namespace NCode.Identity.OpenId.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation for a <see cref="GetIdTokenPayloadClaimsCommand"/> handler that generates the payload
-/// claims for an id token.
+/// claims for an id token. This handler is responsible for generating protocol claims.
 /// </summary>
-public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenPayloadClaimsCommand>
+public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenPayloadClaimsCommand>, ISupportMediatorPriority
 {
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+
     /// <inheritdoc />
     public ValueTask HandleAsync(GetIdTokenPayloadClaimsCommand command, CancellationToken cancellationToken)
     {
@@ -59,7 +62,8 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             signingCredentials
         );
 
-        // TODO: sid (if present from request)
+        // TODO: client_id, amr, acr, sid (if present from request), cnf
+        // TODO: azp (https://bitbucket.org/openid/connect/issues/973/)
 
         return ValueTask.CompletedTask;
     }
@@ -117,7 +121,7 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             Code hash value. Its value is the base64url encoding of the left-most half of the hash of the octets of the ASCII
             representation of the code value, where the hash algorithm used is the hash algorithm used in the alg Header
             Parameter of the ID Token's JOSE Header. For instance, if the alg is HS512, hash the code value with SHA-512, then
-            take the left-most 256 bits and base64url encode them. The c_hash value is a case sensitive string.
+            take the left-most 256 bits and base64url encode them. The c_hash value is a case-sensitive string.
         */
 
         var encoding = SecureEncoding.ASCII;

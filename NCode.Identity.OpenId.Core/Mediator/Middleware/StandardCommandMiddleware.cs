@@ -35,6 +35,9 @@ internal class StandardCommandMiddleware<TCommand>(
     private IEnumerable<ICommandPreProcessor<TCommand>> PreProcessors { get; } = preProcessors;
     private IEnumerable<ICommandPostProcessor<TCommand>> PostProcessors { get; } = postProcessors;
 
+    private static IEnumerable<T> Sort<T>(IEnumerable<T> collection) =>
+        collection.OrderByDescending(item => item is ISupportMediatorPriority support ? support.MediatorPriority : 0);
+
     public async ValueTask HandleAsync(
         TCommand command,
         CommandMiddlewareDelegate next,
@@ -72,7 +75,7 @@ internal class StandardCommandMiddleware<TCommand>(
         TCommand command,
         CancellationToken cancellationToken)
     {
-        foreach (var processor in PreProcessors)
+        foreach (var processor in Sort(PreProcessors))
         {
             await processor.PreProcessAsync(
                 command,
@@ -84,7 +87,7 @@ internal class StandardCommandMiddleware<TCommand>(
         TCommand command,
         CancellationToken cancellationToken)
     {
-        foreach (var processor in PostProcessors)
+        foreach (var processor in Sort(PostProcessors))
         {
             await processor.PostProcessAsync(
                 command,

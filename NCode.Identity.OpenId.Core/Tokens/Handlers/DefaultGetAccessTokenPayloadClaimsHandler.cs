@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation for a <see cref="GetAccessTokenPayloadClaimsCommand"/> handler that generates the
-/// payload claims for an id token.
+/// payload claims for an id token. This handler is responsible for generating protocol claims.
 /// </summary>
 public class DefaultGetAccessTokenPayloadClaimsHandler(
     ICryptoService cryptoService
@@ -40,10 +40,14 @@ public class DefaultGetAccessTokenPayloadClaimsHandler(
 
         var tenant = openIdContext.Tenant;
 
-        const int byteLength = 16; // aka 128 bits which is larger than the entropy of GUID v4 (122 bits)
-        var tokenId = CryptoService.GenerateUrlSafeKey(byteLength);
+        if (!payloadClaims.ContainsKey(JoseClaimNames.Payload.Jti))
+        {
+            const int byteLength = 16; // aka 128 bits which is larger than the entropy of GUID v4 (122 bits)
+            var tokenId = CryptoService.GenerateUrlSafeKey(byteLength);
 
-        payloadClaims[JoseClaimNames.Payload.Jti] = tokenId;
+            payloadClaims[JoseClaimNames.Payload.Jti] = tokenId;
+        }
+
         payloadClaims[JoseClaimNames.Payload.Tid] = tenant.TenantId;
         payloadClaims[JoseClaimNames.Payload.ClientId] = openIdClient.ClientId;
 

@@ -16,32 +16,25 @@
 
 #endregion
 
-using System.Globalization;
-using System.Security.Claims;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Tokens.Commands;
 
 namespace NCode.Identity.OpenId.Tokens.Handlers;
 
-// TODO: use setting: claims_supported
-
 /// <summary>
 /// Provides a default implementation for a <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that generates the
-/// subject claims for an access token.
+/// subject claims for an access token. Custom claims are added by additional handlers provided by the application.
 /// </summary>
-public class DefaultGetAccessTokenSubjectClaimsHandler(
-    IOptions<OpenIdOptions> optionsAccessor
-) : ICommandHandler<GetAccessTokenSubjectClaimsCommand>
+public class DefaultGetAccessTokenSubjectClaimsHandler : ICommandHandler<GetAccessTokenSubjectClaimsCommand>, ISupportMediatorPriority
 {
-    private OpenIdOptions Options { get; } = optionsAccessor.Value;
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(GetAccessTokenSubjectClaimsCommand command, CancellationToken cancellationToken)
     {
-        var (openIdContext, _, tokenContext, subjectClaims) = command;
+        var (_, _, tokenContext, subjectClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
         if (!tokenRequest.SubjectAuthentication.HasValue)
@@ -49,45 +42,15 @@ public class DefaultGetAccessTokenSubjectClaimsHandler(
             return ValueTask.CompletedTask;
         }
 
-        var (_, authenticationProperties, subject, _) = tokenRequest.SubjectAuthentication.Value;
-
-        var hasAuthTime = false;
+        var (_, _, subject, _) = tokenRequest.SubjectAuthentication.Value;
 
         var claimTypes = new HashSet<string>(StringComparer.Ordinal)
         {
             JoseClaimNames.Payload.Sub,
-            JoseClaimNames.Payload.AuthTime
+            JoseClaimNames.Payload.AuthTime,
         };
 
-        var claims = subject.Claims.Where(claim => claimTypes.Contains(claim.Type));
-        foreach (var claim in claims)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            hasAuthTime = hasAuthTime || claim.Type == JoseClaimNames.Payload.AuthTime;
-
-            subjectClaims.Add(claim);
-        }
-
-        if (hasAuthTime)
-        {
-            return ValueTask.CompletedTask;
-        }
-
-        var issuer = openIdContext.Tenant.Issuer;
-        var authTime = authenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
-
-        var identity = Options.GetSubjectIdentity(subject);
-
-        var authTimeClaim = new Claim(
-            JoseClaimNames.Payload.AuthTime,
-            authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
-            ClaimValueTypes.Integer64,
-            issuer,
-            issuer,
-            identity);
-
-        subjectClaims.Add(authTimeClaim);
+        DefaultTokenService.CopyClaims(subject, subjectClaims, claimTypes, cancellationToken);
 
         return ValueTask.CompletedTask;
     }

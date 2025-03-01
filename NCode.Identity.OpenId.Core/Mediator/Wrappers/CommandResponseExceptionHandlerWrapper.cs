@@ -39,13 +39,16 @@ internal class CommandResponseExceptionHandlerWrapper<TCommand, TException, TRes
 {
     private IEnumerable<ICommandResponseExceptionHandler<TCommand, TException, TResponse>> Handlers { get; } = handlers;
 
+    private static IEnumerable<T> Sort<T>(IEnumerable<T> collection) =>
+        collection.OrderByDescending(item => item is ISupportMediatorPriority support ? support.MediatorPriority : 0);
+
     public async ValueTask HandleAsync(
         TCommand command,
         Exception exception,
         CommandResponseExceptionHandlerState<TResponse> state,
         CancellationToken cancellationToken)
     {
-        foreach (var handler in Handlers)
+        foreach (var handler in Sort(Handlers))
         {
             await handler.HandleAsync(
                 command,

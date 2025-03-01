@@ -24,6 +24,35 @@ namespace NCode.Identity.OpenId;
 public static partial class OpenIdConstants
 {
     /// <summary>
+    /// Contains the standard claims that are included in the <c>OpenID Connect</c> specification.
+    /// </summary>
+    public static IReadOnlyCollection<string> ProtocolClaims { get; } = new HashSet<string>
+    {
+        JoseClaimNames.Payload.Acr,
+        // TODO: act
+        JoseClaimNames.Payload.Amr,
+        JoseClaimNames.Payload.AtHash,
+        JoseClaimNames.Payload.Aud,
+        JoseClaimNames.Payload.AuthTime,
+        // TODO: azp
+        JoseClaimNames.Payload.CHash,
+        JoseClaimNames.Payload.ClientId,
+        // TODO: cnf
+        JoseClaimNames.Payload.Exp,
+        JoseClaimNames.Payload.Iat,
+        JoseClaimNames.Payload.Idp,
+        JoseClaimNames.Payload.Iss,
+        JoseClaimNames.Payload.Jti,
+        JoseClaimNames.Payload.Nbf,
+        JoseClaimNames.Payload.Nonce,
+        // TODO: role
+        JoseClaimNames.Payload.SHash,
+        // TODO: sid
+        JoseClaimNames.Payload.Sub,
+        JoseClaimNames.Payload.Tid,
+    };
+
+    /// <summary>
     /// Contains the standard claims that are included in various <c>OpenID Connect</c> scopes.
     /// </summary>
     public static class ClaimsByScope

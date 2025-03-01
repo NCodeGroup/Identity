@@ -80,6 +80,11 @@ public static class JoseClaimNames
     public static class Payload
     {
         /// <summary>
+        /// Contains a constant with the value: <c>acr</c>
+        /// </summary>
+        public const string Acr = "acr";
+
+        /// <summary>
         /// Contains a constant with the value: <c>actort</c>
         /// </summary>
         public const string Actort = "actort";

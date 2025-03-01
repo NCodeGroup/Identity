@@ -49,16 +49,19 @@ internal class CommandHandlerWrapper<TCommand> : ICommandHandlerWrapper<TCommand
         IEnumerable<ICommandHandler<TCommand>> handlers,
         IEnumerable<ICommandMiddleware<TCommand>> middlewares)
     {
-        MiddlewareChain = middlewares.Select(WrapMiddleware).Aggregate(
+        MiddlewareChain = Sort(middlewares).Select(WrapMiddleware).Aggregate(
             WrapRoot(handlers),
             (next, factory) => factory(next));
     }
+
+    private static IEnumerable<T> Sort<T>(IEnumerable<T> collection) =>
+        collection.OrderByDescending(item => item is ISupportMediatorPriority support ? support.MediatorPriority : 0);
 
     private static MiddlewareChainDelegate WrapRoot(
         IEnumerable<ICommandHandler<TCommand>> handlers) =>
         async (command, cancellationToken) =>
         {
-            foreach (var handler in handlers)
+            foreach (var handler in Sort(handlers))
             {
                 await handler.HandleAsync(command, cancellationToken);
             }

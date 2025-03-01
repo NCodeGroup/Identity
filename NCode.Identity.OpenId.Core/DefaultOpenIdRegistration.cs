@@ -40,6 +40,12 @@ namespace NCode.Identity.OpenId;
 public static class DefaultOpenIdRegistration
 {
     /// <summary>
+    /// Gets or sets the default Mediator priority for all OpenId handlers and processors
+    /// The default value is <c>-100</c> so that consumer provided handlers can be registered with a higher priority.
+    /// </summary>
+    public static int MediatorPriority { get; set; } = -100;
+
+    /// <summary>
     /// Registers the required services and handlers for OpenId into the provided <see cref="IServiceCollection"/> instance.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>

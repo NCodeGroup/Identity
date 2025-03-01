@@ -17,6 +17,7 @@
 #endregion
 
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Mediator.Middleware;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
@@ -24,15 +25,20 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a post-processor for the <see cref="AuthenticateSubjectCommand"/> message.
 /// </summary>
-public class DefaultAuthenticateSubjectPostProcessor : ICommandResponsePostProcessor<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
+public class DefaultAuthenticateSubjectPostProcessor :
+    ICommandResponsePostProcessor<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
+    ISupportMediatorPriority
 {
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+
     /// <inheritdoc />
     public ValueTask PostProcessAsync(
         AuthenticateSubjectCommand command,
         AuthenticateSubjectDisposition response,
         CancellationToken cancellationToken)
     {
-        if (response.HasError)
+        if (response.HasError && response.Error.State == null && command.AuthorizationRequest.State != null)
         {
             response.Error.State = command.AuthorizationRequest.State;
         }

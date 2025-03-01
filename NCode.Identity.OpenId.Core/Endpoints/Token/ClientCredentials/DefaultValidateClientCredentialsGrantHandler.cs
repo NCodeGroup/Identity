@@ -30,13 +30,16 @@ namespace NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 /// </summary>
 public class DefaultValidateClientCredentialsGrantHandler(
     IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>
+) : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>, ISupportMediatorPriority
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     private IOpenIdError InvalidScopeError => ErrorFactory
         .InvalidScope()
         .WithStatusCode(StatusCodes.Status400BadRequest);
+
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(

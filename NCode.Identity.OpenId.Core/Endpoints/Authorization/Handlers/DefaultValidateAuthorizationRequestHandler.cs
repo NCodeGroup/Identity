@@ -32,9 +32,12 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// </summary>
 public class DefaultValidateAuthorizationRequestHandler(
     IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateAuthorizationRequestCommand>
+) : ICommandHandler<ValidateAuthorizationRequestCommand>, ISupportMediatorPriority
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
+
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(

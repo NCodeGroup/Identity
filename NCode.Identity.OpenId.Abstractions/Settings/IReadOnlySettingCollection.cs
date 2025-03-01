@@ -63,6 +63,18 @@ public interface IReadOnlySettingCollection : IReadOnlyCollection<Setting>
         where TValue : notnull;
 
     /// <summary>
+    /// Attempts to get a strongly typed setting value associated with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the strongly typed setting to get.</param>
+    /// <param name="value">When this method returns, contains the strongly typed setting value with the specified key,
+    /// it the setting is found; otherwise, the default value for <typeparamref name="TValue"/> type.
+    /// This parameter is passed uninitialized.</param>
+    /// <typeparam name="TValue">The type of the setting's value.</typeparam>
+    /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise, <c>false</c>.</returns>
+    bool TryGetValue<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out TValue value)
+        where TValue : notnull;
+
+    /// <summary>
     /// Creates and returns a new <see cref="ISettingCollection"/> instance that contains the settings from both the current
     /// instance and the <paramref name="otherCollection"/> by using the merge function defined by each setting's descriptor.
     /// </summary>

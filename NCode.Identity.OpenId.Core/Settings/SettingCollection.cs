@@ -103,6 +103,20 @@ public class SettingCollection : ISettingCollection
     }
 
     /// <inheritdoc />
+    public bool TryGetValue<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out TValue value)
+        where TValue : notnull
+    {
+        if (TryGet(key, out var setting))
+        {
+            value = setting.Value;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <inheritdoc />
     public void Set(Setting setting)
     {
         Store[setting.Descriptor.Name] = setting;

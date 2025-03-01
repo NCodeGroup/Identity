@@ -91,6 +91,7 @@ public class DefaultCreateAuthorizationTicketHandler(
             ticket.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
         }
 
+        // ReSharper disable once InvertIf
         if (responseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken))
         {
             var newRequest = securityTokenRequest with

@@ -118,6 +118,11 @@ public static class SettingNames
     public const string ClaimsSupported = "claims_supported";
 
     /// <summary>
+    /// Contains the name of <c>claims_supported_is_strict</c> setting.
+    /// </summary>
+    public const string ClaimsSupportedIsStrict = "claims_supported_is_strict";
+
+    /// <summary>
     /// Contains the name of <c>claim_types_supported</c> setting.
     /// </summary>
     public const string ClaimTypesSupported = "claim_types_supported";

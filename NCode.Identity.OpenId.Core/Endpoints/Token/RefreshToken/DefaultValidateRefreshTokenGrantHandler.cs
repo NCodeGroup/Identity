@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 /// </summary>
 public class DefaultValidateRefreshTokenGrantHandler(
     IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>
+) : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>, ISupportMediatorPriority
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
@@ -46,6 +46,9 @@ public class DefaultValidateRefreshTokenGrantHandler(
     private IOpenIdError InvalidScopeError => ErrorFactory
         .InvalidScope()
         .WithStatusCode(StatusCodes.Status400BadRequest);
+
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(

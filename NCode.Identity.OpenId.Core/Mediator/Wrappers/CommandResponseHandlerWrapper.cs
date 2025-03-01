@@ -51,10 +51,13 @@ internal class CommandResponseHandlerWrapper<TCommand, TResponse> :
         ICommandResponseHandler<TCommand, TResponse> handler,
         IEnumerable<ICommandResponseMiddleware<TCommand, TResponse>> middlewares)
     {
-        MiddlewareChain = middlewares.Select(WrapMiddleware).Aggregate(
+        MiddlewareChain = Sort(middlewares).Select(WrapMiddleware).Aggregate(
             (MiddlewareChainDelegate)handler.HandleAsync,
             (next, factory) => factory(next));
     }
+
+    private static IEnumerable<T> Sort<T>(IEnumerable<T> collection) =>
+        collection.OrderByDescending(item => item is ISupportMediatorPriority support ? support.MediatorPriority : 0);
 
     private static Func<MiddlewareChainDelegate, MiddlewareChainDelegate> WrapMiddleware(
         ICommandResponseMiddleware<TCommand, TResponse> middleware) =>

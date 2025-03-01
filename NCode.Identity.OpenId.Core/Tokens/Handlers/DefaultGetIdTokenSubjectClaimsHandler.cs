@@ -16,32 +16,25 @@
 
 #endregion
 
-using System.Globalization;
-using System.Security.Claims;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Tokens.Commands;
 
 namespace NCode.Identity.OpenId.Tokens.Handlers;
 
-// TODO: use setting: claims_supported
-
 /// <summary>
 /// Provides a default implementation for a <see cref="GetIdTokenSubjectClaimsCommand"/> handler that generates the subject
-/// claims for an id token.
+/// claims for an id token. Custom claims are added by additional handlers provided by the application.
 /// </summary>
-public class DefaultGetIdTokenSubjectClaimsHandler(
-    IOptions<OpenIdOptions> optionsAccessor
-) : ICommandHandler<GetIdTokenSubjectClaimsCommand>
+public class DefaultGetIdTokenSubjectClaimsHandler : ICommandHandler<GetIdTokenSubjectClaimsCommand>, ISupportMediatorPriority
 {
-    private OpenIdOptions Options { get; } = optionsAccessor.Value;
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(GetIdTokenSubjectClaimsCommand command, CancellationToken cancellationToken)
     {
-        var (openIdContext, _, tokenContext, subjectClaims) = command;
+        var (_, _, tokenContext, subjectClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
         if (!tokenRequest.SubjectAuthentication.HasValue)
@@ -49,18 +42,13 @@ public class DefaultGetIdTokenSubjectClaimsHandler(
             return ValueTask.CompletedTask;
         }
 
-        var subject = tokenRequest.SubjectAuthentication.Value.Subject;
-
-        // required: sub, auth_time, idp, amr
-        // optional: acr
-        // add identity resource user claims
-        // add custom user claims
-        // remove protocol claims
+        var (_, _, subject, _) = tokenRequest.SubjectAuthentication.Value;
 
         var claimTypes = new HashSet<string>(StringComparer.Ordinal)
         {
+            JoseClaimNames.Payload.Idp,
             JoseClaimNames.Payload.Sub,
-            JoseClaimNames.Payload.AuthTime
+            JoseClaimNames.Payload.AuthTime,
         };
 
         // add standard claims requested by the client via the scope parameter
@@ -91,47 +79,7 @@ public class DefaultGetIdTokenSubjectClaimsHandler(
         // TODO: add specific claims requested by the client via the claims parameter
         // https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 
-        // TODO: should we also include profile claims based on a client configuration setting?
-
-        // TODO: other claims...
-        // client_id
-        // acr
-        // amr
-        // azp (https://bitbucket.org/openid/connect/issues/973/)
-        // sid
-        // cnf
-
-        var hasAuthTime = false;
-
-        var claims = subject.Claims
-            .Where(claim => claimTypes.Contains(claim.Type));
-
-        foreach (var claim in claims)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            hasAuthTime = hasAuthTime || claim.Type == JoseClaimNames.Payload.AuthTime;
-
-            subjectClaims.Add(claim);
-        }
-
-        if (!hasAuthTime)
-        {
-            var issuer = openIdContext.Tenant.Issuer;
-            var authTime = tokenRequest.SubjectAuthentication?.AuthenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
-
-            var identity = Options.GetSubjectIdentity(subject);
-
-            var claim = new Claim(
-                JoseClaimNames.Payload.AuthTime,
-                authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
-                ClaimValueTypes.Integer64,
-                issuer,
-                issuer,
-                identity);
-
-            subjectClaims.Add(claim);
-        }
+        DefaultTokenService.CopyClaims(subject, subjectClaims, claimTypes, cancellationToken);
 
         return ValueTask.CompletedTask;
     }

@@ -29,13 +29,16 @@ namespace NCode.Identity.OpenId.Endpoints.Token;
 /// </summary>
 public class DefaultValidateTokenRequestHandler(
     IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenRequestCommand>
+) : ICommandHandler<ValidateTokenRequestCommand>, ISupportMediatorPriority
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     private IOpenIdError InvalidScopeError => ErrorFactory
         .InvalidScope()
         .WithStatusCode(StatusCodes.Status400BadRequest);
+
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(

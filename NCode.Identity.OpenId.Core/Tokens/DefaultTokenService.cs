@@ -16,7 +16,10 @@
 
 #endregion
 
+using System.Globalization;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Exceptions;
@@ -26,6 +29,9 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Models;
+using NCode.Identity.OpenId.Options;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Subject;
 using NCode.Identity.OpenId.Tokens.Commands;
 using NCode.Identity.OpenId.Tokens.Models;
 using NCode.Identity.Secrets;
@@ -36,6 +42,7 @@ namespace NCode.Identity.OpenId.Tokens;
 /// Provides a default implementation of the <see cref="ITokenService"/> abstraction.
 /// </summary>
 public class DefaultTokenService(
+    IOptions<OpenIdOptions> optionsAccessor,
     ICryptoService cryptoService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
@@ -43,11 +50,95 @@ public class DefaultTokenService(
     IPersistedGrantService persistedGrantService
 ) : ITokenService
 {
+    private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } = algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+
+    /// <summary>
+    /// A helper method to copy claims from a <see cref="ClaimsPrincipal"/> to a new collection but only the specified claim types.
+    /// </summary>
+    /// <param name="source">The source <see cref="ClaimsPrincipal"/> to copy claims from.</param>
+    /// <param name="target">The target collection to copy claims to.</param>
+    /// <param name="claimTypes">The claim types to copy.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the operation.</param>
+    public static void CopyClaims(
+        ClaimsPrincipal source,
+        ICollection<Claim> target,
+        HashSet<string> claimTypes,
+        CancellationToken cancellationToken)
+    {
+        var claims = source.Claims
+            // include the configured claim types
+            .Where(claim => claimTypes.Contains(claim.Type))
+            // prevent duplicates claim types
+            .ExceptBy(target.Select(other => other.Type), other => other.Type);
+
+        foreach (var claim in claims)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            target.Add(claim);
+        }
+    }
+
+    private static IEnumerable<Claim> FilterClaims(IReadOnlySettingCollection settings, IEnumerable<Claim> claims)
+    {
+        if (!settings.TryGetValue(SettingKeys.ClaimsSupportedIsStrict, out var claimsSupportedIsStrict) || !claimsSupportedIsStrict)
+        {
+            return claims;
+        }
+
+        if (!settings.TryGetValue(SettingKeys.ClaimsSupported, out var claimsSupported) || claimsSupported.Count == 0)
+        {
+            return claims;
+        }
+
+        var supported = claimsSupported as IReadOnlySet<string> ?? new HashSet<string>(claimsSupported, StringComparer.Ordinal);
+        var filtered = claims.Where(claim => supported.Contains(claim.Type));
+
+        return filtered;
+    }
+
+    private IEnumerable<Claim> EnsureAuthTime(
+        OpenIdContext openIdContext,
+        SubjectAuthentication ticket,
+        CreateSecurityTokenRequest tokenRequest,
+        IEnumerable<Claim> claims)
+    {
+        var hasAuthTime = false;
+
+        foreach (var claim in claims)
+        {
+            hasAuthTime = hasAuthTime || claim.Type == JoseClaimNames.Payload.AuthTime;
+
+            yield return claim;
+        }
+
+        // ReSharper disable once InvertIf
+        if (!hasAuthTime)
+        {
+            var subject = ticket.Subject;
+            var authenticationProperties = ticket.AuthenticationProperties;
+
+            var issuer = openIdContext.Tenant.Issuer;
+            var authTime = authenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
+
+            var identity = Options.GetSubjectIdentity(subject);
+
+            var claim = new Claim(
+                JoseClaimNames.Payload.AuthTime,
+                authTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
+                ClaimValueTypes.Integer64,
+                issuer,
+                issuer,
+                identity
+            );
+
+            yield return claim;
+        }
+    }
 
     /// <inheritdoc />
     public async ValueTask<SecurityToken> CreateAccessTokenAsync(
@@ -64,7 +155,8 @@ public class DefaultTokenService(
         var signingCredentials = GetSigningCredentials(
             AlgorithmCollectionProvider.Collection,
             settings.AccessTokenSigningAlgValuesSupported,
-            secretKeys);
+            secretKeys
+        );
 
         var encryptionCredentials = GetEncryptionCredentials(
             AlgorithmCollectionProvider.Collection,
@@ -72,13 +164,16 @@ public class DefaultTokenService(
             settings.AccessTokenEncryptionAlgValuesSupported,
             settings.AccessTokenEncryptionEncValuesSupported,
             settings.AccessTokenEncryptionZipValuesSupported,
-            secretKeys);
+            secretKeys
+        );
 
+        var ticket = tokenRequest.SubjectAuthentication;
         var tokenContext = new SecurityTokenContext(
             tokenRequest,
             signingCredentials,
             encryptionCredentials,
-            OpenIdConstants.SecurityTokenTypes.AccessToken);
+            OpenIdConstants.SecurityTokenTypes.AccessToken
+        );
 
         var subjectClaims = new List<Claim>();
         var payloadClaims = CreatePayloadClaims(tokenRequest.ExtraPayloadClaims);
@@ -88,21 +183,35 @@ public class DefaultTokenService(
                 openIdContext,
                 openIdClient,
                 tokenContext,
-                subjectClaims),
-            cancellationToken);
+                subjectClaims
+            ),
+            cancellationToken
+        );
 
         await mediator.SendAsync(
             new GetAccessTokenPayloadClaimsCommand(
                 openIdContext,
                 openIdClient,
                 tokenContext,
-                payloadClaims),
-            cancellationToken);
+                payloadClaims
+            ),
+            cancellationToken
+        );
 
         var lifetime = settings.AccessTokenLifetime;
         var createdWhen = tokenRequest.CreatedWhen;
         var expiresWhen = createdWhen + lifetime;
         var tokenPeriod = new TimePeriod(createdWhen, expiresWhen);
+
+        var filteredClaims = FilterClaims(settings, subjectClaims);
+        var effectiveClaims = ticket.HasValue ?
+            EnsureAuthTime(
+                openIdContext,
+                ticket.Value,
+                tokenRequest,
+                filteredClaims
+            ) :
+            filteredClaims;
 
         var parameters = new EncodeJwtParameters
         {
@@ -118,7 +227,7 @@ public class DefaultTokenService(
             NotBefore = createdWhen,
             Expires = expiresWhen,
 
-            SubjectClaims = subjectClaims,
+            SubjectClaims = effectiveClaims,
             ExtraPayloadClaims = payloadClaims,
 
             ExtraSignatureHeaderClaims = tokenRequest.ExtraSignatureHeaderClaims,
@@ -151,7 +260,8 @@ public class DefaultTokenService(
         var signingCredentials = GetSigningCredentials(
             AlgorithmCollectionProvider.Collection,
             settings.IdTokenSigningAlgValuesSupported,
-            secretKeys);
+            secretKeys
+        );
 
         var encryptionCredentials = GetEncryptionCredentials(
             AlgorithmCollectionProvider.Collection,
@@ -159,13 +269,16 @@ public class DefaultTokenService(
             settings.IdTokenEncryptionAlgValuesSupported,
             settings.IdTokenEncryptionEncValuesSupported,
             settings.IdTokenEncryptionZipValuesSupported,
-            secretKeys);
+            secretKeys
+        );
 
+        var ticket = tokenRequest.SubjectAuthentication;
         var tokenContext = new SecurityTokenContext(
             tokenRequest,
             signingCredentials,
             encryptionCredentials,
-            OpenIdConstants.SecurityTokenTypes.IdToken);
+            OpenIdConstants.SecurityTokenTypes.IdToken
+        );
 
         var subjectClaims = new List<Claim>();
         var payloadClaims = CreatePayloadClaims(tokenRequest.ExtraPayloadClaims);
@@ -175,21 +288,35 @@ public class DefaultTokenService(
                 openIdContext,
                 openIdClient,
                 tokenContext,
-                subjectClaims),
-            cancellationToken);
+                subjectClaims
+            ),
+            cancellationToken
+        );
 
         await mediator.SendAsync(
             new GetIdTokenPayloadClaimsCommand(
                 openIdContext,
                 openIdClient,
                 tokenContext,
-                payloadClaims),
-            cancellationToken);
+                payloadClaims
+            ),
+            cancellationToken
+        );
 
         var lifetime = settings.IdTokenLifetime;
         var createdWhen = tokenRequest.CreatedWhen;
         var expiresWhen = createdWhen + lifetime;
         var tokenPeriod = new TimePeriod(createdWhen, expiresWhen);
+
+        var filteredClaims = FilterClaims(settings, subjectClaims);
+        var effectiveClaims = ticket.HasValue ?
+            EnsureAuthTime(
+                openIdContext,
+                ticket.Value,
+                tokenRequest,
+                filteredClaims
+            ) :
+            filteredClaims;
 
         var parameters = new EncodeJwtParameters
         {
@@ -203,7 +330,7 @@ public class DefaultTokenService(
             NotBefore = createdWhen,
             Expires = expiresWhen,
 
-            SubjectClaims = subjectClaims,
+            SubjectClaims = effectiveClaims,
             ExtraPayloadClaims = payloadClaims,
 
             ExtraSignatureHeaderClaims = tokenRequest.ExtraSignatureHeaderClaims,

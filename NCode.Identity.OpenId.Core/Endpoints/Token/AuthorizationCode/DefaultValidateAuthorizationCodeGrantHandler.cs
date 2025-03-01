@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 public class DefaultValidateAuthorizationCodeGrantHandler(
     ICryptoService cryptoService,
     IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>
+) : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>, ISupportMediatorPriority
 {
     private ICryptoService CryptoService { get; } = cryptoService;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
@@ -42,6 +42,9 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
     private IOpenIdError InvalidScopeError => ErrorFactory
         .InvalidScope()
         .WithStatusCode(StatusCodes.Status400BadRequest);
+
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(

@@ -58,8 +58,7 @@ public interface IReadOnlySettingCollection : IReadOnlyCollection<Setting>
     /// it the setting is found; otherwise, the default value for the type of the <paramref name="setting"/> parameter.
     /// This parameter is passed uninitialized.</param>
     /// <typeparam name="TValue">The type of the setting's value.</typeparam>
-    /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise,
-    /// <c>false</c>.</returns>
+    /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise, <c>false</c>.</returns>
     bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out Setting<TValue> setting)
         where TValue : notnull;
 

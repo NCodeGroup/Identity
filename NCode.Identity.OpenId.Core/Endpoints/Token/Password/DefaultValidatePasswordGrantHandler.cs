@@ -36,13 +36,16 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 /// </summary>
 public class DefaultValidatePasswordGrantHandler(
     IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>
+) : ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>, ISupportMediatorPriority
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     private IOpenIdError InvalidGrantError => ErrorFactory
         .InvalidGrant("The provided password grant is invalid, expired, or revoked.")
         .WithStatusCode(StatusCodes.Status400BadRequest);
+
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(

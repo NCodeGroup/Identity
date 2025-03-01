@@ -38,12 +38,15 @@ internal class CommandExceptionListenerWrapper<TCommand, TException>(
 {
     private IEnumerable<ICommandExceptionListener<TCommand, TException>> Listeners { get; } = listeners;
 
+    private static IEnumerable<T> Sort<T>(IEnumerable<T> collection) =>
+        collection.OrderByDescending(item => item is ISupportMediatorPriority support ? support.MediatorPriority : 0);
+
     public async ValueTask ListenAsync(
         TCommand command,
         Exception exception,
         CancellationToken cancellationToken)
     {
-        foreach (var listener in Listeners)
+        foreach (var listener in Sort(Listeners))
         {
             await listener.ListenAsync(
                 command,

@@ -140,6 +140,12 @@ public static class SettingKeys
         new(SettingNames.ClaimsSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'claims_supported_is_strict' setting.
+    /// </summary>
+    public static SettingKey<bool> ClaimsSupportedIsStrict =>
+        new(SettingNames.ClaimsSupportedIsStrict);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'claim_types_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> ClaimTypesSupported =>

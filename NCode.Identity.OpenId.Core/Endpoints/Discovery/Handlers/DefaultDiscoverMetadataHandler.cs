@@ -30,10 +30,13 @@ namespace NCode.Identity.OpenId.Endpoints.Discovery.Handlers;
 public class DefaultDiscoverMetadataHandler(
     EndpointDataSource endpointDataSource,
     LinkGenerator linkGenerator
-) : ICommandHandler<DiscoverMetadataCommand>
+) : ICommandHandler<DiscoverMetadataCommand>, ISupportMediatorPriority
 {
     private EndpointDataSource EndpointDataSource { get; } = endpointDataSource;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
+
+    /// <inheritdoc />
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(

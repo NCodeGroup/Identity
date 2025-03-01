@@ -273,6 +273,11 @@ public static class SettingNames
     public const string ScopesSupported = "scopes_supported";
 
     /// <summary>
+    /// Contains the name of <c>send_id_claims_in_access_token</c> setting.
+    /// </summary>
+    public const string SendIdClaimsInAccessToken = "send_id_claims_in_access_token";
+
+    /// <summary>
     /// Contains the name of <c>service_documentation</c> setting.
     /// </summary>
     public const string ServiceDocumentation = "service_documentation";

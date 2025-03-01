@@ -172,6 +172,19 @@ public class DefaultTokenService(
             cancellationToken
         );
 
+        if (settings.TryGetValue(SettingKeys.SendIdClaimsInAccessToken, out var sendIdClaimsInAccessToken) && sendIdClaimsInAccessToken)
+        {
+            await mediator.SendAsync(
+                new GetIdTokenSubjectClaimsCommand(
+                    openIdContext,
+                    openIdClient,
+                    tokenContext,
+                    subjectClaims
+                ),
+                cancellationToken
+            );
+        }
+
         var lifetime = settings.AccessTokenLifetime;
         var createdWhen = tokenRequest.CreatedWhen;
         var expiresWhen = createdWhen + lifetime;

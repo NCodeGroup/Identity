@@ -29,8 +29,12 @@ namespace NCode.Identity.OpenId.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation for a <see cref="GetIdTokenPayloadClaimsCommand"/> handler that generates the payload
-/// claims for an id token. This handler is responsible for generating protocol claims.
+/// claims for an id token.
 /// </summary>
+/// <remarks>
+/// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by
+/// <see cref="DefaultGetIdTokenSubjectClaimsHandler"/>.
+/// </remarks>
 public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenPayloadClaimsCommand>, ISupportMediatorPriority
 {
     /// <inheritdoc />
@@ -62,8 +66,9 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             signingCredentials
         );
 
-        // TODO: client_id, acr, sid (if present from request), cnf
-        // TODO: azp (https://bitbucket.org/openid/connect/issues/973/)
+        // TODO
+        // client_id, acr, sid (if present from request), cnf
+        // azp (https://bitbucket.org/openid/connect/issues/973/)
 
         return ValueTask.CompletedTask;
     }

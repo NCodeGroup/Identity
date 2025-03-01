@@ -25,8 +25,12 @@ namespace NCode.Identity.OpenId.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation for a <see cref="GetAccessTokenPayloadClaimsCommand"/> handler that generates the
-/// payload claims for an id token. This handler is responsible for generating protocol claims.
+/// payload claims for an id token.
 /// </summary>
+/// <remarks>
+/// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by
+/// <see cref="DefaultGetAccessTokenSubjectClaimsHandler"/>.
+/// </remarks>
 public class DefaultGetAccessTokenPayloadClaimsHandler(
     ICryptoService cryptoService
 ) : ICommandHandler<GetAccessTokenPayloadClaimsCommand>
@@ -54,12 +58,10 @@ public class DefaultGetAccessTokenPayloadClaimsHandler(
         // TODO
         // sid
         // cnf
-        // [client claims] (Client.AlwaysSendClientClaims, Client.ClientClaimsPrefix)
         // scope (except offline_access unless subject is present)
         // [optional subject claims (acr)]
         // [api resource claims]
         // [api scope claims]
-        // [custom claims]
 
         return ValueTask.CompletedTask;
     }

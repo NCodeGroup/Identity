@@ -408,9 +408,9 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     {
         var settings = tenantSettings.Value.Collection;
 
-        if (settings.TryGet(SettingKeys.TenantIssuer, out var setting) && !string.IsNullOrEmpty(setting.Value))
+        if (settings.TryGetValue(SettingKeys.TenantIssuer, out var tenantIssuer) && !string.IsNullOrEmpty(tenantIssuer))
         {
-            return ValueTask.FromResult(setting.Value);
+            return ValueTask.FromResult(tenantIssuer);
         }
 
         return ValueTask.FromResult(tenantBaseAddress.ToString());

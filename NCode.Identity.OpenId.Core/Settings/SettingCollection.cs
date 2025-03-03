@@ -103,6 +103,19 @@ public class SettingCollection : ISettingCollection
     }
 
     /// <inheritdoc />
+    public bool TryGetValue(string settingName, [MaybeNullWhen(false)] out object value)
+    {
+        if (TryGet(settingName, out var setting))
+        {
+            value = setting.GetValue();
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    /// <inheritdoc />
     public bool TryGetValue<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out TValue value)
         where TValue : notnull
     {

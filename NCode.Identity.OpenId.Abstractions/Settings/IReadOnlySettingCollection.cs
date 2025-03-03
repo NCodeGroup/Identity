@@ -65,6 +65,16 @@ public interface IReadOnlySettingCollection : IReadOnlyCollection<Setting>
     /// <summary>
     /// Attempts to get a strongly typed setting value associated with the specified key.
     /// </summary>
+    /// <param name="settingName">The name of the strongly typed setting to get.</param>
+    /// <param name="value">When this method returns, contains the strongly typed setting value with the specified key,
+    /// it the setting is found; otherwise, <c>null</c>.
+    /// This parameter is passed uninitialized.</param>
+    /// <returns><c>true</c> if the collection contains a setting with the specified key; otherwise, <c>false</c>.</returns>
+    bool TryGetValue(string settingName, [MaybeNullWhen(false)] out object value);
+
+    /// <summary>
+    /// Attempts to get a strongly typed setting value associated with the specified key.
+    /// </summary>
     /// <param name="key">The key of the strongly typed setting to get.</param>
     /// <param name="value">When this method returns, contains the strongly typed setting value with the specified key,
     /// it the setting is found; otherwise, the default value for <typeparamref name="TValue"/> type.

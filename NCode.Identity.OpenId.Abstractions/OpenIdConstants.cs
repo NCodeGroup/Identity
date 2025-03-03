@@ -191,4 +191,10 @@ public static partial class OpenIdConstants
         // example: base64urlencode(HS256Signature(sectorIdentifier + client_id + salt, key))
         public const string Pairwise = "pairwise";
     }
+
+    // authentication context class reference (acr)
+    public static class AuthenticationContextClassReferencePrefixes
+    {
+        public const string IdentityProvider = "idp:";
+    }
 }

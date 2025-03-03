@@ -75,6 +75,7 @@ public class DefaultTokenService(
         return filtered;
     }
 
+    // TODO: we always emit the 'auth_time' claim, but should we do this conditionally?
     private IEnumerable<Claim> EnsureAuthTime(
         OpenIdContext openIdContext,
         SubjectAuthentication ticket,

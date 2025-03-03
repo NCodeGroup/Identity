@@ -380,6 +380,24 @@ public class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect
             };
 
+            // op_policy_uri
+            yield return new SettingDescriptor<string>
+            {
+                Name = SettingNames.OpenIdProviderPolicyUri,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Replace
+            };
+
+            // op_tos_uri
+            yield return new SettingDescriptor<string>
+            {
+                Name = SettingNames.OpenIdProviderTermsOfServiceUri,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Replace
+            };
+
             // prompt_values_supported
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {

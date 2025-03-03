@@ -178,6 +178,16 @@ public static class SettingNames
     public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
 
     /// <summary>
+    /// Contains the name of <c>op_policy_uri</c> setting.
+    /// </summary>
+    public const string OpenIdProviderPolicyUri = "op_policy_uri";
+
+    /// <summary>
+    /// Contains the name of <c>op_tos_uri</c> setting.
+    /// </summary>
+    public const string OpenIdProviderTermsOfServiceUri = "op_tos_uri";
+
+    /// <summary>
     /// Contains the name of <c>prompt_values_supported</c> setting.
     /// </summary>
     public const string PromptValuesSupported = "prompt_values_supported";

@@ -21,10 +21,6 @@ using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Settings;
 
-// TODO
-// op_policy_uri (OPTIONAL)
-// op_tos_uri (OPTIONAL)
-
 /// <summary>
 /// Contains constants for known <see cref="SettingKey{TValue}"/> instances.
 /// </summary>
@@ -210,6 +206,18 @@ public static class SettingKeys
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> IdTokenSigningAlgValuesSupported =>
         new(SettingNames.IdTokenSigningAlgValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'op_policy_uri' setting.
+    /// </summary>
+    public static SettingKey<string> OpenIdProviderPolicyUri =>
+        new(SettingNames.OpenIdProviderPolicyUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'op_tos_uri' setting.
+    /// </summary>
+    public static SettingKey<string> OpenIdProviderTermsOfServiceUri =>
+        new(SettingNames.OpenIdProviderTermsOfServiceUri);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'prompt_values_supported' setting.

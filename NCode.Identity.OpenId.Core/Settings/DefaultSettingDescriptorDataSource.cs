@@ -258,7 +258,7 @@ public class DefaultSettingDescriptorDataSource(
                 ],
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Replace
             };
 
             // claims_supported_is_strict

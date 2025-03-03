@@ -35,9 +35,8 @@ public static class DefaultRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddCollectionProviders(this IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<
-            INullChangeToken,
-            NullChangeToken>();
+        serviceCollection.TryAddSingleton<INullChangeToken>(_
+            => NullChangeToken.Singleton);
 
         serviceCollection.TryAddSingleton<
             ICollectionDataSourceFactory,

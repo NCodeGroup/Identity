@@ -166,8 +166,7 @@ public class DefaultAuthorizeSubjectHandler(
             return true;
         }
 
-        // TODO: move this constant somewhere else
-        const string prefix = "idp:";
+        const string prefix = OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider;
 
         var anyRequested = false;
         var requestedIdpValues = acrValues

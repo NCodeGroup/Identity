@@ -215,55 +215,55 @@ public class DefaultValidateAuthorizationRequestHandler(
                 .AsException();
 
         // acr_values_supported
-        if (clientSettings.TryGet(SettingKeys.AcrValuesSupported, out var acrValuesSupported))
+        if (clientSettings.TryGetValue(SettingKeys.AcrValuesSupported, out var acrValuesSupported))
         {
             var acrValues = request.AcrValues;
-            if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported.Value).Any())
+            if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported).Any())
                 throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.AcrValues)
                     .AsException();
         }
 
         // claims_locales_supported
-        if (clientSettings.TryGet(SettingKeys.ClaimsLocalesSupported, out var claimsLocalesSupported))
+        if (clientSettings.TryGetValue(SettingKeys.ClaimsLocalesSupported, out var claimsLocalesSupported))
         {
             var claimsLocales = request.ClaimsLocales;
-            if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported.Value).Any())
+            if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported).Any())
                 throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.ClaimsLocales)
                     .AsException();
         }
 
         // claims_parameter_supported
-        if (clientSettings.TryGet(SettingKeys.ClaimsParameterSupported, out var claimsParameterSupported))
+        if (clientSettings.TryGetValue(SettingKeys.ClaimsParameterSupported, out var claimsParameterSupported))
         {
             var claimCount = request.Claims?.UserInfo?.Count ?? 0 + request.Claims?.IdToken?.Count ?? 0;
-            if (claimCount > 0 && !claimsParameterSupported.Value)
+            if (claimCount > 0 && !claimsParameterSupported)
                 throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.Claims)
                     .AsException();
         }
 
         // display_values_supported
-        if (clientSettings.TryGet(SettingKeys.DisplayValuesSupported, out var displayValuesSupported))
+        if (clientSettings.TryGetValue(SettingKeys.DisplayValuesSupported, out var displayValuesSupported))
         {
-            if (!displayValuesSupported.Value.Contains(request.DisplayType))
+            if (!displayValuesSupported.Contains(request.DisplayType))
                 throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.Display)
                     .AsException();
         }
 
         // grant_types_supported
-        if (clientSettings.TryGet(SettingKeys.GrantTypesSupported, out var grantTypesSupported))
+        if (clientSettings.TryGetValue(SettingKeys.GrantTypesSupported, out var grantTypesSupported))
         {
-            if (!grantTypesSupported.Value.Contains(request.GrantType))
+            if (!grantTypesSupported.Contains(request.GrantType))
                 throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.GrantType)
                     .AsException();
         }
 
         // prompt_values_supported
-        if (clientSettings.TryGet(SettingKeys.PromptValuesSupported, out var promptValuesSupported))
+        if (clientSettings.TryGetValue(SettingKeys.PromptValuesSupported, out var promptValuesSupported))
         {
             /*
              * https://openid.net/specs/openid-connect-prompt-create-1_0.html#section-4.1
@@ -273,7 +273,7 @@ public class DefaultValidateAuthorizationRequestHandler(
              * status code and an error value of invalid_request. It is RECOMMENDED that the OP return an
              * error_description value identifying the invalid parameter value.
              */
-            var invalidPromptValues = request.PromptTypes.Except(promptValuesSupported.Value).ToList();
+            var invalidPromptValues = request.PromptTypes.Except(promptValuesSupported).ToList();
             if (invalidPromptValues.Count != 0)
                 throw ErrorFactory
                     .InvalidRequest($"The following prompt values are not supported: {string.Join(", ", invalidPromptValues)}")
@@ -282,18 +282,18 @@ public class DefaultValidateAuthorizationRequestHandler(
         }
 
         // response_modes_supported
-        if (clientSettings.TryGet(SettingKeys.ResponseModesSupported, out var responseModesSupported))
+        if (clientSettings.TryGetValue(SettingKeys.ResponseModesSupported, out var responseModesSupported))
         {
-            if (!responseModesSupported.Value.Contains(request.ResponseMode))
+            if (!responseModesSupported.Contains(request.ResponseMode))
                 throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.ResponseMode)
                     .AsException();
         }
 
         // response_types_supported
-        if (clientSettings.TryGet(SettingKeys.ResponseTypesSupported, out var responseTypesSupported))
+        if (clientSettings.TryGetValue(SettingKeys.ResponseTypesSupported, out var responseTypesSupported))
         {
-            if (request.ResponseTypes.Except(responseTypesSupported.Value).Any())
+            if (request.ResponseTypes.Except(responseTypesSupported).Any())
                 throw ErrorFactory
                     .NotSupported(OpenIdConstants.Parameters.ResponseType)
                     .AsException();

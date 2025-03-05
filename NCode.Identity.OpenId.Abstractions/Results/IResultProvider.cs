@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Results;
@@ -23,11 +24,12 @@ namespace NCode.Identity.OpenId.Results;
 /// <summary>
 /// Provides the ability to produce an <see cref="IResult"/> through an optimized path.
 /// </summary>
+[PublicAPI]
 public interface IResultProvider
 {
     /// <summary>
     /// Produces an <see cref="IResult"/> instance through an optimized path.
     /// </summary>
-    /// <returns>The <see cref="IResult"/> instace.</returns>
-    IResult AsResult();
+    /// <returns>The <see cref="IResult"/> instance.</returns>
+    IResult AsHttpResult();
 }

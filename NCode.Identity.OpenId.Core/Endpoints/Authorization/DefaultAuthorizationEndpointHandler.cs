@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
@@ -45,6 +46,7 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization;
 /// Provides a default implementation of the required services and handlers used by the authorization endpoint.
 /// </summary>
 public class DefaultAuthorizationEndpointHandler(
+    ILogger<DefaultAuthorizationEndpointHandler> logger,
     OpenIdEnvironment openIdEnvironment,
     IOpenIdErrorFactory errorFactory,
     IOpenIdContextFactory contextFactory,
@@ -52,6 +54,7 @@ public class DefaultAuthorizationEndpointHandler(
     IContinueService continueService
 ) : IOpenIdEndpointProvider, IContinueProvider
 {
+    private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
@@ -104,9 +107,6 @@ public class DefaultAuthorizationEndpointHandler(
 
         // everything after this point is safe to redirect to the client
 
-        var redirectUri = clientRedirectContext.RedirectUri;
-        var responseMode = clientRedirectContext.ResponseMode;
-
         try
         {
             var authorizationRequest = await mediator.SendAsync<LoadAuthorizationRequestCommand, IAuthorizationRequest>(
@@ -136,19 +136,17 @@ public class DefaultAuthorizationEndpointHandler(
                 return EmptyHttpResult.Instance;
             }
 
-            // TODO: log this
+            Logger.LogWarning("The authorization request was not handled.");
             return TypedResults.BadRequest();
+        }
+        catch (HttpResultException exception)
+        {
+            return exception.HttpResult;
         }
         catch (Exception exception)
         {
-            var openIdError = exception is OpenIdException openIdException ?
-                openIdException.Error :
-                ErrorFactory
-                    .Create(OpenIdConstants.ErrorCodes.ServerError)
-                    .WithException(exception);
-
-            openIdError.WithState(clientRedirectContext.State);
-
+            var (redirectUri, responseMode, state) = clientRedirectContext;
+            var openIdError = HandleException(exception, state);
             return new AuthorizationResult(redirectUri, responseMode, openIdError);
         }
     }
@@ -437,16 +435,41 @@ public class DefaultAuthorizationEndpointHandler(
             authorizationRequest.State
         );
 
-        // TODO: error handling
-        var disposition = await ProcessAuthorizationRequestAsync(
-            openIdContext,
-            openIdClient,
-            authorizationRequest,
-            clientRedirectContext,
-            cancellationToken
-        );
-        return disposition;
+        try
+        {
+            var disposition = await ProcessAuthorizationRequestAsync(
+                openIdContext,
+                openIdClient,
+                authorizationRequest,
+                clientRedirectContext,
+                cancellationToken
+            );
+            return disposition;
+        }
+        catch (HttpResultException exception)
+        {
+            return new OperationDisposition(exception.HttpResult);
+        }
+        catch (Exception exception)
+        {
+            var (redirectUri, responseMode, state) = clientRedirectContext;
+            var openIdError = HandleException(exception, state);
+            var httpResult = new AuthorizationResult(redirectUri, responseMode, openIdError);
+            return new OperationDisposition(httpResult);
+        }
     }
 
     #endregion
+
+    private IOpenIdError HandleException(Exception exception, string? state) =>
+        exception switch
+        {
+            OpenIdException openIdException => openIdException.Error
+                .WithState(state),
+
+            _ => ErrorFactory
+                .Create(OpenIdConstants.ErrorCodes.ServerError)
+                .WithState(state)
+                .WithException(exception)
+        };
 }

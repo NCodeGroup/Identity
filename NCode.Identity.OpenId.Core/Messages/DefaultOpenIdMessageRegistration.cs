@@ -60,7 +60,7 @@ public static class DefaultOpenIdMessageRegistration
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<LoadOpenIdRequestValuesCommand, IOpenIdRequestValues>,
-            DefaultLoadRequestValuesHandler>();
+            DefaultLoadOpenIdRequestValuesHandler>();
 
         serviceCollection.AddMessageFactory<OpenIdError>();
         serviceCollection.AddMessageFactory<OpenIdMessage>();

@@ -34,7 +34,7 @@ public class OpenIdRequestValuesUsingQuery(
     private IQueryCollection Query { get; } = query;
 
     /// <inheritdoc />
-    public string SourceType => RequestValuesSourceTypes.Query;
+    public string SourceType => OpenIdRequestValuesSourceTypes.Query;
 
     /// <inheritdoc />
     public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() =>

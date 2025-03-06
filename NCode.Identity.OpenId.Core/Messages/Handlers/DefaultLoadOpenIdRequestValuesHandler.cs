@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Messages.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="LoadOpenIdRequestValuesCommand"/> message.
 /// </summary>
-public class DefaultLoadRequestValuesHandler(
+public class DefaultLoadOpenIdRequestValuesHandler(
     IOpenIdErrorFactory errorFactory
 ) : ICommandResponseHandler<LoadOpenIdRequestValuesCommand, IOpenIdRequestValues>
 {

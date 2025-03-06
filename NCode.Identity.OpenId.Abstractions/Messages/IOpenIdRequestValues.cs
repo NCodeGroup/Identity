@@ -22,7 +22,7 @@ using Microsoft.Extensions.Primitives;
 namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
-/// Contains the unparsed values for an OpenID Connect request.
+/// Contains the unparsed values for an <c>OAuth</c> or <c>OpenID Connect</c> request.
 /// </summary>
 [PublicAPI]
 public interface IOpenIdRequestValues : IEnumerable<KeyValuePair<string, StringValues>>

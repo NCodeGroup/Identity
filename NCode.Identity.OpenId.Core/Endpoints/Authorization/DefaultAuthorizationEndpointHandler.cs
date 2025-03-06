@@ -97,8 +97,8 @@ public class DefaultAuthorizationEndpointHandler(
         }
 
         // the following tries its best to not throw for OpenID protocol errors
-        var openIdRequestValues = await mediator.SendAsync<LoadOpenIdRequestValuesCommand, IOpenIdRequestValues>(
-            new LoadOpenIdRequestValuesCommand(openIdContext),
+        var requestValues = await mediator.SendAsync<LoadRequestValuesCommand, IRequestValues>(
+            new LoadRequestValuesCommand(openIdContext),
             cancellationToken
         );
 
@@ -106,7 +106,7 @@ public class DefaultAuthorizationEndpointHandler(
         var openIdClient = authResult.Client;
         var clientRedirectContext = GetClientRedirectContext(
             openIdClient,
-            openIdRequestValues
+            requestValues
         );
 
         // everything after this point is safe to redirect to the client
@@ -117,7 +117,7 @@ public class DefaultAuthorizationEndpointHandler(
                 new LoadAuthorizationRequestCommand(
                     openIdContext,
                     openIdClient,
-                    openIdRequestValues
+                    requestValues
                 ),
                 cancellationToken
             );
@@ -155,14 +155,14 @@ public class DefaultAuthorizationEndpointHandler(
         }
     }
 
-    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IOpenIdRequestValues openIdRequestValues)
+    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IRequestValues requestValues)
     {
         var settings = openIdClient.Settings;
 
-        var hasState = openIdRequestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
+        var hasState = requestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
         var state = hasState && !StringValues.IsNullOrEmpty(stateStringValues) ? stateStringValues.ToString() : null;
 
-        var hasResponseMode = openIdRequestValues.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
+        var hasResponseMode = requestValues.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
         string effectiveResponseMode;
 
         if (hasResponseMode)
@@ -191,7 +191,7 @@ public class DefaultAuthorizationEndpointHandler(
             effectiveResponseMode = OpenIdConstants.ResponseModes.Query;
         }
 
-        if (!openIdRequestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
+        if (!requestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
         {
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)

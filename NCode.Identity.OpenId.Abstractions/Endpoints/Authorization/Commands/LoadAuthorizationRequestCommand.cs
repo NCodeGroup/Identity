@@ -33,5 +33,5 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 public readonly record struct LoadAuthorizationRequestCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    IOpenIdRequestValues OpenIdRequestValues
+    IRequestValues RequestValues
 ) : ICommand<IAuthorizationRequest>;

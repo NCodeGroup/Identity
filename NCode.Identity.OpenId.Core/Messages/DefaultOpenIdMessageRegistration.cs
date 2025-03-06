@@ -59,8 +59,8 @@ public static class DefaultOpenIdMessageRegistration
             DefaultOpenIdMessageFactorySelector>();
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<LoadOpenIdRequestValuesCommand, IOpenIdRequestValues>,
-            DefaultLoadOpenIdRequestValuesHandler>();
+            ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>,
+            DefaultLoadRequestValuesHandler>();
 
         serviceCollection.AddMessageFactory<OpenIdError>();
         serviceCollection.AddMessageFactory<OpenIdMessage>();

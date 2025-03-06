@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -24,42 +24,42 @@ using Microsoft.Extensions.Primitives;
 namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
-/// Provides an implementation of <see cref="IOpenIdRequestValues"/> that wraps an <see cref="IFormCollection"/>.
+/// Provides an implementation of <see cref="IRequestValues"/> that wraps an <see cref="IQueryCollection"/>.
 /// </summary>
 [PublicAPI]
-public class OpenIdRequestValuesUsingForm(
-    IFormCollection form
-) : IOpenIdRequestValues
+public class RequestValuesUsingQuery(
+    IQueryCollection query
+) : IRequestValues
 {
-    private IFormCollection Form { get; } = form;
+    private IQueryCollection Query { get; } = query;
 
     /// <inheritdoc />
-    public string SourceType => OpenIdRequestValuesSourceTypes.Form;
+    public string SourceType => RequestValuesSourceTypes.Query;
 
     /// <inheritdoc />
     public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() =>
-        Form.GetEnumerator();
+        Query.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() =>
-        ((IEnumerable)Form).GetEnumerator();
+        ((IEnumerable)Query).GetEnumerator();
 
     /// <inheritdoc />
     public int Count =>
-        Form.Count;
+        Query.Count;
 
     /// <inheritdoc />
     public ICollection<string> Keys =>
-        Form.Keys;
+        Query.Keys;
 
     /// <inheritdoc />
     public bool ContainsKey(string key) =>
-        Form.ContainsKey(key);
+        Query.ContainsKey(key);
 
     /// <inheritdoc />
     public bool TryGetValue(string key, out StringValues value) =>
-        Form.TryGetValue(key, out value);
+        Query.TryGetValue(key, out value);
 
     /// <inheritdoc />
     public StringValues this[string key] =>
-        Form[key];
+        Query[key];
 }

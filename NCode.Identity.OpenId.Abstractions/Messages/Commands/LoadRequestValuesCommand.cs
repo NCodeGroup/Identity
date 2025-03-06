@@ -24,9 +24,9 @@ using NCode.Identity.OpenId.Mediator;
 namespace NCode.Identity.OpenId.Messages.Commands;
 
 /// <summary>
-/// Represents a mediator command to load an <see cref="IOpenIdRequestValues"/> for an <c>OAuth</c> or <c>OpenID Connect</c> request.
+/// Represents a mediator command to load an <see cref="IRequestValues"/> for an <c>OAuth</c> or <c>OpenID Connect</c> request.
 /// </summary>
 [PublicAPI]
-public readonly record struct LoadOpenIdRequestValuesCommand(
+public readonly record struct LoadRequestValuesCommand(
     OpenIdContext OpenIdContext
-) : ICommand<IOpenIdRequestValues>;
+) : ICommand<IRequestValues>;

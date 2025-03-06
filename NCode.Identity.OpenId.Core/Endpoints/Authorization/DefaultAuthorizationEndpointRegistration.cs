@@ -59,10 +59,6 @@ public static class DefaultAuthorizationEndpointRegistration
             serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>,
-            DefaultLoadAuthorizationSourceHandler>();
-
-        serviceCollection.TryAddSingleton<
             ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>,
             DefaultLoadAuthorizationRequestHandler>();
 
@@ -87,7 +83,7 @@ public static class DefaultAuthorizationEndpointRegistration
             DefaultAuthorizeSubjectPostProcessor>();
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<ChallengeSubjectCommand, OperationDisposition>,
+            ICommandResponseHandler<ChallengeSubjectCommand, EndpointDisposition>,
             DefaultChallengeSubjectHandler>();
 
         serviceCollection.TryAddSingleton<

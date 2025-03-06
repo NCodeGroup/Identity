@@ -22,7 +22,6 @@ using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
@@ -35,4 +34,4 @@ public readonly record struct ChallengeSubjectCommand(
     OpenIdClient OpenIdClient,
     IAuthorizationRequest AuthorizationRequest,
     AuthenticationProperties AuthenticationProperties
-) : ICommand<OperationDisposition>;
+) : ICommand<EndpointDisposition>;

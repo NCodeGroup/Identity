@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,19 +17,22 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Messages;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
-/// Represents an <c>OAuth</c> or <c>OpenID Connect</c> authorization request loaded from query or form data that isn't parsed
-/// and only contains string-values.
+/// Contains constants that specify from where an <see cref="IOpenIdRequestValues"/> was loaded from.
 /// </summary>
 [PublicAPI]
-public interface IAuthorizationSource : IBaseAuthorizationRequest
+public static class RequestValuesSourceTypes
 {
     /// <summary>
-    /// Gets the <see cref="IOpenIdRequestValues"/> for the authorization request.
+    /// Specifies that the message was loaded from the HTTP query data.
     /// </summary>
-    IOpenIdRequestValues RequestValues { get; }
+    public const string Query = "query";
+
+    /// <summary>
+    /// Specifies that the message was loaded from the HTTP form data.
+    /// </summary>
+    public const string Form = "form";
 }

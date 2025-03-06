@@ -19,15 +19,14 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+namespace NCode.Identity.OpenId.Messages.Commands;
 
 /// <summary>
-/// Represents a mediator command to load the source of an authorization message.
+/// Represents a mediator command to load an <see cref="IOpenIdRequestValues"/> for an <c>OAuth</c> or <c>OpenID Connect</c> request.
 /// </summary>
 [PublicAPI]
-public readonly record struct LoadAuthorizationSourceCommand(
+public readonly record struct LoadOpenIdRequestValuesCommand(
     OpenIdContext OpenIdContext
-) : ICommand<IAuthorizationSource>;
+) : ICommand<IOpenIdRequestValues>;

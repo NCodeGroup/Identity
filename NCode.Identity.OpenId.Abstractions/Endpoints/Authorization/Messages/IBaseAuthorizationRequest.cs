@@ -29,5 +29,5 @@ public interface IBaseAuthorizationRequest : IOpenIdRequest
     /// <summary>
     /// Gets a value indicating where the request values were loaded from.
     /// </summary>
-    AuthorizationSourceType AuthorizationSourceType { get; }
+    string? AuthorizationSourceType { get; }
 }

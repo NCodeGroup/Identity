@@ -37,6 +37,8 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Messages.Commands;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
 
@@ -95,15 +97,17 @@ public class DefaultAuthorizationEndpointHandler(
         }
 
         // the following tries its best to not throw for OpenID protocol errors
-        var authorizationSource = await mediator.SendAsync<LoadAuthorizationSourceCommand, IAuthorizationSource>(
-            new LoadAuthorizationSourceCommand(openIdContext),
-            cancellationToken);
+        var openIdRequestValues = await mediator.SendAsync<LoadOpenIdRequestValuesCommand, IOpenIdRequestValues>(
+            new LoadOpenIdRequestValuesCommand(openIdContext),
+            cancellationToken
+        );
 
         // this will throw if client_id or redirect_uri are invalid
         var openIdClient = authResult.Client;
         var clientRedirectContext = GetClientRedirectContext(
             openIdClient,
-            authorizationSource);
+            openIdRequestValues
+        );
 
         // everything after this point is safe to redirect to the client
 
@@ -113,7 +117,7 @@ public class DefaultAuthorizationEndpointHandler(
                 new LoadAuthorizationRequestCommand(
                     openIdContext,
                     openIdClient,
-                    authorizationSource
+                    openIdRequestValues
                 ),
                 cancellationToken
             );
@@ -151,14 +155,14 @@ public class DefaultAuthorizationEndpointHandler(
         }
     }
 
-    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IAuthorizationSource authorizationSource)
+    private ClientRedirectContext GetClientRedirectContext(OpenIdClient openIdClient, IOpenIdRequestValues openIdRequestValues)
     {
         var settings = openIdClient.Settings;
 
-        var hasState = authorizationSource.RequestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
+        var hasState = openIdRequestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
         var state = hasState && !StringValues.IsNullOrEmpty(stateStringValues) ? stateStringValues.ToString() : null;
 
-        var hasResponseMode = authorizationSource.RequestValues.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
+        var hasResponseMode = openIdRequestValues.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
         string effectiveResponseMode;
 
         if (hasResponseMode)
@@ -187,7 +191,7 @@ public class DefaultAuthorizationEndpointHandler(
             effectiveResponseMode = OpenIdConstants.ResponseModes.Query;
         }
 
-        if (!authorizationSource.RequestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
+        if (!openIdRequestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
         {
             throw ErrorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
@@ -227,7 +231,7 @@ public class DefaultAuthorizationEndpointHandler(
         return new ClientRedirectContext(redirectUri, effectiveResponseMode, state);
     }
 
-    private async ValueTask<OperationDisposition> ChallengeAsync(
+    private async ValueTask<EndpointDisposition> ChallengeAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
@@ -280,7 +284,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         // additional authentication properties can be set via mediator middleware
 
-        var disposition = await mediator.SendAsync<ChallengeSubjectCommand, OperationDisposition>(
+        var disposition = await mediator.SendAsync<ChallengeSubjectCommand, EndpointDisposition>(
             new ChallengeSubjectCommand(
                 openIdContext,
                 openIdClient,
@@ -292,7 +296,7 @@ public class DefaultAuthorizationEndpointHandler(
         return disposition;
     }
 
-    private async ValueTask<OperationDisposition> ProcessAuthorizationRequestAsync(
+    private async ValueTask<EndpointDisposition> ProcessAuthorizationRequestAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
@@ -329,7 +333,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (authenticateSubjectDisposition.HasError)
         {
-            return new OperationDisposition(
+            return new EndpointDisposition(
                 new AuthorizationResult(
                     redirectUri,
                     effectiveResponseMode,
@@ -362,7 +366,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (authorizeSubjectDisposition.HasError)
         {
-            return new OperationDisposition(
+            return new EndpointDisposition(
                 new AuthorizationResult(
                     redirectUri,
                     effectiveResponseMode,
@@ -391,7 +395,7 @@ public class DefaultAuthorizationEndpointHandler(
             cancellationToken
         );
 
-        return new OperationDisposition(
+        return new EndpointDisposition(
             new AuthorizationResult(
                 redirectUri,
                 effectiveResponseMode,
@@ -406,7 +410,7 @@ public class DefaultAuthorizationEndpointHandler(
     public string ContinueCode => OpenIdConstants.ContinueCodes.Authorization;
 
     /// <inheritdoc />
-    public async ValueTask<OperationDisposition> ContinueAsync(
+    public async ValueTask<EndpointDisposition> ContinueAsync(
         OpenIdContext openIdContext,
         JsonElement continuePayloadJson,
         CancellationToken cancellationToken)
@@ -419,7 +423,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var error = authResult.Error ?? ErrorFactory.InvalidClient();
             error.StatusCode = StatusCodes.Status400BadRequest;
-            return new OperationDisposition(error.AsHttpResult());
+            return new EndpointDisposition(error.AsHttpResult());
         }
 
         var openIdClient = authResult.Client;
@@ -448,14 +452,14 @@ public class DefaultAuthorizationEndpointHandler(
         }
         catch (HttpResultException exception)
         {
-            return new OperationDisposition(exception.HttpResult);
+            return new EndpointDisposition(exception.HttpResult);
         }
         catch (Exception exception)
         {
             var (redirectUri, responseMode, state) = clientRedirectContext;
             var openIdError = HandleException(exception, state);
             var httpResult = new AuthorizationResult(redirectUri, responseMode, openIdError);
-            return new OperationDisposition(httpResult);
+            return new EndpointDisposition(httpResult);
         }
     }
 

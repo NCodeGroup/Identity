@@ -24,6 +24,9 @@ using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Messages.Commands;
+using NCode.Identity.OpenId.Messages.Handlers;
 using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Messages;
@@ -54,6 +57,10 @@ public static class DefaultOpenIdMessageRegistration
         serviceCollection.TryAddSingleton<
             IOpenIdMessageFactorySelector,
             DefaultOpenIdMessageFactorySelector>();
+
+        serviceCollection.TryAddSingleton<
+            ICommandResponseHandler<LoadOpenIdRequestValuesCommand, IOpenIdRequestValues>,
+            DefaultLoadRequestValuesHandler>();
 
         serviceCollection.AddMessageFactory<OpenIdError>();
         serviceCollection.AddMessageFactory<OpenIdMessage>();

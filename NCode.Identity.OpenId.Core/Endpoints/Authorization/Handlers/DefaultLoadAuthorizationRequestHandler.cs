@@ -52,11 +52,11 @@ public class DefaultLoadAuthorizationRequestHandler(
         LoadAuthorizationRequestCommand command,
         CancellationToken cancellationToken)
     {
-        var (_, openIdClient, authorizationSource) = command;
+        var (_, openIdClient, openIdRequestValues) = command;
 
         // the following will parse string-values into strongly-typed parameters and may throw
-        var requestMessage = AuthorizationRequestMessage.Load(OpenIdEnvironment, authorizationSource.RequestValues);
-        requestMessage.AuthorizationSourceType = authorizationSource.AuthorizationSourceType;
+        var requestMessage = AuthorizationRequestMessage.Load(OpenIdEnvironment, openIdRequestValues);
+        requestMessage.AuthorizationSourceType = openIdRequestValues.SourceType;
 
         // TODO: add support for OAuth 2.0 Pushed Authorization Requests (PAR)
         // https://datatracker.ietf.org/doc/html/rfc9126

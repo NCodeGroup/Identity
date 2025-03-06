@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Claims;
 using JetBrains.Annotations;
@@ -26,12 +27,16 @@ namespace NCode.Identity.OpenId.Claims;
 /// Provides a default implementation of the <see cref="IClaimsSerializer"/> abstraction.
 /// </summary>
 [PublicAPI]
-public class ClaimsSerializer : IClaimsSerializer
+public class DefaultClaimsSerializer : IClaimsSerializer
 {
     /// <summary>
-    /// Gets a singleton instance for <see cref="ClaimsSerializer"/>.
+    /// Gets a singleton instance for <see cref="DefaultClaimsSerializer"/>.
     /// </summary>
-    public static ClaimsSerializer Singleton { get; } = new();
+    public static DefaultClaimsSerializer Singleton { get; } = new();
+
+    [return: NotNullIfNotNull(nameof(value))]
+    private static string? GetReferenceId(object? value) =>
+        value?.GetHashCode().ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc />
     public SerializableClaim SerializeClaim(Claim claim) =>
@@ -43,13 +48,13 @@ public class ClaimsSerializer : IClaimsSerializer
             Issuer = claim.Issuer,
             OriginalIssuer = claim.OriginalIssuer,
             Properties = claim.Properties,
-            SubjectRef = claim.Subject?.GetHashCode().ToString(CultureInfo.InvariantCulture),
+            SubjectRef = GetReferenceId(claim.Subject)
         };
 
     /// <inheritdoc />
     public SerializableClaimsIdentity SerializeIdentity(ClaimsIdentity identity)
     {
-        var referenceId = identity.GetHashCode().ToString(CultureInfo.InvariantCulture);
+        var referenceId = GetReferenceId(identity);
         var actor = identity.Actor != null ? SerializeIdentity(identity.Actor) : null;
 
         var claims = identity.Claims.Select(claim => new SerializableClaim

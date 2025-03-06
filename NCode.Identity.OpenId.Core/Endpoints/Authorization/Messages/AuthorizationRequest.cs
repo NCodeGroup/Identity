@@ -20,6 +20,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 
@@ -29,13 +30,16 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 [PublicAPI]
 public class AuthorizationRequest : IAuthorizationRequest
 {
+    private IParameterCollection? ParametersOrNull { get; set; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizationRequest"/> class.
     /// </summary>
     /// <param name="isContinuation">Indicates whether this request is a continuation of a previous request.</param>
     /// <param name="requestMessage">The original request message.</param>
     /// <param name="requestObject">The original request object.</param>
-    public AuthorizationRequest(bool isContinuation,
+    public AuthorizationRequest(
+        bool isContinuation,
         IAuthorizationRequestMessage requestMessage,
         IAuthorizationRequestObject? requestObject)
     {
@@ -71,10 +75,21 @@ public class AuthorizationRequest : IAuthorizationRequest
             OpenIdConstants.ResponseModes.Fragment;
 
     /// <inheritdoc />
-    public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Union;
+    public string AuthorizationSourceType => AuthorizationSourceTypes.Union;
 
     /// <inheritdoc />
     public OpenIdEnvironment OpenIdEnvironment => OriginalRequestMessage.OpenIdEnvironment;
+
+    /// <inheritdoc />
+    public IParameterCollection Parameters => ParametersOrNull ?? ComposeParameters();
+
+    private IParameterCollection ComposeParameters() =>
+        OriginalRequestObject is not null ?
+            new CompositeParameterCollection(
+                OriginalRequestObject.Parameters,
+                OriginalRequestMessage.Parameters
+            ) :
+            OriginalRequestMessage.Parameters;
 
     /// <inheritdoc />
     public bool IsContinuation { get; set; }

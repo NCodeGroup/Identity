@@ -71,7 +71,7 @@ public class AuthorizationRequestTests : BaseTests
 
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            AuthorizationSourceType = AuthorizationSourceType.Form,
+            AuthorizationSourceType = AuthorizationSourceTypes.Form,
             //
             RequestJwt = "RequestJwt",
             RequestUri = new Uri("https://localhost/RequestUri"),
@@ -168,8 +168,8 @@ public class AuthorizationRequestTests : BaseTests
             requestObject);
 
         var parameterCountBefore =
-            authorizationRequest.OriginalRequestMessage.Parameters.Count +
-            authorizationRequest.OriginalRequestObject?.Parameters.Count;
+            authorizationRequest.OriginalRequestMessage.Parameters.Count() +
+            authorizationRequest.OriginalRequestObject?.Parameters.Count();
 
         var json = JsonSerializer.Serialize(authorizationRequest, jsonSerializerOptions);
         Debug.WriteLine(json);
@@ -199,8 +199,8 @@ public class AuthorizationRequestTests : BaseTests
 
         var result = JsonSerializer.Deserialize<IAuthorizationRequest>(json, jsonSerializerOptions);
         var parameterCountAfter =
-            authorizationRequest.OriginalRequestMessage.Parameters.Count +
-            authorizationRequest.OriginalRequestObject?.Parameters.Count;
+            authorizationRequest.OriginalRequestMessage.Parameters.Count() +
+            authorizationRequest.OriginalRequestObject?.Parameters.Count();
 
         Assert.IsType<AuthorizationRequest>(result);
         Assert.Same(MockOpenIdEnvironment.Object, result.OpenIdEnvironment);
@@ -225,10 +225,13 @@ public class AuthorizationRequestTests : BaseTests
     private static void AssertParameters(IOpenIdMessage original, IOpenIdMessage deserialized)
     {
         var environment = original.OpenIdEnvironment;
-        Assert.Equal(original.Parameters.Count, deserialized.Parameters.Count);
-        foreach (var (parameterName, originalParameter) in original.Parameters)
+        Assert.Equal(original.Parameters.Count(), deserialized.Parameters.Count());
+        foreach (var originalParameter in original.Parameters)
         {
-            var deserializedParameter = Assert.Contains(parameterName, deserialized.Parameters);
+            var parameterName = originalParameter.Descriptor.ParameterName;
+            var contains = deserialized.Parameters.TryGet(parameterName, out var deserializedParameter);
+            Assert.True(contains);
+            Assert.NotNull(deserializedParameter);
             Assert.Equal(originalParameter.GetStringValues(environment), deserializedParameter.GetStringValues(environment));
         }
     }

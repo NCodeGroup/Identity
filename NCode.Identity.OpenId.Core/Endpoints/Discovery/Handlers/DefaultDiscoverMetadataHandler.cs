@@ -36,7 +36,7 @@ public class DefaultDiscoverMetadataHandler(
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
 
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityLow;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(
@@ -59,7 +59,8 @@ public class DefaultDiscoverMetadataHandler(
     {
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
         var settingsToShow = settings.Where(setting => showAll || setting.Descriptor.IsDiscoverable);
-        foreach (var setting in settingsToShow)
+        var settingsToAdd = settingsToShow.Where(setting => !metadata.ContainsKey(setting.Descriptor.Name));
+        foreach (var setting in settingsToAdd)
         {
             var value = setting.Descriptor.Format(setting);
             metadata[setting.Descriptor.Name] = value;
@@ -91,7 +92,7 @@ public class DefaultDiscoverMetadataHandler(
             if (string.IsNullOrEmpty(endpointUrl))
                 continue;
 
-            metadata[endpointName] = endpointUrl;
+            metadata.TryAdd(endpointName, endpointUrl);
         }
     }
 }

@@ -41,12 +41,6 @@ public interface IOpenIdMessage : IBaseOpenIdMessage
     SerializationFormat SerializationFormat { get; set; }
 
     /// <summary>
-    /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenID Connect</c> parameters.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
-    IReadOnlyDictionary<string, IParameter> Parameters { get; }
-
-    /// <summary>
     /// Initializes the current instance with an <see cref="OpenIdEnvironment"/>.
     /// </summary>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance.</param>

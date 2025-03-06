@@ -19,12 +19,16 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
+using NCode.Identity.OpenId.Clients;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 
@@ -45,15 +49,15 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         ValidateTokenGrantCommand<AuthorizationGrant> command,
         CancellationToken cancellationToken)
     {
-        var (_, openIdClient, tokenRequest, authorizationGrant) = command;
-        var (authorizationRequest, _) = authorizationGrant;
+        var (openIdContext, openIdClient, tokenRequest, authorizationGrant) = command;
+        var (authorizationRequest, subjectAuthentication) = authorizationGrant;
         var settings = openIdClient.Settings;
 
         // DefaultClientAuthenticationService already performs this check for us
@@ -104,13 +108,18 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             // invalid_scope
             throw InvalidScopeError.AsException();
 
-        // TODO: verify tenant
+        // validate the subject
+        await ValidateSubjectAsync(
+            openIdContext,
+            openIdClient,
+            authorizationRequest,
+            subjectAuthentication,
+            cancellationToken
+        );
 
         // TODO: validate resource
 
         // TODO: validate actual scope values
-
-        // TODO: validate user/principal
 
         // TODO: validate DPoP
 
@@ -120,8 +129,35 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             authorizationRequest.CodeChallenge,
             authorizationRequest.CodeChallengeMethod,
             settings.GetValue(SettingKeys.RequireCodeChallenge));
+    }
 
-        return ValueTask.CompletedTask;
+    private static async ValueTask ValidateSubjectAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IOpenIdRequest openIdRequest,
+        SubjectAuthentication subjectAuthentication,
+        CancellationToken cancellationToken)
+    {
+        var mediator = openIdContext.Mediator;
+        var operationDisposition = new OperationDisposition();
+
+        await mediator.SendAsync(
+            new ValidateSubjectCommand(
+                openIdContext,
+                openIdClient,
+                openIdRequest,
+                subjectAuthentication,
+                operationDisposition
+            ),
+            cancellationToken
+        );
+
+        if (operationDisposition.HasOpenIdError)
+        {
+            throw operationDisposition.OpenIdError
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
     }
 
     private void ValidatePkce(

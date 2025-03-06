@@ -27,8 +27,10 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Subject;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.OpenId;
@@ -40,10 +42,16 @@ namespace NCode.Identity.OpenId;
 public static class DefaultOpenIdRegistration
 {
     /// <summary>
-    /// Gets or sets the default Mediator priority for all OpenId handlers and processors
-    /// The default value is <c>-100</c> so that consumer provided handlers can be registered with a higher priority.
+    /// Gets or sets the default low Mediator priority for all OpenId handlers and processors
+    /// The default value is <c>-100</c> so that handlers provided from the application can be registered with a higher priority.
     /// </summary>
-    public static int MediatorPriority { get; set; } = -100;
+    public static int MediatorPriorityLow { get; set; } = -100;
+
+    /// <summary>
+    /// Gets or sets the default high Mediator priority for all OpenId handlers and processors
+    /// The default value is <c>100</c> so that handlers provided from this library can be registered with a higher priority.
+    /// </summary>
+    public static int MediatorPriorityHigh { get; set; } = 100;
 
     /// <summary>
     /// Registers the required services and handlers for OpenId into the provided <see cref="IServiceCollection"/> instance.
@@ -79,7 +87,7 @@ public static class DefaultOpenIdRegistration
             DefaultClaimsService>();
 
         serviceCollection.TryAddSingleton<IClaimsSerializer>(
-            ClaimsSerializer.Singleton);
+            DefaultClaimsSerializer.Singleton);
 
         // settings
 
@@ -113,6 +121,12 @@ public static class DefaultOpenIdRegistration
             IOpenIdServerProvider,
             DefaultOpenIdServerProvider>();
 
+        // subject
+
+        serviceCollection.TryAddSingleton<
+            ICommandHandler<ValidateSubjectCommand>,
+            DefaultValidateSubjectHandler>();
+
         // environment
 
         serviceCollection.TryAddSingleton<
@@ -122,8 +136,6 @@ public static class DefaultOpenIdRegistration
         serviceCollection.TryAddSingleton<
             IOpenIdErrorFactory,
             DefaultOpenIdErrorFactory>();
-
-        // exceptions
 
         serviceCollection.TryAddSingleton<
             IOpenIdExceptionHandler,

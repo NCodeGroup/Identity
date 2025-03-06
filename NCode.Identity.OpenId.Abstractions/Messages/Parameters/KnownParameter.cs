@@ -100,4 +100,11 @@ public class KnownParameter<T> : KnownParameter
     /// Gets the <see cref="IParameterParser{T}"/> that can be used to parse and load <see cref="IParameter"/> values.
     /// </summary>
     public IParameterParser<T> Parser { get; }
+
+    /// <summary>
+    /// Operator overload to convert a <see cref="KnownParameter{TValue}"/> instance to a <see cref="ParameterKey{TValue}"/> instance.
+    /// </summary>
+    /// <param name="knownParameter">The <see cref="KnownParameter{TValue}"/> instance.</param>
+    /// <returns>The <see cref="ParameterKey{TValue}"/> instance.</returns>
+    public static implicit operator ParameterKey<T>(KnownParameter<T> knownParameter) => new(knownParameter.Name);
 }

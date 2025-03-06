@@ -61,7 +61,7 @@ public class AuthorizationRequestObject :
     }
 
     /// <inheritdoc />
-    public AuthorizationSourceType AuthorizationSourceType => AuthorizationSourceType.Jar;
+    public string AuthorizationSourceType => AuthorizationSourceTypes.Jar;
 
     /// <inheritdoc />
     public RequestObjectSource RequestObjectSource

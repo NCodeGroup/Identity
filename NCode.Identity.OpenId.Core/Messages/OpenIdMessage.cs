@@ -34,12 +34,11 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
 {
     private static Exception NotInitializedException => new InvalidOperationException("Not initialized");
 
-    [MemberNotNullWhen(true, nameof(OpenIdEnvironmentOrNull), nameof(ParameterStoreOrNull))]
+    [MemberNotNullWhen(true, nameof(OpenIdEnvironmentOrNull), nameof(ParametersOrNull))]
     private bool IsInitialized { get; set; }
 
     private OpenIdEnvironment? OpenIdEnvironmentOrNull { get; set; }
-    private Dictionary<string, IParameter>? ParameterStoreOrNull { get; set; }
-    private Dictionary<string, IParameter> ParameterStore => ParameterStoreOrNull ??= new Dictionary<string, IParameter>(StringComparer.OrdinalIgnoreCase);
+    private ParameterCollection? ParametersOrNull { get; set; }
 
     /// <inheritdoc />
     public virtual string TypeDiscriminator => nameof(OpenIdMessage);
@@ -47,17 +46,11 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     /// <inheritdoc />
     public SerializationFormat SerializationFormat { get; set; }
 
-    /// <summary>
-    /// Gets the collection of strong-typed <c>OAuth</c> or <c>OpenID Connect</c> parameters.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
-    public IReadOnlyDictionary<string, IParameter> Parameters => ParameterStore;
-
-    /// <summary>
-    /// Gets the <see cref="OpenIdEnvironment"/> for the current instance.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
+    /// <inheritdoc />
     public OpenIdEnvironment OpenIdEnvironment => OpenIdEnvironmentOrNull ?? throw NotInitializedException;
+
+    /// <inheritdoc />
+    public IParameterCollection Parameters => ParametersOrNull ?? throw NotInitializedException;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdMessage"/> class.
@@ -72,7 +65,7 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     /// </summary>
     /// <param name="other">The other instance to clone.</param>
     protected OpenIdMessage(OpenIdMessage other)
-        : this(other.OpenIdEnvironment, other.Parameters.Values, cloneParameters: true)
+        : this(other.OpenIdEnvironment, other.Parameters, cloneParameters: true)
     {
         SerializationFormat = other.SerializationFormat;
     }
@@ -109,12 +102,13 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
             throw new InvalidOperationException("Already initialized");
 
         OpenIdEnvironmentOrNull = openIdEnvironment;
+        ParametersOrNull = new ParameterCollection();
 
         IsInitialized = true;
     }
 
     /// <summary>
-    /// Initializes the current instance with an <see cref="OpenIdEnvironment"/> and collection of <see cref="Parameter"/> values.
+    /// Initializes the current instance with an <see cref="OpenIdEnvironment"/> and collection of <see cref="IParameter"/> values.
     /// </summary>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance.</param>
     /// <param name="parameters">The collection of <see cref="IParameter"/> values.</param>
@@ -127,10 +121,7 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
             throw new InvalidOperationException("Already initialized");
 
         OpenIdEnvironmentOrNull = openIdEnvironment;
-        ParameterStoreOrNull = parameters.ToDictionary(
-            parameter => parameter.Descriptor.ParameterName,
-            parameter => cloneParameters ? parameter.Clone() : parameter,
-            StringComparer.OrdinalIgnoreCase);
+        ParametersOrNull = new ParameterCollection(parameters, cloneParameters);
 
         IsInitialized = true;
     }
@@ -142,26 +133,6 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     IOpenIdMessage ISupportClone<IOpenIdMessage>.Clone() => CloneMessage();
 
     /// <summary>
-    /// Sets a parameter in the current instance.
-    /// </summary>
-    /// <param name="parameter">The parameter to set in the current instance.</param>
-    /// <typeparam name="T">The type of the parameter's value.</typeparam>
-    public virtual void SetParameter<T>(IParameter<T> parameter)
-    {
-        ParameterStore[parameter.Descriptor.ParameterName] = parameter;
-    }
-
-    /// <summary>
-    /// Removes a parameter from the current instance.
-    /// </summary>
-    /// <param name="parameterName">The name of the parameter to remove.</param>
-    /// <returns><c>true</c> if the parameter was removed; otherwise, <c>false</c>.</returns>
-    public virtual bool RemoveParameter(string parameterName)
-    {
-        return ParameterStore.Remove(parameterName);
-    }
-
-    /// <summary>
     /// Gets the value of well known parameter.
     /// </summary>
     /// <param name="knownParameter">The descriptor of the well known parameter.</param>
@@ -169,10 +140,7 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     /// <returns>The value of the well known parameter.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
     protected internal virtual T? GetKnownParameter<T>(KnownParameter<T> knownParameter) =>
-        ParameterStore.TryGetValue(knownParameter.Name, out var parameter) &&
-        parameter is IParameter<T> typedParameter ?
-            typedParameter.ParsedValue :
-            default;
+        Parameters.GetValueOrDefault(knownParameter);
 
     /// <summary>
     /// Sets the value of the well known parameter.
@@ -188,13 +156,13 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
         var parameterName = knownParameter.Name;
         if (parsedValue is null)
         {
-            ParameterStore.Remove(parameterName);
+            Parameters.Remove(parameterName);
             return;
         }
 
         var descriptor = new ParameterDescriptor(knownParameter);
         var parameter = knownParameter.Parser.Create(OpenIdEnvironmentOrNull, descriptor, knownParameter.Parser, parsedValue);
-        ParameterStore[parameterName] = parameter;
+        ParametersOrNull.Set(parameter);
     }
 }
 

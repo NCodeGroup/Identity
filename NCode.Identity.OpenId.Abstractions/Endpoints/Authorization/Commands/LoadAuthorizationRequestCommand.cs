@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 
@@ -32,5 +33,5 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 public readonly record struct LoadAuthorizationRequestCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    IAuthorizationSource AuthorizationSource
+    IOpenIdRequestValues OpenIdRequestValues
 ) : ICommand<IAuthorizationRequest>;

@@ -81,19 +81,15 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
             QueryHelpers
                 .ParseQuery(redirectUri.Query)
                 .ExceptBy(
-                    message.Parameters.Keys,
+                    message.Parameters.Select(parameter => parameter.Descriptor.ParameterName),
                     tuple => tuple.Key,
                     StringComparer.OrdinalIgnoreCase) :
             [];
 
-        var messageOnlyParameters = message.Parameters.Select(tuple =>
-        {
-            var (key, parameter) = tuple;
-            return KeyValuePair.Create(
-                key,
-                parameter.GetStringValues(environment)
-            );
-        });
+        var messageOnlyParameters = message.Parameters.Select(parameter => KeyValuePair.Create(
+            parameter.Descriptor.ParameterName,
+            parameter.GetStringValues(environment)
+        ));
 
         var allParameters = queryOnlyParameters.Concat(messageOnlyParameters);
         var serializedParameters = SerializeUriParameters(allParameters);
@@ -204,14 +200,10 @@ internal class AuthorizationResultExecutor : IResultExecutor<AuthorizationResult
     private static string GetFormPostHtml(Uri redirectUri, IOpenIdMessageResponse message)
     {
         var environment = message.OpenIdEnvironment;
-        var parameters = message.Parameters.Select(tuple =>
-        {
-            var (key, parameter) = tuple;
-            return KeyValuePair.Create(
-                key,
-                parameter.GetStringValues(environment)
-            );
-        });
+        var parameters = message.Parameters.Select(parameter => KeyValuePair.Create(
+            parameter.Descriptor.ParameterName,
+            parameter.GetStringValues(environment)
+        ));
 
         // In the Form, encode spaces as '+'
         // But Uri.EscapeDataString uses '%20', so replace them

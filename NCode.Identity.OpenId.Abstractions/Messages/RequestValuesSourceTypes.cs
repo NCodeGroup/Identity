@@ -21,10 +21,10 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
-/// Contains constants that specify from where an <see cref="IOpenIdRequestValues"/> was loaded from.
+/// Contains constants that specify from where an <see cref="IRequestValues"/> was loaded from.
 /// </summary>
 [PublicAPI]
-public static class OpenIdRequestValuesSourceTypes
+public static class RequestValuesSourceTypes
 {
     /// <summary>
     /// Specifies that the request was loaded from the HTTP query data.

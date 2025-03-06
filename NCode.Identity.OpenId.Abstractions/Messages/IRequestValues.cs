@@ -22,10 +22,10 @@ using Microsoft.Extensions.Primitives;
 namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
-/// Contains the unparsed values for an <c>OAuth</c> or <c>OpenID Connect</c> request.
+/// Contains the unparsed values from an HTTP request.
 /// </summary>
 [PublicAPI]
-public interface IOpenIdRequestValues : IEnumerable<KeyValuePair<string, StringValues>>
+public interface IRequestValues : IEnumerable<KeyValuePair<string, StringValues>>
 {
     /// <summary>
     /// Gets a string that identifies the source of the request values.
@@ -33,20 +33,20 @@ public interface IOpenIdRequestValues : IEnumerable<KeyValuePair<string, StringV
     string SourceType { get; }
 
     /// <summary>
-    /// Gets the number of elements contained in the <see cref="IOpenIdRequestValues"/>.
+    /// Gets the number of elements contained in the <see cref="IRequestValues"/>.
     /// </summary>
     int Count { get; }
 
     /// <summary>
-    /// Gets an <see cref="ICollection{T}"/> containing the keys of the <see cref="IOpenIdRequestValues"/>.
+    /// Gets an <see cref="ICollection{T}"/> containing the keys of the <see cref="IRequestValues"/>.
     /// </summary>
     ICollection<string> Keys { get; }
 
     /// <summary>
-    /// Determines whether the <see cref="IOpenIdRequestValues"/> contains an element with the specified key.
+    /// Determines whether the <see cref="IRequestValues"/> contains an element with the specified key.
     /// </summary>
-    /// <param name="key">The key to locate in the <see cref="IOpenIdRequestValues"/>.</param>
-    /// <returns><c>true</c> if the <see cref="IOpenIdRequestValues"/> contains an element with the specified key; otherwise, <c>false</c>.</returns>
+    /// <param name="key">The key to locate in the <see cref="IRequestValues"/>.</param>
+    /// <returns><c>true</c> if the <see cref="IRequestValues"/> contains an element with the specified key; otherwise, <c>false</c>.</returns>
     bool ContainsKey(string key);
 
     /// <summary>
@@ -54,7 +54,7 @@ public interface IOpenIdRequestValues : IEnumerable<KeyValuePair<string, StringV
     /// </summary>
     /// <param name="key">The key of the value to get.</param>
     /// <param name="value">When this method returns, the value associated with the specified key, if the key is found; otherwise, the default value for the type of the value parameter. This parameter is passed uninitialized.</param>
-    /// <returns><c>true</c> if the <see cref="IOpenIdRequestValues"/> contains an element with the specified key; otherwise, <c>false</c>.</returns>
+    /// <returns><c>true</c> if the <see cref="IRequestValues"/> contains an element with the specified key; otherwise, <c>false</c>.</returns>
     bool TryGetValue(string key, out StringValues value);
 
     /// <summary>

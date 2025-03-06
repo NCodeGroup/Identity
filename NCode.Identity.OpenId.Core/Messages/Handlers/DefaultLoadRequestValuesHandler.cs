@@ -24,17 +24,17 @@ using NCode.Identity.OpenId.Messages.Commands;
 namespace NCode.Identity.OpenId.Messages.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="LoadOpenIdRequestValuesCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="LoadRequestValuesCommand"/> message.
 /// </summary>
-public class DefaultLoadOpenIdRequestValuesHandler(
+public class DefaultLoadRequestValuesHandler(
     IOpenIdErrorFactory errorFactory
-) : ICommandResponseHandler<LoadOpenIdRequestValuesCommand, IOpenIdRequestValues>
+) : ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     /// <inheritdoc />
-    public async ValueTask<IOpenIdRequestValues> HandleAsync(
-        LoadOpenIdRequestValuesCommand command,
+    public async ValueTask<IRequestValues> HandleAsync(
+        LoadRequestValuesCommand command,
         CancellationToken cancellationToken)
     {
         var openIdContext = command.OpenIdContext;
@@ -43,7 +43,7 @@ public class DefaultLoadOpenIdRequestValuesHandler(
 
         if (HttpMethods.IsGet(httpRequest.Method))
         {
-            return new OpenIdRequestValuesUsingQuery(httpRequest.Query);
+            return new RequestValuesUsingQuery(httpRequest.Query);
         }
 
         if (HttpMethods.IsPost(httpRequest.Method))
@@ -59,7 +59,7 @@ public class DefaultLoadOpenIdRequestValuesHandler(
             }
 
             var form = await httpRequest.ReadFormAsync(cancellationToken);
-            return new OpenIdRequestValuesUsingForm(form);
+            return new RequestValuesUsingForm(form);
         }
 
         throw ErrorFactory

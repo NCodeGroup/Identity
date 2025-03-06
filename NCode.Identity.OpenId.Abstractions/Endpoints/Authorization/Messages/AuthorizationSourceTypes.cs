@@ -30,12 +30,12 @@ public static class AuthorizationSourceTypes
     /// <summary>
     /// Specifies that the message was loaded from the HTTP query data.
     /// </summary>
-    public const string Query = OpenIdRequestValuesSourceTypes.Query;
+    public const string Query = RequestValuesSourceTypes.Query;
 
     /// <summary>
     /// Specifies that the message was loaded from the HTTP form data.
     /// </summary>
-    public const string Form = OpenIdRequestValuesSourceTypes.Form;
+    public const string Form = RequestValuesSourceTypes.Form;
 
     /// <summary>
     /// Specifies that the message was loaded from a JWT-Secured Authorization Request (RFC 9101) object.

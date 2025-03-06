@@ -72,7 +72,7 @@ public class DefaultValidateSubjectHandler(
         if (!string.Equals(expectedTenantId, receivedTenantId, StringComparison.Ordinal))
         {
             const string message = "The end-user's tenant does not match the current tenant.";
-            operationDisposition.OpenIdError ??= ErrorFactory.InvalidGrant(message);
+            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -82,7 +82,7 @@ public class DefaultValidateSubjectHandler(
         if (!isAuthenticated)
         {
             const string message = "The end-user is not authenticated.";
-            operationDisposition.OpenIdError ??= ErrorFactory.InvalidGrant(message);
+            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -95,7 +95,7 @@ public class DefaultValidateSubjectHandler(
         if (!ValidateMaxAge(authTime, requestMaxAge, clockSkew))
         {
             const string message = "The end-user's authentication time is too old from the request's MaxAge.";
-            operationDisposition.OpenIdError ??= ErrorFactory.InvalidGrant(message);
+            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -105,7 +105,7 @@ public class DefaultValidateSubjectHandler(
         if (!ValidateMaxAge(authTime, clientMaxAge, clockSkew))
         {
             const string message = "The end-user's authentication time is too old from the client's MaxAge.";
-            operationDisposition.OpenIdError ??= ErrorFactory.InvalidGrant(message);
+            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -115,7 +115,7 @@ public class DefaultValidateSubjectHandler(
         if (!IsRequestedIdpValid(receivedIdp, openIdRequest))
         {
             const string message = "The end-user's IdP does not match the requested IdP.";
-            operationDisposition.OpenIdError ??= ErrorFactory.InvalidGrant(message);
+            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -124,7 +124,7 @@ public class DefaultValidateSubjectHandler(
         if (!IsReceivedIdpAllowed(receivedIdp, settings))
         {
             const string message = "The end-user's IdP is not allowed according to the client's settings.";
-            operationDisposition.OpenIdError ??= ErrorFactory.InvalidGrant(message);
+            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }

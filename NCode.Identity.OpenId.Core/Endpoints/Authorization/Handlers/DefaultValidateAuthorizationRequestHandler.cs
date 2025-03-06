@@ -37,7 +37,7 @@ public class DefaultValidateAuthorizationRequestHandler(
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(
@@ -88,12 +88,12 @@ public class DefaultValidateAuthorizationRequestHandler(
          * request and request_uri parameters MUST NOT be included in Request Objects.
          */
 
-        if (requestObject.Parameters.ContainsKey(OpenIdConstants.Parameters.Request))
+        if (requestObject.Parameters.Contains(OpenIdConstants.Parameters.Request))
             throw ErrorFactory
                 .InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode)
                 .AsException();
 
-        if (requestObject.Parameters.ContainsKey(OpenIdConstants.Parameters.RequestUri))
+        if (requestObject.Parameters.Contains(OpenIdConstants.Parameters.RequestUri))
             throw ErrorFactory
                 .InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode)
                 .AsException();

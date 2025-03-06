@@ -24,7 +24,6 @@ using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Subject;
 
@@ -49,7 +48,7 @@ public class DefaultValidateRefreshTokenGrantHandler(
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
@@ -82,41 +81,45 @@ public class DefaultValidateRefreshTokenGrantHandler(
         if (hasInvalidScopes)
             throw InvalidScopeError.AsException();
 
+        // validate the subject
         if (subjectAuthentication.HasValue)
         {
-            // TODO: verify tenant
-
-            var subjectIsActive = await GetSubjectIsActiveAsync(
+            await ValidateSubjectAsync(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
                 subjectAuthentication.Value,
-                cancellationToken);
-
-            if (!subjectIsActive)
-                throw InvalidGrantError.AsException("The end-user is not active.");
+                cancellationToken
+            );
         }
     }
 
-    private static async ValueTask<bool> GetSubjectIsActiveAsync(
+    private static async ValueTask ValidateSubjectAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
-        var result = new PositiveIsActiveResult();
-
-        var command = new ValidateSubjectIsActiveCommand(
-            openIdContext,
-            openIdClient,
-            openIdRequest,
-            subjectAuthentication,
-            result);
-
         var mediator = openIdContext.Mediator;
-        await mediator.SendAsync(command, cancellationToken);
+        var operationDisposition = new OperationDisposition();
 
-        return result.IsActive;
+        await mediator.SendAsync(
+            new ValidateSubjectCommand(
+                openIdContext,
+                openIdClient,
+                openIdRequest,
+                subjectAuthentication,
+                operationDisposition
+            ),
+            cancellationToken
+        );
+
+        if (operationDisposition.HasOpenIdError)
+        {
+            throw operationDisposition.OpenIdError
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
     }
 }

@@ -34,7 +34,7 @@ internal class TestOpenIdMessageNotImplemented : ITestOpenIdMessage
         set => throw new NotImplementedException();
     }
 
-    public IReadOnlyDictionary<string, IParameter> Parameters => throw new NotImplementedException();
+    public IParameterCollection Parameters => throw new NotImplementedException();
 
     public void Initialize(OpenIdEnvironment openIdEnvironment) =>
         throw new NotImplementedException();

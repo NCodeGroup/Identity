@@ -34,7 +34,7 @@ public class DefaultGetIdTokenSubjectClaimsHandler(
     private IClaimsService ClaimsService { get; } = claimsService;
 
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityLow;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(GetIdTokenSubjectClaimsCommand command, CancellationToken cancellationToken)

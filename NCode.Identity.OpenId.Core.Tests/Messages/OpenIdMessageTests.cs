@@ -262,8 +262,7 @@ public class OpenIdMessageTests : BaseTests
 
         message.SetKnownParameter(knownParameter, parsedValue);
 
-        var (actualParameterName, actualParameter) = Assert.Single(message.Parameters);
-        Assert.Equal(parameterName, actualParameterName);
+        var actualParameter = Assert.Single(message.Parameters);
         Assert.Same(mockParameter.Object, actualParameter);
     }
 
@@ -306,8 +305,7 @@ public class OpenIdMessageTests : BaseTests
 
         message.SetKnownParameter(knownParameter, parsedValue);
 
-        var (actualParameterName, actualParameter) = Assert.Single(message.Parameters);
-        Assert.Equal(parameterName, actualParameterName);
+        var actualParameter = Assert.Single(message.Parameters);
         Assert.Same(mockParameter.Object, actualParameter);
     }
 }

@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,18 +19,20 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Commands;
+namespace NCode.Identity.OpenId.Subject;
 
 /// <summary>
-/// Represents a mediator command to load an authorization request.
+/// Represents a mediator command to validate a subject (aka end-user).
 /// </summary>
 [PublicAPI]
-public readonly record struct LoadAuthorizationRequestCommand(
+public readonly record struct ValidateSubjectCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    IOpenIdRequestValues OpenIdRequestValues
-) : ICommand<IAuthorizationRequest>;
+    IOpenIdRequest OpenIdRequest,
+    SubjectAuthentication SubjectAuthentication,
+    OperationDisposition OperationDisposition
+) : ICommand;

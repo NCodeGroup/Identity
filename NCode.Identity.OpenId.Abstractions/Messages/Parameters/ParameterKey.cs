@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,22 +17,18 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Models;
 
-namespace NCode.Identity.OpenId.Subject;
+namespace NCode.Identity.OpenId.Messages.Parameters;
 
 /// <summary>
-/// Represents a mediator command that is used to validate whether the subject is active or not.
+/// Represents a strongly typed key in a <see cref="IParameterCollection"/>.
 /// </summary>
+/// <typeparam name="T">The type of the parameter's value.</typeparam>
 [PublicAPI]
-public readonly record struct ValidateSubjectIsActiveCommand(
-    OpenIdContext OpenIdContext,
-    OpenIdClient OpenIdClient,
-    IOpenIdRequest OpenIdRequest,
-    SubjectAuthentication SubjectAuthentication,
-    PositiveIsActiveResult Result
-) : ICommand;
+public readonly record struct ParameterKey<T>(string ParameterName)
+{
+    /// <summary>
+    /// Gets the type of the parameter's value.
+    /// </summary>
+    public Type ValueType => typeof(T);
+}

@@ -28,6 +28,11 @@ namespace NCode.Identity.OpenId.Messages;
 public interface IOpenIdRequestValues : IEnumerable<KeyValuePair<string, StringValues>>
 {
     /// <summary>
+    /// Gets a string that identifies the source of the request values.
+    /// </summary>
+    string SourceType { get; }
+
+    /// <summary>
     /// Gets the number of elements contained in the <see cref="IOpenIdRequestValues"/>.
     /// </summary>
     int Count { get; }

@@ -51,10 +51,10 @@ public static class KnownParameters
         };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>$authorization_source_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="AuthorizationSourceType"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>$authorization_source_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="string"/> result.
     /// </summary>
-    public static readonly KnownParameter<AuthorizationSourceType> AuthorizationSourceType =
-        new(OpenIdConstants.Parameters.AuthorizationSourceType, EnumParser<AuthorizationSourceType>.Singleton)
+    public static readonly KnownParameter<string> AuthorizationSourceType =
+        new(OpenIdConstants.Parameters.AuthorizationSourceType, ParameterParsers.String)
         {
             AllowMissingStringValues = true,
             ShouldSerialize = ShouldSerializeAsJsonOnly,

@@ -34,6 +34,9 @@ public class OpenIdRequestValuesUsingForm(
     private IFormCollection Form { get; } = form;
 
     /// <inheritdoc />
+    public string SourceType => RequestValuesSourceTypes.Form;
+
+    /// <inheritdoc />
     public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() =>
         Form.GetEnumerator();
 

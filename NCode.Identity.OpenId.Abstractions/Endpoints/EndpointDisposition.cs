@@ -20,15 +20,15 @@ using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.OpenId.Results;
+namespace NCode.Identity.OpenId.Endpoints;
 
 /// <summary>
-/// Indicates the disposition of an <c>OAuth</c> or <c>OpenID Connect</c> operation.
+/// Indicates whether an <c>OAuth</c> or <c>OpenID Connect</c> endpoint was handled and optionally provides the HTTP response to return.
 /// </summary>
-/// <param name="WasHandled">Indicates whether the operation was handled or not.</param>
-/// <param name="HttpResult">The optional <see cref="IResult"/> that represents the HTTP response to return for the operation.</param>
+/// <param name="WasHandled">Indicates whether the endpoint was handled or not.</param>
+/// <param name="HttpResult">The optional <see cref="IResult"/> that represents the HTTP response to return for the endpoint.</param>
 [PublicAPI]
-public readonly record struct OperationDisposition(bool WasHandled, IResult? HttpResult = null)
+public readonly record struct EndpointDisposition(bool WasHandled, IResult? HttpResult = null)
 {
     /// <summary>
     /// Gets a value indicating whether <see cref="HttpResult"/> is not <see langword="null"/>.
@@ -37,11 +37,11 @@ public readonly record struct OperationDisposition(bool WasHandled, IResult? Htt
     public bool HasHttpResult => HttpResult is not null;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="OperationDisposition"/> class
-    /// that indicates whether the operation was handled and provides the HTTP response to return.
+    /// Initializes a new instance of the <see cref="EndpointDisposition"/> class
+    /// that indicates whether the endpoint was handled and provides the HTTP response to return.
     /// </summary>
-    /// <param name="httpResult">The <see cref="IResult"/> that represents the HTTP response to return for the operation.</param>
-    public OperationDisposition(IResult httpResult)
+    /// <param name="httpResult">The <see cref="IResult"/> that represents the HTTP response to return for the endpoint.</param>
+    public EndpointDisposition(IResult httpResult)
         : this(WasHandled: true, httpResult)
     {
         // nothing

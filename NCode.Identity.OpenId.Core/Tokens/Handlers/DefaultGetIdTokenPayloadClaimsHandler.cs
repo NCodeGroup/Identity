@@ -38,7 +38,7 @@ namespace NCode.Identity.OpenId.Tokens.Handlers;
 public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenPayloadClaimsCommand>, ISupportMediatorPriority
 {
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityLow;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(GetIdTokenPayloadClaimsCommand command, CancellationToken cancellationToken)

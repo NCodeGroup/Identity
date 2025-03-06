@@ -36,7 +36,7 @@ public class ClaimJsonConverter : JsonConverter<Claim>
     /// Initializes a new instance of the <see cref="ClaimJsonConverter"/> class.
     /// </summary>
     public ClaimJsonConverter()
-        : this(ClaimsSerializer.Singleton)
+        : this(DefaultClaimsSerializer.Singleton)
     {
         // nothing
     }

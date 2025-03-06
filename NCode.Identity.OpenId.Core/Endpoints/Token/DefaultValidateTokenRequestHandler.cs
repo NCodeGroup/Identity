@@ -39,7 +39,7 @@ public class DefaultValidateTokenRequestHandler(
         .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(

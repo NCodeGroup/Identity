@@ -175,7 +175,7 @@ public class OpenIdMessageJsonConverter<T>(
             writer.WriteString(FormatKey, format.ToString().ToLowerInvariant());
         }
 
-        foreach (var parameter in message.Parameters.Values)
+        foreach (var parameter in message.Parameters)
         {
             var descriptor = parameter.Descriptor;
             if (!descriptor.ShouldSerialize(OpenIdEnvironment, parameter, format))

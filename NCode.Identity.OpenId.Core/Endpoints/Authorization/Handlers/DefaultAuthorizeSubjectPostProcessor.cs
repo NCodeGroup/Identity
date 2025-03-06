@@ -30,7 +30,7 @@ public class DefaultAuthorizeSubjectPostProcessor :
     ISupportMediatorPriority
 {
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityLow;
 
     /// <inheritdoc />
     public ValueTask PostProcessAsync(

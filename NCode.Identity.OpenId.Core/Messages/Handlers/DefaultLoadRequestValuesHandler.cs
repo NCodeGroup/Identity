@@ -17,43 +17,36 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Messages.Commands;
 
-namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
+namespace NCode.Identity.OpenId.Messages.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="LoadAuthorizationSourceCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="LoadOpenIdRequestValuesCommand"/> message.
 /// </summary>
-public class DefaultLoadAuthorizationSourceHandler(
+public class DefaultLoadRequestValuesHandler(
     IOpenIdErrorFactory errorFactory
-) : ICommandResponseHandler<LoadAuthorizationSourceCommand, IAuthorizationSource>
+) : ICommandResponseHandler<LoadOpenIdRequestValuesCommand, IOpenIdRequestValues>
 {
     private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     /// <inheritdoc />
-    public async ValueTask<IAuthorizationSource> HandleAsync(
-        LoadAuthorizationSourceCommand command,
+    public async ValueTask<IOpenIdRequestValues> HandleAsync(
+        LoadOpenIdRequestValuesCommand command,
         CancellationToken cancellationToken)
     {
         var openIdContext = command.OpenIdContext;
-        var openIdEnvironment = openIdContext.Environment;
-
         var httpContext = openIdContext.Http;
         var httpRequest = httpContext.Request;
 
-        AuthorizationSourceType authorizationSourceType;
-        IOpenIdRequestValues requestValues;
-
         if (HttpMethods.IsGet(httpRequest.Method))
         {
-            authorizationSourceType = AuthorizationSourceType.Query;
-            requestValues = new OpenIdRequestValuesUsingQuery(httpRequest.Query);
+            return new OpenIdRequestValuesUsingQuery(httpRequest.Query);
         }
-        else if (HttpMethods.IsPost(httpRequest.Method))
+
+        if (HttpMethods.IsPost(httpRequest.Method))
         {
             const string expectedContentType = "application/x-www-form-urlencoded";
             if (!httpRequest.ContentType?.StartsWith(expectedContentType, StringComparison.OrdinalIgnoreCase) ?? false)
@@ -65,18 +58,13 @@ public class DefaultLoadAuthorizationSourceHandler(
                     .AsException();
             }
 
-            authorizationSourceType = AuthorizationSourceType.Form;
             var form = await httpRequest.ReadFormAsync(cancellationToken);
-            requestValues = new OpenIdRequestValuesUsingForm(form);
-        }
-        else
-        {
-            throw ErrorFactory
-                .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
-                .WithStatusCode(StatusCodes.Status405MethodNotAllowed)
-                .AsException();
+            return new OpenIdRequestValuesUsingForm(form);
         }
 
-        return new AuthorizationSource(openIdEnvironment, authorizationSourceType, requestValues);
+        throw ErrorFactory
+            .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .WithStatusCode(StatusCodes.Status405MethodNotAllowed)
+            .AsException();
     }
 }

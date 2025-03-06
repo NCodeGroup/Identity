@@ -20,7 +20,6 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using NCode.Identity.OpenId.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
@@ -29,15 +28,15 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// Provides a default implementation of a handler for the <see cref="ChallengeSubjectCommand"/> message.
 /// </summary>
 [PublicAPI]
-public class DefaultChallengeSubjectHandler : ICommandResponseHandler<ChallengeSubjectCommand, OperationDisposition>
+public class DefaultChallengeSubjectHandler : ICommandResponseHandler<ChallengeSubjectCommand, EndpointDisposition>
 {
     private bool DefaultChallengeSchemeFetched { get; set; }
     private string? DefaultChallengeSchemeName { get; set; }
 
-    internal virtual OperationDisposition Handled() => new(WasHandled: true);
+    internal virtual EndpointDisposition Handled() => new(WasHandled: true);
 
     /// <inheritdoc />
-    public async ValueTask<OperationDisposition> HandleAsync(
+    public async ValueTask<EndpointDisposition> HandleAsync(
         ChallengeSubjectCommand command,
         CancellationToken cancellationToken)
     {

@@ -25,7 +25,6 @@ using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Subject;
 
 namespace NCode.Identity.OpenId.Endpoints.Token.Password;
@@ -34,18 +33,10 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="PasswordGrant"/>.
 /// </summary>
-public class DefaultValidatePasswordGrantHandler(
-    IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>, ISupportMediatorPriority
+public class DefaultValidatePasswordGrantHandler : ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>, ISupportMediatorPriority
 {
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
-    private IOpenIdError InvalidGrantError => ErrorFactory
-        .InvalidGrant("The provided password grant is invalid, expired, or revoked.")
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
     /// <inheritdoc />
-    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriority;
+    public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
@@ -62,38 +53,42 @@ public class DefaultValidatePasswordGrantHandler(
             string.IsNullOrEmpty(tokenRequest.ClientId) ||
             string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
 
-        // TODO: verify tenant
-
-        var subjectIsActive = await GetSubjectIsActiveAsync(
+        // validate the subject
+        await ValidateSubjectAsync(
             openIdContext,
             openIdClient,
             tokenRequest,
             subjectAuthentication,
-            cancellationToken);
-
-        if (!subjectIsActive)
-            throw InvalidGrantError.AsException("The end-user is not active.");
+            cancellationToken
+        );
     }
 
-    private static async ValueTask<bool> GetSubjectIsActiveAsync(
+    private static async ValueTask ValidateSubjectAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
         CancellationToken cancellationToken)
     {
-        var result = new PositiveIsActiveResult();
-
-        var command = new ValidateSubjectIsActiveCommand(
-            openIdContext,
-            openIdClient,
-            openIdRequest,
-            subjectAuthentication,
-            result);
-
         var mediator = openIdContext.Mediator;
-        await mediator.SendAsync(command, cancellationToken);
+        var operationDisposition = new OperationDisposition();
 
-        return result.IsActive;
+        await mediator.SendAsync(
+            new ValidateSubjectCommand(
+                openIdContext,
+                openIdClient,
+                openIdRequest,
+                subjectAuthentication,
+                operationDisposition
+            ),
+            cancellationToken
+        );
+
+        if (operationDisposition.HasOpenIdError)
+        {
+            throw operationDisposition.OpenIdError
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
     }
 }

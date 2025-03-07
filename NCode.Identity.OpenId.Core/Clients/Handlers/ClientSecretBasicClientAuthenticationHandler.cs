@@ -34,21 +34,16 @@ namespace NCode.Identity.OpenId.Clients.Handlers;
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses HTTP Basic Authentication.
 /// </summary>
 public class ClientSecretBasicClientAuthenticationHandler(
-    IOpenIdErrorFactory errorFactory,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer
-) : CommonClientAuthenticationHandler(errorFactory, storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
+) : CommonClientAuthenticationHandler(storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
     IClientAuthenticationHandler
 {
     // TODO: move comment
     // RE: 400 vs 401
     // https://stackoverflow.com/questions/22586825/oauth-2-0-why-does-the-authorization-server-return-400-instead-of-401-when-the
-
-    private IOpenIdError ErrorInvalidHeader { get; } = errorFactory
-        .InvalidRequest("An invalid or malformed authorization header was provided.")
-        .WithStatusCode(StatusCodes.Status400BadRequest);
 
     private static string UriDecode(string value) =>
         Uri.UnescapeDataString(value.Replace('+', ' '));
@@ -98,6 +93,8 @@ public class ClientSecretBasicClientAuthenticationHandler(
         CancellationToken cancellationToken)
     {
         var httpContext = openIdContext.Http;
+        var errorFactory = openIdContext.ErrorFactory;
+
         var authorizationHeader = httpContext.Request.Headers.Authorization;
         if (authorizationHeader.Count != 1)
             // not basic auth, let another handler try
@@ -115,7 +112,10 @@ public class ClientSecretBasicClientAuthenticationHandler(
 
         var encodedCredentials = authorizationValue[prefix.Length..].Trim();
         if (encodedCredentials.IsEmpty)
-            return new ClientAuthenticationResult(ErrorInvalidHeader);
+            return new ClientAuthenticationResult(errorFactory
+                .InvalidRequest("An invalid or malformed authorization header was provided.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+            );
 
         return await AuthenticateCredentialsAsync(
             openIdContext,

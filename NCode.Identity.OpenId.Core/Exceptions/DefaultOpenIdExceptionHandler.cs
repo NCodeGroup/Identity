@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Results;
 
@@ -25,15 +26,12 @@ namespace NCode.Identity.OpenId.Exceptions;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdExceptionHandler"/> abstraction.
 /// </summary>
-public class DefaultOpenIdExceptionHandler(
-    IOpenIdErrorFactory errorFactory
-) : IOpenIdExceptionHandler
+public class DefaultOpenIdExceptionHandler : IOpenIdExceptionHandler
 {
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
     /// <inheritdoc />
     public ValueTask<IResult> HandleExceptionAsync(
         HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
         Exception exception,
         CancellationToken cancellationToken)
     {
@@ -41,7 +39,7 @@ public class DefaultOpenIdExceptionHandler(
         {
             HttpResultException httpResultException => httpResultException.HttpResult,
             OpenIdException openIdException => openIdException.Error.AsHttpResult(),
-            _ => ErrorFactory
+            _ => openIdEnvironment.ErrorFactory
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithStatusCode(StatusCodes.Status500InternalServerError)
                 .WithException(exception)

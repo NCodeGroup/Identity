@@ -48,7 +48,7 @@ public abstract class OpenIdEnvironment
     public abstract IKnownParameterCollection KnownParameters { get; }
 
     /// <summary>
-    /// Gets the <see cref="IOpenIdErrorFactory"/> that can be used to create error responses
+    /// Gets the <see cref="IOpenIdErrorFactory"/> instance that can be used to create error responses
     /// </summary>
     public abstract IOpenIdErrorFactory ErrorFactory { get; }
 

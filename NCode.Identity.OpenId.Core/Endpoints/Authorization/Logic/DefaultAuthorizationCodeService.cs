@@ -77,11 +77,13 @@ public class DefaultAuthorizationCodeService(
         var lifetime = openIdClient.Settings.GetValue(SettingKeys.AuthorizationCodeLifetime);
 
         await PersistedGrantService.AddAsync(
+            openIdContext,
             persistedGrantId,
             persistedGrant,
             createdWhen,
             lifetime,
-            cancellationToken);
+            cancellationToken
+        );
 
         var tokenPeriod = new TimePeriod(createdWhen, createdWhen + lifetime);
         var securityToken = new SecurityToken(

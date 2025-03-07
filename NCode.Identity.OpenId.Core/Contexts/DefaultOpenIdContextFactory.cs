@@ -29,12 +29,12 @@ namespace NCode.Identity.OpenId.Contexts;
 /// Provides a default implementation of the <see cref="IOpenIdContextFactory"/> abstraction.
 /// </summary>
 public class DefaultOpenIdContextFactory(
-    OpenIdEnvironment openIdEnvironment,
+    IOpenIdEnvironmentProvider openIdEnvironmentProvider,
     IOpenIdServerProvider openIdServerProvider,
     IOpenIdTenantFactory openIdTenantFactory
 ) : IOpenIdContextFactory
 {
-    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+    private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } = openIdEnvironmentProvider;
     private IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
     private IOpenIdTenantFactory OpenIdTenantFactory { get; } = openIdTenantFactory;
 
@@ -44,22 +44,27 @@ public class DefaultOpenIdContextFactory(
         IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var openIdServer = await OpenIdServerProvider.GetAsync(cancellationToken);
+        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
+        var openIdServer = await OpenIdServerProvider.GetAsync(openIdEnvironment, cancellationToken);
 
         await using var tenantReference = await OpenIdTenantFactory.CreateTenantAsync(
             httpContext,
+            openIdEnvironment,
+            openIdServer,
             openIdServer.PropertyBag,
-            cancellationToken);
+            cancellationToken
+        );
 
         var propertyBag = tenantReference.Value.PropertyBag.Clone();
 
         var openIdContext = new DefaultOpenIdContext(
             httpContext,
-            OpenIdEnvironment,
+            openIdEnvironment,
             openIdServer,
             tenantReference,
             mediator,
-            propertyBag);
+            propertyBag
+        );
 
         httpContext.Features.Set(new OpenIdContextFeature { OpenIdContext = openIdContext });
         httpContext.Response.RegisterForDisposeAsync(openIdContext);

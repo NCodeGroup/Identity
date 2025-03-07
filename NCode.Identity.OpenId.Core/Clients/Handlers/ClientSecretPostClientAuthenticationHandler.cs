@@ -18,7 +18,6 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -29,12 +28,11 @@ namespace NCode.Identity.OpenId.Clients.Handlers;
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses <c>client_id</c> and <c>client_secret</c> from the HTTP Request Body.
 /// </summary>
 public class ClientSecretPostClientAuthenticationHandler(
-    IOpenIdErrorFactory errorFactory,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer
-) : CommonClientAuthenticationHandler(errorFactory, storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
+) : CommonClientAuthenticationHandler(storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
     IClientAuthenticationHandler
 {
     /// <inheritdoc />

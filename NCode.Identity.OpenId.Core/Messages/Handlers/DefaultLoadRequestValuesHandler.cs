@@ -26,18 +26,17 @@ namespace NCode.Identity.OpenId.Messages.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="LoadRequestValuesCommand"/> message.
 /// </summary>
-public class DefaultLoadRequestValuesHandler(
-    IOpenIdErrorFactory errorFactory
-) : ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>
+public class DefaultLoadRequestValuesHandler : ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>
 {
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
     /// <inheritdoc />
     public async ValueTask<IRequestValues> HandleAsync(
         LoadRequestValuesCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var openIdContext = command.OpenIdContext;
+        var errorFactory = openIdContext.ErrorFactory;
+
         var httpContext = openIdContext.Http;
         var httpRequest = httpContext.Request;
 
@@ -51,7 +50,7 @@ public class DefaultLoadRequestValuesHandler(
             const string expectedContentType = "application/x-www-form-urlencoded";
             if (!httpRequest.ContentType?.StartsWith(expectedContentType, StringComparison.OrdinalIgnoreCase) ?? false)
             {
-                throw ErrorFactory
+                throw errorFactory
                     .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
                     .WithDescription($"The content type of POST requests must be '{expectedContentType}', received '{httpRequest.ContentType}'.")
                     .WithStatusCode(StatusCodes.Status415UnsupportedMediaType)
@@ -62,7 +61,7 @@ public class DefaultLoadRequestValuesHandler(
             return new RequestValuesUsingForm(form);
         }
 
-        throw ErrorFactory
+        throw errorFactory
             .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
             .WithStatusCode(StatusCodes.Status405MethodNotAllowed)
             .AsException();

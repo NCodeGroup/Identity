@@ -16,26 +16,31 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Messages.Parameters;
-
-namespace NCode.Identity.OpenId.Messages;
+namespace NCode.Identity.OpenId.Environments;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdMessageFactory"/> abstraction.
+/// Provides a default implementation of the <see cref="IOpenIdEnvironmentProvider"/> abstraction.
 /// </summary>
-/// <typeparam name="T">The type of the <see cref="OpenIdMessage"/> to create.</typeparam>
-public class DefaultOpenIdMessageFactory<T> : IOpenIdMessageFactory
-    where T : OpenIdMessage, new()
+public class DefaultOpenIdEnvironmentProvider(
+    IOpenIdEnvironmentFactory factory
+) : IOpenIdEnvironmentProvider
 {
-    /// <inheritdoc />
-    public string TypeDiscriminator => typeof(T).Name;
+    private IOpenIdEnvironmentFactory Factory { get; } = factory;
+    private OpenIdEnvironment? InstanceOrNull { get; set; }
+    private Lock SyncRoot { get; } = new();
 
     /// <inheritdoc />
-    public IOpenIdMessage Create(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters)
+    public OpenIdEnvironment Get()
     {
-        var message = new T();
-        message.Initialize(openIdEnvironment, parameters);
-        return message;
+        // ReSharper disable once InvertIf
+        if (InstanceOrNull is null)
+        {
+            lock (SyncRoot)
+            {
+                InstanceOrNull ??= Factory.Create();
+            }
+        }
+
+        return InstanceOrNull;
     }
 }

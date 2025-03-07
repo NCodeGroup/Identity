@@ -19,6 +19,8 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Disposables;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants.Providers;
 using NCode.PropertyBag;
 
@@ -36,16 +38,22 @@ public class DefaultOpenIdTenantFactory(
     /// <inheritdoc />
     public async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantAsync(
         HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var tenantProvider = TenantProviderSelector.SelectProvider(propertyBag);
 
         // no need to add ref since we return immediately
         var tenantReference = await tenantProvider.GetTenantAsync(
             httpContext,
+            openIdEnvironment,
+            openIdServer,
             propertyBag,
-            cancellationToken);
+            cancellationToken
+        );
 
         return tenantReference;
     }

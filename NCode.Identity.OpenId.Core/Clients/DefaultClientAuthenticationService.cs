@@ -27,14 +27,9 @@ namespace NCode.Identity.OpenId.Clients;
 /// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction.
 /// </summary>
 public class DefaultClientAuthenticationService(
-    IOpenIdErrorFactory errorFactory,
     IEnumerable<IClientAuthenticationHandler> handlers
 ) : IClientAuthenticationService
 {
-    private IOpenIdError ErrorMultipleAuthMethods { get; } = errorFactory
-        .InvalidRequest("Multiple client authentication methods were provided.")
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
     private IEnumerable<IClientAuthenticationHandler> Handlers { get; } = handlers;
 
     private ClientAuthenticationResult? ResultOrDefault { get; set; }
@@ -49,8 +44,11 @@ public class DefaultClientAuthenticationService(
 
     private async ValueTask<ClientAuthenticationResult> AuthenticateCoreAsync(
         OpenIdContext openIdContext,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
+        var errorFactory = openIdContext.ErrorFactory;
+
         // Requirements:
         // - Error if multiple results with different client IDs
         // - Error if multiple confidential clients
@@ -74,7 +72,10 @@ public class DefaultClientAuthenticationService(
 
             if (results.Count > 0 && !string.Equals(result.Client.ClientId, results[0].Client!.ClientId, StringComparison.Ordinal))
             {
-                return new ClientAuthenticationResult(ErrorMultipleAuthMethods);
+                return new ClientAuthenticationResult(errorFactory
+                    .InvalidRequest("Multiple client authentication methods were provided.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                );
             }
 
             results.Add(result);
@@ -89,7 +90,10 @@ public class DefaultClientAuthenticationService(
         var confidentialResults = results.Where(result => result.IsConfidential).ToList();
 
         if (confidentialResults.Count > 1)
-            return new ClientAuthenticationResult(ErrorMultipleAuthMethods);
+            return new ClientAuthenticationResult(errorFactory
+                .InvalidRequest("Multiple client authentication methods were provided.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+            );
 
         if (confidentialResults.Count == 1)
             return confidentialResults[0];

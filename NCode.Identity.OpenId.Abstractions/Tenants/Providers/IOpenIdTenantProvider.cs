@@ -21,6 +21,8 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Disposables;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Servers;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants.Providers;
@@ -49,11 +51,16 @@ public interface IOpenIdTenantProvider
     /// across multiple requests.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
+    /// <param name="openIdServer">The <see cref="OpenIdServer"/> instance associated with the current request.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OpenIdTenant"/> instance.</returns>
     ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> GetTenantAsync(
         HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

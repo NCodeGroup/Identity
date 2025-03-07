@@ -20,7 +20,7 @@
 using System.Text.Json;
 using IdGen;
 using NCode.Identity.Jose.Extensions;
-using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -33,14 +33,12 @@ namespace NCode.Identity.OpenId.Logic;
 /// </summary>
 public class DefaultPersistedGrantService(
     TimeProvider timeProvider,
-    OpenIdEnvironment openIdEnvironment,
     ICryptoService cryptoService,
     IIdGenerator<long> idGenerator,
     IStoreManagerFactory storeManagerFactory
 ) : IPersistedGrantService
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IIdGenerator<long> IdGenerator { get; } = idGenerator;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -49,18 +47,23 @@ public class DefaultPersistedGrantService(
         CryptoService.HashValue(
             grantKey,
             HashAlgorithmType.Sha256,
-            BinaryEncodingType.Base64);
+            BinaryEncodingType.Base64
+        );
 
     /// <inheritdoc />
     public async ValueTask AddAsync<TPayload>(
+        OpenIdContext openIdContext,
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,
         DateTimeOffset createdWhen,
         TimeSpan? lifetime,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (grant.Status != PersistedGrantStatus.Active)
             throw new InvalidOperationException("The grant must be active.");
+
+        var openIdEnvironment = openIdContext.Environment;
 
         var id = IdGenerator.CreateId();
         var hashedKey = GetHashedKey(grantId.GrantKey);
@@ -69,7 +72,8 @@ public class DefaultPersistedGrantService(
 
         var payloadJson = JsonSerializer.SerializeToElement(
             grant.Payload,
-            OpenIdEnvironment.JsonSerializerOptions);
+            openIdEnvironment.JsonSerializerOptions
+        );
 
         var envelope = new PersistedGrant
         {
@@ -108,9 +112,13 @@ public class DefaultPersistedGrantService(
 
     /// <inheritdoc />
     public async ValueTask<PersistedGrant<TPayload>?> TryGetAsync<TPayload>(
+        OpenIdContext openIdContext,
         PersistedGrantId grantId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
+        var openIdEnvironment = openIdContext.Environment;
+
         var hashedKey = GetHashedKey(grantId.GrantKey);
         var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
@@ -121,18 +129,20 @@ public class DefaultPersistedGrantService(
             grantId.TenantId,
             grantId.GrantType,
             hashedKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (envelope == null)
             return null;
 
-        var status = GetStatus(utcNow, envelope);
         var payload = envelope.PayloadJson.Deserialize<TPayload>(
-            OpenIdEnvironment.JsonSerializerOptions);
+            openIdEnvironment.JsonSerializerOptions
+        );
 
         if (payload is null)
             throw new InvalidOperationException("The payload could not be deserialized.");
 
+        var status = GetStatus(utcNow, envelope);
         var persistedGrant = new PersistedGrant<TPayload>
         {
             Status = status,
@@ -146,9 +156,13 @@ public class DefaultPersistedGrantService(
 
     /// <inheritdoc />
     public async ValueTask<PersistedGrant<TPayload>?> TryConsumeOnce<TPayload>(
+        OpenIdContext openIdContext,
         PersistedGrantId grantId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
+        var openIdEnvironment = openIdContext.Environment;
+
         var hashedKey = GetHashedKey(grantId.GrantKey);
         var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
@@ -159,7 +173,8 @@ public class DefaultPersistedGrantService(
             grantId.TenantId,
             grantId.GrantType,
             hashedKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (envelope == null)
             return null;
@@ -174,12 +189,14 @@ public class DefaultPersistedGrantService(
             grantId.GrantType,
             hashedKey,
             utcNow,
-            cancellationToken);
+            cancellationToken
+        );
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var payload = envelope.PayloadJson.Deserialize<TPayload>(
-            OpenIdEnvironment.JsonSerializerOptions);
+            openIdEnvironment.JsonSerializerOptions
+        );
 
         if (payload is null)
             throw new InvalidOperationException("The payload could not be deserialized.");
@@ -197,9 +214,11 @@ public class DefaultPersistedGrantService(
 
     /// <inheritdoc />
     public async ValueTask SetConsumedAsync(
+        OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset consumedWhen,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
@@ -211,16 +230,19 @@ public class DefaultPersistedGrantService(
             grantId.GrantType,
             hashedKey,
             consumedWhen,
-            cancellationToken);
+            cancellationToken
+        );
 
         await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
     public async ValueTask SetRevokedAsync(
+        OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset revokedWhen,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
@@ -232,16 +254,19 @@ public class DefaultPersistedGrantService(
             grantId.GrantType,
             hashedKey,
             revokedWhen,
-            cancellationToken);
+            cancellationToken
+        );
 
         await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
     public async ValueTask UpdateExpirationAsync(
+        OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset expiresWhen,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var hashedKey = GetHashedKey(grantId.GrantKey);
 
@@ -253,7 +278,8 @@ public class DefaultPersistedGrantService(
             grantId.GrantType,
             hashedKey,
             expiresWhen,
-            cancellationToken);
+            cancellationToken
+        );
 
         await storeManager.SaveChangesAsync(cancellationToken);
     }

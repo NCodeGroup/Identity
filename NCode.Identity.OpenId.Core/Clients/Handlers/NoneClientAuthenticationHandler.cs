@@ -30,19 +30,14 @@ namespace NCode.Identity.OpenId.Clients.Handlers;
 /// This handler also ensures that the <c>client_secret</c> is not passed in the query string.
 /// </summary>
 public class NoneClientAuthenticationHandler(
-    IOpenIdErrorFactory errorFactory,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer
 ) :
-    CommonClientAuthenticationHandler(errorFactory, storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
+    CommonClientAuthenticationHandler(storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
     IClientAuthenticationHandler
 {
-    private IOpenIdError ErrorSecretInQuery { get; } = errorFactory
-        .InvalidRequest("The client secret must not be passed in the query string.")
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
     /// <inheritdoc />
     public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.None;
 
@@ -62,7 +57,11 @@ public class NoneClientAuthenticationHandler(
             return ClientAuthenticationResult.Undefined;
 
         if (query.ContainsKey(OpenIdConstants.Parameters.ClientSecret))
-            return new ClientAuthenticationResult(ErrorSecretInQuery);
+            return new ClientAuthenticationResult(
+                openIdContext.ErrorFactory
+                    .InvalidRequest("The client secret must not be passed in the query string.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+            );
 
         return await AuthenticateClientAsync(
             openIdContext,

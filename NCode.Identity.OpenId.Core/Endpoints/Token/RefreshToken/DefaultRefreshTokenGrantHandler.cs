@@ -24,7 +24,6 @@ using NCode.Identity.OpenId.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Endpoints.Token.Messages;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Messages;
@@ -40,21 +39,13 @@ namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 /// </summary>
 public class DefaultRefreshTokenGrantHandler(
     TimeProvider timeProvider,
-    OpenIdEnvironment openIdEnvironment,
-    IOpenIdErrorFactory errorFactory,
     IPersistedGrantService persistedGrantService,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
-
-    private IOpenIdError InvalidGrantError => ErrorFactory
-        .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
-        .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
@@ -67,15 +58,17 @@ public class DefaultRefreshTokenGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var settings = openIdClient.Settings;
+        var errorFactory = openIdContext.ErrorFactory;
         var mediator = openIdContext.Mediator;
+        var settings = openIdClient.Settings;
 
         var refreshToken = tokenRequest.RefreshToken;
         if (string.IsNullOrEmpty(refreshToken))
         {
-            return ErrorFactory
+            return errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RefreshToken)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
@@ -90,16 +83,22 @@ public class DefaultRefreshTokenGrantHandler(
         };
 
         var persistedGrantOrNull = await PersistedGrantService.TryGetAsync<RefreshTokenGrant>(
+            openIdContext,
             grantId,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (!persistedGrantOrNull.HasValue)
-            return InvalidGrantError;
+            return errorFactory
+                .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var persistedGrant = persistedGrantOrNull.Value;
         if (persistedGrant.Status != PersistedGrantStatus.Active)
             // TODO: refresh_token_reuse_policy (none, revoke_all)
-            return InvalidGrantError;
+            return errorFactory
+                .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var refreshTokenGrant = persistedGrant.Payload;
 
@@ -108,16 +107,20 @@ public class DefaultRefreshTokenGrantHandler(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
-                refreshTokenGrant),
-            cancellationToken);
+                refreshTokenGrant
+            ),
+            cancellationToken
+        );
 
         var rotationEnabled = settings.GetValue(SettingKeys.RefreshTokenRotationEnabled);
         if (rotationEnabled)
         {
             await PersistedGrantService.SetRevokedAsync(
+                openIdContext,
                 grantId,
                 utcNow,
-                cancellationToken);
+                cancellationToken
+            );
         }
 
         var tokenResponse = await CreateTokenResponseAsync(
@@ -125,7 +128,8 @@ public class DefaultRefreshTokenGrantHandler(
             openIdClient,
             tokenRequest,
             refreshTokenGrant,
-            cancellationToken);
+            cancellationToken
+        );
 
         var expirationPolicy = settings.GetValue(SettingKeys.RefreshTokenExpirationPolicy);
         var useSlidingExpiration = expirationPolicy == OpenIdConstants.RefreshTokenExpirationPolicy.Sliding;
@@ -135,9 +139,11 @@ public class DefaultRefreshTokenGrantHandler(
             var expiresWhen = utcNow + lifetime;
 
             await PersistedGrantService.UpdateExpirationAsync(
+                openIdContext,
                 grantId,
                 expiresWhen,
-                cancellationToken);
+                cancellationToken
+            );
         }
 
         return tokenResponse;
@@ -148,13 +154,15 @@ public class DefaultRefreshTokenGrantHandler(
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
         RefreshTokenGrant refreshTokenGrant,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
+        var openIdEnvironment = openIdContext.Environment;
         var (_, originalScopes, _, subjectAuthentication) = refreshTokenGrant;
 
         var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 
-        var tokenResponse = TokenResponse.Create(OpenIdEnvironment);
+        var tokenResponse = TokenResponse.Create(openIdEnvironment);
 
         tokenResponse.Scopes = effectiveScopes.ToList();
 
@@ -173,7 +181,8 @@ public class DefaultRefreshTokenGrantHandler(
                 openIdContext,
                 openIdClient,
                 securityTokenRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenPeriod.Duration;
@@ -191,7 +200,8 @@ public class DefaultRefreshTokenGrantHandler(
                 openIdContext,
                 openIdClient,
                 newRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             tokenResponse.IdToken = securityToken.TokenValue;
         }
@@ -212,7 +222,8 @@ public class DefaultRefreshTokenGrantHandler(
                     openIdContext,
                     openIdClient,
                     newRequest,
-                    cancellationToken);
+                    cancellationToken
+                );
 
                 tokenResponse.RefreshToken = securityToken.TokenValue;
             }

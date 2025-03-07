@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Messages;
@@ -33,7 +34,8 @@ public interface IOpenIdMessageFactory
     /// <summary>
     /// Creates a new instance of the <see cref="IOpenIdMessage"/> with the specified parameters.
     /// </summary>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
     /// <param name="parameters">The parameters to initialize the message with.</param>
     /// <returns>The new instance of the <see cref="IOpenIdMessage"/>.</returns>
-    IOpenIdMessage Create(IEnumerable<IParameter> parameters);
+    IOpenIdMessage Create(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters);
 }

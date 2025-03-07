@@ -39,13 +39,11 @@ namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 /// </summary>
 public class DefaultAuthorizationCodeGrantHandler(
     TimeProvider timeProvider,
-    IOpenIdErrorFactory errorFactory,
     IPersistedGrantService persistedGrantService,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
 
@@ -63,11 +61,12 @@ public class DefaultAuthorizationCodeGrantHandler(
         ITokenRequest tokenRequest,
         CancellationToken cancellationToken)
     {
+        var errorFactory = openIdContext.ErrorFactory;
         var mediator = openIdContext.Mediator;
 
         var authorizationCode = tokenRequest.AuthorizationCode;
         if (string.IsNullOrEmpty(authorizationCode))
-            return ErrorFactory
+            return errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.AuthorizationCode)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
@@ -79,11 +78,13 @@ public class DefaultAuthorizationCodeGrantHandler(
         };
 
         var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<AuthorizationGrant>(
+            openIdContext,
             grantId,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (!persistedGrantOrNull.HasValue)
-            return ErrorFactory
+            return errorFactory
                 .InvalidGrant("The provided authorization code is invalid, expired, or revoked.")
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 

@@ -41,12 +41,10 @@ namespace NCode.Identity.OpenId.Endpoints.Token;
 /// Provides a default implementation of the required services and handlers used by the token endpoint.
 /// </summary>
 public class DefaultTokenEndpointHandler(
-    IOpenIdErrorFactory errorFactory,
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService
 ) : IOpenIdEndpointProvider
 {
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
 
@@ -63,21 +61,26 @@ public class DefaultTokenEndpointHandler(
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         [FromServices] IMediator mediator,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
+        var openIdContext = await ContextFactory.CreateAsync(
+            httpContext,
+            mediator,
+            cancellationToken
+        );
+
+        var openIdEnvironment = openIdContext.Environment;
+        var errorFactory = openIdContext.ErrorFactory;
+
         var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
         if (!isPostVerb || !IsApplicationFormContentType(httpContext))
         {
-            return ErrorFactory
+            return errorFactory
                 .InvalidRequest("Only POST requests with Content-Type 'application/x-www-form-urlencoded' are supported.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
         }
-
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken);
 
         var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
             openIdContext,
@@ -93,39 +96,43 @@ public class DefaultTokenEndpointHandler(
 
         if (!authResult.HasClient)
         {
-            return ErrorFactory
+            return errorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
         }
 
-        var openIdEnvironment = openIdContext.Environment;
-        var openIdClient = authResult.Client;
-
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var tokenRequest = TokenRequest.Load(openIdEnvironment, formData);
+
+        var openIdClient = authResult.Client;
 
         // for simple validations before selecting the handler and materializing any grants
         await mediator.SendAsync(
             new ValidateTokenRequestCommand(
                 openIdContext,
                 openIdClient,
-                tokenRequest),
-            cancellationToken);
+                tokenRequest
+            ),
+            cancellationToken
+        );
 
         var handler = await mediator.SendAsync<SelectTokenGrantHandlerCommand, ITokenGrantHandler>(
             new SelectTokenGrantHandlerCommand(
                 openIdContext,
                 openIdClient,
-                tokenRequest),
-            cancellationToken);
+                tokenRequest
+            ),
+            cancellationToken
+        );
 
         // the handler is also responsible for validating the request especially grants
         var tokenResponse = await handler.HandleAsync(
             openIdContext,
             openIdClient,
             tokenRequest,
-            cancellationToken);
+            cancellationToken
+        );
 
         return tokenResponse.AsHttpResult();
     }

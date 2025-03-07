@@ -38,17 +38,11 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 /// </summary>
 public class DefaultPasswordGrantHandler(
     TimeProvider timeProvider,
-    IOpenIdErrorFactory errorFactory,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private ITokenService TokenService { get; } = tokenService;
-
-    private IOpenIdError InvalidGrantError => ErrorFactory
-        .InvalidGrant("The provided credentials are invalid, expired, or revoked.")
-        .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
@@ -61,14 +55,16 @@ public class DefaultPasswordGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
+        var errorFactory = openIdContext.ErrorFactory;
         var mediator = openIdContext.Mediator;
 
         var username = tokenRequest.Username;
         if (string.IsNullOrEmpty(username))
         {
-            return ErrorFactory
+            return errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.Username)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
@@ -79,11 +75,15 @@ public class DefaultPasswordGrantHandler(
                 openIdClient,
                 tokenRequest
             ),
-            cancellationToken);
+            cancellationToken
+        );
 
         if (!disposition.IsAuthenticated)
         {
-            return disposition.Error ?? InvalidGrantError;
+            return disposition.Error ??
+                   errorFactory
+                       .InvalidGrant("The provided credentials are invalid, expired, or revoked.")
+                       .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
         var subjectAuthentication = disposition.Ticket.Value;
@@ -95,15 +95,18 @@ public class DefaultPasswordGrantHandler(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
-                passwordGrant),
-            cancellationToken);
+                passwordGrant
+            ),
+            cancellationToken
+        );
 
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
             openIdClient,
             tokenRequest,
             passwordGrant,
-            cancellationToken);
+            cancellationToken
+        );
 
         return tokenResponse;
     }
@@ -113,7 +116,8 @@ public class DefaultPasswordGrantHandler(
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
         PasswordGrant passwordGrant,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var scopes = tokenRequest.Scopes;
         Debug.Assert(scopes is not null);
@@ -137,7 +141,8 @@ public class DefaultPasswordGrantHandler(
                 openIdContext,
                 openIdClient,
                 securityTokenRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenPeriod.Duration;
@@ -155,7 +160,8 @@ public class DefaultPasswordGrantHandler(
                 openIdContext,
                 openIdClient,
                 newRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             tokenResponse.IdToken = securityToken.TokenValue;
         }
@@ -171,7 +177,8 @@ public class DefaultPasswordGrantHandler(
                 openIdContext,
                 openIdClient,
                 newRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             tokenResponse.RefreshToken = securityToken.TokenValue;
         }

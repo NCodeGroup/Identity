@@ -18,15 +18,21 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints;
 
-internal class OpenIdMiddleware(RequestDelegate next, IOpenIdExceptionHandler exceptionHandler)
+internal class OpenIdMiddleware(
+    RequestDelegate next,
+    IOpenIdExceptionHandler openIdExceptionHandler,
+    IOpenIdEnvironmentProvider openIdEnvironmentProvider
+)
 {
     private RequestDelegate Next { get; } = next;
-    private IOpenIdExceptionHandler ExceptionHandler { get; } = exceptionHandler;
+    private IOpenIdExceptionHandler OpenIdExceptionHandler { get; } = openIdExceptionHandler;
+    private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } = openIdEnvironmentProvider;
 
     public async Task InvokeAsync(HttpContext httpContext)
     {
@@ -46,15 +52,17 @@ internal class OpenIdMiddleware(RequestDelegate next, IOpenIdExceptionHandler ex
         }
         catch (Exception exception)
         {
-            var exceptionHandler = ExceptionHandler;
             var cancellationToken = httpContext.RequestAborted;
+            var openIdEnvironment = OpenIdEnvironmentProvider.Get();
+            var openIdExceptionHandler = OpenIdExceptionHandler;
+
             var metadata = httpContext.GetEndpoint()?.Metadata.GetMetadata<IOpenIdEndpointExceptionHandlerMetadata>();
             if (metadata is not null)
             {
-                exceptionHandler = await metadata.GetExceptionHandlerAsync(httpContext, cancellationToken);
+                openIdExceptionHandler = await metadata.GetExceptionHandlerAsync(httpContext, cancellationToken);
             }
 
-            result = await exceptionHandler.HandleExceptionAsync(httpContext, exception, cancellationToken);
+            result = await openIdExceptionHandler.HandleExceptionAsync(httpContext, openIdEnvironment, exception, cancellationToken);
         }
 
         await result.ExecuteAsync(httpContext);

@@ -28,16 +28,8 @@ namespace NCode.Identity.OpenId.Endpoints.Token;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenRequestCommand"/> messsage.
 /// </summary>
-public class DefaultValidateTokenRequestHandler(
-    IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenRequestCommand>, ISupportMediatorPriority
+public class DefaultValidateTokenRequestHandler : ICommandHandler<ValidateTokenRequestCommand>, ISupportMediatorPriority
 {
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
-    private IOpenIdError InvalidScopeError => ErrorFactory
-        .InvalidScope()
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
     /// <inheritdoc />
     public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
 
@@ -46,7 +38,9 @@ public class DefaultValidateTokenRequestHandler(
         ValidateTokenRequestCommand command,
         CancellationToken cancellationToken)
     {
-        var (_, openIdClient, tokenRequest) = command;
+        var (openIdContext, openIdClient, tokenRequest) = command;
+
+        var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
         // DefaultClientAuthenticationService already performs this check for us
@@ -59,7 +53,10 @@ public class DefaultValidateTokenRequestHandler(
         var hasInvalidScopes = requestedScopes?.Except(settings.GetValue(SettingKeys.ScopesSupported)).Any() ?? false;
         if (hasInvalidScopes)
             // invalid_scope
-            throw InvalidScopeError.AsException();
+            throw errorFactory
+                .InvalidScope()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
 
         // additional validation occurs in:
         // - DefaultSelectTokenGrantHandlerHandler

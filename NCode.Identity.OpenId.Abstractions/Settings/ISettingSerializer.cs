@@ -18,6 +18,7 @@
 
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -30,7 +31,11 @@ public interface ISettingSerializer
     /// <summary>
     /// Deserializes a collection of <see cref="Setting"/> instances from JSON.
     /// </summary>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
     /// <param name="settingsJson">The JSON to deserialize into <see cref="Setting"/> instances.</param>
     /// <returns>The collection of <see cref="Setting"/> instances.</returns>
-    IReadOnlyCollection<Setting> DeserializeSettings(JsonElement settingsJson);
+    IReadOnlyCollection<Setting> DeserializeSettings(
+        OpenIdEnvironment openIdEnvironment,
+        JsonElement settingsJson
+    );
 }

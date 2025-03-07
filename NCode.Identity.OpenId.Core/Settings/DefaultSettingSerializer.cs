@@ -24,18 +24,14 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction.
 /// </summary>
-public class DefaultSettingSerializer(
-    OpenIdEnvironment openIdEnvironment
-) : ISettingSerializer
+public class DefaultSettingSerializer : ISettingSerializer
 {
-    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
-
     /// <inheritdoc />
-    public IReadOnlyCollection<Setting> DeserializeSettings(JsonElement settingsJson)
+    public IReadOnlyCollection<Setting> DeserializeSettings(OpenIdEnvironment openIdEnvironment, JsonElement settingsJson)
         => settingsJson.ValueKind switch
         {
             JsonValueKind.Null or JsonValueKind.Undefined => Array.Empty<Setting>(),
-            JsonValueKind.Object => settingsJson.Deserialize<IReadOnlyCollection<Setting>>(OpenIdEnvironment.JsonSerializerOptions) ?? [],
+            JsonValueKind.Object => settingsJson.Deserialize<IReadOnlyCollection<Setting>>(openIdEnvironment.JsonSerializerOptions) ?? [],
             _ => throw new JsonException("Expected an object or null value.")
         };
 }

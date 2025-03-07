@@ -22,7 +22,6 @@ using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
@@ -40,8 +39,6 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 public class DefaultDynamicByPathOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
-    OpenIdEnvironment openIdEnvironment,
-    IOpenIdErrorFactory openIdErrorFactory,
     IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
@@ -66,12 +63,6 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
 
     /// <inheritdoc />
     protected override OpenIdOptions OpenIdOptions { get; } = optionsAccessor.Value;
-
-    /// <inheritdoc />
-    protected override OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
-
-    /// <inheritdoc />
-    protected override IOpenIdErrorFactory OpenIdErrorFactory { get; } = openIdErrorFactory;
 
     /// <inheritdoc />
     protected override IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
@@ -100,6 +91,8 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     /// <inheritdoc />
     protected override async ValueTask<TenantDescriptor> GetTenantDescriptorAsync(
         HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken)
     {
@@ -121,7 +114,7 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
         if (string.IsNullOrEmpty(tenantId))
             throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' is empty.");
 
-        var persistedTenant = await GetTenantByIdAsync(tenantId, propertyBag, cancellationToken);
+        var persistedTenant = await GetTenantByIdAsync(openIdEnvironment, openIdServer, tenantId, propertyBag, cancellationToken);
         propertyBag.Set(persistedTenant);
 
         return new TenantDescriptor

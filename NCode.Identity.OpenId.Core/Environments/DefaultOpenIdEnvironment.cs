@@ -19,8 +19,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using NCode.Identity.DataProtection;
 using NCode.Identity.OpenId.Claims;
 using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
@@ -39,42 +37,32 @@ namespace NCode.Identity.OpenId.Environments;
 /// Provides a default implementation of the <see cref="OpenIdEnvironment"/> abstraction.
 /// </summary>
 public class DefaultOpenIdEnvironment(
-    IServiceProvider serviceProvider,
-    IClaimsSerializer claimsSerializer,
-    IKnownParameterCollectionProvider knownParametersProvider,
+    OpenIdOptions openIdOptions,
+    ISecureDataProtector secureDataProtector,
+    IKnownParameterCollectionProvider knownParameterCollectionProvider,
+    IOpenIdMessageFactorySelector openIdMessageFactorySelector,
     ISettingDescriptorJsonProvider settingDescriptorJsonProvider,
-    ISecureDataProtectionProvider secureDataProtectionProvider,
-    IOpenIdMessageFactorySelector messageFactorySelector
-) : OpenIdEnvironment
+    IClaimsSerializer claimsSerializer
+) : OpenIdEnvironment, IOpenIdErrorFactory
 {
-    // to prevent issues with recursive dependencies, we use lazy initialization
-    private OpenIdOptions? OpenIdOptionsOrNull { get; set; }
-    private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
-    private IOpenIdErrorFactory? ErrorFactoryOrNull { get; set; }
-
-    private IServiceProvider ServiceProvider { get; } = serviceProvider;
-    private IClaimsSerializer ClaimsSerializer { get; } = claimsSerializer;
-    private IKnownParameterCollectionProvider KnownParametersProvider { get; } = knownParametersProvider;
+    private OpenIdOptions OpenIdOptions { get; } = openIdOptions;
+    private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } = openIdMessageFactorySelector;
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
-    private IOpenIdMessageFactorySelector MessageFactorySelector { get; } = messageFactorySelector;
+    private IClaimsSerializer ClaimsSerializer { get; } = claimsSerializer;
 
-    private OpenIdOptions OpenIdOptions => OpenIdOptionsOrNull ??=
-        ServiceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
-
-    /// <inheritdoc />
-    public override JsonSerializerOptions JsonSerializerOptions =>
-        JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
+    private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
     /// <inheritdoc />
-    public override ISecureDataProtector SecureDataProtector { get; } =
-        secureDataProtectionProvider.CreateProtector("NCode.Identity.OpenId");
+    public override JsonSerializerOptions JsonSerializerOptions => JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
 
     /// <inheritdoc />
-    public override IKnownParameterCollection KnownParameters => KnownParametersProvider.Collection;
+    public override ISecureDataProtector SecureDataProtector { get; } = secureDataProtector;
 
     /// <inheritdoc />
-    public override IOpenIdErrorFactory ErrorFactory =>
-        ErrorFactoryOrNull ??= ServiceProvider.GetRequiredService<IOpenIdErrorFactory>();
+    public override IKnownParameterCollection KnownParameters => knownParameterCollectionProvider.Collection;
+
+    /// <inheritdoc />
+    public override IOpenIdErrorFactory ErrorFactory => this;
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
@@ -89,7 +77,11 @@ public class DefaultOpenIdEnvironment(
 
     /// <inheritdoc />
     public override IOpenIdMessage CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters) =>
-        MessageFactorySelector.GetFactory(typeDiscriminator).Create(parameters);
+        OpenIdMessageFactorySelector.GetFactory(typeDiscriminator).Create(this, parameters);
+
+    /// <inheritdoc />
+    public IOpenIdError Create(string errorCode) =>
+        new OpenIdError(this, errorCode);
 
     private JsonSerializerOptions CreateJsonSerializerOptions()
     {

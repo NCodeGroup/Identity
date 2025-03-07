@@ -24,7 +24,6 @@ using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Claims;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Mediator;
@@ -130,12 +129,12 @@ public static class DefaultOpenIdRegistration
         // environment
 
         serviceCollection.TryAddSingleton<
-            OpenIdEnvironment,
-            DefaultOpenIdEnvironment>();
+            IOpenIdEnvironmentFactory,
+            DefaultOpenIdEnvironmentFactory>();
 
         serviceCollection.TryAddSingleton<
-            IOpenIdErrorFactory,
-            DefaultOpenIdErrorFactory>();
+            IOpenIdEnvironmentProvider,
+            DefaultOpenIdEnvironmentProvider>();
 
         serviceCollection.TryAddSingleton<
             IOpenIdExceptionHandler,

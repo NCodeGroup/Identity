@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Exceptions;
 
@@ -30,12 +31,15 @@ public interface IOpenIdExceptionHandler
     /// <summary>
     /// Handles an exception that occurred during an <c>OAuth</c> or <c>OpenID Connect</c> operation.
     /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with the current request.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the HTTP response to send to the client.</returns>
     ValueTask<IResult> HandleExceptionAsync(
         HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
         Exception exception,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

@@ -24,7 +24,6 @@ using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -45,8 +44,6 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 public sealed class DefaultStaticSingleOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
-    OpenIdEnvironment openIdEnvironment,
-    IOpenIdErrorFactory openIdErrorFactory,
     IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
@@ -73,12 +70,6 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
 
     /// <inheritdoc />
     protected override OpenIdOptions OpenIdOptions { get; } = optionsAccessor.Value;
-
-    /// <inheritdoc />
-    protected override OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
-
-    /// <inheritdoc />
-    protected override IOpenIdErrorFactory OpenIdErrorFactory { get; } = openIdErrorFactory;
 
     /// <inheritdoc />
     protected override IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
@@ -114,13 +105,22 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     /// <inheritdoc />
     public override async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> GetTenantAsync(
         HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (CachedTenant.IsActive)
             return CachedTenant.AddReference();
 
-        var tenantReference = await base.GetTenantAsync(httpContext, propertyBag, cancellationToken);
+        var tenantReference = await base.GetTenantAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            propertyBag,
+            cancellationToken
+        );
         CachedTenant = tenantReference;
 
         return CachedTenant.AddReference();
@@ -129,8 +129,11 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     /// <inheritdoc />
     protected override ValueTask<TenantDescriptor> GetTenantDescriptorAsync(
         HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var options = TenantOptions;
 
@@ -152,7 +155,10 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
+    protected override async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();

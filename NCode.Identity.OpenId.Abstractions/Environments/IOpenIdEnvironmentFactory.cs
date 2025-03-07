@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,20 +16,16 @@
 
 #endregion
 
-using JetBrains.Annotations;
-
-namespace NCode.Identity.OpenId.Errors;
+namespace NCode.Identity.OpenId.Environments;
 
 /// <summary>
-/// Provides the ability to create an <see cref="IOpenIdError"/> instance that represents an <c>OAuth</c> or <c>OpenID Connect</c> error.
+/// Factory for creating a new <see cref="OpenIdEnvironment"/> instance.
 /// </summary>
-[PublicAPI]
-public interface IOpenIdErrorFactory
+public interface IOpenIdEnvironmentFactory
 {
     /// <summary>
-    /// Creates an <see cref="IOpenIdError"/> instance for an <c>OAuth</c> or <c>OpenID Connect</c> error.
+    /// Factory method to create a new <see cref="OpenIdEnvironment"/> instance.
     /// </summary>
-    /// <param name="errorCode">The <c>error</c> parameter for the <c>OAuth</c> or <c>OpenID Connect</c> error.</param>
-    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-    IOpenIdError Create(string errorCode);
+    /// <returns>The newly created <see cref="OpenIdEnvironment"/> instance.</returns>
+    OpenIdEnvironment Create();
 }

@@ -16,18 +16,20 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Environments;
+
 namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerProvider"/> abstraction.
 /// </summary>
 public class DefaultOpenIdServerProvider(
-    IOpenIdServerFactory openIdServerFactory
+    IOpenIdServerFactory factory
 ) : IOpenIdServerProvider, IDisposable
 {
-    private IOpenIdServerFactory OpenIdServerFactory { get; } = openIdServerFactory;
+    private IOpenIdServerFactory Factory { get; } = factory;
     private SemaphoreSlim SyncRoot { get; } = new(initialCount: 0, maxCount: 1);
-    private OpenIdServer? ServerOrNull { get; set; }
+    private OpenIdServer? InstanceOrNull { get; set; }
 
     /// <inheritdoc />
     public void Dispose()
@@ -37,15 +39,18 @@ public class DefaultOpenIdServerProvider(
     }
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdServer> GetAsync(CancellationToken cancellationToken)
+    public async ValueTask<OpenIdServer> GetAsync(
+        OpenIdEnvironment openIdEnvironment,
+        CancellationToken cancellationToken
+    )
     {
         // ReSharper disable once InvertIf
-        if (ServerOrNull is null)
+        if (InstanceOrNull is null)
         {
             await SyncRoot.WaitAsync(cancellationToken);
             try
             {
-                ServerOrNull ??= await OpenIdServerFactory.CreateAsync(cancellationToken);
+                InstanceOrNull ??= await Factory.CreateAsync(openIdEnvironment, cancellationToken);
             }
             finally
             {
@@ -53,6 +58,6 @@ public class DefaultOpenIdServerProvider(
             }
         }
 
-        return ServerOrNull;
+        return InstanceOrNull;
     }
 }

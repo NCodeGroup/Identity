@@ -34,12 +34,10 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// </summary>
 [PublicAPI]
 public class DefaultAuthenticateSubjectHandler(
-    IOptions<OpenIdOptions> optionsAccessor,
-    IOpenIdErrorFactory errorFactory
+    IOptions<OpenIdOptions> optionsAccessor
 ) : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     private bool DefaultAuthenticateSchemeFetched { get; set; }
     private string? DefaultAuthenticateSchemeName { get; set; }
@@ -56,6 +54,7 @@ public class DefaultAuthenticateSubjectHandler(
         var (openIdContext, openIdClient, _) = command;
 
         var httpContext = openIdContext.Http;
+        var errorFactory = openIdContext.ErrorFactory;
 
         // the default is "Identity.Application" which is compatible with Microsoft.AspNetCore.Identity
         // this scheme returns the local application user identity but still allows SSO logins from external identity providers
@@ -75,7 +74,7 @@ public class DefaultAuthenticateSubjectHandler(
 
         if (baseResult.Failure is not null)
         {
-            return Failed(ErrorFactory.AccessDenied("Failed to authenticate the end-user.").WithException(baseResult.Failure));
+            return Failed(errorFactory.AccessDenied("Failed to authenticate the end-user.").WithException(baseResult.Failure));
         }
 
         Debug.Assert(baseResult.Succeeded);
@@ -90,7 +89,7 @@ public class DefaultAuthenticateSubjectHandler(
         var subjectId = Options.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {
-            return Failed(ErrorFactory.AccessDenied("Unable to determine the the end-user's subject id."));
+            return Failed(errorFactory.AccessDenied("Unable to determine the the end-user's subject id."));
         }
 
         var ticket = new SubjectAuthentication(

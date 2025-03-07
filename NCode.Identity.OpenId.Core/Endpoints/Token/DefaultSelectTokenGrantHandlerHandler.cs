@@ -32,12 +32,9 @@ namespace NCode.Identity.OpenId.Endpoints.Token;
 /// No, the duplicate ...Handler term is not a typo as this is handler that returns a handler.
 /// </remarks>
 public class DefaultSelectTokenGrantHandlerHandler(
-    IOpenIdErrorFactory errorFactory,
     IEnumerable<ITokenGrantHandler> handlers
 ) : ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>
 {
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
     private ILookup<string, ITokenGrantHandler> HandlersByGrantType { get; } = handlers
         .SelectMany(handler => handler.GrantTypes.Select(grantType => (grantType, handler)))
         .ToLookup(pair => pair.grantType, pair => pair.handler, StringComparer.Ordinal);
@@ -45,30 +42,32 @@ public class DefaultSelectTokenGrantHandlerHandler(
     /// <inheritdoc />
     public ValueTask<ITokenGrantHandler> HandleAsync(
         SelectTokenGrantHandlerCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var (_, openIdClient, tokenRequest) = command;
+        var (openIdContext, openIdClient, tokenRequest) = command;
 
-        var clientSettings = openIdClient.Settings;
-        var grantType = tokenRequest.GrantType;
+        var errorFactory = openIdContext.ErrorFactory;
+        var settings = openIdClient.Settings;
 
         cancellationToken.ThrowIfCancellationRequested();
 
         // grant_type
+        var grantType = tokenRequest.GrantType;
         if (string.IsNullOrEmpty(grantType))
         {
             // invalid_request
-            throw ErrorFactory
+            throw errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.GrantType)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
 
         // grant_types_supported
-        if (!clientSettings.GetValue(SettingKeys.GrantTypesSupported).Contains(grantType))
+        if (!settings.GetValue(SettingKeys.GrantTypesSupported).Contains(grantType))
         {
             // unauthorized_client
-            throw ErrorFactory
+            throw errorFactory
                 .UnauthorizedClient("The provided grant type is not allowed by the client.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
@@ -81,7 +80,7 @@ public class DefaultSelectTokenGrantHandlerHandler(
             if (selectedHandler != null)
             {
                 // unsupported_grant_type
-                throw ErrorFactory
+                throw errorFactory
                     .UnsupportedGrantType("The provided grant type has multiple handlers.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException("Invalid authorization server configuration. Multiple handlers for the same grant type have been registered.");
@@ -93,7 +92,7 @@ public class DefaultSelectTokenGrantHandlerHandler(
         if (selectedHandler == null)
         {
             // unsupported_grant_type
-            throw ErrorFactory
+            throw errorFactory
                 .UnsupportedGrantType("The provided grant type is not supported by the authorization server.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();

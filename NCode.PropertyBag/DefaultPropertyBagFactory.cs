@@ -1,4 +1,4 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -16,20 +16,23 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Environments;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Errors;
+namespace NCode.PropertyBag;
+
+// TODO: register in DI
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdErrorFactory"/> abstraction.
+/// Provides a default implementation of the <see cref="IPropertyBagFactory"/> abstraction.
 /// </summary>
-public class DefaultOpenIdErrorFactory(
-    OpenIdEnvironment openIdEnvironment
-) : IOpenIdErrorFactory
+[PublicAPI]
+public class DefaultPropertyBagFactory : IPropertyBagFactory
 {
-    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
+    /// <summary>
+    /// Gets a singleton instance for the <see cref="IPropertyBagFactory"/> abstraction.
+    /// </summary>
+    public static IPropertyBagFactory Singleton { get; set; } = new DefaultPropertyBagFactory();
 
     /// <inheritdoc />
-    public IOpenIdError Create(string errorCode) =>
-        new OpenIdError(OpenIdEnvironment, errorCode);
+    public IPropertyBag Create() => new DefaultPropertyBag();
 }

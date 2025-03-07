@@ -30,25 +30,26 @@ namespace NCode.Identity.OpenId.Endpoints.Token.Password;
 /// that returns <see cref="SubjectAuthentication"/>.
 /// </summary>
 public class DefaultAuthenticatePasswordGrantHandler(
-    ILogger<DefaultAuthenticatePasswordGrantHandler> logger,
-    IOpenIdErrorFactory errorFactory
+    ILogger<DefaultAuthenticatePasswordGrantHandler> logger
 ) : ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>
 {
     private ILogger<DefaultAuthenticatePasswordGrantHandler> Logger { get; } = logger;
 
-    private IOpenIdError UnsupportedGrantTypeError { get; } =
-        errorFactory.UnsupportedGrantType("The resource owner password credential grant type is not supported.");
-
     /// <inheritdoc />
     public ValueTask<AuthenticateSubjectDisposition> HandleAsync(
         AuthenticatePasswordGrantCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         Logger.LogWarning(
             "The resource owner password credential grant type is not supported. " +
             "Please register an implementation of `ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>` " +
             "that can handle the resource owner password credential grant type."
         );
-        return ValueTask.FromResult(new AuthenticateSubjectDisposition(UnsupportedGrantTypeError));
+
+        var errorFactory = command.OpenIdContext.ErrorFactory;
+        var error = errorFactory.UnsupportedGrantType("The resource owner password credential grant type is not supported.");
+
+        return ValueTask.FromResult(new AuthenticateSubjectDisposition(error));
     }
 }

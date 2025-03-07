@@ -24,10 +24,18 @@ namespace NCode.PropertyBag;
 /// Provides factory methods to create instances of the <see cref="IPropertyBag"/> abstraction.
 /// </summary>
 [PublicAPI]
-public static class PropertyBagFactory
+public interface IPropertyBagFactory
 {
     /// <summary>
     /// Factory method to create a new instance of the <see cref="IPropertyBag"/> abstraction.
     /// </summary>
-    public static IPropertyBag Create() => new DefaultPropertyBag();
+    IPropertyBag Create();
+}
+
+/// <inheritdoc cref="IPropertyBagFactory"/>
+[PublicAPI]
+public static class PropertyBagFactory
+{
+    /// <inheritdoc cref="IPropertyBagFactory.Create"/>
+    public static IPropertyBag Create() => DefaultPropertyBagFactory.Singleton.Create();
 }

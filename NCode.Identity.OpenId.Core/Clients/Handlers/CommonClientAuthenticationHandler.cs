@@ -37,7 +37,6 @@ namespace NCode.Identity.OpenId.Clients.Handlers;
 /// </summary>
 [PublicAPI]
 public abstract class CommonClientAuthenticationHandler(
-    IOpenIdErrorFactory errorFactory,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
@@ -63,13 +62,6 @@ public abstract class CommonClientAuthenticationHandler(
     /// Gets the <see cref="ISecretSerializer"/> instance.
     /// </summary>
     protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
-
-    /// <summary>
-    /// Gets the error for an invalid client.
-    /// </summary>
-    protected IOpenIdError ErrorInvalidClient { get; } = errorFactory
-        .InvalidClient()
-        .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
     public abstract string AuthenticationMethod { get; }
@@ -99,7 +91,11 @@ public abstract class CommonClientAuthenticationHandler(
 
         var persistedClient = await TryGetPersistedClientAsync(tenantId, clientId, cancellationToken);
         if (persistedClient is null || persistedClient.IsDisabled)
-            return new ClientAuthenticationResult(ErrorInvalidClient);
+            return new ClientAuthenticationResult(
+                openIdContext.ErrorFactory
+                    .InvalidClient()
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+            );
 
         var publicClient = await CreatePublicClientAsync(openIdContext, persistedClient, cancellationToken);
 
@@ -114,6 +110,7 @@ public abstract class CommonClientAuthenticationHandler(
         Debug.Assert(decodeResult && bytesWritten == byteCount);
 
         return await AuthenticateClientAsync(
+            openIdContext,
             publicClient,
             clientSecretBytes,
             cancellationToken);
@@ -122,11 +119,13 @@ public abstract class CommonClientAuthenticationHandler(
     /// <summary>
     /// Authenticates the client using the specified <paramref name="publicClient"/> and <paramref name="clientSecretBytes"/>.
     /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="publicClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
     /// <param name="clientSecretBytes">Contains the client secret as a byte buffer.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ClientAuthenticationResult"/>.</returns>
     protected async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
+        OpenIdContext openIdContext,
         OpenIdClient publicClient,
         ReadOnlyMemory<byte> clientSecretBytes,
         CancellationToken cancellationToken)
@@ -147,7 +146,11 @@ public abstract class CommonClientAuthenticationHandler(
         }
 
         // client secret was specified but failed to verify
-        return new ClientAuthenticationResult(ErrorInvalidClient);
+        return new ClientAuthenticationResult(
+            openIdContext.ErrorFactory
+                .InvalidClient()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+        );
     }
 
     /// <summary>
@@ -182,7 +185,8 @@ public abstract class CommonClientAuthenticationHandler(
         PersistedClient persistedClient,
         CancellationToken cancellationToken)
     {
-        var clientSettings = SettingSerializer.DeserializeSettings(persistedClient.SettingsJson);
+        var openIdEnvironment = openIdContext.Environment;
+        var clientSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, persistedClient.SettingsJson);
         var parentSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var effectiveSettings = parentSettings.Merge(clientSettings);
 

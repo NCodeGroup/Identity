@@ -37,16 +37,10 @@ namespace NCode.Identity.OpenId.Endpoints.Token.AuthorizationCode;
 /// with <see cref="AuthorizationGrant"/>.
 /// </summary>
 public class DefaultValidateAuthorizationCodeGrantHandler(
-    ICryptoService cryptoService,
-    IOpenIdErrorFactory errorFactory
+    ICryptoService cryptoService
 ) : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>, ISupportMediatorPriority
 {
     private ICryptoService CryptoService { get; } = cryptoService;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
-    private IOpenIdError InvalidScopeError => ErrorFactory
-        .InvalidScope()
-        .WithStatusCode(StatusCodes.Status400BadRequest);
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
@@ -58,6 +52,8 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
     {
         var (openIdContext, openIdClient, tokenRequest, authorizationGrant) = command;
         var (authorizationRequest, subjectAuthentication) = authorizationGrant;
+
+        var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
         // DefaultClientAuthenticationService already performs this check for us
@@ -69,7 +65,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
 
         // client_id from authorization request
         if (!string.Equals(openIdClient.ClientId, authorizationRequest.ClientId, StringComparison.Ordinal))
-            throw ErrorFactory
+            throw errorFactory
                 .InvalidGrant("The provided authorization code was issued to a different client.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
@@ -78,7 +74,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         var redirectUri = tokenRequest.RedirectUri;
         if (redirectUri is null)
             // invalid_request
-            throw ErrorFactory
+            throw errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
@@ -86,7 +82,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         // redirect_uri from authorization request
         if (authorizationRequest.RedirectUri != redirectUri)
             // invalid_grant
-            throw ErrorFactory
+            throw errorFactory
                 .InvalidGrant("The provided redirect uri does not match from the authorization request.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
@@ -100,13 +96,19 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         var hasExtraScopes = requestedScopes?.Except(originalScopes).Any() ?? false;
         if (hasExtraScopes)
             // invalid_scope
-            throw InvalidScopeError.AsException("The requested scope exceeds the scope granted by the resource owner.");
+            throw errorFactory
+                .InvalidScope()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException("The requested scope exceeds the scope granted by the resource owner.");
 
         // scopes_supported
         var hasInvalidScopes = effectiveScopes.Except(settings.GetValue(SettingKeys.ScopesSupported)).Any();
         if (hasInvalidScopes)
             // invalid_scope
-            throw InvalidScopeError.AsException();
+            throw errorFactory
+                .InvalidScope()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
 
         // validate the subject
         await ValidateSubjectAsync(
@@ -125,6 +127,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
 
         // PKCE: code_verifier, code_challenge, code_challenge_method
         ValidatePkce(
+            errorFactory,
             tokenRequest.CodeVerifier,
             authorizationRequest.CodeChallenge,
             authorizationRequest.CodeChallengeMethod,
@@ -136,7 +139,8 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         OpenIdClient openIdClient,
         IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var mediator = openIdContext.Mediator;
         var operationDisposition = new OperationDisposition();
@@ -161,10 +165,12 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
     }
 
     private void ValidatePkce(
+        IOpenIdErrorFactory errorFactory,
         string? codeVerifier,
         string? codeChallenge,
         string? codeChallengeMethod,
-        bool requireCodeChallenge)
+        bool requireCodeChallenge
+    )
     {
         var hasCodeChallenge = !string.IsNullOrEmpty(codeChallenge);
         var requireCodeVerifier = hasCodeChallenge || requireCodeChallenge;
@@ -172,7 +178,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         if (!string.IsNullOrEmpty(codeVerifier))
         {
             if (!hasCodeChallenge)
-                throw ErrorFactory
+                throw errorFactory
                     .InvalidGrant("The 'code_challenge' parameter was missing in the original authorization request.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
@@ -191,20 +197,20 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             // TODO: provide a way to allow custom code challenge methods
 
             if (expectedCodeChallenge is null)
-                throw ErrorFactory
+                throw errorFactory
                     .InvalidGrant("The provided 'code_challenge_method' parameter contains a value that is not supported.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
 
             if (!CryptoService.FixedTimeEquals(expectedCodeChallenge.AsSpan(), codeChallenge.AsSpan()))
-                throw ErrorFactory
+                throw errorFactory
                     .InvalidGrant("PKCE verification failed.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
         }
         else if (requireCodeVerifier)
         {
-            throw ErrorFactory
+            throw errorFactory
                 .InvalidGrant("The 'code_verifier' parameter is required.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();

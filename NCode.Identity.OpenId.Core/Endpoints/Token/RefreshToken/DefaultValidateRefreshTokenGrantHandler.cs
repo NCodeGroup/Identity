@@ -33,39 +33,36 @@ namespace NCode.Identity.OpenId.Endpoints.Token.RefreshToken;
 /// Provides a default implementation of handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="RefreshTokenGrant"/>.
 /// </summary>
-public class DefaultValidateRefreshTokenGrantHandler(
-    IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>, ISupportMediatorPriority
+public class DefaultValidateRefreshTokenGrantHandler : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>, ISupportMediatorPriority
 {
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
-    private IOpenIdError InvalidGrantError => ErrorFactory
-        .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
-    private IOpenIdError InvalidScopeError => ErrorFactory
-        .InvalidScope()
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
     /// <inheritdoc />
     public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
         ValidateTokenGrantCommand<RefreshTokenGrant> command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, tokenRequest, refreshTokenGrant) = command;
         var (clientId, originalScopes, _, subjectAuthentication) = refreshTokenGrant;
+
+        var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
         // see DefaultValidateTokenRequestHandler for additional validation
 
         if (!string.Equals(clientId, openIdClient.ClientId, StringComparison.Ordinal))
-            throw InvalidGrantError.AsException("The refresh token belongs to a different client.");
+            throw errorFactory
+                .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException("The refresh token belongs to a different client.");
 
         if (!settings.GetValue(SettingKeys.ScopesSupported).Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
-            throw InvalidGrantError.AsException("The client is prohibited from using refresh tokens.");
+            throw errorFactory
+                .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException("The client is prohibited from using refresh tokens.");
 
         // scope
         var requestedScopes = tokenRequest.Scopes;
@@ -74,12 +71,17 @@ public class DefaultValidateRefreshTokenGrantHandler(
         // extra scopes
         var hasExtraScopes = requestedScopes?.Except(originalScopes).Any() ?? false;
         if (hasExtraScopes)
-            throw InvalidScopeError.AsException("The requested scope exceeds the scope granted by the resource owner.");
+            throw errorFactory
+                .InvalidScope()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException("The requested scope exceeds the scope granted by the resource owner.");
 
         // scopes_supported
         var hasInvalidScopes = effectiveScopes.Except(settings.GetValue(SettingKeys.ScopesSupported)).Any();
         if (hasInvalidScopes)
-            throw InvalidScopeError.AsException();
+            throw errorFactory.InvalidScope()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
 
         // validate the subject
         if (subjectAuthentication.HasValue)
@@ -99,7 +101,8 @@ public class DefaultValidateRefreshTokenGrantHandler(
         OpenIdClient openIdClient,
         IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var mediator = openIdContext.Mediator;
         var operationDisposition = new OperationDisposition();

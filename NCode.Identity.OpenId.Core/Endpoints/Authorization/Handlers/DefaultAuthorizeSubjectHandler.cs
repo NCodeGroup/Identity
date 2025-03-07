@@ -34,18 +34,16 @@ namespace NCode.Identity.OpenId.Endpoints.Authorization.Handlers;
 /// </summary>
 [PublicAPI]
 public class DefaultAuthorizeSubjectHandler(
-    ILogger<DefaultAuthorizeSubjectHandler> logger,
-    IOpenIdErrorFactory errorFactory
+    ILogger<DefaultAuthorizeSubjectHandler> logger
 ) : ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>
 {
     private ILogger<DefaultAuthorizeSubjectHandler> Logger { get; } = logger;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     internal virtual AuthorizeSubjectDisposition Failed(IOpenIdError error) => new(error);
     internal virtual AuthorizeSubjectDisposition Authorized() => new(ChallengeRequired: false);
     internal virtual AuthorizeSubjectDisposition ChallengeRequired() => new(ChallengeRequired: true);
-    internal virtual AuthorizeSubjectDisposition LoginRequired() => Failed(ErrorFactory.LoginRequired());
-    internal virtual AuthorizeSubjectDisposition InteractionRequired(bool noPrompt) => noPrompt ? LoginRequired() : ChallengeRequired();
+    internal virtual AuthorizeSubjectDisposition LoginRequired(IOpenIdErrorFactory errorFactory) => Failed(errorFactory.LoginRequired());
+    internal virtual AuthorizeSubjectDisposition InteractionRequired(IOpenIdErrorFactory errorFactory, bool noPrompt) => noPrompt ? LoginRequired(errorFactory) : ChallengeRequired();
 
     /// <inheritdoc />
     [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
@@ -54,6 +52,8 @@ public class DefaultAuthorizeSubjectHandler(
         CancellationToken cancellationToken)
     {
         var (openIdContext, openIdClient, authorizationRequest, authenticationTicket) = command;
+
+        var errorFactory = openIdContext.ErrorFactory;
 
         var promptTypes = authorizationRequest.PromptTypes;
 
@@ -84,7 +84,7 @@ public class DefaultAuthorizeSubjectHandler(
         );
         if (subjectDisposition.HasOpenIdError)
         {
-            return InteractionRequired(noPrompt);
+            return InteractionRequired(errorFactory, noPrompt);
         }
 
         // TODO: check consent

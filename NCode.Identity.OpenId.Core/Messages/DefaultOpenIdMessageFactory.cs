@@ -25,21 +25,17 @@ namespace NCode.Identity.OpenId.Messages;
 /// Provides a default implementation of the <see cref="IOpenIdMessageFactory"/> abstraction.
 /// </summary>
 /// <typeparam name="T">The type of the <see cref="OpenIdMessage"/> to create.</typeparam>
-public class DefaultOpenIdMessageFactory<T>(
-    OpenIdEnvironment openIdEnvironment
-) : IOpenIdMessageFactory
+public class DefaultOpenIdMessageFactory<T> : IOpenIdMessageFactory
     where T : OpenIdMessage, new()
 {
-    private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
-
     /// <inheritdoc />
     public string TypeDiscriminator => typeof(T).Name;
 
     /// <inheritdoc />
-    public IOpenIdMessage Create(IEnumerable<IParameter> parameters)
+    public IOpenIdMessage Create(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters)
     {
         var message = new T();
-        message.Initialize(OpenIdEnvironment, parameters);
+        message.Initialize(openIdEnvironment, parameters);
         return message;
     }
 }

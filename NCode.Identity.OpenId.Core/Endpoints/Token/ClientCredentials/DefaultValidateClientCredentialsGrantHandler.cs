@@ -28,25 +28,20 @@ namespace NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="ClientCredentialsGrant"/>.
 /// </summary>
-public class DefaultValidateClientCredentialsGrantHandler(
-    IOpenIdErrorFactory errorFactory
-) : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>, ISupportMediatorPriority
+public class DefaultValidateClientCredentialsGrantHandler : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>, ISupportMediatorPriority
 {
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
-
-    private IOpenIdError InvalidScopeError => ErrorFactory
-        .InvalidScope()
-        .WithStatusCode(StatusCodes.Status400BadRequest);
-
     /// <inheritdoc />
     public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
 
     /// <inheritdoc />
     public ValueTask HandleAsync(
         ValidateTokenGrantCommand<ClientCredentialsGrant> command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var (_, _, tokenRequest, _) = command;
+        var (openIdContext, _, tokenRequest, _) = command;
+
+        var errorFactory = openIdContext.ErrorFactory;
 
         // see DefaultValidateTokenRequestHandler for additional validation
 
@@ -56,7 +51,8 @@ public class DefaultValidateClientCredentialsGrantHandler(
         // scope: openid
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
             // invalid_scope
-            throw InvalidScopeError
+            throw errorFactory.InvalidScope()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithDescription("The 'openid' scope is not allowed with the 'client_credentials' grant type.")
                 .AsException();
 
@@ -64,7 +60,9 @@ public class DefaultValidateClientCredentialsGrantHandler(
         // https://www.rfc-editor.org/rfc/rfc6749#section-4.4.3
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
             // invalid_scope
-            throw InvalidScopeError
+            throw errorFactory
+                .InvalidScope()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithDescription("The 'offline_access' scope is not allowed with the 'client_credentials' grant type.")
                 .AsException();
 

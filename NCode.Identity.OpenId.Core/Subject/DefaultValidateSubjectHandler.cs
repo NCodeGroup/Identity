@@ -39,13 +39,11 @@ namespace NCode.Identity.OpenId.Subject;
 [PublicAPI]
 public class DefaultValidateSubjectHandler(
     TimeProvider timeProvider,
-    ILogger<DefaultValidateSubjectHandler> logger,
-    IOpenIdErrorFactory errorFactory
+    ILogger<DefaultValidateSubjectHandler> logger
 ) : ICommandHandler<ValidateSubjectCommand>, ISupportMediatorPriority
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<DefaultValidateSubjectHandler> Logger { get; } = logger;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultOpenIdRegistration.MediatorPriorityHigh;
@@ -54,9 +52,12 @@ public class DefaultValidateSubjectHandler(
     [SuppressMessage("ReSharper", "InvertIf")]
     public ValueTask HandleAsync(
         ValidateSubjectCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, openIdRequest, subjectAuthentication, operationDisposition) = command;
+
+        var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
         // short-circuit if we already have an error
@@ -72,7 +73,7 @@ public class DefaultValidateSubjectHandler(
         if (!string.Equals(expectedTenantId, receivedTenantId, StringComparison.Ordinal))
         {
             const string message = "The end-user's tenant does not match the current tenant.";
-            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
+            operationDisposition.OpenIdError ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -82,7 +83,7 @@ public class DefaultValidateSubjectHandler(
         if (!isAuthenticated)
         {
             const string message = "The end-user is not authenticated.";
-            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
+            operationDisposition.OpenIdError ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -95,7 +96,7 @@ public class DefaultValidateSubjectHandler(
         if (!ValidateMaxAge(authTime, requestMaxAge, clockSkew))
         {
             const string message = "The end-user's authentication time is too old from the request's MaxAge.";
-            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
+            operationDisposition.OpenIdError ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -105,7 +106,7 @@ public class DefaultValidateSubjectHandler(
         if (!ValidateMaxAge(authTime, clientMaxAge, clockSkew))
         {
             const string message = "The end-user's authentication time is too old from the client's MaxAge.";
-            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
+            operationDisposition.OpenIdError ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -115,7 +116,7 @@ public class DefaultValidateSubjectHandler(
         if (!IsRequestedIdpValid(receivedIdp, openIdRequest))
         {
             const string message = "The end-user's IdP does not match the requested IdP.";
-            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
+            operationDisposition.OpenIdError ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }
@@ -124,7 +125,7 @@ public class DefaultValidateSubjectHandler(
         if (!IsReceivedIdpAllowed(receivedIdp, settings))
         {
             const string message = "The end-user's IdP is not allowed according to the client's settings.";
-            operationDisposition.OpenIdError ??= ErrorFactory.AccessDenied(message);
+            operationDisposition.OpenIdError ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
         }

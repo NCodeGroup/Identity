@@ -37,12 +37,10 @@ namespace NCode.Identity.OpenId.Endpoints.Token.ClientCredentials;
 /// </summary>
 public class DefaultClientCredentialsGrantHandler(
     TimeProvider timeProvider,
-    IOpenIdErrorFactory errorFactory,
     ITokenService tokenService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private IOpenIdErrorFactory ErrorFactory { get; } = errorFactory;
     private ITokenService TokenService { get; } = tokenService;
 
     /// <inheritdoc />
@@ -56,12 +54,14 @@ public class DefaultClientCredentialsGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
+        var errorFactory = openIdContext.ErrorFactory;
         var mediator = openIdContext.Mediator;
 
         if (!openIdClient.IsConfidential)
-            return ErrorFactory
+            return errorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
@@ -73,14 +73,17 @@ public class DefaultClientCredentialsGrantHandler(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
-                clientCredentialsGrant),
-            cancellationToken);
+                clientCredentialsGrant
+            ),
+            cancellationToken
+        );
 
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
             confidentialClient,
             tokenRequest,
-            cancellationToken);
+            cancellationToken
+        );
 
         return tokenResponse;
     }
@@ -89,7 +92,8 @@ public class DefaultClientCredentialsGrantHandler(
         OpenIdContext openIdContext,
         OpenIdConfidentialClient openIdClient,
         ITokenRequest tokenRequest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var scopes = tokenRequest.Scopes;
         Debug.Assert(scopes is not null);
@@ -111,7 +115,8 @@ public class DefaultClientCredentialsGrantHandler(
             openIdContext,
             openIdClient,
             securityTokenRequest,
-            cancellationToken);
+            cancellationToken
+        );
 
         tokenResponse.AccessToken = securityToken.TokenValue;
         tokenResponse.ExpiresIn = securityToken.TokenPeriod.Duration;

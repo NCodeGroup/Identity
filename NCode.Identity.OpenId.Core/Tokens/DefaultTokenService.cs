@@ -341,7 +341,8 @@ public class DefaultTokenService(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
@@ -381,11 +382,13 @@ public class DefaultTokenService(
             (TimeSpan?)null;
 
         await PersistedGrantService.AddAsync(
+            openIdContext,
             persistedGrantId,
             persistedGrant,
             createdWhen,
             lifetime,
-            cancellationToken);
+            cancellationToken
+        );
 
         var tokenPeriod = new TimePeriod(createdWhen, createdWhen + lifetime);
         var securityToken = new SecurityToken(

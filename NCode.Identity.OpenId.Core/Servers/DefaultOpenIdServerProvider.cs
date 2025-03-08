@@ -30,7 +30,7 @@ public class DefaultOpenIdServerProvider(
 {
     private IOpenIdServerFactory Factory { get; } = factory;
     private OpenIdServer? InstanceOrNull { get; set; }
-    private SemaphoreSlim SyncRoot { get; } = new(initialCount: 0, maxCount: 1);
+    private SemaphoreSlim SyncRoot { get; } = new(initialCount: 1, maxCount: 1);
 
     /// <inheritdoc />
     [SuppressMessage("ReSharper", "SuspiciousTypeConversion.Global")]

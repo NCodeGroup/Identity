@@ -65,6 +65,13 @@ public abstract class OpenIdEnvironment
     public abstract ParameterDescriptor GetParameterDescriptor(string parameterName);
 
     /// <summary>
+    /// Creates an <see cref="IOpenIdError"/> instance for an <c>OAuth</c> or <c>OpenID Connect</c> error.
+    /// </summary>
+    /// <param name="errorCode">The <c>error</c> parameter for the <c>OAuth</c> or <c>OpenID Connect</c> error.</param>
+    /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+    public abstract IOpenIdError CreateError(string errorCode);
+
+    /// <summary>
     /// Creates a new <see cref="IOpenIdMessage"/> instance using the specified <paramref name="typeDiscriminator"/>
     /// and <paramref name="parameters"/>.
     /// </summary>

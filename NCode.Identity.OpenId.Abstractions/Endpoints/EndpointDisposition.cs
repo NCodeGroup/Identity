@@ -31,19 +31,24 @@ namespace NCode.Identity.OpenId.Endpoints;
 public readonly record struct EndpointDisposition(bool WasHandled, IResult? HttpResult = null)
 {
     /// <summary>
+    /// Creates a new instance of the <see cref="EndpointDisposition"/> class that indicates the endpoint was not handled.
+    /// </summary>
+    public static EndpointDisposition UnHandled() => new(WasHandled: false);
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="EndpointDisposition"/> class that indicates the endpoint was handled.
+    /// </summary>
+    public static EndpointDisposition Handled() => new(WasHandled: true);
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="EndpointDisposition"/> class that indicates the endpoint was handled
+    /// and provides the HTTP response to return.
+    /// </summary>
+    public static EndpointDisposition Handled(IResult httpResult) => new(WasHandled: true, httpResult);
+
+    /// <summary>
     /// Gets a value indicating whether <see cref="HttpResult"/> is not <see langword="null"/>.
     /// </summary>
     [MemberNotNullWhen(true, nameof(HttpResult))]
     public bool HasHttpResult => HttpResult is not null;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EndpointDisposition"/> class
-    /// that indicates whether the endpoint was handled and provides the HTTP response to return.
-    /// </summary>
-    /// <param name="httpResult">The <see cref="IResult"/> that represents the HTTP response to return for the endpoint.</param>
-    public EndpointDisposition(IResult httpResult)
-        : this(WasHandled: true, httpResult)
-    {
-        // nothing
-    }
 }

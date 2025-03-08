@@ -49,7 +49,7 @@ public class DefaultTokenEndpointHandler(
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
+    public RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapGet(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Token)
         .WithOpenIdDiscoverable();

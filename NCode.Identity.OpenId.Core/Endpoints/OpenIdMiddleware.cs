@@ -17,9 +17,12 @@
 
 #endregion
 
+using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Endpoints;
@@ -34,9 +37,12 @@ internal class OpenIdMiddleware(
     private IOpenIdExceptionHandler OpenIdExceptionHandler { get; } = openIdExceptionHandler;
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } = openIdEnvironmentProvider;
 
-    public async Task InvokeAsync(HttpContext httpContext)
+    public async Task InvokeAsync(HttpContext httpContext, [FromServices] IMediator mediator)
     {
-        IResult result;
+        // if this fails, there is nothing we can do
+        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
+
+        IResult httpResult;
         try
         {
             await Next(httpContext);
@@ -44,27 +50,68 @@ internal class OpenIdMiddleware(
         }
         catch (HttpResultException exception)
         {
-            result = exception.HttpResult;
+            httpResult = exception.HttpResult;
         }
         catch (OpenIdException exception)
         {
-            result = exception.Error.AsHttpResult();
+            httpResult = exception.Error.AsHttpResult();
         }
         catch (Exception exception)
         {
-            var cancellationToken = httpContext.RequestAborted;
-            var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-            var openIdExceptionHandler = OpenIdExceptionHandler;
+            var exceptionDispatchInfo = ExceptionDispatchInfo.Capture(exception);
 
-            var metadata = httpContext.GetEndpoint()?.Metadata.GetMetadata<IOpenIdEndpointExceptionHandlerMetadata>();
-            if (metadata is not null)
+            var disposition = await HandleExceptionAsync(
+                openIdEnvironment,
+                httpContext,
+                mediator,
+                exceptionDispatchInfo,
+                httpContext.RequestAborted
+            );
+
+            if (!disposition.WasHandled)
             {
-                openIdExceptionHandler = await metadata.GetExceptionHandlerAsync(httpContext, cancellationToken);
+                exceptionDispatchInfo.Throw();
             }
 
-            result = await openIdExceptionHandler.HandleExceptionAsync(httpContext, openIdEnvironment, exception, cancellationToken);
+            if (!disposition.HasHttpResult)
+            {
+                return;
+            }
+
+            httpResult = disposition.HttpResult;
         }
 
-        await result.ExecuteAsync(httpContext);
+        await httpResult.ExecuteAsync(httpContext);
+    }
+
+    private async ValueTask<EndpointDisposition> HandleExceptionAsync(
+        OpenIdEnvironment openIdEnvironment,
+        HttpContext httpContext,
+        IMediator mediator,
+        ExceptionDispatchInfo exceptionDispatchInfo,
+        CancellationToken cancellationToken
+    )
+    {
+        var openIdExceptionHandler = OpenIdExceptionHandler;
+
+        var endpoint = httpContext.GetEndpoint();
+        var metadata = endpoint?.Metadata.GetMetadata<IOpenIdEndpointExceptionHandlerMetadata>();
+        if (metadata is not null)
+        {
+            openIdExceptionHandler = await metadata.GetExceptionHandlerAsync(
+                httpContext,
+                openIdEnvironment,
+                cancellationToken
+            );
+        }
+
+        var disposition = await openIdExceptionHandler.HandleExceptionAsync(
+            openIdEnvironment,
+            httpContext,
+            mediator,
+            exceptionDispatchInfo,
+            cancellationToken
+        );
+        return disposition;
     }
 }

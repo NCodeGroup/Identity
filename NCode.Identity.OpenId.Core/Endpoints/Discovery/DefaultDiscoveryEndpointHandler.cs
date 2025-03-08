@@ -39,7 +39,7 @@ public class DefaultDiscoveryEndpointHandler(
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
+    public RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapGet(OpenIdConstants.EndpointPaths.Discovery, HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Discovery)
         .WithOpenIdDiscoverable();
@@ -53,7 +53,8 @@ public class DefaultDiscoveryEndpointHandler(
         var openIdContext = await ContextFactory.CreateAsync(
             httpContext,
             mediator,
-            cancellationToken);
+            cancellationToken
+        );
 
         var openIdEnvironment = openIdContext.Environment;
 

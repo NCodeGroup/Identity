@@ -48,7 +48,7 @@ public class DefaultContinueEndpointHandler(
     private IContinueProviderSelector ContinueProviderSelector { get; } = continueProviderSelector;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
+    public RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapMethods(
             OpenIdConstants.EndpointPaths.Continue,
             [HttpMethods.Get, HttpMethods.Post],

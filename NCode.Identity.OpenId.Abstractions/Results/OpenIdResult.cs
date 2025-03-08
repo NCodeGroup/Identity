@@ -16,9 +16,11 @@
 
 #endregion
 
+using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Messages;
+using HttpResults = Microsoft.AspNetCore.Http.Results;
 
 namespace NCode.Identity.OpenId.Results;
 
@@ -48,10 +50,24 @@ public class OpenIdResult<T> : IResult
     {
         var jsonSerializerOptions = Response.OpenIdEnvironment.JsonSerializerOptions;
         var statusCode = Response is ISupportStatusCode supportStatusCode ? supportStatusCode.StatusCode : null;
-        var result = TypedResults.Json(
+
+        var jsonResult = CreateJsonResult(
             Response,
             jsonSerializerOptions,
-            statusCode: statusCode);
-        await result.ExecuteAsync(httpContext);
+            statusCode
+        );
+
+        await jsonResult.ExecuteAsync(httpContext);
     }
+
+    private static IResult CreateJsonResult(
+        IOpenIdResponse response,
+        JsonSerializerOptions jsonSerializerOptions,
+        int? statusCode
+    ) =>
+        HttpResults.Json(
+            response,
+            jsonSerializerOptions.GetTypeInfo(response.GetType()),
+            statusCode: statusCode
+        );
 }

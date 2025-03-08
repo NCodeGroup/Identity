@@ -16,6 +16,7 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
 namespace NCode.Identity.OpenId.Endpoints.Api;
@@ -40,7 +41,7 @@ GET api/tenants/{tenantId}/secrets
 public class ServerApiEndpointHandler : IOpenIdEndpointProvider
 {
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints)
+    public RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints)
     {
         throw new NotImplementedException();
     }

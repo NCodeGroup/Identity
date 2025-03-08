@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 
 namespace NCode.Identity.OpenId.Endpoints;
@@ -29,12 +30,15 @@ namespace NCode.Identity.OpenId.Endpoints;
 public interface IOpenIdEndpointExceptionHandlerMetadata
 {
     /// <summary>
-    /// Gets the <see cref="IOpenIdExceptionHandler"/> for the associated endpoint.
+    /// Gets the <see cref="IOpenIdExceptionHandler"/> instance for the associated endpoint.
     /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with the current request.</param>
+    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="IOpenIdExceptionHandler"/> instance.</returns>
     ValueTask<IOpenIdExceptionHandler> GetExceptionHandlerAsync(
         HttpContext httpContext,
-        CancellationToken cancellationToken);
+        OpenIdEnvironment openIdEnvironment,
+        CancellationToken cancellationToken
+    );
 }

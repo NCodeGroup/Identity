@@ -16,9 +16,14 @@
 
 #endregion
 
+using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Mediator;
+using NCode.Identity.OpenId.Mediator.Middleware;
 using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Exceptions;
@@ -26,26 +31,57 @@ namespace NCode.Identity.OpenId.Exceptions;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdExceptionHandler"/> abstraction.
 /// </summary>
-public class DefaultOpenIdExceptionHandler : IOpenIdExceptionHandler
+public class DefaultOpenIdExceptionHandler(
+    ILogger<DefaultOpenIdExceptionHandler> logger
+) : IOpenIdExceptionHandler
 {
-    /// <inheritdoc />
-    public ValueTask<IResult> HandleExceptionAsync(
-        HttpContext httpContext,
-        OpenIdEnvironment openIdEnvironment,
-        Exception exception,
-        CancellationToken cancellationToken)
-    {
-        var result = exception switch
-        {
-            HttpResultException httpResultException => httpResultException.HttpResult,
-            OpenIdException openIdException => openIdException.Error.AsHttpResult(),
-            _ => openIdEnvironment.ErrorFactory
-                .Create(OpenIdConstants.ErrorCodes.ServerError)
-                .WithStatusCode(StatusCodes.Status500InternalServerError)
-                .WithException(exception)
-                .AsHttpResult()
-        };
+    private ILogger<DefaultOpenIdExceptionHandler> Logger { get; } = logger;
 
-        return ValueTask.FromResult(result);
+    /// <inheritdoc />
+    public async ValueTask<EndpointDisposition> HandleExceptionAsync(
+        OpenIdEnvironment openIdEnvironment,
+        HttpContext httpContext,
+        IMediator mediator,
+        ExceptionDispatchInfo exceptionDispatchInfo,
+        CancellationToken cancellationToken
+    )
+    {
+        var exceptionState = new CommandExceptionHandlerState();
+
+        await mediator.SendAsync(
+            new OnUnhandledExceptionCommand(
+                openIdEnvironment,
+                httpContext,
+                mediator,
+                exceptionDispatchInfo,
+                exceptionState
+            ),
+            cancellationToken
+        );
+
+        if (exceptionState.IsHandled)
+        {
+            return EndpointDisposition.Handled();
+        }
+
+        var exception = exceptionDispatchInfo.SourceException;
+        LogException(httpContext, exception);
+
+        var httpResult = CreateHttpResult(openIdEnvironment, exception);
+        return EndpointDisposition.Handled(httpResult);
     }
+
+    private void LogException(HttpContext httpContext, Exception exception)
+    {
+        var requestToString = HttpContextDebugFormatter.RequestToString(httpContext.Request);
+        Logger.LogError(exception, "An unexpected error occurred while processing the request {DisplayName}", requestToString);
+    }
+
+    private static IResult CreateHttpResult(OpenIdEnvironment openIdEnvironment, Exception exception) =>
+        openIdEnvironment
+            .CreateError(OpenIdConstants.ErrorCodes.ServerError)
+            .WithDescription("An unexpected error occurred while processing the request.")
+            .WithStatusCode(StatusCodes.Status500InternalServerError)
+            .WithException(exception)
+            .AsHttpResult();
 }

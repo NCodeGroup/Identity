@@ -59,7 +59,7 @@ public class DefaultAuthorizationEndpointHandler(
     private IContinueService ContinueService { get; } = continueService;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
+    public RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapMethods(
             OpenIdConstants.EndpointPaths.Authorization,
             [HttpMethods.Get, HttpMethods.Post],
@@ -339,7 +339,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (authenticateSubjectDisposition.HasError)
         {
-            return new EndpointDisposition(
+            return EndpointDisposition.Handled(
                 new AuthorizationResult(
                     redirectUri,
                     effectiveResponseMode,
@@ -372,7 +372,7 @@ public class DefaultAuthorizationEndpointHandler(
 
         if (authorizeSubjectDisposition.HasError)
         {
-            return new EndpointDisposition(
+            return EndpointDisposition.Handled(
                 new AuthorizationResult(
                     redirectUri,
                     effectiveResponseMode,
@@ -401,7 +401,7 @@ public class DefaultAuthorizationEndpointHandler(
             cancellationToken
         );
 
-        return new EndpointDisposition(
+        return EndpointDisposition.Handled(
             new AuthorizationResult(
                 redirectUri,
                 effectiveResponseMode,
@@ -433,7 +433,7 @@ public class DefaultAuthorizationEndpointHandler(
         {
             var error = authResult.Error ?? errorFactory.InvalidClient();
             error.StatusCode = StatusCodes.Status400BadRequest;
-            return new EndpointDisposition(error.AsHttpResult());
+            return EndpointDisposition.Handled(error.AsHttpResult());
         }
 
         var openIdClient = authResult.Client;
@@ -462,14 +462,14 @@ public class DefaultAuthorizationEndpointHandler(
         }
         catch (HttpResultException exception)
         {
-            return new EndpointDisposition(exception.HttpResult);
+            return EndpointDisposition.Handled(exception.HttpResult);
         }
         catch (Exception exception)
         {
             var (redirectUri, responseMode, state) = clientRedirectContext;
             var openIdError = HandleException(errorFactory, exception, state);
             var httpResult = new AuthorizationResult(redirectUri, responseMode, openIdError);
-            return new EndpointDisposition(httpResult);
+            return EndpointDisposition.Handled(httpResult);
         }
     }
 

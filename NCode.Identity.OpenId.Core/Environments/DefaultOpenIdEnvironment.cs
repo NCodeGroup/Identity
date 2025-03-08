@@ -75,13 +75,16 @@ public class DefaultOpenIdEnvironment(
             new ParameterDescriptor(parameterName, ParameterLoader.Default);
     }
 
+    IOpenIdError IOpenIdErrorFactory.Create(string errorCode) =>
+        CreateError(errorCode);
+
+    /// <inheritdoc />
+    public override IOpenIdError CreateError(string errorCode) =>
+        new OpenIdError(this, errorCode);
+
     /// <inheritdoc />
     public override IOpenIdMessage CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters) =>
         OpenIdMessageFactorySelector.GetFactory(typeDiscriminator).Create(this, parameters);
-
-    /// <inheritdoc />
-    public IOpenIdError Create(string errorCode) =>
-        new OpenIdError(this, errorCode);
 
     private JsonSerializerOptions CreateJsonSerializerOptions()
     {

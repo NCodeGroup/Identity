@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace NCode.Identity.OpenId.Environments;
 
 /// <summary>
@@ -23,11 +25,29 @@ namespace NCode.Identity.OpenId.Environments;
 /// </summary>
 public class DefaultOpenIdEnvironmentProvider(
     IOpenIdEnvironmentFactory factory
-) : IOpenIdEnvironmentProvider
+) : IOpenIdEnvironmentProvider, IAsyncDisposable
 {
     private IOpenIdEnvironmentFactory Factory { get; } = factory;
     private OpenIdEnvironment? InstanceOrNull { get; set; }
     private Lock SyncRoot { get; } = new();
+
+    /// <inheritdoc />
+    [SuppressMessage("ReSharper", "SuspiciousTypeConversion.Global")]
+    public async ValueTask DisposeAsync()
+    {
+        switch (InstanceOrNull)
+        {
+            case IAsyncDisposable asyncDisposable:
+                await asyncDisposable.DisposeAsync();
+                break;
+
+            case IDisposable disposable:
+                disposable.Dispose();
+                break;
+        }
+
+        GC.SuppressFinalize(this);
+    }
 
     /// <inheritdoc />
     public OpenIdEnvironment Get()

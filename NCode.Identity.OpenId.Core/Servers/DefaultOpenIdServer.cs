@@ -30,7 +30,7 @@ public class DefaultOpenIdServer(
     IReadOnlySettingCollectionProvider settingsProvider,
     ISecretKeyCollectionProvider secretsProvider,
     IPropertyBag propertyBag
-) : OpenIdServer
+) : OpenIdServer, IAsyncDisposable
 {
     /// <inheritdoc />
     public override IReadOnlySettingCollectionProvider SettingsProvider { get; } = settingsProvider;
@@ -40,4 +40,13 @@ public class DefaultOpenIdServer(
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = propertyBag;
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        await SecretsProvider.DisposeAsync();
+        await SettingsProvider.DisposeAsync();
+
+        GC.SuppressFinalize(this);
+    }
 }

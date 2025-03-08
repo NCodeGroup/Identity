@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Servers;
@@ -25,16 +26,29 @@ namespace NCode.Identity.OpenId.Servers;
 /// </summary>
 public class DefaultOpenIdServerProvider(
     IOpenIdServerFactory factory
-) : IOpenIdServerProvider, IDisposable
+) : IOpenIdServerProvider, IAsyncDisposable
 {
     private IOpenIdServerFactory Factory { get; } = factory;
-    private SemaphoreSlim SyncRoot { get; } = new(initialCount: 0, maxCount: 1);
     private OpenIdServer? InstanceOrNull { get; set; }
+    private SemaphoreSlim SyncRoot { get; } = new(initialCount: 0, maxCount: 1);
 
     /// <inheritdoc />
-    public void Dispose()
+    [SuppressMessage("ReSharper", "SuspiciousTypeConversion.Global")]
+    public async ValueTask DisposeAsync()
     {
+        switch (InstanceOrNull)
+        {
+            case IAsyncDisposable asyncDisposable:
+                await asyncDisposable.DisposeAsync();
+                break;
+
+            case IDisposable disposable:
+                disposable.Dispose();
+                break;
+        }
+
         SyncRoot.Dispose();
+
         GC.SuppressFinalize(this);
     }
 

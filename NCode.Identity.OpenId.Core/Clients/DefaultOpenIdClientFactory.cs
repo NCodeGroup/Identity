@@ -40,7 +40,8 @@ public class DefaultOpenIdClientFactory(
         IReadOnlySettingCollection settings,
         IReadOnlyCollection<SecretKey> secrets,
         IReadOnlyCollection<string> redirectUrls,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var secretKeys = SecretKeyCollectionFactory.Create(secrets);
         var propertyBag = openIdContext.PropertyBag.Clone();
@@ -50,24 +51,28 @@ public class DefaultOpenIdClientFactory(
             settings,
             secretKeys,
             redirectUrls,
-            propertyBag);
+            propertyBag
+        );
 
         return ValueTask.FromResult(publicClient);
     }
 
     /// <inheritdoc />
     public ValueTask<OpenIdConfidentialClient> CreateConfidentialClientAsync(
+        OpenIdContext openIdContext,
         OpenIdClient publicClient,
         string method,
         SecretKey secretKey,
         JsonElement? confirmation,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         OpenIdConfidentialClient confidentialClient = new DefaultOpenIdConfidentialClient(
             publicClient,
             method,
             secretKey,
-            confirmation);
+            confirmation
+        );
 
         return ValueTask.FromResult(confidentialClient);
     }

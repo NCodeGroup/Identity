@@ -85,7 +85,8 @@ public abstract class CommonClientAuthenticationHandler(
         string clientId,
         ReadOnlyMemory<char> clientSecret,
         bool hasClientSecret,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var tenantId = openIdContext.Tenant.TenantId;
 
@@ -113,7 +114,8 @@ public abstract class CommonClientAuthenticationHandler(
             openIdContext,
             publicClient,
             clientSecretBytes,
-            cancellationToken);
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -128,7 +130,8 @@ public abstract class CommonClientAuthenticationHandler(
         OpenIdContext openIdContext,
         OpenIdClient publicClient,
         ReadOnlyMemory<byte> clientSecretBytes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
         {
@@ -136,11 +139,13 @@ public abstract class CommonClientAuthenticationHandler(
                 continue;
 
             var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
+                openIdContext,
                 publicClient,
                 AuthenticationMethod,
                 secretKey,
                 confirmation: null,
-                cancellationToken);
+                cancellationToken
+            );
 
             return new ClientAuthenticationResult(confidentialClient);
         }
@@ -164,7 +169,8 @@ public abstract class CommonClientAuthenticationHandler(
     protected async ValueTask<PersistedClient?> TryGetPersistedClientAsync(
         string tenantId,
         string clientId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
@@ -183,7 +189,8 @@ public abstract class CommonClientAuthenticationHandler(
     protected async ValueTask<OpenIdClient> CreatePublicClientAsync(
         OpenIdContext openIdContext,
         PersistedClient persistedClient,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var openIdEnvironment = openIdContext.Environment;
         var clientSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, persistedClient.SettingsJson);
@@ -192,7 +199,8 @@ public abstract class CommonClientAuthenticationHandler(
 
         var secrets = SecretSerializer.DeserializeSecrets(
             persistedClient.Secrets,
-            out _);
+            out _
+        );
 
         var publicClient = await ClientFactory.CreatePublicClientAsync(
             openIdContext,
@@ -200,7 +208,8 @@ public abstract class CommonClientAuthenticationHandler(
             effectiveSettings,
             secrets,
             persistedClient.RedirectUrls,
-            cancellationToken);
+            cancellationToken
+        );
 
         return publicClient;
     }
@@ -216,7 +225,8 @@ public abstract class CommonClientAuthenticationHandler(
         using var _ = CryptoPool.Rent(
             secretKey.KeySizeBytes,
             isSensitive: true,
-            out Span<byte> secretKeyBytes);
+            out Span<byte> secretKeyBytes
+        );
 
         var exportResult = secretKey.TryExportPrivateKey(secretKeyBytes, out var exportBytesWritten);
         Debug.Assert(exportResult && exportBytesWritten == secretKey.KeySizeBytes);

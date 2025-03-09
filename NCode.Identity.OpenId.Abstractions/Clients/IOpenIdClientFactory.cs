@@ -33,7 +33,7 @@ public interface IOpenIdClientFactory
     /// <summary>
     /// Factory method that creates a new instance of <see cref="OpenIdClient"/> that represents a public client.
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="clientId">The <see cref="string"/> that contains the client identifier.</param>
     /// <param name="settings">The <see cref="IReadOnlySettingCollection"/> that contains the client settings.</param>
     /// <param name="secrets">The collection of <see cref="SecretKey"/> instances that contains the secrets only known to the client.</param>
@@ -47,11 +47,13 @@ public interface IOpenIdClientFactory
         IReadOnlySettingCollection settings,
         IReadOnlyCollection<SecretKey> secrets,
         IReadOnlyCollection<string> redirectUrls,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Factory method that creates a new instance of <see cref="OpenIdConfidentialClient"/> that represents a confidential client.
     /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="publicClient">The <see cref="OpenIdClient"/> that represents the public client.</param>
     /// <param name="method">The <see cref="string"/> that contains the client authentication method.</param>
     /// <param name="secretKey">The <see cref="SecretKey"/> instance that contains the secret how the client was authenticated.</param>
@@ -60,9 +62,11 @@ public interface IOpenIdClientFactory
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation,
     /// containing the <see cref="OpenIdConfidentialClient"/> that represents a confidential client.</returns>
     ValueTask<OpenIdConfidentialClient> CreateConfidentialClientAsync(
+        OpenIdContext openIdContext,
         OpenIdClient publicClient,
         string method,
         SecretKey secretKey,
         JsonElement? confirmation,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

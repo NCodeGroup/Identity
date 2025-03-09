@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Buffers;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
@@ -45,13 +44,16 @@ public class ClientSecretBasicClientAuthenticationHandler(
     // RE: 400 vs 401
     // https://stackoverflow.com/questions/22586825/oauth-2-0-why-does-the-authorization-server-return-400-instead-of-401-when-the
 
-    private static string UriDecode(string value) =>
-        Uri.UnescapeDataString(value.Replace('+', ' '));
+    private static string UriDecode(Span<char> source)
+    {
+        source.Replace('+', ' ');
+        return Uri.UnescapeDataString(source);
+    }
 
-    private static IDisposable UriDecode(
-        bool isSensitive,
+    private static IDisposable UriDecodeSensitive(
         ReadOnlyMemory<char> encoded,
-        out ReadOnlyMemory<char> decoded)
+        out ReadOnlyMemory<char> decoded
+    )
     {
         var source = encoded.Span;
         if (!source.ContainsAny('%', '+'))
@@ -60,11 +62,7 @@ public class ClientSecretBasicClientAuthenticationHandler(
             return Disposable.Empty;
         }
 
-        var pool = isSensitive ?
-            SecureMemoryPool<char>.Shared :
-            MemoryPool<char>.Shared;
-
-        var lease = pool.Rent(encoded.Length);
+        var lease = SecureMemoryPool<char>.Shared.Rent(encoded.Length);
         var buffer = lease.Memory;
         try
         {
@@ -90,7 +88,8 @@ public class ClientSecretBasicClientAuthenticationHandler(
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var httpContext = openIdContext.Http;
         var errorFactory = openIdContext.ErrorFactory;
@@ -120,13 +119,15 @@ public class ClientSecretBasicClientAuthenticationHandler(
         return await AuthenticateCredentialsAsync(
             openIdContext,
             encodedCredentials,
-            cancellationToken);
+            cancellationToken
+        );
     }
 
     private async ValueTask<ClientAuthenticationResult> AuthenticateCredentialsAsync(
         OpenIdContext openIdContext,
         ReadOnlyMemory<char> encodedCredentials,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var base64ByteCount = Base64Url.GetByteCountForDecode(encodedCredentials.Length);
         using var base64Lease = CryptoPool.Rent(base64ByteCount, isSensitive: true, out Span<byte> base64Bytes);
@@ -146,7 +147,7 @@ public class ClientSecretBasicClientAuthenticationHandler(
         var indexOfColon = decodeSpan.IndexOf(':');
 
         var encodedClientId = indexOfColon == -1 ? decodeSpan : decodeSpan[..indexOfColon];
-        var clientId = UriDecode(encodedClientId.ToString());
+        var clientId = UriDecode(encodedClientId);
 
         if (indexOfColon == -1)
         {
@@ -155,21 +156,23 @@ public class ClientSecretBasicClientAuthenticationHandler(
                 clientId,
                 ReadOnlyMemory<char>.Empty,
                 hasClientSecret: false,
-                cancellationToken);
+                cancellationToken
+            );
         }
 
         var encodedClientSecret = decodeBuffer[(indexOfColon + 1)..];
 
-        using var secretLease = UriDecode(
-            isSensitive: true,
+        using var secretLease = UriDecodeSensitive(
             encodedClientSecret,
-            out var clientSecret);
+            out var clientSecret
+        );
 
         return await AuthenticateClientAsync(
             openIdContext,
             clientId,
             clientSecret,
             hasClientSecret: true,
-            cancellationToken);
+            cancellationToken
+        );
     }
 }

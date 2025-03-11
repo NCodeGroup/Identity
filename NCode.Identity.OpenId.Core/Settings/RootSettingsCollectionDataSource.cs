@@ -35,7 +35,7 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; }
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
 
-    private object SyncObj { get; } = new();
+    private Lock SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
 
     private List<IDisposable>? ChangeTokenRegistrations { get; set; }

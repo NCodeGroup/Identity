@@ -39,7 +39,7 @@ public class PersistedSecret : ISupportId, ISupportTenantId, ISupportConcurrency
     /// Gets or sets the tenant identifier for this entity.
     /// </summary>
     [MaxLength(MaxLengths.TenantId)]
-    public required string TenantId { get; init; }
+    public required string? TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the natural key for this entity.

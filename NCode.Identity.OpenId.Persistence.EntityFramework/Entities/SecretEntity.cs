@@ -31,16 +31,18 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedSecret"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(NormalizedSecretId), IsUnique = true)]
-public class SecretEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
+public class SecretEntity : ISupportId, ISupportConcurrencyToken
 {
     /// <inheritdoc />
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets or sets the foreign key for the associated tenant.
+    /// </summary>
     [ForeignKey(nameof(Tenant))]
-    public required long TenantId { get; init; }
+    public required long? TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the natural key for this entity.
@@ -127,10 +129,12 @@ public class SecretEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
     // We never know how long the value will be.
     public required string EncodedValue { get; init; }
 
-    //
+    // navigation properties
 
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.
-    /// <inheritdoc />
-    public required TenantEntity Tenant { get; init; }
+    /// <summary>
+    /// Gets or sets the navigation property for the associated tenant.
+    /// </summary>
+    public required TenantEntity? Tenant { get; init; }
 }

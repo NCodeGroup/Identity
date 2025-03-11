@@ -176,7 +176,7 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="TenantEntity"/> if found; otherwise <c>null</c>.</returns>
     protected async ValueTask<TenantEntity?> TryGetTenantAsync(
-        string tenantId,
+        string? tenantId,
         CancellationToken cancellationToken)
     {
         var normalizedTenantId = Normalize(tenantId);
@@ -253,7 +253,7 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     protected static PersistedSecret MapExisting(SecretEntity secret) => new()
     {
         Id = secret.Id,
-        TenantId = secret.Tenant.TenantId,
+        TenantId = secret.Tenant?.TenantId,
         SecretId = secret.SecretId,
         ConcurrencyToken = secret.ConcurrencyToken,
         Use = secret.Use,

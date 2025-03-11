@@ -95,11 +95,13 @@ public class DefaultOpenIdServerFactory(
     ) => new DefaultOpenIdServer(
         settingsProvider,
         secretsProvider,
-        propertyBag);
+        propertyBag
+    );
 
     protected internal virtual async ValueTask<PersistedServer> GetPersistedServerAsync(
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
@@ -110,17 +112,19 @@ public class DefaultOpenIdServerFactory(
         OpenIdEnvironment openIdEnvironment,
         PersistedServer persistedServer,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var dataSources = new List<ICollectionDataSource<Setting>>(2);
         try
         {
             dataSources.Add(await CreateRootSettingsDataSourceAsync(propertyBag, cancellationToken));
             dataSources.Add(await CreateServerSettingsDataSourceAsync(
-                openIdEnvironment,
-                persistedServer,
-                propertyBag,
-                cancellationToken)
+                    openIdEnvironment,
+                    persistedServer,
+                    propertyBag,
+                    cancellationToken
+                )
             );
             return SettingCollectionProviderFactory.Create(dataSources, owns: true);
         }
@@ -133,7 +137,8 @@ public class DefaultOpenIdServerFactory(
 
     protected internal virtual ValueTask<IDisposableCollectionDataSource<Setting>> CreateRootSettingsDataSourceAsync(
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -183,7 +188,8 @@ public class DefaultOpenIdServerFactory(
     private async ValueTask<RefreshCollectionResult<Setting>> RefreshSettingsAsync(
         RefreshSettingsState state,
         IReadOnlyCollection<Setting> current,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdEnvironment, persistedServer) = state;
 
@@ -208,7 +214,8 @@ public class DefaultOpenIdServerFactory(
     protected internal virtual ValueTask<ISecretKeyCollectionProvider> CreateSecretsProviderAsync(
         PersistedServer persistedServer,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -218,7 +225,8 @@ public class DefaultOpenIdServerFactory(
             persistedServer,
             initialSecrets,
             Options.Server.SecretsPeriodicRefreshInterval,
-            RefreshSecretsAsync);
+            RefreshSecretsAsync
+        );
 
         var provider = SecretKeyCollectionProviderFactory.Create(dataSource, owns: true);
 
@@ -228,7 +236,8 @@ public class DefaultOpenIdServerFactory(
     private async ValueTask<RefreshCollectionResult<SecretKey>> RefreshSecretsAsync(
         PersistedServer persistedServer,
         IReadOnlyCollection<SecretKey> current,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();

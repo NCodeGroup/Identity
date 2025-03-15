@@ -80,12 +80,13 @@ public class ServerStore(
         CancellationToken cancellationToken
     )
     {
-        var serverId = NextId(persistedServer.Id);
+        persistedServer.Id = NextId(persistedServer.Id);
+
         var secrets = new List<ServerSecretEntity>(persistedServer.SecretsState.Value.Count);
 
         var serverEntity = new ServerEntity
         {
-            Id = serverId,
+            Id = persistedServer.Id,
             ServerId = persistedServer.ServerId,
             NormalizedServerId = Normalize(persistedServer.ServerId),
             ConcurrencyToken = NextConcurrencyToken(),

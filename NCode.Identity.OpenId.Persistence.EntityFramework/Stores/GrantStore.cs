@@ -89,27 +89,30 @@ public class GrantStore(
         CancellationToken cancellationToken
     )
     {
-        var tenant = await GetTenantAsync(persistedGrant, cancellationToken);
+        var tenantEntity = await GetTenantAsync(persistedGrant, cancellationToken);
+
+        persistedGrant.Id = NextId(persistedGrant.Id);
 
         var normalizedClientId = Normalize(persistedGrant.ClientId);
 
-        var client = await DbContext.Clients.FirstOrDefaultAsync(
-            client =>
-                client.TenantId == tenant.Id &&
-                client.NormalizedClientId == normalizedClientId,
-            cancellationToken);
+        var clientEntity = await DbContext.Clients.FirstOrDefaultAsync(
+            entity =>
+                entity.TenantId == tenantEntity.Id &&
+                entity.NormalizedClientId == normalizedClientId,
+            cancellationToken
+        );
 
-        if (persistedGrant.ClientId is not null && client is null)
+        if (persistedGrant.ClientId is not null && clientEntity is null)
             throw new InvalidOperationException($"Client '{persistedGrant.ClientId}' not found.");
 
         var grantEntity = new GrantEntity
         {
-            Id = NextId(persistedGrant.Id),
-            TenantId = tenant.Id,
+            Id = persistedGrant.Id,
+            TenantId = tenantEntity.Id,
             GrantType = persistedGrant.GrantType,
             HashedKey = persistedGrant.HashedKey,
             ConcurrencyToken = NextConcurrencyToken(),
-            ClientId = client?.Id,
+            ClientId = clientEntity?.Id,
             SubjectId = persistedGrant.SubjectId,
             NormalizedSubjectId = Normalize(persistedGrant.SubjectId),
             CreatedWhen = persistedGrant.CreatedWhen.ToUniversalTime(),
@@ -117,8 +120,8 @@ public class GrantStore(
             RevokedWhen = persistedGrant.RevokedWhen?.ToUniversalTime(),
             ConsumedWhen = persistedGrant.ConsumedWhen?.ToUniversalTime(),
             PayloadJson = persistedGrant.PayloadJson,
-            Tenant = tenant,
-            Client = client
+            Tenant = tenantEntity,
+            Client = clientEntity
         };
 
         await DbContext.Grants.AddAsync(grantEntity, cancellationToken);

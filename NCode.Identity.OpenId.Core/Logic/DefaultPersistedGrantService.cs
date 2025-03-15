@@ -94,7 +94,6 @@ public class DefaultPersistedGrantService(
         var store = storeManager.GetStore<IGrantStore>();
 
         await store.AddAsync(envelope, cancellationToken);
-
         await storeManager.SaveChangesAsync(cancellationToken);
     }
 

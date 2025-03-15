@@ -92,16 +92,17 @@ public class ClientStore(
         CancellationToken cancellationToken
     )
     {
-        var tenant = await GetTenantAsync(persistedClient, cancellationToken);
+        var tenantEntity = await GetTenantAsync(persistedClient, cancellationToken);
 
-        var clientId = NextId(persistedClient.Id);
+        persistedClient.Id = NextId(persistedClient.Id);
+
         var urls = new List<ClientUrlEntity>(persistedClient.RedirectUrls.Count);
         var secrets = new List<ClientSecretEntity>(persistedClient.SecretsState.Value.Count);
 
         var clientEntity = new ClientEntity
         {
-            Id = clientId,
-            TenantId = tenant.Id,
+            Id = persistedClient.Id,
+            TenantId = tenantEntity.Id,
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
             ConcurrencyToken = NextConcurrencyToken(),
@@ -109,7 +110,7 @@ public class ClientStore(
             SecretsConcurrencyToken = persistedClient.SecretsState.ConcurrencyToken,
             IsDisabled = persistedClient.IsDisabled,
             SettingsJson = persistedClient.SettingsState.Value,
-            Tenant = tenant,
+            Tenant = tenantEntity,
             Urls = urls,
             Secrets = secrets
         };
@@ -119,11 +120,11 @@ public class ClientStore(
             var clientUrlEntity = new ClientUrlEntity
             {
                 Id = NextId(),
-                TenantId = tenant.Id,
-                ClientId = clientId,
+                TenantId = tenantEntity.Id,
+                ClientId = clientEntity.Id,
                 UrlType = UrlTypes.RedirectUrl,
                 UrlValue = url,
-                Tenant = tenant,
+                Tenant = tenantEntity,
                 Client = clientEntity
             };
 
@@ -142,8 +143,8 @@ public class ClientStore(
             {
                 Id = NextId(),
 
-                Tenant = tenant,
-                TenantId = tenant.Id,
+                Tenant = tenantEntity,
+                TenantId = tenantEntity.Id,
 
                 Client = clientEntity,
                 ClientId = clientEntity.Id,

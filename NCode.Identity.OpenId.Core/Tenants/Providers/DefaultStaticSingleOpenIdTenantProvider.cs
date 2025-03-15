@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using IdGen;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
@@ -53,7 +54,8 @@ public class DefaultStaticSingleOpenIdTenantProvider(
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
-    IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory
+    IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
+    IIdGenerator<long> idGenerator
 ) : OpenIdTenantProvider, IAsyncDisposable
 {
     private AsyncSharedReferenceLease<OpenIdTenant> CachedTenant { get; set; }
@@ -96,6 +98,8 @@ public class DefaultStaticSingleOpenIdTenantProvider(
 
     /// <inheritdoc />
     protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
+
+    private IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
@@ -192,6 +196,7 @@ public class DefaultStaticSingleOpenIdTenantProvider(
 
         return new PersistedTenant
         {
+            Id = IdGenerator.CreateId(),
             TenantId = tenantId,
             DomainName = null,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),

@@ -86,12 +86,13 @@ public class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = NextId(persistedTenant.Id);
+        persistedTenant.Id = NextId(persistedTenant.Id);
+
         var secrets = new List<TenantSecretEntity>(persistedTenant.SecretsState.Value.Count);
 
         var tenantEntity = new TenantEntity
         {
-            Id = tenantId,
+            Id = persistedTenant.Id,
             TenantId = persistedTenant.TenantId,
             NormalizedTenantId = Normalize(persistedTenant.TenantId),
             DomainName = persistedTenant.DomainName,

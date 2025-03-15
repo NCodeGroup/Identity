@@ -17,6 +17,7 @@
 #endregion
 
 using System.Text.Json;
+using IdGen;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,7 +52,8 @@ public class DefaultOpenIdServerFactory(
     IStoreManagerFactory storeManagerFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
-    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
+    IIdGenerator<long> idGenerator
 ) : IOpenIdServerFactory
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
@@ -63,6 +65,7 @@ public class DefaultOpenIdServerFactory(
     private ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
     private IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
     private ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+    private IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
     /// <summary>
     /// Gets the <c>ServerId</c> from the configurable options, or uses the default if not set.
@@ -153,6 +156,7 @@ public class DefaultOpenIdServerFactory(
 
         return new PersistedServer
         {
+            Id = IdGenerator.CreateId(),
             ServerId = serverId,
             SettingsState = settingsState,
             SecretsState = secretsState

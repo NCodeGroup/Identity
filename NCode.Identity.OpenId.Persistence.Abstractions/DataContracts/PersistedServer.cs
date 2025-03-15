@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
@@ -27,8 +28,20 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> server.
 /// </summary>
 [PublicAPI]
-public class PersistedServer
+public class PersistedServer : ISupportId
 {
+    /// <summary>
+    /// Gets or sets the surrogate identifier for this entity.
+    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
+    /// </summary>
+    public long Id { get; init; }
+
+    /// <summary>
+    /// Gets or sets the natural identifier for this entity.
+    /// </summary>
+    [MaxLength(MaxLengths.ServerId)]
+    public required string ServerId { get; init; }
+
     /// <summary>
     /// Gets or sets the serialized JSON for the tenant settings.
     /// </summary>

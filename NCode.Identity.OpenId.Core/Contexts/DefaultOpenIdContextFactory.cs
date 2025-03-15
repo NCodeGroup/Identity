@@ -17,17 +17,21 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using NCode.Disposables;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
+using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdContextFactory"/> abstraction.
 /// </summary>
+[PublicAPI]
 public class DefaultOpenIdContextFactory(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
     IOpenIdServerProvider openIdServerProvider,
@@ -42,7 +46,8 @@ public class DefaultOpenIdContextFactory(
     public async ValueTask<OpenIdContext> CreateAsync(
         HttpContext httpContext,
         IMediator mediator,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var openIdEnvironment = OpenIdEnvironmentProvider.Get();
         var openIdServer = await OpenIdServerProvider.GetAsync(openIdEnvironment, cancellationToken);
@@ -57,7 +62,33 @@ public class DefaultOpenIdContextFactory(
 
         var propertyBag = tenantReference.Value.PropertyBag.Clone();
 
-        var openIdContext = new DefaultOpenIdContext(
+        var openIdContext = CreateContext(
+            httpContext,
+            mediator,
+            openIdEnvironment,
+            openIdServer,
+            tenantReference,
+            propertyBag
+        );
+
+        httpContext.Features.Set(CreateFeature(openIdContext));
+        httpContext.Response.RegisterForDisposeAsync(openIdContext);
+
+        return openIdContext;
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="DefaultOpenIdContext"/>.
+    /// </summary>
+    protected internal virtual DefaultOpenIdContext CreateContext(
+        HttpContext httpContext,
+        IMediator mediator,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
+        AsyncSharedReferenceLease<OpenIdTenant> tenantReference,
+        IPropertyBag propertyBag
+    ) =>
+        new(
             httpContext,
             openIdEnvironment,
             openIdServer,
@@ -66,9 +97,11 @@ public class DefaultOpenIdContextFactory(
             propertyBag
         );
 
-        httpContext.Features.Set(new OpenIdContextFeature { OpenIdContext = openIdContext });
-        httpContext.Response.RegisterForDisposeAsync(openIdContext);
-
-        return openIdContext;
-    }
+    /// <summary>
+    /// Creates a new instance of <see cref="OpenIdContextFeature"/>.
+    /// </summary>
+    protected internal virtual OpenIdContextFeature CreateFeature(
+        DefaultOpenIdContext openIdContext
+    ) =>
+        new() { OpenIdContext = openIdContext };
 }

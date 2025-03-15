@@ -17,22 +17,57 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.Stores;
-
-public interface IServerStore : IStore
+/// <summary>
+/// Provides an abstraction for a store which persists <see cref="PersistedServer"/> instances.
+/// </summary>
+[PublicAPI]
+public interface IServerStore : IStore<PersistedServer>
 {
-    ValueTask<PersistedServer> GetAsync(CancellationToken cancellationToken);
+    /// <summary>
+    /// Attempts to get a <see cref="PersistedServer"/> instance by using its natural key.
+    /// </summary>
+    /// <param name="serverId">The natural key of the <see cref="PersistedServer"/> instance to retrieve.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedServer"/> instance matching the specified entity if it exists.</returns>
+    ValueTask<PersistedServer?> TryGetByServerIdAsync(string serverId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Gets the <see cref="JsonElement"/> settings for the specified <paramref name="serverId"/>.
+    /// The concurrency token from <paramref name="lastKnownState"/> is used to check if the current value has changed.
+    /// If the value hasn't changed, this method returns the same <paramref name="lastKnownState"/> instance;
+    /// otherwise, it returns the most recent value from the store.
+    /// </summary>
+    /// <param name="serverId">The natural key of the entity.</param>
+    /// <param name="lastKnownState">The last known state of the <see cref="JsonElement"/> settings for the entity.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation. </param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="JsonElement"/> settings for the specified entity.</returns>
     ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
+        string serverId,
         ConcurrentState<JsonElement> lastKnownState,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
+    /// <summary>
+    /// Gets the <see cref="PersistedSecret"/> collection for the specified <paramref name="serverId"/>.
+    /// The concurrency token from <paramref name="lastKnownState"/> is used to check if the current value has changed.
+    /// If the value hasn't changed, this method returns the same <paramref name="lastKnownState"/> instance;
+    /// otherwise, it returns the most recent value from the store.
+    /// </summary>
+    /// <param name="serverId">The natural key of the entity.</param>
+    /// <param name="lastKnownState">The last known state of the <see cref="PersistedSecret"/> collection for the entity.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the collection of  <see cref="PersistedSecret"/> instances for the specified entity.</returns>
     ValueTask<ConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
+        string serverId,
         ConcurrentState<IReadOnlyCollection<PersistedSecret>> lastKnownState,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

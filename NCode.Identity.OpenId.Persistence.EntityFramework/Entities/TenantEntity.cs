@@ -111,7 +111,7 @@ public class TenantEntity : ISupportId, ISupportConcurrencyToken
     /// </summary>
     public required JsonElement SettingsJson { get; set; }
 
-    //
+    // navigation properties
 
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.

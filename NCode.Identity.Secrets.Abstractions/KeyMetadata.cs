@@ -28,11 +28,6 @@ namespace NCode.Identity.Secrets;
 public readonly struct KeyMetadata
 {
     /// <summary>
-    /// Gets or sets the <c>Tenant ID</c> for the secret key.
-    /// </summary>
-    public string? TenantId { get; init; }
-
-    /// <summary>
     /// Gets or sets the <c>Key ID (KID)</c> for the secret key.
     /// </summary>
     public string? KeyId { get; init; }

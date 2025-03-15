@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -26,19 +25,21 @@ using NCode.Identity.Persistence.DataContracts;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
 /// <summary>
-/// Represents an entity framework data contract for a relationship between a <see cref="TenantEntity"/> and a <see cref="SecretEntity"/>.
+/// Represents an entity framework data contract for a relationship between a <see cref="ServerEntity"/> and a <see cref="SecretEntity"/>.
 /// </summary>
-[Index(nameof(TenantId), nameof(SecretId), IsUnique = true)]
-public class TenantSecretEntity : ISupportId, ISupportTenant, ISupportSecret
+[Index(nameof(ServerId), nameof(SecretId), IsUnique = true)]
+public class ServerSecretEntity : ISupportId, ISupportSecret
 {
     /// <inheritdoc />
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
 
-    /// <inheritdoc />
-    [ForeignKey(nameof(Tenant))]
-    public required long TenantId { get; init; }
+    /// <summary>
+    /// Gets the foreign key for the associated server.
+    /// </summary>
+    [ForeignKey(nameof(Server))]
+    public required long ServerId { get; init; }
 
     /// <inheritdoc />
     [ForeignKey(nameof(Secret))]
@@ -46,8 +47,10 @@ public class TenantSecretEntity : ISupportId, ISupportTenant, ISupportSecret
 
     // navigation properties
 
-    /// <inheritdoc />
-    public required TenantEntity Tenant { get; init; }
+    /// <summary>
+    /// Gets the navigation property for the associated server.
+    /// </summary>
+    public required ServerEntity Server { get; init; }
 
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.

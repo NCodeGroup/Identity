@@ -28,9 +28,19 @@ namespace NCode.Identity.OpenId.Options;
 public class OpenIdServerOptions
 {
     /// <summary>
+    /// Contains the default value for the server's identifier.
+    /// </summary>
+    public const string DefaultServerId = "default";
+
+    /// <summary>
     /// Contains the configuration subsection name for the settings of the server.
     /// </summary>
     public const string SettingsSubsection = "Server:Settings";
+
+    /// <summary>
+    /// Gets or sets the identifier for the server.
+    /// </summary>
+    public string ServerId { get; set; } = DefaultServerId;
 
     /// <summary>
     /// Gets or sets the period of time after which the settings for the server are refreshed.

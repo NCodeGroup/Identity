@@ -61,12 +61,12 @@ public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrency
     /// <summary>
     /// Gets or sets the serialized JSON for the client settings.
     /// </summary>
-    public required JsonElement SettingsJson { get; set; }
+    public required ConcurrentState<JsonElement> SettingsState { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to this client.
     /// </summary>
-    public required IReadOnlyCollection<PersistedSecret> Secrets { get; init; }
+    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of redirect addresses registered for this client.

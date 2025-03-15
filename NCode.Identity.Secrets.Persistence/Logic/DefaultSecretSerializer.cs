@@ -41,7 +41,8 @@ public class DefaultSecretSerializer(
     /// <inheritdoc />
     public IReadOnlyCollection<SecretKey> DeserializeSecrets(
         IEnumerable<PersistedSecret> persistedSecrets,
-        out bool requiresMigration)
+        out bool requiresMigration
+    )
     {
         var anyRequiresMigration = false;
         var secretKeys = new SortedSet<SecretKey>(SecretKeyExpiresWhenComparer.Singleton);
@@ -107,7 +108,6 @@ public class DefaultSecretSerializer(
 
         var metadata = new KeyMetadata
         {
-            TenantId = persistedSecret.TenantId,
             KeyId = persistedSecret.SecretId,
             Use = persistedSecret.Use,
             Algorithm = persistedSecret.Algorithm,

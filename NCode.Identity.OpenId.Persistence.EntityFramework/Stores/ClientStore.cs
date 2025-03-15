@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -34,8 +35,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 public class ClientStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
-    OpenIdDbContext dbContext
-) : BaseStore<PersistedClient, ClientEntity>, IClientStore
+    OpenIdDbContext openIdDbContext
+) : BaseStoreWithEntityId<PersistedClient, ClientEntity>, IClientStore
 {
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
@@ -44,18 +45,58 @@ public class ClientStore(
     protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
     /// <inheritdoc />
-    protected override OpenIdDbContext DbContext { get; } = dbContext;
+    protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
+
+    /// <inheritdoc />
+    public override bool IsRemoveSupported => true;
+
+    /// <inheritdoc />
+    protected override ValueTask<PersistedClient> MapAsync(
+        ClientEntity client,
+        CancellationToken cancellationToken
+    )
+    {
+        return ValueTask.FromResult(new PersistedClient
+        {
+            Id = client.Id,
+            TenantId = client.Tenant.TenantId,
+            ClientId = client.ClientId,
+            ConcurrencyToken = client.ConcurrencyToken,
+            IsDisabled = client.IsDisabled,
+            SettingsState = ConcurrentStateFactory.Create(client.SettingsJson, client.SettingsConcurrencyToken),
+            SecretsState = ConcurrentStateFactory.Create(MapExisting(client.Secrets), client.SecretsConcurrencyToken),
+            RedirectUrls = client.Urls
+                .Where(url => url.UrlType == UrlTypes.RedirectUrl)
+                .Select(url => url.UrlValue)
+                .ToList(),
+        });
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<ClientEntity?> TryGetEntityAsync(
+        Expression<Func<ClientEntity, bool>> predicate,
+        CancellationToken cancellationToken
+    )
+    {
+        return await DbContext.Clients
+            .Include(client => client.Tenant)
+            .Include(client => client.Urls)
+            .Include(client => client.Secrets)
+            .ThenInclude(clientSecret => clientSecret.Secret)
+            .FirstOrDefaultAsync(predicate, cancellationToken);
+    }
 
     /// <inheritdoc />
     public override async ValueTask AddAsync(
         PersistedClient persistedClient,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var tenant = await GetTenantAsync(persistedClient, cancellationToken);
 
         var clientId = NextId(persistedClient.Id);
         var urls = new List<ClientUrlEntity>(persistedClient.RedirectUrls.Count);
-        var secrets = new List<ClientSecretEntity>(persistedClient.Secrets.Count);
+        var secrets = new List<ClientSecretEntity>(persistedClient.SecretsState.Value.Count);
 
         var clientEntity = new ClientEntity
         {
@@ -64,8 +105,10 @@ public class ClientStore(
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
             ConcurrencyToken = NextConcurrencyToken(),
+            SettingsConcurrencyToken = persistedClient.SettingsState.ConcurrencyToken,
+            SecretsConcurrencyToken = persistedClient.SecretsState.ConcurrencyToken,
             IsDisabled = persistedClient.IsDisabled,
-            SettingsJson = persistedClient.SettingsJson,
+            SettingsJson = persistedClient.SettingsState.Value,
             Tenant = tenant,
             Urls = urls,
             Secrets = secrets
@@ -89,9 +132,9 @@ public class ClientStore(
             await DbContext.ClientUrls.AddAsync(clientUrlEntity, cancellationToken);
         }
 
-        foreach (var persistedSecret in persistedClient.Secrets)
+        foreach (var persistedSecret in persistedClient.SecretsState.Value)
         {
-            var secretEntity = MapNew(tenant, persistedSecret);
+            var secretEntity = MapNew(persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 
@@ -120,19 +163,23 @@ public class ClientStore(
     /// <inheritdoc />
     public async ValueTask UpdateAsync(
         PersistedClient persistedClient,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var clientEntity = await GetEntityByIdAsync(persistedClient.Id, cancellationToken);
 
         clientEntity.ConcurrencyToken = NextConcurrencyToken();
+        clientEntity.SettingsConcurrencyToken = persistedClient.SettingsState.ConcurrencyToken;
+        // we don't update the secrets concurrency token here because that is a disconnected entity collection
         clientEntity.IsDisabled = persistedClient.IsDisabled;
-        clientEntity.SettingsJson = persistedClient.SettingsJson;
+        clientEntity.SettingsJson = persistedClient.SettingsState.Value;
     }
 
     /// <inheritdoc />
     public override async ValueTask RemoveByIdAsync(
         long id,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var client = await TryGetEntityAsync(client => client.Id == id, cancellationToken);
         if (client is null)
@@ -143,17 +190,20 @@ public class ClientStore(
         DbContext.ClientUrls.RemoveRange(
             client.Urls.Where(url =>
                 url.TenantId == tenantId &&
-                url.ClientId == id));
+                url.ClientId == id
+            )
+        );
 
         var clientSecrets = DbContext.ClientSecrets.Where(clientSecret =>
             clientSecret.TenantId == tenantId &&
-            clientSecret.ClientId == id);
+            clientSecret.ClientId == id
+        );
 
         DbContext.Secrets.RemoveRange(
-            clientSecrets.Select(clientSecret => clientSecret.Secret));
+            clientSecrets.Select(clientSecret => clientSecret.Secret)
+        );
 
-        DbContext.ClientSecrets.RemoveRange(
-            clientSecrets);
+        DbContext.ClientSecrets.RemoveRange(clientSecrets);
 
         DbContext.Clients.Remove(client);
     }
@@ -162,7 +212,8 @@ public class ClientStore(
     public async ValueTask<PersistedClient?> TryGetByClientIdAsync(
         string tenantId,
         string clientId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
         var normalizedClientId = Normalize(clientId);
@@ -171,42 +222,7 @@ public class ClientStore(
             client =>
                 client.Tenant.NormalizedTenantId == normalizedTenantId &&
                 client.NormalizedClientId == normalizedClientId,
-            cancellationToken);
-    }
-
-    //
-
-    /// <inheritdoc />
-    protected override ValueTask<PersistedClient> MapAsync(
-        ClientEntity client,
-        CancellationToken cancellationToken)
-    {
-        return ValueTask.FromResult(new PersistedClient
-        {
-            Id = client.Id,
-            TenantId = client.Tenant.TenantId,
-            ClientId = client.ClientId,
-            ConcurrencyToken = client.ConcurrencyToken,
-            IsDisabled = client.IsDisabled,
-            SettingsJson = client.SettingsJson,
-            Secrets = MapExisting(client.Secrets),
-            RedirectUrls = client.Urls
-                .Where(url => url.UrlType == UrlTypes.RedirectUrl)
-                .Select(url => url.UrlValue)
-                .ToList(),
-        });
-    }
-
-    /// <inheritdoc />
-    protected override async ValueTask<ClientEntity?> TryGetEntityAsync(
-        Expression<Func<ClientEntity, bool>> predicate,
-        CancellationToken cancellationToken)
-    {
-        return await DbContext.Clients
-            .Include(client => client.Tenant)
-            .Include(client => client.Urls)
-            .Include(client => client.Secrets)
-            .ThenInclude(clientSecret => clientSecret.Secret)
-            .FirstOrDefaultAsync(predicate, cancellationToken);
+            cancellationToken
+        );
     }
 }

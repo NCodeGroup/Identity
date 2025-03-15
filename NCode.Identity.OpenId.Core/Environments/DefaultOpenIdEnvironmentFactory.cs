@@ -48,6 +48,7 @@ public class DefaultOpenIdEnvironmentFactory(
     /// <inheritdoc />
     public OpenIdEnvironment Create()
     {
+        // TODO: configure purpose from options
         var secureDataProtector = SecureDataProtectionProvider.CreateProtector("NCode.Identity.OpenId");
 
         var openIdEnvironment = new DefaultOpenIdEnvironment(

@@ -40,6 +40,16 @@ public class OpenIdDbContext(
     public DbSet<SecretEntity> Secrets { get; set; }
 
     /// <summary>
+    /// Gets or sets the <see cref="ServerEntity"/> entities.
+    /// </summary>
+    public DbSet<ServerEntity> Servers { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="ServerSecretEntity"/> entities.
+    /// </summary>
+    public DbSet<ServerSecretEntity> ServerSecrets { get; set; }
+
+    /// <summary>
     /// Gets or sets the <see cref="TenantEntity"/> entities.
     /// </summary>
     public DbSet<TenantEntity> Tenants { get; set; }

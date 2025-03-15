@@ -1,6 +1,6 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using IdGen;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
@@ -34,9 +33,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// <typeparam name="TItem">The type of the persisted item, also known as a <c>Data Transfer Object</c> or <c>DTO</c>.</typeparam>
 /// <typeparam name="TEntity">The type of the corresponding entity.</typeparam>
 [PublicAPI]
-public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
-    where TItem : class, ISupportId<long>
-    where TEntity : class, ISupportId<long>
+public abstract class BaseStore<TItem, TEntity> : IStore
+    where TItem : class
+    where TEntity : class
 {
     /// <summary>
     /// Gets the <see cref="IStoreProvider"/> for this store.
@@ -78,25 +77,6 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     [return: NotNullIfNotNull("value")]
     protected static string? Normalize(string? value) => value?.ToUpperInvariant();
 
-    #region IStore
-
-    /// <inheritdoc />
-    public virtual bool IsRemoveSupported => true;
-
-    /// <inheritdoc />
-    public abstract ValueTask AddAsync(TItem item, CancellationToken cancellationToken);
-
-    /// <inheritdoc />
-    public abstract ValueTask RemoveByIdAsync(long id, CancellationToken cancellationToken);
-
-    /// <inheritdoc />
-    public virtual async ValueTask<TItem?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
-    {
-        return await TryGetAsync(entity => entity.Id == id, cancellationToken);
-    }
-
-    //
-
     /// <summary>
     /// Maps an entity to its corresponding DTO.
     /// </summary>
@@ -106,51 +86,6 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// newly mapped DTO instance.</returns>
     protected abstract ValueTask<TItem> MapAsync(TEntity entity, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Attempts to retrieve an entity from the store based on the provided predicate.
-    /// </summary>
-    /// <param name="predicate">The predicate to use to find the entity.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// entity if found; otherwise <c>null</c>.</returns>
-    protected abstract ValueTask<TEntity?> TryGetEntityAsync(
-        Expression<Func<TEntity, bool>> predicate,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Gets an entity from the store based on its unique identifier.
-    /// </summary>
-    /// <param name="id">The unique identifier of the entity to retrieve.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// entity if found; otherwise throws an <see cref="InvalidOperationException"/>.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the entity is not found.</exception>
-    protected async ValueTask<TEntity> GetEntityByIdAsync(long id, CancellationToken cancellationToken)
-    {
-        var entity = await TryGetEntityAsync(entity => entity.Id == id, cancellationToken);
-        return entity ?? throw new InvalidOperationException("Entity not found.");
-    }
-
-    /// <summary>
-    /// Attempts to retrieve a DTO from the store based on the provided predicate.
-    /// </summary>
-    /// <param name="predicate">The predicate to use to find the entity.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// DTO if found; otherwise <c>null</c>.</returns>
-    protected virtual async ValueTask<TItem?> TryGetAsync(
-        Expression<Func<TEntity, bool>> predicate,
-        CancellationToken cancellationToken)
-    {
-        var entity = await TryGetEntityAsync(predicate, cancellationToken);
-        return entity is null ? null : await MapAsync(entity, cancellationToken);
-    }
-
-    #endregion
 
     #region IStoreProvider
 
@@ -224,13 +159,11 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     /// <summary>
     /// Maps a <see cref="PersistedSecret"/> DTO to its corresponding <see cref="SecretEntity"/>.
     /// </summary>
-    /// <param name="tenant">The tenant to associate with the secret.</param>
     /// <param name="secret">The <see cref="PersistedSecret"/> DTO to map.</param>
     /// <returns>The newly mapped <see cref="SecretEntity"/> entity.</returns>
-    protected SecretEntity MapNew(TenantEntity tenant, PersistedSecret secret) => new()
+    protected SecretEntity MapNew(PersistedSecret secret) => new()
     {
         Id = NextId(secret.Id),
-        TenantId = tenant.Id,
         SecretId = secret.SecretId,
         NormalizedSecretId = Normalize(secret.SecretId),
         ConcurrencyToken = NextConcurrencyToken(),
@@ -242,7 +175,6 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
         KeySizeBits = secret.KeySizeBits,
         EncodingType = secret.EncodingType,
         EncodedValue = secret.EncodedValue,
-        Tenant = tenant
     };
 
     /// <summary>
@@ -253,7 +185,6 @@ public abstract class BaseStore<TItem, TEntity> : IStore<TItem>
     protected static PersistedSecret MapExisting(SecretEntity secret) => new()
     {
         Id = secret.Id,
-        TenantId = secret.Tenant?.TenantId,
         SecretId = secret.SecretId,
         ConcurrencyToken = secret.ConcurrencyToken,
         Use = secret.Use,

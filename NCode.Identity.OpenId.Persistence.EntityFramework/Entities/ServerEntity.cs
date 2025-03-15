@@ -1,7 +1,6 @@
 ﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,7 +17,6 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -28,37 +26,31 @@ using NCode.Identity.Persistence.DataContracts;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
 /// <summary>
-/// Represents an entity framework data contract for an <c>OAuth</c> or <c>OpenID Connect</c> client.
-/// The complimentary DTO for this entity is <see cref="PersistedClient"/>.
+/// Represents an entity framework data contract for an <c>OAuth</c> or <c>OpenID Connect</c> server.
+/// The complimentary DTO for this entity is <see cref="PersistedServer"/>.
 /// </summary>
-[Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
-public class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
+[Index(nameof(NormalizedServerId), IsUnique = true)]
+public class ServerEntity : ISupportId, ISupportConcurrencyToken
 {
     /// <inheritdoc />
     [Key]
     [UseIdGenerator]
-    public required long Id { get; init; }
-
-    /// <inheritdoc />
-    [ForeignKey(nameof(Tenant))]
-    public required long TenantId { get; init; }
+    public long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the natural identifier for this entity.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.ClientId)]
-    public required string ClientId { get; init; }
+    [MaxLength(MaxLengths.ServerId)]
+    public required string ServerId { get; init; }
 
     /// <summary>
-    /// Gets or sets the value of <see cref="ClientId"/> in uppercase so that lookups can be sargable for DBMS
+    /// Gets or sets the value of <see cref="ServerId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.ClientId)]
-    public required string NormalizedClientId { get; init; }
-
-    //
+    [MaxLength(MaxLengths.ServerId)]
+    public required string NormalizedServerId { get; init; }
 
     /// <inheritdoc />
     [Unicode(false)]
@@ -67,41 +59,30 @@ public class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
     public required string ConcurrencyToken { get; set; }
 
     /// <summary>
-    /// Gets or sets the concurrency token for client's settings.
+    /// Gets or sets the concurrency token for server's settings.
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string SettingsConcurrencyToken { get; set; }
 
     /// <summary>
-    /// Gets or sets the concurrency token for the tenant's secrets.
+    /// Gets or sets the concurrency token for the server's secrets.
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string SecretsConcurrencyToken { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the client is disabled.
-    /// </summary>
-    public required bool IsDisabled { get; set; }
-
-    /// <summary>
-    /// Gets or sets the serialized JSON for the client settings.
+    /// Gets or sets the serialized JSON for the server's settings.
     /// </summary>
     public required JsonElement SettingsJson { get; set; }
 
-    //
+    // navigation properties
 
-    /// <inheritdoc />
-    public required TenantEntity Tenant { get; init; }
-
+    // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
+    // We use DTOs to avoid circular dependencies.
     /// <summary>
-    /// Gets or sets the collection of URLs registered for this client.
+    /// Gets or sets the collection of secrets only known to this server.
     /// </summary>
-    public required IEnumerable<ClientUrlEntity> Urls { get; init; }
-
-    /// <summary>
-    /// Gets or sets the collection of secrets only known to this client.
-    /// </summary>
-    public required IEnumerable<ClientSecretEntity> Secrets { get; init; }
+    public required IEnumerable<ServerSecretEntity> Secrets { get; init; }
 }

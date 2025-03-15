@@ -27,19 +27,13 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// Contains the data for a persisted secret.
 /// </summary>
 [PublicAPI]
-public class PersistedSecret : ISupportId, ISupportTenantId, ISupportConcurrencyToken
+public class PersistedSecret : ISupportId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.
     /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
     /// </summary>
     public long Id { get; init; }
-
-    /// <summary>
-    /// Gets or sets the tenant identifier for this entity.
-    /// </summary>
-    [MaxLength(MaxLengths.TenantId)]
-    public required string? TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the natural key for this entity.

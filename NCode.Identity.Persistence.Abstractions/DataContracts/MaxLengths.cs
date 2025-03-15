@@ -32,6 +32,11 @@ public static class MaxLengths
     public const int ConcurrencyToken = 50;
 
     /// <summary>
+    /// Specifies the maximum length of a <c>ServerId</c>.
+    /// </summary>
+    public const int ServerId = 300;
+
+    /// <summary>
     /// Specifies the maximum length of a <c>TenantId</c>.
     /// </summary>
     public const int TenantId = 300;

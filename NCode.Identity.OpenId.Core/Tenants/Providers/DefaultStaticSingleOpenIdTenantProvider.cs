@@ -18,6 +18,7 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
@@ -41,7 +42,8 @@ namespace NCode.Identity.OpenId.Tenants.Providers;
 /// <summary>
 /// Provides a default implementation of <see cref="IOpenIdTenantProvider"/> that uses a static single tenant configuration.
 /// </summary>
-public sealed class DefaultStaticSingleOpenIdTenantProvider(
+[PublicAPI]
+public class DefaultStaticSingleOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     IOpenIdServerProvider openIdServerProvider,
@@ -167,27 +169,36 @@ public sealed class DefaultStaticSingleOpenIdTenantProvider(
         if (persistedTenant is not null)
             return persistedTenant;
 
-        var settingsJson = JsonSerializer.SerializeToElement(null, typeof(object));
-        var settingsState = ConcurrentStateFactory.Create(settingsJson, Guid.NewGuid().ToString());
-
-        var secretsState = ConcurrentStateFactory.Create<IReadOnlyCollection<PersistedSecret>>(
-            Array.Empty<PersistedSecret>(),
-            Guid.NewGuid().ToString());
-
-        persistedTenant = new PersistedTenant
-        {
-            TenantId = tenantId,
-            DomainName = null,
-            ConcurrencyToken = Guid.NewGuid().ToString(),
-            IsDisabled = false,
-            DisplayName = TenantOptions.DisplayName,
-            SettingsState = settingsState,
-            SecretsState = secretsState
-        };
+        persistedTenant = CreateEmptyPersistedTenant(tenantId);
 
         await store.AddAsync(persistedTenant, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         return persistedTenant;
+    }
+
+    /// <summary>
+    /// Creates an empty <see cref="PersistedTenant"/> instance with the specified tenant ID.
+    /// </summary>
+    protected internal virtual PersistedTenant CreateEmptyPersistedTenant(string tenantId)
+    {
+        var settingsJson = JsonSerializer.SerializeToElement(null, typeof(object));
+        var settingsState = ConcurrentStateFactory.Create(settingsJson, Guid.NewGuid().ToString("N"));
+
+        var secretsState = ConcurrentStateFactory.Create<IReadOnlyCollection<PersistedSecret>>(
+            Array.Empty<PersistedSecret>(),
+            Guid.NewGuid().ToString("N")
+        );
+
+        return new PersistedTenant
+        {
+            TenantId = tenantId,
+            DomainName = null,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
+            IsDisabled = false,
+            DisplayName = TenantOptions.DisplayName,
+            SettingsState = settingsState,
+            SecretsState = secretsState
+        };
     }
 }

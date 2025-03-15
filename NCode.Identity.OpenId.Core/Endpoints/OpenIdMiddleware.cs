@@ -39,9 +39,6 @@ internal class OpenIdMiddleware(
 
     public async Task InvokeAsync(HttpContext httpContext, [FromServices] IMediator mediator)
     {
-        // if this fails, there is nothing we can do
-        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-
         IResult httpResult;
         try
         {
@@ -58,6 +55,9 @@ internal class OpenIdMiddleware(
         }
         catch (Exception exception)
         {
+            // if this fails, there is nothing we can do
+            var openIdEnvironment = OpenIdEnvironmentProvider.Get();
+
             var exceptionDispatchInfo = ExceptionDispatchInfo.Capture(exception);
 
             var disposition = await HandleExceptionAsync(

@@ -44,7 +44,7 @@ public class TenantSecretEntity : ISupportId, ISupportTenant, ISupportSecret
     [ForeignKey(nameof(Secret))]
     public required long SecretId { get; init; }
 
-    //
+    // navigation properties
 
     /// <inheritdoc />
     public required TenantEntity Tenant { get; init; }

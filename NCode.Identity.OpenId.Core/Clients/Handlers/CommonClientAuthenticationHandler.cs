@@ -193,12 +193,12 @@ public abstract class CommonClientAuthenticationHandler(
     )
     {
         var openIdEnvironment = openIdContext.Environment;
-        var clientSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, persistedClient.SettingsJson);
+        var clientSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, persistedClient.SettingsState.Value);
         var parentSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var effectiveSettings = parentSettings.Merge(clientSettings);
 
         var secrets = SecretSerializer.DeserializeSecrets(
-            persistedClient.Secrets,
+            persistedClient.SecretsState.Value,
             out _
         );
 

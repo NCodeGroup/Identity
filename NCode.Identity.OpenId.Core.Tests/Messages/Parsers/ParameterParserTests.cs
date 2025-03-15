@@ -190,7 +190,7 @@ public class ParameterParserTests : IDisposable
         {
             Assert.Same(environment, env);
             Assert.Equal(descriptor, desc);
-            Assert.Same(parsedValue, value);
+            Assert.Equal(parsedValue, value);
             return stringValues;
         };
 

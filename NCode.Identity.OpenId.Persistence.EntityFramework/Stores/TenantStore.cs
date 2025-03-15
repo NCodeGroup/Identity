@@ -37,8 +37,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 public class TenantStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
-    OpenIdDbContext dbContext
-) : BaseStore<PersistedTenant, TenantEntity>, ITenantStore
+    OpenIdDbContext openIdDbContext
+) : BaseStoreWithEntityId<PersistedTenant, TenantEntity>, ITenantStore
 {
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
@@ -47,15 +47,44 @@ public class TenantStore(
     protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
     /// <inheritdoc />
-    protected override OpenIdDbContext DbContext { get; } = dbContext;
+    protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
 
     /// <inheritdoc />
-    public override bool IsRemoveSupported => false;
+    protected override ValueTask<PersistedTenant> MapAsync(
+        TenantEntity tenant,
+        CancellationToken cancellationToken
+    )
+    {
+        return ValueTask.FromResult(new PersistedTenant
+        {
+            Id = tenant.Id,
+            TenantId = tenant.TenantId,
+            DomainName = tenant.DomainName,
+            ConcurrencyToken = tenant.ConcurrencyToken,
+            IsDisabled = tenant.IsDisabled,
+            DisplayName = tenant.DisplayName,
+            SettingsState = ConcurrentStateFactory.Create(tenant.SettingsJson, tenant.SettingsConcurrencyToken),
+            SecretsState = ConcurrentStateFactory.Create(MapExisting(tenant.Secrets), tenant.SecretsConcurrencyToken)
+        });
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<TenantEntity?> TryGetEntityAsync(
+        Expression<Func<TenantEntity, bool>> predicate,
+        CancellationToken cancellationToken
+    )
+    {
+        return await DbContext.Tenants
+            .Include(tenant => tenant.Secrets)
+            .ThenInclude(tenantSecret => tenantSecret.Secret)
+            .FirstOrDefaultAsync(predicate, cancellationToken);
+    }
 
     /// <inheritdoc />
     public override async ValueTask AddAsync(
         PersistedTenant persistedTenant,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var tenantId = NextId(persistedTenant.Id);
         var secrets = new List<TenantSecretEntity>(persistedTenant.SecretsState.Value.Count);
@@ -78,7 +107,7 @@ public class TenantStore(
 
         foreach (var persistedSecret in persistedTenant.SecretsState.Value)
         {
-            var secretEntity = MapNew(tenantEntity, persistedSecret);
+            var secretEntity = MapNew(persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 
@@ -104,7 +133,8 @@ public class TenantStore(
     /// <inheritdoc />
     public async ValueTask UpdateAsync(
         PersistedTenant persistedTenant,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var tenantEntity = await GetEntityByIdAsync(persistedTenant.Id, cancellationToken);
 
@@ -117,17 +147,10 @@ public class TenantStore(
     }
 
     /// <inheritdoc />
-    public override ValueTask RemoveByIdAsync(
-        long id,
-        CancellationToken cancellationToken)
-    {
-        throw new NotSupportedException();
-    }
-
-    /// <inheritdoc />
     public async ValueTask<PersistedTenant?> TryGetByTenantIdAsync(
         string tenantId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
         return await TryGetAsync(
@@ -138,7 +161,8 @@ public class TenantStore(
     /// <inheritdoc />
     public async ValueTask<PersistedTenant?> TryGetByDomainNameAsync(
         string domainName,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedDomainName = Normalize(domainName);
         return await TryGetAsync(
@@ -150,7 +174,8 @@ public class TenantStore(
     public async ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
         string tenantId,
         ConcurrentState<JsonElement> lastKnownState,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
 
@@ -172,7 +197,8 @@ public class TenantStore(
     public async ValueTask<ConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
         string tenantId,
         ConcurrentState<IReadOnlyCollection<PersistedSecret>> lastKnownState,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
 
@@ -195,36 +221,5 @@ public class TenantStore(
             .ToListAsync(cancellationToken);
 
         return ConcurrentStateFactory.Create(secrets, concurrencyToken);
-    }
-
-    //
-
-    /// <inheritdoc />
-    protected override ValueTask<PersistedTenant> MapAsync(
-        TenantEntity tenant,
-        CancellationToken cancellationToken)
-    {
-        return ValueTask.FromResult(new PersistedTenant
-        {
-            Id = tenant.Id,
-            TenantId = tenant.TenantId,
-            DomainName = tenant.DomainName,
-            ConcurrencyToken = tenant.ConcurrencyToken,
-            IsDisabled = tenant.IsDisabled,
-            DisplayName = tenant.DisplayName,
-            SettingsState = ConcurrentStateFactory.Create(tenant.SettingsJson, tenant.SettingsConcurrencyToken),
-            SecretsState = ConcurrentStateFactory.Create(MapExisting(tenant.Secrets), tenant.SecretsConcurrencyToken)
-        });
-    }
-
-    /// <inheritdoc />
-    protected override async ValueTask<TenantEntity?> TryGetEntityAsync(
-        Expression<Func<TenantEntity, bool>> predicate,
-        CancellationToken cancellationToken)
-    {
-        return await DbContext.Tenants
-            .Include(tenant => tenant.Secrets)
-            .ThenInclude(tenantSecret => tenantSecret.Secret)
-            .FirstOrDefaultAsync(predicate, cancellationToken);
     }
 }

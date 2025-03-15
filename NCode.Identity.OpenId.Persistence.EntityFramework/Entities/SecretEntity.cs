@@ -18,7 +18,6 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.Persistence.DataContracts;
@@ -30,19 +29,13 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// Represents an entity framework data contract for an <c>OAuth</c> or <c>OpenID Connect</c> secret.
 /// The complimentary DTO for this entity is <see cref="PersistedSecret"/>.
 /// </summary>
-[Index(nameof(TenantId), nameof(NormalizedSecretId), IsUnique = true)]
+[Index(nameof(NormalizedSecretId), IsUnique = true)]
 public class SecretEntity : ISupportId, ISupportConcurrencyToken
 {
     /// <inheritdoc />
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
-
-    /// <summary>
-    /// Gets or sets the foreign key for the associated tenant.
-    /// </summary>
-    [ForeignKey(nameof(Tenant))]
-    public required long? TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the natural key for this entity.
@@ -128,13 +121,4 @@ public class SecretEntity : ISupportId, ISupportConcurrencyToken
     // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
     // We never know how long the value will be.
     public required string EncodedValue { get; init; }
-
-    // navigation properties
-
-    // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
-    // We use DTOs to avoid circular dependencies.
-    /// <summary>
-    /// Gets or sets the navigation property for the associated tenant.
-    /// </summary>
-    public required TenantEntity? Tenant { get; init; }
 }

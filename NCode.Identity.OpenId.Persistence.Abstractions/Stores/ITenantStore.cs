@@ -36,63 +36,64 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// Attempts to get a <see cref="PersistedTenant"/> instance by using its natural key.
     /// </summary>
     /// <param name="tenantId">The natural key of the <see cref="PersistedTenant"/> instance to retrieve.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="PersistedTenant"/> instance matching the specified <paramref name="tenantId"/> if it exists.</returns>
+    /// <see cref="PersistedTenant"/> instance matching the specified entity if it exists.</returns>
     ValueTask<PersistedTenant?> TryGetByTenantIdAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Attempts to get a <see cref="PersistedTenant"/> instance by using its domain name.
     /// </summary>
     /// <param name="domainName">The domain name of the <see cref="PersistedTenant"/> instance to retrieve.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="PersistedTenant"/> instance matching the specified <paramref name="domainName"/> if it exists.</returns>
+    /// <see cref="PersistedTenant"/> instance matching the specified entity if it exists.</returns>
     ValueTask<PersistedTenant?> TryGetByDomainNameAsync(
         string domainName,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Updates an existing persisted tenant in the store.
     /// The secrets collection is not updated by this method.
     /// </summary>
-    /// <param name="persistedTenant">The persisted tenant to update in the store.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
+    /// <param name="persistedTenant">The persisted entity to update in the store.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask UpdateAsync(
         PersistedTenant persistedTenant,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
-    /// Gets the <see cref="JsonElement"/> settings for the specified <paramref name="tenantId"/>.
+    /// Gets the <see cref="JsonElement"/> settings for the specified entity.
     /// The concurrency token from <paramref name="lastKnownState"/> is used to check if the current value has changed.
     /// If the value hasn't changed, this method returns the same <paramref name="lastKnownState"/> instance;
     /// otherwise, it returns the most recent value from the store.
     /// </summary>
-    /// <param name="tenantId">The natural key of the tenant.</param>
-    /// <param name="lastKnownState">The last known state of the <see cref="JsonElement"/> settings for the tenant.</param>
+    /// <param name="tenantId">The natural key of the entity.</param>
+    /// <param name="lastKnownState">The last known state of the <see cref="JsonElement"/> settings for the entity.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation. </param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="JsonElement"/> settings for the specified <paramref name="tenantId"/>.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="JsonElement"/> settings for the specified entity.</returns>
     ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
         string tenantId,
         ConcurrentState<JsonElement> lastKnownState,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
-    /// Gets the <see cref="PersistedSecret"/> collection for the specified <paramref name="tenantId"/>.
+    /// Gets the <see cref="PersistedSecret"/> collection for the specified entity.
     /// The concurrency token from <paramref name="lastKnownState"/> is used to check if the current value has changed.
     /// If the value hasn't changed, this method returns the same <paramref name="lastKnownState"/> instance;
     /// otherwise, it returns the most recent value from the store.
     /// </summary>
-    /// <param name="tenantId">The natural key of the tenant.</param>
-    /// <param name="lastKnownState">The last known state of the <see cref="PersistedSecret"/> collection for the tenant.</param>
+    /// <param name="tenantId">The natural key of the entity.</param>
+    /// <param name="lastKnownState">The last known state of the <see cref="PersistedSecret"/> collection for the entity.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the collection of  <see cref="PersistedSecret"/> instances for the specified <paramref name="tenantId"/>.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the collection of  <see cref="PersistedSecret"/> instances for the specified entity.</returns>
     ValueTask<ConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
         string tenantId,
         ConcurrentState<IReadOnlyCollection<PersistedSecret>> lastKnownState,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

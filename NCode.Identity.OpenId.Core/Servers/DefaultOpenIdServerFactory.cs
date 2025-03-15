@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +32,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.PropertyBag;
 
@@ -62,15 +64,32 @@ public class DefaultOpenIdServerFactory(
     private IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
     private ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
 
+    /// <summary>
+    /// Gets the <c>ServerId</c> from the configurable options, or uses the default if not set.
+    /// </summary>
+    protected virtual string GetServerId()
+    {
+        var serverId = Options.Server.ServerId;
+
+        if (string.IsNullOrEmpty(serverId))
+        {
+            serverId = OpenIdServerOptions.DefaultServerId;
+        }
+
+        return serverId;
+    }
+
     /// <inheritdoc />
     public async ValueTask<OpenIdServer> CreateAsync(
         OpenIdEnvironment openIdEnvironment,
         CancellationToken cancellationToken
     )
     {
+        var serverId = GetServerId();
+
         var disposables = new List<object>(2);
-        var propertyBag = PropertyBagFactory.Create();
-        var persistedServer = await GetPersistedServerAsync(propertyBag, cancellationToken);
+        var propertyBag = openIdEnvironment.PropertyBag.Clone();
+        var persistedServer = await GetPersistedServerAsync(serverId, propertyBag, cancellationToken);
         try
         {
             var settingsProvider = await CreateSettingsProviderAsync(openIdEnvironment, persistedServer, propertyBag, cancellationToken);
@@ -99,13 +118,45 @@ public class DefaultOpenIdServerFactory(
     );
 
     protected internal virtual async ValueTask<PersistedServer> GetPersistedServerAsync(
+        string serverId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
-        return await store.GetAsync(cancellationToken);
+
+        var persistedServer = await store.TryGetByServerIdAsync(serverId, cancellationToken);
+        if (persistedServer is not null)
+            return persistedServer;
+
+        persistedServer = CreateEmptyPersistedServer(serverId);
+
+        await store.AddAsync(persistedServer, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return persistedServer;
+    }
+
+    /// <summary>
+    /// Creates an empty <see cref="PersistedServer"/> instance with the specified server ID.
+    /// </summary>
+    protected internal virtual PersistedServer CreateEmptyPersistedServer(string serverId)
+    {
+        var settingsJson = JsonSerializer.SerializeToElement(null, typeof(object));
+        var settingsState = ConcurrentStateFactory.Create(settingsJson, Guid.NewGuid().ToString("N"));
+
+        var secretsState = ConcurrentStateFactory.Create<IReadOnlyCollection<PersistedSecret>>(
+            Array.Empty<PersistedSecret>(),
+            Guid.NewGuid().ToString("N")
+        );
+
+        return new PersistedServer
+        {
+            ServerId = serverId,
+            SettingsState = settingsState,
+            SecretsState = secretsState
+        };
     }
 
     protected internal virtual async ValueTask<IReadOnlySettingCollectionProvider> CreateSettingsProviderAsync(
@@ -192,13 +243,15 @@ public class DefaultOpenIdServerFactory(
     )
     {
         var (openIdEnvironment, persistedServer) = state;
+        var serverId = persistedServer.ServerId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
         var prevSettingsState = persistedServer.SettingsState;
-        var (newSettingsJson, newConcurrencyToken) = await store.GetSettingsAsync(prevSettingsState, cancellationToken);
+        var newSettingsState = await store.GetSettingsAsync(serverId, prevSettingsState, cancellationToken);
 
+        var (newSettingsJson, newConcurrencyToken) = newSettingsState;
         var prevConcurrencyToken = prevSettingsState.ConcurrencyToken;
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<Setting>();
@@ -239,13 +292,16 @@ public class DefaultOpenIdServerFactory(
         CancellationToken cancellationToken
     )
     {
+        var serverId = persistedServer.ServerId;
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var prevPersistedSecrets = persistedServer.SecretsState;
-        var (newPersistedSecrets, newConcurrencyToken) = await store.GetSecretsAsync(prevPersistedSecrets, cancellationToken);
+        var prevSecretsState = persistedServer.SecretsState;
+        var newSecretsState = await store.GetSecretsAsync(serverId, prevSecretsState, cancellationToken);
 
-        var prevConcurrencyToken = prevPersistedSecrets.ConcurrencyToken;
+        var (newPersistedSecrets, newConcurrencyToken) = newSecretsState;
+        var prevConcurrencyToken = prevSecretsState.ConcurrencyToken;
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 

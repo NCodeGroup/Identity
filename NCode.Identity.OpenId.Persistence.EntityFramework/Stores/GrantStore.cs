@@ -34,8 +34,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 public class GrantStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
-    OpenIdDbContext dbContext
-) : BaseStore<PersistedGrant, GrantEntity>, IGrantStore
+    OpenIdDbContext openIdDbContext
+) : BaseStoreWithEntityId<PersistedGrant, GrantEntity>, IGrantStore
 {
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
@@ -44,12 +44,50 @@ public class GrantStore(
     protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
     /// <inheritdoc />
-    protected override OpenIdDbContext DbContext { get; } = dbContext;
+    protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
+
+    /// <inheritdoc />
+    public override bool IsRemoveSupported => true;
+
+    /// <inheritdoc />
+    protected override ValueTask<PersistedGrant> MapAsync(
+        GrantEntity entity,
+        CancellationToken cancellationToken
+    )
+    {
+        return ValueTask.FromResult(new PersistedGrant
+        {
+            Id = entity.Id,
+            TenantId = entity.Tenant.TenantId,
+            GrantType = entity.GrantType,
+            HashedKey = entity.HashedKey,
+            ClientId = entity.Client?.ClientId,
+            SubjectId = entity.SubjectId,
+            CreatedWhen = entity.CreatedWhen,
+            ExpiresWhen = entity.ExpiresWhen,
+            RevokedWhen = entity.RevokedWhen,
+            ConsumedWhen = entity.ConsumedWhen,
+            PayloadJson = entity.PayloadJson
+        });
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<GrantEntity?> TryGetEntityAsync(
+        Expression<Func<GrantEntity, bool>> predicate,
+        CancellationToken cancellationToken
+    )
+    {
+        return await DbContext.Grants
+            .Include(entity => entity.Tenant)
+            .Include(entity => entity.Client)
+            .FirstOrDefaultAsync(predicate, cancellationToken);
+    }
 
     /// <inheritdoc />
     public override async ValueTask AddAsync(
         PersistedGrant persistedGrant,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var tenant = await GetTenantAsync(persistedGrant, cancellationToken);
 
@@ -89,7 +127,8 @@ public class GrantStore(
     /// <inheritdoc />
     public override async ValueTask RemoveByIdAsync(
         long id,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var grant = await TryGetEntityAsync(entity => entity.Id == id, cancellationToken);
         if (grant is null)
@@ -103,7 +142,8 @@ public class GrantStore(
         string tenantId,
         string grantType,
         string hashedKey,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
 
@@ -121,7 +161,8 @@ public class GrantStore(
         string grantType,
         string hashedKey,
         DateTimeOffset consumedWhen,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
 
@@ -130,7 +171,8 @@ public class GrantStore(
                 entity.Tenant.NormalizedTenantId == normalizedTenantId &&
                 entity.GrantType == grantType &&
                 entity.HashedKey == hashedKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (entity is null)
             return;
@@ -151,7 +193,8 @@ public class GrantStore(
         string grantType,
         string hashedKey,
         DateTimeOffset revokedWhen,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
 
@@ -160,7 +203,8 @@ public class GrantStore(
                 entity.Tenant.NormalizedTenantId == normalizedTenantId &&
                 entity.GrantType == grantType &&
                 entity.HashedKey == hashedKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (entity is null)
             return;
@@ -178,7 +222,8 @@ public class GrantStore(
         string grantType,
         string hashedKey,
         DateTimeOffset expiresWhen,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
 
@@ -187,7 +232,8 @@ public class GrantStore(
                 entity.Tenant.NormalizedTenantId == normalizedTenantId &&
                 entity.GrantType == grantType &&
                 entity.HashedKey == hashedKey,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (entity is null)
             return;
@@ -197,39 +243,5 @@ public class GrantStore(
 
         entity.ConcurrencyToken = NextConcurrencyToken();
         entity.ExpiresWhen = expiresWhen.ToUniversalTime();
-    }
-
-    //
-
-    /// <inheritdoc />
-    protected override ValueTask<PersistedGrant> MapAsync(
-        GrantEntity entity,
-        CancellationToken cancellationToken)
-    {
-        return ValueTask.FromResult(new PersistedGrant
-        {
-            Id = entity.Id,
-            TenantId = entity.Tenant.TenantId,
-            GrantType = entity.GrantType,
-            HashedKey = entity.HashedKey,
-            ClientId = entity.Client?.ClientId,
-            SubjectId = entity.SubjectId,
-            CreatedWhen = entity.CreatedWhen,
-            ExpiresWhen = entity.ExpiresWhen,
-            RevokedWhen = entity.RevokedWhen,
-            ConsumedWhen = entity.ConsumedWhen,
-            PayloadJson = entity.PayloadJson
-        });
-    }
-
-    /// <inheritdoc />
-    protected override async ValueTask<GrantEntity?> TryGetEntityAsync(
-        Expression<Func<GrantEntity, bool>> predicate,
-        CancellationToken cancellationToken)
-    {
-        return await DbContext.Grants
-            .Include(entity => entity.Tenant)
-            .Include(entity => entity.Client)
-            .FirstOrDefaultAsync(predicate, cancellationToken);
     }
 }

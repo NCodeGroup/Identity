@@ -78,9 +78,9 @@ public class DefaultOpenIdContextFactory(
     }
 
     /// <summary>
-    /// Creates a new instance of <see cref="DefaultOpenIdContext"/>.
+    /// Factory method to create a new instance of <see cref="OpenIdContext"/>.
     /// </summary>
-    protected internal virtual DefaultOpenIdContext CreateContext(
+    protected internal virtual OpenIdContext CreateContext(
         HttpContext httpContext,
         IMediator mediator,
         OpenIdEnvironment openIdEnvironment,
@@ -88,7 +88,7 @@ public class DefaultOpenIdContextFactory(
         AsyncSharedReferenceLease<OpenIdTenant> tenantReference,
         IPropertyBag propertyBag
     ) =>
-        new(
+        new DefaultOpenIdContext(
             httpContext,
             openIdEnvironment,
             openIdServer,
@@ -98,10 +98,10 @@ public class DefaultOpenIdContextFactory(
         );
 
     /// <summary>
-    /// Creates a new instance of <see cref="OpenIdContextFeature"/>.
+    /// Factory method to create a new instance of <see cref="IOpenIdContextFeature"/>.
     /// </summary>
-    protected internal virtual OpenIdContextFeature CreateFeature(
-        DefaultOpenIdContext openIdContext
+    protected internal virtual IOpenIdContextFeature CreateFeature(
+        OpenIdContext openIdContext
     ) =>
-        new() { OpenIdContext = openIdContext };
+        new OpenIdContextFeature { OpenIdContext = openIdContext };
 }

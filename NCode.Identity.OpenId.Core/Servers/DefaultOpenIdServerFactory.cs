@@ -110,6 +110,9 @@ public class DefaultOpenIdServerFactory(
         }
     }
 
+    /// <summary>
+    /// Factory method to create an instance of <see cref="OpenIdServer"/>.
+    /// </summary>
     protected internal virtual OpenIdServer Create(
         IReadOnlySettingCollectionProvider settingsProvider,
         ISecretKeyCollectionProvider secretsProvider,
@@ -120,6 +123,10 @@ public class DefaultOpenIdServerFactory(
         propertyBag
     );
 
+    /// <summary>
+    /// Attempts to retrieve the <see cref="PersistedServer"/> with the specified server ID from the store.
+    /// If not found, creates a new instance and persists it.
+    /// </summary>
     protected internal virtual async ValueTask<PersistedServer> GetPersistedServerAsync(
         string serverId,
         IPropertyBag propertyBag,
@@ -163,6 +170,9 @@ public class DefaultOpenIdServerFactory(
         };
     }
 
+    /// <summary>
+    /// Used to create the <see cref="IReadOnlySettingCollectionProvider"/> for the OpenID server.
+    /// </summary>
     protected internal virtual async ValueTask<IReadOnlySettingCollectionProvider> CreateSettingsProviderAsync(
         OpenIdEnvironment openIdEnvironment,
         PersistedServer persistedServer,
@@ -190,6 +200,9 @@ public class DefaultOpenIdServerFactory(
         }
     }
 
+    /// <summary>
+    /// Used to create a data source for the server's settings that are derived from the configurable options.
+    /// </summary>
     protected internal virtual ValueTask<IDisposableCollectionDataSource<Setting>> CreateRootSettingsDataSourceAsync(
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
@@ -208,6 +221,9 @@ public class DefaultOpenIdServerFactory(
         return ValueTask.FromResult<IDisposableCollectionDataSource<Setting>>(dataSource);
     }
 
+    /// <summary>
+    /// Used to create a data source for the server's settings that are persisted in a store.
+    /// </summary>
     protected internal virtual ValueTask<IAsyncDisposableCollectionDataSource<Setting>> CreateServerSettingsDataSourceAsync(
         OpenIdEnvironment openIdEnvironment,
         PersistedServer persistedServer,
@@ -268,6 +284,9 @@ public class DefaultOpenIdServerFactory(
         return RefreshCollectionResultFactory.Changed(newSettings);
     }
 
+    /// <summary>
+    /// Used to create the <see cref="ISecretKeyCollectionProvider"/> containing secrets only known to the OpenID server.
+    /// </summary>
     protected internal virtual ValueTask<ISecretKeyCollectionProvider> CreateSecretsProviderAsync(
         PersistedServer persistedServer,
         IPropertyBag propertyBag,

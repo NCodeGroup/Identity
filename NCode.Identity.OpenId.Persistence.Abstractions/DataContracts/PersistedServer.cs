@@ -43,12 +43,12 @@ public class PersistedServer : ISupportId
     public required string ServerId { get; init; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the tenant settings.
+    /// Gets or sets the serialized JSON for the server's settings.
     /// </summary>
     public required ConcurrentState<JsonElement> SettingsState { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to this tenant.
+    /// Gets or sets the collection of secrets only known to this OpenID server.
     /// </summary>
     public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; set; }
 }

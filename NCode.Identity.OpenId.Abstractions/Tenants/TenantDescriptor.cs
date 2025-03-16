@@ -24,22 +24,12 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <summary>
 /// Contains identifying information about a tenant.
 /// </summary>
+/// <param name="TenantId">Gets or sets the identifier for the tenant.</param>
+/// <param name="DisplayName">Gets or sets the display name for the tenant.</param>
+/// <param name="DomainName">Gets or sets the domain name for the tenant. This value is optional and can be used to find tenants by domain name.</param>
 [PublicAPI]
-public readonly struct TenantDescriptor
-{
-    /// <summary>
-    /// Gets or sets the identifier for the tenant.
-    /// </summary>
-    public required string TenantId { get; init; }
-
-    /// <summary>
-    /// Gets or sets the display name for the tenant.
-    /// </summary>
-    public required string DisplayName { get; init; }
-
-    /// <summary>
-    /// Gets or sets the domain name for the tenant.
-    /// This value is optional and can be used to find tenants by domain name.
-    /// </summary>
-    public string? DomainName { get; init; }
-}
+public readonly record struct TenantDescriptor(
+    string TenantId,
+    string DisplayName,
+    string? DomainName = null
+);

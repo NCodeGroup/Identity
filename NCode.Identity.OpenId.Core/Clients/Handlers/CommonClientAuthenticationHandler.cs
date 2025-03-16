@@ -69,7 +69,8 @@ public abstract class CommonClientAuthenticationHandler(
     /// <inheritdoc />
     public abstract ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Authenticates the client using the specified <paramref name="clientId"/> and <paramref name="clientSecret"/>.
@@ -207,7 +208,6 @@ public abstract class CommonClientAuthenticationHandler(
             persistedClient.ClientId,
             effectiveSettings,
             secrets,
-            persistedClient.RedirectUrls,
             cancellationToken
         );
 

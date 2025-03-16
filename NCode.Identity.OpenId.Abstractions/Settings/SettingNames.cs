@@ -193,6 +193,11 @@ public static class SettingNames
     public const string PromptValuesSupported = "prompt_values_supported";
 
     /// <summary>
+    /// Contains the name of <c>redirect_uris</c> setting.
+    /// </summary>
+    public const string RedirectUris = "redirect_uris";
+
+    /// <summary>
     /// Contains the name of <c>refresh_token_expiration_policy</c> setting.
     /// </summary>
     public const string RefreshTokenExpirationPolicy = "refresh_token_expiration_policy";

@@ -65,10 +65,6 @@ public class ClientStore(
             IsDisabled = client.IsDisabled,
             SettingsState = ConcurrentStateFactory.Create(client.SettingsJson, client.SettingsConcurrencyToken),
             SecretsState = ConcurrentStateFactory.Create(MapExisting(client.Secrets), client.SecretsConcurrencyToken),
-            RedirectUrls = client.Urls
-                .Where(url => url.UrlType == UrlTypes.RedirectUrl)
-                .Select(url => url.UrlValue)
-                .ToList(),
         });
     }
 
@@ -80,7 +76,6 @@ public class ClientStore(
     {
         return await DbContext.Clients
             .Include(client => client.Tenant)
-            .Include(client => client.Urls)
             .Include(client => client.Secrets)
             .ThenInclude(clientSecret => clientSecret.Secret)
             .FirstOrDefaultAsync(predicate, cancellationToken);
@@ -96,7 +91,6 @@ public class ClientStore(
 
         persistedClient.Id = NextId(persistedClient.Id);
 
-        var urls = new List<ClientUrlEntity>(persistedClient.RedirectUrls.Count);
         var secrets = new List<ClientSecretEntity>(persistedClient.SecretsState.Value.Count);
 
         var clientEntity = new ClientEntity
@@ -111,27 +105,8 @@ public class ClientStore(
             IsDisabled = persistedClient.IsDisabled,
             SettingsJson = persistedClient.SettingsState.Value,
             Tenant = tenantEntity,
-            Urls = urls,
             Secrets = secrets
         };
-
-        foreach (var url in persistedClient.RedirectUrls)
-        {
-            var clientUrlEntity = new ClientUrlEntity
-            {
-                Id = NextId(),
-                TenantId = tenantEntity.Id,
-                ClientId = clientEntity.Id,
-                UrlType = UrlTypes.RedirectUrl,
-                UrlValue = url,
-                Tenant = tenantEntity,
-                Client = clientEntity
-            };
-
-            urls.Add(clientUrlEntity);
-
-            await DbContext.ClientUrls.AddAsync(clientUrlEntity, cancellationToken);
-        }
 
         foreach (var persistedSecret in persistedClient.SecretsState.Value)
         {
@@ -187,13 +162,6 @@ public class ClientStore(
             return;
 
         var tenantId = client.TenantId;
-
-        DbContext.ClientUrls.RemoveRange(
-            client.Urls.Where(url =>
-                url.TenantId == tenantId &&
-                url.ClientId == id
-            )
-        );
 
         var clientSecrets = DbContext.ClientSecrets.Where(clientSecret =>
             clientSecret.TenantId == tenantId &&

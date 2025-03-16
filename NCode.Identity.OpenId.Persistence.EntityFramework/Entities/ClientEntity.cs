@@ -90,15 +90,10 @@ public class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
     /// </summary>
     public required JsonElement SettingsJson { get; set; }
 
-    //
+    // navigational properties
 
     /// <inheritdoc />
     public required TenantEntity Tenant { get; init; }
-
-    /// <summary>
-    /// Gets or sets the collection of URLs registered for this client.
-    /// </summary>
-    public required IEnumerable<ClientUrlEntity> Urls { get; init; }
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to this client.

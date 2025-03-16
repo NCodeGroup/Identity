@@ -67,9 +67,4 @@ public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrency
     /// Gets or sets the collection of secrets only known to this client.
     /// </summary>
     public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; set; }
-
-    /// <summary>
-    /// Gets or sets the collection of redirect addresses registered for this client.
-    /// </summary>
-    public required IReadOnlyCollection<string> RedirectUrls { get; init; }
 }

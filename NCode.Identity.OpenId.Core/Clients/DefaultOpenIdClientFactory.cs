@@ -17,16 +17,18 @@
 #endregion
 
 using System.Text.Json;
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
+using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Clients;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdClientFactory"/> abstraction.
 /// </summary>
-/// <param name="secretKeyCollectionFactory"></param>
+[PublicAPI]
 public class DefaultOpenIdClientFactory(
     ISecretKeyCollectionFactory secretKeyCollectionFactory
 ) : IOpenIdClientFactory
@@ -39,23 +41,55 @@ public class DefaultOpenIdClientFactory(
         string clientId,
         IReadOnlySettingCollection settings,
         IReadOnlyCollection<SecretKey> secrets,
-        IReadOnlyCollection<string> redirectUrls,
         CancellationToken cancellationToken
     )
     {
         var secretKeys = SecretKeyCollectionFactory.Create(secrets);
         var propertyBag = openIdContext.PropertyBag.Clone();
 
-        OpenIdClient publicClient = new DefaultOpenIdClient(
+        var redirectUris = GetRedirectUris(settings);
+
+        var publicClient = CreatePublicClient(
             clientId,
             settings,
             secretKeys,
-            redirectUrls,
+            redirectUris,
             propertyBag
         );
 
         return ValueTask.FromResult(publicClient);
     }
+
+    /// <summary>
+    /// Gets the collection of redirect URIs from the client settings.
+    /// </summary>
+    protected internal virtual IReadOnlyCollection<string> GetRedirectUris(IReadOnlySettingCollection settings)
+    {
+        if (!settings.TryGetValue(SettingKeys.RedirectUris, out var redirectUris))
+        {
+            redirectUris = [];
+        }
+
+        return redirectUris;
+    }
+
+    /// <summary>
+    /// Factory method that creates a new instance of <see cref="OpenIdClient"/> that represents a public client.
+    /// </summary>
+    protected internal virtual OpenIdClient CreatePublicClient(
+        string clientId,
+        IReadOnlySettingCollection settings,
+        ISecretKeyCollection secretKeys,
+        IReadOnlyCollection<string> redirectUris,
+        IPropertyBag propertyBag
+    ) =>
+        new DefaultOpenIdClient(
+            clientId,
+            settings,
+            secretKeys,
+            redirectUris,
+            propertyBag
+        );
 
     /// <inheritdoc />
     public ValueTask<OpenIdConfidentialClient> CreateConfidentialClientAsync(

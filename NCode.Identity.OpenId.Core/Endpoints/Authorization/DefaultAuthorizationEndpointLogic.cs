@@ -33,7 +33,7 @@ using NCode.Identity.OpenId.Settings;
 namespace NCode.Identity.OpenId.Endpoints.Authorization;
 
 /// <summary>
-/// Provides the logic for processing authorization requests in the OpenID Connect authorization endpoint.
+/// Provides the logic for processing authorization requests or continuations for the OpenID Connect authorization endpoint.
 /// </summary>
 public interface IAuthorizationEndpointLogic
 {

@@ -109,7 +109,7 @@ public class DefaultContinueEndpointHandler(
             return EmptyHttpResult.Instance;
         }
 
-        Logger.LogInformation("The continue provider did not handle the request.");
-        return TypedResults.BadRequest();
+        Logger.LogError("The continue provider did not handle the request.");
+        return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
     }
 }

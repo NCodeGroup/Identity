@@ -50,13 +50,17 @@ public static class DefaultAuthorizationEndpointRegistration
             IAuthorizationCodeService,
             DefaultAuthorizationCodeService>();
 
-        serviceCollection.AddSingleton<DefaultAuthorizationEndpointHandler>();
+        serviceCollection.TryAddSingleton<
+            IAuthorizationEndpointLogic,
+            DefaultAuthorizationEndpointLogic>();
 
-        serviceCollection.TryAddSingleton<IContinueProvider>(serviceProvider =>
-            serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            IOpenIdEndpointProvider,
+            DefaultAuthorizationEndpointHandler>());
 
-        serviceCollection.TryAddSingleton<IOpenIdEndpointProvider>(serviceProvider =>
-            serviceProvider.GetRequiredService<DefaultAuthorizationEndpointHandler>());
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            IContinueProvider,
+            DefaultAuthorizationContinueProvider>());
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>,

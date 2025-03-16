@@ -37,7 +37,6 @@ public interface IOpenIdClientFactory
     /// <param name="clientId">The <see cref="string"/> that contains the client identifier.</param>
     /// <param name="settings">The <see cref="IReadOnlySettingCollection"/> that contains the client settings.</param>
     /// <param name="secrets">The collection of <see cref="SecretKey"/> instances that contains the secrets only known to the client.</param>
-    /// <param name="redirectUrls">The collection of <see cref="string"/> instances that contains the redirect URLs that the client may use.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation,
     /// containing the <see cref="OpenIdClient"/> that represents a public client.</returns>
@@ -46,7 +45,6 @@ public interface IOpenIdClientFactory
         string clientId,
         IReadOnlySettingCollection settings,
         IReadOnlyCollection<SecretKey> secrets,
-        IReadOnlyCollection<string> redirectUrls,
         CancellationToken cancellationToken
     );
 

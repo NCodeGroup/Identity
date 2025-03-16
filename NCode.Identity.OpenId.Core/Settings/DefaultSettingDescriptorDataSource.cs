@@ -415,6 +415,15 @@ public class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect
             };
 
+            // redirect_uris
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = SettingNames.RedirectUris,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace
+            };
+
             // refresh_token_expiration_policy
             yield return new SettingDescriptor<string>
             {

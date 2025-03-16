@@ -29,7 +29,7 @@ public class DefaultOpenIdClient(
     string clientId,
     IReadOnlySettingCollection settings,
     ISecretKeyCollection secretKeys,
-    IReadOnlyCollection<string> redirectUrls,
+    IReadOnlyCollection<string> redirectUris,
     IPropertyBag propertyBag
 ) : OpenIdClient
 {
@@ -43,7 +43,7 @@ public class DefaultOpenIdClient(
     public override ISecretKeyCollection SecretKeys { get; } = secretKeys;
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<string> RedirectUrls { get; } = redirectUrls;
+    public override IReadOnlyCollection<string> RedirectUris { get; } = redirectUris;
 
     /// <inheritdoc />
     public override bool IsConfidential => false;

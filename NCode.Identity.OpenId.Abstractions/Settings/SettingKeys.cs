@@ -226,6 +226,12 @@ public static class SettingKeys
         new(SettingNames.PromptValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'redirect_uris' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> RedirectUris =>
+        new(SettingNames.RedirectUris);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_expiration_policy' setting.
     /// </summary>
     public static SettingKey<string> RefreshTokenExpirationPolicy =>

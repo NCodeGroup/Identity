@@ -215,8 +215,8 @@ public class DefaultAuthorizationEndpointHandler(
                 .AsException();
         }
 
-        var redirectUrls = openIdClient.RedirectUrls;
-        var effectiveUrl = redirectUri.GetComponents(
+        var redirectUris = openIdClient.RedirectUris;
+        var effectiveUri = redirectUri.GetComponents(
             UriComponents.Scheme |
             UriComponents.Host |
             UriComponents.Port |
@@ -224,7 +224,7 @@ public class DefaultAuthorizationEndpointHandler(
             UriFormat.UriEscaped);
 
         var allowLoopbackRedirect = settings.GetValue(SettingKeys.AllowLoopbackRedirect);
-        var isSafe = (allowLoopbackRedirect && redirectUri.IsLoopback) || redirectUrls.Contains(effectiveUrl);
+        var isSafe = (allowLoopbackRedirect && redirectUri.IsLoopback) || redirectUris.Contains(effectiveUri);
         if (!isSafe)
         {
             throw errorFactory

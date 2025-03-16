@@ -48,7 +48,7 @@ public abstract class OpenIdClient
     /// <summary>
     /// Gets the collection of redirect addresses registered for this client.
     /// </summary>
-    public abstract IReadOnlyCollection<string> RedirectUrls { get; }
+    public abstract IReadOnlyCollection<string> RedirectUris { get; }
 
     /// <summary>
     /// Gets a <see cref="bool"/> value indicating whether the client is confidential.

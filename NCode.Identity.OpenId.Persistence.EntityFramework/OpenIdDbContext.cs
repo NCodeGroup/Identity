@@ -65,11 +65,6 @@ public class OpenIdDbContext(
     public DbSet<ClientEntity> Clients { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="ClientUrlEntity"/> entities.
-    /// </summary>
-    public DbSet<ClientUrlEntity> ClientUrls { get; set; }
-
-    /// <summary>
     /// Gets or sets the <see cref="ClientSecretEntity"/> entities.
     /// </summary>
     public DbSet<ClientSecretEntity> ClientSecrets { get; set; }

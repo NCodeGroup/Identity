@@ -45,7 +45,7 @@ public class DefaultOpenIdConfidentialClient(
     public override ISecretKeyCollection SecretKeys => PublicClient.SecretKeys;
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<string> RedirectUrls => PublicClient.RedirectUrls;
+    public override IReadOnlyCollection<string> RedirectUris => PublicClient.RedirectUris;
 
     /// <inheritdoc />
     public override bool IsConfidential => true;

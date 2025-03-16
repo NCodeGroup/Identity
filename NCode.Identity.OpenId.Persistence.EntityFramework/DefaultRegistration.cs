@@ -41,7 +41,8 @@ public static class DefaultRegistration
     /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> to use.</typeparam>
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddEntityFrameworkPersistenceServices<TDbContext>(
-        this IServiceCollection serviceCollection)
+        this IServiceCollection serviceCollection
+    )
         where TDbContext : DbContext
     {
         serviceCollection.TryAddSingleton<IdValueGenerator>();
@@ -50,6 +51,7 @@ public static class DefaultRegistration
         serviceCollection.TryAddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<TDbContext>>();
         serviceCollection.TryAddScoped<IStoreManager, EntityStoreManager<TDbContext>>();
 
+        AddStore<TDbContext, IServerStore, ServerStore>(serviceCollection);
         AddStore<TDbContext, ITenantStore, TenantStore>(serviceCollection);
         AddStore<TDbContext, IClientStore, ClientStore>(serviceCollection);
         AddStore<TDbContext, IGrantStore, GrantStore>(serviceCollection);
@@ -58,7 +60,8 @@ public static class DefaultRegistration
     }
 
     private static void AddStore<TDbContext, TService, TImplementation>(
-        this IServiceCollection serviceCollection)
+        this IServiceCollection serviceCollection
+    )
         where TDbContext : DbContext
         where TService : class
         where TImplementation : class, TService

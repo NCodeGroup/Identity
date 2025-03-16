@@ -42,7 +42,7 @@ public class DelegatingJsonConverter<TInterface, TImplementation> : JsonConverte
     public override bool CanConvert(Type typeToConvert) =>
         MatchExact ?
             typeToConvert == typeof(TInterface) :
-            typeof(TInterface).IsAssignableFrom(typeToConvert);
+            typeof(TInterface).IsAssignableTo(typeToConvert) && typeToConvert != typeof(object);
 
     /// <inheritdoc />
     public override TInterface? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>

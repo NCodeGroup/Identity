@@ -33,7 +33,8 @@ public class SettingCollectionJsonConverter(
     private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
 
     /// <inheritdoc />
-    public override bool CanConvert(Type typeToConvert) => typeof(List<Setting>).IsAssignableTo(typeToConvert);
+    public override bool CanConvert(Type typeToConvert) =>
+        typeof(List<Setting>).IsAssignableTo(typeToConvert) && typeToConvert != typeof(object);
 
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, IEnumerable<Setting> settings, JsonSerializerOptions options)

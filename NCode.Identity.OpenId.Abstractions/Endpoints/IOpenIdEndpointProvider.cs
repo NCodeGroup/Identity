@@ -18,7 +18,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
 namespace NCode.Identity.OpenId.Endpoints;
@@ -33,6 +32,5 @@ public interface IOpenIdEndpointProvider
     /// Adds a <see cref="RouteEndpoint"/> to the <see cref="IEndpointRouteBuilder"/> for a specific <c>OAuth</c> or <c>OpenID Connect</c> endpoint.
     /// </summary>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance.</param>
-    /// <returns>A <see cref="RouteHandlerBuilder"/> that can be used to further customize the endpoint.</returns>
-    RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints);
+    void Map(IEndpointRouteBuilder endpoints);
 }

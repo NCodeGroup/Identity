@@ -27,29 +27,24 @@ namespace NCode.Identity.Persistence.DataContracts;
 public static class MaxLengths
 {
     /// <summary>
+    /// Specifies the maximum length of a resource's type discriminator.
+    /// </summary>
+    public const int ResourceType = 100;
+
+    /// <summary>
+    /// Specifies the maximum length of a resource's natural identifier.
+    /// </summary>
+    public const int ResourceId = 300;
+
+    /// <summary>
     /// Specifies the maximum length of a concurrency token.
     /// </summary>
     public const int ConcurrencyToken = 50;
 
     /// <summary>
-    /// Specifies the maximum length of a <c>ServerId</c>.
-    /// </summary>
-    public const int ServerId = 300;
-
-    /// <summary>
-    /// Specifies the maximum length of a <c>TenantId</c>.
-    /// </summary>
-    public const int TenantId = 300;
-
-    /// <summary>
     /// Specifies the maximum length of a tenant's <c>DomainName</c>.
     /// </summary>
     public const int TenantDomainName = 300;
-
-    /// <summary>
-    /// Specifies the maximum length of a <c>SecretId</c>.
-    /// </summary>
-    public const int SecretId = 300;
 
     /// <summary>
     /// Specifies the maximum length of a <c>SecretUse</c>.
@@ -70,11 +65,6 @@ public static class MaxLengths
     /// Specifies the maximum length of a <c>EncodingType</c>.
     /// </summary>
     public const int EncodingType = 100;
-
-    /// <summary>
-    /// Specifies the maximum length of a <c>ClientId</c>.
-    /// </summary>
-    public const int ClientId = 300;
 
     /// <summary>
     /// Specifies the maximum length of a <c>SubjectId</c>.

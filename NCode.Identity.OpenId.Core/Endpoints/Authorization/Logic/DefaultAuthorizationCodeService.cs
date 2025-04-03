@@ -49,7 +49,8 @@ public class DefaultAuthorizationCodeService(
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
         SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var mediator = openIdContext.Mediator;
 
@@ -59,15 +60,15 @@ public class DefaultAuthorizationCodeService(
 
         var authorizationCode = CryptoService.GenerateUrlSafeKey();
 
-        var persistedGrantId = new PersistedGrantId
-        {
-            TenantId = tenantId,
-            GrantType = OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
-            GrantKey = authorizationCode
-        };
+        var persistedGrantId = PersistedGrantService.CreateGrantId(
+            tenantId,
+            OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
+            authorizationCode
+        );
 
         var persistedGrant = new PersistedGrant<IAuthorizationRequest>
         {
+            TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
             Payload = authorizationRequest
@@ -89,11 +90,13 @@ public class DefaultAuthorizationCodeService(
         var securityToken = new SecurityToken(
             OpenIdConstants.SecurityTokenTypes.AuthorizationCode,
             authorizationCode,
-            tokenPeriod);
+            tokenPeriod
+        );
 
         await mediator.SendAsync(
             new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
-            cancellationToken);
+            cancellationToken
+        );
 
         return securityToken;
     }

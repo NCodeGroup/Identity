@@ -27,26 +27,38 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// Contains the data for a persisted secret.
 /// </summary>
 [PublicAPI]
-public class PersistedSecret : ISupportId, ISupportConcurrencyToken
+public class PersistedSecret : ISupportResource, ISupportSurrogateId, ISupportNaturalId, ISupportSecretId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
-    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
+    /// Gets the prefix for the resource type.
     /// </summary>
+    [MaxLength(MaxLengths.ResourceType)]
+    public const string ResourceTypePrefix = "Secret"; // TODO: use constant
+
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceType)]
+    public string ResourceType => ResourceTypePrefix;
+
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceId)]
+    public string ResourceId => SecretId;
+
+    /// <inheritdoc/>
     public long Id { get; init; }
 
-    /// <summary>
-    /// Gets or sets the natural key for this entity.
-    /// Also known as <c>kid</c> or <c>Key ID</c>.
-    /// </summary>
-    [MaxLength(MaxLengths.SecretId)]
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceId)]
+    string ISupportId<string>.Id => ResourceId;
+
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceId)]
     public required string SecretId { get; init; }
 
-    /// <summary>
-    /// Gets or sets a random value that is used to check for optimistic concurrency violations.
-    /// </summary>
+    /// <inheritdoc/>
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string ConcurrencyToken { get; init; }
+
+    //
 
     /// <summary>
     /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to

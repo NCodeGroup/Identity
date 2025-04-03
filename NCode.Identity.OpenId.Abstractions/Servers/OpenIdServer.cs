@@ -28,8 +28,17 @@ namespace NCode.Identity.OpenId.Servers;
 /// Provides contextual information and configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.
 /// </summary>
 [PublicAPI]
-public abstract class OpenIdServer
+public abstract class OpenIdServer : IOpenIdResource
 {
+    string IOpenIdResource.ResourceType => OpenIdResourceTypes.Server;
+
+    string IOpenIdResource.ResourceId => ServerId;
+
+    /// <summary>
+    /// Gets the unique identifier for the server.
+    /// </summary>
+    public abstract string ServerId { get; }
+
     /// <summary>
     /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains settings scoped to the server.
     /// </summary>

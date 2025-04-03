@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 
@@ -29,66 +30,22 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 [PublicAPI]
 public interface IGrantStore : IStore<PersistedGrant>
 {
+    ValueTask<PersistedGrant?> TryGetAsync(
+        PersistedGrantId grantId,
+        CancellationToken cancellationToken
+    );
+
     /// <summary>
     /// Attempts to retrieve a persisted grant from the store.
     /// </summary>
-    /// <param name="tenantId">The tenant identifier for the grant.</param>
     /// <param name="grantType">The type of grant to retrieve.</param>
     /// <param name="hashedKey">The hashed key of the grant to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedGrant"/> instance if found.</returns>
     ValueTask<PersistedGrant?> TryGetAsync(
-        string tenantId,
         string grantType,
         string hashedKey,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Updates an existing persisted grant as being consumed.
-    /// </summary>
-    /// <param name="tenantId">The tenant identifier for the grant.</param>
-    /// <param name="grantType">The type of grant to update.</param>
-    /// <param name="hashedKey">The hashed key of the grant to update.</param>
-    /// <param name="consumedWhen">The datetime to update the grant as consumed.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask SetConsumedOnceAsync(
-        string tenantId,
-        string grantType,
-        string hashedKey,
-        DateTimeOffset consumedWhen,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Updates an existing persisted grant as being revoked.
-    /// </summary>
-    /// <param name="tenantId">The tenant identifier for the grant.</param>
-    /// <param name="grantType">The type of grant to update.</param>
-    /// <param name="hashedKey">The hashed key of the grant to update.</param>
-    /// <param name="revokedWhen">The datetime to update the grant as revoked.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask SetRevokedOnceAsync(
-        string tenantId,
-        string grantType,
-        string hashedKey,
-        DateTimeOffset revokedWhen,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Updates an existing persisted grant as being expired.
-    /// </summary>
-    /// <param name="tenantId">The tenant identifier for the grant.</param>
-    /// <param name="grantType">The type of grant to update.</param>
-    /// <param name="hashedKey">The hashed key of the grant to update.</param>
-    /// <param name="expiresWhen">The datetime to update the grant as expired.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask UpdateExpirationAsync(
-        string tenantId,
-        string grantType,
-        string hashedKey,
-        DateTimeOffset expiresWhen,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

@@ -50,7 +50,7 @@ public class TenantStore(
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
 
     /// <inheritdoc />
-    protected override ValueTask<PersistedTenant> MapAsync(
+    protected override ValueTask<PersistedTenant> MapFromEntityAsync(
         TenantEntity tenant,
         CancellationToken cancellationToken
     )

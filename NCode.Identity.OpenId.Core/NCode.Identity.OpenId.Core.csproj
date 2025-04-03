@@ -30,6 +30,7 @@
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
         <PackageReference Include="System.Linq.Async" Version="6.0.1"/>
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0"/>
+        <PackageReference Include="SystemTextJsonPatch" Version="4.2.0" />
     </ItemGroup>
 
     <ItemGroup>

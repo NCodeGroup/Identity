@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedSecret"/>.
 /// </summary>
 [Index(nameof(NormalizedSecretId), IsUnique = true)]
-public class SecretEntity : ISupportId, ISupportConcurrencyToken
+public class SecretEntity : ISupportSurrogateId, ISupportConcurrencyToken
 {
     /// <inheritdoc />
     [Key]

@@ -1,6 +1,6 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,24 +16,20 @@
 
 #endregion
 
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
+namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Indicates that an entity supports the <see cref="Tenant"/> navigation property
-/// and the <see cref="TenantId"/> foreign key.
+/// Contains the JSON settings for an OpenID Tenant instance.
 /// </summary>
 [PublicAPI]
-public interface ISupportTenant
+public class PersistedTenantSettings : PersistedTenantResource<JsonElement>
 {
-    /// <summary>
-    /// Gets the foreign key for the associated tenant.
-    /// </summary>
-    long TenantId { get; }
-
-    /// <summary>
-    /// Gets the navigation property for the associated tenant.
-    /// </summary>
-    TenantEntity Tenant { get; }
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceType)]
+    public override string ResourceType => $"{ResourceTypePrefix}.Settings"; // TODO: use constant
 }

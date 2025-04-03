@@ -30,20 +30,16 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// Represents an entity framework data contract for an <c>OAuth</c> or <c>OpenID Connect</c> grant.
 /// The complimentary DTO for this entity is <see cref="PersistedGrant"/>.
 /// </summary>
-[Index(nameof(TenantId), nameof(GrantType), nameof(HashedKey), IsUnique = true)]
+[Index(nameof(GrantType), nameof(HashedKey), IsUnique = true)]
 [Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
-[Index(nameof(TenantId), nameof(ExpiresWhen), IsUnique = false)]
-public class GrantEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
+[Index(nameof(ExpiresWhen), IsUnique = false)]
+public class GrantEntity : ISupportSurrogateId, ISupportConcurrencyToken
 {
     /// <inheritdoc />
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
-
-    /// <inheritdoc />
-    [ForeignKey(nameof(Tenant))]
-    public required long TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the type of grant.
@@ -66,6 +62,12 @@ public class GrantEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
     [MaxLength(MaxLengths.ConcurrencyToken)]
     [ConcurrencyCheck]
     public required string ConcurrencyToken { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <c>ClientId</c> associated with this entity.
+    /// </summary>
+    [ForeignKey(nameof(Tenant))]
+    public required long? TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>ClientId</c> associated with this entity.
@@ -115,8 +117,10 @@ public class GrantEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
 
     //
 
-    /// <inheritdoc />
-    public required TenantEntity Tenant { get; init; }
+    /// <summary>
+    /// Gets the navigation property for the associated tenant.
+    /// </summary>
+    public required TenantEntity? Tenant { get; init; }
 
     /// <summary>
     /// Gets the navigation property for the associated client.

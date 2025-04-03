@@ -59,8 +59,10 @@ public class DefaultAuthorizationCodeGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
+        var tenantId = openIdContext.Tenant.TenantId;
         var errorFactory = openIdContext.ErrorFactory;
         var mediator = openIdContext.Mediator;
 
@@ -70,16 +72,15 @@ public class DefaultAuthorizationCodeGrantHandler(
                 .MissingParameter(OpenIdConstants.Parameters.AuthorizationCode)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
-        var grantId = new PersistedGrantId
-        {
-            TenantId = openIdContext.Tenant.TenantId,
-            GrantType = OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
-            GrantKey = authorizationCode
-        };
+        var persistedGrantId = PersistedGrantService.CreateGrantId(
+            tenantId,
+            OpenIdConstants.PersistedGrantTypes.AuthorizationCode,
+            authorizationCode
+        );
 
         var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<AuthorizationGrant>(
             openIdContext,
-            grantId,
+            persistedGrantId,
             cancellationToken
         );
 
@@ -98,15 +99,18 @@ public class DefaultAuthorizationCodeGrantHandler(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
-                authorizationGrant),
-            cancellationToken);
+                authorizationGrant
+            ),
+            cancellationToken
+        );
 
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
             openIdClient,
             tokenRequest,
             authorizationGrant,
-            cancellationToken);
+            cancellationToken
+        );
 
         return tokenResponse;
     }
@@ -116,7 +120,8 @@ public class DefaultAuthorizationCodeGrantHandler(
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
         AuthorizationGrant authorizationGrant,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var openIdEnvironment = openIdContext.Environment;
         var (authorizationRequest, subjectAuthentication) = authorizationGrant;
@@ -145,7 +150,8 @@ public class DefaultAuthorizationCodeGrantHandler(
                 openIdContext,
                 openIdClient,
                 securityTokenRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenPeriod.Duration;
@@ -163,7 +169,8 @@ public class DefaultAuthorizationCodeGrantHandler(
                 openIdContext,
                 openIdClient,
                 newRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             tokenResponse.IdToken = securityToken.TokenValue;
         }
@@ -179,7 +186,8 @@ public class DefaultAuthorizationCodeGrantHandler(
                 openIdContext,
                 openIdClient,
                 newRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             tokenResponse.RefreshToken = securityToken.TokenValue;
         }

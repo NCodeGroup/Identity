@@ -51,7 +51,7 @@ public class ClientStore(
     public override bool IsRemoveSupported => true;
 
     /// <inheritdoc />
-    protected override ValueTask<PersistedClient> MapAsync(
+    protected override ValueTask<PersistedClient> MapFromEntityAsync(
         ClientEntity client,
         CancellationToken cancellationToken
     )

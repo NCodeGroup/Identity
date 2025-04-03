@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// </summary>
 [Index(nameof(NormalizedTenantId), IsUnique = true)]
 [Index(nameof(NormalizedDomainName), IsUnique = true)]
-public class TenantEntity : ISupportId, ISupportConcurrencyToken
+public class TenantEntity : ISupportSurrogateId, ISupportConcurrencyToken
 {
     /// <inheritdoc />
     [Key]

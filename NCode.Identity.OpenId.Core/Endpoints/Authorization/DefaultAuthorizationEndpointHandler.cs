@@ -54,7 +54,7 @@ public class DefaultAuthorizationEndpointHandler(
     private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } = authorizationEndpointLogic;
 
     /// <inheritdoc />
-    public RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints) => endpoints
+    public void Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapMethods(
             OpenIdConstants.EndpointPaths.Authorization,
             [HttpMethods.Get, HttpMethods.Post],

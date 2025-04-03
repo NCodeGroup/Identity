@@ -22,14 +22,14 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Persistence.DataContracts;
 
 /// <summary>
-/// Indicates that an entity supports the <see cref="TenantId"/> property.
+/// Indicates that an instance supports the <see cref="TenantId"/> property.
 /// </summary>
 [PublicAPI]
 public interface ISupportTenantId
 {
     /// <summary>
-    /// Gets the natural tenant identifier for this entity.
+    /// Gets the natural identifier of the OpenId Tenant that this instance belongs to.
     /// </summary>
-    [MaxLength(MaxLengths.TenantId)]
-    string? TenantId { get; }
+    [MaxLength(MaxLengths.ResourceId)]
+    string TenantId { get; }
 }

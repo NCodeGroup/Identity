@@ -22,25 +22,33 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Persistence.DataContracts;
 
 /// <summary>
-/// Provides the ability to return the surrogate identifier for an entity where the identifier type is <see cref="long"/>.
+/// Provides the ability to return the identifier for an instance.
 /// </summary>
-[PublicAPI]
-public interface ISupportId : ISupportId<long>
-{
-    // nothing
-}
-
-/// <summary>
-/// Provides the ability to return the surrogate identifier for an entity.
-/// </summary>
-/// <typeparam name="T">The type of the surrogate identifier.</typeparam>
+/// <typeparam name="T">The type of the identifier.</typeparam>
 [PublicAPI]
 public interface ISupportId<out T>
     where T : IEquatable<T>
 {
     /// <summary>
-    /// Gets the surrogate identifier for this entity.
-    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
+    /// Gets the identifier for this instance.
     /// </summary>
     T Id { get; }
+}
+
+/// <summary>
+/// Provides the ability to return the surrogate identifier for an instance where the identifier type is <see cref="long"/>.
+/// </summary>
+[PublicAPI]
+public interface ISupportSurrogateId : ISupportId<long>
+{
+    // nothing
+}
+
+/// <summary>
+/// Provides the ability to return the natural identifier for an instance where the identifier type is <see cref="string"/>.
+/// </summary>
+[PublicAPI]
+public interface ISupportNaturalId : ISupportId<string>
+{
+    // nothing
 }

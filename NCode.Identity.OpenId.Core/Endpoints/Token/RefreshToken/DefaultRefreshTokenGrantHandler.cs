@@ -61,6 +61,7 @@ public class DefaultRefreshTokenGrantHandler(
         CancellationToken cancellationToken
     )
     {
+        var tenantId = openIdContext.Tenant.TenantId;
         var errorFactory = openIdContext.ErrorFactory;
         var mediator = openIdContext.Mediator;
         var settings = openIdClient.Settings;
@@ -75,16 +76,15 @@ public class DefaultRefreshTokenGrantHandler(
 
         var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
-        var grantId = new PersistedGrantId
-        {
-            TenantId = openIdContext.Tenant.TenantId,
-            GrantType = OpenIdConstants.PersistedGrantTypes.RefreshToken,
-            GrantKey = refreshToken
-        };
+        var persistedGrantId = PersistedGrantService.CreateGrantId(
+            tenantId,
+            OpenIdConstants.PersistedGrantTypes.RefreshToken,
+            refreshToken
+        );
 
         var persistedGrantOrNull = await PersistedGrantService.TryGetAsync<RefreshTokenGrant>(
             openIdContext,
-            grantId,
+            persistedGrantId,
             cancellationToken
         );
 
@@ -117,7 +117,7 @@ public class DefaultRefreshTokenGrantHandler(
         {
             await PersistedGrantService.SetRevokedAsync(
                 openIdContext,
-                grantId,
+                persistedGrantId,
                 utcNow,
                 cancellationToken
             );
@@ -140,7 +140,7 @@ public class DefaultRefreshTokenGrantHandler(
 
             await PersistedGrantService.UpdateExpirationAsync(
                 openIdContext,
-                grantId,
+                persistedGrantId,
                 expiresWhen,
                 cancellationToken
             );

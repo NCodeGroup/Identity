@@ -17,38 +17,35 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> server.
+/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> Server instance.
 /// </summary>
 [PublicAPI]
-public class PersistedServer : ISupportId
+public class PersistedServer : BasePersistedServerResource, ISupportSurrogateId, ISupportNaturalId
 {
-    /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
-    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
-    /// </summary>
-    public long Id { get; set; }
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceType)]
+    public override string ResourceType => ResourceTypePrefix;
+
+    /// <inheritdoc/>
+    public long Id { get; init; }
+
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceId)]
+    string ISupportId<string>.Id => ResourceId;
 
     /// <summary>
-    /// Gets or sets the natural identifier for this entity.
+    /// Gets or sets the JSON settings for an OpenID Server instance.
     /// </summary>
-    [MaxLength(MaxLengths.ServerId)]
-    public required string ServerId { get; init; }
+    public required PersistedServerSettings Settings { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the server's settings.
+    /// Gets or sets the collection of secrets only known to an OpenID Server instance.
     /// </summary>
-    public required ConcurrentState<JsonElement> SettingsState { get; set; }
-
-    /// <summary>
-    /// Gets or sets the collection of secrets only known to this OpenID server.
-    /// </summary>
-    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; set; }
+    public required PersistedServerSecrets Secrets { get; set; }
 }

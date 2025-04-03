@@ -50,7 +50,7 @@ public class ServerStore(
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
 
     /// <inheritdoc />
-    protected override ValueTask<PersistedServer> MapAsync(
+    protected override ValueTask<PersistedServer> MapFromEntityAsync(
         ServerEntity entity,
         CancellationToken cancellationToken
     ) =>
@@ -58,6 +58,7 @@ public class ServerStore(
         {
             Id = entity.Id,
             ServerId = entity.ServerId,
+            ConcurrencyToken = entity.ConcurrencyToken,
             SecretsState = ConcurrentStateFactory.Create(MapExisting(entity.Secrets), entity.SecretsConcurrencyToken),
             SettingsState = ConcurrentStateFactory.Create(entity.SettingsJson, entity.SettingsConcurrencyToken),
         });
@@ -136,9 +137,9 @@ public class ServerStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
+    public async ValueTask<ConcurrentState<JsonElement>?> GetSettingsOrDefaultAsync(
         string serverId,
-        ConcurrentState<JsonElement> lastKnownState,
+        ConcurrentState<JsonElement>? lastKnownState,
         CancellationToken cancellationToken
     )
     {
@@ -146,10 +147,15 @@ public class ServerStore(
 
         var entity = await DbContext.Servers
             .Where(server => server.NormalizedServerId == normalizedServerId)
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (entity is null)
+        {
+            return null;
+        }
 
         var concurrencyToken = entity.SettingsConcurrencyToken;
-        if (string.Equals(concurrencyToken, lastKnownState.ConcurrencyToken, StringComparison.Ordinal))
+        if (string.Equals(concurrencyToken, lastKnownState?.ConcurrencyToken, StringComparison.Ordinal))
         {
             return lastKnownState;
         }

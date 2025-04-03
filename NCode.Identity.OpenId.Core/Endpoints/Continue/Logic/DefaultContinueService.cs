@@ -50,9 +50,11 @@ public class DefaultContinueService(
         string? subjectId,
         TimeSpan lifetime,
         TPayload payload,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var openIdEnvironment = openIdContext.Environment;
+        var tenantId = openIdContext.Tenant.TenantId;
         var httpContext = openIdContext.Http;
 
         // the continue endpoint has a single 'state' query string parameter that contains a one-time use grant key
@@ -60,7 +62,8 @@ public class DefaultContinueService(
         var continueUrl = LinkGenerator.GetUriByName(
             httpContext,
             OpenIdConstants.EndpointNames.Continue,
-            new { state = grantKey });
+            new { state = grantKey }
+        );
 
         if (string.IsNullOrEmpty(continueUrl))
             throw new InvalidOperationException("Unable to determine continue url.");
@@ -78,15 +81,15 @@ public class DefaultContinueService(
             PayloadJson = payloadJson
         };
 
-        var persistedGrantId = new PersistedGrantId
-        {
-            TenantId = openIdContext.Tenant.TenantId,
-            GrantType = OpenIdConstants.PersistedGrantTypes.Continue,
-            GrantKey = grantKey
-        };
+        var persistedGrantId = PersistedGrantService.CreateGrantId(
+            tenantId,
+            OpenIdConstants.PersistedGrantTypes.Continue,
+            grantKey
+        );
 
         var persistedGrant = new PersistedGrant<ContinueEnvelope>
         {
+            TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
             Payload = continueEnvelope

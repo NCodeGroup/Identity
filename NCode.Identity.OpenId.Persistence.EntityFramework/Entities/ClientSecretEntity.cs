@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// Represents an entity framework data contract for a relationship between a <see cref="ClientEntity"/> and a <see cref="SecretEntity"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(ClientId), nameof(SecretId), IsUnique = true)]
-public class ClientSecretEntity : ISupportId, ISupportTenant, ISupportSecret
+public class ClientSecretEntity : ISupportSurrogateId, ISupportTenantEntity, ISupportSecret
 {
     /// <inheritdoc />
     [Key]

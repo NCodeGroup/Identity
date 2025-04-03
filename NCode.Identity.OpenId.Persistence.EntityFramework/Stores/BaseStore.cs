@@ -17,15 +17,22 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using IdGen;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
+
+public interface ITenantIdCache
+{
+    ValueTask<long> GetTenantIdAsync(string tenantId, CancellationToken cancellationToken);
+}
 
 /// <summary>
 /// Provides a base implementation for <see cref="IStore{TItem}"/> that uses entity framework.
@@ -37,6 +44,8 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     where TItem : class
     where TEntity : class
 {
+    protected abstract IMemoryCache MemoryCache { get; }
+
     /// <summary>
     /// Gets the <see cref="IStoreProvider"/> for this store.
     /// </summary>
@@ -85,7 +94,7 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// newly mapped DTO instance.</returns>
-    protected abstract ValueTask<TItem> MapAsync(TEntity entity, CancellationToken cancellationToken);
+    protected abstract ValueTask<TItem> MapFromEntityAsync(TEntity entity, CancellationToken cancellationToken);
 
     #region IStoreProvider
 
@@ -102,17 +111,64 @@ public abstract class BaseStore<TItem, TEntity> : IStore
 
     #region Tenant
 
+    protected async ValueTask<long?> TryGetTenantIdAsync(string tenantId, CancellationToken cancellationToken)
+    {
+        var key = $"BaseStore|TryGetTenantId|{tenantId}";
+        if (MemoryCache.TryGetValue(key, out var baseValue) && baseValue is long typedValue)
+        {
+            return typedValue;
+        }
+
+        var entity = await TryGetTenantAsync(tenantId, cancellationToken);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        using var entry = MemoryCache.CreateEntry(key);
+        entry.Value = entity.Id;
+        entry.SlidingExpiration = TimeSpan.FromHours(24.0);
+
+        return entity.Id;
+    }
+
+    protected async ValueTask<long?> TryGetSurrogateIdAsync(
+        // string naturalId,
+        // Expression<Func<GrantEntity, bool>> predicate,
+        CancellationToken cancellationToken
+    )
+    {
+        var key = $"BaseStore|TryGetTenantId|{tenantId}";
+        if (MemoryCache.TryGetValue(key, out var baseValue) && baseValue is long typedValue)
+        {
+            return typedValue;
+        }
+
+        var entity = await TryGetTenantAsync(tenantId, cancellationToken);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        using var entry = MemoryCache.CreateEntry(key);
+        entry.Value = entity.Id;
+        entry.SlidingExpiration = TimeSpan.FromHours(24.0);
+
+        return entity.Id;
+    }
+
     /// <summary>
     /// Attempts to retrieve a tenant from the store based on the provided tenant identifier.
     /// </summary>
-    /// <param name="tenantId">The tenant identifier to use to find the tenant.</param>
+    /// <param name="tenantId">The identifier to use to find the tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="TenantEntity"/> if found; otherwise <c>null</c>.</returns>
     protected async ValueTask<TenantEntity?> TryGetTenantAsync(
         string? tenantId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var normalizedTenantId = Normalize(tenantId);
         return await DbContext.Tenants
@@ -130,7 +186,8 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// <see cref="TenantEntity"/> if found; otherwise <c>null</c>.</returns>
     protected async ValueTask<TenantEntity?> TryGetTenantAsync(
         ISupportTenantId supportTenantId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         return await TryGetTenantAsync(supportTenantId.TenantId, cancellationToken);
     }
@@ -146,10 +203,28 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// <exception cref="InvalidOperationException">Thrown when the tenant is not found.</exception>
     protected async ValueTask<TenantEntity> GetTenantAsync(
         ISupportTenantId supportTenantId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var tenant = await TryGetTenantAsync(supportTenantId.TenantId, cancellationToken);
-        return tenant ?? throw new InvalidOperationException("Tenant not found.");
+        return await GetTenantAsync(supportTenantId.TenantId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets a tenant from the store based on the provided tenant identifier.
+    /// </summary>
+    /// <param name="tenantId">The identifier to use to find the tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="TenantEntity"/> if found; otherwise throws an <see cref="InvalidOperationException"/>.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the tenant is not found.</exception>
+    protected async ValueTask<TenantEntity> GetTenantAsync(
+        string? tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await TryGetTenantAsync(tenantId, cancellationToken);
+        return tenantEntity ?? throw new InvalidOperationException($"Tenant '{tenantId}' not found.");
     }
 
     #endregion

@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedServer"/>.
 /// </summary>
 [Index(nameof(NormalizedServerId), IsUnique = true)]
-public class ServerEntity : ISupportId, ISupportConcurrencyToken
+public class ServerEntity : ISupportSurrogateId, ISupportConcurrencyToken
 {
     /// <inheritdoc />
     [Key]
@@ -41,7 +41,7 @@ public class ServerEntity : ISupportId, ISupportConcurrencyToken
     /// Gets or sets the natural identifier for this entity.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.ServerId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string ServerId { get; init; }
 
     /// <summary>
@@ -49,7 +49,7 @@ public class ServerEntity : ISupportId, ISupportConcurrencyToken
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.ServerId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string NormalizedServerId { get; init; }
 
     /// <inheritdoc />

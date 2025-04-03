@@ -58,6 +58,16 @@ public interface IStore<T, in TKey> : IStore
     bool IsRemoveSupported { get; }
 
     /// <summary>
+    /// Gets a persisted entity from the store by using its surrogate key.
+    /// </summary>
+    /// <param name="id">The surrogate key of the entity to retrieve.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// entity matching the specified <paramref name="id"/> if it exists.</returns>
+    ValueTask<T?> TryGetByIdAsync(TKey id, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new persisted entity to the store.
     /// </summary>
     /// <param name="item">The entity to add to the store.</param>
@@ -65,6 +75,15 @@ public interface IStore<T, in TKey> : IStore
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask AddAsync(T item, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates a new persisted entity in the store.
+    /// </summary>
+    /// <param name="item">The entity to update in the store.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask UpdateAsync(T item, CancellationToken cancellationToken);
 
     /// <summary>
     /// Removes a persisted entity from the store by using its surrogate key.
@@ -75,14 +94,4 @@ public interface IStore<T, in TKey> : IStore
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     /// <exception cref="NotSupportedException">Thrown when the store does not support removing entities.</exception>
     ValueTask RemoveByIdAsync(TKey id, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Gets a persisted entity from the store by using its surrogate key.
-    /// </summary>
-    /// <param name="id">The surrogate key of the entity to retrieve.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// entity matching the specified <paramref name="id"/> if it exists.</returns>
-    ValueTask<T?> TryGetByIdAsync(TKey id, CancellationToken cancellationToken);
 }

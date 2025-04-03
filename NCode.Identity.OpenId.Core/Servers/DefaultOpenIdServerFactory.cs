@@ -101,7 +101,7 @@ public class DefaultOpenIdServerFactory(
             var secretsProvider = await CreateSecretsProviderAsync(persistedServer, propertyBag, cancellationToken);
             disposables.Add(secretsProvider);
 
-            return Create(settingsProvider, secretsProvider, propertyBag);
+            return Create(serverId, settingsProvider, secretsProvider, propertyBag);
         }
         catch
         {
@@ -114,10 +114,12 @@ public class DefaultOpenIdServerFactory(
     /// Factory method to create an instance of <see cref="OpenIdServer"/>.
     /// </summary>
     protected internal virtual OpenIdServer Create(
+        string serverId,
         IReadOnlySettingCollectionProvider settingsProvider,
         ISecretKeyCollectionProvider secretsProvider,
         IPropertyBag propertyBag
     ) => new DefaultOpenIdServer(
+        serverId,
         settingsProvider,
         secretsProvider,
         propertyBag
@@ -165,6 +167,7 @@ public class DefaultOpenIdServerFactory(
         {
             Id = IdGenerator.CreateId(),
             ServerId = serverId,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
             SettingsState = settingsState,
             SecretsState = secretsState
         };
@@ -269,9 +272,12 @@ public class DefaultOpenIdServerFactory(
         var store = storeManager.GetStore<IServerStore>();
 
         var prevSettingsState = persistedServer.SettingsState;
-        var newSettingsState = await store.GetSettingsAsync(serverId, prevSettingsState, cancellationToken);
+        var newSettingsState = await store.GetSettingsOrDefaultAsync(serverId, prevSettingsState, cancellationToken);
 
-        var (newSettingsJson, newConcurrencyToken) = newSettingsState;
+        if (!newSettingsState.HasValue)
+            return RefreshCollectionResultFactory.Unchanged<Setting>();
+
+        var (newSettingsJson, newConcurrencyToken) = newSettingsState.Value;
         var prevConcurrencyToken = prevSettingsState.ConcurrencyToken;
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<Setting>();

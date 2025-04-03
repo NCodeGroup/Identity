@@ -27,9 +27,10 @@ namespace NCode.Identity.OpenId.Models;
 public readonly struct PersistedGrantId
 {
     /// <summary>
-    /// Gets or sets the identifier of the tenant that is associated with the grant.
+    /// Gets or sets the tenant identifier associated with the grant.
+    /// This is used to scope the grant to a specific tenant if applicable.
     /// </summary>
-    public required string TenantId { get; init; }
+    public required string? TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the type of the grant.

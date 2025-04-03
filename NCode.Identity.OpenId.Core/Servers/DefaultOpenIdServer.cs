@@ -27,11 +27,15 @@ namespace NCode.Identity.OpenId.Servers;
 /// Provides a default implementation of the <see cref="OpenIdServer"/> abstraction.
 /// </summary>
 public class DefaultOpenIdServer(
+    string serverId,
     IReadOnlySettingCollectionProvider settingsProvider,
     ISecretKeyCollectionProvider secretsProvider,
     IPropertyBag propertyBag
 ) : OpenIdServer, IAsyncDisposable
 {
+    /// <inheritdoc />
+    public override string ServerId { get; } = serverId;
+
     /// <inheritdoc />
     public override IReadOnlySettingCollectionProvider SettingsProvider { get; } = settingsProvider;
 

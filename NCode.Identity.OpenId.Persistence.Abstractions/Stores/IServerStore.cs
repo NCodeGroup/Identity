@@ -40,7 +40,7 @@ public interface IServerStore : IStore<PersistedServer>
     ValueTask<PersistedServer?> TryGetByServerIdAsync(string serverId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets the <see cref="JsonElement"/> settings for the specified <paramref name="serverId"/>.
+    /// Attempts to get the <see cref="JsonElement"/> settings for the specified <paramref name="serverId"/>.
     /// The concurrency token from <paramref name="lastKnownState"/> is used to check if the current value has changed.
     /// If the value hasn't changed, this method returns the same <paramref name="lastKnownState"/> instance;
     /// otherwise, it returns the most recent value from the store.
@@ -49,9 +49,9 @@ public interface IServerStore : IStore<PersistedServer>
     /// <param name="lastKnownState">The last known state of the <see cref="JsonElement"/> settings for the entity.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation. </param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="JsonElement"/> settings for the specified entity.</returns>
-    ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
+    ValueTask<ConcurrentState<JsonElement>?> GetSettingsOrDefaultAsync(
         string serverId,
-        ConcurrentState<JsonElement> lastKnownState,
+        ConcurrentState<JsonElement>? lastKnownState,
         CancellationToken cancellationToken
     );
 

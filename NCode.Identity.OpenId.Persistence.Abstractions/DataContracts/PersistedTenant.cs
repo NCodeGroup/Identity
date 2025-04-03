@@ -18,30 +18,27 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> tenant.
+/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> Tenant instance.
 /// </summary>
 [PublicAPI]
-public class PersistedTenant : ISupportId, ISupportConcurrencyToken
+public class PersistedTenant : BasePersistedTenantResource, ISupportSurrogateId, ISupportNaturalId
 {
-    /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
-    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
-    /// </summary>
-    public long Id { get; set; }
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceType)]
+    public override string ResourceType => ResourceTypePrefix;
 
-    /// <summary>
-    /// Gets or sets the natural identifier for this entity.
-    /// </summary>
-    [MaxLength(MaxLengths.TenantId)]
-    public required string TenantId { get; init; }
+    /// <inheritdoc/>
+    public long Id { get; init; }
+
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceId)]
+    string ISupportId<string>.Id => ResourceId;
 
     /// <summary>
     /// Gets or sets the domain name for this entity.
@@ -49,10 +46,6 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     /// </summary>
     [MaxLength(MaxLengths.TenantDomainName)]
     public required string? DomainName { get; init; }
-
-    /// <inheritdoc/>
-    [MaxLength(MaxLengths.ConcurrencyToken)]
-    public required string ConcurrencyToken { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the tenant is disabled.
@@ -65,12 +58,12 @@ public class PersistedTenant : ISupportId, ISupportConcurrencyToken
     public required string DisplayName { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the tenant settings.
+    /// Gets or sets the JSON settings for an OpenID Tenant instance.
     /// </summary>
-    public required ConcurrentState<JsonElement> SettingsState { get; set; }
+    public required PersistedTenantSettings Settings { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to this tenant.
+    /// Gets or sets the collection of secrets only known to an OpenID Tenant instance.
     /// </summary>
-    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; set; }
+    public required PersistedTenantSecrets Secrets { get; set; }
 }

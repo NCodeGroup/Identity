@@ -16,33 +16,24 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Endpoints.Api;
+namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
-/*
-
-GET api/server/settings
-PUT api/server/settings
-
-GET api/server/secrets
-POST api/server/secrets
-GET api/server/secrets/{secretId}
-PUT api/server/secrets/{secretId}
-
-GET api/tenants
-GET api/tenants/{tenantId}
-GET api/tenants/{tenantId}/settings
-GET api/tenants/{tenantId}/secrets
-
-*/
-
-public class ServerApiEndpointHandler : IOpenIdEndpointProvider
+/// <summary>
+/// Indicates that an entity supports the <see cref="Tenant"/> navigation property
+/// and the <see cref="TenantId"/> foreign key.
+/// </summary>
+[PublicAPI]
+public interface ISupportTenantEntity
 {
-    /// <inheritdoc />
-    public RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints)
-    {
-        throw new NotImplementedException();
-    }
+    /// <summary>
+    /// Gets the foreign key for the associated tenant.
+    /// </summary>
+    long TenantId { get; }
+
+    /// <summary>
+    /// Gets the navigation property for the associated tenant.
+    /// </summary>
+    TenantEntity Tenant { get; }
 }

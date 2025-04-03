@@ -28,19 +28,10 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> grant.
 /// </summary>
 [PublicAPI]
-public class PersistedGrant : ISupportId, ISupportTenantId
+public class PersistedGrant : ISupportSurrogateId
 {
-    /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
-    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
-    /// </summary>
-    public required long Id { get; set; }
-
-    /// <summary>
-    /// Gets or sets the natural tenant identifier for this entity.
-    /// </summary>
-    [MaxLength(MaxLengths.TenantId)]
-    public required string TenantId { get; init; }
+    /// <inheritdoc/>
+    public long Id { get; init; }
 
     /// <summary>
     /// Gets or sets the type of grant.
@@ -55,9 +46,15 @@ public class PersistedGrant : ISupportId, ISupportTenantId
     public required string HashedKey { get; init; }
 
     /// <summary>
+    /// Gets or sets the <c>TenantId</c> associated with this entity.
+    /// </summary>
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string? TenantId { get; init; }
+
+    /// <summary>
     /// Gets or sets the <c>ClientId</c> associated with this entity.
     /// </summary>
-    [MaxLength(MaxLengths.ClientId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string? ClientId { get; init; }
 
     /// <summary>
@@ -74,7 +71,7 @@ public class PersistedGrant : ISupportId, ISupportTenantId
     /// <summary>
     /// Gets or sets when this entity expires.
     /// </summary>
-    public required DateTimeOffset? ExpiresWhen { get; init; }
+    public required DateTimeOffset? ExpiresWhen { get; set; }
 
     /// <summary>
     /// Gets or sets when this entity was revoked.

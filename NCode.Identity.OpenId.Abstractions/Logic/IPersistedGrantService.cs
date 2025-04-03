@@ -30,6 +30,15 @@ namespace NCode.Identity.OpenId.Logic;
 public interface IPersistedGrantService
 {
     /// <summary>
+    /// Factory method to create a persisted grant identifier with the specified details.
+    /// </summary>
+    /// <param name="tenantId">The tenant identifier associated with the grant.</param>
+    /// <param name="grantType">The type of the grant.</param>
+    /// <param name="grantKey">The identifier of the resource associated with the grant.</param>
+    /// <returns>The <see cref="PersistedGrantId"/> that represents the persisted grant identifier.</returns>
+    PersistedGrantId CreateGrantId(string? tenantId, string grantType, string grantKey);
+
+    /// <summary>
     /// Persists a persisted grant with the specified details to storage.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>

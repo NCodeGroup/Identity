@@ -48,7 +48,7 @@ public class DefaultContinueEndpointHandler(
     private IContinueProviderSelector ContinueProviderSelector { get; } = continueProviderSelector;
 
     /// <inheritdoc />
-    public RouteHandlerBuilder Map(IEndpointRouteBuilder endpoints) => endpoints
+    public void Map(IEndpointRouteBuilder endpoints) => endpoints
         .MapMethods(
             OpenIdConstants.EndpointPaths.Continue,
             [HttpMethods.Get, HttpMethods.Post],
@@ -73,12 +73,13 @@ public class DefaultContinueEndpointHandler(
             mediator,
             cancellationToken);
 
-        var persistedGrantId = new PersistedGrantId
-        {
-            TenantId = openIdContext.Tenant.TenantId,
-            GrantType = OpenIdConstants.PersistedGrantTypes.Continue,
-            GrantKey = state
-        };
+        var tenantId = openIdContext.Tenant.TenantId;
+
+        var persistedGrantId = PersistedGrantService.CreateGrantId(
+            tenantId,
+            OpenIdConstants.PersistedGrantTypes.Continue,
+            state
+        );
 
         var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<ContinueEnvelope>(
             openIdContext,

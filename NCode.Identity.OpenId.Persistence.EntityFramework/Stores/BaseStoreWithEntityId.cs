@@ -37,7 +37,16 @@ public abstract class BaseStoreWithEntityId<TItem, TEntity> : BaseStore<TItem, T
     public virtual bool IsRemoveSupported => false;
 
     /// <inheritdoc />
+    public virtual async ValueTask<TItem?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
+    {
+        return await TryGetAsync(entity => entity.Id == id, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public abstract ValueTask AddAsync(TItem item, CancellationToken cancellationToken);
+
+    /// <inheritdoc />
+    public abstract ValueTask UpdateAsync(TItem item, CancellationToken cancellationToken);
 
     /// <inheritdoc />
     public virtual ValueTask RemoveByIdAsync(long id, CancellationToken cancellationToken)
@@ -46,12 +55,6 @@ public abstract class BaseStoreWithEntityId<TItem, TEntity> : BaseStore<TItem, T
             throw new NotSupportedException("Remove operation is not supported.");
 
         throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public virtual async ValueTask<TItem?> TryGetByIdAsync(long id, CancellationToken cancellationToken)
-    {
-        return await TryGetAsync(entity => entity.Id == id, cancellationToken);
     }
 
     //
@@ -98,6 +101,6 @@ public abstract class BaseStoreWithEntityId<TItem, TEntity> : BaseStore<TItem, T
     )
     {
         var entity = await TryGetEntityAsync(predicate, cancellationToken);
-        return entity is null ? null : await MapAsync(entity, cancellationToken);
+        return entity is null ? null : await MapFromEntityAsync(entity, cancellationToken);
     }
 }

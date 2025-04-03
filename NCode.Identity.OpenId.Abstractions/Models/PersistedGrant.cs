@@ -33,14 +33,19 @@ public readonly struct PersistedGrant<TPayload>
     public PersistedGrantStatus Status { get; init; }
 
     /// <summary>
+    /// Gets or sets the identifier of the tenant that is associated with the grant.
+    /// </summary>
+    public required string? TenantId { get; init; }
+
+    /// <summary>
     /// Gets or sets the identifier of the client that is associated with the grant.
     /// </summary>
-    public string? ClientId { get; init; }
+    public required string? ClientId { get; init; }
 
     /// <summary>
     /// Gets or sets the identifier of the subject that is associated with the grant.
     /// </summary>
-    public string? SubjectId { get; init; }
+    public required string? SubjectId { get; init; }
 
     /// <summary>
     /// Gets or sets the payload of the grant.

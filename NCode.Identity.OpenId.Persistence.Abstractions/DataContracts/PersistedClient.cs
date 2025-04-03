@@ -18,40 +18,29 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> client.
+/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> Client instance.
 /// </summary>
 [PublicAPI]
-public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrencyToken
+public class PersistedClient : BasePersistedClientResource, ISupportSurrogateId, ISupportNaturalId
 {
-    /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
-    /// A value of <c>0</c> indicates that this entity has not been persisted to storage yet.
-    /// </summary>
-    public long Id { get; set; }
-
-    /// <summary>
-    /// Gets or sets the natural tenant identifier for this entity.
-    /// </summary>
-    [MaxLength(MaxLengths.TenantId)]
-    public required string TenantId { get; init; }
-
-    /// <summary>
-    /// Gets or sets the natural identifier for this entity.
-    /// </summary>
-    [MaxLength(MaxLengths.ClientId)]
-    public required string ClientId { get; init; }
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceType)]
+    public override string ResourceType => ResourceTypePrefix;
 
     /// <inheritdoc/>
-    [MaxLength(MaxLengths.ConcurrencyToken)]
-    public required string ConcurrencyToken { get; set; }
+    public long Id { get; init; }
+
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceId)]
+    string ISupportId<string>.Id => ResourceId;
+
+    //
 
     /// <summary>
     /// Gets or sets a value indicating whether the client is disabled.
@@ -59,12 +48,12 @@ public class PersistedClient : ISupportId, ISupportTenantId, ISupportConcurrency
     public required bool IsDisabled { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the client settings.
+    /// Gets or sets the JSON settings for an OpenID Client instance.
     /// </summary>
-    public required ConcurrentState<JsonElement> SettingsState { get; set; }
+    public required PersistedClientSettings Settings { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to this client.
+    /// Gets or sets the collection of secrets only known to an OpenID Client instance.
     /// </summary>
-    public required ConcurrentState<IReadOnlyCollection<PersistedSecret>> SecretsState { get; set; }
+    public required PersistedClientSecrets Secrets { get; set; }
 }

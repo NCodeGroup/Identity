@@ -80,7 +80,8 @@ public class DefaultTokenService(
         OpenIdContext openIdContext,
         SubjectAuthentication ticket,
         CreateSecurityTokenRequest tokenRequest,
-        IEnumerable<Claim> claims)
+        IEnumerable<Claim> claims
+    )
     {
         var hasAuthTime = false;
 
@@ -120,7 +121,8 @@ public class DefaultTokenService(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
@@ -228,7 +230,8 @@ public class DefaultTokenService(
 
         await mediator.SendAsync(
             new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
-            cancellationToken);
+            cancellationToken
+        );
 
         return securityToken;
     }
@@ -238,7 +241,8 @@ public class DefaultTokenService(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
@@ -331,7 +335,8 @@ public class DefaultTokenService(
 
         await mediator.SendAsync(
             new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
-            cancellationToken);
+            cancellationToken
+        );
 
         return securityToken;
     }
@@ -353,23 +358,24 @@ public class DefaultTokenService(
         var clientId = openIdClient.ClientId;
         var subjectId = subjectAuthentication?.SubjectId;
 
-        var refreshToken = CryptoService.GenerateUrlSafeKey();
+        var refreshToken = CryptoService.GenerateUrlSafeKey(); // 256 bits of entropy
 
-        var persistedGrantId = new PersistedGrantId
-        {
-            TenantId = tenantId,
-            GrantType = OpenIdConstants.PersistedGrantTypes.RefreshToken,
-            GrantKey = refreshToken
-        };
+        var persistedGrantId = PersistedGrantService.CreateGrantId(
+            tenantId,
+            OpenIdConstants.PersistedGrantTypes.RefreshToken,
+            refreshToken
+        );
 
         var refreshTokenGrant = new RefreshTokenGrant(
             clientId,
             tokenRequest.OriginalScopes,
             tokenRequest.EffectiveScopes,
-            subjectAuthentication);
+            subjectAuthentication
+        );
 
         var persistedGrant = new PersistedGrant<RefreshTokenGrant>
         {
+            TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
             Payload = refreshTokenGrant
@@ -394,11 +400,13 @@ public class DefaultTokenService(
         var securityToken = new SecurityToken(
             OpenIdConstants.SecurityTokenTypes.RefreshToken,
             refreshToken,
-            tokenPeriod);
+            tokenPeriod
+        );
 
         await mediator.SendAsync(
             new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
-            cancellationToken);
+            cancellationToken
+        );
 
         return securityToken;
     }
@@ -413,13 +421,15 @@ public class DefaultTokenService(
     private JoseSigningCredentials GetSigningCredentials(
         IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> signingAlgValuesSupported,
-        ISecretKeyCollection secretKeys)
+        ISecretKeyCollection secretKeys
+    )
     {
         if (!CredentialSelector.TryGetSigningCredentials(
                 candidateAlgorithms,
                 signingAlgValuesSupported,
                 secretKeys,
-                out var signingCredentials))
+                out var signingCredentials)
+           )
         {
             throw new JoseCredentialsNotFoundException("Unable to locate signing credentials.");
         }
@@ -433,7 +443,8 @@ public class DefaultTokenService(
         IEnumerable<string> encryptionAlgValuesSupported,
         IEnumerable<string> encryptionEncValuesSupported,
         IEnumerable<string> encryptionZipValuesSupported,
-        ISecretKeyCollection secretKeys)
+        ISecretKeyCollection secretKeys
+    )
     {
         if (!encryptionRequired)
             return null;
@@ -444,7 +455,9 @@ public class DefaultTokenService(
                 encryptionEncValuesSupported,
                 encryptionZipValuesSupported,
                 secretKeys,
-                out var encryptionCredentials))
+                out var encryptionCredentials
+            )
+           )
         {
             throw new JoseCredentialsNotFoundException("Unable to locate encryption credentials.");
         }

@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedClient"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
-public class ClientEntity : ISupportId, ISupportTenant, ISupportConcurrencyToken
+public class ClientEntity : ISupportSurrogateId, ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <inheritdoc />
     [Key]

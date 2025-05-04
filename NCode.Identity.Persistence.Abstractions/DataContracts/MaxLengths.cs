@@ -32,7 +32,7 @@ public static class MaxLengths
     public const int ResourceType = 100;
 
     /// <summary>
-    /// Specifies the maximum length of a resource's natural identifier.
+    /// Specifies the maximum length of a resource's identifier.
     /// </summary>
     public const int ResourceId = 300;
 

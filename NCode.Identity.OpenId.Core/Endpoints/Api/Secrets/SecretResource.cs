@@ -23,7 +23,7 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 namespace NCode.Identity.OpenId.Endpoints.Api.Secrets;
 
 /// <summary>
-/// Represents the REST resource for an <see cref="PersistedSecret"/>.
+/// Represents the REST resource for a <see cref="PersistedSecret"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]

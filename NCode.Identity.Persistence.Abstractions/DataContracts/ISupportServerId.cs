@@ -28,7 +28,7 @@ namespace NCode.Identity.Persistence.DataContracts;
 public interface ISupportServerId
 {
     /// <summary>
-    /// Gets the natural identifier of the OpenId Server that this instance belongs to.
+    /// Gets the identifier of the OpenId Server that this instance belongs to.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     string ServerId { get; }

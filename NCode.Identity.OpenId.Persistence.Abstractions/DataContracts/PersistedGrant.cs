@@ -37,7 +37,7 @@ public class PersistedGrant : ISupportConcurrencyToken
     public required string GrantType { get; init; }
 
     /// <summary>
-    /// Gets or sets the <c>SHA-256</c> hash of the natural key that uniquely identifies this entity.
+    /// Gets or sets the <c>SHA-256</c> hash of the key that uniquely identifies this entity.
     /// </summary>
     [MaxLength(MaxLengths.HashedKey)]
     public required string HashedKey { get; init; }

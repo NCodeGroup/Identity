@@ -28,7 +28,7 @@ namespace NCode.Identity.Persistence.DataContracts;
 public interface ISupportTenantId
 {
     /// <summary>
-    /// Gets the natural identifier of the OpenId Tenant that this instance belongs to.
+    /// Gets the identifier of the OpenId Tenant that this instance belongs to.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     string TenantId { get; }

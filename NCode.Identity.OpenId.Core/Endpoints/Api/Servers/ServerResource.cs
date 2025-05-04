@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.DataContracts;
@@ -36,21 +35,4 @@ public class ServerResource : ISupportServerId, ISupportConcurrencyToken
 
     /// <inheritdoc cref="PersistedServer.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
-}
-
-/// <summary>
-/// Represents the REST resource for a <see cref="PersistedServerSettings"/> instance.
-/// </summary>
-[PublicAPI]
-[ExcludeFromCodeCoverage]
-public class ServerSettingsResource : ISupportServerId, ISupportConcurrencyToken
-{
-    /// <inheritdoc cref="PersistedServerSettings.ServerId"/>
-    public required string ServerId { get; init; }
-
-    /// <inheritdoc cref="PersistedServerSettings.ConcurrencyToken"/>
-    public required string ConcurrencyToken { get; init; }
-
-    /// <inheritdoc cref="PersistedServerSettings.Value"/>
-    public required JsonElement Settings { get; init; }
 }

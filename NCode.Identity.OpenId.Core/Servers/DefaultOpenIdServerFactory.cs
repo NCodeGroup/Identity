@@ -329,10 +329,12 @@ public class DefaultOpenIdServerFactory(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
+        var newSecrets = await store.GetSecretsOrDefaultAsync(serverId, cancellationToken);
+        if (newSecrets is null)
+            return RefreshCollectionResultFactory.Unchanged<SecretKey>();
+
         var prevSecrets = persistedServer.Secrets;
         var prevConcurrencyToken = prevSecrets.ConcurrencyToken;
-
-        var newSecrets = await store.GetSecretsAsync(serverId, cancellationToken);
         var newConcurrencyToken = newSecrets.ConcurrencyToken;
 
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))

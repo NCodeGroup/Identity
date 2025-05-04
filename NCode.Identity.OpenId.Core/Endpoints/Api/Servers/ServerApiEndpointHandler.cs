@@ -64,8 +64,11 @@ public class ServerApiEndpointHandler(
         var servers = endpoints.MapGroup("/servers");
 
         servers.MapGet("/{serverId}", GetServerAsync);
+
         servers.MapGet("/{serverId}/settings", GetSettingsAsync);
         servers.MapPatch("/{serverId}/settings", UpdateSettingsAsync);
+
+        servers.MapGet("/{serverId}/secrets", GetSecretsAsync);
     }
 
     internal virtual ServerResource ToServerResource(PersistedServer server)
@@ -87,6 +90,16 @@ public class ServerApiEndpointHandler(
         };
     }
 
+    internal virtual ServerSecretsResource ToServerSecretsResource(PersistedServerSecrets secrets)
+    {
+        return new ServerSecretsResource
+        {
+            ServerId = secrets.ServerId,
+            ConcurrencyToken = secrets.ConcurrencyToken,
+            Secrets = ToSecretsResource(secrets.Value)
+        };
+    }
+
     [EndpointName("api/server/get")]
     internal virtual async ValueTask<IResult> GetServerAsync(
         HttpContext httpContext,
@@ -97,14 +110,14 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var serverOrNull = await store.GetOrDefaultAsync(
+        var server = await store.GetOrDefaultAsync(
             serverId,
             cancellationToken
         );
 
         return await ProcessGetAsync(
             httpContext,
-            serverOrNull,
+            server,
             ResourceOperations.Servers.Basic.Read,
             ToServerResource
         );
@@ -120,14 +133,14 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var settingsOrNull = await store.GetSettingsOrDefaultAsync(
+        var settings = await store.GetSettingsOrDefaultAsync(
             serverId,
             cancellationToken
         );
 
         return await ProcessGetAsync(
             httpContext,
-            settingsOrNull,
+            settings,
             ResourceOperations.Servers.Settings.Read,
             ToServerSettingsResource
         );
@@ -145,12 +158,12 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var settingsOrNull = await store.GetSettingsOrDefaultAsync(
+        var settings = await store.GetSettingsOrDefaultAsync(
             serverId,
             cancellationToken
         );
 
-        if (settingsOrNull is null)
+        if (settings is null)
         {
             return TypedResults.NotFound();
         }
@@ -158,21 +171,21 @@ public class ServerApiEndpointHandler(
         var user = httpContext.User;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             user,
-            settingsOrNull,
+            settings,
             ResourceOperations.Servers.Settings.Update
         );
 
         if (authorizationResult.Succeeded)
         {
             // TODO: this can throw wrong element type
-            var jsonObject = JsonObject.Create(settingsOrNull.Value) ?? new JsonObject();
+            var jsonObject = JsonObject.Create(settings.Value) ?? new JsonObject();
 
             request.ApplyTo(jsonObject);
 
             // TODO: json serializer options
-            settingsOrNull.Value = JsonSerializer.SerializeToElement(jsonObject);
+            settings.Value = JsonSerializer.SerializeToElement(jsonObject);
 
-            await store.UpdateSettingsAsync(settingsOrNull, cancellationToken);
+            await store.UpdateSettingsAsync(settings, cancellationToken);
 
             await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -185,5 +198,28 @@ public class ServerApiEndpointHandler(
         }
 
         return TypedResults.Unauthorized();
+    }
+
+    [EndpointName("api/server/secrets/get")]
+    internal virtual async ValueTask<IResult> GetSecretsAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var secrets = await store.GetSecretsOrDefaultAsync(
+            serverId,
+            cancellationToken
+        );
+
+        return await ProcessGetAsync(
+            httpContext,
+            secrets,
+            ResourceOperations.Servers.Secrets.Read,
+            ToServerSecretsResource
+        );
     }
 }

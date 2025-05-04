@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets;
 /// Contains common metadata for a secret key such as <c>TenantId</c>, <c>KeyId</c>, <c>Use</c>, and <c>Algorithm</c>.
 /// </summary>
 [PublicAPI]
-public readonly struct KeyMetadata
+public readonly record struct KeyMetadata
 {
     /// <summary>
     /// Gets or sets the <c>Key ID (KID)</c> for the secret key.

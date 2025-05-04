@@ -32,9 +32,11 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedClient"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
-public class ClientEntity : ISupportSurrogateId, ISupportTenantEntity, ISupportConcurrencyToken
+public class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets or sets the surrogate identifier for this entity.
+    /// </summary>
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
@@ -47,7 +49,7 @@ public class ClientEntity : ISupportSurrogateId, ISupportTenantEntity, ISupportC
     /// Gets or sets the natural identifier for this entity.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.ClientId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string ClientId { get; init; }
 
     /// <summary>
@@ -55,7 +57,7 @@ public class ClientEntity : ISupportSurrogateId, ISupportTenantEntity, ISupportC
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.ClientId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string NormalizedClientId { get; init; }
 
     //

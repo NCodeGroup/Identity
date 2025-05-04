@@ -78,7 +78,7 @@ public class DefaultAuthorizationCodeGrantHandler(
             authorizationCode
         );
 
-        var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<AuthorizationGrant>(
+        var persistedGrantOrNull = await PersistedGrantService.ConsumeOnceOrDefault<AuthorizationGrant>(
             openIdContext,
             persistedGrantId,
             cancellationToken

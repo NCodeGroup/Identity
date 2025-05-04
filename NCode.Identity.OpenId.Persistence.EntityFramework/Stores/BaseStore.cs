@@ -21,18 +21,12 @@ using System.Linq.Expressions;
 using IdGen;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
-
-public interface ITenantIdCache
-{
-    ValueTask<long> GetTenantIdAsync(string tenantId, CancellationToken cancellationToken);
-}
 
 /// <summary>
 /// Provides a base implementation for <see cref="IStore{TItem}"/> that uses entity framework.
@@ -44,8 +38,6 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     where TItem : class
     where TEntity : class
 {
-    protected abstract IMemoryCache MemoryCache { get; }
-
     /// <summary>
     /// Gets the <see cref="IStoreProvider"/> for this store.
     /// </summary>
@@ -96,6 +88,32 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// newly mapped DTO instance.</returns>
     protected abstract ValueTask<TItem> MapFromEntityAsync(TEntity entity, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Attempts to retrieve an entity from the store using the provided predicate.
+    /// </summary>
+    /// <param name="predicate">The predicate to use to find the entity.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the entity if found; otherwise <c>null</c>.</returns>
+    protected abstract ValueTask<TEntity?> GetEntityOrDefaultAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to retrieve a DTO from the store using the provided predicate.
+    /// </summary>
+    /// <param name="predicate">The predicate to use to find the entity.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the DTO if found; otherwise <c>null</c>.</returns>
+    protected virtual async ValueTask<TItem?> GetOrDefaultAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await GetEntityOrDefaultAsync(predicate, cancellationToken);
+        return entity is null ? null : await MapFromEntityAsync(entity, cancellationToken);
+    }
+
     #region IStoreProvider
 
     /// <inheritdoc />
@@ -111,61 +129,13 @@ public abstract class BaseStore<TItem, TEntity> : IStore
 
     #region Tenant
 
-    protected async ValueTask<long?> TryGetTenantIdAsync(string tenantId, CancellationToken cancellationToken)
-    {
-        var key = $"BaseStore|TryGetTenantId|{tenantId}";
-        if (MemoryCache.TryGetValue(key, out var baseValue) && baseValue is long typedValue)
-        {
-            return typedValue;
-        }
-
-        var entity = await TryGetTenantAsync(tenantId, cancellationToken);
-        if (entity is null)
-        {
-            return null;
-        }
-
-        using var entry = MemoryCache.CreateEntry(key);
-        entry.Value = entity.Id;
-        entry.SlidingExpiration = TimeSpan.FromHours(24.0);
-
-        return entity.Id;
-    }
-
-    protected async ValueTask<long?> TryGetSurrogateIdAsync(
-        // string naturalId,
-        // Expression<Func<GrantEntity, bool>> predicate,
-        CancellationToken cancellationToken
-    )
-    {
-        var key = $"BaseStore|TryGetTenantId|{tenantId}";
-        if (MemoryCache.TryGetValue(key, out var baseValue) && baseValue is long typedValue)
-        {
-            return typedValue;
-        }
-
-        var entity = await TryGetTenantAsync(tenantId, cancellationToken);
-        if (entity is null)
-        {
-            return null;
-        }
-
-        using var entry = MemoryCache.CreateEntry(key);
-        entry.Value = entity.Id;
-        entry.SlidingExpiration = TimeSpan.FromHours(24.0);
-
-        return entity.Id;
-    }
-
     /// <summary>
-    /// Attempts to retrieve a tenant from the store based on the provided tenant identifier.
+    /// Attempts to retrieve a <see cref="TenantEntity"/> instance from the store using the specified identifier.
     /// </summary>
-    /// <param name="tenantId">The identifier to use to find the tenant.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="TenantEntity"/> if found; otherwise <c>null</c>.</returns>
-    protected async ValueTask<TenantEntity?> TryGetTenantAsync(
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="TenantEntity"/> if found; otherwise <c>null</c>.</returns>
+    protected async ValueTask<TenantEntity?> GetTenantEntityOrDefaultAsync(
         string? tenantId,
         CancellationToken cancellationToken
     )
@@ -173,58 +143,54 @@ public abstract class BaseStore<TItem, TEntity> : IStore
         var normalizedTenantId = Normalize(tenantId);
         return await DbContext.Tenants
             .Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Include(tenant => tenant.Secrets)
+            .ThenInclude(tenantSecret => tenantSecret.Secret)
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     /// <summary>
-    /// Attempts to retrieve a tenant from the store based on the provided tenant identifier.
+    /// Attempts to retrieve a <see cref="TenantEntity"/> instance from the store using any object that supports the <see cref="ISupportTenantId"/> abtraction.
     /// </summary>
     /// <param name="supportTenantId">An object that supports a tenant identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="TenantEntity"/> if found; otherwise <c>null</c>.</returns>
-    protected async ValueTask<TenantEntity?> TryGetTenantAsync(
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="TenantEntity"/> if found; otherwise <c>null</c>.</returns>
+    protected async ValueTask<TenantEntity?> GetTenantEntityOrDefaultAsync(
         ISupportTenantId supportTenantId,
         CancellationToken cancellationToken
     )
     {
-        return await TryGetTenantAsync(supportTenantId.TenantId, cancellationToken);
+        return await GetTenantEntityOrDefaultAsync(supportTenantId.TenantId, cancellationToken);
     }
 
     /// <summary>
-    /// Gets a tenant from the store based on the provided tenant identifier.
+    /// Gets a <see cref="TenantEntity"/> instance from the store using any object that supports the <see cref="ISupportTenantId"/> abtraction.
     /// </summary>
     /// <param name="supportTenantId">An object that supports a tenant identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="TenantEntity"/> if found; otherwise throws an <see cref="InvalidOperationException"/>.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the tenant is not found.</exception>
-    protected async ValueTask<TenantEntity> GetTenantAsync(
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="TenantEntity"/> if found; otherwise throws an <see cref="InvalidOperationException"/>.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the <see cref="TenantEntity"/> is not found.</exception>
+    protected async ValueTask<TenantEntity> GetTenantEntityAsync(
         ISupportTenantId supportTenantId,
         CancellationToken cancellationToken
     )
     {
-        return await GetTenantAsync(supportTenantId.TenantId, cancellationToken);
+        return await GetTenantEntityAsync(supportTenantId.TenantId, cancellationToken);
     }
 
     /// <summary>
-    /// Gets a tenant from the store based on the provided tenant identifier.
+    /// Gets a <see cref="TenantEntity"/> instance from the store with the specified identifier.
     /// </summary>
-    /// <param name="tenantId">The identifier to use to find the tenant.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="TenantEntity"/> if found; otherwise throws an <see cref="InvalidOperationException"/>.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the tenant is not found.</exception>
-    protected async ValueTask<TenantEntity> GetTenantAsync(
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="TenantEntity"/> if found; otherwise throws an <see cref="InvalidOperationException"/>.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the <see cref="TenantEntity"/> is not found.</exception>
+    protected async ValueTask<TenantEntity> GetTenantEntityAsync(
         string? tenantId,
         CancellationToken cancellationToken
     )
     {
-        var tenantEntity = await TryGetTenantAsync(tenantId, cancellationToken);
-        return tenantEntity ?? throw new InvalidOperationException($"Tenant '{tenantId}' not found.");
+        var tenantEntity = await GetTenantEntityOrDefaultAsync(tenantId, cancellationToken);
+        return tenantEntity ?? throw new InvalidOperationException($"An OpenId Tenant with '{tenantId}' was not found.");
     }
 
     #endregion
@@ -236,12 +202,12 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// </summary>
     /// <param name="secret">The <see cref="PersistedSecret"/> DTO to map.</param>
     /// <returns>The newly mapped <see cref="SecretEntity"/> entity.</returns>
-    protected SecretEntity MapNew(PersistedSecret secret) => new()
+    protected SecretEntity MapToSecretEntity(PersistedSecret secret) => new()
     {
-        Id = NextId(secret.Id),
+        Id = NextId(), // TODO
         SecretId = secret.SecretId,
         NormalizedSecretId = Normalize(secret.SecretId),
-        ConcurrencyToken = NextConcurrencyToken(),
+        ConcurrencyToken = secret.ConcurrencyToken,
         Use = secret.Use,
         Algorithm = secret.Algorithm,
         CreatedWhen = secret.CreatedWhen.ToUniversalTime(),
@@ -257,9 +223,8 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// </summary>
     /// <param name="secret">The <see cref="SecretEntity"/> entity to map.</param>
     /// <returns>The newly mapped <see cref="PersistedSecret"/> DTO.</returns>
-    protected static PersistedSecret MapExisting(SecretEntity secret) => new()
+    protected static PersistedSecret MapToPersistedSecret(SecretEntity secret) => new()
     {
-        Id = secret.Id,
         SecretId = secret.SecretId,
         ConcurrencyToken = secret.ConcurrencyToken,
         Use = secret.Use,
@@ -277,16 +242,16 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// </summary>
     /// <param name="parent">An object that contains a secret.</param>
     /// <returns>The newly mapped <see cref="PersistedSecret"/> DTO.</returns>
-    protected static PersistedSecret MapExisting(ISupportSecret parent) =>
-        MapExisting(parent.Secret);
+    protected static PersistedSecret MapToPersistedSecret(ISupportSecretEntity parent) =>
+        MapToPersistedSecret(parent.Secret);
 
     /// <summary>
     /// Maps a collection of <see cref="SecretEntity"/> instances to their corresponding collection of <see cref="PersistedSecret"/> DTOs.
     /// </summary>
     /// <param name="collection">The collection of <see cref="SecretEntity"/> instances to map.</param>
     /// <returns>The newly mapped collection of <see cref="PersistedSecret"/> DTOs.</returns>
-    protected static IReadOnlyCollection<PersistedSecret> MapExisting(IEnumerable<ISupportSecret> collection) =>
-        collection.Select(MapExisting).ToList();
+    protected static IReadOnlyCollection<PersistedSecret> MapToPersistedSecrets(IEnumerable<ISupportSecretEntity> collection) =>
+        collection.Select(MapToPersistedSecret).ToList();
 
     #endregion
 }

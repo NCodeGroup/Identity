@@ -31,28 +31,24 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 public interface IClientStore : IStore<PersistedClient>
 {
     /// <summary>
-    /// Attempts to get a <see cref="PersistedClient"/> instance by using its natural key.
+    /// Attempts to get a <see cref="PersistedClient"/> instance from the store with the specified identifier.
     /// </summary>
-    /// <param name="tenantId">The tenant identifier for the <see cref="PersistedClient"/> instance.</param>
-    /// <param name="clientId">The natural key of the <see cref="PersistedClient"/> instance to retrieve.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="PersistedClient"/> instance matching the specified <paramref name="clientId"/> if it exists.</returns>
-    ValueTask<PersistedClient?> TryGetByClientIdAsync(
-        string tenantId,
+    /// <param name="clientId">The identifier of the <see cref="PersistedClient"/> instance to retrieve.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedClient"/> if found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedClient?> GetOrDefaultAsync(
         string clientId,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
-    /// Updates an existing persisted client in the store.
-    /// The redirect urls and secrets collection are not updated by this method.
+    /// Updates the JSON settings for an OpenId Client in the store.
     /// </summary>
-    /// <param name="persistedClient">The persisted client to update in the store.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
+    /// <param name="persistedClientSettings">The <see cref="PersistedClientSettings"/> instance to update.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask UpdateAsync(
-        PersistedClient persistedClient,
-        CancellationToken cancellationToken);
+    ValueTask UpdateSettingsAsync(
+        PersistedClientSettings persistedClientSettings,
+        CancellationToken cancellationToken
+    );
 }

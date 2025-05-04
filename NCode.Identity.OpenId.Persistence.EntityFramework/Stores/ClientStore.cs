@@ -23,7 +23,6 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -36,7 +35,7 @@ public class ClientStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
     OpenIdDbContext openIdDbContext
-) : BaseStoreWithEntityId<PersistedClient, ClientEntity>, IClientStore
+) : BaseStoreWithResourceId<PersistedClient, ClientEntity>, IClientStore
 {
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
@@ -47,29 +46,65 @@ public class ClientStore(
     /// <inheritdoc />
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
 
-    /// <inheritdoc />
-    public override bool IsRemoveSupported => true;
-
-    /// <inheritdoc />
-    protected override ValueTask<PersistedClient> MapFromEntityAsync(
-        ClientEntity client,
+    /// <summary>
+    /// Maps a <see cref="ClientEntity"/> to a <see cref="PersistedClientSettings"/> instance.
+    /// </summary>
+    /// <param name="clientEntity">The <see cref="ClientEntity"/> instance to map.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedClientSettings"/> instance.</returns>
+    protected internal virtual ValueTask<PersistedClientSettings> MapSettingsAsync(
+        ClientEntity clientEntity,
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedClient
+        return ValueTask.FromResult(new PersistedClientSettings
         {
-            Id = client.Id,
-            TenantId = client.Tenant.TenantId,
-            ClientId = client.ClientId,
-            ConcurrencyToken = client.ConcurrencyToken,
-            IsDisabled = client.IsDisabled,
-            SettingsState = ConcurrentStateFactory.Create(client.SettingsJson, client.SettingsConcurrencyToken),
-            SecretsState = ConcurrentStateFactory.Create(MapExisting(client.Secrets), client.SecretsConcurrencyToken),
+            TenantId = clientEntity.Tenant.TenantId,
+            ClientId = clientEntity.ClientId,
+            ConcurrencyToken = clientEntity.SettingsConcurrencyToken,
+            Value = clientEntity.SettingsJson
+        });
+    }
+
+    /// <summary>
+    /// Maps a <see cref="ClientEntity"/> to a <see cref="PersistedClientSecrets"/> instance.
+    /// </summary>
+    /// <param name="clientEntity">The <see cref="ClientEntity"/> instance to map.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedClientSecrets"/> instance.</returns>
+    protected internal virtual ValueTask<PersistedClientSecrets> MapSecretsAsync(
+        ClientEntity clientEntity,
+        CancellationToken cancellationToken
+    )
+    {
+        return ValueTask.FromResult(new PersistedClientSecrets
+        {
+            TenantId = clientEntity.Tenant.TenantId,
+            ClientId = clientEntity.ClientId,
+            ConcurrencyToken = clientEntity.SecretsConcurrencyToken,
+            Value = MapToPersistedSecrets(clientEntity.Secrets),
         });
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<ClientEntity?> TryGetEntityAsync(
+    protected override async ValueTask<PersistedClient> MapFromEntityAsync(
+        ClientEntity client,
+        CancellationToken cancellationToken
+    )
+    {
+        return new PersistedClient
+        {
+            TenantId = client.Tenant.TenantId,
+            ClientId = client.ClientId,
+            ConcurrencyToken = client.ConcurrencyToken,
+            IsDisabled = client.IsDisabled,
+            Settings = await MapSettingsAsync(client, cancellationToken),
+            Secrets = await MapSecretsAsync(client, cancellationToken)
+        };
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<ClientEntity?> GetEntityOrDefaultAsync(
         Expression<Func<ClientEntity, bool>> predicate,
         CancellationToken cancellationToken
     )
@@ -82,35 +117,52 @@ public class ClientStore(
     }
 
     /// <inheritdoc />
+    protected override async ValueTask<ClientEntity?> GetEntityOrDefaultAsync(
+        string clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedClientId = Normalize(clientId);
+        return await GetEntityOrDefaultAsync(
+            entity => entity.NormalizedClientId == normalizedClientId,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
     public override async ValueTask AddAsync(
         PersistedClient persistedClient,
         CancellationToken cancellationToken
     )
     {
-        var tenantEntity = await GetTenantAsync(persistedClient, cancellationToken);
+        var tenantEntity = await GetTenantEntityAsync(persistedClient, cancellationToken);
 
-        persistedClient.Id = NextId(persistedClient.Id);
+        persistedClient.ConcurrencyToken = NextConcurrencyToken();
+        persistedClient.Settings.ConcurrencyToken = NextConcurrencyToken();
+        persistedClient.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
-        var secrets = new List<ClientSecretEntity>(persistedClient.SecretsState.Value.Count);
+        var secrets = new List<ClientSecretEntity>(persistedClient.Secrets.Value.Count);
 
         var clientEntity = new ClientEntity
         {
-            Id = persistedClient.Id,
+            Id = NextId(),
             TenantId = tenantEntity.Id,
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
-            ConcurrencyToken = NextConcurrencyToken(),
-            SettingsConcurrencyToken = persistedClient.SettingsState.ConcurrencyToken,
-            SecretsConcurrencyToken = persistedClient.SecretsState.ConcurrencyToken,
+            ConcurrencyToken = persistedClient.ConcurrencyToken,
+            SettingsConcurrencyToken = persistedClient.Settings.ConcurrencyToken,
+            SecretsConcurrencyToken = persistedClient.Secrets.ConcurrencyToken,
             IsDisabled = persistedClient.IsDisabled,
-            SettingsJson = persistedClient.SettingsState.Value,
+            SettingsJson = persistedClient.Settings.Value,
             Tenant = tenantEntity,
             Secrets = secrets
         };
 
-        foreach (var persistedSecret in persistedClient.SecretsState.Value)
+        foreach (var persistedSecret in persistedClient.Secrets.Value)
         {
-            var secretEntity = MapNew(persistedSecret);
+            persistedSecret.ConcurrencyToken = NextConcurrencyToken();
+
+            var secretEntity = MapToSecretEntity(persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 
@@ -137,61 +189,54 @@ public class ClientStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask UpdateAsync(
+    public override async ValueTask UpdateAsync(
         PersistedClient persistedClient,
         CancellationToken cancellationToken
     )
     {
-        var clientEntity = await GetEntityByIdAsync(persistedClient.Id, cancellationToken);
+        var clientId = persistedClient.ClientId;
+        var clientEntity = await GetEntityAsync(clientId, cancellationToken);
 
-        clientEntity.ConcurrencyToken = NextConcurrencyToken();
-        clientEntity.SettingsConcurrencyToken = persistedClient.SettingsState.ConcurrencyToken;
-        // we don't update the secrets concurrency token here because that is a disconnected entity collection
+        if (!string.Equals(persistedClient.ConcurrencyToken, clientEntity.ConcurrencyToken, StringComparison.Ordinal))
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The OpenId Client with ClientId='{clientId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        var nextConcurrencyToken = NextConcurrencyToken();
+
+        clientEntity.ConcurrencyToken = nextConcurrencyToken;
         clientEntity.IsDisabled = persistedClient.IsDisabled;
-        clientEntity.SettingsJson = persistedClient.SettingsState.Value;
+
+        DbContext.Clients.Update(clientEntity);
+
+        persistedClient.ConcurrencyToken = nextConcurrencyToken;
     }
 
     /// <inheritdoc />
-    public override async ValueTask RemoveByIdAsync(
-        long id,
+    public async ValueTask UpdateSettingsAsync(
+        PersistedClientSettings persistedClientSettings,
         CancellationToken cancellationToken
     )
     {
-        var client = await TryGetEntityAsync(client => client.Id == id, cancellationToken);
-        if (client is null)
-            return;
+        var clientId = persistedClientSettings.ClientId;
+        var clientEntity = await GetEntityAsync(clientId, cancellationToken);
 
-        var tenantId = client.TenantId;
+        if (!string.Equals(persistedClientSettings.ConcurrencyToken, clientEntity.SettingsConcurrencyToken, StringComparison.Ordinal))
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The settings for OpenId Client with ClientId='{clientId}' have been modified by another process. Please reload and try again."
+            );
+        }
 
-        var clientSecrets = DbContext.ClientSecrets.Where(clientSecret =>
-            clientSecret.TenantId == tenantId &&
-            clientSecret.ClientId == id
-        );
+        var nextConcurrencyToken = NextConcurrencyToken();
 
-        DbContext.Secrets.RemoveRange(
-            clientSecrets.Select(clientSecret => clientSecret.Secret)
-        );
+        clientEntity.SettingsConcurrencyToken = nextConcurrencyToken;
+        clientEntity.SettingsJson = persistedClientSettings.Value;
 
-        DbContext.ClientSecrets.RemoveRange(clientSecrets);
+        DbContext.Clients.Update(clientEntity);
 
-        DbContext.Clients.Remove(client);
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<PersistedClient?> TryGetByClientIdAsync(
-        string tenantId,
-        string clientId,
-        CancellationToken cancellationToken
-    )
-    {
-        var normalizedTenantId = Normalize(tenantId);
-        var normalizedClientId = Normalize(clientId);
-
-        return await TryGetAsync(
-            client =>
-                client.Tenant.NormalizedTenantId == normalizedTenantId &&
-                client.NormalizedClientId == normalizedClientId,
-            cancellationToken
-        );
+        persistedClientSettings.ConcurrencyToken = nextConcurrencyToken;
     }
 }

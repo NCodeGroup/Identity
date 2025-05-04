@@ -28,11 +28,6 @@ public abstract class BaseApiEndpointHandler
 {
     protected abstract IAuthorizationService AuthorizationService { get; }
 
-    protected internal virtual T? ToStateResponse<T>(ConcurrentState<T>? stateOrNull)
-    {
-        return stateOrNull.HasValue ? stateOrNull.Value.Value : default;
-    }
-
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue>(
         HttpContext httpContext,
         TValue? valueOrNull,

@@ -66,7 +66,7 @@ public interface IPersistedGrantService
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the persisted grant.</returns>
-    ValueTask<PersistedGrant<TPayload>?> TryGetAsync<TPayload>(
+    ValueTask<PersistedGrant<TPayload>?> GetOrDefaultAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         CancellationToken cancellationToken
@@ -80,12 +80,13 @@ public interface IPersistedGrantService
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the persisted grant.</returns>
-    ValueTask<PersistedGrant<TPayload>?> TryConsumeOnce<TPayload>(
+    ValueTask<PersistedGrant<TPayload>?> ConsumeOnceOrDefault<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         CancellationToken cancellationToken
     );
 
+    // TODO: remove?
     /// <summary>
     /// Updates a grant as being consumed if not already.
     /// </summary>
@@ -94,7 +95,7 @@ public interface IPersistedGrantService
     /// <param name="consumedWhen">The <see cref="DateTimeOffset"/> to set the consumed time to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask SetConsumedAsync(
+    ValueTask SetConsumedOnceAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset consumedWhen,
@@ -109,7 +110,7 @@ public interface IPersistedGrantService
     /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask SetRevokedAsync(
+    ValueTask SetRevokedOnceAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset revokedWhen,

@@ -27,7 +27,7 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// Contains the data for a persisted secret.
 /// </summary>
 [PublicAPI]
-public class PersistedSecret : ISupportResource, ISupportSurrogateId, ISupportNaturalId, ISupportSecretId, ISupportConcurrencyToken
+public class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets the prefix for the resource type.
@@ -44,19 +44,12 @@ public class PersistedSecret : ISupportResource, ISupportSurrogateId, ISupportNa
     public string ResourceId => SecretId;
 
     /// <inheritdoc/>
-    public long Id { get; init; }
-
-    /// <inheritdoc/>
-    [MaxLength(MaxLengths.ResourceId)]
-    string ISupportId<string>.Id => ResourceId;
-
-    /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceId)]
     public required string SecretId { get; init; }
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ConcurrencyToken)]
-    public required string ConcurrencyToken { get; init; }
+    public string ConcurrencyToken { get; set; } = string.Empty;
 
     //
 

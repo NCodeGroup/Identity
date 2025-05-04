@@ -18,7 +18,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 
@@ -30,20 +29,14 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 [PublicAPI]
 public interface IGrantStore : IStore<PersistedGrant>
 {
-    ValueTask<PersistedGrant?> TryGetAsync(
-        PersistedGrantId grantId,
-        CancellationToken cancellationToken
-    );
-
     /// <summary>
     /// Attempts to retrieve a persisted grant from the store.
     /// </summary>
-    /// <param name="grantType">The type of grant to retrieve.</param>
-    /// <param name="hashedKey">The hashed key of the grant to retrieve.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
+    /// <param name="grantType">The type of the grant.</param>
+    /// <param name="hashedKey">The hashed key of the resource associated with the grant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedGrant"/> instance if found.</returns>
-    ValueTask<PersistedGrant?> TryGetAsync(
+    ValueTask<PersistedGrant?> GetOrDefaultAsync(
         string grantType,
         string hashedKey,
         CancellationToken cancellationToken

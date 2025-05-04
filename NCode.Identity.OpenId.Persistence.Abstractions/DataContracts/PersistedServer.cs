@@ -26,18 +26,11 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> Server instance.
 /// </summary>
 [PublicAPI]
-public class PersistedServer : BasePersistedServerResource, ISupportSurrogateId, ISupportNaturalId
+public class PersistedServer : BasePersistedServerResource
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
     public override string ResourceType => ResourceTypePrefix;
-
-    /// <inheritdoc/>
-    public long Id { get; init; }
-
-    /// <inheritdoc/>
-    [MaxLength(MaxLengths.ResourceId)]
-    string ISupportId<string>.Id => ResourceId;
 
     /// <summary>
     /// Gets or sets the JSON settings for an OpenID Server instance.

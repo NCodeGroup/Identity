@@ -31,7 +31,7 @@ namespace NCode.Identity.Persistence.DataContracts;
 public interface ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets a value that is used to check for optimistic concurrency violations.
+    /// Gets a value used to check for optimistic concurrency violations.
     /// </summary>
     [MaxLength(MaxLengths.ConcurrencyToken)]
     string ConcurrencyToken { get; }

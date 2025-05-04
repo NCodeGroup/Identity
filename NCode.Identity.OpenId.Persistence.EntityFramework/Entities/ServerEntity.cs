@@ -30,9 +30,11 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedServer"/>.
 /// </summary>
 [Index(nameof(NormalizedServerId), IsUnique = true)]
-public class ServerEntity : ISupportSurrogateId, ISupportConcurrencyToken
+public class ServerEntity : ISupportConcurrencyToken
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets or sets the surrogate identifier for this entity.
+    /// </summary>
     [Key]
     [UseIdGenerator]
     public long Id { get; init; }

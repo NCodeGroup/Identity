@@ -18,16 +18,14 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Endpoints.Api.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Endpoints.Api.Servers;
 
 /// <summary>
-/// Represents the REST resource for an <see cref="PersistedServer"/>.
+/// Represents the REST resource for a <see cref="PersistedServer"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
@@ -41,16 +39,18 @@ public class ServerResource : ISupportServerId, ISupportConcurrencyToken
 }
 
 /// <summary>
-/// Represents the REST resource for an <see cref="PersistedServer"/>.
+/// Represents the REST resource for a <see cref="PersistedServerSettings"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public class ServerSettingsResource : ISupportServerId, ISupportConcurrencyToken
 {
-    /// <inheritdoc cref="PersistedServer.ServerId"/>
+    /// <inheritdoc cref="PersistedServerSettings.ServerId"/>
     public required string ServerId { get; init; }
 
+    /// <inheritdoc cref="PersistedServerSettings.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
 
+    /// <inheritdoc cref="PersistedServerSettings.Value"/>
     public required JsonElement Settings { get; init; }
 }

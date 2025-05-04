@@ -77,6 +77,16 @@ public class ServerApiEndpointHandler(
         };
     }
 
+    internal virtual ServerSettingsResource ToServerSettingsResource(PersistedServerSettings settings)
+    {
+        return new ServerSettingsResource
+        {
+            ServerId = settings.ServerId,
+            ConcurrencyToken = settings.ConcurrencyToken,
+            Settings = settings.Value
+        };
+    }
+
     [EndpointName("api/server/get")]
     internal virtual async ValueTask<IResult> GetServerAsync(
         HttpContext httpContext,
@@ -87,17 +97,16 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var serverOrNull = await store.TryGetByServerIdAsync(
+        var serverOrNull = await store.GetOrDefaultAsync(
             serverId,
             cancellationToken
         );
 
-        var resourceOrNull = serverOrNull is not null ? ToServerResource(serverOrNull) : null;
-
         return await ProcessGetAsync(
             httpContext,
-            resourceOrNull,
-            ResourceOperations.Servers.Basic.Read
+            serverOrNull,
+            ResourceOperations.Servers.Basic.Read,
+            ToServerResource
         );
     }
 
@@ -111,26 +120,16 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var settingsStateOrNull = await store.GetSettingsOrDefaultAsync(
+        var settingsOrNull = await store.GetSettingsOrDefaultAsync(
             serverId,
-            lastKnownState: null,
             cancellationToken
         );
 
-        var resourceOrNull = settingsStateOrNull.HasValue ?
-            new ServerSettingsResource
-            {
-                ServerId = serverId,
-                ConcurrencyToken = settingsStateOrNull.Value.ConcurrencyToken,
-                Settings = settingsStateOrNull.Value.Value
-            } :
-            null;
-
         return await ProcessGetAsync(
             httpContext,
-            resourceOrNull,
+            settingsOrNull,
             ResourceOperations.Servers.Settings.Read,
-            resource => resource.Settings
+            ToServerSettingsResource
         );
     }
 
@@ -146,38 +145,38 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var settingsStateOrNull = await store.GetSettingsOrDefaultAsync(
+        var settingsOrNull = await store.GetSettingsOrDefaultAsync(
             serverId,
-            lastKnownState: null,
             cancellationToken
         );
 
-        if (settingsStateOrNull is null)
+        if (settingsOrNull is null)
         {
             return TypedResults.NotFound();
         }
 
-        var settingsState = settingsStateOrNull.Value;
-        var settingsJson = settingsState.Value;
-
         var user = httpContext.User;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             user,
-            ServerResourceWrapper.Create(serverId, settingsState),
+            settingsOrNull,
             ResourceOperations.Servers.Settings.Update
         );
 
         if (authorizationResult.Succeeded)
         {
             // TODO: this can throw wrong element type
-            var jsonObject = JsonObject.Create(settingsJson) ?? new JsonObject();
+            var jsonObject = JsonObject.Create(settingsOrNull.Value) ?? new JsonObject();
 
             request.ApplyTo(jsonObject);
 
             // TODO: json serializer options
-            var newSettingsJson = JsonSerializer.SerializeToElement(jsonObject);
+            settingsOrNull.Value = JsonSerializer.SerializeToElement(jsonObject);
 
-            throw new NotImplementedException();
+            await store.UpdateSettingsAsync(settingsOrNull, cancellationToken);
+
+            await storeManager.SaveChangesAsync(cancellationToken);
+
+            return TypedResults.NoContent();
         }
 
         if (user.Identity?.IsAuthenticated ?? false)

@@ -20,8 +20,6 @@ using System.Linq.Expressions;
 using IdGen;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
-using NCode.Identity.OpenId.Logic;
-using NCode.Identity.OpenId.Models;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -34,18 +32,11 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// </summary>
 [PublicAPI]
 public class GrantStore(
-    ICryptoService cryptoService,
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
     OpenIdDbContext openIdDbContext
-) : BaseStoreWithEntityId<PersistedGrant, GrantEntity>, IGrantStore
+) : BaseStore<PersistedGrant, GrantEntity>, IGrantStore
 {
-    // This uses C# compiler's ability to refer to static data directly.
-    // For more information see https://vcsjones.dev/2019/02/01/csharp-readonly-span-bytes-static
-    private static ReadOnlySpan<char> TenantDelimiter => "~~";
-
-    private ICryptoService CryptoService { get; } = cryptoService;
-
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
 
@@ -56,21 +47,6 @@ public class GrantStore(
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
 
     /// <inheritdoc />
-    public override bool IsRemoveSupported => true;
-
-    private static string GetHashInput(PersistedGrantId grantId) =>
-        string.IsNullOrEmpty(grantId.TenantId) ?
-            grantId.GrantKey :
-            string.Concat(grantId.TenantId.AsSpan(), TenantDelimiter, grantId.GrantKey.AsSpan());
-
-    private string GetHashedKey(PersistedGrantId grantId) =>
-        CryptoService.HashValue(
-            GetHashInput(grantId),
-            HashAlgorithmType.Sha256,
-            BinaryEncodingType.Base64
-        );
-
-    /// <inheritdoc />
     protected override ValueTask<PersistedGrant> MapFromEntityAsync(
         GrantEntity entity,
         CancellationToken cancellationToken
@@ -78,9 +54,9 @@ public class GrantStore(
     {
         return ValueTask.FromResult(new PersistedGrant
         {
-            Id = entity.Id,
             GrantType = entity.GrantType,
             HashedKey = entity.HashedKey,
+            ConcurrencyToken = entity.ConcurrencyToken,
             TenantId = entity.Tenant?.TenantId,
             ClientId = entity.Client?.ClientId,
             SubjectId = entity.SubjectId,
@@ -88,12 +64,12 @@ public class GrantStore(
             ExpiresWhen = entity.ExpiresWhen,
             RevokedWhen = entity.RevokedWhen,
             ConsumedWhen = entity.ConsumedWhen,
-            PayloadJson = entity.PayloadJson
+            PayloadJson = entity.PayloadJson,
         });
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<GrantEntity?> TryGetEntityAsync(
+    protected override async ValueTask<GrantEntity?> GetEntityOrDefaultAsync(
         Expression<Func<GrantEntity, bool>> predicate,
         CancellationToken cancellationToken
     )
@@ -101,42 +77,33 @@ public class GrantStore(
         return await DbContext.Grants
             .Include(entity => entity.Tenant)
             .Include(entity => entity.Client)
-            .FirstOrDefaultAsync(predicate, cancellationToken);
+            .SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedGrant?> TryGetAsync(
-        PersistedGrantId grantId,
+    public async ValueTask<PersistedGrant?> GetOrDefaultAsync(
+        string grantType,
+        string hashedKey,
         CancellationToken cancellationToken
     )
     {
-        long? tenantId = null;
-        if (!string.IsNullOrEmpty(grantId.TenantId))
-        {
-            tenantId = await TryGetTenantIdAsync(grantId.TenantId, cancellationToken);
-            if (tenantId is null)
-            {
-                return null;
-            }
-        }
-
-        var hashedKey = GetHashedKey(grantId);
-
-        var entity = await TryGetEntityAsync(
+        var grantEntity = await GetEntityOrDefaultAsync(
             entity =>
-                entity.GrantType == grantId.GrantType &&
+                entity.GrantType == grantType &&
                 entity.HashedKey == hashedKey,
             cancellationToken
         );
 
-        if (entity is null || entity.TenantId != tenantId)
+        if (grantEntity is null)
+        {
             return null;
+        }
 
-        return await MapFromEntityAsync(entity, cancellationToken);
+        return await MapFromEntityAsync(grantEntity, cancellationToken);
     }
 
     /// <inheritdoc />
-    public override async ValueTask AddAsync(
+    public async ValueTask AddAsync(
         PersistedGrant persistedGrant,
         CancellationToken cancellationToken
     )
@@ -144,7 +111,7 @@ public class GrantStore(
         TenantEntity? tenantEntity = null;
         if (!string.IsNullOrEmpty(persistedGrant.TenantId))
         {
-            tenantEntity = await GetTenantAsync(persistedGrant, cancellationToken);
+            tenantEntity = await GetTenantEntityOrDefaultAsync(persistedGrant.TenantId, cancellationToken);
         }
 
         ClientEntity? clientEntity = null;
@@ -167,14 +134,14 @@ public class GrantStore(
                 throw new InvalidOperationException($"Client '{persistedGrant.ClientId}' not found.");
         }
 
-        persistedGrant.Id = NextId(persistedGrant.Id);
+        persistedGrant.ConcurrencyToken = NextConcurrencyToken();
 
         var grantEntity = new GrantEntity
         {
-            Id = persistedGrant.Id,
+            Id = NextId(),
             GrantType = persistedGrant.GrantType,
             HashedKey = persistedGrant.HashedKey,
-            ConcurrencyToken = NextConcurrencyToken(),
+            ConcurrencyToken = persistedGrant.ConcurrencyToken,
             TenantId = tenantEntity?.Id,
             ClientId = clientEntity?.Id,
             SubjectId = persistedGrant.SubjectId,
@@ -192,49 +159,39 @@ public class GrantStore(
     }
 
     /// <inheritdoc />
-    public override async ValueTask UpdateAsync(
+    public async ValueTask UpdateAsync(
         PersistedGrant persistedGrant,
         CancellationToken cancellationToken
     )
     {
-        var entity = await GetEntityByIdAsync(persistedGrant.Id, cancellationToken);
-
-        entity.ExpiresWhen = persistedGrant.ExpiresWhen;
-        entity.RevokedWhen = persistedGrant.RevokedWhen;
-        entity.ConsumedWhen = persistedGrant.ConsumedWhen;
-
-        entity.ConcurrencyToken = NextConcurrencyToken();
-
-        DbContext.Grants.Update(entity);
-    }
-
-    /// <inheritdoc />
-    public override async ValueTask RemoveByIdAsync(
-        long id,
-        CancellationToken cancellationToken
-    )
-    {
-        var grant = await TryGetEntityAsync(entity => entity.Id == id, cancellationToken);
-        if (grant is null)
-            return;
-
-        grant.ConcurrencyToken = NextConcurrencyToken();
-
-        DbContext.Grants.Remove(grant);
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<PersistedGrant?> TryGetAsync(
-        string grantType,
-        string hashedKey,
-        CancellationToken cancellationToken
-    )
-    {
-        return await TryGetAsync(
+        var grantEntity = await GetEntityOrDefaultAsync(
             entity =>
-                entity.GrantType == grantType &&
-                entity.HashedKey == hashedKey,
+                entity.GrantType == persistedGrant.GrantType &&
+                entity.HashedKey == persistedGrant.HashedKey,
             cancellationToken
         );
+
+        if (grantEntity is null)
+        {
+            throw new InvalidOperationException("The specified grant was not found.");
+        }
+
+        if (!string.Equals(persistedGrant.ConcurrencyToken, grantEntity.ConcurrencyToken, StringComparison.Ordinal))
+        {
+            throw new DbUpdateConcurrencyException(
+                "The OpenId Grant has been modified by another process. Please reload and try again."
+            );
+        }
+
+        var nextConcurrencyToken = NextConcurrencyToken();
+
+        grantEntity.ConcurrencyToken = nextConcurrencyToken;
+        grantEntity.ExpiresWhen = persistedGrant.ExpiresWhen;
+        grantEntity.RevokedWhen = persistedGrant.RevokedWhen;
+        grantEntity.ConsumedWhen = persistedGrant.ConsumedWhen;
+
+        DbContext.Grants.Update(grantEntity);
+
+        persistedGrant.ConcurrencyToken = nextConcurrencyToken;
     }
 }

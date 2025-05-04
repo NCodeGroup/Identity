@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Models;
 /// Contains the identifiers of a persisted grant.
 /// </summary>
 [PublicAPI]
-public readonly struct PersistedGrantId
+public readonly record struct PersistedGrantId
 {
     /// <summary>
     /// Gets or sets the tenant identifier associated with the grant.

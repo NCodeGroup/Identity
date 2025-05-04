@@ -34,9 +34,11 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 [Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
 [Index(nameof(ExpiresWhen), IsUnique = false)]
-public class GrantEntity : ISupportSurrogateId, ISupportConcurrencyToken
+public class GrantEntity : ISupportConcurrencyToken
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets or sets the surrogate identifier for this entity.
+    /// </summary>
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }

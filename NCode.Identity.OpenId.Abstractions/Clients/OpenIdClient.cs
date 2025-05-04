@@ -28,12 +28,8 @@ namespace NCode.Identity.OpenId.Clients;
 /// Provides the configuration and details for an <c>OAuth</c> or <c>OpenID Connect</c> client that may be public or confidential.
 /// </summary>
 [PublicAPI]
-public abstract class OpenIdClient : IOpenIdResource
+public abstract class OpenIdClient
 {
-    string IOpenIdResource.ResourceType => OpenIdResourceTypes.Client;
-
-    string IOpenIdResource.ResourceId => ClientId;
-
     /// <summary>
     /// Gets a <see cref="string"/> value containing the unique identifier for the client.
     /// </summary>

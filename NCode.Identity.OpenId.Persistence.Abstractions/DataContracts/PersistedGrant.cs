@@ -28,11 +28,8 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> grant.
 /// </summary>
 [PublicAPI]
-public class PersistedGrant : ISupportSurrogateId
+public class PersistedGrant : ISupportConcurrencyToken
 {
-    /// <inheritdoc/>
-    public long Id { get; init; }
-
     /// <summary>
     /// Gets or sets the type of grant.
     /// </summary>
@@ -44,6 +41,10 @@ public class PersistedGrant : ISupportSurrogateId
     /// </summary>
     [MaxLength(MaxLengths.HashedKey)]
     public required string HashedKey { get; init; }
+
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    public string ConcurrencyToken { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the <c>TenantId</c> associated with this entity.

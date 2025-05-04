@@ -81,7 +81,7 @@ public class DefaultContinueEndpointHandler(
             state
         );
 
-        var persistedGrantOrNull = await PersistedGrantService.TryConsumeOnce<ContinueEnvelope>(
+        var persistedGrantOrNull = await PersistedGrantService.ConsumeOnceOrDefault<ContinueEnvelope>(
             openIdContext,
             persistedGrantId,
             cancellationToken

@@ -31,9 +31,11 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// </summary>
 [Index(nameof(NormalizedTenantId), IsUnique = true)]
 [Index(nameof(NormalizedDomainName), IsUnique = true)]
-public class TenantEntity : ISupportSurrogateId, ISupportConcurrencyToken
+public class TenantEntity : ISupportConcurrencyToken
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets or sets the surrogate identifier for this entity.
+    /// </summary>
     [Key]
     [UseIdGenerator]
     public long Id { get; init; }
@@ -42,7 +44,7 @@ public class TenantEntity : ISupportSurrogateId, ISupportConcurrencyToken
     /// Gets or sets the natural identifier for this entity.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.TenantId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
@@ -50,7 +52,7 @@ public class TenantEntity : ISupportSurrogateId, ISupportConcurrencyToken
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.TenantId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string NormalizedTenantId { get; init; }
 
     //

@@ -82,7 +82,7 @@ public class DefaultRefreshTokenGrantHandler(
             refreshToken
         );
 
-        var persistedGrantOrNull = await PersistedGrantService.TryGetAsync<RefreshTokenGrant>(
+        var persistedGrantOrNull = await PersistedGrantService.GetOrDefaultAsync<RefreshTokenGrant>(
             openIdContext,
             persistedGrantId,
             cancellationToken
@@ -115,7 +115,7 @@ public class DefaultRefreshTokenGrantHandler(
         var rotationEnabled = settings.GetValue(SettingKeys.RefreshTokenRotationEnabled);
         if (rotationEnabled)
         {
-            await PersistedGrantService.SetRevokedAsync(
+            await PersistedGrantService.SetRevokedOnceAsync(
                 openIdContext,
                 persistedGrantId,
                 utcNow,

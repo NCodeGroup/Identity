@@ -28,7 +28,7 @@ namespace NCode.Identity.Persistence.DataContracts;
 public interface ISupportClientId
 {
     /// <summary>
-    /// Gets the natural identifier of the OpenId Client that this instance belongs to.
+    /// Gets the identifier of the OpenId Client that this instance belongs to.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     string ClientId { get; }

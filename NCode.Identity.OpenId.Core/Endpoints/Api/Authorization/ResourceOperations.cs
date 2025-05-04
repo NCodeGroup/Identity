@@ -16,21 +16,51 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Endpoints.Api.Authorization;
 
+[PublicAPI]
+[ExcludeFromCodeCoverage]
 public static class ResourceOperations
 {
+    [PublicAPI]
+    [ExcludeFromCodeCoverage]
     public static class Servers
     {
+        private const string Prefix = "servers";
+
+        [PublicAPI]
+        [ExcludeFromCodeCoverage]
         public static class Basic
         {
-            public const string Read = "servers/basic/read";
+            // ReSharper disable once MemberHidesStaticFromOuterClass
+            private const string Prefix = Servers.Prefix + "/basic";
+
+            public const string Read = Prefix + "/read";
         }
 
+        [PublicAPI]
+        [ExcludeFromCodeCoverage]
         public static class Settings
         {
-            public const string Read = "servers/settings/read";
-            public const string Update = "servers/settings/update";
+            // ReSharper disable once MemberHidesStaticFromOuterClass
+            private const string Prefix = Servers.Prefix + "/settings";
+
+            public const string Read = Prefix + "/read";
+            public const string Update = Prefix + "/update";
+        }
+
+        [PublicAPI]
+        [ExcludeFromCodeCoverage]
+        public static class Secrets
+        {
+            // ReSharper disable once MemberHidesStaticFromOuterClass
+            private const string Prefix = Servers.Prefix + "/secrets";
+
+            public const string Read = Prefix + "/read";
+            public const string Update = Prefix + "/update";
         }
     }
 }

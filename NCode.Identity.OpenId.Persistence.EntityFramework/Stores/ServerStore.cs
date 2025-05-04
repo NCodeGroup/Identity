@@ -140,12 +140,17 @@ public class ServerStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedServerSecrets> GetSecretsAsync(
+    public async ValueTask<PersistedServerSecrets?> GetSecretsOrDefaultAsync(
         string serverId,
         CancellationToken cancellationToken
     )
     {
-        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
+        if (serverEntity is null)
+        {
+            return null;
+        }
+
         return await MapSecretsAsync(serverEntity, cancellationToken);
     }
 

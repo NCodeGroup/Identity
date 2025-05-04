@@ -19,7 +19,9 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Endpoints.Api.Secrets;
 using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Endpoints.Api;
 
@@ -27,6 +29,27 @@ namespace NCode.Identity.OpenId.Endpoints.Api;
 public abstract class BaseApiEndpointHandler
 {
     protected abstract IAuthorizationService AuthorizationService { get; }
+
+
+    internal virtual IReadOnlyCollection<SecretResource> ToSecretsResource(IReadOnlyCollection<PersistedSecret> secrets)
+    {
+        return secrets.Select(ToSecretResource).ToList();
+    }
+
+    internal virtual SecretResource ToSecretResource(PersistedSecret secret)
+    {
+        return new SecretResource
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = secret.ExpiresWhen,
+            SecretType = secret.SecretType,
+            KeySizeBits = secret.KeySizeBits
+        };
+    }
 
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue>(
         HttpContext httpContext,

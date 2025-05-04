@@ -52,12 +52,12 @@ public interface IServerStore : IStore<PersistedServer>
     );
 
     /// <summary>
-    /// Gets the <see cref="PersistedServerSecrets"/> instance from the store with the specified identifier.
+    /// Attempts to get the <see cref="PersistedServerSecrets"/> instance from the store with the specified identifier.
     /// </summary>
     /// <param name="serverId">The identifier of the OpenId Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedServerSecrets"/> for the specified identifier.</returns>
-    ValueTask<PersistedServerSecrets> GetSecretsAsync(
+    ValueTask<PersistedServerSecrets?> GetSecretsOrDefaultAsync(
         string serverId,
         CancellationToken cancellationToken
     );

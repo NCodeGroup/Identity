@@ -28,7 +28,7 @@ namespace NCode.Identity.Persistence.DataContracts;
 public interface ISupportSecretId
 {
     /// <summary>
-    /// Gets the natural identifier of the OpenId Secret that this instance belongs to.
+    /// Gets the identifier of the OpenId Secret that this instance belongs to.
     /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]

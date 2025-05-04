@@ -18,21 +18,27 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Endpoints.Api.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Endpoints.Api.Servers;
 
 /// <summary>
-/// Represents the REST resource for a <see cref="PersistedServer"/> instance.
+/// Represents the REST resource for a <see cref="PersistedServerSecrets"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class ServerResource : ISupportServerId, ISupportConcurrencyToken
+public class ServerSecretsResource : ISupportServerId, ISupportConcurrencyToken
 {
-    /// <inheritdoc cref="PersistedServer.ServerId"/>
+    /// <inheritdoc cref="PersistedServerSecrets.ServerId"/>
     public required string ServerId { get; init; }
 
-    /// <inheritdoc cref="PersistedServer.ConcurrencyToken"/>
+    /// <inheritdoc cref="PersistedServerSecrets.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
+
+    /// <summary>
+    /// Gets or sets the collection of secrets only known to an OpenID Server instance.
+    /// </summary>
+    public required IReadOnlyCollection<SecretResource> Secrets { get; init; }
 }

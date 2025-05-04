@@ -18,7 +18,6 @@
 #endregion
 
 using System.Text.Json;
-using IdGen;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Models;
@@ -34,7 +33,6 @@ namespace NCode.Identity.OpenId.Logic;
 public class DefaultPersistedGrantService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
-    IIdGenerator<long> idGenerator,
     IStoreManagerFactory storeManagerFactory
 ) : IPersistedGrantService
 {
@@ -44,7 +42,6 @@ public class DefaultPersistedGrantService(
 
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
-    private IIdGenerator<long> IdGenerator { get; } = idGenerator;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     private static string GetHashInput(PersistedGrantId grantId) =>
@@ -83,7 +80,6 @@ public class DefaultPersistedGrantService(
 
         var openIdEnvironment = openIdContext.Environment;
 
-        var id = IdGenerator.CreateId();
         var hashedKey = GetHashedKey(grantId);
 
         var expiresWhen = createdWhen + lifetime;
@@ -95,7 +91,6 @@ public class DefaultPersistedGrantService(
 
         var envelope = new PersistedGrant
         {
-            Id = id,
             GrantType = grantId.GrantType,
             HashedKey = hashedKey,
             TenantId = grant.TenantId,
@@ -128,26 +123,22 @@ public class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedGrant<TPayload>?> TryGetAsync<TPayload>(
+    public async ValueTask<PersistedGrant<TPayload>?> GetOrDefaultAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         CancellationToken cancellationToken
     )
     {
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var openIdEnvironment = openIdContext.Environment;
 
+        var grantType = grantId.GrantType;
         var hashedKey = GetHashedKey(grantId);
-        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
 
-        var envelope = await store.TryGetAsync(
-            grantId.GrantType,
-            hashedKey,
-            cancellationToken
-        );
-
+        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
         if (envelope == null)
             return null;
 
@@ -175,26 +166,22 @@ public class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedGrant<TPayload>?> TryConsumeOnce<TPayload>(
+    public async ValueTask<PersistedGrant<TPayload>?> ConsumeOnceOrDefault<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         CancellationToken cancellationToken
     )
     {
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var openIdEnvironment = openIdContext.Environment;
 
+        var grantType = grantId.GrantType;
         var hashedKey = GetHashedKey(grantId);
-        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
 
-        var envelope = await store.TryGetAsync(
-            grantId.GrantType,
-            hashedKey,
-            cancellationToken
-        );
-
+        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
         if (envelope == null)
             return null;
 
@@ -214,6 +201,7 @@ public class DefaultPersistedGrantService(
             throw new InvalidOperationException("The payload could not be deserialized.");
 
         envelope.ConsumedWhen = utcNow;
+
         await store.UpdateAsync(envelope, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
@@ -231,47 +219,63 @@ public class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
-    public async ValueTask SetConsumedAsync(
+    public async ValueTask SetConsumedOnceAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset consumedWhen,
         CancellationToken cancellationToken
     )
     {
+        var grantType = grantId.GrantType;
         var hashedKey = GetHashedKey(grantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
 
-        await store.SetConsumedOnceAsync(
-            grantId.GrantType,
-            hashedKey,
-            consumedWhen,
-            cancellationToken
-        );
+        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
+        if (envelope is null)
+            return;
+
+        if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
+            return;
+
+        if (envelope.ConsumedWhen is not null)
+            return;
+
+        envelope.ConsumedWhen = consumedWhen;
+
+        await store.UpdateAsync(envelope, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
-    public async ValueTask SetRevokedAsync(
+    public async ValueTask SetRevokedOnceAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
     )
     {
+        var grantType = grantId.GrantType;
         var hashedKey = GetHashedKey(grantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
 
-        await store.SetRevokedOnceAsync(
-            grantId.GrantType,
-            hashedKey,
-            revokedWhen,
-            cancellationToken
-        );
+        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
+        if (envelope is null)
+            return;
+
+        if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
+            return;
+
+        if (envelope.RevokedWhen is not null)
+            return;
+
+        envelope.RevokedWhen = revokedWhen;
+
+        await store.UpdateAsync(envelope, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
     }
@@ -284,17 +288,13 @@ public class DefaultPersistedGrantService(
         CancellationToken cancellationToken
     )
     {
+        var grantType = grantId.GrantType;
         var hashedKey = GetHashedKey(grantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
 
-        var envelope = await store.TryGetAsync(
-            grantId.GrantType,
-            hashedKey,
-            cancellationToken
-        );
-
+        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
         if (envelope == null)
             return;
 
@@ -302,6 +302,7 @@ public class DefaultPersistedGrantService(
             return;
 
         envelope.ExpiresWhen = expiresWhen;
+
         await store.UpdateAsync(envelope, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);

@@ -27,25 +27,18 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> Tenant instance.
 /// </summary>
 [PublicAPI]
-public class PersistedTenant : BasePersistedTenantResource, ISupportSurrogateId, ISupportNaturalId
+public class PersistedTenant : BasePersistedTenantResource
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
     public override string ResourceType => ResourceTypePrefix;
-
-    /// <inheritdoc/>
-    public long Id { get; init; }
-
-    /// <inheritdoc/>
-    [MaxLength(MaxLengths.ResourceId)]
-    string ISupportId<string>.Id => ResourceId;
 
     /// <summary>
     /// Gets or sets the domain name for this entity.
     /// This value is optional and can be used to find tenants by domain name.
     /// </summary>
     [MaxLength(MaxLengths.TenantDomainName)]
-    public required string? DomainName { get; init; }
+    public required string? DomainName { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the tenant is disabled.

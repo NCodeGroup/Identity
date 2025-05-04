@@ -99,7 +99,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var persistedTenant = await store.TryGetByDomainNameAsync(domainName, cancellationToken);
+        var persistedTenant = await store.GetOrDefaultByDomainNameAsync(domainName, cancellationToken);
         if (persistedTenant is null)
             throw TypedResults
                 .NotFound()

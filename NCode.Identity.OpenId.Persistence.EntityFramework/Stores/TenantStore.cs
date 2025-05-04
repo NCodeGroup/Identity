@@ -17,16 +17,13 @@
 #endregion
 
 using System.Linq.Expressions;
-using System.Text.Json;
 using IdGen;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
@@ -38,7 +35,7 @@ public class TenantStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
     OpenIdDbContext openIdDbContext
-) : BaseStoreWithEntityId<PersistedTenant, TenantEntity>, ITenantStore
+) : BaseStoreWithResourceId<PersistedTenant, TenantEntity>, ITenantStore
 {
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
@@ -49,27 +46,64 @@ public class TenantStore(
     /// <inheritdoc />
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
 
-    /// <inheritdoc />
-    protected override ValueTask<PersistedTenant> MapFromEntityAsync(
-        TenantEntity tenant,
+    /// <summary>
+    /// Maps a <see cref="TenantEntity"/> to a <see cref="PersistedTenantSettings"/> instance.
+    /// </summary>
+    /// <param name="tenantEntity">The <see cref="TenantEntity"/> instance to map.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedTenantSettings"/> instance.</returns>
+    protected internal virtual ValueTask<PersistedTenantSettings> MapSettingsAsync(
+        TenantEntity tenantEntity,
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedTenant
+        return ValueTask.FromResult(new PersistedTenantSettings
         {
-            Id = tenant.Id,
-            TenantId = tenant.TenantId,
-            DomainName = tenant.DomainName,
-            ConcurrencyToken = tenant.ConcurrencyToken,
-            IsDisabled = tenant.IsDisabled,
-            DisplayName = tenant.DisplayName,
-            SettingsState = ConcurrentStateFactory.Create(tenant.SettingsJson, tenant.SettingsConcurrencyToken),
-            SecretsState = ConcurrentStateFactory.Create(MapExisting(tenant.Secrets), tenant.SecretsConcurrencyToken)
+            TenantId = tenantEntity.TenantId,
+            ConcurrencyToken = tenantEntity.SettingsConcurrencyToken,
+            Value = tenantEntity.SettingsJson
+        });
+    }
+
+    /// <summary>
+    /// Maps a <see cref="TenantEntity"/> to a <see cref="PersistedTenantSecrets"/> instance.
+    /// </summary>
+    /// <param name="tenantEntity">The <see cref="TenantEntity"/> instance to map.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedTenantSecrets"/> instance.</returns>
+    protected internal virtual ValueTask<PersistedTenantSecrets> MapSecretsAsync(
+        TenantEntity tenantEntity,
+        CancellationToken cancellationToken
+    )
+    {
+        return ValueTask.FromResult(new PersistedTenantSecrets
+        {
+            TenantId = tenantEntity.TenantId,
+            ConcurrencyToken = tenantEntity.SecretsConcurrencyToken,
+            Value = MapToPersistedSecrets(tenantEntity.Secrets)
         });
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<TenantEntity?> TryGetEntityAsync(
+    protected override async ValueTask<PersistedTenant> MapFromEntityAsync(
+        TenantEntity tenantEntity,
+        CancellationToken cancellationToken
+    )
+    {
+        return new PersistedTenant
+        {
+            TenantId = tenantEntity.TenantId,
+            DomainName = tenantEntity.DomainName,
+            ConcurrencyToken = tenantEntity.ConcurrencyToken,
+            IsDisabled = tenantEntity.IsDisabled,
+            DisplayName = tenantEntity.DisplayName,
+            Settings = await MapSettingsAsync(tenantEntity, cancellationToken),
+            Secrets = await MapSecretsAsync(tenantEntity, cancellationToken)
+        };
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<TenantEntity?> GetEntityOrDefaultAsync(
         Expression<Func<TenantEntity, bool>> predicate,
         CancellationToken cancellationToken
     )
@@ -77,7 +111,53 @@ public class TenantStore(
         return await DbContext.Tenants
             .Include(tenant => tenant.Secrets)
             .ThenInclude(tenantSecret => tenantSecret.Secret)
-            .FirstOrDefaultAsync(predicate, cancellationToken);
+            .SingleOrDefaultAsync(predicate, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<TenantEntity?> GetEntityOrDefaultAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedTenantId = Normalize(tenantId);
+        return await GetEntityOrDefaultAsync(
+            entity => entity.NormalizedTenantId == normalizedTenantId,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedTenant?> GetOrDefaultByDomainNameAsync(
+        string domainName,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedDomainName = Normalize(domainName);
+        return await GetOrDefaultAsync(
+            entity => entity.NormalizedDomainName == normalizedDomainName,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedTenantSettings> GetSettingsAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetTenantEntityAsync(tenantId, cancellationToken);
+        return await MapSettingsAsync(tenantEntity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedTenantSecrets> GetSecretsAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetTenantEntityAsync(tenantId, cancellationToken);
+        return await MapSecretsAsync(tenantEntity, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -86,29 +166,33 @@ public class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        persistedTenant.Id = NextId(persistedTenant.Id);
+        persistedTenant.ConcurrencyToken = NextConcurrencyToken();
+        persistedTenant.Settings.ConcurrencyToken = NextConcurrencyToken();
+        persistedTenant.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
-        var secrets = new List<TenantSecretEntity>(persistedTenant.SecretsState.Value.Count);
+        var secrets = new List<TenantSecretEntity>(persistedTenant.Secrets.Value.Count);
 
         var tenantEntity = new TenantEntity
         {
-            Id = persistedTenant.Id,
+            Id = NextId(),
             TenantId = persistedTenant.TenantId,
             NormalizedTenantId = Normalize(persistedTenant.TenantId),
             DomainName = persistedTenant.DomainName,
             NormalizedDomainName = Normalize(persistedTenant.DomainName),
-            ConcurrencyToken = NextConcurrencyToken(),
-            SettingsConcurrencyToken = persistedTenant.SettingsState.ConcurrencyToken,
-            SecretsConcurrencyToken = persistedTenant.SecretsState.ConcurrencyToken,
+            ConcurrencyToken = persistedTenant.ConcurrencyToken,
+            SettingsConcurrencyToken = persistedTenant.Settings.ConcurrencyToken,
+            SecretsConcurrencyToken = persistedTenant.Secrets.ConcurrencyToken,
             IsDisabled = persistedTenant.IsDisabled,
             DisplayName = persistedTenant.DisplayName,
-            SettingsJson = persistedTenant.SettingsState.Value,
+            SettingsJson = persistedTenant.Settings.Value,
             Secrets = secrets
         };
 
-        foreach (var persistedSecret in persistedTenant.SecretsState.Value)
+        foreach (var persistedSecret in persistedTenant.Secrets.Value)
         {
-            var secretEntity = MapNew(persistedSecret);
+            persistedSecret.ConcurrencyToken = NextConcurrencyToken();
+
+            var secretEntity = MapToSecretEntity(persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 
@@ -132,95 +216,56 @@ public class TenantStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask UpdateAsync(
+    public override async ValueTask UpdateAsync(
         PersistedTenant persistedTenant,
         CancellationToken cancellationToken
     )
     {
-        var tenantEntity = await GetEntityByIdAsync(persistedTenant.Id, cancellationToken);
+        var tenantId = persistedTenant.TenantId;
+        var tenantEntity = await GetEntityAsync(tenantId, cancellationToken);
 
-        tenantEntity.ConcurrencyToken = NextConcurrencyToken();
-        tenantEntity.SettingsConcurrencyToken = persistedTenant.SettingsState.ConcurrencyToken;
-        // we don't update the secrets concurrency token here because that is a disconnected entity collection
+        if (!string.Equals(persistedTenant.ConcurrencyToken, tenantEntity.ConcurrencyToken, StringComparison.Ordinal))
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The OpenId Tenant with TenantId='{tenantId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        var nextConcurrencyToken = NextConcurrencyToken();
+
+        tenantEntity.ConcurrencyToken = nextConcurrencyToken;
         tenantEntity.IsDisabled = persistedTenant.IsDisabled;
         tenantEntity.DisplayName = persistedTenant.DisplayName;
-        tenantEntity.SettingsJson = persistedTenant.SettingsState.Value;
+        // TODO: DomainName
+
+        DbContext.Tenants.Update(tenantEntity);
+
+        persistedTenant.ConcurrencyToken = nextConcurrencyToken;
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedTenant?> TryGetByTenantIdAsync(
-        string tenantId,
+    public async ValueTask UpdateSettingsAsync(
+        PersistedTenantSettings persistedTenantSettings,
         CancellationToken cancellationToken
     )
     {
-        var normalizedTenantId = Normalize(tenantId);
-        return await TryGetAsync(
-            tenant => tenant.NormalizedTenantId == normalizedTenantId,
-            cancellationToken);
-    }
+        var tenantId = persistedTenantSettings.TenantId;
+        var tenantEntity = await GetEntityAsync(tenantId, cancellationToken);
 
-    /// <inheritdoc />
-    public async ValueTask<PersistedTenant?> TryGetByDomainNameAsync(
-        string domainName,
-        CancellationToken cancellationToken
-    )
-    {
-        var normalizedDomainName = Normalize(domainName);
-        return await TryGetAsync(
-            tenant => tenant.NormalizedDomainName == normalizedDomainName,
-            cancellationToken);
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<ConcurrentState<JsonElement>> GetSettingsAsync(
-        string tenantId,
-        ConcurrentState<JsonElement> lastKnownState,
-        CancellationToken cancellationToken
-    )
-    {
-        var normalizedTenantId = Normalize(tenantId);
-
-        var entity = await DbContext.Tenants
-            .Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
-            .SingleAsync(cancellationToken);
-
-        var concurrencyToken = entity.SettingsConcurrencyToken;
-        if (string.Equals(concurrencyToken, lastKnownState.ConcurrencyToken, StringComparison.Ordinal))
+        if (!string.Equals(persistedTenantSettings.ConcurrencyToken, tenantEntity.SettingsConcurrencyToken, StringComparison.Ordinal))
         {
-            return lastKnownState;
+            throw new DbUpdateConcurrencyException(
+                $"The settings for OpenId Tenant with TenantId='{tenantId}' have been modified by another process. Please reload and try again."
+            );
         }
 
-        var settingsJson = entity.SettingsJson;
-        return ConcurrentStateFactory.Create(settingsJson, concurrencyToken);
-    }
+        var nextConcurrencyToken = NextConcurrencyToken();
 
-    /// <inheritdoc />
-    public async ValueTask<ConcurrentState<IReadOnlyCollection<PersistedSecret>>> GetSecretsAsync(
-        string tenantId,
-        ConcurrentState<IReadOnlyCollection<PersistedSecret>> lastKnownState,
-        CancellationToken cancellationToken
-    )
-    {
-        var normalizedTenantId = Normalize(tenantId);
+        tenantEntity.SettingsConcurrencyToken = nextConcurrencyToken;
+        tenantEntity.SettingsJson = persistedTenantSettings.Value;
 
-        var concurrencyToken = await DbContext.Tenants
-            .Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
-            .Select(tenant => tenant.SecretsConcurrencyToken)
-            .SingleAsync(cancellationToken);
+        DbContext.Tenants.Update(tenantEntity);
 
-        if (string.Equals(concurrencyToken, lastKnownState.ConcurrencyToken, StringComparison.Ordinal))
-        {
-            return lastKnownState;
-        }
-
-        IReadOnlyCollection<PersistedSecret> secrets = await DbContext.TenantSecrets
-            .Include(tenantSecret => tenantSecret.Tenant)
-            .Include(tenantSecret => tenantSecret.Secret)
-            .Where(tenantSecret => tenantSecret.Tenant.NormalizedTenantId == normalizedTenantId)
-            .Select(tenantSecret => tenantSecret.Secret)
-            .Select(secret => MapExisting(secret))
-            .ToListAsync(cancellationToken);
-
-        return ConcurrentStateFactory.Create(secrets, concurrencyToken);
+        persistedTenantSettings.ConcurrencyToken = nextConcurrencyToken;
     }
 }

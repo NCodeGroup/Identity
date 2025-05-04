@@ -16,15 +16,14 @@
 
 #endregion
 
-using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using NCode.Identity.Jose;
 using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Endpoints.Api.Authorization;
 
+// TODO
 public class TenantAdminHandler : AuthorizationHandler<IAuthorizationRequirement, ISupportTenantId>
 {
     /// <inheritdoc />
@@ -44,38 +43,5 @@ public class TenantAdminHandler : AuthorizationHandler<IAuthorizationRequirement
         }
 
         return Task.CompletedTask;
-    }
-}
-
-public static class TenantResourceWrapper
-{
-    public static TenantResourceWrapper<T> Create<T>(string tenantId, T resource) =>
-        new(tenantId, resource);
-}
-
-[PublicAPI]
-public record TenantResourceWrapper<T>(string TenantId, T Resource) : ISupportTenantId;
-
-[PublicAPI]
-public record ServerResourceWrapper<T>(string ServerId, T Resource) : ISupportServerId;
-
-/// <summary>
-/// Indicates that an entity supports the <see cref="ServerId"/> property.
-/// </summary>
-[PublicAPI]
-public interface ISupportServerId
-{
-    /// <summary>
-    /// Gets the natural identifier for the OpenId server.
-    /// </summary>
-    [MaxLength(MaxLengths.ResourceId)]
-    string ServerId { get; }
-}
-
-public static class ServerResourceWrapper
-{
-    public static ServerResourceWrapper<T>? Create<T>(string serverId, T? resource)
-    {
-        return resource is null ? null : new ServerResourceWrapper<T>(serverId, resource);
     }
 }

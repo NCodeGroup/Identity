@@ -91,8 +91,8 @@ public abstract class CommonClientAuthenticationHandler(
     {
         var tenantId = openIdContext.Tenant.TenantId;
 
-        var persistedClient = await TryGetPersistedClientAsync(tenantId, clientId, cancellationToken);
-        if (persistedClient is null || persistedClient.IsDisabled)
+        var persistedClient = await TryGetPersistedClientAsync(clientId, cancellationToken);
+        if (persistedClient is null || persistedClient.IsDisabled || !string.Equals(tenantId, persistedClient.TenantId, StringComparison.Ordinal))
             return new ClientAuthenticationResult(
                 openIdContext.ErrorFactory
                     .InvalidClient()
@@ -160,15 +160,13 @@ public abstract class CommonClientAuthenticationHandler(
     }
 
     /// <summary>
-    /// Attempts to get the persisted client using the specified <paramref name="tenantId"/> and <paramref name="clientId"/>.
+    /// Attempts to get the persisted client with the specified identifier.
     /// </summary>
-    /// <param name="tenantId">The tenant identifier for the <see cref="PersistedClient"/> instance.</param>
-    /// <param name="clientId">The natural key of the <see cref="PersistedClient"/> instance to retrieve.</param>
+    /// <param name="clientId">The identifier of the client to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="PersistedClient"/> instance matching the specified <paramref name="clientId"/> if it exists.</returns>
     protected async ValueTask<PersistedClient?> TryGetPersistedClientAsync(
-        string tenantId,
         string clientId,
         CancellationToken cancellationToken
     )
@@ -176,7 +174,7 @@ public abstract class CommonClientAuthenticationHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
-        var persistedClient = await store.TryGetByClientIdAsync(tenantId, clientId, cancellationToken);
+        var persistedClient = await store.GetOrDefaultAsync(clientId, cancellationToken);
         return persistedClient;
     }
 
@@ -194,12 +192,12 @@ public abstract class CommonClientAuthenticationHandler(
     )
     {
         var openIdEnvironment = openIdContext.Environment;
-        var clientSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, persistedClient.SettingsState.Value);
+        var clientSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, persistedClient.Settings.Value);
         var parentSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var effectiveSettings = parentSettings.Merge(clientSettings);
 
         var secrets = SecretSerializer.DeserializeSecrets(
-            persistedClient.SecretsState.Value,
+            persistedClient.Secrets.Value,
             out _
         );
 

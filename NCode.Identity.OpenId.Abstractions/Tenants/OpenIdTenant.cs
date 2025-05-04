@@ -29,12 +29,8 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Provides the configuration for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
 /// </summary>
 [PublicAPI]
-public abstract class OpenIdTenant : IOpenIdResource, IAsyncDisposable
+public abstract class OpenIdTenant : IAsyncDisposable
 {
-    string IOpenIdResource.ResourceType => OpenIdResourceTypes.Tenant;
-
-    string IOpenIdResource.ResourceId => TenantId;
-
     /// <summary>
     /// Gets the unique identifier for the tenant.
     /// </summary>

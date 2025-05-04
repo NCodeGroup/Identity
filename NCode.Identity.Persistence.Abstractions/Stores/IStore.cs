@@ -18,20 +18,8 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
 
 namespace NCode.Identity.Persistence.Stores;
-
-/// <summary>
-/// Provides an abstraction for a store which manages persisted entities using <see cref="long"/> surrogate keys.
-/// </summary>
-/// <typeparam name="T">The type of the persisted entity.</typeparam>
-[PublicAPI]
-public interface IStore<T> : IStore<T, long>
-    where T : ISupportId<long>
-{
-    // nothing
-}
 
 /// <summary>
 /// Base interface for all store implementations.
@@ -43,55 +31,25 @@ public interface IStore : IStoreProvider
 }
 
 /// <summary>
-/// Provides an abstraction for a store which manages persisted entities.
+/// Provides an abstraction for a store which manages persisted items.
 /// </summary>
-/// <typeparam name="T">The type of the persisted entity.</typeparam>
-/// <typeparam name="TKey">The type of the persisted entity's surrogate key.</typeparam>
+/// <typeparam name="T">The type of the persisted item.</typeparam>
 [PublicAPI]
-public interface IStore<T, in TKey> : IStore
-    where T : ISupportId<TKey>
-    where TKey : IEquatable<TKey>
+public interface IStore<in T> : IStore
 {
     /// <summary>
-    /// Gets a value indicating whether the store supports removing persisted entities.
+    /// Adds a new persisted item to the store.
     /// </summary>
-    bool IsRemoveSupported { get; }
-
-    /// <summary>
-    /// Gets a persisted entity from the store by using its surrogate key.
-    /// </summary>
-    /// <param name="id">The surrogate key of the entity to retrieve.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// entity matching the specified <paramref name="id"/> if it exists.</returns>
-    ValueTask<T?> TryGetByIdAsync(TKey id, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Adds a new persisted entity to the store.
-    /// </summary>
-    /// <param name="item">The entity to add to the store.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
+    /// <param name="item">The item to add to the store.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask AddAsync(T item, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Updates a new persisted entity in the store.
+    /// Updates a persisted item in the store.
     /// </summary>
-    /// <param name="item">The entity to update in the store.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
+    /// <param name="item">The item to update in the store.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask UpdateAsync(T item, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Removes a persisted entity from the store by using its surrogate key.
-    /// </summary>
-    /// <param name="id">The surrogate key of the entity to remove.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
-    /// asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    /// <exception cref="NotSupportedException">Thrown when the store does not support removing entities.</exception>
-    ValueTask RemoveByIdAsync(TKey id, CancellationToken cancellationToken);
 }

@@ -57,7 +57,7 @@ public abstract class BasePersistedTenantResource : ISupportPersistedTenantResou
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ConcurrencyToken)]
-    public required string ConcurrencyToken { get; set; }
+    public string ConcurrencyToken { get; set; } = string.Empty;
 }
 
 /// <summary>

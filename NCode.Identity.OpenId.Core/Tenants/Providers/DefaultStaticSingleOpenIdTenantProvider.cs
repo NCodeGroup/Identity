@@ -31,10 +31,8 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.PropertyBag;
 
@@ -169,7 +167,7 @@ public class DefaultStaticSingleOpenIdTenantProvider(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var persistedTenant = await store.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (persistedTenant is not null)
             return persistedTenant;
 
@@ -186,24 +184,29 @@ public class DefaultStaticSingleOpenIdTenantProvider(
     /// </summary>
     protected internal virtual PersistedTenant CreateEmptyPersistedTenant(string tenantId)
     {
-        var settingsJson = JsonSerializer.SerializeToElement(null, typeof(object));
-        var settingsState = ConcurrentStateFactory.Create(settingsJson, Guid.NewGuid().ToString("N"));
+        var settings = new PersistedTenantSettings
+        {
+            TenantId = tenantId,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
+            Value = JsonSerializer.SerializeToElement(null, typeof(object))
+        };
 
-        var secretsState = ConcurrentStateFactory.Create<IReadOnlyCollection<PersistedSecret>>(
-            Array.Empty<PersistedSecret>(),
-            Guid.NewGuid().ToString("N")
-        );
+        var secrets = new PersistedTenantSecrets
+        {
+            TenantId = tenantId,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
+            Value = []
+        };
 
         return new PersistedTenant
         {
-            Id = IdGenerator.CreateId(),
             TenantId = tenantId,
             DomainName = null,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,
             DisplayName = TenantOptions.DisplayName,
-            SettingsState = settingsState,
-            SecretsState = secretsState
+            Settings = settings,
+            Secrets = secrets
         };
     }
 }

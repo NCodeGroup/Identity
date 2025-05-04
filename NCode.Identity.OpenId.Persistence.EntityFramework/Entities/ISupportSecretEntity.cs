@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// and the <see cref="SecretId"/> foreign key.
 /// </summary>
 [PublicAPI]
-public interface ISupportSecret
+public interface ISupportSecretEntity
 {
     /// <summary>
     /// Gets the foreign key for the associated secret.

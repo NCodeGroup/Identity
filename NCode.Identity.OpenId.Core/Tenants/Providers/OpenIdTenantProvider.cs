@@ -34,7 +34,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -122,7 +121,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var persistedTenant = await store.TryGetByTenantIdAsync(tenantId, cancellationToken);
+        var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         return persistedTenant;
     }
 
@@ -326,7 +325,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
             cancellationToken
         );
 
-        var initialSettingsJson = persistedTenant.SettingsState.Value;
+        var initialSettingsJson = persistedTenant.Settings.Value;
         var initialSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, initialSettingsJson);
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
@@ -368,24 +367,25 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         var store = storeManager.GetStore<ITenantStore>();
 
         var tenantId = persistedTenant.TenantId;
-        var prevSettingsState = persistedTenant.SettingsState;
 
-        var (newSettingsJson, newConcurrencyToken) = await store.GetSettingsAsync(
+        var newSettings = await store.GetSettingsAsync(
             tenantId,
-            prevSettingsState,
             cancellationToken
         );
 
-        var prevConcurrencyToken = prevSettingsState.ConcurrencyToken;
+        var prevSettings = persistedTenant.Settings;
+        var prevConcurrencyToken = prevSettings.ConcurrencyToken;
+        var newConcurrencyToken = newSettings.ConcurrencyToken;
+
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
-        var newSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, newSettingsJson);
+        var settings = SettingSerializer.DeserializeSettings(openIdEnvironment, newSettings.Value);
 
         // update the state after successfully deserializing the settings
-        persistedTenant.SettingsState = ConcurrentStateFactory.Create(newSettingsJson, newConcurrencyToken);
+        persistedTenant.Settings = newSettings;
 
-        return RefreshCollectionResultFactory.Changed(newSettings);
+        return RefreshCollectionResultFactory.Changed(settings);
     }
 
     /// <summary>
@@ -491,7 +491,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         );
 
         var refreshInterval = OpenIdOptions.Tenant.SecretsPeriodicRefreshInterval;
-        var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.SecretsState.Value, out _);
+        var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets.Value, out _);
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedTenant,
@@ -515,24 +515,25 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         var store = storeManager.GetStore<ITenantStore>();
 
         var tenantId = persistedTenant.TenantId;
-        var prevPersistedSecrets = persistedTenant.SecretsState;
 
-        var (newPersistedSecrets, newConcurrencyToken) = await store.GetSecretsAsync(
+        var newSecrets = await store.GetSecretsAsync(
             tenantId,
-            prevPersistedSecrets,
             cancellationToken
         );
 
-        var prevConcurrencyToken = prevPersistedSecrets.ConcurrencyToken;
+        var prevSecrets = persistedTenant.Secrets;
+        var prevConcurrencyToken = prevSecrets.ConcurrencyToken;
+        var newConcurrencyToken = newSecrets.ConcurrencyToken;
+
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var newSecrets = SecretSerializer.DeserializeSecrets(newPersistedSecrets, out _);
+        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value, out _);
 
         // update the state after successfully deserializing the secrets
-        persistedTenant.SecretsState = ConcurrentStateFactory.Create(newPersistedSecrets, newConcurrencyToken);
+        persistedTenant.Secrets = newSecrets;
 
-        return RefreshCollectionResultFactory.Changed(newSecrets);
+        return RefreshCollectionResultFactory.Changed(secrets);
     }
 
     /// <summary>

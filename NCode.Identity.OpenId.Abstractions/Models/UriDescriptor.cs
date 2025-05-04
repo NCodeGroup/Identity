@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Models;
 /// https://nat.sakimura.org/2018/04/04/what-encoding-should-a-uri-in-openid-and-oauth-discovery-document-use-for-an-internationalized-domain-name-idn/#easy-footnote-1-1403
 /// </remarks>
 [PublicAPI]
-public readonly struct UriDescriptor
+public readonly record struct UriDescriptor
 {
     /// <summary>
     /// Gets or sets the scheme (e.g. "http" or "https") component of the URI.

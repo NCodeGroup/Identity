@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Models;
 /// </summary>
 /// <typeparam name="TPayload">The type of the payload for the grant.</typeparam>
 [PublicAPI]
-public readonly struct PersistedGrant<TPayload>
+public readonly record struct PersistedGrant<TPayload>
 {
     /// <summary>
     /// Gets or sets the status of the grant.

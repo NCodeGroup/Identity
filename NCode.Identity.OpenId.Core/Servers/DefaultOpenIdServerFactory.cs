@@ -30,10 +30,8 @@ using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.PropertyBag;
 
@@ -138,7 +136,7 @@ public class DefaultOpenIdServerFactory(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var persistedServer = await store.TryGetByServerIdAsync(serverId, cancellationToken);
+        var persistedServer = await store.GetOrDefaultAsync(serverId, cancellationToken);
         if (persistedServer is not null)
             return persistedServer;
 
@@ -155,21 +153,26 @@ public class DefaultOpenIdServerFactory(
     /// </summary>
     protected internal virtual PersistedServer CreateEmptyPersistedServer(string serverId)
     {
-        var settingsJson = JsonSerializer.SerializeToElement(null, typeof(object));
-        var settingsState = ConcurrentStateFactory.Create(settingsJson, Guid.NewGuid().ToString("N"));
+        var settings = new PersistedServerSettings
+        {
+            ServerId = serverId,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
+            Value = JsonSerializer.SerializeToElement(null, typeof(object))
+        };
 
-        var secretsState = ConcurrentStateFactory.Create<IReadOnlyCollection<PersistedSecret>>(
-            Array.Empty<PersistedSecret>(),
-            Guid.NewGuid().ToString("N")
-        );
+        var secrets = new PersistedServerSecrets
+        {
+            ServerId = serverId,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
+            Value = []
+        };
 
         return new PersistedServer
         {
-            Id = IdGenerator.CreateId(),
             ServerId = serverId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            SettingsState = settingsState,
-            SecretsState = secretsState
+            Settings = settings,
+            Secrets = secrets
         };
     }
 
@@ -238,7 +241,7 @@ public class DefaultOpenIdServerFactory(
 
         var initialSettings = SettingSerializer.DeserializeSettings(
             openIdEnvironment,
-            persistedServer.SettingsState.Value
+            persistedServer.Settings.Value
         );
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
@@ -271,23 +274,23 @@ public class DefaultOpenIdServerFactory(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var prevSettingsState = persistedServer.SettingsState;
-        var newSettingsState = await store.GetSettingsOrDefaultAsync(serverId, prevSettingsState, cancellationToken);
-
-        if (!newSettingsState.HasValue)
+        var newSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
+        if (newSettings is null)
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
-        var (newSettingsJson, newConcurrencyToken) = newSettingsState.Value;
-        var prevConcurrencyToken = prevSettingsState.ConcurrencyToken;
+        var prevSettings = persistedServer.Settings;
+        var prevConcurrencyToken = prevSettings.ConcurrencyToken;
+        var newConcurrencyToken = newSettings.ConcurrencyToken;
+
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
-        var newSettings = SettingSerializer.DeserializeSettings(openIdEnvironment, newSettingsJson);
+        var settings = SettingSerializer.DeserializeSettings(openIdEnvironment, newSettings.Value);
 
         // update the state after successfully deserializing the settings
-        persistedServer.SettingsState = ConcurrentStateFactory.Create(newSettingsJson, newConcurrencyToken);
+        persistedServer.Settings = newSettings;
 
-        return RefreshCollectionResultFactory.Changed(newSettings);
+        return RefreshCollectionResultFactory.Changed(settings);
     }
 
     /// <summary>
@@ -301,7 +304,7 @@ public class DefaultOpenIdServerFactory(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var initialSecrets = SecretSerializer.DeserializeSecrets(persistedServer.SecretsState.Value, out _);
+        var initialSecrets = SecretSerializer.DeserializeSecrets(persistedServer.Secrets.Value, out _);
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedServer,
@@ -326,19 +329,20 @@ public class DefaultOpenIdServerFactory(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var prevSecretsState = persistedServer.SecretsState;
-        var newSecretsState = await store.GetSecretsAsync(serverId, prevSecretsState, cancellationToken);
+        var prevSecrets = persistedServer.Secrets;
+        var prevConcurrencyToken = prevSecrets.ConcurrencyToken;
 
-        var (newPersistedSecrets, newConcurrencyToken) = newSecretsState;
-        var prevConcurrencyToken = prevSecretsState.ConcurrencyToken;
+        var newSecrets = await store.GetSecretsAsync(serverId, cancellationToken);
+        var newConcurrencyToken = newSecrets.ConcurrencyToken;
+
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var newSecrets = SecretSerializer.DeserializeSecrets(newPersistedSecrets, out _);
+        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value, out _);
 
         // update the state after successfully deserializing the secrets
-        persistedServer.SecretsState = ConcurrentStateFactory.Create(newPersistedSecrets, newConcurrencyToken);
+        persistedServer.Secrets = newSecrets;
 
-        return RefreshCollectionResultFactory.Changed(newSecrets);
+        return RefreshCollectionResultFactory.Changed(secrets);
     }
 }

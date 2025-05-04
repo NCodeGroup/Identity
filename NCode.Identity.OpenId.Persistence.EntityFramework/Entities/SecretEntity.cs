@@ -30,9 +30,11 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedSecret"/>.
 /// </summary>
 [Index(nameof(NormalizedSecretId), IsUnique = true)]
-public class SecretEntity : ISupportSurrogateId, ISupportConcurrencyToken
+public class SecretEntity : ISupportConcurrencyToken
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets or sets the surrogate identifier for this entity.
+    /// </summary>
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
@@ -42,7 +44,7 @@ public class SecretEntity : ISupportSurrogateId, ISupportConcurrencyToken
     /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.SecretId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string SecretId { get; init; }
 
     /// <summary>
@@ -50,7 +52,7 @@ public class SecretEntity : ISupportSurrogateId, ISupportConcurrencyToken
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.SecretId)]
+    [MaxLength(MaxLengths.ResourceId)]
     public required string NormalizedSecretId { get; init; }
 
     //

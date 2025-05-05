@@ -133,14 +133,14 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var settings = await store.GetSettingsOrDefaultAsync(
+        var serverSettings = await store.GetSettingsOrDefaultAsync(
             serverId,
             cancellationToken
         );
 
         return await ProcessGetAsync(
             httpContext,
-            settings,
+            serverSettings,
             ResourceOperations.Servers.Settings.Read,
             ToServerSettingsResource
         );
@@ -158,12 +158,12 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var settings = await store.GetSettingsOrDefaultAsync(
+        var serverSettings = await store.GetSettingsOrDefaultAsync(
             serverId,
             cancellationToken
         );
 
-        if (settings is null)
+        if (serverSettings is null)
         {
             return TypedResults.NotFound();
         }
@@ -171,21 +171,21 @@ public class ServerApiEndpointHandler(
         var user = httpContext.User;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             user,
-            settings,
+            serverSettings,
             ResourceOperations.Servers.Settings.Update
         );
 
         if (authorizationResult.Succeeded)
         {
             // TODO: this can throw wrong element type
-            var jsonObject = JsonObject.Create(settings.Value) ?? new JsonObject();
+            var jsonObject = JsonObject.Create(serverSettings.Value) ?? new JsonObject();
 
             request.ApplyTo(jsonObject);
 
             // TODO: json serializer options
-            settings.Value = JsonSerializer.SerializeToElement(jsonObject);
+            serverSettings.Value = JsonSerializer.SerializeToElement(jsonObject);
 
-            await store.UpdateSettingsAsync(settings, cancellationToken);
+            await store.UpdateSettingsAsync(serverSettings, cancellationToken);
 
             await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -210,14 +210,14 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var secrets = await store.GetSecretsOrDefaultAsync(
+        var serverSecrets = await store.GetSecretsOrDefaultAsync(
             serverId,
             cancellationToken
         );
 
         return await ProcessGetAsync(
             httpContext,
-            secrets,
+            serverSecrets,
             ResourceOperations.Servers.Secrets.Read,
             ToServerSecretsResource
         );

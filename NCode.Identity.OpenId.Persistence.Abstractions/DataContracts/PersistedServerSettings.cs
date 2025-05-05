@@ -31,5 +31,5 @@ public class PersistedServerSettings : PersistedServerResource<JsonElement>
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
-    public override string ResourceType => $"{ResourceTypePrefix}.Settings"; // TODO: use constant
+    public override string ResourceType => $"{ResourceTypePrefix}{OpenIdResourceTypes.Separator}{OpenIdResourceTypes.Settings}";
 }

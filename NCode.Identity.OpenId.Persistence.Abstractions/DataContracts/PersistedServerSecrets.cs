@@ -27,9 +27,12 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the collection of secrets only known to an OpenID Server instance.
 /// </summary>
 [PublicAPI]
-public class PersistedServerSecrets : PersistedServerResource<IReadOnlyCollection<PersistedSecret>>
+public class PersistedServerSecrets : PersistedServerResource<IReadOnlyCollection<PersistedSecret>>, ISupportPersistedSecretCollection
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
-    public override string ResourceType => $"{ResourceTypePrefix}.Secrets"; // TODO: use constant
+    public override string ResourceType => $"{ResourceTypePrefix}{OpenIdResourceTypes.Separator}{OpenIdResourceTypes.Secrets}";
+
+    /// <inheritdoc/>
+    IReadOnlyCollection<PersistedSecret> ISupportPersistedSecretCollection.Secrets => Value;
 }

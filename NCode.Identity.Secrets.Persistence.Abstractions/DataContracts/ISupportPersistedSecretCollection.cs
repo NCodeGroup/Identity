@@ -16,23 +16,18 @@
 
 #endregion
 
-using System.ComponentModel.DataAnnotations;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Persistence.DataContracts;
+namespace NCode.Identity.Secrets.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the collection of secrets only known to an OpenID Server instance.
+/// Indicates that an instance supports a collection of <see cref="PersistedSecret"/> items.
 /// </summary>
 [PublicAPI]
-public class PersistedServerSecrets : PersistedServerResource<IReadOnlyCollection<PersistedSecret>>, ISupportPersistedSecretCollection
+public interface ISupportPersistedSecretCollection
 {
-    /// <inheritdoc/>
-    [MaxLength(MaxLengths.ResourceType)]
-    public override string ResourceType => $"{ResourceTypePrefix}{OpenIdResourceTypes.Separator}{OpenIdResourceTypes.Secrets}";
-
-    /// <inheritdoc/>
-    IReadOnlyCollection<PersistedSecret> ISupportPersistedSecretCollection.Secrets => Value;
+    /// <summary>
+    /// Gets the collection of <see cref="PersistedSecret"/> items.
+    /// </summary>
+    IReadOnlyCollection<PersistedSecret> Secrets { get; }
 }

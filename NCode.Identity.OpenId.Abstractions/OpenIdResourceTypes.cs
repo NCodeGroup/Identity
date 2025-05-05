@@ -16,11 +16,50 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId;
 
+/// <summary>
+/// Contains constants used to identify various resource types.
+/// </summary>
+[PublicAPI]
+[ExcludeFromCodeCoverage]
 public static class OpenIdResourceTypes
 {
+    /// <summary>
+    /// Contains the delimiter used to separate resource types.
+    /// </summary>
+    public const string Separator = "/";
+
+    /// <summary>
+    /// Contains the value used to identify the resource type for a secret.
+    /// </summary>
+    public const string Secret = "secret";
+
+    /// <summary>
+    /// Contains the value used to identify the resource type for a collection of secrets.
+    /// </summary>
+    public const string Secrets = "secrets";
+
+    /// <summary>
+    /// Contains the value used to identify the resource type for a collection of settings.
+    /// </summary>
+    public const string Settings = "settings";
+
+    /// <summary>
+    /// Contains the value used to identify the resource type for a server.
+    /// </summary>
     public const string Server = "server";
+
+    /// <summary>
+    /// Contains the value used to identify the resource type for a tenant.
+    /// </summary>
     public const string Tenant = "tenant";
+
+    /// <summary>
+    /// Contains the value used to identify the resource type for a client.
+    /// </summary>
     public const string Client = "client";
 }

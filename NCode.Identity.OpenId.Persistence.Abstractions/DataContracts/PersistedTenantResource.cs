@@ -17,8 +17,9 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
@@ -35,6 +36,7 @@ public interface ISupportPersistedTenantResource : ISupportResource, ISupportTen
 /// Provides the base implementation for a persisted tenant resource using the <see cref="ISupportPersistedTenantResource"/> abstraction.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public abstract class BasePersistedTenantResource : ISupportPersistedTenantResource
 {
     /// <summary>
@@ -65,6 +67,7 @@ public abstract class BasePersistedTenantResource : ISupportPersistedTenantResou
 /// </summary>
 /// <typeparam name="TValue">The type of the persisted tenant resource.</typeparam>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public abstract class PersistedTenantResource<TValue> : BasePersistedTenantResource
 {
     /// <summary>

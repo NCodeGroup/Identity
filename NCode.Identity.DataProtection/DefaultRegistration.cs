@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Registration;
 
 namespace NCode.Identity.DataProtection;
 
@@ -47,9 +48,7 @@ public static class DefaultRegistration
         this IServiceCollection serviceCollection,
         Action<DataProtectionOptions> configureOptions)
     {
-        serviceCollection.TryAddSingleton<
-            ISecureDataProtectionRegistrationMarker,
-            DefaultSecureDataProtectionRegistrationMarker>();
+        serviceCollection.AddRegistrationMarker<DataProtectionLibrary>();
 
         serviceCollection.TryAddSingleton<
             ISecureDataProtectionProvider,

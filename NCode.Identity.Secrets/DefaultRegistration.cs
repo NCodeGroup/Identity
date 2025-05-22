@@ -21,31 +21,43 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
-using NCode.Identity.DataProtection;
+using NCode.Registration;
 
 namespace NCode.Identity.Secrets;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using secrets.
+/// Provides extension methods to configure services and handlers for Identity Secrets.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
 {
     /// <summary>
-    /// Registers the required services needed for using secrets into the provided <see cref="IServiceCollection"/> instance.
+    /// Configures services and handlers for Identity Secrets.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddSecretServices(
-        this IServiceCollection serviceCollection)
+        this IServiceCollection serviceCollection
+    )
     {
+        return AddSecretServices(serviceCollection, _ => { });
+    }
+
+    /// <summary>
+    /// Configures services and handlers for Identity Secrets.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
+    /// <param name="configure">The action to configure services for <see cref="SecretsLibrary"/>.</param>
+    /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
+    public static IServiceCollection AddSecretServices(
+        this IServiceCollection serviceCollection,
+        Action<IServiceBuilder<SecretsLibrary>> configure
+    )
+    {
+        var builder = ServiceBuilder.Register<SecretsLibrary>(serviceCollection);
+        configure(builder);
+
         serviceCollection.AddCollectionProviders();
-
-        serviceCollection.VerifySecureDataProtectionServicesAreRegistered();
-
-        serviceCollection.TryAddSingleton<
-            ISecretsRegistrationMarker,
-            DefaultSecretsRegistrationMarker>();
 
         serviceCollection.TryAddSingleton<
             ISecretKeyCollectionProvider,

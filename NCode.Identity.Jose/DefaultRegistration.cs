@@ -25,6 +25,7 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Secrets;
+using NCode.Registration;
 
 namespace NCode.Identity.Jose;
 
@@ -41,7 +42,8 @@ public static class DefaultRegistration
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddJoseServices(
-        this IServiceCollection serviceCollection) =>
+        this IServiceCollection serviceCollection
+    ) =>
         serviceCollection.AddJoseServices(_ => { });
 
     /// <summary>
@@ -52,11 +54,14 @@ public static class DefaultRegistration
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddJoseServices(
         this IServiceCollection serviceCollection,
-        Action<JoseSerializerOptions> configureJoseOptions)
+        Action<JoseSerializerOptions> configureJoseOptions
+    )
     {
-        serviceCollection.Configure(configureJoseOptions);
+        serviceCollection.VerifyIsRegistered<SecretsLibrary>();
 
-        serviceCollection.VerifySecretServicesAreRegistered();
+        serviceCollection.AddRegistrationMarker<JoseLibrary>();
+
+        serviceCollection.Configure(configureJoseOptions);
 
         serviceCollection.TryAddSingleton<
             IAesKeyWrap,

@@ -17,9 +17,10 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
@@ -27,9 +28,10 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the JSON settings for an OpenID Client instance.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public class PersistedClientSettings : PersistedClientResource<JsonElement>
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
-    public override string ResourceType => $"{ResourceTypePrefix}{OpenIdResourceTypes.Separator}{OpenIdResourceTypes.Settings}";
+    public override string ResourceType => $"{ResourceTypePrefix}{ResourceTypes.Separator}{OpenIdResourceTypes.Settings}";
 }

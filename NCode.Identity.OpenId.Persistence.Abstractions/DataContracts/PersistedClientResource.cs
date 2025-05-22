@@ -17,8 +17,9 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
@@ -35,6 +36,7 @@ public interface ISupportPersistedClientResource : ISupportResource, ISupportCli
 /// Provides the base implementation for a persisted client resource using the <see cref="ISupportPersistedClientResource"/> abstraction.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public abstract class BasePersistedClientResource : ISupportPersistedClientResource
 {
     /// <summary>
@@ -69,6 +71,7 @@ public abstract class BasePersistedClientResource : ISupportPersistedClientResou
 /// </summary>
 /// <typeparam name="TValue">The type of the persisted client resource.</typeparam>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public abstract class PersistedClientResource<TValue> : BasePersistedClientResource
 {
     /// <summary>

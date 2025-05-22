@@ -21,7 +21,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
@@ -62,7 +62,7 @@ public class TenantEntity : ISupportConcurrencyToken
     /// This value is optional and can be used to find tenants by domain name.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.TenantDomainName)]
+    [MaxLength(OpenIdMaxLengths.TenantDomainName)]
     public required string? DomainName { get; init; }
 
     /// <summary>
@@ -70,7 +70,7 @@ public class TenantEntity : ISupportConcurrencyToken
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.TenantDomainName)]
+    [MaxLength(OpenIdMaxLengths.TenantDomainName)]
     public required string? NormalizedDomainName { get; init; }
 
     //

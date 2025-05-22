@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.OpenId.Authentication</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.DataProtection.Abstractions\NCode.Identity.DataProtection.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Mediator.Abstractions\NCode.Mediator.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.PropertyBag.Abstractions\NCode.PropertyBag.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
+      <PackageReference Include="NCode.Disposables" Version="5.2.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="OpenIdConstants.*.cs">
+        <DependentUpon>OpenIdConstants.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+</Project>

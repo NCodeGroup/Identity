@@ -22,8 +22,12 @@ using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using NCode.Identity.DataProtection;
+using NCode.Identity.Endpoints;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
+using NCode.Identity.OpenId.Authentication;
+using NCode.Identity.OpenId.Authentication.Endpoints;
+using NCode.Identity.OpenId.Authentication.Options;
 using NCode.Identity.OpenId.Clients;
 using NCode.Identity.OpenId.Endpoints;
 using NCode.Identity.OpenId.Endpoints.Authorization;
@@ -38,6 +42,8 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tokens;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Server;
+using NCode.Mediator;
 
 /*
  *
@@ -72,26 +78,11 @@ internal class Startup(IConfiguration configuration)
         services.Configure<OpenIdOptions>(Configuration.GetSection(openIdOptionsSectionName));
         services.Configure<OpenIdOptions>(options => options.SectionName = openIdOptionsSectionName);
 
-        services.AddSecureDataProtectionServices();
-        services.AddSecretServices();
-        services.AddJoseServices();
-        services.AddJsonWebTokenServices();
+        services.AddIdentityServer(builder =>
+        {
+            builder.AddOpenIdAuthentication();
+        });
 
-        services.AddOpenIdServices();
-        services.AddOpenIdMessages();
-
-        services.AddMediatorServices();
-        services.AddTenantServices();
-        services.AddEndpointServices();
-        services.AddClientServices();
-        services.AddTokenServices();
-
-        services.AddContinueEndpoint();
-        services.AddDiscoveryEndpoint();
-        services.AddAuthorizationEndpoint();
-        services.AddTokenEndpoint();
-
-        services.AddSecretPersistenceServices();
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
 
         services.AddDbContextFactory<OpenIdDbContext>(builder =>

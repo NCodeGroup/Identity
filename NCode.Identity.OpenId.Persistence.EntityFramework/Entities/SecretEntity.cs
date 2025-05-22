@@ -20,7 +20,8 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -70,7 +71,7 @@ public class SecretEntity : ISupportConcurrencyToken
     /// https://tools.ietf.org/html/rfc7517#section-4.2
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.SecretUse)]
+    [MaxLength(SecretMaxLengths.Use)]
     public required string? Use { get; init; }
 
     /// <summary>
@@ -78,7 +79,7 @@ public class SecretEntity : ISupportConcurrencyToken
     /// <c>null</c> to indicate that this secret is intended for use with any compatible algorithm.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.SecretAlgorithm)]
+    [MaxLength(SecretMaxLengths.Algorithm)]
     public required string? Algorithm { get; init; }
 
     /// <summary>
@@ -96,7 +97,7 @@ public class SecretEntity : ISupportConcurrencyToken
     /// See <see cref="SecretTypes"/> for possible values.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.SecretType)]
+    [MaxLength(SecretMaxLengths.SecretType)]
     public required string SecretType { get; init; }
 
     /// <summary>
@@ -110,7 +111,7 @@ public class SecretEntity : ISupportConcurrencyToken
     /// Gets or sets any identifying information about how the key material is encoded, encrypted, versioned, etc.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.EncodingType)]
+    [MaxLength(SecretMaxLengths.EncodingType)]
     public required string EncodingType { get; init; }
 
     /// <summary>

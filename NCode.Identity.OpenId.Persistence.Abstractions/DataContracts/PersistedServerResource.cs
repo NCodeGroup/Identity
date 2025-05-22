@@ -17,8 +17,9 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
@@ -35,6 +36,7 @@ public interface ISupportPersistedServerResource : ISupportResource, ISupportSer
 /// Provides the base implementation for a persisted server resource using the <see cref="ISupportPersistedServerResource"/> abstraction.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public abstract class BasePersistedServerResource : ISupportPersistedServerResource
 {
     /// <summary>
@@ -65,6 +67,7 @@ public abstract class BasePersistedServerResource : ISupportPersistedServerResou
 /// </summary>
 /// <typeparam name="TValue">The type of the persisted server resource.</typeparam>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public abstract class PersistedServerResource<TValue> : BasePersistedServerResource
 {
     /// <summary>

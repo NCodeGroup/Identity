@@ -1,0 +1,85 @@
+﻿#region Copyright Preamble
+
+// Copyright @ 2024 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace NCode.Registration;
+
+/// <summary>
+/// Provides various extension methods for <see cref="IServiceCollection"/>.
+/// </summary>
+[PublicAPI]
+public static class ServiceCollectionExtensions
+{
+    /// <summary>
+    /// Verifies that services for <typeparamref name="TMarker"/> are registered in the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to check whether services are registered.</param>
+    /// <param name="message">The message to include in the exception when required services are not registered.
+    /// Optional, a default message is used if not specified.</param>
+    /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
+    /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the required services for <typeparamref name="TMarker"/> are not registered in the <see cref="IServiceCollection"/>.</exception>
+    /// <remarks>
+    /// This entire project uses a design where implementation libraries do not depend on (aka have a direct reference to)
+    /// other implementation libraries. Implementation libraries only depend on abstraction libraries. Therefore, this method
+    /// is used to verify that the composition root has registered all the required services throughout the entire stack.
+    /// </remarks>
+    public static IServiceCollection VerifyIsRegistered<TMarker>(
+        this IServiceCollection serviceCollection,
+        string? message = null
+    )
+        where TMarker : IRegistrationMarker<TMarker>
+    {
+        if (serviceCollection.All(descriptor => descriptor.ServiceType != typeof(TMarker)))
+        {
+            var effectiveMessage = GetEffectiveMessage<TMarker>(message);
+            throw new InvalidOperationException(effectiveMessage);
+        }
+
+        return serviceCollection;
+    }
+
+    /// <summary>
+    /// Registers a new registration marker with the specified type discriminator in the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to register the marker in.</param>
+    /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
+    /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
+    public static IServiceCollection AddRegistrationMarker<TMarker>(
+        this IServiceCollection serviceCollection
+    )
+        where TMarker : IRegistrationMarker<TMarker>
+    {
+        var marker = new TMarker();
+        return serviceCollection.AddSingleton<IRegistrationMarker<TMarker>>(marker);
+    }
+
+    private static string GetEffectiveMessage<TMarker>(string? message)
+        where TMarker : IRegistrationMarker<TMarker>
+    {
+        if (string.IsNullOrEmpty(message))
+        {
+            var marker = new TMarker();
+            message = $"The {marker.DisplayName} services have not been registered. Please call the '{marker.ConfigureMethod}' method.";
+        }
+
+        return message;
+    }
+}

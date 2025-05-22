@@ -18,8 +18,9 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> Client instance.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public class PersistedClient : BasePersistedClientResource
 {
     /// <inheritdoc/>

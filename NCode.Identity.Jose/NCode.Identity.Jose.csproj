@@ -9,6 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" PrivateAssets="All" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.7" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
@@ -31,12 +36,6 @@
         <Compile Update="*\SecretKeyReader.*.cs">
             <DependentUpon>SecretKeyReader.cs</DependentUpon>
         </Compile>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj"/>
-        <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj"/>
-        <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
     </ItemGroup>
 
 </Project>

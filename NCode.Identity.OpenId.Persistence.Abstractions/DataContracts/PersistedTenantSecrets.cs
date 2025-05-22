@@ -17,8 +17,10 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
@@ -27,11 +29,12 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the collection of secrets only known to an OpenID Tenant instance.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public class PersistedTenantSecrets : PersistedTenantResource<IReadOnlyCollection<PersistedSecret>>, ISupportPersistedSecretCollection
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
-    public override string ResourceType => $"{ResourceTypePrefix}{OpenIdResourceTypes.Separator}{OpenIdResourceTypes.Secrets}";
+    public override string ResourceType => $"{ResourceTypePrefix}{ResourceTypes.Separator}{SecretResourceTypes.Secrets}";
 
     /// <inheritdoc/>
     IReadOnlyCollection<PersistedSecret> ISupportPersistedSecretCollection.Secrets => Value;

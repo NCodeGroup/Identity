@@ -7,15 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="IdGen" Version="3.0.7" />
-      <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.7" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
-      <ProjectReference Include="..\NCode.Identity.Persistence.Abstractions\NCode.Identity.Persistence.Abstractions.csproj" />
-      <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.Abstractions\NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
+      <PackageReference Include="IdGen" Version="3.0.7" />
+      <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.7" />
     </ItemGroup>
 
 </Project>

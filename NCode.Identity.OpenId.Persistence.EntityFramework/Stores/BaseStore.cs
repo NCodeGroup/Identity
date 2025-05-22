@@ -22,14 +22,13 @@ using IdGen;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
-using NCode.Identity.Persistence.DataContracts;
-using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 /// <summary>
-/// Provides a base implementation for <see cref="IStore{TItem}"/> that uses entity framework.
+/// Provides a base implementation for <see cref="IStore"/> that uses entity framework.
 /// </summary>
 /// <typeparam name="TItem">The type of the persisted item, also known as a <c>Data Transfer Object</c> or <c>DTO</c>.</typeparam>
 /// <typeparam name="TEntity">The type of the corresponding entity.</typeparam>

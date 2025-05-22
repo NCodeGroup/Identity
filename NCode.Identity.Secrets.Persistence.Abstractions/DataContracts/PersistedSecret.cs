@@ -18,8 +18,9 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.Secrets.Persistence.DataContracts;
 
@@ -27,13 +28,14 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// Contains the data for a persisted secret.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets the prefix for the resource type.
     /// </summary>
     [MaxLength(MaxLengths.ResourceType)]
-    public const string ResourceTypePrefix = "Secret"; // TODO: use constant
+    public const string ResourceTypePrefix = SecretResourceTypes.Secret;
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
@@ -58,14 +60,14 @@ public class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcu
     /// indicate that this secret is intended for use with any compatible algorithm.
     /// See <see cref="SecretKeyUses"/> for possible values.
     /// </summary>
-    [MaxLength(MaxLengths.SecretUse)]
+    [MaxLength(SecretMaxLengths.Use)]
     public required string? Use { get; init; }
 
     /// <summary>
     /// Gets or sets the intended algorithm for use with this secret. This property is optional and may be
     /// <c>null</c> to indicate that this secret is intended for use with any compatible algorithm.
     /// </summary>
-    [MaxLength(MaxLengths.SecretAlgorithm)]
+    [MaxLength(SecretMaxLengths.Algorithm)]
     public required string? Algorithm { get; init; }
 
     /// <summary>
@@ -82,7 +84,7 @@ public class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcu
     /// Gets or sets a value that specifies the type of secret.
     /// See <see cref="SecretTypes"/> for possible values.
     /// </summary>
-    [MaxLength(MaxLengths.SecretType)]
+    [MaxLength(SecretMaxLengths.SecretType)]
     public required string SecretType { get; init; }
 
     /// <summary>
@@ -96,6 +98,7 @@ public class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcu
     /// Gets or sets any identifying information about how the key material is encoded, encrypted, versioned, etc.
     /// See <see cref="SecretEncodingTypes"/> for possible values.
     /// </summary>
+    [MaxLength(SecretMaxLengths.EncodingType)]
     public required string EncodingType { get; init; }
 
     /// <summary>

@@ -20,6 +20,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Encodings;
 
 namespace NCode.Identity.Secrets.Persistence.Logic;
 

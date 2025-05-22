@@ -22,7 +22,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
@@ -47,14 +47,14 @@ public class GrantEntity : ISupportConcurrencyToken
     /// Gets or sets the type of grant.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.GrantType)]
+    [MaxLength(OpenIdMaxLengths.GrantType)]
     public required string GrantType { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>SHA-256</c> hash of the natural key that uniquely identifies this entity.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.HashedKey)]
+    [MaxLength(OpenIdMaxLengths.HashedKey)]
     public required string HashedKey { get; init; }
 
     //
@@ -81,7 +81,7 @@ public class GrantEntity : ISupportConcurrencyToken
     /// Gets or sets the <c>SubjectId</c> associated with this entity.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.SubjectId)]
+    [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string? SubjectId { get; init; }
 
     /// <summary>
@@ -89,7 +89,7 @@ public class GrantEntity : ISupportConcurrencyToken
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(MaxLengths.SubjectId)]
+    [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string? NormalizedSubjectId { get; init; }
 
     /// <summary>

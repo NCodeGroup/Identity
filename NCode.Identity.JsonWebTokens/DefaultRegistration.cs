@@ -21,6 +21,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Jose;
+using NCode.Registration;
 
 namespace NCode.Identity.JsonWebTokens;
 
@@ -40,7 +41,9 @@ public static class DefaultRegistration
     public static IServiceCollection AddJsonWebTokenServices(
         this IServiceCollection serviceCollection)
     {
-        serviceCollection.VerifyJoseServicesAreRegistered();
+        serviceCollection.VerifyIsRegistered<JoseLibrary>();
+
+        serviceCollection.AddRegistrationMarker<JsonWebTokensLibrary>();
 
         serviceCollection.TryAddSingleton<
             IJsonWebTokenService,

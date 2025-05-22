@@ -20,6 +20,8 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using NCode.Identity.Mediator;
+using NCode.Identity.Mediator.Middleware;
 using NCode.Identity.OpenId.Mediator;
 using NCode.Identity.OpenId.Mediator.Middleware;
 using NCode.Identity.OpenId.Mediator.Wrappers;

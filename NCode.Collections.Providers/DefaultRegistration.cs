@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Registration;
 
 namespace NCode.Collections.Providers;
 
@@ -35,6 +36,8 @@ public static class DefaultRegistration
     /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
     public static IServiceCollection AddCollectionProviders(this IServiceCollection serviceCollection)
     {
+        serviceCollection.AddRegistrationMarker<CollectionProvidersLibrary>();
+
         serviceCollection.TryAddSingleton<INullChangeToken>(_
             => NullChangeToken.Singleton);
 

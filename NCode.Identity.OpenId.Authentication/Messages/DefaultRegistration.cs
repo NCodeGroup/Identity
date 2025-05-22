@@ -1,0 +1,87 @@
+﻿#region Copyright Preamble
+
+// Copyright @ 2025 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Collections.Providers;
+using NCode.Identity.OpenId.Authentication.Messages.Commands;
+using NCode.Identity.OpenId.Authentication.Messages.Handlers;
+using NCode.Identity.OpenId.Authentication.Messages.Parameters;
+using NCode.Mediator;
+using NCode.Registration;
+
+namespace NCode.Identity.OpenId.Authentication.Messages;
+
+/// <summary>
+/// Provides extension methods to configure services and handlers for essential OpenId Messages.
+/// </summary>
+[PublicAPI]
+public static class DefaultRegistration
+{
+    /// <summary>
+    /// Configures the services and handlers for essential OpenId Messages.
+    /// </summary>
+    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
+    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+    public static IServiceBuilder<OpenIdAuthenticationLibrary> AddMessageServices(
+        this IServiceBuilder<OpenIdAuthenticationLibrary> builder
+    )
+    {
+        builder.AddMessageFactory<OpenIdError>();
+        builder.AddMessageFactory<OpenIdMessage>();
+
+        var serviceCollection = builder.ServiceCollection;
+
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            ICollectionDataSource<KnownParameter>,
+            DefaultKnownParameterDataSource>());
+
+        serviceCollection.TryAddSingleton<
+            IKnownParameterCollectionProvider,
+            DefaultKnownParameterCollectionProvider>();
+
+        serviceCollection.TryAddSingleton<
+            IOpenIdMessageFactorySelector,
+            DefaultOpenIdMessageFactorySelector>();
+
+        serviceCollection.TryAddSingleton<
+            ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>,
+            DefaultLoadRequestValuesHandler>();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a default message factory for the specified OpenId message type.
+    /// </summary>
+    /// <param name="builder">The <see cref="IServiceBuilder"/> that is used to configure services.</param>
+    /// <typeparam name="TMessage">The type of the <see cref="OpenIdMessage"/> for the factory.</typeparam>
+    public static void AddMessageFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessage>(
+        this IServiceBuilder builder
+    )
+        where TMessage : OpenIdMessage, new()
+    {
+        var serviceCollection = builder.ServiceCollection;
+
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+            IOpenIdMessageFactory,
+            DefaultOpenIdMessageFactory<TMessage>>());
+    }
+}

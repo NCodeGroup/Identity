@@ -8,6 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Collections.Providers.Abstractions\NCode.Collections.Providers.Abstractions.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" PrivateAssets="All" />
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0"/>
         <PackageReference Include="NCode.StringSegments" Version="3.0.0" />
@@ -32,11 +37,6 @@
         <Compile Update="Credentials\JoseSigningCredentials.cs">
             <DependentUpon>JoseCredentials.cs</DependentUpon>
         </Compile>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\NCode.Collections.Providers.Abstractions\NCode.Collections.Providers.Abstractions.csproj"/>
-        <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj"/>
     </ItemGroup>
 
 </Project>

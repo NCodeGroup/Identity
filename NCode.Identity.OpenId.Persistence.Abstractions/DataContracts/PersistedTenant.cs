@@ -18,8 +18,9 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> Tenant instance.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public class PersistedTenant : BasePersistedTenantResource
 {
     /// <inheritdoc/>
@@ -37,7 +39,7 @@ public class PersistedTenant : BasePersistedTenantResource
     /// Gets or sets the domain name for this entity.
     /// This value is optional and can be used to find tenants by domain name.
     /// </summary>
-    [MaxLength(MaxLengths.TenantDomainName)]
+    [MaxLength(OpenIdMaxLengths.TenantDomainName)]
     public required string? DomainName { get; set; }
 
     /// <summary>

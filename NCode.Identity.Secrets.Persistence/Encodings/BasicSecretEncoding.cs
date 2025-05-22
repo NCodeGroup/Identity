@@ -20,8 +20,6 @@ using System.Diagnostics;
 using JetBrains.Annotations;
 using NCode.CryptoMemory;
 using NCode.Encoders;
-using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Logic;
 
 namespace NCode.Identity.Secrets.Persistence.Encodings;
 

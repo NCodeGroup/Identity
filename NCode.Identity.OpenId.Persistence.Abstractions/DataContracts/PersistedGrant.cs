@@ -18,9 +18,10 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
@@ -28,18 +29,19 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> grant.
 /// </summary>
 [PublicAPI]
+[ExcludeFromCodeCoverage]
 public class PersistedGrant : ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the type of grant.
     /// </summary>
-    [MaxLength(MaxLengths.GrantType)]
+    [MaxLength(OpenIdMaxLengths.GrantType)]
     public required string GrantType { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>SHA-256</c> hash of the key that uniquely identifies this entity.
     /// </summary>
-    [MaxLength(MaxLengths.HashedKey)]
+    [MaxLength(OpenIdMaxLengths.HashedKey)]
     public required string HashedKey { get; init; }
 
     /// <inheritdoc/>
@@ -61,7 +63,7 @@ public class PersistedGrant : ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the <c>SubjectId</c> associated with this entity.
     /// </summary>
-    [MaxLength(MaxLengths.SubjectId)]
+    [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string? SubjectId { get; init; }
 
     /// <summary>

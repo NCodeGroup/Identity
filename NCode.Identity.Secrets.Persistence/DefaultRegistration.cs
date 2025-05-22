@@ -21,38 +21,55 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Secrets.Persistence.Encodings;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Registration;
 
 namespace NCode.Identity.Secrets.Persistence;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for persisting secrets.
+/// Provides extension methods to configure services and handlers for Identity Secrets Persistence.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
 {
     /// <summary>
-    /// Registers the required services needed for persisting secrets into the provided <see cref="IServiceCollection"/> instance.
+    /// Configures services and handlers for Identity Secrets Persistence.
     /// </summary>
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddSecretPersistenceServices(this IServiceCollection serviceCollection)
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="SecretsLibrary"/>.</param>
+    /// <param name="configure">The action to configure services for <see cref="SecretPersistenceLibrary"/>.</param>
+    public static IServiceBuilder<SecretsLibrary> AddPersistenceServices(
+        this IServiceBuilder<SecretsLibrary> builder,
+        Action<IServiceBuilder<SecretPersistenceLibrary>> configure
+    )
     {
-        serviceCollection.VerifySecretServicesAreRegistered();
+        var newBuilder = builder.Register<SecretPersistenceLibrary>();
+        newBuilder.AddEncoding<BasicSecretEncoding>();
 
+        var serviceCollection = builder.ServiceCollection;
         serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
 
-        serviceCollection.AddSecretEncoding<BasicSecretEncoding>();
-
-        return serviceCollection;
+        return builder;
     }
 
     /// <summary>
     /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
     /// </summary>
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services.</param>
     /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
-    /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddSecretEncoding<T>(
+    public static IServiceBuilder<SecretPersistenceLibrary> AddEncoding<T>(
+        this IServiceBuilder<SecretPersistenceLibrary> builder
+    ) where T : class, ISecretEncoding
+    {
+        var serviceCollection = builder.ServiceCollection;
+        serviceCollection.AddSecretPersistenceEncoding<T>();
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to configure services.</param>
+    /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
+    public static IServiceCollection AddSecretPersistenceEncoding<T>(
         this IServiceCollection serviceCollection
     ) where T : class, ISecretEncoding
     {

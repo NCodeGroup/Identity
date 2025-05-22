@@ -23,7 +23,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.Persistence.Stores;
+using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 

@@ -21,7 +21,7 @@ using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using NCode.Identity.OpenId.Authentication;
+using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Options;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.Server;
@@ -61,7 +61,8 @@ internal class Startup(IConfiguration configuration)
 
         services.AddIdentityServer(builder =>
         {
-            builder.AddOpenIdAuthentication();
+            //
+            // builder.AddOpenIdAuthentication();
         });
 
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
@@ -97,7 +98,9 @@ internal class Startup(IConfiguration configuration)
 
         app.UseEndpoints(endpoints =>
         {
-            endpoints.MapOpenId().WithHttpLogging(HttpLoggingFields.All);
+            endpoints.MapIdentityEndpoints();
+            // endpoints.MapOpenId().WithHttpLogging(HttpLoggingFields.All);
+
             endpoints.MapControllers().WithHttpLogging(HttpLoggingFields.All);
             endpoints.MapHealthChecks("/health").WithName("health_endpoint");
         });

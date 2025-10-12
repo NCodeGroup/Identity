@@ -21,6 +21,8 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.DataProtection;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
+using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Mediator;
@@ -50,13 +52,19 @@ public static class DefaultRegistration
 
         serviceCollection.AddMediatorServices();
         serviceCollection.AddSecureDataProtectionServices();
+        serviceCollection.AddJoseServices();
+        serviceCollection.AddJsonWebTokenServices();
+
         serviceCollection.AddSecretServices(secretBuilder =>
         {
             secretBuilder.AddPersistenceServices(persistenceBuilder => { }); // TODO
         });
-        serviceCollection.AddJoseServices();
-        serviceCollection.AddIdentityServices(identityBuilder => { }); // TODO
-        serviceCollection.AddJsonWebTokenServices();
+
+        serviceCollection.AddIdentityServices(identityBuilder =>
+        {
+            identityBuilder.AddOpenIdCore();
+            identityBuilder.AddOpenIdAuthentication();
+        });
 
         return serviceCollection;
     }

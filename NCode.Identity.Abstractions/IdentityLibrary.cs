@@ -36,6 +36,7 @@ public readonly struct IdentityLibrary :
     public string ConfigureMethod => "AddIdentityServices";
 }
 
+// TODO
 public interface IExtensibleObject<T>
     where T : IExtensibleObject<T>, IMarker<T>
 {

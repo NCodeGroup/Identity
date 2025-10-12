@@ -8,9 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj" />
         <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication.Abstractions\NCode.Identity.OpenId.Authentication.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Messages.Abstractions\NCode.Identity.OpenId.Messages.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.PropertyBag\NCode.PropertyBag.csproj" />
     </ItemGroup>

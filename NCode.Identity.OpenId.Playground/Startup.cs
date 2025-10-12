@@ -21,29 +21,10 @@ using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using NCode.Identity.DataProtection;
-using NCode.Identity.Endpoints;
-using NCode.Identity.Jose;
-using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication;
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Options;
-using NCode.Identity.OpenId.Clients;
-using NCode.Identity.OpenId.Endpoints;
-using NCode.Identity.OpenId.Endpoints.Authorization;
-using NCode.Identity.OpenId.Endpoints.Continue;
-using NCode.Identity.OpenId.Endpoints.Discovery;
-using NCode.Identity.OpenId.Endpoints.Token;
-using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Options;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
-using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.OpenId.Tokens;
-using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Server;
-using NCode.Mediator;
 
 /*
  *
@@ -112,7 +93,7 @@ internal class Startup(IConfiguration configuration)
         app.UseAuthentication();
         app.UseAuthorization();
 
-        app.UseMiddleware<OpenIdMiddleware>();
+        // app.UseMiddleware<OpenIdMiddleware>();
 
         app.UseEndpoints(endpoints =>
         {

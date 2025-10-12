@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -59,25 +58,5 @@ public static class DefaultRegistration
             DefaultOpenIdMessageFactorySelector>();
 
         return builder;
-    }
-
-    /// <summary>
-    /// Registers a default message factory for the specified OpenId message type.
-    /// </summary>
-    /// <param name="builder">The <see cref="IServiceBuilder"/> that is used to configure services.</param>
-    /// <typeparam name="TMessage">The type of the <see cref="OpenIdMessage"/> for the factory.</typeparam>
-    public static void AddMessageFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessage>(
-        this IServiceBuilder builder
-    )
-        where TMessage : OpenIdMessage, new()
-    {
-        var serviceCollection = builder.ServiceCollection;
-
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                IOpenIdMessageFactory,
-                DefaultOpenIdMessageFactory<TMessage>
-            >()
-        );
     }
 }

@@ -63,8 +63,8 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     /// <inheritdoc cref="IAuthorizationRequestMessage.AcrValues" />
     public List<string>? AcrValues
     {
-        get => GetKnownParameter(CoreParameters.AcrValues);
-        set => SetKnownParameter(CoreParameters.AcrValues, value);
+        get => GetKnownParameter(OpenIdCommonParameters.AcrValues);
+        set => SetKnownParameter(OpenIdCommonParameters.AcrValues, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.Claims" />
@@ -77,133 +77,133 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     /// <inheritdoc cref="IAuthorizationRequestMessage.ClaimsLocales" />
     public List<string>? ClaimsLocales
     {
-        get => GetKnownParameter(CoreParameters.ClaimsLocales);
-        set => SetKnownParameter(CoreParameters.ClaimsLocales, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ClaimsLocales);
+        set => SetKnownParameter(OpenIdCommonParameters.ClaimsLocales, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.ClientId" />
     public string? ClientId
     {
-        get => GetKnownParameter(CoreParameters.ClientId);
-        set => SetKnownParameter(CoreParameters.ClientId, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ClientId);
+        set => SetKnownParameter(OpenIdCommonParameters.ClientId, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.CodeChallenge" />
     public string? CodeChallenge
     {
-        get => GetKnownParameter(CoreParameters.CodeChallenge);
-        set => SetKnownParameter(CoreParameters.CodeChallenge, value);
+        get => GetKnownParameter(OpenIdCommonParameters.CodeChallenge);
+        set => SetKnownParameter(OpenIdCommonParameters.CodeChallenge, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.CodeChallengeMethod" />
     public string? CodeChallengeMethod
     {
-        get => GetKnownParameter(CoreParameters.CodeChallengeMethod);
-        set => SetKnownParameter(CoreParameters.CodeChallengeMethod, value);
+        get => GetKnownParameter(OpenIdCommonParameters.CodeChallengeMethod);
+        set => SetKnownParameter(OpenIdCommonParameters.CodeChallengeMethod, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.CodeVerifier" />
     public string? CodeVerifier
     {
-        get => GetKnownParameter(CoreParameters.CodeVerifier);
-        set => SetKnownParameter(CoreParameters.CodeVerifier, value);
+        get => GetKnownParameter(OpenIdCommonParameters.CodeVerifier);
+        set => SetKnownParameter(OpenIdCommonParameters.CodeVerifier, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.DisplayType" />
     public string? DisplayType
     {
-        get => GetKnownParameter(CoreParameters.DisplayType);
-        set => SetKnownParameter(CoreParameters.DisplayType, value);
+        get => GetKnownParameter(OpenIdCommonParameters.DisplayType);
+        set => SetKnownParameter(OpenIdCommonParameters.DisplayType, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.IdTokenHint" />
     public string? IdTokenHint
     {
-        get => GetKnownParameter(CoreParameters.IdTokenHint);
-        set => SetKnownParameter(CoreParameters.IdTokenHint, value);
+        get => GetKnownParameter(OpenIdCommonParameters.IdTokenHint);
+        set => SetKnownParameter(OpenIdCommonParameters.IdTokenHint, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.LoginHint" />
     public string? LoginHint
     {
-        get => GetKnownParameter(CoreParameters.LoginHint);
-        set => SetKnownParameter(CoreParameters.LoginHint, value);
+        get => GetKnownParameter(OpenIdCommonParameters.LoginHint);
+        set => SetKnownParameter(OpenIdCommonParameters.LoginHint, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.MaxAge" />
     public TimeSpan? MaxAge
     {
-        get => GetKnownParameter(CoreParameters.MaxAge);
-        set => SetKnownParameter(CoreParameters.MaxAge, value);
+        get => GetKnownParameter(OpenIdCommonParameters.MaxAge);
+        set => SetKnownParameter(OpenIdCommonParameters.MaxAge, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.Nonce" />
     public string? Nonce
     {
-        get => GetKnownParameter(CoreParameters.Nonce);
-        set => SetKnownParameter(CoreParameters.Nonce, value);
+        get => GetKnownParameter(OpenIdCommonParameters.Nonce);
+        set => SetKnownParameter(OpenIdCommonParameters.Nonce, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.PromptTypes" />
     public List<string>? PromptTypes
     {
-        get => GetKnownParameter(CoreParameters.PromptType);
-        set => SetKnownParameter(CoreParameters.PromptType, value);
+        get => GetKnownParameter(OpenIdCommonParameters.PromptType);
+        set => SetKnownParameter(OpenIdCommonParameters.PromptType, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.RedirectUri" />
     public Uri? RedirectUri
     {
-        get => GetKnownParameter(CoreParameters.RedirectUri);
-        set => SetKnownParameter(CoreParameters.RedirectUri, value);
+        get => GetKnownParameter(OpenIdCommonParameters.RedirectUri);
+        set => SetKnownParameter(OpenIdCommonParameters.RedirectUri, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.RequestJwt" />
     public string? RequestJwt
     {
-        get => GetKnownParameter(CoreParameters.RequestJwt);
-        set => SetKnownParameter(CoreParameters.RequestJwt, value);
+        get => GetKnownParameter(OpenIdCommonParameters.RequestJwt);
+        set => SetKnownParameter(OpenIdCommonParameters.RequestJwt, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.RequestUri" />
     public Uri? RequestUri
     {
-        get => GetKnownParameter(CoreParameters.RequestUri);
-        set => SetKnownParameter(CoreParameters.RequestUri, value);
+        get => GetKnownParameter(OpenIdCommonParameters.RequestUri);
+        set => SetKnownParameter(OpenIdCommonParameters.RequestUri, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.ResponseMode" />
     public string? ResponseMode
     {
-        get => GetKnownParameter(CoreParameters.ResponseMode);
-        set => SetKnownParameter(CoreParameters.ResponseMode, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ResponseMode);
+        set => SetKnownParameter(OpenIdCommonParameters.ResponseMode, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.ResponseTypes" />
     public List<string>? ResponseTypes
     {
-        get => GetKnownParameter(CoreParameters.ResponseTypes);
-        set => SetKnownParameter(CoreParameters.ResponseTypes, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ResponseTypes);
+        set => SetKnownParameter(OpenIdCommonParameters.ResponseTypes, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.Scopes" />
     public List<string>? Scopes
     {
-        get => GetKnownParameter(CoreParameters.Scopes);
-        set => SetKnownParameter(CoreParameters.Scopes, value);
+        get => GetKnownParameter(OpenIdCommonParameters.Scopes);
+        set => SetKnownParameter(OpenIdCommonParameters.Scopes, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.State" />
     public string? State
     {
-        get => GetKnownParameter(CoreParameters.State);
-        set => SetKnownParameter(CoreParameters.State, value);
+        get => GetKnownParameter(OpenIdCommonParameters.State);
+        set => SetKnownParameter(OpenIdCommonParameters.State, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.UiLocales" />
     public List<string>? UiLocales
     {
-        get => GetKnownParameter(CoreParameters.UiLocales);
-        set => SetKnownParameter(CoreParameters.UiLocales, value);
+        get => GetKnownParameter(OpenIdCommonParameters.UiLocales);
+        set => SetKnownParameter(OpenIdCommonParameters.UiLocales, value);
     }
 }

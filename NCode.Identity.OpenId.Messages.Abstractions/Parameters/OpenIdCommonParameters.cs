@@ -25,10 +25,10 @@ using NCode.Identity.OpenId.Messages.Parsers;
 namespace NCode.Identity.OpenId.Messages.Parameters;
 
 /// <summary>
-/// Contains constants for various <see cref="CoreParameters"/> used by <c>OAuth</c> and <c>OpenID Connect</c> messages.
+/// Contains constants for various <see cref="OpenIdCommonParameters"/> used by <c>OAuth</c> and <c>OpenID Connect</c> messages.
 /// </summary>
 [PublicAPI]
-public static class CoreParameters
+public static class OpenIdCommonParameters
 {
     /// <summary>
     /// A reusable delegate that indicates that a parameter should only be serialized when the format is <see cref="SerializationFormat.Json"/>.

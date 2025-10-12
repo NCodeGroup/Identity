@@ -38,7 +38,7 @@ public class DefaultKnownParameterDataSource(
     {
         get
         {
-            var type = typeof(CoreParameters);
+            var type = typeof(OpenIdCommonParameters);
 
             var fromFields = type
                 .GetFields()

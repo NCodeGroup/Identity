@@ -45,64 +45,64 @@ public class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
     /// <inheritdoc />
     public string? AuthorizationCode
     {
-        get => GetKnownParameter(CoreParameters.AuthorizationCode);
-        set => SetKnownParameter(CoreParameters.AuthorizationCode, value);
+        get => GetKnownParameter(OpenIdCommonParameters.AuthorizationCode);
+        set => SetKnownParameter(OpenIdCommonParameters.AuthorizationCode, value);
     }
 
     /// <inheritdoc />
     public string? ClientId
     {
-        get => GetKnownParameter(CoreParameters.ClientId);
-        set => SetKnownParameter(CoreParameters.ClientId, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ClientId);
+        set => SetKnownParameter(OpenIdCommonParameters.ClientId, value);
     }
 
     /// <inheritdoc />
     public string? CodeVerifier
     {
-        get => GetKnownParameter(CoreParameters.CodeVerifier);
-        set => SetKnownParameter(CoreParameters.CodeVerifier, value);
+        get => GetKnownParameter(OpenIdCommonParameters.CodeVerifier);
+        set => SetKnownParameter(OpenIdCommonParameters.CodeVerifier, value);
     }
 
     /// <inheritdoc />
     public string? GrantType
     {
-        get => GetKnownParameter(CoreParameters.GrantType);
-        set => SetKnownParameter(CoreParameters.GrantType, value);
+        get => GetKnownParameter(OpenIdCommonParameters.GrantType);
+        set => SetKnownParameter(OpenIdCommonParameters.GrantType, value);
     }
 
     /// <inheritdoc />
     public string? Password
     {
-        get => GetKnownParameter(CoreParameters.Password);
-        set => SetKnownParameter(CoreParameters.Password, value);
+        get => GetKnownParameter(OpenIdCommonParameters.Password);
+        set => SetKnownParameter(OpenIdCommonParameters.Password, value);
     }
 
     /// <inheritdoc />
     public Uri? RedirectUri
     {
-        get => GetKnownParameter(CoreParameters.RedirectUri);
-        set => SetKnownParameter(CoreParameters.RedirectUri, value);
+        get => GetKnownParameter(OpenIdCommonParameters.RedirectUri);
+        set => SetKnownParameter(OpenIdCommonParameters.RedirectUri, value);
     }
 
     /// <inheritdoc />
     public string? RefreshToken
     {
-        get => GetKnownParameter(CoreParameters.RefreshToken);
-        set => SetKnownParameter(CoreParameters.RefreshToken, value);
+        get => GetKnownParameter(OpenIdCommonParameters.RefreshToken);
+        set => SetKnownParameter(OpenIdCommonParameters.RefreshToken, value);
     }
 
     /// <inheritdoc />
     public List<string>? Scopes
     {
-        get => GetKnownParameter(CoreParameters.Scopes);
-        set => SetKnownParameter(CoreParameters.Scopes, value);
+        get => GetKnownParameter(OpenIdCommonParameters.Scopes);
+        set => SetKnownParameter(OpenIdCommonParameters.Scopes, value);
     }
 
     /// <inheritdoc />
     public string? Username
     {
-        get => GetKnownParameter(CoreParameters.Username);
-        set => SetKnownParameter(CoreParameters.Username, value);
+        get => GetKnownParameter(OpenIdCommonParameters.Username);
+        set => SetKnownParameter(OpenIdCommonParameters.Username, value);
     }
 
     /// <inheritdoc />

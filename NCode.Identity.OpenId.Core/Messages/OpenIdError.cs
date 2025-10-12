@@ -67,29 +67,29 @@ public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportOpe
     /// <inheritdoc />
     public string Code
     {
-        get => GetKnownParameter(CoreParameters.ErrorCode) ?? OpenIdConstants.ErrorCodes.ServerError;
-        set => SetKnownParameter(CoreParameters.ErrorCode, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ErrorCode) ?? OpenIdConstants.ErrorCodes.ServerError;
+        set => SetKnownParameter(OpenIdCommonParameters.ErrorCode, value);
     }
 
     /// <inheritdoc />
     public string? Description
     {
-        get => GetKnownParameter(CoreParameters.ErrorDescription);
-        set => SetKnownParameter(CoreParameters.ErrorDescription, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ErrorDescription);
+        set => SetKnownParameter(OpenIdCommonParameters.ErrorDescription, value);
     }
 
     /// <inheritdoc />
     public Uri? Uri
     {
-        get => GetKnownParameter(CoreParameters.ErrorUri);
-        set => SetKnownParameter(CoreParameters.ErrorUri, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ErrorUri);
+        set => SetKnownParameter(OpenIdCommonParameters.ErrorUri, value);
     }
 
     /// <inheritdoc />
     public string? State
     {
-        get => GetKnownParameter(CoreParameters.State);
-        set => SetKnownParameter(CoreParameters.State, value);
+        get => GetKnownParameter(OpenIdCommonParameters.State);
+        set => SetKnownParameter(OpenIdCommonParameters.State, value);
     }
 
     /// <inheritdoc />

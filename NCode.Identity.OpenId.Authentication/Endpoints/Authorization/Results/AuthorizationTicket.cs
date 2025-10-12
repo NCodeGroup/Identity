@@ -47,57 +47,57 @@ public class AuthorizationTicket :
     /// <inheritdoc />
     public DateTimeOffset CreatedWhen
     {
-        get => GetKnownParameter(CoreParameters.CreatedWhen);
-        set => SetKnownParameter(CoreParameters.CreatedWhen, value);
+        get => GetKnownParameter(OpenIdCommonParameters.CreatedWhen);
+        set => SetKnownParameter(OpenIdCommonParameters.CreatedWhen, value);
     }
 
     /// <inheritdoc />
     public string? State
     {
-        get => GetKnownParameter(CoreParameters.State);
-        set => SetKnownParameter(CoreParameters.State, value);
+        get => GetKnownParameter(OpenIdCommonParameters.State);
+        set => SetKnownParameter(OpenIdCommonParameters.State, value);
     }
 
     /// <inheritdoc />
     public string? AuthorizationCode
     {
-        get => GetKnownParameter(CoreParameters.AuthorizationCode);
-        set => SetKnownParameter(CoreParameters.AuthorizationCode, value);
+        get => GetKnownParameter(OpenIdCommonParameters.AuthorizationCode);
+        set => SetKnownParameter(OpenIdCommonParameters.AuthorizationCode, value);
     }
 
     /// <inheritdoc />
     public string? IdToken
     {
-        get => GetKnownParameter(CoreParameters.IdToken);
-        set => SetKnownParameter(CoreParameters.IdToken, value);
+        get => GetKnownParameter(OpenIdCommonParameters.IdToken);
+        set => SetKnownParameter(OpenIdCommonParameters.IdToken, value);
     }
 
     /// <inheritdoc />
     public string? AccessToken
     {
-        get => GetKnownParameter(CoreParameters.AccessToken);
-        set => SetKnownParameter(CoreParameters.AccessToken, value);
+        get => GetKnownParameter(OpenIdCommonParameters.AccessToken);
+        set => SetKnownParameter(OpenIdCommonParameters.AccessToken, value);
     }
 
     /// <inheritdoc />
     public string? TokenType
     {
-        get => GetKnownParameter(CoreParameters.TokenType);
-        set => SetKnownParameter(CoreParameters.TokenType, value);
+        get => GetKnownParameter(OpenIdCommonParameters.TokenType);
+        set => SetKnownParameter(OpenIdCommonParameters.TokenType, value);
     }
 
     /// <inheritdoc />
     public TimeSpan? ExpiresIn
     {
-        get => GetKnownParameter(CoreParameters.ExpiresIn);
-        set => SetKnownParameter(CoreParameters.ExpiresIn, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ExpiresIn);
+        set => SetKnownParameter(OpenIdCommonParameters.ExpiresIn, value);
     }
 
     /// <inheritdoc />
     public string? Issuer
     {
-        get => GetKnownParameter(CoreParameters.Issuer);
-        set => SetKnownParameter(CoreParameters.Issuer, value);
+        get => GetKnownParameter(OpenIdCommonParameters.Issuer);
+        set => SetKnownParameter(OpenIdCommonParameters.Issuer, value);
     }
 
     /// <inheritdoc />

@@ -41,10 +41,16 @@ public interface IRegistrationMarker<TMarker> : IMarker<TMarker>
 
 #if false
 
-public class ExampleRegistrationMarker : IRegistrationMarker<ExampleRegistrationMarker>
+/// <summary>
+/// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
+/// </summary>
+[PublicAPI]
+public readonly struct ExampleRegistrationMarker : IRegistrationMarker<ExampleRegistrationMarker>
 {
+    /// <inheritdoc />
     public string DisplayName => "Example Registration Marker";
 
+    /// <inheritdoc />
     public string ConfigureMethod => "AddExampleServices";
 }
 

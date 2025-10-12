@@ -93,7 +93,7 @@ public class DefaultValidateSubjectHandler(
         var authTime = GetAuthTime(subjectAuthentication.Subject);
 
         // verify the request's max age
-        var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(CoreParameters.MaxAge);
+        var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(OpenIdCommonParameters.MaxAge);
         if (!ValidateMaxAge(authTime, requestMaxAge, clockSkew))
         {
             const string message = "The end-user's authentication time is too old from the request's MaxAge.";
@@ -143,7 +143,7 @@ public class DefaultValidateSubjectHandler(
     private static bool IsRequestedIdpValid(string? receivedIdp, IOpenIdRequest openIdRequest)
     {
         // if no specific acr values were requested, then any idp is valid
-        var acrValues = openIdRequest.Parameters.GetValueOrDefault(CoreParameters.AcrValues);
+        var acrValues = openIdRequest.Parameters.GetValueOrDefault(OpenIdCommonParameters.AcrValues);
         if (acrValues is null || acrValues.Count == 0)
         {
             return true;

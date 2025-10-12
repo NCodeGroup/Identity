@@ -50,6 +50,6 @@ public static class AuthParameters
         new(OpenIdConstants.Parameters.RequestObjectSource, EnumParser<RequestObjectSource>.Singleton)
         {
             AllowMissingStringValues = true,
-            ShouldSerialize = CoreParameters.ShouldSerializeAsJsonOnly,
+            ShouldSerialize = OpenIdCommonParameters.ShouldSerializeAsJsonOnly,
         };
 }

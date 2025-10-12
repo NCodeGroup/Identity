@@ -61,8 +61,8 @@ public class AuthorizationRequestMessage :
     /// <inheritdoc />
     public string? AuthorizationSourceType
     {
-        get => GetKnownParameter(CoreParameters.AuthorizationSourceType);
-        set => SetKnownParameter(CoreParameters.AuthorizationSourceType, value);
+        get => GetKnownParameter(OpenIdCommonParameters.AuthorizationSourceType);
+        set => SetKnownParameter(OpenIdCommonParameters.AuthorizationSourceType, value);
     }
 
     /// <inheritdoc />

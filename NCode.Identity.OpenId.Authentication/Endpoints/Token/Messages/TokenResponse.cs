@@ -44,43 +44,43 @@ public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
     /// <inheritdoc />
     public string? AccessToken
     {
-        get => GetKnownParameter(CoreParameters.AccessToken);
-        set => SetKnownParameter(CoreParameters.AccessToken, value);
+        get => GetKnownParameter(OpenIdCommonParameters.AccessToken);
+        set => SetKnownParameter(OpenIdCommonParameters.AccessToken, value);
     }
 
     /// <inheritdoc />
     public TimeSpan? ExpiresIn
     {
-        get => GetKnownParameter(CoreParameters.ExpiresIn);
-        set => SetKnownParameter(CoreParameters.ExpiresIn, value);
+        get => GetKnownParameter(OpenIdCommonParameters.ExpiresIn);
+        set => SetKnownParameter(OpenIdCommonParameters.ExpiresIn, value);
     }
 
     /// <inheritdoc />
     public string? IdToken
     {
-        get => GetKnownParameter(CoreParameters.IdToken);
-        set => SetKnownParameter(CoreParameters.IdToken, value);
+        get => GetKnownParameter(OpenIdCommonParameters.IdToken);
+        set => SetKnownParameter(OpenIdCommonParameters.IdToken, value);
     }
 
     /// <inheritdoc />
     public string? RefreshToken
     {
-        get => GetKnownParameter(CoreParameters.RefreshToken);
-        set => SetKnownParameter(CoreParameters.RefreshToken, value);
+        get => GetKnownParameter(OpenIdCommonParameters.RefreshToken);
+        set => SetKnownParameter(OpenIdCommonParameters.RefreshToken, value);
     }
 
     /// <inheritdoc />
     public List<string>? Scopes
     {
-        get => GetKnownParameter(CoreParameters.Scopes);
-        set => SetKnownParameter(CoreParameters.Scopes, value);
+        get => GetKnownParameter(OpenIdCommonParameters.Scopes);
+        set => SetKnownParameter(OpenIdCommonParameters.Scopes, value);
     }
 
     /// <inheritdoc />
     public string? TokenType
     {
-        get => GetKnownParameter(CoreParameters.TokenType);
-        set => SetKnownParameter(CoreParameters.TokenType, value);
+        get => GetKnownParameter(OpenIdCommonParameters.TokenType);
+        set => SetKnownParameter(OpenIdCommonParameters.TokenType, value);
     }
 
     /// <inheritdoc />

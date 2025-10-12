@@ -17,9 +17,9 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Authentication.Environments;
-using NCode.Identity.OpenId.Authentication.Errors;
-using NCode.Identity.OpenId.Authentication.Messages.Parameters;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 

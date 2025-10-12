@@ -18,9 +18,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Errors;
-using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 

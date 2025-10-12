@@ -23,8 +23,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using NCode.CryptoMemory;
-using NCode.Identity.OpenId.Authentication.Messages;
-using NCode.Identity.OpenId.Authentication.Results;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Results;
 using NCode.Identity.Results;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;

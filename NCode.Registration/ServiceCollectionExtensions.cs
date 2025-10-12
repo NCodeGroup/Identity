@@ -45,7 +45,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection serviceCollection,
         string? message = null
     )
-        where TMarker : IRegistrationMarker<TMarker>
+        where TMarker : IRegistrationMarker<TMarker>, new()
     {
         if (serviceCollection.All(descriptor => descriptor.ServiceType != typeof(TMarker)))
         {
@@ -65,14 +65,14 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddRegistrationMarker<TMarker>(
         this IServiceCollection serviceCollection
     )
-        where TMarker : IRegistrationMarker<TMarker>
+        where TMarker : IRegistrationMarker<TMarker>, new()
     {
         var marker = new TMarker();
         return serviceCollection.AddSingleton<IRegistrationMarker<TMarker>>(marker);
     }
 
     private static string GetEffectiveMessage<TMarker>(string? message)
-        where TMarker : IRegistrationMarker<TMarker>
+        where TMarker : IRegistrationMarker<TMarker>, new()
     {
         if (string.IsNullOrEmpty(message))
         {

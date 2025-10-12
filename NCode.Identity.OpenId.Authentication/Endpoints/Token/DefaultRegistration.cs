@@ -31,7 +31,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
-using NCode.Identity.OpenId.Authentication.Messages;
+using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
 using NCode.Registration;
 

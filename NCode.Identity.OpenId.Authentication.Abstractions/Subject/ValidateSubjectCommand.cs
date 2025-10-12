@@ -20,8 +20,7 @@ using JetBrains.Annotations;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
-using NCode.Identity.OpenId.Authentication.Errors;
-using NCode.Identity.OpenId.Authentication.Messages;
+using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Subject;

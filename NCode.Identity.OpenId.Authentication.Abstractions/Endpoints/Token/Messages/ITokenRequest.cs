@@ -17,7 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Messages;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 

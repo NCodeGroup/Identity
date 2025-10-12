@@ -17,8 +17,8 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Authentication.Errors;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
+using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Messages.Handlers;

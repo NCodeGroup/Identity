@@ -17,8 +17,9 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Authentication.Environments;
 using NCode.Identity.OpenId.Authentication.Messages.Parameters;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 
@@ -64,8 +65,8 @@ public class AuthorizationRequestObject :
     /// <inheritdoc />
     public RequestObjectSource RequestObjectSource
     {
-        get => GetKnownParameter(KnownParameters.RequestObjectSource);
-        set => SetKnownParameter(KnownParameters.RequestObjectSource, value);
+        get => GetKnownParameter(AuthParameters.RequestObjectSource);
+        set => SetKnownParameter(AuthParameters.RequestObjectSource, value);
     }
 
     /// <inheritdoc />

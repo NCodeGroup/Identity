@@ -19,9 +19,9 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Disposables;
-using NCode.Identity.OpenId.Authentication.Environments;
 using NCode.Identity.OpenId.Authentication.Servers;
 using NCode.Identity.OpenId.Authentication.Tenants.Providers;
+using NCode.Identity.OpenId.Environments;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Authentication.Tenants;

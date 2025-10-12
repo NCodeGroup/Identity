@@ -17,8 +17,8 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Authentication.Messages;
-using NCode.Identity.OpenId.Authentication.Messages.Parameters;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
@@ -47,57 +47,57 @@ public class AuthorizationTicket :
     /// <inheritdoc />
     public DateTimeOffset CreatedWhen
     {
-        get => GetKnownParameter(KnownParameters.CreatedWhen);
-        set => SetKnownParameter(KnownParameters.CreatedWhen, value);
+        get => GetKnownParameter(CoreParameters.CreatedWhen);
+        set => SetKnownParameter(CoreParameters.CreatedWhen, value);
     }
 
     /// <inheritdoc />
     public string? State
     {
-        get => GetKnownParameter(KnownParameters.State);
-        set => SetKnownParameter(KnownParameters.State, value);
+        get => GetKnownParameter(CoreParameters.State);
+        set => SetKnownParameter(CoreParameters.State, value);
     }
 
     /// <inheritdoc />
     public string? AuthorizationCode
     {
-        get => GetKnownParameter(KnownParameters.AuthorizationCode);
-        set => SetKnownParameter(KnownParameters.AuthorizationCode, value);
+        get => GetKnownParameter(CoreParameters.AuthorizationCode);
+        set => SetKnownParameter(CoreParameters.AuthorizationCode, value);
     }
 
     /// <inheritdoc />
     public string? IdToken
     {
-        get => GetKnownParameter(KnownParameters.IdToken);
-        set => SetKnownParameter(KnownParameters.IdToken, value);
+        get => GetKnownParameter(CoreParameters.IdToken);
+        set => SetKnownParameter(CoreParameters.IdToken, value);
     }
 
     /// <inheritdoc />
     public string? AccessToken
     {
-        get => GetKnownParameter(KnownParameters.AccessToken);
-        set => SetKnownParameter(KnownParameters.AccessToken, value);
+        get => GetKnownParameter(CoreParameters.AccessToken);
+        set => SetKnownParameter(CoreParameters.AccessToken, value);
     }
 
     /// <inheritdoc />
     public string? TokenType
     {
-        get => GetKnownParameter(KnownParameters.TokenType);
-        set => SetKnownParameter(KnownParameters.TokenType, value);
+        get => GetKnownParameter(CoreParameters.TokenType);
+        set => SetKnownParameter(CoreParameters.TokenType, value);
     }
 
     /// <inheritdoc />
     public TimeSpan? ExpiresIn
     {
-        get => GetKnownParameter(KnownParameters.ExpiresIn);
-        set => SetKnownParameter(KnownParameters.ExpiresIn, value);
+        get => GetKnownParameter(CoreParameters.ExpiresIn);
+        set => SetKnownParameter(CoreParameters.ExpiresIn, value);
     }
 
     /// <inheritdoc />
     public string? Issuer
     {
-        get => GetKnownParameter(KnownParameters.Issuer);
-        set => SetKnownParameter(KnownParameters.Issuer, value);
+        get => GetKnownParameter(CoreParameters.Issuer);
+        set => SetKnownParameter(CoreParameters.Issuer, value);
     }
 
     /// <inheritdoc />

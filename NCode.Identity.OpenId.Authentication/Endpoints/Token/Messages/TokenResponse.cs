@@ -16,8 +16,8 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Authentication.Messages;
-using NCode.Identity.OpenId.Authentication.Messages.Parameters;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 
@@ -44,43 +44,43 @@ public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
     /// <inheritdoc />
     public string? AccessToken
     {
-        get => GetKnownParameter(KnownParameters.AccessToken);
-        set => SetKnownParameter(KnownParameters.AccessToken, value);
+        get => GetKnownParameter(CoreParameters.AccessToken);
+        set => SetKnownParameter(CoreParameters.AccessToken, value);
     }
 
     /// <inheritdoc />
     public TimeSpan? ExpiresIn
     {
-        get => GetKnownParameter(KnownParameters.ExpiresIn);
-        set => SetKnownParameter(KnownParameters.ExpiresIn, value);
+        get => GetKnownParameter(CoreParameters.ExpiresIn);
+        set => SetKnownParameter(CoreParameters.ExpiresIn, value);
     }
 
     /// <inheritdoc />
     public string? IdToken
     {
-        get => GetKnownParameter(KnownParameters.IdToken);
-        set => SetKnownParameter(KnownParameters.IdToken, value);
+        get => GetKnownParameter(CoreParameters.IdToken);
+        set => SetKnownParameter(CoreParameters.IdToken, value);
     }
 
     /// <inheritdoc />
     public string? RefreshToken
     {
-        get => GetKnownParameter(KnownParameters.RefreshToken);
-        set => SetKnownParameter(KnownParameters.RefreshToken, value);
+        get => GetKnownParameter(CoreParameters.RefreshToken);
+        set => SetKnownParameter(CoreParameters.RefreshToken, value);
     }
 
     /// <inheritdoc />
     public List<string>? Scopes
     {
-        get => GetKnownParameter(KnownParameters.Scopes);
-        set => SetKnownParameter(KnownParameters.Scopes, value);
+        get => GetKnownParameter(CoreParameters.Scopes);
+        set => SetKnownParameter(CoreParameters.Scopes, value);
     }
 
     /// <inheritdoc />
     public string? TokenType
     {
-        get => GetKnownParameter(KnownParameters.TokenType);
-        set => SetKnownParameter(KnownParameters.TokenType, value);
+        get => GetKnownParameter(CoreParameters.TokenType);
+        set => SetKnownParameter(CoreParameters.TokenType, value);
     }
 
     /// <inheritdoc />

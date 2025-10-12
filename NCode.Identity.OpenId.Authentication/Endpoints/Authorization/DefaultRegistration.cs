@@ -26,7 +26,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
-using NCode.Identity.OpenId.Authentication.Messages;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.Results;
 using NCode.Mediator;
 using NCode.Mediator.Middleware;

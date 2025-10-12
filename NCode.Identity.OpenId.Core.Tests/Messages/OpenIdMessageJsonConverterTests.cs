@@ -510,7 +510,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         const string parameterName = nameof(parameterName);
         const string parsedValue = nameof(parsedValue);
 
-        var parser = ParameterParsers.String;
+        var parser = CoreParameterParsers.String;
         var descriptor = new ParameterDescriptor(parameterName, parser);
         var parameter = new Parameter<string?>(descriptor, parser, parsedValue);
 
@@ -577,7 +577,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         const string parameterName = nameof(parameterName);
         const string parsedValue = nameof(parsedValue);
 
-        var parser = ParameterParsers.String;
+        var parser = CoreParameterParsers.String;
         var descriptor = new ParameterDescriptor(parameterName, parser);
         var parameter = new Parameter<string?>(descriptor, parser, parsedValue);
 
@@ -627,7 +627,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         const string parameterName = nameof(parameterName);
         var parsedValue = new HashSet<string> { "value1", "value2" };
 
-        var parser = ParameterParsers.StringSet;
+        var parser = CoreParameterParsers.StringSet;
         var descriptor = new ParameterDescriptor(parameterName, parser);
         var parameter = new Parameter<HashSet<string>?>(descriptor, parser, parsedValue);
 
@@ -704,7 +704,7 @@ public class OpenIdMessageJsonConverterTests : BaseTests
         const string parameterName = nameof(parameterName);
         var parsedValue = new HashSet<string> { "value1", "value2" };
 
-        var parser = ParameterParsers.StringSet;
+        var parser = CoreParameterParsers.StringSet;
         var descriptor = new ParameterDescriptor(parameterName, parser);
         var parameter = new Parameter<HashSet<string>?>(descriptor, parser, parsedValue);
 

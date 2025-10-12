@@ -22,10 +22,10 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
-using NCode.Identity.OpenId.Authentication.Errors;
-using NCode.Identity.OpenId.Authentication.Messages;
-using NCode.Identity.OpenId.Authentication.Messages.Parameters;
 using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 
@@ -93,7 +93,7 @@ public class DefaultValidateSubjectHandler(
         var authTime = GetAuthTime(subjectAuthentication.Subject);
 
         // verify the request's max age
-        var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(KnownParameters.MaxAge);
+        var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(CoreParameters.MaxAge);
         if (!ValidateMaxAge(authTime, requestMaxAge, clockSkew))
         {
             const string message = "The end-user's authentication time is too old from the request's MaxAge.";
@@ -143,7 +143,7 @@ public class DefaultValidateSubjectHandler(
     private static bool IsRequestedIdpValid(string? receivedIdp, IOpenIdRequest openIdRequest)
     {
         // if no specific acr values were requested, then any idp is valid
-        var acrValues = openIdRequest.Parameters.GetValueOrDefault(KnownParameters.AcrValues);
+        var acrValues = openIdRequest.Parameters.GetValueOrDefault(CoreParameters.AcrValues);
         if (acrValues is null || acrValues.Count == 0)
         {
             return true;

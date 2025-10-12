@@ -22,7 +22,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.CryptoMemory;
 using NCode.Identity.OpenId.Authentication.Contexts;
-using NCode.Identity.OpenId.Authentication.Errors;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets;

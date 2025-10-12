@@ -27,10 +27,10 @@ using NCode.Identity.OpenId.Messages.Parsers;
 namespace NCode.Identity.OpenId.Authentication.Messages.Parameters;
 
 /// <summary>
-/// Contains constants for various <see cref="AuthParameters"/> used by <c>OAuth</c> and <c>OpenID Connect</c> messages.
+/// Contains constants for various <see cref="OpenIdAuthenticationParameters"/> used by <c>OAuth</c> and <c>OpenID Connect</c> messages.
 /// </summary>
 [PublicAPI]
-public static class AuthParameters
+public static class OpenIdAuthenticationParameters
 {
     // TODO
     /// <summary>

@@ -70,8 +70,8 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     /// <inheritdoc cref="IAuthorizationRequestMessage.Claims" />
     public IRequestClaims? Claims
     {
-        get => GetKnownParameter(AuthParameters.Claims);
-        set => SetKnownParameter(AuthParameters.Claims, value);
+        get => GetKnownParameter(OpenIdAuthenticationParameters.Claims);
+        set => SetKnownParameter(OpenIdAuthenticationParameters.Claims, value);
     }
 
     /// <inheritdoc cref="IAuthorizationRequestMessage.ClaimsLocales" />

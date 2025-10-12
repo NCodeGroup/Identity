@@ -65,8 +65,8 @@ public class AuthorizationRequestObject :
     /// <inheritdoc />
     public RequestObjectSource RequestObjectSource
     {
-        get => GetKnownParameter(AuthParameters.RequestObjectSource);
-        set => SetKnownParameter(AuthParameters.RequestObjectSource, value);
+        get => GetKnownParameter(OpenIdAuthenticationParameters.RequestObjectSource);
+        set => SetKnownParameter(OpenIdAuthenticationParameters.RequestObjectSource, value);
     }
 
     /// <inheritdoc />

@@ -39,7 +39,7 @@ public class DefaultAuthParameterDataSource(
     {
         get
         {
-            var type = typeof(AuthParameters);
+            var type = typeof(OpenIdAuthenticationParameters);
 
             var fromFields = type
                 .GetFields()

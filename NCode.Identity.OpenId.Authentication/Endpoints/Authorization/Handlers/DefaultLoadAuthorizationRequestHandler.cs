@@ -23,9 +23,9 @@ using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Authentication.Environments;
-using NCode.Identity.OpenId.Authentication.Errors;
 using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;

@@ -30,7 +30,7 @@ public interface IServiceBuilder
     /// <summary>
     /// Gets the <see cref="IServiceCollection"/> that is used to configure services.
     /// </summary>
-    IServiceCollection ServiceCollection { get; }
+    IServiceCollection ServiceCollection { get; init; }
 
     /// <summary>
     /// Factory method to create a new <see cref="IServiceBuilder{T}"/> instance with the specified type discriminator.
@@ -44,7 +44,7 @@ public interface IServiceBuilder
     /// </summary>
     /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
     IServiceBuilder<TMarker> Register<TMarker>()
-        where TMarker : IRegistrationMarker<TMarker>;
+        where TMarker : IRegistrationMarker<TMarker>, new();
 }
 
 /// <summary>
@@ -78,16 +78,34 @@ public class ServiceBuilder : IServiceBuilder
         };
     }
 
+    public static TBuilder Create<TMarker, TBuilder>(IServiceCollection serviceCollection)
+        where TMarker : IMarker<TMarker>
+        where TBuilder : IServiceBuilder<TMarker>, new()
+    {
+        return new TBuilder
+        {
+            ServiceCollection = serviceCollection
+        };
+    }
+
     /// <summary>
     /// Creates a new instance of <see cref="IServiceBuilder{T}"/> and registers a registration marker with the specified type discriminator.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> that is used to configure services.</param>
     /// <typeparam name="TMarker">The type that discriminates the library builder.</typeparam>
     public static IServiceBuilder<TMarker> Register<TMarker>(IServiceCollection serviceCollection)
-        where TMarker : IRegistrationMarker<TMarker>
+        where TMarker : IRegistrationMarker<TMarker>, new()
     {
         serviceCollection.AddRegistrationMarker<TMarker>();
         return Create<TMarker>(serviceCollection);
+    }
+
+    public static TBuilder Register<TMarker, TBuilder>(IServiceCollection serviceCollection)
+        where TMarker : IRegistrationMarker<TMarker>, new()
+        where TBuilder : IServiceBuilder<TMarker>, new()
+    {
+        serviceCollection.AddRegistrationMarker<TMarker>();
+        return Create<TMarker, TBuilder>(serviceCollection);
     }
 
     /// <inheritdoc/>
@@ -102,7 +120,7 @@ public class ServiceBuilder : IServiceBuilder
 
     /// <inheritdoc/>
     public IServiceBuilder<TMarker> Register<TMarker>()
-        where TMarker : IRegistrationMarker<TMarker>
+        where TMarker : IRegistrationMarker<TMarker>, new()
     {
         ServiceCollection.AddRegistrationMarker<TMarker>();
         return New<TMarker>();

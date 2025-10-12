@@ -36,6 +36,7 @@ public class SerializableClaimsIdentity
     /// </summary>
     public required string? Label { get; init; }
 
+    // TODO: use JsonElement
     /// <summary>
     /// Gets or sets the value for the <see cref="ClaimsIdentity.BootstrapContext"/> property.
     /// </summary>

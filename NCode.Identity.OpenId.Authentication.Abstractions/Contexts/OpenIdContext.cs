@@ -19,10 +19,10 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Authentication.Environments;
-using NCode.Identity.OpenId.Authentication.Errors;
 using NCode.Identity.OpenId.Authentication.Servers;
 using NCode.Identity.OpenId.Authentication.Tenants;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 using NCode.PropertyBag;
 

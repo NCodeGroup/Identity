@@ -10,6 +10,7 @@
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication.Abstractions\NCode.Identity.OpenId.Authentication.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.PropertyBag\NCode.PropertyBag.csproj" />
     </ItemGroup>
@@ -20,10 +21,6 @@
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
       <PackageReference Include="NCode.Base64Url" Version="1.1.2" />
       <PackageReference Include="NCode.CryptoMemory" Version="2.0.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Errors\" />
     </ItemGroup>
 
 </Project>

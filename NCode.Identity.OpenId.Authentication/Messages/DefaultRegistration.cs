@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -24,6 +23,7 @@ using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
 using NCode.Identity.OpenId.Authentication.Messages.Handlers;
 using NCode.Identity.OpenId.Authentication.Messages.Parameters;
+using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Mediator;
 using NCode.Registration;
 
@@ -44,44 +44,16 @@ public static class DefaultRegistration
         this IServiceBuilder<OpenIdAuthenticationLibrary> builder
     )
     {
-        builder.AddMessageFactory<OpenIdError>();
-        builder.AddMessageFactory<OpenIdMessage>();
-
         var serviceCollection = builder.ServiceCollection;
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             ICollectionDataSource<KnownParameter>,
-            DefaultKnownParameterDataSource>());
-
-        serviceCollection.TryAddSingleton<
-            IKnownParameterCollectionProvider,
-            DefaultKnownParameterCollectionProvider>();
-
-        serviceCollection.TryAddSingleton<
-            IOpenIdMessageFactorySelector,
-            DefaultOpenIdMessageFactorySelector>();
+            DefaultAuthParameterDataSource>());
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>,
             DefaultLoadRequestValuesHandler>();
 
         return builder;
-    }
-
-    /// <summary>
-    /// Registers a default message factory for the specified OpenId message type.
-    /// </summary>
-    /// <param name="builder">The <see cref="IServiceBuilder"/> that is used to configure services.</param>
-    /// <typeparam name="TMessage">The type of the <see cref="OpenIdMessage"/> for the factory.</typeparam>
-    public static void AddMessageFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessage>(
-        this IServiceBuilder builder
-    )
-        where TMessage : OpenIdMessage, new()
-    {
-        var serviceCollection = builder.ServiceCollection;
-
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            IOpenIdMessageFactory,
-            DefaultOpenIdMessageFactory<TMessage>>());
     }
 }

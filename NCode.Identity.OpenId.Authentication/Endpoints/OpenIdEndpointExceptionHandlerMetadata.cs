@@ -17,8 +17,8 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Authentication.Environments;
-using NCode.Identity.OpenId.Authentication.Exceptions;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Exceptions;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 

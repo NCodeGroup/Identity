@@ -26,7 +26,7 @@ namespace NCode.Registration;
 /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
 [PublicAPI]
 public interface IRegistrationMarker<TMarker> : IMarker<TMarker>
-    where TMarker : IRegistrationMarker<TMarker>
+    where TMarker : IRegistrationMarker<TMarker>, new()
 {
     /// <summary>
     /// Gets the display name of the registration marker.
@@ -38,3 +38,14 @@ public interface IRegistrationMarker<TMarker> : IMarker<TMarker>
     /// </summary>
     string ConfigureMethod { get; }
 }
+
+#if false
+
+public class ExampleRegistrationMarker : IRegistrationMarker<ExampleRegistrationMarker>
+{
+    public string DisplayName => "Example Registration Marker";
+
+    public string ConfigureMethod => "AddExampleServices";
+}
+
+#endif

@@ -19,8 +19,8 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
-using NCode.Identity.OpenId.Authentication.Errors;
 using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;

@@ -24,8 +24,8 @@ using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
-using NCode.Identity.OpenId.Authentication.Errors;
-using NCode.Identity.OpenId.Authentication.Results;
+using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 

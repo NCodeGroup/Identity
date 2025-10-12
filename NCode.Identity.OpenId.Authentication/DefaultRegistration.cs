@@ -20,11 +20,8 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints;
-using NCode.Identity.OpenId.Authentication.Environments;
-using NCode.Identity.OpenId.Authentication.Exceptions;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Messages;
-using NCode.Identity.OpenId.Authentication.Results;
 using NCode.Identity.OpenId.Authentication.Servers;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -68,11 +65,8 @@ public static class DefaultRegistration
             .AddClientServices()
             .AddContextServices()
             .AddEndpoints()
-            .AddEnvironmentServices()
-            .AddExceptionServices()
             .AddLogicServices()
             .AddMessageServices()
-            .AddResultServices()
             .AddServerServices()
             .AddSettingServices()
             .AddSubjectServices()

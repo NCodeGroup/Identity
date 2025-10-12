@@ -28,7 +28,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <summary>
 /// Provides extension methods to configure services and handlers for Identity Secrets Persistence.
 /// </summary>
-[PublicAPI]
+// [PublicAPI]
 public static class DefaultRegistration
 {
     /// <summary>
@@ -42,6 +42,8 @@ public static class DefaultRegistration
     )
     {
         var newBuilder = builder.Register<SecretPersistenceLibrary>();
+        configure(newBuilder);
+
         newBuilder.AddEncoding<BasicSecretEncoding>();
 
         var serviceCollection = builder.ServiceCollection;

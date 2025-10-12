@@ -16,7 +16,7 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Authentication.Environments;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Authentication.Servers;
 

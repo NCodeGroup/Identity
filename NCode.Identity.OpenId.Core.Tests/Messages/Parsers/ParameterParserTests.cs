@@ -94,7 +94,7 @@ public class ParameterParserTests : IDisposable
         Assert.True(reader.Read());
 
         var environment = MockOpenIdEnvironment.Object;
-        var parser = ParameterParsers.StringValues;
+        var parser = CoreParameterParsers.StringValues;
         var descriptor = new ParameterDescriptor(parameterName, parser);
         var parameter = Parameter.Create(environment, descriptor, parser, parsedValue);
 
@@ -136,7 +136,7 @@ public class ParameterParserTests : IDisposable
         Assert.True(reader.Read());
 
         var environment = MockOpenIdEnvironment.Object;
-        var parser = ParameterParsers.StringValues;
+        var parser = CoreParameterParsers.StringValues;
         var descriptor = new ParameterDescriptor(parameterName, parser);
         var parameter = Parameter.Create(environment, descriptor, parser, parsedValue);
 
@@ -178,7 +178,7 @@ public class ParameterParserTests : IDisposable
         Assert.True(reader.Read());
 
         var environment = MockOpenIdEnvironment.Object;
-        var parser = ParameterParsers.StringValues;
+        var parser = CoreParameterParsers.StringValues;
         var descriptor = new ParameterDescriptor(parameterName, parser);
         var parameter = Parameter.Create(environment, descriptor, parser, parsedValue);
 

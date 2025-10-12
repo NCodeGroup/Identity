@@ -19,7 +19,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Contexts;
-using NCode.Identity.OpenId.Authentication.Errors;
+using NCode.Identity.OpenId.Errors;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 

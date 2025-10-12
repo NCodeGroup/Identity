@@ -18,14 +18,13 @@
 
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
-using NCode.Identity.OpenId.Messages.Parameters;
 
-namespace NCode.Identity.OpenId.Authentication.Messages.Parameters;
+namespace NCode.Identity.OpenId.Messages.Parameters;
 
 /// <summary>
 /// Provides the default implementation for a data source collection of <see cref="KnownParameter"/> instances supported by this library.
 /// </summary>
-public class DefaultAuthParameterDataSource(
+public class DefaultCommonParameterDataSource(
     INullChangeToken nullChangeToken
 ) : ICollectionDataSource<KnownParameter>
 {
@@ -39,7 +38,7 @@ public class DefaultAuthParameterDataSource(
     {
         get
         {
-            var type = typeof(OpenIdAuthenticationParameters);
+            var type = typeof(OpenIdCommonParameters);
 
             var fromFields = type
                 .GetFields()

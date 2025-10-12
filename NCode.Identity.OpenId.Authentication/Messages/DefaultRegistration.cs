@@ -48,7 +48,7 @@ public static class DefaultRegistration
 
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
             ICollectionDataSource<KnownParameter>,
-            DefaultAuthParameterDataSource>());
+            DefaultAuthenticationParameterDataSource>());
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>,

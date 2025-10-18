@@ -47,7 +47,7 @@ public static class ServiceCollectionExtensions
     )
         where TMarker : IRegistrationMarker<TMarker>, new()
     {
-        if (serviceCollection.All(descriptor => descriptor.ServiceType != typeof(TMarker)))
+        if (serviceCollection.All(descriptor => descriptor.ServiceType != typeof(IRegistrationMarker<TMarker>)))
         {
             var effectiveMessage = GetEffectiveMessage<TMarker>(message);
             throw new InvalidOperationException(effectiveMessage);
@@ -67,7 +67,7 @@ public static class ServiceCollectionExtensions
     )
         where TMarker : IRegistrationMarker<TMarker>, new()
     {
-        var marker = new TMarker();
+        var marker = new TMarker(); // TODO: should we register the implementation type instead?
         return serviceCollection.AddSingleton<IRegistrationMarker<TMarker>>(marker);
     }
 
@@ -77,7 +77,7 @@ public static class ServiceCollectionExtensions
         if (string.IsNullOrEmpty(message))
         {
             var marker = new TMarker();
-            message = $"The {marker.DisplayName} services have not been registered. Please call the '{marker.ConfigureMethod}' method.";
+            message = $"The services for '{marker.DisplayName}' have not been registered. Please call the '{marker.ConfigureMethod}' method.";
         }
 
         return message;

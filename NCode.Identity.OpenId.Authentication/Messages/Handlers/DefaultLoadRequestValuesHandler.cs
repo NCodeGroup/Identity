@@ -47,7 +47,7 @@ public class DefaultLoadRequestValuesHandler : ICommandResponseHandler<LoadReque
 
         if (HttpMethods.IsPost(httpRequest.Method))
         {
-            const string expectedContentType = "application/x-www-form-urlencoded";
+            const string expectedContentType = OpenIdConstants.ContentType;
             if (!httpRequest.ContentType?.StartsWith(expectedContentType, StringComparison.OrdinalIgnoreCase) ?? false)
             {
                 throw errorFactory

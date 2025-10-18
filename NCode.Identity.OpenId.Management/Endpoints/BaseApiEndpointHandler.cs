@@ -53,16 +53,16 @@ public abstract class BaseApiEndpointHandler
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue>(
         HttpContext httpContext,
         TValue? valueOrNull,
-        string authorizationPolicyName
+        IAuthorizationRequirement authorizationRequirement
     )
     {
-        return await ProcessGetAsync(httpContext, valueOrNull, authorizationPolicyName, value => value);
+        return await ProcessGetAsync(httpContext, valueOrNull, authorizationRequirement, value => value);
     }
 
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
         HttpContext httpContext,
         TValue? valueOrNull,
-        string authorizationPolicyName,
+        IAuthorizationRequirement authorizationRequirement,
         Func<TValue, TResponse> mapper
     )
     {
@@ -73,7 +73,11 @@ public abstract class BaseApiEndpointHandler
 
         // https://learn.microsoft.com/en-us/aspnet/core/security/authorization/resourcebased?view=aspnetcore-9.0
         var user = httpContext.User;
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(user, valueOrNull, authorizationPolicyName);
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            user,
+            valueOrNull,
+            authorizationRequirement
+        );
 
         if (authorizationResult.Succeeded)
         {

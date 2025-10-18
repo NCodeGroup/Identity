@@ -38,6 +38,8 @@ public static partial class OpenIdConstants
     /// </summary>
     public const string ParameterSeparatorString = " ";
 
+    public const string ContentType = "application/x-www-form-urlencoded";
+
     /// <summary>
     /// Contains the names for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
     /// </summary>

@@ -22,6 +22,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
+using Microsoft.OpenApi.Any;
+using Microsoft.OpenApi.Models;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
@@ -29,6 +31,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Mediator;
 
@@ -43,21 +46,59 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 /// </summary>
 public class DefaultTokenEndpointProvider(
     IOpenIdContextFactory contextFactory,
-    IClientAuthenticationService clientAuthenticationService
+    IClientAuthenticationService clientAuthenticationService,
+    IKnownParameterCollectionProvider knownParameterCollectionProvider
 ) : IEndpointProvider
 {
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
+    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
-        .MapGet(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
+        .MapPost(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Token)
+        .WithMetadata(CreateOpenApiOperationMetadata())
+        .DisableAntiforgery()
         .WithOpenIdDiscoverable();
+
+    private OpenApiOperation CreateOpenApiOperationMetadata()
+    {
+        var properties = KnownParameterCollectionProvider.Collection
+            .OrderBy(parameter => parameter.Name)
+            .ToDictionary(
+                parameter => parameter.Name,
+                _ => new OpenApiSchema
+                {
+                    Type = "string",
+                    Nullable = true,
+                    Default = new OpenApiString(string.Empty),
+                });
+
+        return new OpenApiOperation
+        {
+            OperationId = OpenIdConstants.EndpointNames.Token,
+            Tags = [new OpenApiTag { Name = "oidc" }], // TODO: use constant
+            RequestBody = new OpenApiRequestBody
+            {
+                Content = new Dictionary<string, OpenApiMediaType>
+                {
+                    [OpenIdConstants.ContentType] = new()
+                    {
+                        Schema = new OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties = properties,
+                        }
+                    }
+                }
+            }
+        };
+    }
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header) &&
-        header.MediaType.Equals("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase);
+        header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
@@ -78,14 +119,15 @@ public class DefaultTokenEndpointProvider(
         if (!isPostVerb || !IsApplicationFormContentType(httpContext))
         {
             return errorFactory
-                .InvalidRequest("Only POST requests with Content-Type 'application/x-www-form-urlencoded' are supported.")
+                .InvalidRequest($"Only POST requests with Content-Type '{OpenIdConstants.ContentType}' are supported.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
         }
 
         var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
             openIdContext,
-            cancellationToken);
+            cancellationToken
+        );
 
         if (authResult.IsError)
         {

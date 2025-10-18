@@ -50,12 +50,9 @@ public class DefaultContinueEndpointHandler(
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) => endpoints
-        .MapMethods(
-            OpenIdConstants.EndpointPaths.Continue,
-            [HttpMethods.Get, HttpMethods.Post],
-            HandleRouteAsync
-        )
+        .MapMethods(OpenIdConstants.EndpointPaths.Continue, [HttpMethods.Get, HttpMethods.Post], HandleRouteAsync)
         .WithName(OpenIdConstants.EndpointNames.Continue)
+        .WithTags("oidc") // TODO: use constant
         .WithOpenIdDiscoverable(false);
 
     private async ValueTask<IResult> HandleRouteAsync(

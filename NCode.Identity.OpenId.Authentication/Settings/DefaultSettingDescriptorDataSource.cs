@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
@@ -32,7 +33,7 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 [PublicAPI]
 public class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
-    IEnumerable<IClientAuthenticationHandler> clientAuthenticationHandlers
+    IServiceProvider serviceProvider
 ) : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsStdDiscoverable = true;
@@ -63,9 +64,18 @@ public class DefaultSettingDescriptorDataSource(
 
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 
-    private List<string> TokenEndpointAuthMethodsSupported { get; } = clientAuthenticationHandlers
-        .Select(handler => handler.AuthenticationMethod)
-        .ToList();
+    private IServiceProvider ServiceProvider { get; } = serviceProvider;
+
+    private List<string>? AuthMethodsOrNull { get; set; }
+    private List<string> AuthMethods => AuthMethodsOrNull ??= GetAuthMethods();
+
+    private List<string> GetAuthMethods()
+    {
+        return ServiceProvider
+            .GetServices<IClientAuthenticationHandler>()
+            .Select(handler => handler.AuthenticationMethod)
+            .ToList();
+    }
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken;
@@ -668,7 +678,7 @@ public class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethodsSupported,
-                Default = TokenEndpointAuthMethodsSupported,
+                Default = AuthMethods,
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect

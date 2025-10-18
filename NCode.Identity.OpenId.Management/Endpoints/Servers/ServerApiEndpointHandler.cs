@@ -24,7 +24,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
-using NCode.Identity.OpenId.Management.Endpoints.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -119,7 +118,7 @@ public class ServerApiEndpointHandler(
         return await ProcessGetAsync(
             httpContext,
             server,
-            ResourceOperations.Servers.Basic.Read,
+            Operations.Read,
             ToServerResource
         );
     }
@@ -142,7 +141,7 @@ public class ServerApiEndpointHandler(
         return await ProcessGetAsync(
             httpContext,
             serverSettings,
-            ResourceOperations.Servers.Settings.Read,
+            Operations.Read,
             ToServerSettingsResource
         );
     }
@@ -173,7 +172,7 @@ public class ServerApiEndpointHandler(
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             user,
             serverSettings,
-            ResourceOperations.Servers.Settings.Update
+            Operations.Update
         );
 
         if (authorizationResult.Succeeded)
@@ -183,7 +182,6 @@ public class ServerApiEndpointHandler(
 
             request.ApplyTo(jsonObject);
 
-            // TODO: json serializer options
             serverSettings.Value = JsonSerializer.SerializeToElement(jsonObject);
 
             await store.UpdateSettingsAsync(serverSettings, cancellationToken);
@@ -219,7 +217,7 @@ public class ServerApiEndpointHandler(
         return await ProcessGetAsync(
             httpContext,
             serverSecrets,
-            ResourceOperations.Servers.Secrets.Read,
+            Operations.Read,
             ToServerSecretsResource
         );
     }

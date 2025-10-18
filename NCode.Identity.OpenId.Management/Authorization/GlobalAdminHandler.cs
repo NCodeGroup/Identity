@@ -16,29 +16,25 @@
 
 #endregion
 
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Authorization;
+namespace NCode.Identity.OpenId.Management.Authorization;
 
-// TODO
-public class TenantAdminHandler : AuthorizationHandler<IAuthorizationRequirement, ISupportTenantId>
+public class GlobalAdminHandler : AuthorizationHandler<IAuthorizationRequirement>
 {
     /// <inheritdoc />
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
-        IAuthorizationRequirement requirement,
-        ISupportTenantId resource
+        IAuthorizationRequirement requirement
     )
     {
-        var userTenantId = context.User.FindFirstValue(JoseClaimNames.Payload.Tid);
-        var userIsTenantAdmin = context.User.IsInRole("TenantAdmin"); // TODO: use constant
-        var resourceTenantId = resource.TenantId;
-
-        if (userIsTenantAdmin && string.Equals(userTenantId, resourceTenantId, StringComparison.Ordinal))
+        if (context.User.IsInRole("GlobalAdmin")) // TODO: use constant
         {
+            context.Succeed(requirement);
+        }
+        else
+        {
+            // TODO: remove
             context.Succeed(requirement);
         }
 

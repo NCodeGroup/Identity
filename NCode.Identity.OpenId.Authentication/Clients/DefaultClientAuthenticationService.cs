@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Errors;
 
@@ -26,12 +27,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <summary>
 /// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction.
 /// </summary>
-public class DefaultClientAuthenticationService(
-    IEnumerable<IClientAuthenticationHandler> handlers
-) : IClientAuthenticationService
+public class DefaultClientAuthenticationService : IClientAuthenticationService
 {
-    private IEnumerable<IClientAuthenticationHandler> Handlers { get; } = handlers;
-
     private ClientAuthenticationResult? ResultOrDefault { get; set; }
 
     /// <inheritdoc />
@@ -55,10 +52,12 @@ public class DefaultClientAuthenticationService(
         // - Return first confidential client, if any
         // - Otherwise return first public client
 
-        var capacity = Handlers.TryGetNonEnumeratedCount(out var count) ? count : 5;
+        var serviceProvider = openIdContext.Http.RequestServices;
+        var handlers = serviceProvider.GetServices<IClientAuthenticationHandler>();
+        var capacity = handlers.TryGetNonEnumeratedCount(out var count) ? count : 5;
         var results = new List<ClientAuthenticationResult>(capacity);
 
-        foreach (var handler in Handlers)
+        foreach (var handler in handlers)
         {
             var result = await handler.AuthenticateClientAsync(openIdContext, cancellationToken);
 

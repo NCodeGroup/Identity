@@ -24,6 +24,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using Microsoft.OpenApi.Any;
+using Microsoft.OpenApi.Models;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
@@ -34,6 +36,7 @@ using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Mediator;
 
@@ -46,23 +49,63 @@ public class DefaultAuthorizationEndpointHandler(
     ILogger<DefaultAuthorizationEndpointHandler> logger,
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService,
-    IAuthorizationEndpointLogic authorizationEndpointLogic
+    IAuthorizationEndpointLogic authorizationEndpointLogic,
+    IKnownParameterCollectionProvider knownParameterCollectionProvider
 ) : IEndpointProvider
 {
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
     private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } = authorizationEndpointLogic;
+    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
-        .MapMethods(
-            OpenIdConstants.EndpointPaths.Authorization,
-            [HttpMethods.Get, HttpMethods.Post],
-            HandleRouteAsync
-        )
-        .WithName(OpenIdConstants.EndpointNames.Authorization)
-        .WithOpenIdDiscoverable();
+    public void Map(IEndpointRouteBuilder endpoints)
+    {
+        endpoints
+            .MapMethods(
+                OpenIdConstants.EndpointPaths.Authorization,
+                [HttpMethods.Get, HttpMethods.Post],
+                HandleRouteAsync
+            )
+            .WithName(OpenIdConstants.EndpointNames.Authorization)
+            .WithMetadata(CreateOpenApiOperationMetadata())
+            .WithOpenIdDiscoverable();
+    }
+
+    private OpenApiOperation CreateOpenApiOperationMetadata()
+    {
+        var properties = KnownParameterCollectionProvider.Collection
+            .OrderBy(parameter => parameter.Name)
+            .ToDictionary(
+                parameter => parameter.Name,
+                _ => new OpenApiSchema
+                {
+                    Type = "string",
+                    Nullable = true,
+                    Default = new OpenApiString(string.Empty),
+                });
+
+        return new OpenApiOperation
+        {
+            OperationId = OpenIdConstants.EndpointNames.Token,
+            Tags = [new OpenApiTag { Name = "oidc" }], // TODO: use constant
+            RequestBody = new OpenApiRequestBody
+            {
+                Content = new Dictionary<string, OpenApiMediaType>
+                {
+                    [OpenIdConstants.ContentType] = new()
+                    {
+                        Schema = new OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties = properties,
+                        }
+                    }
+                }
+            }
+        };
+    }
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,

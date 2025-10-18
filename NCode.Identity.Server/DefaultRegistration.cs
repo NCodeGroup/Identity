@@ -23,6 +23,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication;
+using NCode.Identity.OpenId.Management;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Mediator;
@@ -50,20 +51,21 @@ public static class DefaultRegistration
         var builder = ServiceBuilder.Register<IdentityServer>(serviceCollection);
         configure(builder);
 
-        serviceCollection.AddMediatorServices();
-        serviceCollection.AddSecureDataProtectionServices();
-        serviceCollection.AddJoseServices();
-        serviceCollection.AddJsonWebTokenServices();
-
         serviceCollection.AddSecretServices(secretBuilder =>
         {
             secretBuilder.AddPersistenceServices(persistenceBuilder => { }); // TODO
         });
 
+        serviceCollection.AddMediatorServices();
+        serviceCollection.AddSecureDataProtectionServices();
+        serviceCollection.AddJoseServices();
+        serviceCollection.AddJsonWebTokenServices();
+
         serviceCollection.AddIdentityServices(identityBuilder =>
         {
             identityBuilder.AddOpenIdCore();
             identityBuilder.AddOpenIdAuthentication();
+            identityBuilder.AddOpenIdManagement();
         });
 
         return serviceCollection;

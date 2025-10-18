@@ -16,23 +16,21 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authorization;
+using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Authorization;
+namespace NCode.Identity.OpenId.Management;
 
-public class GlobalAdminHandler : AuthorizationHandler<IAuthorizationRequirement>
+[PublicAPI]
+[ExcludeFromCodeCoverage]
+public static class Operations
 {
-    /// <inheritdoc />
-    protected override Task HandleRequirementAsync(
-        AuthorizationHandlerContext context,
-        IAuthorizationRequirement requirement
-    )
-    {
-        if (context.User.IsInRole("GlobalAdmin")) // TODO: use constant
-        {
-            context.Succeed(requirement);
-        }
+    public static OperationAuthorizationRequirement Create { get; } = new() { Name = nameof(Create) };
 
-        return Task.CompletedTask;
-    }
+    public static OperationAuthorizationRequirement Read { get; } = new() { Name = nameof(Read) };
+
+    public static OperationAuthorizationRequirement Update { get; } = new() { Name = nameof(Update) };
+
+    public static OperationAuthorizationRequirement Delete { get; } = new() { Name = nameof(Delete) };
 }

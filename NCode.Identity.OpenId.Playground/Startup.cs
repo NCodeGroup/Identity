@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Options;
+using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.Server;
 
@@ -45,9 +46,11 @@ internal class Startup(IConfiguration configuration)
         const int generatorId = 1;
         services.AddIdGen(generatorId);
 
+        services.AddRouting();
+        services.AddAntiforgery();
+
         services.AddHealthChecks();
         services.AddHttpLogging(options => { options.LoggingFields = HttpLoggingFields.All; });
-
         services.AddHttpClient();
 
         var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
@@ -59,18 +62,24 @@ internal class Startup(IConfiguration configuration)
         services.Configure<OpenIdOptions>(Configuration.GetSection(openIdOptionsSectionName));
         services.Configure<OpenIdOptions>(options => options.SectionName = openIdOptionsSectionName);
 
+        services.AddEndpointsApiExplorer();
         services.AddIdentityServer(builder =>
         {
             //
-            // builder.AddOpenIdAuthentication();
         });
 
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
 
+        services.AddDatabaseDeveloperPageExceptionFilter();
         services.AddDbContextFactory<OpenIdDbContext>(builder =>
         {
             // TODO
-            builder.UseInMemoryDatabase("OpenId");
+            // builder.UseInMemoryDatabase("OpenId");
+            builder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB; Initial Catalog=OIDC;", options =>
+            {
+                // options.MigrationsAssembly("NCode.Identity.OpenId.Persistence.EntityFramework");
+                // options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            });
         });
 
         services.AddControllers();
@@ -82,7 +91,7 @@ internal class Startup(IConfiguration configuration)
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
-            app.UseSwagger();
+            app.UseSwagger(c => { });
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "NCode.Identity.OpenId.Playground v1"));
         }
 
@@ -91,16 +100,13 @@ internal class Startup(IConfiguration configuration)
 
         app.UseRouting();
 
+        app.UseAntiforgery();
         app.UseAuthentication();
         app.UseAuthorization();
-
-        // app.UseMiddleware<OpenIdMiddleware>();
 
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapIdentityEndpoints();
-            // endpoints.MapOpenId().WithHttpLogging(HttpLoggingFields.All);
-
             endpoints.MapControllers().WithHttpLogging(HttpLoggingFields.All);
             endpoints.MapHealthChecks("/health").WithName("health_endpoint");
         });

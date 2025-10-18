@@ -34,7 +34,7 @@ public abstract class ParameterLoader : IParameterLoader
     /// <summary>
     /// Gets the default <see cref="ParameterLoader"/> instance that can be used to load and parse unknown parameter types.
     /// </summary>
-    public static ParameterLoader Default => CoreParameterParsers.StringValues;
+    public static ParameterLoader Default => CommonParameterParsers.StringValues;
 
     /// <inheritdoc />
     public abstract Type ParameterType { get; }

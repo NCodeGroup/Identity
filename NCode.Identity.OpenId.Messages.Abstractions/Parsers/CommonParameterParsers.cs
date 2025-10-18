@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// and <c>OpenID Connect</c> messages.
 /// </summary>
 [PublicAPI]
-public static class CoreParameterParsers
+public static class CommonParameterParsers
 {
     // TODO
     // /// <summary>

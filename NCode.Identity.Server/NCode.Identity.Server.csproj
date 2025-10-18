@@ -12,6 +12,7 @@
         <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Management\NCode.Identity.OpenId.Management.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Persistence\NCode.Identity.Secrets.Persistence.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
         <ProjectReference Include="..\NCode.Identity\NCode.Identity.csproj" />

@@ -17,6 +17,7 @@
 #endregion
 
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
@@ -48,6 +49,7 @@ public class UseIdGeneratorConvention(
             return;
         }
 
+        propertyBuilder.ValueGenerated(ValueGenerated.Never, fromDataAnnotation: true);
         propertyBuilder.HasValueGenerator((_, _) => IdValueGenerator, fromDataAnnotation: true);
     }
 }

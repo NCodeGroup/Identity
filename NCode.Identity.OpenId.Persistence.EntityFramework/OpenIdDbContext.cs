@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -77,7 +78,10 @@ public class OpenIdDbContext(
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // nothing
+        foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        {
+            relationship.DeleteBehavior = DeleteBehavior.Restrict;
+        }
     }
 
     /// <inheritdoc />
@@ -96,6 +100,10 @@ public class OpenIdDbContext(
         configurationBuilder
             .Properties<DateTimeOffset>()
             .HaveConversion<DateTimeOffsetConverter>();
+
+        configurationBuilder
+            .Properties<JsonElement>()
+            .HaveConversion<JsonElementConverter>();
 
         configurationBuilder.Conventions.Add(_ =>
             this.GetService<UseIdGeneratorConvention>());

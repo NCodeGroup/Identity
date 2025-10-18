@@ -32,6 +32,8 @@ public static class EndpointRouteBuilderExtensions
     /// Maps all the identity endpoints that have been registered with the service provider.
     /// </summary>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance to map the endpoints to.</param>
-    public static void MapIdentityEndpoints(this IEndpointRouteBuilder endpoints) =>
+    public static void MapIdentityEndpoints(this IEndpointRouteBuilder endpoints)
+    {
         endpoints.ServiceProvider.GetRequiredService<IIdentityEndpointRouteBuilder>().Map(endpoints);
+    }
 }

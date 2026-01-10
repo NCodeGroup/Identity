@@ -29,20 +29,22 @@ public static class CryptoServiceExtensions
 {
     private const int DefaultKeyByteLength = 32;
 
-    /// <summary>
-    /// Generates a strong cryptographic random 256-bit value that is Base64Url encoded.
-    /// </summary>
     /// <param name="cryptoService">The <see cref="ICryptoService"/> instance.</param>
-    /// <returns>The newly generated random bytes encoded as a string.</returns>
-    public static string GenerateUrlSafeKey(this ICryptoService cryptoService) =>
-        cryptoService.GenerateKey(DefaultKeyByteLength, BinaryEncodingType.Base64Url);
+    extension(ICryptoService cryptoService)
+    {
+        /// <summary>
+        /// Generates a strong cryptographic random 256-bit value that is Base64Url encoded.
+        /// </summary>
+        /// <returns>The newly generated random bytes encoded as a string.</returns>
+        public string GenerateUrlSafeKey() =>
+            cryptoService.GenerateKey(DefaultKeyByteLength, BinaryEncodingType.Base64Url);
 
-    /// <summary>
-    /// Generates a strong cryptographic random value that is Base64Url encoded.
-    /// </summary>
-    /// <param name="cryptoService">The <see cref="ICryptoService"/> instance.</param>
-    /// <param name="byteLength">Specifies the number of random bytes to generate. Defaults to 32 bytes.</param>
-    /// <returns>The newly generated random bytes encoded as a string.</returns>
-    public static string GenerateUrlSafeKey(this ICryptoService cryptoService, int byteLength) =>
-        cryptoService.GenerateKey(byteLength, BinaryEncodingType.Base64Url);
+        /// <summary>
+        /// Generates a strong cryptographic random value that is Base64Url encoded.
+        /// </summary>
+        /// <param name="byteLength">Specifies the number of random bytes to generate. Defaults to 32 bytes.</param>
+        /// <returns>The newly generated random bytes encoded as a string.</returns>
+        public string GenerateUrlSafeKey(int byteLength) =>
+            cryptoService.GenerateKey(byteLength, BinaryEncodingType.Base64Url);
+    }
 }

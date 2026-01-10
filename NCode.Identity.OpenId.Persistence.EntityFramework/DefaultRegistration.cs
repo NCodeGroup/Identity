@@ -33,45 +33,45 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Registers the required services needed for using Entity Framework with OpenId into the provided <see cref="IServiceCollection"/> instance.
-    /// Make sure to also register the required services for Entity Framework itself.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> to use.</typeparam>
-    /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddEntityFrameworkPersistenceServices<TDbContext>(
-        this IServiceCollection serviceCollection
-    )
-        where TDbContext : DbContext
+    extension(IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddSingleton<IdValueGenerator>();
-        serviceCollection.TryAddSingleton<UseIdGeneratorConvention>();
+        /// <summary>
+        /// Registers the required services needed for using Entity Framework with OpenId into the provided <see cref="IServiceCollection"/> instance.
+        /// Make sure to also register the required services for Entity Framework itself.
+        /// </summary>
+        /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> to use.</typeparam>
+        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        public IServiceCollection AddEntityFrameworkPersistenceServices<TDbContext>()
+            where TDbContext : DbContext
+        {
+            serviceCollection.TryAddSingleton<IdValueGenerator>();
+            serviceCollection.TryAddSingleton<UseIdGeneratorConvention>();
 
-        serviceCollection.TryAddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<TDbContext>>();
-        serviceCollection.TryAddScoped<IStoreManager, EntityStoreManager<TDbContext>>();
+            serviceCollection.TryAddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<TDbContext>>();
+            serviceCollection.TryAddScoped<IStoreManager, EntityStoreManager<TDbContext>>();
 
-        AddStore<TDbContext, IServerStore, ServerStore>(serviceCollection);
-        AddStore<TDbContext, ITenantStore, TenantStore>(serviceCollection);
-        AddStore<TDbContext, IClientStore, ClientStore>(serviceCollection);
-        AddStore<TDbContext, IGrantStore, GrantStore>(serviceCollection);
+            serviceCollection.AddStore<TDbContext, IServerStore, ServerStore>();
+            serviceCollection.AddStore<TDbContext, ITenantStore, TenantStore>();
+            serviceCollection.AddStore<TDbContext, IClientStore, ClientStore>();
+            serviceCollection.AddStore<TDbContext, IGrantStore, GrantStore>();
 
-        return serviceCollection;
-    }
+            return serviceCollection;
+        }
 
-    private static void AddStore<TDbContext, TService, TImplementation>(
-        this IServiceCollection serviceCollection
-    )
-        where TDbContext : DbContext
-        where TService : class
-        where TImplementation : class, TService
-    {
-        serviceCollection.AddSingleton<Func<IStoreProvider, TDbContext, TService>>(
-            serviceProvider =>
+        private void AddStore<TDbContext, TService, TImplementation>()
+            where TDbContext : DbContext
+            where TService : class
+            where TImplementation : class, TService
+        {
+            serviceCollection.AddSingleton<Func<IStoreProvider, TDbContext, TService>>(serviceProvider =>
                 (storeProvider, dbContext) =>
                     ActivatorUtilities.CreateInstance<TImplementation>(
                         serviceProvider,
                         storeProvider,
-                        dbContext));
+                        dbContext
+                    )
+            );
+        }
     }
 }

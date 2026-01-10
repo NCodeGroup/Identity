@@ -31,50 +31,47 @@ namespace NCode.Identity.Secrets;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for Identity Secrets.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSecretServices(
-        this IServiceCollection serviceCollection
-    )
+    extension(IServiceCollection serviceCollection)
     {
-        return AddSecretServices(serviceCollection, _ => { });
-    }
+        /// <summary>
+        /// Configures services and handlers for Identity Secrets.
+        /// </summary>
+        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
+        public IServiceCollection AddSecretServices()
+        {
+            return serviceCollection.AddSecretServices(_ => { });
+        }
 
-    /// <summary>
-    /// Configures services and handlers for Identity Secrets.
-    /// </summary>
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <param name="configure">The action to configure services for <see cref="SecretsLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddSecretServices(
-        this IServiceCollection serviceCollection,
-        Action<IServiceBuilder<SecretsLibrary>> configure
-    )
-    {
-        var builder = ServiceBuilder.Register<SecretsLibrary>(serviceCollection);
-        configure(builder);
+        /// <summary>
+        /// Configures services and handlers for Identity Secrets.
+        /// </summary>
+        /// <param name="configure">The action to configure services for <see cref="SecretsLibrary"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
+        public IServiceCollection AddSecretServices(Action<IServiceBuilder<SecretsLibrary>> configure)
+        {
+            var builder = ServiceBuilder.Register<SecretsLibrary>(serviceCollection);
+            configure(builder);
 
-        serviceCollection.AddCollectionProviders();
+            serviceCollection.AddCollectionProviders();
 
-        serviceCollection.TryAddSingleton<
-            ISecretKeyCollectionProvider,
-            DefaultSecretKeyCollectionProvider>();
+            serviceCollection.TryAddSingleton<
+                ISecretKeyCollectionProvider,
+                DefaultSecretKeyCollectionProvider>();
 
-        serviceCollection.TryAddSingleton<
-            ISecretKeyCollectionProviderFactory,
-            DefaultSecretKeyCollectionProviderFactory>();
+            serviceCollection.TryAddSingleton<
+                ISecretKeyCollectionProviderFactory,
+                DefaultSecretKeyCollectionProviderFactory>();
 
-        serviceCollection.TryAddSingleton<
-            ISecretKeyFactory,
-            DefaultSecretKeyFactory>();
+            serviceCollection.TryAddSingleton<
+                ISecretKeyFactory,
+                DefaultSecretKeyFactory>();
 
-        serviceCollection.TryAddSingleton<
-            ISecretKeyCollectionFactory,
-            DefaultSecretKeyCollectionFactory>();
+            serviceCollection.TryAddSingleton<
+                ISecretKeyCollectionFactory,
+                DefaultSecretKeyCollectionFactory>();
 
-        return serviceCollection;
+            return serviceCollection;
+        }
     }
 }

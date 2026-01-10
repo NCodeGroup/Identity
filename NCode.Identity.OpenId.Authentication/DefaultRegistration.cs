@@ -37,42 +37,41 @@ namespace NCode.Identity.OpenId.Authentication;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for OpenId Authentication.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="IdentityLibrary"/>.</param>
-    public static IServiceBuilder<IdentityLibrary> AddOpenIdAuthentication(
-        this IServiceBuilder<IdentityLibrary> builder
-    )
+    extension(IServiceBuilder<IdentityLibrary> builder)
     {
-        return AddOpenIdAuthentication(builder, _ => { });
-    }
+        /// <summary>
+        /// Configures services and handlers for OpenId Authentication.
+        /// </summary>
+        public IServiceBuilder<IdentityLibrary> AddOpenIdAuthentication()
+        {
+            return builder.AddOpenIdAuthentication(_ => { });
+        }
 
-    /// <summary>
-    /// Configures services and handlers for OpenId Authentication.
-    /// </summary>
-    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="IdentityLibrary"/>.</param>
-    /// <param name="configure">The action to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    public static IServiceBuilder<IdentityLibrary> AddOpenIdAuthentication(
-        this IServiceBuilder<IdentityLibrary> builder,
-        Action<IServiceBuilder<OpenIdAuthenticationLibrary>> configure
-    )
-    {
-        var newBuilder = builder.Register<OpenIdAuthenticationLibrary>();
-        configure(newBuilder);
+        /// <summary>
+        /// Configures services and handlers for OpenId Authentication.
+        /// </summary>
+        /// <param name="configure">The action to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
+        public IServiceBuilder<IdentityLibrary> AddOpenIdAuthentication(
+            Action<IServiceBuilder<OpenIdAuthenticationLibrary>> configure
+        )
+        {
+            var newBuilder = builder.Register<OpenIdAuthenticationLibrary>();
+            configure(newBuilder);
 
-        newBuilder
-            .AddClientServices()
-            .AddContextServices()
-            .AddEndpoints()
-            .AddLogicServices()
-            .AddMessageServices()
-            .AddServerServices()
-            .AddSettingServices()
-            .AddSubjectServices()
-            .AddTenantServices()
-            .AddTokenServices();
+            newBuilder
+                .AddClientServices()
+                .AddContextServices()
+                .AddEndpoints()
+                .AddLogicServices()
+                .AddMessageServices()
+                .AddServerServices()
+                .AddSettingServices()
+                .AddSubjectServices()
+                .AddTenantServices()
+                .AddTokenServices();
 
-        return builder;
+            return builder;
+        }
     }
 }

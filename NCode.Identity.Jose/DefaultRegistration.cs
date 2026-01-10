@@ -36,53 +36,55 @@ namespace NCode.Identity.Jose;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/>.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddJoseServices(
-        this IServiceCollection serviceCollection
-    ) =>
-        serviceCollection.AddJoseServices(_ => { });
-
-    /// <summary>
-    /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/> instance.
-    /// </summary>
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <param name="configureJoseOptions">The action used to configure the <see cref="JoseSerializerOptions"/>.</param>
-    /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddJoseServices(
-        this IServiceCollection serviceCollection,
-        Action<JoseSerializerOptions> configureJoseOptions
-    )
+    extension(IServiceCollection serviceCollection)
     {
-        serviceCollection.VerifyIsRegistered<SecretsLibrary>();
+        /// <summary>
+        /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/>.
+        /// </summary>
+        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
+        public IServiceCollection AddJoseServices() =>
+            serviceCollection.AddJoseServices(_ => { });
 
-        serviceCollection.AddRegistrationMarker<JoseLibrary>();
+        /// <summary>
+        /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/> instance.
+        /// </summary>
+        /// <param name="configureJoseOptions">The action used to configure the <see cref="JoseSerializerOptions"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
+        public IServiceCollection AddJoseServices(Action<JoseSerializerOptions> configureJoseOptions)
+        {
+            serviceCollection.VerifyIsRegistered<SecretsLibrary>();
 
-        serviceCollection.Configure(configureJoseOptions);
+            serviceCollection.AddRegistrationMarker<JoseLibrary>();
 
-        serviceCollection.TryAddSingleton<
-            IAesKeyWrap,
-            DefaultAesKeyWrap>();
+            serviceCollection.Configure(configureJoseOptions);
 
-        serviceCollection.TryAddSingleton<
-            IAlgorithmCollectionProvider,
-            DefaultAlgorithmCollectionProvider>();
+            serviceCollection.TryAddSingleton<
+                IAesKeyWrap,
+                DefaultAesKeyWrap
+            >();
 
-        serviceCollection.TryAddSingleton<
-            ICredentialSelector,
-            DefaultCredentialSelector>();
+            serviceCollection.TryAddSingleton<
+                IAlgorithmCollectionProvider,
+                DefaultAlgorithmCollectionProvider
+            >();
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICollectionDataSource<Algorithm>,
-            DefaultAlgorithmDataSource>());
+            serviceCollection.TryAddSingleton<
+                ICredentialSelector,
+                DefaultCredentialSelector
+            >();
 
-        serviceCollection.TryAddSingleton<
-            IJoseSerializer,
-            JoseSerializer>();
+            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
+                ICollectionDataSource<Algorithm>,
+                DefaultAlgorithmDataSource
+            >());
 
-        return serviceCollection;
+            serviceCollection.TryAddSingleton<
+                IJoseSerializer,
+                JoseSerializer
+            >();
+
+            return serviceCollection;
+        }
     }
 }

@@ -28,34 +28,36 @@ namespace NCode.Identity.Jose.Algorithms;
 [PublicAPI]
 public static class HashAlgorithmNameExtensions
 {
-    /// <summary>
-    /// Gets the hash size, in bits, from the specified <see cref="HashAlgorithmName"/>.
-    /// </summary>
     /// <param name="hashAlgorithmName">Contains the <see cref="HashAlgorithmName"/>.</param>
-    /// <returns>The hash size, in bits, from the <see cref="HashAlgorithmName"/>.</returns>
-    /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
-    public static int GetHashSizeBits(this HashAlgorithmName hashAlgorithmName) =>
-        hashAlgorithmName.Name switch
-        {
-            "SHA1" => 160,
-            "SHA256" => 256,
-            "SHA384" => 384,
-            "SHA512" => 512,
-            _ => throw new ArgumentException($"The {hashAlgorithmName} hash algorithm is not supported.", nameof(hashAlgorithmName))
-        };
+    extension(HashAlgorithmName hashAlgorithmName)
+    {
+        /// <summary>
+        /// Gets the hash size, in bits, from the specified <see cref="HashAlgorithmName"/>.
+        /// </summary>
+        /// <returns>The hash size, in bits, from the <see cref="HashAlgorithmName"/>.</returns>
+        /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
+        public int GetHashSizeBits() =>
+            hashAlgorithmName.Name switch
+            {
+                "SHA1" => 160,
+                "SHA256" => 256,
+                "SHA384" => 384,
+                "SHA512" => 512,
+                _ => throw new ArgumentException($"The {hashAlgorithmName} hash algorithm is not supported.", nameof(hashAlgorithmName))
+            };
 
-    /// <summary>
-    /// Gets a <see cref="HashFunctionDelegate"/> that can be used to hash data using the specified <see cref="HashAlgorithmName"/>.
-    /// </summary>
-    /// <param name="hashAlgorithmName">Contains the <see cref="HashAlgorithmName"/>.</param>
-    /// <returns>The <see cref="HashFunctionDelegate"/> that can be used to hash data using the specified <see cref="HashAlgorithmName"/>.</returns>
-    /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
-    public static HashFunctionDelegate GetHashFunction(this HashAlgorithmName hashAlgorithmName) =>
-        hashAlgorithmName.Name switch
-        {
-            "SHA256" => SHA256.TryHashData,
-            "SHA384" => SHA384.TryHashData,
-            "SHA512" => SHA512.TryHashData,
-            _ => throw new ArgumentException($"The {hashAlgorithmName} hash algorithm is not supported.", nameof(hashAlgorithmName))
-        };
+        /// <summary>
+        /// Gets a <see cref="HashFunctionDelegate"/> that can be used to hash data using the specified <see cref="HashAlgorithmName"/>.
+        /// </summary>
+        /// <returns>The <see cref="HashFunctionDelegate"/> that can be used to hash data using the specified <see cref="HashAlgorithmName"/>.</returns>
+        /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
+        public HashFunctionDelegate GetHashFunction() =>
+            hashAlgorithmName.Name switch
+            {
+                "SHA256" => SHA256.TryHashData,
+                "SHA384" => SHA384.TryHashData,
+                "SHA512" => SHA512.TryHashData,
+                _ => throw new ArgumentException($"The {hashAlgorithmName} hash algorithm is not supported.", nameof(hashAlgorithmName))
+            };
+    }
 }

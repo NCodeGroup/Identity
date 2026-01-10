@@ -29,96 +29,92 @@ namespace NCode.Identity.OpenId.Errors;
 [PublicAPI]
 public static class OpenIdErrorExtensions
 {
-    /// <summary>
-    /// Wraps the <see cref="IOpenIdError"/> in an <see cref="OpenIdException"/>.
-    /// </summary>
     /// <param name="error">The <see cref="IOpenIdError"/> to wrap.</param>
-    /// <returns>The <see cref="OpenIdException"/> instance.</returns>
-    public static OpenIdException AsException(this IOpenIdError error)
+    extension(IOpenIdError error)
     {
-        return new OpenIdException(error, error.Exception);
-    }
+        /// <summary>
+        /// Wraps the <see cref="IOpenIdError"/> in an <see cref="OpenIdException"/>.
+        /// </summary>
+        /// <returns>The <see cref="OpenIdException"/> instance.</returns>
+        public OpenIdException AsException()
+        {
+            return new OpenIdException(error, error.Exception);
+        }
 
-    /// <summary>
-    /// Wraps the <see cref="IOpenIdError"/> in an <see cref="OpenIdException"/>.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to wrap.</param>
-    /// <param name="message">The error message that explains the reason for the exception.</param>
-    /// <returns>The <see cref="OpenIdException"/> instance.</returns>
-    public static OpenIdException AsException(this IOpenIdError error, string? message)
-    {
-        return new OpenIdException(error, message, error.Exception);
-    }
+        /// <summary>
+        /// Wraps the <see cref="IOpenIdError"/> in an <see cref="OpenIdException"/>.
+        /// </summary>
+        /// <param name="message">The error message that explains the reason for the exception.</param>
+        /// <returns>The <see cref="OpenIdException"/> instance.</returns>
+        public OpenIdException AsException(string? message)
+        {
+            return new OpenIdException(error, message, error.Exception);
+        }
 
-    /// <summary>
-    /// Sets the HTTP status code to be used when returning a response.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>
-    /// <param name="statusCode">The value to set.</param>
-    /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
-    public static IOpenIdError WithStatusCode(this IOpenIdError error, int? statusCode)
-    {
-        error.StatusCode = statusCode;
-        return error;
-    }
+        /// <summary>
+        /// Sets the HTTP status code to be used when returning a response.
+        /// </summary>
+        /// <param name="statusCode">The value to set.</param>
+        /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError WithStatusCode(int? statusCode)
+        {
+            error.StatusCode = statusCode;
+            return error;
+        }
 
-    /// <summary>
-    /// Sets the <see cref="Exception"/> that triggered the <c>OAuth</c> or <c>OpenID Connect</c> error.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>
-    /// <param name="exception">The value to set.</param>
-    /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
-    public static IOpenIdError WithException(this IOpenIdError error, Exception? exception)
-    {
-        error.Exception = exception;
-        return error;
-    }
+        /// <summary>
+        /// Sets the <see cref="Exception"/> that triggered the <c>OAuth</c> or <c>OpenID Connect</c> error.
+        /// </summary>
+        /// <param name="exception">The value to set.</param>
+        /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError WithException(Exception? exception)
+        {
+            error.Exception = exception;
+            return error;
+        }
 
-    /// <summary>
-    /// Sets the <c>error_description</c> parameter.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>
-    /// <param name="description">The value to set.</param>
-    /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
-    public static IOpenIdError WithDescription(this IOpenIdError error, string? description)
-    {
-        error.Description = description;
-        return error;
-    }
+        /// <summary>
+        /// Sets the <c>error_description</c> parameter.
+        /// </summary>
+        /// <param name="description">The value to set.</param>
+        /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError WithDescription(string? description)
+        {
+            error.Description = description;
+            return error;
+        }
 
-    /// <summary>
-    /// Sets the <c>error_uri</c> parameter.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>
-    /// <param name="uri">The value to set.</param>
-    /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
-    public static IOpenIdError WithUri(this IOpenIdError error, Uri? uri)
-    {
-        error.Uri = uri;
-        return error;
-    }
+        /// <summary>
+        /// Sets the <c>error_uri</c> parameter.
+        /// </summary>
+        /// <param name="uri">The value to set.</param>
+        /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError WithUri(Uri? uri)
+        {
+            error.Uri = uri;
+            return error;
+        }
 
-    /// <summary>
-    /// Sets the <c>state</c> parameter.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>
-    /// <param name="state">The value to set.</param>
-    /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
-    public static IOpenIdError WithState(this IOpenIdError error, string? state)
-    {
-        error.State = state;
-        return error;
-    }
+        /// <summary>
+        /// Sets the <c>state</c> parameter.
+        /// </summary>
+        /// <param name="state">The value to set.</param>
+        /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError WithState(string? state)
+        {
+            error.State = state;
+            return error;
+        }
 
-    /// <summary>
-    /// Sets the <c>error</c> parameter.
-    /// </summary>
-    /// <param name="error">The <see cref="IOpenIdError"/> to update.</param>
-    /// <param name="code">The value to set.</param>
-    /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
-    public static IOpenIdError WithCode(this IOpenIdError error, string code)
-    {
-        error.Code = code;
-        return error;
+        /// <summary>
+        /// Sets the <c>error</c> parameter.
+        /// </summary>
+        /// <param name="code">The value to set.</param>
+        /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError WithCode(string code)
+        {
+            error.Code = code;
+            return error;
+        }
     }
 }

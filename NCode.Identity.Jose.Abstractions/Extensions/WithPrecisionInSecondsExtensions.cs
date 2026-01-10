@@ -26,40 +26,47 @@ namespace NCode.Identity.Jose.Extensions;
 [PublicAPI]
 public static class WithPrecisionInSecondsExtensions
 {
-    /// <summary>
-    /// Truncates the <see cref="DateTime"/> to the nearest second.
-    /// </summary>
     /// <param name="dateTime">The <see cref="DateTime"/> to truncate.</param>
-    /// <returns>A <see cref="DateTime"/> truncated to the nearest second.</returns>
-    public static DateTime WithPrecisionInSeconds(this DateTime dateTime) =>
-        new(dateTime.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond, dateTime.Kind);
-
-    /// <summary>
-    /// Truncates the <see cref="DateTimeOffset"/> to the nearest second.
-    /// </summary>
-    /// <param name="dateTimeOffset">The <see cref="DateTimeOffset"/> to truncate.</param>
-    /// <returns>A <see cref="DateTimeOffset"/> truncated to the nearest second.</returns>
-    public static DateTimeOffset WithPrecisionInSeconds(this DateTimeOffset dateTimeOffset) => new(
-        dateTimeOffset.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond,
-        dateTimeOffset.Offset);
-
-    /// <summary>
-    /// Gets the current system timestamp truncated to the nearest second.
-    /// </summary>
-    /// <param name="timeProvider">The <see cref="TimeProvider"/> instance.</param>
-    /// <returns>A <see cref="long"/> representing the current system timestamp truncated to the nearest second.</returns>
-    public static long GetTimestampWithPrecisionInSeconds(this TimeProvider timeProvider)
+    extension(DateTime dateTime)
     {
-        var timestamp = timeProvider.GetTimestamp();
-        var frequency = timeProvider.TimestampFrequency;
-        return timestamp / frequency * frequency;
+        /// <summary>
+        /// Truncates the <see cref="DateTime"/> to the nearest second.
+        /// </summary>
+        /// <returns>A <see cref="DateTime"/> truncated to the nearest second.</returns>
+        public DateTime WithPrecisionInSeconds() =>
+            new(dateTime.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond, dateTime.Kind);
     }
 
-    /// <summary>
-    /// Gets the current system time in UTC truncated to the nearest second.
-    /// </summary>
+    /// <param name="dateTimeOffset">The <see cref="DateTimeOffset"/> to truncate.</param>
+    extension(DateTimeOffset dateTimeOffset)
+    {
+        /// <summary>
+        /// Truncates the <see cref="DateTimeOffset"/> to the nearest second.
+        /// </summary>
+        /// <returns>A <see cref="DateTimeOffset"/> truncated to the nearest second.</returns>
+        public DateTimeOffset WithPrecisionInSeconds() =>
+            new(dateTimeOffset.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond, dateTimeOffset.Offset);
+    }
+
     /// <param name="timeProvider">The <see cref="TimeProvider"/> instance.</param>
-    /// <returns>A <see cref="DateTimeOffset"/> representing the current system time in UTC truncated to the nearest second.</returns>
-    public static DateTimeOffset GetUtcNowWithPrecisionInSeconds(this TimeProvider timeProvider) =>
-        new DateTime(GetTimestampWithPrecisionInSeconds(timeProvider), DateTimeKind.Utc);
+    extension(TimeProvider timeProvider)
+    {
+        /// <summary>
+        /// Gets the current system timestamp truncated to the nearest second.
+        /// </summary>
+        /// <returns>A <see cref="long"/> representing the current system timestamp truncated to the nearest second.</returns>
+        public long GetTimestampWithPrecisionInSeconds()
+        {
+            var timestamp = timeProvider.GetTimestamp();
+            var frequency = timeProvider.TimestampFrequency;
+            return timestamp / frequency * frequency;
+        }
+
+        /// <summary>
+        /// Gets the current system time in UTC truncated to the nearest second.
+        /// </summary>
+        /// <returns>A <see cref="DateTimeOffset"/> representing the current system time in UTC truncated to the nearest second.</returns>
+        public DateTimeOffset GetUtcNowWithPrecisionInSeconds() =>
+            new DateTime(timeProvider.GetTimestampWithPrecisionInSeconds(), DateTimeKind.Utc);
+    }
 }

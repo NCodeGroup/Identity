@@ -32,37 +32,34 @@ namespace NCode.Identity.OpenId;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures OpenId Core services and handlers.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="IdentityLibrary"/>.</param>
-    public static IServiceBuilder<IdentityLibrary> AddOpenIdCore(
-        this IServiceBuilder<IdentityLibrary> builder
-    )
+    extension(IServiceBuilder<IdentityLibrary> builder)
     {
-        return AddOpenIdCore(builder, _ => { });
-    }
+        /// <summary>
+        /// Configures OpenId Core services and handlers.
+        /// </summary>
+        public IServiceBuilder<IdentityLibrary> AddOpenIdCore()
+        {
+            return builder.AddOpenIdCore(_ => { });
+        }
 
-    /// <summary>
-    /// Configures OpenId Core services and handlers.
-    /// </summary>
-    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="IdentityLibrary"/>.</param>
-    /// <param name="configure">The action to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
-    public static IServiceBuilder<IdentityLibrary> AddOpenIdCore(
-        this IServiceBuilder<IdentityLibrary> builder,
-        Action<IServiceBuilder<OpenIdCoreLibrary>> configure
-    )
-    {
-        var newBuilder = builder.Register<OpenIdCoreLibrary>();
-        configure(newBuilder);
+        /// <summary>
+        /// Configures OpenId Core services and handlers.
+        /// </summary>
+        /// <param name="configure">The action to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
+        public IServiceBuilder<IdentityLibrary> AddOpenIdCore(Action<IServiceBuilder<OpenIdCoreLibrary>> configure)
+        {
+            var newBuilder = builder.Register<OpenIdCoreLibrary>();
+            configure(newBuilder);
 
-        newBuilder
-            .AddSerializationServices()
-            .AddEnvironmentServices()
-            .AddExceptionServices()
-            .AddMessageServices()
-            .AddResultServices();
+            newBuilder
+                .AddSerializationServices()
+                .AddEnvironmentServices()
+                .AddExceptionServices()
+                .AddMessageServices()
+                .AddResultServices();
 
-        return builder;
+            return builder;
+        }
     }
 }

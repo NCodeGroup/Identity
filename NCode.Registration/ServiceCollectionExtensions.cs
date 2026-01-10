@@ -27,48 +27,45 @@ namespace NCode.Registration;
 [PublicAPI]
 public static class ServiceCollectionExtensions
 {
-    /// <summary>
-    /// Verifies that services for <typeparamref name="TMarker"/> are registered in the <see cref="IServiceCollection"/>.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to check whether services are registered.</param>
-    /// <param name="message">The message to include in the exception when required services are not registered.
-    /// Optional, a default message is used if not specified.</param>
-    /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
-    /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the required services for <typeparamref name="TMarker"/> are not registered in the <see cref="IServiceCollection"/>.</exception>
-    /// <remarks>
-    /// This entire project uses a design where implementation libraries do not depend on (aka have a direct reference to)
-    /// other implementation libraries. Implementation libraries only depend on abstraction libraries. Therefore, this method
-    /// is used to verify that the composition root has registered all the required services throughout the entire stack.
-    /// </remarks>
-    public static IServiceCollection VerifyIsRegistered<TMarker>(
-        this IServiceCollection serviceCollection,
-        string? message = null
-    )
-        where TMarker : IRegistrationMarker<TMarker>, new()
+    extension(IServiceCollection serviceCollection)
     {
-        if (serviceCollection.All(descriptor => descriptor.ServiceType != typeof(IRegistrationMarker<TMarker>)))
+        /// <summary>
+        /// Verifies that services for <typeparamref name="TMarker"/> are registered in the <see cref="IServiceCollection"/>.
+        /// </summary>
+        /// <param name="message">The message to include in the exception when required services are not registered.
+        /// Optional, a default message is used if not specified.</param>
+        /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
+        /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the required services for <typeparamref name="TMarker"/> are not registered in the <see cref="IServiceCollection"/>.</exception>
+        /// <remarks>
+        /// This entire project uses a design where implementation libraries do not depend on (aka have a direct reference to)
+        /// other implementation libraries. Implementation libraries only depend on abstraction libraries. Therefore, this method
+        /// is used to verify that the composition root has registered all the required services throughout the entire stack.
+        /// </remarks>
+        public IServiceCollection VerifyIsRegistered<TMarker>(string? message = null)
+            where TMarker : IRegistrationMarker<TMarker>, new()
         {
-            var effectiveMessage = GetEffectiveMessage<TMarker>(message);
-            throw new InvalidOperationException(effectiveMessage);
+            if (serviceCollection.All(descriptor => descriptor.ServiceType != typeof(IRegistrationMarker<TMarker>)))
+            {
+                var effectiveMessage = GetEffectiveMessage<TMarker>(message);
+                throw new InvalidOperationException(effectiveMessage);
+            }
+
+            return serviceCollection;
         }
 
-        return serviceCollection;
-    }
-
-    /// <summary>
-    /// Registers a new registration marker with the specified type discriminator in the <see cref="IServiceCollection"/>.
-    /// </summary>
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to register the marker in.</param>
-    /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
-    /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
-    public static IServiceCollection AddRegistrationMarker<TMarker>(
-        this IServiceCollection serviceCollection
-    )
-        where TMarker : IRegistrationMarker<TMarker>, new()
-    {
-        var marker = new TMarker(); // TODO: should we register the implementation type instead?
-        return serviceCollection.AddSingleton<IRegistrationMarker<TMarker>>(marker);
+        /// <summary>
+        /// Registers a new registration marker with the specified type discriminator in the <see cref="IServiceCollection"/>.
+        /// </summary>
+        /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
+        /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
+        public IServiceCollection AddRegistrationMarker<TMarker>()
+            where TMarker : IRegistrationMarker<TMarker>, new()
+        {
+            var marker = new TMarker(); // TODO: should we register the implementation type instead?
+            return serviceCollection.AddSingleton<IRegistrationMarker<TMarker>>(marker);
+        }
     }
 
     private static string GetEffectiveMessage<TMarker>(string? message)

@@ -30,30 +30,31 @@ namespace NCode.Identity.DataProtection;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Registers the required services needed for data protection into the provided <see cref="IServiceCollection"/> instance.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <returns>The <see cref="IDataProtectionBuilder"/> instance for configuring data protection.</returns>
-    public static IDataProtectionBuilder AddSecureDataProtectionServices(this IServiceCollection serviceCollection) =>
-        serviceCollection.AddSecureDataProtectionServices(_ => { });
-
-    /// <summary>
-    /// Registers the required services needed for data protection into the provided <see cref="IServiceCollection"/> instance.
-    /// </summary>
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <param name="configureOptions">An <see cref="Action{DataProtectionOptions}"/> to configure the provided <see cref="DataProtectionOptions"/>.</param>
-    /// <returns>The <see cref="IDataProtectionBuilder"/> instance for configuring data protection.</returns>
-    public static IDataProtectionBuilder AddSecureDataProtectionServices(
-        this IServiceCollection serviceCollection,
-        Action<DataProtectionOptions> configureOptions)
+    extension(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddRegistrationMarker<DataProtectionLibrary>();
+        /// <summary>
+        /// Registers the required services needed for data protection into the provided <see cref="IServiceCollection"/> instance.
+        /// </summary>
+        /// <returns>The <see cref="IDataProtectionBuilder"/> instance for configuring data protection.</returns>
+        public IDataProtectionBuilder AddSecureDataProtectionServices() =>
+            serviceCollection.AddSecureDataProtectionServices(_ => { });
 
-        serviceCollection.TryAddSingleton<
-            ISecureDataProtectionProvider,
-            DefaultSecureDataProtectionProvider>();
+        /// <summary>
+        /// Registers the required services needed for data protection into the provided <see cref="IServiceCollection"/> instance.
+        /// </summary>
+        /// <param name="configureOptions">An <see cref="Action{DataProtectionOptions}"/> to configure the provided <see cref="DataProtectionOptions"/>.</param>
+        /// <returns>The <see cref="IDataProtectionBuilder"/> instance for configuring data protection.</returns>
+        public IDataProtectionBuilder AddSecureDataProtectionServices(Action<DataProtectionOptions> configureOptions)
+        {
+            serviceCollection.AddRegistrationMarker<DataProtectionLibrary>();
 
-        return serviceCollection.AddDataProtection(configureOptions);
+            serviceCollection.TryAddSingleton<
+                ISecureDataProtectionProvider,
+                DefaultSecureDataProtectionProvider
+            >();
+
+            return serviceCollection.AddDataProtection(configureOptions);
+        }
     }
 }

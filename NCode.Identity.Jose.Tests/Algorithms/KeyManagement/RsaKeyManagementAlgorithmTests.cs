@@ -237,7 +237,11 @@ public class RsaKeyManagementAlgorithmTests
         if (padding == RSAEncryptionPadding.OaepSHA1)
             return new RsaKeyManagement(true);
         if (padding == RSAEncryptionPadding.OaepSHA256)
-            return new RsaOaep256KeyManagement();
+            return new RsaOaepKeyManagement(256);
+        if (padding == RSAEncryptionPadding.OaepSHA384)
+            return new RsaOaepKeyManagement(384);
+        if (padding == RSAEncryptionPadding.OaepSHA512)
+            return new RsaOaepKeyManagement(512);
         return null;
     }
 }

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
@@ -11,8 +11,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" PrivateAssets="All" />
-      <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.7" />
+      <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" PrivateAssets="All" />
+      <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.1" />
       <PackageReference Include="NCode.CryptoMemory" Version="2.0.0" />
     </ItemGroup>
 

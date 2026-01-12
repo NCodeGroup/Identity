@@ -109,9 +109,9 @@ public class DefaultAesKeyWrapTests
         var controlResult = ControlAesKeyWrap.Unwrap(encryptedCek.ToArray(), kek.ToArray());
         Assert.Equal(controlResult, cek.ToArray());
 
-        var unwrapResult = AesKeyWrap.TryUnwrapKey(kek, encryptedCek, cek, out var unwrapBytesWritten);
-        Assert.True(unwrapResult);
-        Assert.Equal(cekSizeBytes, unwrapBytesWritten);
+        var decryptedCekWriter = cek.GetFixedBufferWriter();
+        AesKeyWrap.UnwrapKey(kek, encryptedCek, ref decryptedCekWriter);
+        Assert.Equal(cekSizeBytes, decryptedCekWriter.WrittenCount);
         Assert.Equal(controlResult, cek.ToArray());
     }
 }

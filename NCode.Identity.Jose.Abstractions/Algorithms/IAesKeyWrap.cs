@@ -36,28 +36,11 @@ public interface IAesKeyWrap
     IEnumerable<KeySizes> LegalCekByteSizes { get; }
 
     /// <summary>
-    /// Gets the size, in bytes, of the resulting ciphertext for <see cref="TryWrapKey"/>.
+    /// Gets the size, in bytes, of the resulting ciphertext for <see cref="WrapKey{TWriter}(ReadOnlySpan{byte}, ReadOnlySpan{byte}, ref TWriter)"/>.
     /// </summary>
     /// <param name="contentKeySizeBytes">The size, in bytes, of the key encryption key (KEK).</param>
-    /// <returns>The size, in bytes, of the resulting ciphertext for <see cref="TryWrapKey"/>.</returns>
+    /// <returns>The size, in bytes, of the resulting ciphertext for <see cref="WrapKey{TWriter}(ReadOnlySpan{byte}, ReadOnlySpan{byte}, ref TWriter)"/>.</returns>
     int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes);
-
-    // TODO: remove
-    /// <summary>
-    /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.
-    /// </summary>
-    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
-    /// <param name="contentKey">Contains the content encryption key (CEK) that is to be encrypted.</param>
-    /// <param name="encryptedContentKey">Destination for result of encrypting the content key.</param>
-    /// <param name="bytesWritten">The number of bytes written to <paramref name="encryptedContentKey"/>.</param>
-    /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> was large enough to receive the encrypted data; otherwise, <c>false</c>.</returns>
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    bool TryWrapKey(
-        ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    );
 
     /// <summary>
     /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.

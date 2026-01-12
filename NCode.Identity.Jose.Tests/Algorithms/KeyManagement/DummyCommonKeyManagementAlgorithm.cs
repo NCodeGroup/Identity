@@ -26,14 +26,9 @@ using NCode.Identity.Secrets;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
-public class DummyCommonKeyManagementAlgorithm : CommonKeyManagementAlgorithm
+public class DummyCommonKeyManagementAlgorithm(KeyManagementAlgorithm inner) : CommonKeyManagementAlgorithm
 {
-    private KeyManagementAlgorithm Inner { get; }
-
-    public DummyCommonKeyManagementAlgorithm(KeyManagementAlgorithm inner)
-    {
-        Inner = inner;
-    }
+    private KeyManagementAlgorithm Inner { get; } = inner;
 
     public override string Code =>
         Inner.Code;
@@ -49,10 +44,6 @@ public class DummyCommonKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
         Inner.GetEncryptedContentKeySizeBytes(kekSizeBits, cekSizeBytes);
-
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapKey(SecretKey secretKey, IDictionary<string, object> header, ReadOnlySpan<byte> contentKey, Span<byte> encryptedContentKey, out int bytesWritten) =>
-        Inner.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out bytesWritten);
 
     public override void WrapKey(SecretKey secretKey, IDictionary<string, object> header, ReadOnlySpan<byte> contentKey, IBufferWriter<byte> encryptedContentKeyWriter) =>
         Inner.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter);

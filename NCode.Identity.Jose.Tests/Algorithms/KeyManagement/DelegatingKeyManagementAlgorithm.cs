@@ -44,72 +44,52 @@ public class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner) : Ke
     public override void NewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
-        Span<byte> contentKey) =>
+        Span<byte> contentKey
+    ) =>
         Inner.NewKey(
             secretKey,
             header,
-            contentKey);
-
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten) =>
-        Inner.TryWrapKey(
-            secretKey,
-            header,
-            contentKey,
-            encryptedContentKey,
-            out bytesWritten);
+            contentKey
+        );
 
     public override void WrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
-        IBufferWriter<byte> encryptedContentKeyWriter) =>
+        IBufferWriter<byte> encryptedContentKeyWriter
+    ) =>
         Inner.WrapKey(
             secretKey,
             header,
             contentKey,
-            encryptedContentKeyWriter);
-
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapNewKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        Span<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten) =>
-        Inner.TryWrapNewKey(
-            secretKey,
-            header,
-            contentKey,
-            encryptedContentKey,
-            out bytesWritten);
+            encryptedContentKeyWriter
+        );
 
     public override void WrapNewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey,
-        IBufferWriter<byte> encryptedContentKeyWriter) =>
+        IBufferWriter<byte> encryptedContentKeyWriter
+    ) =>
         Inner.WrapNewKey(
             secretKey,
             header,
             contentKey,
-            encryptedContentKeyWriter);
+            encryptedContentKeyWriter
+        );
 
     public override bool TryUnwrapKey(
         SecretKey secretKey,
         JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten) =>
+        out int bytesWritten
+    ) =>
         Inner.TryUnwrapKey(
             secretKey,
             header,
             encryptedContentKey,
             contentKey,
-            out bytesWritten);
+            out bytesWritten
+        );
 }

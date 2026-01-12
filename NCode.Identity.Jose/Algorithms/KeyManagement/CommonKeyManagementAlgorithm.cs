@@ -42,28 +42,6 @@ public abstract class CommonKeyManagementAlgorithm : KeyManagementAlgorithm
         RandomNumberGenerator.Fill(contentKey);
     }
 
-    // TODO: remove
-    /// <inheritdoc />
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapNewKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        Span<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    )
-    {
-        NewKey(secretKey, header, contentKey);
-
-        return TryWrapKey(
-            secretKey,
-            header,
-            contentKey,
-            encryptedContentKey,
-            out bytesWritten
-        );
-    }
-
     /// <inheritdoc />
     public override void WrapNewKey(
         SecretKey secretKey,

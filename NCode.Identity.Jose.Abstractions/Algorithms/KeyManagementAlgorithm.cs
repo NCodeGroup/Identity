@@ -70,25 +70,6 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm
         Span<byte> contentKey
     );
 
-    // TODO: remove
-    /// <summary>
-    /// Performs the cryptographic operation of encrypting a content encryption key (CEK) with an key encryption key (KEK).
-    /// </summary>
-    /// <param name="secretKey">The key encryption key (KEK), for the current cryptographic algorithm.</param>
-    /// <param name="header">The JOSE header for the current cryptographic operation.</param>
-    /// <param name="contentKey">The content encryption key (CEK) to encrypt.</param>
-    /// <param name="encryptedContentKey">The destination for the encrypted content encryption key (CEK).</param>
-    /// <param name="bytesWritten">When this method returns, contains a value that indicates the number of bytes written to <paramref name="encryptedContentKey"/>.</param>
-    /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public abstract bool TryWrapKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    );
-
     /// <summary>
     /// Performs the cryptographic operation of encrypting a content encryption key (CEK) with a key encryption key (KEK).
     /// </summary>
@@ -101,25 +82,6 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         IBufferWriter<byte> encryptedContentKeyWriter
-    );
-
-    // TODO: remove
-    /// <summary>
-    /// Performs the cryptographic operation of encrypting a newly generated content encryption key (CEK) with a key encryption key (KEK).
-    /// </summary>
-    /// <param name="secretKey">The key encryption key (KEK), for the current cryptographic algorithm.</param>
-    /// <param name="header">The JOSE header for the current cryptographic operation.</param>
-    /// <param name="contentKey">The destination for the newly generated content encryption key (CEK).</param>
-    /// <param name="encryptedContentKey">The destination for the encrypted content encryption key (CEK).</param>
-    /// <param name="bytesWritten">When this method returns, contains a value that indicates the number of bytes written to <paramref name="encryptedContentKey"/>.</param>
-    /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> is big enough to receive the output; otherwise, <c>false</c>.</returns>
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public abstract bool TryWrapNewKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        Span<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
     );
 
     /// <summary>

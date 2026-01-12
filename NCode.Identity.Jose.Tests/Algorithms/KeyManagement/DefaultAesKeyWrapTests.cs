@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,8 +14,10 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
+using NCode.CryptoMemory;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Exceptions;
 using ControlAesKeyWrap = Jose.AesKeyWrap;
@@ -99,9 +102,9 @@ public class DefaultAesKeyWrapTests
         Span<byte> cek = new byte[cekSizeBytes];
         Span<byte> encryptedCek = new byte[cekSizeBytes + 8];
 
-        var wrapResult = AesKeyWrap.TryWrapKey(kek, cek, encryptedCek, out var wrapBytesWritten);
-        Assert.True(wrapResult);
-        Assert.Equal(cekSizeBytes + 8, wrapBytesWritten);
+        var encryptedCekWriter = encryptedCek.GetFixedBufferWriter();
+        AesKeyWrap.WrapKey(kek, cek, ref encryptedCekWriter);
+        Assert.Equal(cekSizeBytes + 8, encryptedCekWriter.WrittenCount);
 
         var controlResult = ControlAesKeyWrap.Unwrap(encryptedCek.ToArray(), kek.ToArray());
         Assert.Equal(controlResult, cek.ToArray());

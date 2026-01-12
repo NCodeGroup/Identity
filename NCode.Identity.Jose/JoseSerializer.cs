@@ -220,23 +220,6 @@ public partial class JoseSerializer : IJoseSerializer
         }
     }
 
-    // TODO: is this used?
-    private static void EncodeJose(
-        bool b64,
-        ReadOnlySpan<byte> bytes,
-        IBufferWriter<char> writer
-    )
-    {
-        if (b64)
-        {
-            Base64Url.Encode(bytes, writer);
-        }
-        else
-        {
-            SecureEncoding.UTF8.GetChars(bytes, writer);
-        }
-    }
-
     private static void EncodeJose(
         bool b64,
         ReadOnlySequence<byte> bytes,

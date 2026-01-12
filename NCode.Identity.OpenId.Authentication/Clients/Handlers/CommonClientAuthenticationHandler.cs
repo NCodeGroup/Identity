@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
@@ -106,7 +107,7 @@ public abstract class CommonClientAuthenticationHandler(
 
         var clientSecretChars = clientSecret.Span;
         var byteCount = SecureEncoding.UTF8.GetByteCount(clientSecretChars);
-        using var _ = CryptoPool.Rent(byteCount, isSensitive: true, out Memory<byte> clientSecretBytes);
+        using var _ = SecureMemoryFactory.Rent(byteCount, isSensitive: true, out Memory<byte> clientSecretBytes);
 
         var decodeResult = SecureEncoding.UTF8.TryGetBytes(clientSecretChars, clientSecretBytes.Span, out var bytesWritten);
         Debug.Assert(decodeResult && bytesWritten == byteCount);
@@ -221,15 +222,15 @@ public abstract class CommonClientAuthenticationHandler(
     /// <returns><c>true</c> if the specified symmetric <paramref name="secretKey"/> is equal to the specified <paramref name="clientSecretBytes"/>; otherwise, <c>false</c>.</returns>
     protected static bool IsSecretEqual(SymmetricSecretKey secretKey, ReadOnlySpan<byte> clientSecretBytes)
     {
-        using var _ = CryptoPool.Rent(
-            secretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> secretKeyBytes
-        );
+        // increase our chances for a single-segment buffer
+        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(clientSecretBytes.Length);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
-        var exportResult = secretKey.TryExportPrivateKey(secretKeyBytes, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == secretKey.KeySizeBytes);
+        secretKey.ExportPrivateKey(ref privateKeyWriter);
 
-        return CryptographicOperations.FixedTimeEquals(secretKeyBytes, clientSecretBytes);
+        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        var privateKeySpan = privateKeySpanLease.Span;
+
+        return CryptographicOperations.FixedTimeEquals(privateKeySpan, clientSecretBytes);
     }
 }

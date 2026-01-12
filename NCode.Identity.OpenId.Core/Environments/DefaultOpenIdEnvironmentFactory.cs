@@ -16,7 +16,7 @@
 
 #endregion
 
-using NCode.Identity.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Serialization;
@@ -27,13 +27,13 @@ namespace NCode.Identity.OpenId.Environments;
 /// Provides a default implementation of the <see cref="IOpenIdEnvironmentFactory"/> abstraction.
 /// </summary>
 public class DefaultOpenIdEnvironmentFactory(
-    ISecureDataProtectionProvider secureDataProtectionProvider,
+    IDataProtectionProvider dataProtectionProvider,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     IOpenIdMessageFactorySelector openIdMessageFactorySelector,
     IEnumerable<IOpenIdJsonConverterProvider> jsonConverterProviders
 ) : IOpenIdEnvironmentFactory
 {
-    private ISecureDataProtectionProvider SecureDataProtectionProvider { get; } = secureDataProtectionProvider;
+    private IDataProtectionProvider DataProtectionProvider { get; } = dataProtectionProvider;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
     private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } = openIdMessageFactorySelector;
     private IEnumerable<IOpenIdJsonConverterProvider> JsonConverterProviders { get; } = jsonConverterProviders;
@@ -42,7 +42,7 @@ public class DefaultOpenIdEnvironmentFactory(
     public OpenIdEnvironment Create()
     {
         // TODO: configure purpose from options
-        var secureDataProtector = SecureDataProtectionProvider.CreateProtector("NCode.Identity.OpenId");
+        var secureDataProtector = DataProtectionProvider.CreateProtector("NCode.Identity.OpenId");
 
         var openIdEnvironment = new DefaultOpenIdEnvironment(
             secureDataProtector,

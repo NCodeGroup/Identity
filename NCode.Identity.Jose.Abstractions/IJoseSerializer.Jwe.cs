@@ -30,7 +30,8 @@ partial interface IJoseSerializer
     /// <param name="encryptionOptions">The JOSE encryption credentials and options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
     JoseEncoder CreateEncoder(
-        JoseEncryptionOptions encryptionOptions);
+        JoseEncryptionOptions encryptionOptions
+    );
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -45,7 +46,8 @@ partial interface IJoseSerializer
         T payload,
         JoseEncryptionOptions encryptionOptions,
         JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -61,7 +63,8 @@ partial interface IJoseSerializer
         T payload,
         JoseEncryptionOptions encryptionOptions,
         JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -74,7 +77,8 @@ partial interface IJoseSerializer
         IBufferWriter<char> tokenWriter,
         string payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -86,7 +90,8 @@ partial interface IJoseSerializer
     string Encode(
         string payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -99,7 +104,8 @@ partial interface IJoseSerializer
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<char> payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -111,7 +117,8 @@ partial interface IJoseSerializer
     string Encode(
         ReadOnlySpan<char> payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -123,7 +130,8 @@ partial interface IJoseSerializer
     string Encode(
         ReadOnlySpan<byte> payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.
@@ -136,5 +144,6 @@ partial interface IJoseSerializer
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 }

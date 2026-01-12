@@ -18,16 +18,13 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Secrets;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class CommonKeyManagementAlgorithmTests : BaseTests
 {
-    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private Mock<KeyManagementAlgorithm> MockAlgorithm { get; }
     private DummyCommonKeyManagementAlgorithm Algorithm { get; }
 

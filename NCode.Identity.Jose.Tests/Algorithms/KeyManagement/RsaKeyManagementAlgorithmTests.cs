@@ -17,18 +17,17 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Jose;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
-public class RsaKeyManagementAlgorithmTests
+public class RsaKeyManagementAlgorithmTests : BaseTests
 {
-    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
 
     [Fact]
     public void Code_Valid()
@@ -130,7 +129,7 @@ public class RsaKeyManagementAlgorithmTests
 
     [Theory]
     [MemberData(nameof(GetCommonRsaKeyParameterTestData))]
-    public void TryWrapKey_Valid(int kekSizeBits, RSAEncryptionPadding padding)
+    public void WrapKey_Valid(int kekSizeBits, RSAEncryptionPadding padding)
     {
         const string code = nameof(code);
 
@@ -144,38 +143,15 @@ public class RsaKeyManagementAlgorithmTests
         var encryptedCekSizeBytes = algorithm.GetEncryptedContentKeySizeBytes(secretKey.KeySizeBits, cekSizeBytes);
 
         Span<byte> cek = new byte[cekSizeBytes];
-        Span<byte> encryptedCek = new byte[encryptedCekSizeBytes];
+        var encryptedCekWriter = new ArrayBufferWriter<byte>(encryptedCekSizeBytes);
 
         RandomNumberGenerator.Fill(cek);
 
-        var result = algorithm.TryWrapKey(secretKey, header, cek, encryptedCek, out var bytesWritten);
-        Assert.True(result);
-        Assert.Equal(encryptedCekSizeBytes, bytesWritten);
+        algorithm.WrapKey(secretKey, header, cek, encryptedCekWriter);
+        Assert.Equal(encryptedCekSizeBytes, encryptedCekWriter.WrittenCount);
 
-        var decrypted = key.Decrypt(encryptedCek.ToArray(), padding);
+        var decrypted = key.Decrypt(encryptedCekWriter.WrittenSpan.ToArray(), padding);
         Assert.Equal(Convert.ToBase64String(cek), Convert.ToBase64String(decrypted));
-    }
-
-    [Fact]
-    public void TryWrapKey_GivenTooSmallDestination_ThenValid()
-    {
-        const string code = nameof(code);
-        const int kekSizeBits = 2048;
-        const int kekSizeBytes = kekSizeBits >> 3;
-
-        using var key = RSA.Create(kekSizeBits);
-        var secretKey = SecretKeyFactory.CreateRsa(default, key);
-
-        var anyPadding = RSAEncryptionPadding.Pkcs1;
-        var algorithm = new RsaKeyManagementAlgorithm(code, anyPadding);
-
-        var header = new Dictionary<string, object>();
-        var contentKey = new byte[32];
-        var encryptedContentKey = new byte[kekSizeBytes - 1];
-
-        var result = algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out var bytesWritten);
-        Assert.False(result);
-        Assert.Equal(0, bytesWritten);
     }
 
     [Theory]
@@ -197,24 +173,22 @@ public class RsaKeyManagementAlgorithmTests
 
         Span<byte> cek = new byte[cekSizeBytes];
         Span<byte> decryptedCek = new byte[cekSizeBytes];
-        Span<byte> encryptedCek = new byte[encryptedCekSizeBytes];
+        var encryptedCekWriter = new ArrayBufferWriter<byte>(encryptedCekSizeBytes);
 
         RandomNumberGenerator.Fill(cek);
 
-        var wrapResult = algorithm.TryWrapKey(
+        algorithm.WrapKey(
             secretKey,
             headerForWrap,
             cek,
-            encryptedCek,
-            out var wrapBytesWritten);
-        Assert.True(wrapResult);
-        Assert.Equal(encryptedCekSizeBytes, wrapBytesWritten);
+            encryptedCekWriter);
+        Assert.Equal(encryptedCekSizeBytes, encryptedCekWriter.WrittenCount);
 
         var cekSizeBits = cekSizeBytes << 3;
         var controlAlgorithm = GetControlAlgorithm(padding);
         if (controlAlgorithm != null)
         {
-            var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), key, cekSizeBits, headerForWrap);
+            var controlResult = controlAlgorithm.Unwrap(encryptedCekWriter.WrittenSpan.ToArray(), key, cekSizeBits, headerForWrap);
             Assert.Equal(cek.ToArray(), controlResult);
         }
 
@@ -222,7 +196,7 @@ public class RsaKeyManagementAlgorithmTests
         var unwrapResult = algorithm.TryUnwrapKey(
             secretKey,
             headerForUnwrap,
-            encryptedCek,
+            encryptedCekWriter.WrittenSpan,
             decryptedCek,
             out var unwrapBytesWritten);
         Assert.True(unwrapResult);

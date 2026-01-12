@@ -20,7 +20,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using NCode.Identity.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace NCode.Identity.Secrets;
 
@@ -31,14 +31,14 @@ namespace NCode.Identity.Secrets;
 /// Can be used for either <see cref="ECDsa"/> or <see cref="ECDiffieHellman"/> keys.
 /// </remarks>
 public class DefaultEccSecretKey(
-    ISecureDataProtector dataProtector,
+    IDataProtector dataProtector,
     KeyMetadata metadata,
     int curveSizeBits,
     byte[] protectedPkcs8PrivateKey,
     byte[]? certificateRawData
 ) : EccSecretKey
 {
-    private ISecureDataProtector DataProtector { get; } = dataProtector;
+    private IDataProtector DataProtector { get; } = dataProtector;
     private byte[] ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
     private byte[]? CertificateRawData { get; } = certificateRawData;
 
@@ -54,7 +54,7 @@ public class DefaultEccSecretKey(
 
     /// <inheritdoc />
     public override X509Certificate2? ExportCertificate() =>
-        HasCertificate ? new X509Certificate2(CertificateRawData) : null;
+        HasCertificate ? X509CertificateLoader.LoadCertificate(CertificateRawData) : null;
 
     /// <inheritdoc />
     public override ECCurve GetECCurve() => KeySizeBits switch

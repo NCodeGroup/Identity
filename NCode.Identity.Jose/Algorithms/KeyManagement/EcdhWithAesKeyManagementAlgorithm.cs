@@ -17,10 +17,12 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.CryptoMemory;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
@@ -53,19 +55,26 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
-        if (encryptedContentKey.Length < AesKeyWrap.GetEncryptedContentKeySizeBytes(contentKey.Length))
-        {
-            bytesWritten = 0;
-            return false;
-        }
+        throw new NotFiniteNumberException();
+    }
 
+    /// <inheritdoc />
+    public override void WrapKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        ReadOnlySpan<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
+    {
         var newKek = KekSizeBytes <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[KekSizeBytes] :
             GC.AllocateUninitializedArray<byte>(KekSizeBytes, pinned: true);
@@ -74,7 +83,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         {
             base.NewKey(secretKey, header, newKek);
 
-            return AesKeyWrap.TryWrapKey(newKek, contentKey, encryptedContentKey, out bytesWritten);
+            AesKeyWrap.WrapKey(newKek, contentKey, ref encryptedContentKeyWriter);
         }
         finally
         {
@@ -82,21 +91,44 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         }
     }
 
+    // TODO: remove
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapNewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         NewKey(secretKey, header, contentKey);
+
         return TryWrapKey(
             secretKey,
             header,
             contentKey,
             encryptedContentKey,
-            out bytesWritten);
+            out bytesWritten
+        );
+    }
+
+    /// <inheritdoc />
+    public override void WrapNewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
+    {
+        NewKey(secretKey, header, contentKey);
+
+        WrapKey(
+            secretKey,
+            header,
+            contentKey,
+            encryptedContentKeyWriter
+        );
     }
 
     /// <inheritdoc />
@@ -105,7 +137,8 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         if (contentKey.Length < AesKeyWrap.GetContentKeySizeBytes(encryptedContentKey.Length))
         {
@@ -113,20 +146,16 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
             return false;
         }
 
-        var newKek = KekSizeBytes <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[KekSizeBytes] :
-            GC.AllocateUninitializedArray<byte>(KekSizeBytes, pinned: true);
+        using var newKek = SecureMemoryFactory.CreatePinnedArray(KekSizeBytes);
 
-        try
-        {
-            var result = base.TryUnwrapKey(secretKey, header, Array.Empty<byte>(), newKek, out var newKekBytesWritten);
-            Debug.Assert(result && newKekBytesWritten == KekSizeBytes);
+        var result = base.TryUnwrapKey(secretKey, header, [], newKek, out var newKekBytesWritten);
+        Debug.Assert(result && newKekBytesWritten == KekSizeBytes);
 
-            return AesKeyWrap.TryUnwrapKey(newKek, encryptedContentKey, contentKey, out bytesWritten);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(newKek);
-        }
+        var contentKeyWriter = contentKey.GetFixedBufferWriter();
+
+        AesKeyWrap.UnwrapKey(newKek, encryptedContentKey, ref contentKeyWriter);
+
+        bytesWritten = contentKeyWriter.WrittenCount;
+        return true;
     }
 }

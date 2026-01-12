@@ -17,10 +17,12 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.CryptoMemory;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
 
@@ -37,15 +39,15 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// </summary>
     public static DirectKeyManagementAlgorithm Singleton { get; } = new();
 
-    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
-    {
-        new KeySizes(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
-    };
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
+    [
+        new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
+    ];
 
-    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } = new[]
-    {
-        new KeySizes(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
-    };
+    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
+    [
+        new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
+    ];
 
     /// <inheritdoc />
     public override string Code => AlgorithmCodes.KeyManagement.Direct;
@@ -74,41 +76,68 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public override void NewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
-        Span<byte> contentKey)
+        Span<byte> contentKey
+    )
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
-
         if (contentKey.Length != validatedSecretKey.KeySizeBytes)
         {
             throw new JoseException("The size of the destination buffer for CEK must identical to the KEK size.");
         }
 
-        var exportResult = validatedSecretKey.TryExportPrivateKey(contentKey, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+        var privateKeyWriter = contentKey.GetFixedBufferWriter();
+        validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
+        Debug.Assert(privateKeyWriter.WrittenCount == validatedSecretKey.KeySizeBytes);
     }
 
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         throw new JoseException("The direct key management algorithm does not support using an existing CEK.");
     }
 
     /// <inheritdoc />
+    public override void WrapKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        ReadOnlySpan<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
+    {
+        throw new JoseException("The direct key management algorithm does not support using an existing CEK.");
+    }
+
+    /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapNewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         NewKey(secretKey, header, contentKey);
         bytesWritten = 0;
         return true;
+    }
+
+    /// <inheritdoc />
+    public override void WrapNewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
+    {
+        NewKey(secretKey, header, contentKey);
     }
 
     /// <inheritdoc />
@@ -117,15 +146,26 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
-        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
-
         if (encryptedContentKey.Length != 0)
         {
             throw new JoseException("The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.");
         }
 
-        return validatedSecretKey.TryExportPrivateKey(contentKey, out bytesWritten);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
+        if (contentKey.Length < validatedSecretKey.KeySizeBytes)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        var contentKeyWriter = contentKey.GetFixedBufferWriter();
+
+        validatedSecretKey.ExportPrivateKey(ref contentKeyWriter);
+
+        bytesWritten = contentKeyWriter.WrittenCount;
+        return true;
     }
 }

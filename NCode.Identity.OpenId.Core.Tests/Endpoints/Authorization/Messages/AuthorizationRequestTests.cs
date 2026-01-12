@@ -21,7 +21,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Moq;
 using NCode.Collections.Providers;
-using NCode.Identity.OpenId.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Messages.Parameters;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -37,8 +38,14 @@ public class AuthorizationRequestTests : BaseTests
 
     private static Dictionary<string, KnownParameter> GetKnownParameters()
     {
-        var dataSource = new DefaultKnownParameterDataSource(NullChangeToken.Singleton);
-        return dataSource.Collection.ToDictionary(knownParameter => knownParameter.Name);
+        var dataSource = new DefaultCommonParameterDataSource(NullChangeToken.Singleton);
+        var knownParameters = dataSource.Collection.ToDictionary(knownParameter => knownParameter.Name);
+
+        // Add authentication-specific parameters
+        knownParameters[OpenIdAuthenticationParameters.Claims.Name] = OpenIdAuthenticationParameters.Claims;
+        knownParameters[OpenIdAuthenticationParameters.RequestObjectSource.Name] = OpenIdAuthenticationParameters.RequestObjectSource;
+
+        return knownParameters;
     }
 
     public AuthorizationRequestTests()
@@ -57,6 +64,7 @@ public class AuthorizationRequestTests : BaseTests
             Converters =
             {
                 new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
+                new StringValuesJsonConverter(),
                 new OpenIdMessageJsonConverterFactory(MockOpenIdEnvironment.Object),
                 new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),

@@ -45,7 +45,8 @@ partial class JoseSerializer
         string token,
         SecretKey secretKey,
         T detachedPayload,
-        JsonSerializerOptions? jsonOptions) =>
+        JsonSerializerOptions? jsonOptions
+    ) =>
         VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload, jsonOptions);
 
     /// <inheritdoc />
@@ -54,7 +55,8 @@ partial class JoseSerializer
         SecretKey secretKey,
         T detachedPayload,
         JsonSerializerOptions? jsonOptions,
-        out JsonElement header)
+        out JsonElement header
+    )
     {
         var compact = ParseCompactJwt(token);
         VerifyJws(compact, secretKey, detachedPayload, jsonOptions);
@@ -66,7 +68,8 @@ partial class JoseSerializer
         CompactJwt compactJwt,
         SecretKey secretKey,
         T detachedPayload,
-        JsonSerializerOptions? jsonOptions)
+        JsonSerializerOptions? jsonOptions
+    )
     {
         AssertJwsDetached(compactJwt);
         using var _ = SerializeToUtf8(detachedPayload, jsonOptions, out var bytes);
@@ -77,50 +80,59 @@ partial class JoseSerializer
     public void VerifyJws(
         string token,
         SecretKey secretKey,
-        string detachedPayload) =>
+        string detachedPayload
+    ) =>
         VerifyJws(
             ParseCompactJwt(token),
             secretKey,
-            detachedPayload.AsSpan());
+            detachedPayload.AsSpan()
+        );
 
     /// <inheritdoc />
     public void VerifyJws(
         string token,
         SecretKey secretKey,
         string detachedPayload,
-        out JsonElement header) =>
+        out JsonElement header
+    ) =>
         VerifyJws(
             token,
             secretKey,
             detachedPayload.AsSpan(),
-            out header);
+            out header
+        );
 
     /// <inheritdoc />
     public void VerifyJws(
         CompactJwt compactJwt,
         SecretKey secretKey,
-        string detachedPayload) =>
+        string detachedPayload
+    ) =>
         VerifyJws(
             compactJwt,
             secretKey,
-            detachedPayload.AsSpan());
+            detachedPayload.AsSpan()
+        );
 
     /// <inheritdoc />
     public void VerifyJws(
         string token,
         SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload) =>
+        ReadOnlySpan<char> detachedPayload
+    ) =>
         VerifyJws(
             ParseCompactJwt(token),
             secretKey,
-            detachedPayload);
+            detachedPayload
+        );
 
     /// <inheritdoc />
     public void VerifyJws(
         string token,
         SecretKey secretKey,
         ReadOnlySpan<char> detachedPayload,
-        out JsonElement header)
+        out JsonElement header
+    )
     {
         var compact = ParseCompactJwt(token);
         VerifyJws(compact, secretKey, detachedPayload);
@@ -131,7 +143,8 @@ partial class JoseSerializer
     public void VerifyJws(
         CompactJwt compactJwt,
         SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload)
+        ReadOnlySpan<char> detachedPayload
+    )
     {
         AssertJwsDetached(compactJwt);
 
@@ -144,7 +157,7 @@ partial class JoseSerializer
         if (b64)
         {
             var byteCount = SecureEncoding.UTF8.GetByteCount(detachedPayload);
-            using var lease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+            using var lease = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
             var bytesWritten = SecureEncoding.UTF8.GetBytes(detachedPayload, payloadBytes);
             Debug.Assert(bytesWritten == byteCount);
 
@@ -171,18 +184,21 @@ partial class JoseSerializer
     public void VerifyJws(
         string token,
         SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload) =>
+        ReadOnlySpan<byte> detachedPayload
+    ) =>
         VerifyJws(
             ParseCompactJwt(token),
             secretKey,
-            detachedPayload);
+            detachedPayload
+        );
 
     /// <inheritdoc />
     public void VerifyJws(
         string token,
         SecretKey secretKey,
         ReadOnlySpan<byte> detachedPayload,
-        out JsonElement header)
+        out JsonElement header
+    )
     {
         var compact = ParseCompactJwt(token);
         VerifyJws(compact, secretKey, detachedPayload);
@@ -193,7 +209,8 @@ partial class JoseSerializer
     public void VerifyJws(
         CompactJwt compactJwt,
         SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload)
+        ReadOnlySpan<byte> detachedPayload
+    )
     {
         AssertJwsDetached(compactJwt);
 
@@ -223,7 +240,8 @@ partial class JoseSerializer
         JsonElement header,
         ReadOnlySpan<char> encodedHeader,
         ReadOnlySpan<char> encodedPayload,
-        ReadOnlySpan<char> encodedSignature)
+        ReadOnlySpan<char> encodedSignature
+    )
     {
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var signatureAlgorithmCode))
             throw new JoseException("The JWT header is missing the 'alg' field.");
@@ -251,12 +269,13 @@ partial class JoseSerializer
     private static IDisposable GetSignatureInput(
         ReadOnlySpan<char> encodedHeader,
         ReadOnlySpan<char> encodedPayload,
-        out ReadOnlySpan<byte> signatureInput)
+        out ReadOnlySpan<byte> signatureInput
+    )
     {
         var headerByteCount = SecureEncoding.UTF8.GetByteCount(encodedHeader);
         var payloadByteCount = SecureEncoding.UTF8.GetByteCount(encodedPayload);
         var totalByteCount = headerByteCount + 1 + payloadByteCount;
-        var lease = CryptoPool.Rent(totalByteCount, isSensitive: false, out Span<byte> span);
+        var lease = SecureMemoryFactory.Rent(totalByteCount, isSensitive: false, out Span<byte> span);
         try
         {
             var bytesRead = SecureEncoding.UTF8.GetBytes(encodedHeader, span);

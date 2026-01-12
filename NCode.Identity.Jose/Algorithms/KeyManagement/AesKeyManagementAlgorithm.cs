@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -54,7 +55,7 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         AesKeyWrap = aesKeyWrap;
         Code = code;
 
-        KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
+        KeyBitSizes = [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
     }
 
     /// <inheritdoc />
@@ -66,28 +67,40 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public override void WrapKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        ReadOnlySpan<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
-        using var _ = CryptoPool.Rent(
-            validatedSecretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> encryptionKey);
+        // increase our chances for a single-segment buffer
+        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
-        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+        validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
+        Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        return AesKeyWrap.TryWrapKey(
-            encryptionKey,
+        AesKeyWrap.WrapKey(
+            privateKeyBuffer,
             contentKey,
-            encryptedContentKey,
-            out bytesWritten);
+            ref encryptedContentKeyWriter
+        );
     }
 
     /// <inheritdoc />
@@ -96,22 +109,33 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
-        using var _ = CryptoPool.Rent(
-            validatedSecretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> encryptionKey);
+        if (contentKey.Length < AesKeyWrap.GetContentKeySizeBytes(encryptedContentKey.Length))
+        {
+            bytesWritten = 0;
+            return false;
+        }
 
-        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+        // increase our chances for a single-segment buffer
+        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
-        return AesKeyWrap.TryUnwrapKey(
-            encryptionKey,
+        validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
+        Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
+
+        var contentKeyWriter = contentKey.GetFixedBufferWriter();
+
+        AesKeyWrap.UnwrapKey(
+            privateKeyBuffer,
             encryptedContentKey,
-            contentKey,
-            out bytesWritten);
+            ref contentKeyWriter
+        );
+
+        bytesWritten = contentKeyWriter.WrittenCount;
+        return true;
     }
 }

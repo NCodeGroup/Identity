@@ -17,13 +17,13 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Jose;
 using Jose.keys;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
 using Base64Url = NCode.Encoders.Base64Url;
@@ -33,7 +33,6 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class EcdhKeyManagementAlgorithmTests : BaseTests
 {
-    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private static EcdhKeyManagementAlgorithm Algorithm => EcdhKeyManagementAlgorithm.Singleton;
 
     private static ECCurve GetCurve(int curveSizeBits)
@@ -502,10 +501,10 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void TryWrapKey_Valid()
+    public void WrapKey_Valid()
     {
         Assert.Throws<JoseException>(() =>
-            Algorithm.TryWrapKey(null!, null!, Span<byte>.Empty, Span<byte>.Empty, out _));
+            Algorithm.WrapKey(null!, null!, Span<byte>.Empty, new ArrayBufferWriter<byte>()));
     }
 
     public static IEnumerable<object[]> RoundTripTestData

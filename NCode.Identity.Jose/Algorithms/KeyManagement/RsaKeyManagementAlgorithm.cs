@@ -17,10 +17,10 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
@@ -31,10 +31,10 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 [PublicAPI]
 public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
-    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
-    {
-        new KeySizes(minSize: 2048, maxSize: 16384, skipSize: 64)
-    };
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
+    [
+        new(minSize: 2048, maxSize: 16384, skipSize: 64)
+    ];
 
     /// <inheritdoc />
     public override string Code { get; }
@@ -85,7 +85,7 @@ public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     {
         const int octetSize = 1;
         var maxCekSizeBytes = GetMaxCekSizeBytes(kekSizeBits);
-        return new[] { new KeySizes(minSize: octetSize, maxCekSizeBytes, skipSize: octetSize) };
+        return [new KeySizes(minSize: octetSize, maxCekSizeBytes, skipSize: octetSize)];
     }
 
     /// <inheritdoc />
@@ -93,12 +93,14 @@ public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         (kekSizeBits + 7) >> 3;
 
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         if (encryptedContentKey.Length < secretKey.KeySizeBytes)
         {
@@ -114,12 +116,32 @@ public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
+    public override void WrapKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        ReadOnlySpan<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
+    {
+        var validatedSecretKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
+
+        using var key = validatedSecretKey.ExportRSA();
+
+        var encryptedContentKey = encryptedContentKeyWriter.GetSpan(secretKey.KeySizeBytes);
+
+        var bytesWritten = key.Encrypt(contentKey, encryptedContentKey, Padding);
+
+        encryptedContentKeyWriter.Advance(bytesWritten);
+    }
+
+    /// <inheritdoc />
     public override bool TryUnwrapKey(
         SecretKey secretKey,
         JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         var validatedSecretKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
 

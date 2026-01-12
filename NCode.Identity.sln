@@ -37,8 +37,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Secrets.Abst
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Secrets", "NCode.Identity.Secrets\NCode.Identity.Secrets.csproj", "{F81D6E02-3547-430F-AD7B-955DDFE3DC18}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.DataProtection.Abstractions", "NCode.Identity.DataProtection.Abstractions\NCode.Identity.DataProtection.Abstractions.csproj", "{6FC01EF6-0C8F-4414-843E-9B8370809D4A}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.DataProtection", "NCode.Identity.DataProtection\NCode.Identity.DataProtection.csproj", "{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCode.Identity.Persistence.Abstractions", "NCode.Identity.Persistence.Abstractions\NCode.Identity.Persistence.Abstractions.csproj", "{43257431-CF1E-4595-9003-9BD8C67BF580}"
@@ -137,10 +135,6 @@ Global
 		{F81D6E02-3547-430F-AD7B-955DDFE3DC18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F81D6E02-3547-430F-AD7B-955DDFE3DC18}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F81D6E02-3547-430F-AD7B-955DDFE3DC18}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6FC01EF6-0C8F-4414-843E-9B8370809D4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6FC01EF6-0C8F-4414-843E-9B8370809D4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6FC01EF6-0C8F-4414-843E-9B8370809D4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6FC01EF6-0C8F-4414-843E-9B8370809D4A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B79E9BD-3E1F-46C7-BDE2-CC590D07EA55}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -18,7 +18,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-using NCode.Identity.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Environments;
 /// Provides a default implementation of the <see cref="OpenIdEnvironment"/> abstraction.
 /// </summary>
 public class DefaultOpenIdEnvironment(
-    ISecureDataProtector secureDataProtector,
+    IDataProtector dataProtector,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     IOpenIdMessageFactorySelector openIdMessageFactorySelector,
     IEnumerable<IOpenIdJsonConverterProvider> jsonConverterProviders
@@ -47,7 +47,7 @@ public class DefaultOpenIdEnvironment(
     public override JsonSerializerOptions JsonSerializerOptions => JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
 
     /// <inheritdoc />
-    public override ISecureDataProtector SecureDataProtector { get; } = secureDataProtector;
+    public override IDataProtector DataProtector { get; } = dataProtector;
 
     /// <inheritdoc />
     public override IKnownParameterCollection KnownParameters => knownParameterCollectionProvider.Collection;

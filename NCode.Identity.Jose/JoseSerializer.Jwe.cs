@@ -59,18 +59,24 @@ partial class JoseSerializer
         T payload,
         JoseEncryptionOptions encryptionOptions,
         JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    )
     {
-        using var tokenBuffer = new Sequence<char>();
+        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+
         using var _ = SerializeToUtf8(
             payload,
             jsonOptions,
-            out var payloadBytes);
+            out var payloadBytes
+        );
+
         Encode(
             tokenBuffer,
             payloadBytes,
             encryptionOptions,
-            extraHeaders);
+            extraHeaders
+        );
+
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
@@ -80,17 +86,21 @@ partial class JoseSerializer
         T payload,
         JoseEncryptionOptions encryptionOptions,
         JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    )
     {
         using var _ = SerializeToUtf8(
             payload,
             jsonOptions,
-            out var payloadBytes);
+            out var payloadBytes
+        );
+
         Encode(
             tokenWriter,
             payloadBytes,
             encryptionOptions,
-            extraHeaders);
+            extraHeaders
+        );
     }
 
     /// <inheritdoc />
@@ -98,25 +108,29 @@ partial class JoseSerializer
         IBufferWriter<char> tokenWriter,
         string payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    )
     {
         Encode(
             tokenWriter,
             payload.AsSpan(),
             encryptionOptions,
-            extraHeaders);
+            extraHeaders
+        );
     }
 
     /// <inheritdoc />
     public string Encode(
         string payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    )
     {
         return Encode(
             payload.AsSpan(),
             encryptionOptions,
-            extraHeaders);
+            extraHeaders
+        );
     }
 
     /// <inheritdoc />
@@ -124,31 +138,39 @@ partial class JoseSerializer
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<char> payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    )
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var payloadLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        using var payloadLease = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+
         var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
+
         Encode(
             tokenWriter,
             payloadBytes,
             encryptionOptions,
-            extraHeaders);
+            extraHeaders
+        );
     }
 
     /// <inheritdoc />
     public string Encode(
         ReadOnlySpan<char> payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    )
     {
-        using var tokenBuffer = new Sequence<char>();
+        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+
         Encode(
             tokenBuffer,
             payload,
             encryptionOptions,
-            extraHeaders);
+            extraHeaders
+        );
+
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
@@ -156,14 +178,18 @@ partial class JoseSerializer
     public string Encode(
         ReadOnlySpan<byte> payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    )
     {
-        using var tokenBuffer = new Sequence<char>();
+        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+
         Encode(
             tokenBuffer,
             payload,
             encryptionOptions,
-            extraHeaders);
+            extraHeaders
+        );
+
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
@@ -172,7 +198,8 @@ partial class JoseSerializer
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
         JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null)
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    )
     {
         var header = extraHeaders != null ?
             new Dictionary<string, object>(extraHeaders) :
@@ -193,23 +220,22 @@ partial class JoseSerializer
             header[JoseClaimNames.Header.Kid] = keyId;
 
         var cekSizeBytes = authenticatedEncryptionAlgorithm.ContentKeySizeBytes;
-        using var cekLease = CryptoPool.Rent(cekSizeBytes, isSensitive: true, out Span<byte> cek);
+        using var cekLease = SecureMemoryFactory.Rent(cekSizeBytes, isSensitive: true, out Span<byte> cek);
 
-        var encryptedCekSizeBytes = keyManagementAlgorithm.GetEncryptedContentKeySizeBytes(secretKey.KeySizeBits, cekSizeBytes);
-        using var encryptedCekLease = CryptoPool.Rent(encryptedCekSizeBytes, isSensitive: false, out Span<byte> encryptedCek);
+        using var encryptedCekBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
 
-        var wrapResult = keyManagementAlgorithm.TryWrapNewKey(
+        keyManagementAlgorithm.WrapNewKey(
             secretKey,
             header,
             cek,
-            encryptedCek,
-            out var encryptedCekBytesWritten);
-        Debug.Assert(wrapResult && encryptedCekBytesWritten == encryptedCekSizeBytes);
+            encryptedCekBuffer
+        );
 
         var nonceSizeBytes = authenticatedEncryptionAlgorithm.NonceSizeBytes;
         var nonce = nonceSizeBytes <= JoseConstants.MaxStackAlloc ?
             stackalloc byte[nonceSizeBytes] :
             GC.AllocateUninitializedArray<byte>(nonceSizeBytes, pinned: false);
+
         RandomNumberGenerator.Fill(nonce);
 
         var tagSizeBytes = authenticatedEncryptionAlgorithm.AuthenticationTagSizeBytes;
@@ -224,14 +250,14 @@ partial class JoseSerializer
         using var aadLease = Encode(Encoding.ASCII, encodedHeader, out var aad);
 
         var cipherTextSizeBytes = authenticatedEncryptionAlgorithm.GetCipherTextSizeBytes(plainText.Length);
-        using var cipherTextLease = CryptoPool.Rent(cipherTextSizeBytes, isSensitive: false, out Span<byte> cipherText);
+        using var cipherTextLease = SecureMemoryFactory.Rent(cipherTextSizeBytes, isSensitive: false, out Span<byte> cipherText);
         authenticatedEncryptionAlgorithm.Encrypt(cek, nonce, plainText, aad, cipherText, tag);
 
         // BASE64URL(UTF8(JWE Protected Header)) || '.' ||
         WriteCompactSegment(encodedHeader, tokenWriter);
 
         // BASE64URL(JWE Encrypted Key) || '.' ||
-        WriteCompactSegment(encryptedCek, tokenWriter);
+        WriteCompactSegment(encryptedCekBuffer, tokenWriter);
 
         // BASE64URL(JWE Initialization Vector) || '.' ||
         WriteCompactSegment(nonce, tokenWriter);
@@ -278,7 +304,8 @@ partial class JoseSerializer
         using var encryptedKeyLease = DecodeBase64Url(
             encodedEncryptedKey,
             isSensitive: true,
-            out var encryptedKeyBytes);
+            out var encryptedKeyBytes
+        );
 
         // JWE Initialization Vector
         var jweInitializationVector = jweEncryptedKey.Next!;
@@ -286,7 +313,8 @@ partial class JoseSerializer
         using var initializationVectorLease = DecodeBase64Url(
             encodedInitializationVector,
             isSensitive: false,
-            out var initializationVectorBytes);
+            out var initializationVectorBytes
+        );
 
         // JWE Ciphertext
         var jweCiphertext = jweInitializationVector.Next!;
@@ -294,7 +322,8 @@ partial class JoseSerializer
         using var cipherTextLease = DecodeBase64Url(
             encodedCiphertext,
             isSensitive: false,
-            out var cipherTextBytes);
+            out var cipherTextBytes
+        );
 
         // JWE Authentication Tag
         var jweAuthenticationTag = jweCiphertext.Next!;
@@ -302,7 +331,8 @@ partial class JoseSerializer
         using var authenticationTagLease = DecodeBase64Url(
             encodedAuthenticationTag,
             isSensitive: false,
-            out var authenticationTagBytes);
+            out var authenticationTagBytes
+        );
 
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var keyManagementAlgorithmCode))
             throw new JoseException("The JWE header is missing the 'alg' field.");
@@ -314,14 +344,15 @@ partial class JoseSerializer
         var authenticatedEncryptionAlgorithm = GetAuthenticatedEncryptionAlgorithm(authenticatedEncryptionAlgorithmCode);
 
         var cekSizeBytes = authenticatedEncryptionAlgorithm.ContentKeySizeBytes;
-        using var contentKeyLease = CryptoPool.Rent(cekSizeBytes, isSensitive: true, out Span<byte> contentKey);
+        using var contentKeyLease = SecureMemoryFactory.Rent(cekSizeBytes, isSensitive: true, out Span<byte> contentKey);
 
         var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
             secretKey,
             header,
             encryptedKeyBytes,
             contentKey,
-            out var unwrapBytesWritten);
+            out var unwrapBytesWritten
+        );
 
         if (!unwrapResult || unwrapBytesWritten == 0)
             throw new JoseEncryptionException("Failed to decrypt the encrypted content encryption key (CEK).");
@@ -347,7 +378,7 @@ partial class JoseSerializer
         using var associatedDataLease = Encode(Encoding.ASCII, compactJwt.EncodedHeader, out var associatedDataBytes);
 
         var plainTextSizeBytes = authenticatedEncryptionAlgorithm.GetMaxPlainTextSizeBytes(cipherTextBytes.Length);
-        using var plainTextLease = CryptoPool.Rent(plainTextSizeBytes, isSensitive: false, out Span<byte> plainTextBytes);
+        using var plainTextLease = SecureMemoryFactory.Rent(plainTextSizeBytes, isSensitive: false, out Span<byte> plainTextBytes);
 
         /*
            16.  Decrypt the JWE Ciphertext using the CEK, the JWE Initialization
@@ -367,7 +398,8 @@ partial class JoseSerializer
             associatedDataBytes,
             authenticationTagBytes,
             plainTextBytes,
-            out var decryptBytesWritten);
+            out var decryptBytesWritten
+        );
 
         if (!decryptResult || decryptBytesWritten == 0)
             throw new JoseEncryptionException("Failed to decrypt the JWE Ciphertext.");

@@ -17,11 +17,11 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Jose;
 using NCode.CryptoMemory;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
@@ -31,7 +31,6 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class Pbes2KeyManagementAlgorithmTests : BaseTests
 {
-    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
     public Pbes2KeyManagementAlgorithmTests()
@@ -128,7 +127,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void TryWrapKey_GivenMissingAlgHeader_ThenThrows()
+    public void WrapKey_GivenMissingAlgHeader_ThenThrows()
     {
         const string password = nameof(password);
 
@@ -138,16 +137,16 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var header = new Dictionary<string, object>();
         var contentKey = Array.Empty<byte>();
-        var encryptedContentKey = Array.Empty<byte>();
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out _));
+            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter));
 
         Assert.Equal("The JWT header is missing the 'alg' field.", exception.Message);
     }
 
     [Fact]
-    public void TryWrapKey_GivenTooSmallIterationCount_ThenThrows()
+    public void WrapKey_GivenTooSmallIterationCount_ThenThrows()
     {
         const string password = nameof(password);
 
@@ -162,16 +161,16 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         };
 
         var contentKey = Array.Empty<byte>();
-        var encryptedContentKey = Array.Empty<byte>();
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out _));
+            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter));
 
         Assert.Equal("The 'p2c' field in the JWT header must be at least 1000", exception.Message);
     }
 
     [Fact]
-    public void TryWrapKey_GivenTooLargeIterationCount_ThenThrows()
+    public void WrapKey_GivenTooLargeIterationCount_ThenThrows()
     {
         const string password = nameof(password);
 
@@ -186,45 +185,12 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         };
 
         var contentKey = Array.Empty<byte>();
-        var encryptedContentKey = Array.Empty<byte>();
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out _));
+            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter));
 
         Assert.Equal("The 'p2c' field in the JWT header must be at most 310000", exception.Message);
-    }
-
-
-    [Fact]
-    public void TryWrapKey_GivenDestinationTooSmall_ThenValid()
-    {
-        const string password = nameof(password);
-
-        var algorithm = Create();
-
-        var secretKey = SecretKeyFactory.CreateSymmetric(default, password);
-
-        var header = new Dictionary<string, object>
-        {
-            ["alg"] = "anything"
-        };
-
-        var contentKey = new byte[512];
-        var encryptedContentKey = Array.Empty<byte>();
-
-        MockAesKeyWrap
-            .Setup(x => x.LegalCekByteSizes)
-            .Returns(new[] { new KeySizes(1, int.MaxValue, 1) })
-            .Verifiable();
-
-        MockAesKeyWrap
-            .Setup(x => x.GetEncryptedContentKeySizeBytes(contentKey.Length))
-            .Returns(1)
-            .Verifiable();
-
-        var result = algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out var bytesWritten);
-        Assert.False(result);
-        Assert.Equal(0, bytesWritten);
     }
 
     [Theory]
@@ -263,12 +229,11 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var contentKey = new byte[cekSizeBytes];
         RandomNumberGenerator.Fill(contentKey);
 
-        var encryptedContentKey = new byte[cekSizeBytes + 8];
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>(cekSizeBytes + 8);
         var decryptedContentKey = new byte[cekSizeBytes];
 
-        var wrapResult = algorithm.TryWrapKey(secretKey, header, contentKey, encryptedContentKey, out var wrapBytesWritten);
-        Assert.True(wrapResult);
-        Assert.Equal(encryptedContentKey.Length, wrapBytesWritten);
+        algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter);
+        Assert.Equal(cekSizeBytes + 8, encryptedContentKeyWriter.WrittenCount);
         Assert.Equal(p2c, Assert.IsType<int>(Assert.Contains(nameof(p2c), header)));
 
         var encodedSaltInput = Assert.IsType<string>(Assert.Contains("p2s", header));
@@ -278,11 +243,11 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
             keySizeBits,
             new AesKeyWrapManagement(keySizeBits));
 
-        var expectedControl = controlAlgorithm.Unwrap(encryptedContentKey, password, cekSizeBits, header);
+        var expectedControl = controlAlgorithm.Unwrap(encryptedContentKeyWriter.WrittenSpan.ToArray(), password, cekSizeBits, header);
         Assert.Equal(expectedControl, contentKey.ToArray());
 
         var headerForUnwrap = JsonSerializer.SerializeToElement(header);
-        var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedContentKey, decryptedContentKey, out var unwrapBytesWritten);
+        var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedContentKeyWriter.WrittenSpan, decryptedContentKey, out var unwrapBytesWritten);
         Assert.True(unwrapResult);
         Assert.Equal(contentKey.Length, unwrapBytesWritten);
         Assert.Equal(contentKey, decryptedContentKey);

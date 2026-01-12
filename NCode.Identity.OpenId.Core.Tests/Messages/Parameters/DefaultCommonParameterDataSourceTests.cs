@@ -23,15 +23,15 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Tests.Messages.Parameters;
 
-public class DefaultKnownParameterDataSourceTests : BaseTests
+public class DefaultCommonParameterDataSourceTests : BaseTests
 {
     private Mock<INullChangeToken> MockNullChangeToken { get; }
-    private DefaultKnownParameterDataSource DataSource { get; }
+    private DefaultCommonParameterDataSource DataSource { get; }
 
-    public DefaultKnownParameterDataSourceTests()
+    public DefaultCommonParameterDataSourceTests()
     {
         MockNullChangeToken = CreateStrictMock<INullChangeToken>();
-        DataSource = new DefaultKnownParameterDataSource(MockNullChangeToken.Object);
+        DataSource = new DefaultCommonParameterDataSource(MockNullChangeToken.Object);
     }
 
     [Fact]
@@ -45,6 +45,6 @@ public class DefaultKnownParameterDataSourceTests : BaseTests
     public void Collection_Valid()
     {
         var results = DataSource.Collection;
-        Assert.Equal(38, results.Count());
+        Assert.Equal(36, results.Count());
     }
 }

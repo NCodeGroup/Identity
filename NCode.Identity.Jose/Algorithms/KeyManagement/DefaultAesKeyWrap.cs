@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using NCode.CryptoMemory;
@@ -44,15 +45,15 @@ public class DefaultAesKeyWrap : IAesKeyWrap
     private const int IntermediateBitCount = ChunkBitCount << 1; // i.e. 128
     internal const int IntermediateByteCount = IntermediateBitCount >> 3;
 
-    private static IEnumerable<KeySizes> StaticLegalCekByteSizes { get; } = new[]
-    {
-        new KeySizes(minSize: IntermediateByteCount, maxSize: int.MaxValue, skipSize: ChunkByteCount)
-    };
+    private static IEnumerable<KeySizes> StaticLegalCekByteSizes { get; } =
+    [
+        new(minSize: IntermediateByteCount, maxSize: int.MaxValue, skipSize: ChunkByteCount)
+    ];
 
     // 0xA6A6A6A6A6A6A6A6
     // ReSharper disable once InconsistentNaming
     private static ReadOnlySpan<byte> DefaultIV =>
-        new byte[] { 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6 };
+        [0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6];
 
     /// <inheritdoc />
     public IEnumerable<KeySizes> LegalCekByteSizes =>
@@ -79,12 +80,12 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         return contentKeySizeBytes + ChunkByteCount;
     }
 
-    /// <inheritdoc />
-    public bool TryWrapKey(
-        ReadOnlySpan<byte> keyEncryptionKey,
+    private static void UnsafeWrapKey<TWriter>(
+        byte[] keyEncryptionKey,
         ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        ref TWriter encryptedContentKeyWriter
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct
     {
         /*
            Inputs:  Plaintext, n 64-bit values {P1, P2, ..., Pn}, and
@@ -92,15 +93,10 @@ public class DefaultAesKeyWrap : IAesKeyWrap
            Outputs: Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}.
         */
 
-        var expectedSizeBytes = GetCipherTextSizeBytes(contentKey.Length, out var n);
-        if (encryptedContentKey.Length < expectedSizeBytes)
-        {
-            bytesWritten = 0;
-            return false;
-        }
+        var encryptedContentKeySizeBytes = GetCipherTextSizeBytes(contentKey.Length, out var n);
 
         using var aes = Aes.Create();
-        aes.Key = keyEncryptionKey.ToArray();
+        aes.Key = keyEncryptionKey;
         aes.Mode = CipherMode.ECB;
         aes.Padding = PaddingMode.None;
 
@@ -115,7 +111,7 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         Span<byte> a = stackalloc byte[sizeof(long)];
         DefaultIV.CopyTo(a);
 
-        using var lease = CryptoPool.Rent(contentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
+        using var lease = SecureMemoryFactory.Rent(contentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
         contentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> keyMemory = leaseMemory;
 
@@ -160,10 +156,55 @@ public class DefaultAesKeyWrap : IAesKeyWrap
                    C[i] = R[i]
         */
 
+        var encryptedContentKey = encryptedContentKeyWriter.GetSpan(encryptedContentKeySizeBytes);
         Concat(a, r, encryptedContentKey);
+        encryptedContentKeyWriter.Advance(encryptedContentKeySizeBytes);
+    }
 
-        bytesWritten = expectedSizeBytes;
+    /// <inheritdoc />
+    public bool TryWrapKey(
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> contentKey,
+        Span<byte> encryptedContentKey,
+        out int bytesWritten
+    )
+    {
+        var encryptedContentKeySizeBytes = GetCipherTextSizeBytes(contentKey.Length, out _);
+        if (encryptedContentKey.Length < encryptedContentKeySizeBytes)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        var writer = encryptedContentKey.GetFixedBufferWriter();
+        UnsafeWrapKey(keyEncryptionKey.ToArray(), contentKey, ref writer);
+
+        bytesWritten = writer.WrittenCount;
         return true;
+    }
+
+    /// <inheritdoc />
+    public void WrapKey<TWriter>(
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> contentKey,
+        ref TWriter encryptedContentKeyWriter
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct
+    {
+        // there is no point in pinning the KEK here, as Aes.Create() will copy it internally anyway
+        UnsafeWrapKey(keyEncryptionKey.ToArray(), contentKey, ref encryptedContentKeyWriter);
+    }
+
+    /// <inheritdoc />
+    public void WrapKey<TWriter>(
+        ReadOnlySequence<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> contentKey,
+        ref TWriter encryptedContentKeyWriter
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct
+    {
+        // there is no point in pinning the KEK here, as Aes.Create() will copy it internally anyway
+        UnsafeWrapKey(keyEncryptionKey.ToArray(), contentKey, ref encryptedContentKeyWriter);
     }
 
     /// <inheritdoc />
@@ -192,7 +233,8 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         /*
            Inputs:  Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}, and
@@ -220,7 +262,7 @@ public class DefaultAesKeyWrap : IAesKeyWrap
                    R[i] = C[i]
         */
 
-        using var lease = CryptoPool.Rent(encryptedContentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
+        using var lease = SecureMemoryFactory.Rent(encryptedContentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
         encryptedContentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> encryptedKeyMemory = leaseMemory;
 
@@ -279,11 +321,118 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         return true;
     }
 
+    private static void UnsafeUnwrapKey<TWriter>(
+        byte[] keyEncryptionKey,
+        ReadOnlySpan<byte> encryptedContentKey,
+        ref TWriter contentKeyWriter
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct
+    {
+        /*
+           Inputs:  Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}, and
+                    Key, K (the KEK).
+           Outputs: Plaintext, n 64-bit values {P0, P1, K, Pn}.
+        */
+
+        var contentKeySizeBytes = GetUnwrapKeySizeBytes(encryptedContentKey.Length, out var n);
+
+        using var aes = Aes.Create();
+        aes.Key = keyEncryptionKey;
+        aes.Mode = CipherMode.ECB;
+        aes.Padding = PaddingMode.None;
+
+        /*
+           1) Initialize variables.
+
+               Set A = C[0]
+               For i = 1 to n
+                   R[i] = C[i]
+        */
+
+        using var _ = SecureMemoryFactory.Rent(encryptedContentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
+        encryptedContentKey.CopyTo(leaseMemory.Span);
+        ReadOnlyMemory<byte> encryptedKeyMemory = leaseMemory;
+
+        var a = encryptedKeyMemory[..ChunkByteCount];
+
+        var r = Enumerable
+            .Range(1, n) // skip first
+            .Select(i => encryptedKeyMemory.Slice(i * ChunkByteCount, ChunkByteCount))
+            .ToArray();
+
+        /*
+           2) Compute intermediate values.
+
+               For j = 5 to 0
+                   For i = n to 1
+                       B = AES-1(K, (A ^ t) | R[i]) where t = n*j+i
+                       A = MSB(64, B)
+                       R[i] = LSB(64, B)
+        */
+
+        Span<byte> xorBuffer = stackalloc byte[sizeof(long)];
+        Span<byte> decryptBuffer = stackalloc byte[IntermediateByteCount];
+
+        for (var j = 5; j >= 0; --j)
+        {
+            for (var i = n - 1; i >= 0; --i)
+            {
+                var t = n * j + i + 1u; // coerce as Int64
+
+                Xor(a.Span, t, xorBuffer);
+                Concat(xorBuffer, r[i].Span, decryptBuffer);
+                var b = aes.DecryptEcb(decryptBuffer, PaddingMode.None).AsMemory();
+
+                a = b[..ChunkByteCount];
+                r[i] = b[ChunkByteCount..];
+            }
+        }
+
+        /*
+           3) Output results.
+
+           If A is an appropriate initial value (see 2.2.3),
+           Then
+               For i = 1 to n
+                   P[i] = R[i]
+           Else
+               Return an error
+        */
+
+        if (!a.Span.SequenceEqual(DefaultIV))
+            throw new JoseEncryptionException("Failed to decrypt the encrypted content encryption key (CEK). DefaultIV doesn't match.");
+
+        var contentKeySpan = contentKeyWriter.GetSpan(contentKeySizeBytes);
+        Concat(r, contentKeySpan);
+        contentKeyWriter.Advance(contentKeySizeBytes);
+    }
+
+    /// <inheritdoc />
+    public void UnwrapKey<TWriter>(
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> encryptedContentKey,
+        ref TWriter contentKeyWriter
+    ) where TWriter : IBufferWriter<byte>, allows ref struct
+    {
+        // there is no point in pinning the KEK here, as Aes.Create() will copy it internally anyway
+        UnsafeUnwrapKey(keyEncryptionKey.ToArray(), encryptedContentKey, ref contentKeyWriter);
+    }
+
+    /// <inheritdoc />
+    public void UnwrapKey<TWriter>(
+        ReadOnlySequence<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> encryptedContentKey,
+        ref TWriter contentKeyWriter
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct
+    {
+        // there is no point in pinning the KEK here, as Aes.Create() will copy it internally anyway
+        UnsafeUnwrapKey(keyEncryptionKey.ToArray(), encryptedContentKey, ref contentKeyWriter);
+    }
+
     private static void Xor(ReadOnlySpan<byte> xBuffer, long y, Span<byte> destination)
     {
-        if (xBuffer.Length < sizeof(long))
-            throw new InvalidOperationException();
-        if (destination.Length < sizeof(long))
+        if (xBuffer.Length < sizeof(long) || destination.Length < sizeof(long))
             throw new InvalidOperationException();
 
         var x = BinaryPrimitives.ReadInt64BigEndian(xBuffer);

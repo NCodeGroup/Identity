@@ -30,7 +30,8 @@ internal static class CompressionAlgorithmExtensions
         this CompressionAlgorithm? algorithm,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> uncompressedData,
-        out ReadOnlySpan<byte> compressedData)
+        out ReadOnlySpan<byte> compressedData
+    )
     {
         if (algorithm == null || algorithm.Code == AlgorithmCodes.Compression.None)
         {
@@ -38,7 +39,7 @@ internal static class CompressionAlgorithmExtensions
             return Disposable.Empty;
         }
 
-        var buffer = new Sequence<byte>
+        var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
         {
             // increase our chances of getting a single-segment buffer
             MinimumSpanLength = Math.Min(uncompressedData.Length, 1024)
@@ -49,28 +50,7 @@ internal static class CompressionAlgorithmExtensions
             algorithm.Compress(uncompressedData, buffer);
             header[JoseClaimNames.Header.Zip] = algorithm.Code;
 
-            var sequence = buffer.AsReadOnlySequence;
-            if (sequence.IsSingleSegment)
-            {
-                compressedData = sequence.First.Span;
-                return buffer;
-            }
-
-            var byteCount = (int)sequence.Length;
-            var lease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> span);
-            try
-            {
-                sequence.CopyTo(span);
-                buffer.Dispose();
-                compressedData = span;
-            }
-            catch
-            {
-                lease.Dispose();
-                throw;
-            }
-
-            return lease;
+            return buffer.ConsumeAsContiguousSpan(isSensitive: false, out compressedData);
         }
         catch
         {

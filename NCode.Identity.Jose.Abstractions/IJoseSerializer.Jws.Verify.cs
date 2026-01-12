@@ -48,7 +48,8 @@ partial interface IJoseSerializer
         string token,
         SecretKey secretKey,
         ReadOnlySpan<byte> detachedPayload,
-        out JsonElement header);
+        out JsonElement header
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -60,7 +61,8 @@ partial interface IJoseSerializer
     void VerifyJws(
         CompactJwt compactJwt,
         SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload);
+        ReadOnlySpan<byte> detachedPayload
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -72,7 +74,8 @@ partial interface IJoseSerializer
     void VerifyJws(
         string token,
         SecretKey secretKey,
-        string detachedPayload);
+        string detachedPayload
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -86,7 +89,8 @@ partial interface IJoseSerializer
         string token,
         SecretKey secretKey,
         string detachedPayload,
-        out JsonElement header);
+        out JsonElement header
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -98,7 +102,8 @@ partial interface IJoseSerializer
     void VerifyJws(
         CompactJwt compactJwt,
         SecretKey secretKey,
-        string detachedPayload);
+        string detachedPayload
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -110,7 +115,8 @@ partial interface IJoseSerializer
     void VerifyJws(
         string token,
         SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload);
+        ReadOnlySpan<char> detachedPayload
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -124,7 +130,8 @@ partial interface IJoseSerializer
         string token,
         SecretKey secretKey,
         ReadOnlySpan<char> detachedPayload,
-        out JsonElement header);
+        out JsonElement header
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -136,7 +143,8 @@ partial interface IJoseSerializer
     void VerifyJws(
         CompactJwt compactJwt,
         SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload);
+        ReadOnlySpan<char> detachedPayload
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -151,7 +159,8 @@ partial interface IJoseSerializer
         string token,
         SecretKey secretKey,
         T detachedPayload,
-        JsonSerializerOptions? jsonOptions);
+        JsonSerializerOptions? jsonOptions
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -168,7 +177,8 @@ partial interface IJoseSerializer
         SecretKey secretKey,
         T detachedPayload,
         JsonSerializerOptions? jsonOptions,
-        out JsonElement header);
+        out JsonElement header
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -183,5 +193,6 @@ partial interface IJoseSerializer
         CompactJwt compactJwt,
         SecretKey secretKey,
         T detachedPayload,
-        JsonSerializerOptions? jsonOptions);
+        JsonSerializerOptions? jsonOptions
+    );
 }

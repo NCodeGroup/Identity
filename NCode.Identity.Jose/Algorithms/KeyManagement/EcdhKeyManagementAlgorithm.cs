@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
@@ -26,7 +27,6 @@ using JetBrains.Annotations;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Extensions;
-using NCode.Identity.Jose.Json;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
@@ -42,16 +42,16 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// </summary>
     public static EcdhKeyManagementAlgorithm Singleton { get; } = new();
 
-    private static IEnumerable<KeySizes> StaticKekBitSizes { get; } = new KeySizes[]
-    {
+    private static IEnumerable<KeySizes> StaticKekBitSizes { get; } =
+    [
         new(minSize: 256, maxSize: 384, skipSize: 128),
         new(minSize: 521, maxSize: 521, skipSize: 0)
-    };
+    ];
 
-    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } = new[]
-    {
-        new KeySizes(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
-    };
+    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
+    [
+        new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
+    ];
 
     /// <inheritdoc />
     public override string Code { get; }
@@ -90,7 +90,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     internal static unsafe void ExportKey(
         int curveSizeBits,
         ECDiffieHellman key,
-        IDictionary<string, object> header)
+        IDictionary<string, object> header
+    )
     {
         var parameters = key.ExportParameters(includePrivateParameters: true);
 
@@ -122,7 +123,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         JsonElement header,
         out string algorithm,
         out string? apu,
-        out string? apv)
+        out string? apv
+    )
     {
         if (!header.TryGetPropertyValue<string>(AlgorithmField, out var localAlgorithm))
         {
@@ -193,7 +195,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public override void NewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
-        Span<byte> contentKey)
+        Span<byte> contentKey
+    )
     {
         var validatedSecretKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 
@@ -221,31 +224,58 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             curveSizeBits,
             recipientKey,
             senderKey,
-            contentKey);
+            contentKey
+        );
     }
 
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         throw new JoseException("The 'ECDH-ES' key management algorithm does not support using an existing CEK.");
     }
 
     /// <inheritdoc />
+    public override void WrapKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        ReadOnlySpan<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
+    {
+        throw new JoseException("The 'ECDH-ES' key management algorithm does not support using an existing CEK.");
+    }
+
+    /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapNewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         NewKey(secretKey, header, contentKey);
         bytesWritten = 0;
         return true;
+    }
+
+    /// <inheritdoc />
+    public override void WrapNewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
+    {
+        NewKey(secretKey, header, contentKey);
     }
 
     /// <inheritdoc />
@@ -254,7 +284,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         if (encryptedContentKey.Length != 0)
         {
@@ -269,7 +300,14 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var curveSizeBits = validatedSecretKey.KeySizeBits;
 
         using var recipientKey = validatedSecretKey.ExportECDiffieHellman();
-        using var ephemeralKey = ValidateHeaderForUnwrap(curve, curveSizeBits, header, out var algorithm, out var apu, out var apv);
+        using var ephemeralKey = ValidateHeaderForUnwrap(
+            curve,
+            curveSizeBits,
+            header,
+            out var algorithm,
+            out var apu,
+            out var apv
+        );
         using var senderKey = ephemeralKey.PublicKey;
 
         DeriveKey(
@@ -279,7 +317,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             curveSizeBits,
             recipientKey,
             senderKey,
-            contentKey);
+            contentKey
+        );
 
         bytesWritten = contentKey.Length;
         return true;
@@ -292,7 +331,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         int curveSizeBits,
         ECDiffieHellman recipientKey,
         ECDiffieHellmanPublicKey senderKey,
-        Span<byte> destination)
+        Span<byte> destination
+    )
     {
         var keySizeBytes = destination.Length;
         var keySizeBits = keySizeBytes << 3;
@@ -332,7 +372,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
                 senderKey,
                 hashAlgorithmName,
                 secretPrependBytes,
-                secretAppendBytes);
+                secretAppendBytes
+            );
 
             var partialLength = Math.Min(partialKey.Length, destination.Length);
             var partialSpan = partialKey.AsSpan(0, partialLength);
@@ -346,7 +387,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         string algorithm,
         string? apu,
         string? apv,
-        int keySizeBits)
+        int keySizeBits
+    )
     {
         var algorithmByteCount = Encoding.ASCII.GetByteCount(algorithm);
         var apuByteCount = string.IsNullOrEmpty(apu) ? 0 : Base64Url.GetByteCountForDecode(apu.Length);

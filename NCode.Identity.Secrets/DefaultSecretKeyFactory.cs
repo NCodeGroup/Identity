@@ -17,11 +17,14 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.DataProtection;
 using NCode.CryptoMemory;
 using NCode.Identity.DataProtection;
+using Nerdbank.Streams;
 
 namespace NCode.Identity.Secrets;
 
@@ -29,11 +32,11 @@ namespace NCode.Identity.Secrets;
 /// Provides a default implementation of the <see cref="ISecretKeyFactory"/> abstraction.
 /// </summary>
 public class DefaultSecretKeyFactory(
-    ISecureDataProtectionProvider secureDataProtectionProvider
+    IDataProtectionProvider dataProtectionProvider
 ) : ISecretKeyFactory
 {
-    private ISecureDataProtector SecureDataProtector { get; } =
-        secureDataProtectionProvider.CreateProtector("NCode.Identity.Secrets");
+    private IDataProtector DataProtector { get; } =
+        dataProtectionProvider.CreateProtector("NCode.Identity.Secrets");
 
     /// <inheritdoc />
     public SecretKey Empty => EmptySecretKey.Singleton;
@@ -45,16 +48,24 @@ public class DefaultSecretKeyFactory(
         int keySizeBytes,
         byte[] protectedPrivateKey
     ) => new(
-        SecureDataProtector,
+        DataProtector,
         metadata,
         keySizeBytes,
-        protectedPrivateKey);
+        protectedPrivateKey
+    );
 
     /// <inheritdoc />
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<byte> bytes)
     {
         var keySizeBytes = bytes.Length;
-        var protectedPrivateKey = SecureDataProtector.Protect(bytes);
+
+        using var protectedPrivateKeyBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+        IBufferWriter<byte> protectedPrivateKeyWriter = protectedPrivateKeyBuffer;
+
+        DataProtector.ProtectSpan(bytes, ref protectedPrivateKeyWriter);
+
+        var protectedPrivateKey = protectedPrivateKeyBuffer.AsReadOnlySequence.ToArray();
+
         return CreateSymmetric(metadata, keySizeBytes, protectedPrivateKey);
     }
 
@@ -118,6 +129,9 @@ public class DefaultSecretKeyFactory(
 
     private byte[] ExportProtectedPkcs8PrivateKey(AsymmetricAlgorithm asymmetricAlgorithm)
     {
+        using var protectedPrivateKeyBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+        IBufferWriter<byte> protectedPrivateKeyWriter = protectedPrivateKeyBuffer;
+
         var byteCount = SecureMemoryPool<byte>.PageSize;
         while (true)
         {
@@ -125,7 +139,9 @@ public class DefaultSecretKeyFactory(
 
             if (asymmetricAlgorithm.TryExportPkcs8PrivateKey(lease.Memory.Span, out var bytesWritten))
             {
-                return SecureDataProtector.Protect(lease.Memory.Span[..bytesWritten]);
+                DataProtector.ProtectSpan(lease.Memory.Span[..bytesWritten], ref protectedPrivateKeyWriter);
+
+                return protectedPrivateKeyBuffer.AsReadOnlySequence.ToArray();
             }
 
             byteCount = checked(byteCount * 2);
@@ -142,19 +158,23 @@ public class DefaultSecretKeyFactory(
         byte[] protectedPkcs8PrivateKey,
         byte[]? certificateRawData
     ) => new(
-        SecureDataProtector,
+        DataProtector,
         metadata,
         modulusSizeBits,
         protectedPkcs8PrivateKey,
-        certificateRawData);
+        certificateRawData
+    );
 
     /// <inheritdoc />
-    public RsaSecretKey CreateRsa(KeyMetadata metadata, RSA key, X509Certificate2? certificate = null) =>
-        CreateAsymmetric<RsaSecretKey>(key, certificate, (keyBytes, certificateBytes) => CreateRsa(
-            metadata,
-            key.KeySize,
-            keyBytes,
-            certificateBytes));
+    public RsaSecretKey CreateRsa(KeyMetadata metadata, RSA key, X509Certificate2? certificate = null)
+        => CreateAsymmetric<RsaSecretKey>(key, certificate, (keyBytes, certificateBytes)
+            => CreateRsa(
+                metadata,
+                key.KeySize,
+                keyBytes,
+                certificateBytes
+            )
+        );
 
     /// <inheritdoc />
     public RsaSecretKey CreateRsaPem(KeyMetadata metadata, ReadOnlySpan<char> chars, X509Certificate2? certificate = null)
@@ -183,19 +203,23 @@ public class DefaultSecretKeyFactory(
         byte[] protectedPkcs8PrivateKey,
         byte[]? certificateRawData
     ) => new(
-        SecureDataProtector,
+        DataProtector,
         metadata,
         curveSizeBits,
         protectedPkcs8PrivateKey,
-        certificateRawData);
+        certificateRawData
+    );
 
     /// <inheritdoc />
-    public EccSecretKey CreateEcc(KeyMetadata metadata, ECAlgorithm key, X509Certificate2? certificate = null) =>
-        CreateAsymmetric<EccSecretKey>(key, certificate, (keyBytes, certificateBytes) => CreateEcc(
-            metadata,
-            key.KeySize,
-            keyBytes,
-            certificateBytes));
+    public EccSecretKey CreateEcc(KeyMetadata metadata, ECAlgorithm key, X509Certificate2? certificate = null)
+        => CreateAsymmetric<EccSecretKey>(key, certificate, (keyBytes, certificateBytes)
+            => CreateEcc(
+                metadata,
+                key.KeySize,
+                keyBytes,
+                certificateBytes
+            )
+        );
 
     /// <inheritdoc />
     public EccSecretKey CreateEccPem(KeyMetadata metadata, ReadOnlySpan<char> chars, X509Certificate2? certificate = null)

@@ -28,7 +28,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.DataProtection\NCode.Identity.DataProtection.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
 

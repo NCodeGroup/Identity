@@ -94,19 +94,6 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    )
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
     public override void WrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,

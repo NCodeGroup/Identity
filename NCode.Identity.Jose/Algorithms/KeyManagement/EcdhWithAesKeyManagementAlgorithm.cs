@@ -55,19 +55,6 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    )
-    {
-        throw new NotFiniteNumberException();
-    }
-
-    /// <inheritdoc />
     public override void WrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
@@ -89,28 +76,6 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         {
             CryptographicOperations.ZeroMemory(newKek);
         }
-    }
-
-    // TODO: remove
-    /// <inheritdoc />
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapNewKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        Span<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    )
-    {
-        NewKey(secretKey, header, contentKey);
-
-        return TryWrapKey(
-            secretKey,
-            header,
-            contentKey,
-            encryptedContentKey,
-            out bytesWritten
-        );
     }
 
     /// <inheritdoc />

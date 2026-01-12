@@ -92,28 +92,6 @@ public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
         (kekSizeBits + 7) >> 3;
 
-    /// <inheritdoc />
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    )
-    {
-        if (encryptedContentKey.Length < secretKey.KeySizeBytes)
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
-        var validatedSecretKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
-
-        using var key = validatedSecretKey.ExportRSA();
-
-        return key.TryEncrypt(contentKey, encryptedContentKey, Padding, out bytesWritten);
-    }
 
     /// <inheritdoc />
     public override void WrapKey(

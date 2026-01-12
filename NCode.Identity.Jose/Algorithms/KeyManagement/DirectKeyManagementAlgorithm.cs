@@ -91,19 +91,6 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    )
-    {
-        throw new JoseException("The direct key management algorithm does not support using an existing CEK.");
-    }
-
-    /// <inheritdoc />
     public override void WrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
@@ -112,21 +99,6 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     )
     {
         throw new JoseException("The direct key management algorithm does not support using an existing CEK.");
-    }
-
-    /// <inheritdoc />
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    public override bool TryWrapNewKey(
-        SecretKey secretKey,
-        IDictionary<string, object> header,
-        Span<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    )
-    {
-        NewKey(secretKey, header, contentKey);
-        bytesWritten = 0;
-        return true;
     }
 
     /// <inheritdoc />

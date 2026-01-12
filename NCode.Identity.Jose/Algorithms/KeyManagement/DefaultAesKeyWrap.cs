@@ -162,28 +162,6 @@ public class DefaultAesKeyWrap : IAesKeyWrap
     }
 
     /// <inheritdoc />
-    public bool TryWrapKey(
-        ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> contentKey,
-        Span<byte> encryptedContentKey,
-        out int bytesWritten
-    )
-    {
-        var encryptedContentKeySizeBytes = GetCipherTextSizeBytes(contentKey.Length, out _);
-        if (encryptedContentKey.Length < encryptedContentKeySizeBytes)
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
-        var writer = encryptedContentKey.GetFixedBufferWriter();
-        UnsafeWrapKey(keyEncryptionKey.ToArray(), contentKey, ref writer);
-
-        bytesWritten = writer.WrittenCount;
-        return true;
-    }
-
-    /// <inheritdoc />
     public void WrapKey<TWriter>(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> contentKey,

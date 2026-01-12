@@ -67,28 +67,11 @@ public interface IAesKeyWrap
     ) where TWriter : IBufferWriter<byte>, allows ref struct;
 
     /// <summary>
-    /// Gets the size, in bytes, of the resulting plaintext for <see cref="TryUnwrapKey"/>.
+    /// Gets the size, in bytes, of the resulting plaintext for <see cref="UnwrapKey{TWriter}(ReadOnlySpan{byte}, ReadOnlySpan{byte}, ref TWriter)"/>.
     /// </summary>
     /// <param name="encryptedContentKeySizeBytes">The size, in bytes, of the encrypted key encryption key (KEK).</param>
-    /// <returns>The size, in bytes, of the resulting plaintext for <see cref="TryUnwrapKey"/>.</returns>
+    /// <returns>The size, in bytes, of the resulting plaintext for <see cref="UnwrapKey{TWriter}(ReadOnlySpan{byte}, ReadOnlySpan{byte}, ref TWriter)"/>.</returns>
     int GetContentKeySizeBytes(int encryptedContentKeySizeBytes);
-
-    // TODO: Remove
-    /// <summary>
-    /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
-    /// </summary>
-    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
-    /// <param name="encryptedContentKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
-    /// <param name="contentKey">Destination for result of decrypting the encrypted content key.</param>
-    /// <param name="bytesWritten">The number of bytes written to <paramref name="contentKey"/>.</param>
-    /// <returns><c>true</c> if <paramref name="contentKey"/> was large enough to receive the decrypted data; otherwise, <c>false</c>.</returns>
-    [Obsolete("Use BufferWriter variant instead.", error: true)]
-    bool TryUnwrapKey(
-        ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> encryptedContentKey,
-        Span<byte> contentKey,
-        out int bytesWritten
-    );
 
     /// <summary>
     /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.

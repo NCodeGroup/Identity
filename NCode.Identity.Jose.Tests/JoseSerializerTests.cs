@@ -197,16 +197,7 @@ public class JoseSerializerTests : BaseTests
     {
         get
         {
-            // TODO: investigate
-            // Exclude algorithms not supported by NCode
-            var unsupportedAlgorithms = new HashSet<JweAlgorithm>
-            {
-                JweAlgorithm.RSA_OAEP_384,
-                JweAlgorithm.RSA_OAEP_512
-            };
-
-            var algorithmTypes = Enum.GetValues<JweAlgorithm>()
-                .Where(a => !unsupportedAlgorithms.Contains(a));
+            var algorithmTypes = Enum.GetValues<JweAlgorithm>();
             var encryptionTypes = Enum.GetValues<JweEncryption>();
             var compressionTypes = new JweCompression?[] { null, JweCompression.DEF };
 
@@ -383,9 +374,9 @@ public class JoseSerializerTests : BaseTests
         var jwsAlgorithms = Enum.GetValues<JwsAlgorithm>();
         foreach (var jwsAlgorithm in jwsAlgorithms)
         {
-            yield return new object[] { jwsAlgorithm, true, false };
-            yield return new object[] { jwsAlgorithm, true, true };
-            yield return new object[] { jwsAlgorithm, false, true };
+            yield return [jwsAlgorithm, true, false];
+            yield return [jwsAlgorithm, true, true];
+            yield return [jwsAlgorithm, false, true];
         }
     }
 

@@ -18,7 +18,6 @@
 #endregion
 
 using Microsoft.AspNetCore.DataProtection;
-using NCode.Identity.DataProtection;
 
 namespace NCode.Identity.Secrets;
 

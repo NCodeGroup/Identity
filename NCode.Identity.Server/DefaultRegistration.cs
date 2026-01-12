@@ -51,13 +51,15 @@ public static class DefaultRegistration
         var builder = ServiceBuilder.Register<IdentityServer>(serviceCollection);
         configure(builder);
 
+        // TODO: Allow configuration of data protection
+        serviceCollection.AddDataProtection();
+
         serviceCollection.AddSecretServices(secretBuilder =>
         {
             secretBuilder.AddPersistenceServices(persistenceBuilder => { }); // TODO
         });
 
         serviceCollection.AddMediatorServices();
-        serviceCollection.AddSecureDataProtectionServices();
         serviceCollection.AddJoseServices();
         serviceCollection.AddJsonWebTokenServices();
 

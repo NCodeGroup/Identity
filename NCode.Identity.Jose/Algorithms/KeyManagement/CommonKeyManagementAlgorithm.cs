@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using NCode.Identity.Jose.Exceptions;
@@ -34,34 +35,51 @@ public abstract class CommonKeyManagementAlgorithm : KeyManagementAlgorithm
     public override void NewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
-        Span<byte> contentKey)
+        Span<byte> contentKey
+    )
     {
-        ValidateContentKeySize(
-            secretKey.KeySizeBits,
-            contentKey.Length);
-
+        ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length);
         RandomNumberGenerator.Fill(contentKey);
     }
 
+    // TODO: remove
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapNewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
-        NewKey(
-            secretKey,
-            header,
-            contentKey);
+        NewKey(secretKey, header, contentKey);
 
         return TryWrapKey(
             secretKey,
             header,
             contentKey,
             encryptedContentKey,
-            out bytesWritten);
+            out bytesWritten
+        );
+    }
+
+    /// <inheritdoc />
+    public override void WrapNewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
+    {
+        NewKey(secretKey, header, contentKey);
+
+        WrapKey(
+            secretKey,
+            header,
+            contentKey,
+            encryptedContentKeyWriter
+        );
     }
 
     /// <summary>

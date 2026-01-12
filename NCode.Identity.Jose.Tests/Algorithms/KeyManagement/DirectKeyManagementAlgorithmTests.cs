@@ -17,10 +17,10 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Exceptions;
@@ -28,9 +28,8 @@ using NCode.Identity.Secrets;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
-public class DirectKeyManagementAlgorithmTests
+public class DirectKeyManagementAlgorithmTests : BaseTests
 {
-    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private static KeyManagementAlgorithm Algorithm => DirectKeyManagementAlgorithm.Singleton;
 
     [Fact]
@@ -109,7 +108,7 @@ public class DirectKeyManagementAlgorithmTests
     }
 
     [Fact]
-    public void TryWrapKey_Valid()
+    public void WrapKey_Valid()
     {
         Span<byte> kek = new byte[1];
         var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
@@ -119,8 +118,8 @@ public class DirectKeyManagementAlgorithmTests
         var exception = Assert.Throws<JoseException>(() =>
         {
             Span<byte> cek = new byte[1];
-            Span<byte> encryptedCek = new byte[1];
-            Algorithm.TryWrapKey(secretKey, header, cek, encryptedCek, out _);
+            var encryptedCekWriter = new ArrayBufferWriter<byte>(1);
+            Algorithm.WrapKey(secretKey, header, cek, encryptedCekWriter);
         });
 
         Assert.Equal("The direct key management algorithm does not support using an existing CEK.", exception.Message);

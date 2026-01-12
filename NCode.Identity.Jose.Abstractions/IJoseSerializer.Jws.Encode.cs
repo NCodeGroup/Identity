@@ -30,7 +30,8 @@ partial interface IJoseSerializer
     /// <param name="signingOptions">The JOSE signing credentials and options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
     JoseEncoder CreateEncoder(
-        JoseSigningOptions signingOptions);
+        JoseSigningOptions signingOptions
+    );
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -45,7 +46,8 @@ partial interface IJoseSerializer
         T payload,
         JoseSigningOptions signingOptions,
         JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -61,7 +63,8 @@ partial interface IJoseSerializer
         T payload,
         JoseSigningOptions signingOptions,
         JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -73,7 +76,8 @@ partial interface IJoseSerializer
     string Encode(
         string payload,
         JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -86,7 +90,8 @@ partial interface IJoseSerializer
         IBufferWriter<char> tokenWriter,
         string payload,
         JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -98,7 +103,8 @@ partial interface IJoseSerializer
     string Encode(
         ReadOnlySpan<char> payload,
         JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -111,7 +117,8 @@ partial interface IJoseSerializer
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<char> payload,
         JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -123,7 +130,8 @@ partial interface IJoseSerializer
     string Encode(
         ReadOnlySpan<byte> payload,
         JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.
@@ -136,5 +144,6 @@ partial interface IJoseSerializer
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
         JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 }

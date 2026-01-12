@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -39,10 +40,10 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
     internal const int MinIterationCount = 1000;
     private const int DefaultIterationCount = 8192;
 
-    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } = new[]
-    {
-        new KeySizes(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
-    };
+    private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
+    [
+        new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
+    ];
 
     private IAesKeyWrap AesKeyWrap { get; }
 
@@ -74,7 +75,8 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         string code,
         HashAlgorithmName hashAlgorithmName,
         int keySizeBits,
-        int maxIterationCount)
+        int maxIterationCount
+    )
     {
         AesKeyWrap = aesKeyWrap;
         Code = code;
@@ -92,12 +94,25 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public override void WrapKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        ReadOnlySpan<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
@@ -123,13 +138,6 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length);
 
-        var minEncryptedContentKey = AesKeyWrap.GetEncryptedContentKeySizeBytes(contentKey.Length);
-        if (encryptedContentKey.Length < minEncryptedContentKey)
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
         var algByteCount = SecureEncoding.ASCII.GetByteCount(alg);
         var saltByteCount = algByteCount + 1 + SaltInputSizeBytes;
 
@@ -150,33 +158,27 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         header[JoseClaimNames.Header.P2c] = iterationCount;
         header[JoseClaimNames.Header.P2s] = Base64Url.Encode(saltInput);
 
-        var newKek = KeySizeBytes <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[KeySizeBytes] :
-            GC.AllocateUninitializedArray<byte>(KeySizeBytes, pinned: true);
+        // increase our chances for a single-segment buffer
+        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
-        using var _ = CryptoPool.Rent(
-            validatedSecretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> encryptionKey);
+        validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
+        Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        var privateKeySpan = privateKeySpanLease.Span;
 
-        try
-        {
-            Rfc2898DeriveBytes.Pbkdf2(
-                encryptionKey,
-                salt,
-                newKek,
-                iterationCount,
-                HashAlgorithmName);
+        using var newKek = SecureMemoryFactory.CreatePinnedArray(KeySizeBytes);
 
-            return AesKeyWrap.TryWrapKey(newKek, contentKey, encryptedContentKey, out bytesWritten);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(newKek);
-        }
+        Rfc2898DeriveBytes.Pbkdf2(
+            privateKeySpan,
+            salt,
+            newKek,
+            iterationCount,
+            HashAlgorithmName
+        );
+
+        AesKeyWrap.WrapKey(newKek, contentKey, ref encryptedContentKeyWriter);
     }
 
     /// <inheritdoc />
@@ -185,7 +187,8 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         // TODO: unit test for the edge cases in this method
 
@@ -252,32 +255,31 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var saltInputResult = Base64Url.TryDecode(saltInputString, saltInput, out var saltInputBytesWritten);
         Debug.Assert(saltInputResult && saltInputBytesWritten == SaltInputSizeBytes);
 
-        var newKek = KeySizeBytes <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[KeySizeBytes] :
-            GC.AllocateUninitializedArray<byte>(KeySizeBytes, pinned: true);
+        // increase our chances for a single-segment buffer
+        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
-        using var _ = CryptoPool.Rent(
-            validatedSecretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> encryptionKey);
+        validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
+        Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        var privateKeySpan = privateKeySpanLease.Span;
 
-        try
-        {
-            Rfc2898DeriveBytes.Pbkdf2(
-                encryptionKey,
-                salt,
-                newKek,
-                iterationCount,
-                HashAlgorithmName);
+        using var newKek = SecureMemoryFactory.CreatePinnedArray(KeySizeBytes);
 
-            return AesKeyWrap.TryUnwrapKey(newKek, encryptedContentKey, contentKey, out bytesWritten);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(newKek);
-        }
+        Rfc2898DeriveBytes.Pbkdf2(
+            privateKeySpan,
+            salt,
+            newKek,
+            iterationCount,
+            HashAlgorithmName
+        );
+
+        var contentKeyWriter = contentKey.GetFixedBufferWriter();
+
+        AesKeyWrap.UnwrapKey(newKek, encryptedContentKey, ref contentKeyWriter);
+
+        bytesWritten = contentKeyWriter.WrittenCount;
+        return true;
     }
 }

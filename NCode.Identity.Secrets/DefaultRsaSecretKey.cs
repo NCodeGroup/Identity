@@ -20,7 +20,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using NCode.Identity.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace NCode.Identity.Secrets;
 
@@ -28,14 +28,14 @@ namespace NCode.Identity.Secrets;
 /// Provides a default implementation of the <see cref="RsaSecretKey"/> abstraction.
 /// </summary>
 public class DefaultRsaSecretKey(
-    ISecureDataProtector dataProtector,
+    IDataProtector dataProtector,
     KeyMetadata metadata,
     int modulusSizeBits,
     byte[] protectedPkcs8PrivateKey,
     byte[]? certificateRawData
 ) : RsaSecretKey
 {
-    private ISecureDataProtector DataProtector { get; } = dataProtector;
+    private IDataProtector DataProtector { get; } = dataProtector;
     private byte[] ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
     private byte[]? CertificateRawData { get; } = certificateRawData;
 
@@ -51,7 +51,7 @@ public class DefaultRsaSecretKey(
 
     /// <inheritdoc />
     public override X509Certificate2? ExportCertificate() =>
-        HasCertificate ? new X509Certificate2(CertificateRawData) : null;
+        HasCertificate ? X509CertificateLoader.LoadCertificate(CertificateRawData) : null;
 
     /// <inheritdoc />
     public override RSA ExportRSA() =>

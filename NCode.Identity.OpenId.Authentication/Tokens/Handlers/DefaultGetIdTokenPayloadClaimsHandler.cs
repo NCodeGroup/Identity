@@ -131,7 +131,7 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
 
         var encoding = SecureEncoding.ASCII;
         var encodeByteCount = encoding.GetByteCount(value);
-        using var _ = CryptoPool.Rent(encodeByteCount, isSensitive: false, out Span<byte> encodeBuffer);
+        using var _ = SecureMemoryFactory.Rent(encodeByteCount, isSensitive: false, out Span<byte> encodeBuffer);
         var encodeBytesWritten = encoding.GetBytes(value, encodeBuffer);
         Debug.Assert(encodeBytesWritten == encodeByteCount);
 

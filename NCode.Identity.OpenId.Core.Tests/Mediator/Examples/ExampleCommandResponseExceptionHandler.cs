@@ -17,10 +17,8 @@
 
 #endregion
 
-using NCode.Identity.Mediator;
-using NCode.Identity.Mediator.Middleware;
-using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Mediator.Middleware;
+using NCode.Mediator;
+using NCode.Mediator.Middleware;
 
 namespace NCode.Identity.OpenId.Tests.Mediator.Examples;
 

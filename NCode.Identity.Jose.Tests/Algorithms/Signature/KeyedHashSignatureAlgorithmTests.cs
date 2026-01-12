@@ -19,16 +19,14 @@
 
 using System.Security.Cryptography;
 using Jose;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Signature;
 using NCode.Identity.Secrets;
 
 namespace NCode.Jose.Tests.Algorithms.Signature;
 
-public class KeyedHashSignatureAlgorithmTests
+public class KeyedHashSignatureAlgorithmTests : BaseTests
 {
-    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
 
     [Fact]
     public void Code_Valid()

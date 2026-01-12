@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 
@@ -41,6 +42,7 @@ public interface IAesKeyWrap
     /// <returns>The size, in bytes, of the resulting ciphertext for <see cref="TryWrapKey"/>.</returns>
     int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes);
 
+    // TODO: remove
     /// <summary>
     /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.
     /// </summary>
@@ -49,11 +51,37 @@ public interface IAesKeyWrap
     /// <param name="encryptedContentKey">Destination for result of encrypting the content key.</param>
     /// <param name="bytesWritten">The number of bytes written to <paramref name="encryptedContentKey"/>.</param>
     /// <returns><c>true</c> if <paramref name="encryptedContentKey"/> was large enough to receive the encrypted data; otherwise, <c>false</c>.</returns>
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     bool TryWrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten);
+        out int bytesWritten
+    );
+
+    /// <summary>
+    /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.
+    /// </summary>
+    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
+    /// <param name="contentKey">Contains the content encryption key (CEK) that is to be encrypted.</param>
+    /// <param name="encryptedContentKeyWriter">Destination for result of encrypting the content key.</param>
+    void WrapKey<TWriter>(
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> contentKey,
+        ref TWriter encryptedContentKeyWriter
+    ) where TWriter : IBufferWriter<byte>, allows ref struct;
+
+    /// <summary>
+    /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.
+    /// </summary>
+    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
+    /// <param name="contentKey">Contains the content encryption key (CEK) that is to be encrypted.</param>
+    /// <param name="encryptedContentKeyWriter">Destination for result of encrypting the content key.</param>
+    void WrapKey<TWriter>(
+        ReadOnlySequence<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> contentKey,
+        ref TWriter encryptedContentKeyWriter
+    ) where TWriter : IBufferWriter<byte>, allows ref struct;
 
     /// <summary>
     /// Gets the size, in bytes, of the resulting plaintext for <see cref="TryUnwrapKey"/>.
@@ -62,6 +90,7 @@ public interface IAesKeyWrap
     /// <returns>The size, in bytes, of the resulting plaintext for <see cref="TryUnwrapKey"/>.</returns>
     int GetContentKeySizeBytes(int encryptedContentKeySizeBytes);
 
+    // TODO: Remove
     /// <summary>
     /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
     /// </summary>
@@ -70,9 +99,35 @@ public interface IAesKeyWrap
     /// <param name="contentKey">Destination for result of decrypting the encrypted content key.</param>
     /// <param name="bytesWritten">The number of bytes written to <paramref name="contentKey"/>.</param>
     /// <returns><c>true</c> if <paramref name="contentKey"/> was large enough to receive the decrypted data; otherwise, <c>false</c>.</returns>
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     bool TryUnwrapKey(
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten);
+        out int bytesWritten
+    );
+
+    /// <summary>
+    /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
+    /// </summary>
+    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
+    /// <param name="encryptedContentKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
+    /// <param name="contentKeyWriter">Destination for result of decrypting the encrypted content key.</param>
+    void UnwrapKey<TWriter>(
+        ReadOnlySpan<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> encryptedContentKey,
+        ref TWriter contentKeyWriter
+    ) where TWriter : IBufferWriter<byte>, allows ref struct;
+
+    /// <summary>
+    /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
+    /// </summary>
+    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
+    /// <param name="encryptedContentKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
+    /// <param name="contentKeyWriter">Destination for result of decrypting the encrypted content key.</param>
+    void UnwrapKey<TWriter>(
+        ReadOnlySequence<byte> keyEncryptionKey,
+        ReadOnlySpan<byte> encryptedContentKey,
+        ref TWriter contentKeyWriter
+    ) where TWriter : IBufferWriter<byte>, allows ref struct;
 }

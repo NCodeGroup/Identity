@@ -11,7 +11,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
         <PackageReference Include="jose-jwt" Version="5.0.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
         <PackageReference Include="Moq" Version="4.20.70"/>
@@ -27,7 +27,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity\NCode.Identity.csproj"/>
         <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj"/>
+        <ProjectReference Include="..\NCode.Mediator\NCode.Mediator.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

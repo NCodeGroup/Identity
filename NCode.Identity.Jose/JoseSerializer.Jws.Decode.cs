@@ -47,7 +47,8 @@ partial class JoseSerializer
     private void DecodeJws(
         CompactJwt compactJwt,
         SecretKey secretKey,
-        IBufferWriter<byte> payloadWriter)
+        IBufferWriter<byte> payloadWriter
+    )
     {
         /*
               BASE64URL(UTF8(JWS Protected Header)) || '.' ||

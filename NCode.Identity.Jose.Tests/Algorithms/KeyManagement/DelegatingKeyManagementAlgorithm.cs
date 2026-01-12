@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Identity.Jose.Algorithms;
@@ -49,6 +50,7 @@ public class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner) : Ke
             header,
             contentKey);
 
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
@@ -62,6 +64,18 @@ public class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner) : Ke
             encryptedContentKey,
             out bytesWritten);
 
+    public override void WrapKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        ReadOnlySpan<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter) =>
+        Inner.WrapKey(
+            secretKey,
+            header,
+            contentKey,
+            encryptedContentKeyWriter);
+
+    [Obsolete("Use BufferWriter variant instead.", error: true)]
     public override bool TryWrapNewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
@@ -74,6 +88,17 @@ public class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner) : Ke
             contentKey,
             encryptedContentKey,
             out bytesWritten);
+
+    public override void WrapNewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter) =>
+        Inner.WrapNewKey(
+            secretKey,
+            header,
+            contentKey,
+            encryptedContentKeyWriter);
 
     public override bool TryUnwrapKey(
         SecretKey secretKey,

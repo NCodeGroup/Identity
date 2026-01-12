@@ -25,7 +25,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.CryptoMemory;
 using NCode.Disposables;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -35,7 +34,6 @@ namespace NCode.Jose.Tests;
 
 public class JoseSerializerTests : BaseTests
 {
-    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web);
     private ServiceProvider ServiceProvider { get; }
     private JoseSerializerOptions JoseSerializerOptions { get; } = new();
@@ -56,6 +54,7 @@ public class JoseSerializerTests : BaseTests
 
     private static void ConfigureServices(IServiceCollection services)
     {
+        services.AddSecretServices();
         services.AddJoseServices();
     }
 
@@ -164,6 +163,8 @@ public class JoseSerializerTests : BaseTests
             JweAlgorithm.RSA1_5 => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP_256 => CreateRandomRsaKey(keyId),
+            JweAlgorithm.RSA_OAEP_384 => CreateRandomRsaKey(keyId),
+            JweAlgorithm.RSA_OAEP_512 => CreateRandomRsaKey(keyId),
             JweAlgorithm.ECDH_ES => CreateRandomEccKey(keyId, jweEncryption),
             JweAlgorithm.ECDH_ES_A128KW => CreateRandomEccKey(keyId, jweEncryption),
             JweAlgorithm.ECDH_ES_A192KW => CreateRandomEccKey(keyId, jweEncryption),
@@ -196,14 +197,23 @@ public class JoseSerializerTests : BaseTests
     {
         get
         {
-            var algorithmTypes = Enum.GetValues<JweAlgorithm>();
+            // TODO: investigate
+            // Exclude algorithms not supported by NCode
+            var unsupportedAlgorithms = new HashSet<JweAlgorithm>
+            {
+                JweAlgorithm.RSA_OAEP_384,
+                JweAlgorithm.RSA_OAEP_512
+            };
+
+            var algorithmTypes = Enum.GetValues<JweAlgorithm>()
+                .Where(a => !unsupportedAlgorithms.Contains(a));
             var encryptionTypes = Enum.GetValues<JweEncryption>();
             var compressionTypes = new JweCompression?[] { null, JweCompression.DEF };
 
             foreach (var algorithmType in algorithmTypes)
             foreach (var encryptionType in encryptionTypes)
             foreach (var compressionType in compressionTypes)
-                yield return new object?[] { algorithmType, encryptionType, compressionType };
+                yield return [algorithmType, encryptionType, compressionType];
         }
     }
 

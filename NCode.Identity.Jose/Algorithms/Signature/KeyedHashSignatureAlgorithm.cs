@@ -17,11 +17,10 @@
 
 #endregion
 
-using System.Diagnostics;
+using System.Buffers;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using NCode.CryptoMemory;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.Signature;
@@ -57,7 +56,8 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     public KeyedHashSignatureAlgorithm(
         string code,
         HashAlgorithmName hashAlgorithmName,
-        KeyedHashFunctionDelegate keyedHashFunction)
+        KeyedHashFunctionDelegate keyedHashFunction
+    )
     {
         var signatureSizeBits = hashAlgorithmName.GetHashSizeBits();
 
@@ -74,7 +74,7 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
            effective security strength is the minimum of the security strength
            of the key and two times the size of the internal hash value.)
         */
-        KeyBitSizes = new[] { new KeySizes(minSize: signatureSizeBits, maxSize: int.MaxValue, skipSize: 8) };
+        KeyBitSizes = [new KeySizes(minSize: signatureSizeBits, maxSize: int.MaxValue, skipSize: 8)];
     }
 
     /// <inheritdoc />
@@ -85,15 +85,16 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
-        using var _ = CryptoPool.Rent(
-            validatedSecretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> encryptionKey);
+        // increase our chances for a single-segment buffer
+        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
-        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+        validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
 
-        return KeyedHashFunction(encryptionKey, inputData, signature, out bytesWritten);
+        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        var privateKeySpan = privateKeySpanLease.Span;
+
+        return KeyedHashFunction(privateKeySpan, inputData, signature, out bytesWritten);
     }
 
     /// <inheritdoc />

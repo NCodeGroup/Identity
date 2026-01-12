@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets;
@@ -31,7 +32,9 @@ public abstract class SymmetricSecretKey : SecretKey
     public override string KeyType => SecretKeyTypes.Symmetric;
 
     /// <summary>
-    /// Exports the private key to a <see cref="byte"/> buffer.
+    /// Exports the private key to a <see cref="IBufferWriter{T}"/>.
     /// </summary>
-    public abstract bool TryExportPrivateKey(Span<byte> buffer, out int bytesWritten);
+    /// <param name="destination">The destination buffer writer.</param>
+    public abstract void ExportPrivateKey<TWriter>(ref TWriter destination)
+        where TWriter : IBufferWriter<byte>, allows ref struct;
 }

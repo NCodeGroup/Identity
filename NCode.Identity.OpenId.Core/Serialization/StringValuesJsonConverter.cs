@@ -31,6 +31,11 @@ public class StringValuesJsonConverter : JsonConverter<StringValues>
     /// <inheritdoc />
     public override StringValues Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            return StringValues.Empty;
+        }
+
         var parsedValue = reader.GetString();
         return string.IsNullOrEmpty(parsedValue) ? StringValues.Empty : parsedValue.Split(OpenIdConstants.ParameterSeparatorChar);
     }

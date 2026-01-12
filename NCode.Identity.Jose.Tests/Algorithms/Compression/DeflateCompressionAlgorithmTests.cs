@@ -57,7 +57,7 @@ public class DeflateCompressionAlgorithmTests : BaseTests
 
         var expected = ControlAlgorithm.Compress(uncompressedData.ToArray());
 
-        using var compressedData = new Sequence<byte>();
+        using var compressedData = new Sequence<byte>(ArrayPool<byte>.Shared);
 
         Algorithm.Compress(uncompressedData, compressedData);
 
@@ -79,7 +79,7 @@ public class DeflateCompressionAlgorithmTests : BaseTests
 
         var expected = ControlAlgorithm.Decompress(compressedData.ToArray());
 
-        using var uncompressedData2 = new Sequence<byte>();
+        using var uncompressedData2 = new Sequence<byte>(ArrayPool<byte>.Shared);
 
         Algorithm.Decompress(compressedData, uncompressedData2);
 

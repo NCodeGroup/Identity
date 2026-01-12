@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -38,10 +39,10 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     private const int IvSizeBytes = 96 >> 3;
     private const int TagSizeBytes = 128 >> 3;
 
-    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } = new[]
-    {
-        new KeySizes(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
-    };
+    private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
+    [
+        new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
+    ];
 
     /// <inheritdoc />
     public override string Code { get; }
@@ -61,7 +62,7 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     {
         Code = code;
 
-        KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
+        KeyBitSizes = [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
     }
 
     /// <inheritdoc />
@@ -71,31 +72,39 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => cekSizeBytes;
 
     /// <inheritdoc />
+    [Obsolete("Use BufferWriter variant instead.", true)]
     public override bool TryWrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         Span<byte> encryptedContentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public override void WrapKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        ReadOnlySpan<byte> contentKey,
+        IBufferWriter<byte> encryptedContentKeyWriter
+    )
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
-        // Output size = Input size
-        if (encryptedContentKey.Length < contentKey.Length)
-        {
-            bytesWritten = 0;
-            return false;
-        }
+        // increase our chances for a single-segment buffer
+        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
-        using var _ = CryptoPool.Rent(
-            validatedSecretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> encryptionKey);
+        validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
+        Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        var privateKeySpan = privateKeySpanLease.Span;
 
-        using var key = new AesGcm(encryptionKey, TagSizeBytes);
+        using var key = new AesGcm(privateKeySpan, TagSizeBytes);
 
         Span<byte> stack = stackalloc byte[IvSizeBytes + TagSizeBytes];
         var iv = stack[..IvSizeBytes];
@@ -103,13 +112,14 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         RandomNumberGenerator.Fill(iv);
 
-        key.Encrypt(iv, contentKey, encryptedContentKey, tag);
+        // Output size = Input size
+        var spanLength = contentKey.Length;
+        var encryptedContentKeySpan = encryptedContentKeyWriter.GetSpan(spanLength)[..spanLength];
+        key.Encrypt(iv, contentKey, encryptedContentKeySpan, tag);
+        encryptedContentKeyWriter.Advance(spanLength);
 
         header[JoseClaimNames.Header.Iv] = Base64Url.Encode(iv);
         header[JoseClaimNames.Header.Tag] = Base64Url.Encode(tag);
-
-        bytesWritten = contentKey.Length;
-        return true;
     }
 
     /// <inheritdoc />
@@ -118,7 +128,8 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         JsonElement header,
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
@@ -135,18 +146,19 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         ValidateHeaderForUnwrap(header, iv, tag);
 
-        using var _ = CryptoPool.Rent(
-            validatedSecretKey.KeySizeBytes,
-            isSensitive: true,
-            out Span<byte> encryptionKey);
+        // increase our chances for a single-segment buffer
+        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
-        var exportResult = validatedSecretKey.TryExportPrivateKey(encryptionKey, out var exportBytesWritten);
-        Debug.Assert(exportResult && exportBytesWritten == validatedSecretKey.KeySizeBytes);
+        validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
+        Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        using var key = new AesGcm(encryptionKey, TagSizeBytes);
+        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        var privateKeySpan = privateKeySpanLease.Span;
 
         try
         {
+            using var key = new AesGcm(privateKeySpan, TagSizeBytes);
             key.Decrypt(iv, encryptedContentKey, tag, contentKey);
         }
         catch (CryptographicException exception)
@@ -161,7 +173,8 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     internal static void ValidateHeaderForUnwrap(
         JsonElement header,
         Span<byte> iv,
-        Span<byte> tag)
+        Span<byte> tag
+    )
     {
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Iv, out var ivString))
         {

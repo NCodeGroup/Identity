@@ -53,7 +53,7 @@ public class NoneCompressionAlgorithmTests : BaseTests
         Span<byte> uncompressedData = new byte[4096];
         RandomNumberGenerator.Fill(uncompressedData);
 
-        using var compressedData = new Sequence<byte>();
+        using var compressedData = new Sequence<byte>(ArrayPool<byte>.Shared);
 
         Algorithm.Compress(uncompressedData, compressedData);
 
@@ -72,7 +72,7 @@ public class NoneCompressionAlgorithmTests : BaseTests
         Span<byte> compressedData = new byte[4096];
         RandomNumberGenerator.Fill(compressedData);
 
-        using var uncompressedData = new Sequence<byte>();
+        using var uncompressedData = new Sequence<byte>(ArrayPool<byte>.Shared);
 
         Algorithm.Decompress(compressedData, uncompressedData);
 

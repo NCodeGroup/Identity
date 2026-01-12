@@ -15,8 +15,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="NCode.Base64Url" Version="1.1.2" />
-      <PackageReference Include="NCode.CryptoMemory" Version="2.0.0" />
+      <PackageReference Include="NCode.Base64Url" Version="2.0.0" />
+      <PackageReference Include="NCode.CryptoMemory" Version="3.1.0" />
     </ItemGroup>
 
 </Project>

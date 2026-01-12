@@ -235,7 +235,7 @@ partial class DefaultJsonWebTokenService
     private static JsonElement CreateJsonElement(string json)
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(json);
-        using var _ = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> buffer);
+        using var _ = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> buffer);
 
         var bytesWritten = SecureEncoding.UTF8.GetBytes(json, buffer);
         Debug.Assert(bytesWritten == byteCount);

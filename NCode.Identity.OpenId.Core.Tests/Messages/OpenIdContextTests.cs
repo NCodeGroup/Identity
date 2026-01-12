@@ -20,12 +20,11 @@
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Disposables;
-using NCode.Identity.Mediator;
-using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Authentication.Contexts;
+using NCode.Identity.OpenId.Authentication.Servers;
+using NCode.Identity.OpenId.Authentication.Tenants;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Mediator;
-using NCode.Identity.OpenId.Servers;
-using NCode.Identity.OpenId.Tenants;
+using NCode.Mediator;
 using NCode.PropertyBag;
 using Xunit;
 

@@ -65,7 +65,7 @@ public class DefaultCryptoService : ICryptoService
             }
             else
             {
-                lease = CryptoPool.Rent(byteLength, isSensitive: false, out bytes);
+                lease = SecureMemoryFactory.Rent(byteLength, isSensitive: false, out bytes);
             }
 
             GenerateBytes(bytes);
@@ -105,7 +105,7 @@ public class DefaultCryptoService : ICryptoService
             }
             else
             {
-                lease = CryptoPool.Rent(hashByteLength, isSensitive: false, out hashBytes);
+                lease = SecureMemoryFactory.Rent(hashByteLength, isSensitive: false, out hashBytes);
             }
 
             var result = tryComputeHash(data, hashBytes, out var bytesWritten);
@@ -140,7 +140,7 @@ public class DefaultCryptoService : ICryptoService
             }
             else
             {
-                lease = CryptoPool.Rent(dataByteLength, isSensitive: false, out dataBytes);
+                lease = SecureMemoryFactory.Rent(dataByteLength, isSensitive: false, out dataBytes);
             }
 
             var bytesWritten = effectiveEncoding.GetBytes(data, dataBytes);

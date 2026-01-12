@@ -17,11 +17,11 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Jose;
 using Jose.keys;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
@@ -31,7 +31,6 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
 {
-    private static DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
     public EcdhWithAesKeyManagementAlgorithmTests()
@@ -107,7 +106,8 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(apv);
 
         Span<byte> cek = new byte[cekSizeBytes];
-        Span<byte> encryptedCek = new byte[encryptedCekSizeBytes];
+        Span<byte> decryptedCek = new byte[cekSizeBytes];
+        var encryptedCekWriter = new ArrayBufferWriter<byte>(encryptedCekSizeBytes);
 
         var header = new Dictionary<string, object>
         {
@@ -116,9 +116,8 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
             ["apv"] = Base64Url.Encode(apv),
         };
 
-        var wrapResult = algorithm.TryWrapKey(secretKey, header, cek, encryptedCek, out var wrapBytesWritten);
-        Assert.True(wrapResult);
-        Assert.Equal(encryptedCekSizeBytes, wrapBytesWritten);
+        algorithm.WrapKey(secretKey, header, cek, encryptedCekWriter);
+        Assert.Equal(encryptedCekSizeBytes, encryptedCekWriter.WrittenCount);
 
         using var controlKey = EccKey.New(
             parameters.Q.X,
@@ -126,14 +125,14 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
             parameters.D,
             CngKeyUsages.KeyAgreement);
         var controlAlgorithm = CreateControlAlgorithm(cekSizeBits);
-        var controlResult = controlAlgorithm.Unwrap(encryptedCek.ToArray(), controlKey, cekSizeBits, header);
+        var controlResult = controlAlgorithm.Unwrap(encryptedCekWriter.WrittenSpan.ToArray(), controlKey, cekSizeBits, header);
         Assert.Equal(controlResult, cek.ToArray());
 
         var headerForUnwrap = JsonSerializer.SerializeToElement(header);
-        var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCek, cek, out var unwrapBytesWritten);
+        var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCekWriter.WrittenSpan, decryptedCek, out var unwrapBytesWritten);
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
-        Assert.Equal(controlResult, cek.ToArray());
+        Assert.Equal(controlResult, decryptedCek.ToArray());
     }
 
     private static EcdhKeyManagementWinWithAesKeyWrap CreateControlAlgorithm(int cekSizeBits)

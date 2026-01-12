@@ -52,7 +52,7 @@ public partial class JoseSerializer : IJoseSerializer
     public static IDisposable DecodeBase64Url(ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
-        var lease = CryptoPool.Rent(byteCount, isSensitive, out bytes);
+        var lease = SecureMemoryFactory.Rent(byteCount, isSensitive, out bytes);
         try
         {
             var decodeResult = Base64Url.TryDecode(chars, bytes, out var bytesWritten);
@@ -192,7 +192,8 @@ public partial class JoseSerializer : IJoseSerializer
     public IDisposable SerializeToUtf8<T>(
         T value,
         JsonSerializerOptions? options,
-        out ReadOnlySpan<byte> bytes)
+        out ReadOnlySpan<byte> bytes
+    )
     {
         if (value is string stringValue)
         {
@@ -204,33 +205,13 @@ public partial class JoseSerializer : IJoseSerializer
             // increase our chances of getting a single-segment buffer
             MinimumSpanLength = 1024
         };
+
         try
         {
             using var writer = new Utf8JsonWriter(buffer);
             JsonSerializer.Serialize(writer, value, options ?? JoseSerializerOptions.JsonSerializerOptions);
 
-            var sequence = buffer.AsReadOnlySequence;
-            if (sequence.IsSingleSegment)
-            {
-                bytes = sequence.FirstSpan;
-                return buffer;
-            }
-
-            var byteCount = (int)sequence.Length;
-            var lease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> span);
-            try
-            {
-                sequence.CopyTo(span);
-                buffer.Dispose();
-                bytes = span;
-            }
-            catch
-            {
-                lease.Dispose();
-                throw;
-            }
-
-            return lease;
+            return buffer.ConsumeAsContiguousSpan(isSensitive: false, out bytes);
         }
         catch
         {
@@ -239,20 +220,56 @@ public partial class JoseSerializer : IJoseSerializer
         }
     }
 
+    // TODO: is this used?
+    private static void EncodeJose(
+        bool b64,
+        ReadOnlySpan<byte> bytes,
+        IBufferWriter<char> writer
+    )
+    {
+        if (b64)
+        {
+            Base64Url.Encode(bytes, writer);
+        }
+        else
+        {
+            SecureEncoding.UTF8.GetChars(bytes, writer);
+        }
+    }
+
+    private static void EncodeJose(
+        bool b64,
+        ReadOnlySequence<byte> bytes,
+        IBufferWriter<char> writer
+    )
+    {
+        if (b64)
+        {
+            Base64Url.Encode(bytes, writer);
+        }
+        else
+        {
+            SecureEncoding.UTF8.GetChars(bytes, writer);
+        }
+    }
+
     private IDisposable EncodeJose<T>(
         bool b64,
         T value,
-        out ReadOnlySpan<char> chars)
+        out ReadOnlySpan<char> chars
+    )
     {
         using var bytesLease = SerializeToUtf8(value, options: null, out var bytes);
         return EncodeJose(b64, bytes, out chars);
     }
 
+    // TODO
     private static bool TryEncodeJose(
         bool b64,
         ReadOnlySpan<byte> bytes,
         Span<char> chars,
-        out int charsWritten)
+        out int charsWritten
+    )
     {
         if (b64)
         {
@@ -266,7 +283,8 @@ public partial class JoseSerializer : IJoseSerializer
     private static IDisposable EncodeJose(
         bool b64,
         ReadOnlySpan<byte> bytes,
-        out ReadOnlySpan<char> chars)
+        out ReadOnlySpan<char> chars
+    )
     {
         var charCount = b64 ?
             Base64Url.GetCharCountForEncode(bytes.Length) :
@@ -293,10 +311,11 @@ public partial class JoseSerializer : IJoseSerializer
     private static IDisposable Encode(
         Encoding encoding,
         ReadOnlySpan<char> chars,
-        out ReadOnlySpan<byte> bytes)
+        out ReadOnlySpan<byte> bytes
+    )
     {
         var byteCount = encoding.GetByteCount(chars);
-        var byteLease = CryptoPool.Rent(byteCount, isSensitive: false, out Span<byte> span);
+        var byteLease = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> span);
         try
         {
             var bytesWritten = encoding.GetBytes(chars, span);
@@ -316,7 +335,8 @@ public partial class JoseSerializer : IJoseSerializer
     private static void WriteCompactSegment(
         ReadOnlySpan<char> chars,
         IBufferWriter<char> writer,
-        bool addDot = true)
+        bool addDot = true
+    )
     {
         var charCount = chars.Length;
         var dotLength = addDot ? 1 : 0;
@@ -332,11 +352,28 @@ public partial class JoseSerializer : IJoseSerializer
         writer.Advance(charCount + dotLength);
     }
 
+    private static void WriteCompactSegment(
+        ReadOnlySequence<byte> bytes,
+        IBufferWriter<char> writer,
+        bool addDot = true,
+        bool b64 = true
+    )
+    {
+        EncodeJose(b64, bytes, writer);
+
+        if (addDot)
+        {
+            writer.GetSpan(1)[0] = '.';
+            writer.Advance(1);
+        }
+    }
+
     private static ReadOnlySpan<char> WriteCompactSegment(
         ReadOnlySpan<byte> bytes,
         IBufferWriter<char> writer,
         bool addDot = true,
-        bool b64 = true)
+        bool b64 = true
+    )
     {
         var charCount = b64 ?
             Base64Url.GetCharCountForEncode(bytes.Length) :

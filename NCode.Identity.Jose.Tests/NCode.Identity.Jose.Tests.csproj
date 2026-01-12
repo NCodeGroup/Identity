@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <PackageReference Include="jose-jwt" Version="5.2.0" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.1" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
         <PackageReference Include="Moq" Version="4.20.72" />

@@ -18,14 +18,12 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Identity.DataProtection;
 using NCode.Identity.Secrets;
 
 namespace NCode.Jose.Tests.Extensions;
 
 public class SecretKeyExtensionsTests : BaseTests
 {
-    private DefaultSecretKeyFactory SecretKeyFactory { get; } = new(NoneSecureDataProtector.Singleton);
 
     [Fact]
     public void Validate_Valid()

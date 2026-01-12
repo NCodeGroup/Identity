@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 namespace NCode.Identity.Jose.Algorithms;
@@ -91,6 +93,16 @@ public partial class AlgorithmCodes
         /// RSAES OAEP using SHA-256 and MGF1 with SHA-256
         /// </summary>
         public const string RsaOaep256 = "RSA-OAEP-256";
+
+        /// <summary>
+        /// RSAES OAEP using SHA-384 and MGF1 with SHA-384
+        /// </summary>
+        public const string RsaOaep384 = "RSA-OAEP-384";
+
+        /// <summary>
+        /// RSAES OAEP using SHA-512 and MGF1 with SHA-512
+        /// </summary>
+        public const string RsaOaep512 = "RSA-OAEP-512";
 
         /// <summary>
         /// Elliptic Curve Diffie-Hellman Ephemeral Static key agreement using Concat KDF

@@ -30,6 +30,6 @@ public class DefaultAlgorithmCollectionProvider(
     IAlgorithmCollectionProvider
 {
     /// <inheritdoc />
-    protected override IAlgorithmCollection CreateCollection(IEnumerable<Algorithm> items) =>
-        new AlgorithmCollection(items);
+    protected override IAlgorithmCollection CreateCollection(IEnumerable<Algorithm> items)
+        => new AlgorithmCollection(items);
 }

@@ -64,19 +64,22 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             yield return new KeyedHashSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.HmacSha256,
                 HashAlgorithmName.SHA256,
-                HMACSHA256.TryHashData);
+                HMACSHA256.TryHashData
+            );
 
             // HS384
             yield return new KeyedHashSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.HmacSha384,
                 HashAlgorithmName.SHA384,
-                HMACSHA384.TryHashData);
+                HMACSHA384.TryHashData
+            );
 
             // HS512
             yield return new KeyedHashSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.HmacSha512,
                 HashAlgorithmName.SHA512,
-                HMACSHA512.TryHashData);
+                HMACSHA512.TryHashData
+            );
 
             // Digital Signature with RSASSA-PKCS1-v1_5
             // https://datatracker.ietf.org/doc/html/rfc7518#section-3.3
@@ -85,19 +88,22 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSha256,
                 HashAlgorithmName.SHA256,
-                RSASignaturePadding.Pkcs1);
+                RSASignaturePadding.Pkcs1
+            );
 
             // RS384
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSha384,
                 HashAlgorithmName.SHA384,
-                RSASignaturePadding.Pkcs1);
+                RSASignaturePadding.Pkcs1
+            );
 
             // RS512
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSha512,
                 HashAlgorithmName.SHA512,
-                RSASignaturePadding.Pkcs1);
+                RSASignaturePadding.Pkcs1
+            );
 
             // Digital Signature with RSASSA-PSS
             // https://datatracker.ietf.org/doc/html/rfc7518#section-3.5
@@ -106,19 +112,22 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
                 HashAlgorithmName.SHA256,
-                RSASignaturePadding.Pss);
+                RSASignaturePadding.Pss
+            );
 
             // PS384
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSsaPssSha384,
                 HashAlgorithmName.SHA384,
-                RSASignaturePadding.Pss);
+                RSASignaturePadding.Pss
+            );
 
             // PS512
             yield return new RsaSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.RsaSsaPssSha512,
                 HashAlgorithmName.SHA512,
-                RSASignaturePadding.Pss);
+                RSASignaturePadding.Pss
+            );
 
             // Digital Signature with ECDSA
             // https://datatracker.ietf.org/doc/html/rfc7518#section-3.4
@@ -126,17 +135,20 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             // ES256
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha256,
-                HashAlgorithmName.SHA256);
+                HashAlgorithmName.SHA256
+            );
 
             // ES384
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha384,
-                HashAlgorithmName.SHA384);
+                HashAlgorithmName.SHA384
+            );
 
             // ES512
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha512,
-                HashAlgorithmName.SHA512);
+                HashAlgorithmName.SHA512
+            );
 
             #endregion
 
@@ -154,19 +166,22 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             yield return new AesKeyManagementAlgorithm(
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.Aes128,
-                kekSizeBits: 128);
+                kekSizeBits: 128
+            );
 
             // A192KW
             yield return new AesKeyManagementAlgorithm(
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.Aes192,
-                kekSizeBits: 192);
+                kekSizeBits: 192
+            );
 
             // A256KW
             yield return new AesKeyManagementAlgorithm(
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.Aes256,
-                kekSizeBits: 256);
+                kekSizeBits: 256
+            );
 
             // AES GCM
             // https://datatracker.ietf.org/doc/html/rfc7518#section-4.7
@@ -174,36 +189,54 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             // A128GCMKW
             yield return new AesGcmKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.Aes128Gcm,
-                kekSizeBits: 128);
+                kekSizeBits: 128
+            );
 
             // A192GCMKW
             yield return new AesGcmKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.Aes192Gcm,
-                kekSizeBits: 192);
+                kekSizeBits: 192
+            );
 
             // A256GCMKW
             yield return new AesGcmKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.Aes256Gcm,
-                kekSizeBits: 256);
+                kekSizeBits: 256
+            );
 
             // RSA1_5
             // https://datatracker.ietf.org/doc/html/rfc7518#section-4.2
 
             yield return new RsaKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.RsaPkcs1,
-                RSAEncryptionPadding.Pkcs1);
+                RSAEncryptionPadding.Pkcs1
+            );
 
             // RSA-OAEP
             // RSA-OAEP-256
+            // RSA-OAEP-384
+            // RSA-OAEP-512
             // https://datatracker.ietf.org/doc/html/rfc7518#section-4.3
 
             yield return new RsaKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.RsaOaep,
-                RSAEncryptionPadding.OaepSHA1);
+                RSAEncryptionPadding.OaepSHA1
+            );
 
             yield return new RsaKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.RsaOaep256,
-                RSAEncryptionPadding.OaepSHA256);
+                RSAEncryptionPadding.OaepSHA256
+            );
+
+            yield return new RsaKeyManagementAlgorithm(
+                AlgorithmCodes.KeyManagement.RsaOaep384,
+                RSAEncryptionPadding.OaepSHA384
+            );
+
+            yield return new RsaKeyManagementAlgorithm(
+                AlgorithmCodes.KeyManagement.RsaOaep512,
+                RSAEncryptionPadding.OaepSHA512
+            );
 
             // Key Agreement with Elliptic Curve Diffie-Hellman Ephemeral Static (ECDH-ES)
             // https://datatracker.ietf.org/doc/html/rfc7518#section-4.6
@@ -215,19 +248,22 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             yield return new EcdhWithAesKeyManagementAlgorithm(
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes128,
-                kekSizeBits: 128);
+                kekSizeBits: 128
+            );
 
             // ECDH-ES+A192KW
             yield return new EcdhWithAesKeyManagementAlgorithm(
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes192,
-                kekSizeBits: 192);
+                kekSizeBits: 192
+            );
 
             // ECDH-ES+A256KW
             yield return new EcdhWithAesKeyManagementAlgorithm(
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes256,
-                kekSizeBits: 256);
+                kekSizeBits: 256
+            );
 
             // PBES2
             // https://datatracker.ietf.org/doc/html/rfc7518#section-4.8
@@ -238,7 +274,8 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
                 AlgorithmCodes.KeyManagement.Pbes2HmacSha256Aes128,
                 HashAlgorithmName.SHA256,
                 keySizeBits: 128,
-                maxIterationCount: 310000);
+                maxIterationCount: 310000
+            );
 
             // PBES2-HS384+A192KW
             yield return new Pbes2KeyManagementAlgorithm(
@@ -246,7 +283,8 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
                 AlgorithmCodes.KeyManagement.Pbes2HmacSha384Aes192,
                 HashAlgorithmName.SHA384,
                 keySizeBits: 192,
-                maxIterationCount: 250000);
+                maxIterationCount: 250000
+            );
 
             // PBES2-HS512+A256KW
             yield return new Pbes2KeyManagementAlgorithm(
@@ -254,7 +292,8 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
                 AlgorithmCodes.KeyManagement.Pbes2HmacSha512Aes256,
                 HashAlgorithmName.SHA512,
                 keySizeBits: 256,
-                maxIterationCount: 120000);
+                maxIterationCount: 120000
+            );
 
             #endregion
 
@@ -267,19 +306,22 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             yield return new AesCbcHmacAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
                 HMACSHA256.TryHashData,
-                cekSizeBits: 256);
+                cekSizeBits: 256
+            );
 
             // A192CBC-HS384
             yield return new AesCbcHmacAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes192CbcHmacSha384,
                 HMACSHA384.TryHashData,
-                cekSizeBits: 384);
+                cekSizeBits: 384
+            );
 
             // A256CBC-HS512
             yield return new AesCbcHmacAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes256CbcHmacSha512,
                 HMACSHA512.TryHashData,
-                cekSizeBits: 512);
+                cekSizeBits: 512
+            );
 
             // Content Encryption with AES GCM
             // https://datatracker.ietf.org/doc/html/rfc7518#section-5.3
@@ -287,17 +329,20 @@ public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm
             // A128GCM
             yield return new AesGcmAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes128Gcm,
-                cekSizeBits: 128);
+                cekSizeBits: 128
+            );
 
             // A192GCM
             yield return new AesGcmAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes192Gcm,
-                cekSizeBits: 192);
+                cekSizeBits: 192
+            );
 
             // A256GCM
             yield return new AesGcmAuthenticatedEncryptionAlgorithm(
                 AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm,
-                cekSizeBits: 256);
+                cekSizeBits: 256
+            );
 
             #endregion
 

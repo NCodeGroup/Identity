@@ -38,18 +38,17 @@ public interface IPersistedGrantService
     /// <returns>The <see cref="PersistedGrantId"/> that represents the persisted grant identifier.</returns>
     PersistedGrantId CreateGrantId(string? tenantId, string grantType, string grantKey);
 
-    // TODO: xmldoc
     /// <summary>
-    /// Persists a persisted grant with the specified details to storage.
+    /// Persists a grant with the specified details to storage.
     /// </summary>
-    /// <param name="openIdContext">The <see cref="grantId"/> instance associated with the current request.</param>
-    /// <param name="grant">Contains the identifiers of the persisted grant.</param>
-    /// <param name="createdWhen">Contains the payload of the persisted grant.</param>
-    /// <param name="createdWhen">Contains the <see cref="lifetime"/> when the grant was created.</param>
-    /// <param name="cancellationToken">The lifetime of the persisted grant.</param>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="grant">Contains the payload of the persisted grant.</param>
+    /// <param name="createdWhen">The <see cref="DateTimeOffset"/> when the grant was created.</param>
+    /// <param name="lifetime">The optional lifetime of the persisted grant. If <c>null</c>, the grant does not expire.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
-    /// <returns>The <see cref="OpenIdContext"/> that represents the asynchronous operation.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask AddAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,

@@ -87,22 +87,6 @@ public interface IPersistedGrantService
         CancellationToken cancellationToken
     );
 
-    // TODO: remove?
-    /// <summary>
-    /// Updates a grant as being consumed if not already.
-    /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
-    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
-    /// <param name="consumedWhen">The <see cref="DateTimeOffset"/> to set the consumed time to.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask SetConsumedOnceAsync(
-        OpenIdContext openIdContext,
-        PersistedGrantId grantId,
-        DateTimeOffset consumedWhen,
-        CancellationToken cancellationToken
-    );
-
     /// <summary>
     /// Updates a grant as being revoked if it is still active.
     /// </summary>

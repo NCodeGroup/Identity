@@ -220,37 +220,6 @@ public class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
-    public async ValueTask SetConsumedOnceAsync(
-        OpenIdContext openIdContext,
-        PersistedGrantId grantId,
-        DateTimeOffset consumedWhen,
-        CancellationToken cancellationToken
-    )
-    {
-        var grantType = grantId.GrantType;
-        var hashedKey = GetHashedKey(grantId);
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IGrantStore>();
-
-        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
-        if (envelope is null)
-            return;
-
-        if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
-            return;
-
-        if (envelope.ConsumedWhen is not null)
-            return;
-
-        envelope.ConsumedWhen = consumedWhen;
-
-        await store.UpdateAsync(envelope, cancellationToken);
-
-        await storeManager.SaveChangesAsync(cancellationToken);
-    }
-
-    /// <inheritdoc />
     public async ValueTask SetRevokedOnceAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,

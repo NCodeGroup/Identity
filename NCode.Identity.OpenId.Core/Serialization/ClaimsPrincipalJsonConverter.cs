@@ -29,28 +29,9 @@ namespace NCode.Identity.OpenId.Serialization;
 /// instances to and from JSON.
 /// </summary>
 [PublicAPI]
-public class ClaimsPrincipalJsonConverter : JsonConverter<ClaimsPrincipal>
+public class ClaimsPrincipalJsonConverter(IClaimsSerializer serializer) : JsonConverter<ClaimsPrincipal>
 {
-    private IClaimsSerializer Serializer { get; }
-
-    // TODO
-    // /// <summary>
-    // /// Initializes a new instance of the <see cref="ClaimsPrincipalJsonConverter"/> class.
-    // /// </summary>
-    // public ClaimsPrincipalJsonConverter()
-    //     : this(DefaultClaimsSerializer.Singleton)
-    // {
-    //     // nothing
-    // }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ClaimsPrincipalJsonConverter"/> class with the specified <see cref="IClaimsSerializer"/>.
-    /// </summary>
-    /// <param name="serializer">The <see cref="IClaimsSerializer"/> to use for serialization and deserialization.</param>
-    public ClaimsPrincipalJsonConverter(IClaimsSerializer serializer)
-    {
-        Serializer = serializer;
-    }
+    private IClaimsSerializer Serializer { get; } = serializer;
 
     /// <inheritdoc />
     public override ClaimsPrincipal? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

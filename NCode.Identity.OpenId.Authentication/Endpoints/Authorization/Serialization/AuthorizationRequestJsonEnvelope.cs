@@ -17,7 +17,9 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+
+namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 
 /// <summary>
 /// Contains the properties for serializing and deserializing <see cref="IAuthorizationRequest"/> instances

@@ -45,7 +45,6 @@ public class DefaultOpenIdJsonConverterProvider(IClaimsSerializer claimsSerializ
             new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
             new OpenIdMessageJsonConverterFactory(openIdEnvironment),
             // TODO
-            // new AuthorizationRequestJsonConverter(),
             // new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
             // new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
             new ClaimJsonConverter(ClaimsSerializer),

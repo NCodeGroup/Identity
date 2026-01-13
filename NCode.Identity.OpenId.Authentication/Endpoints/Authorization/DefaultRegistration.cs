@@ -25,8 +25,10 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.Results;
 using NCode.Mediator;
 using NCode.Mediator.Middleware;
@@ -48,20 +50,28 @@ public static class DefaultRegistration
     public static IServiceBuilder<OpenIdAuthenticationEndpoints> AddAuthorizationEndpoint(
         this IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
     {
+        // Endpoints
         builder.AddEndpointProvider<DefaultAuthorizationEndpointHandler>();
 
+        // Messages
         builder.AddMessageFactory<AuthorizationRequestMessage>();
         builder.AddMessageFactory<AuthorizationRequestObject>();
         builder.AddMessageFactory<AuthorizationTicket>();
 
         var serviceCollection = builder.ServiceCollection;
 
+        // Logic
         serviceCollection.TryAddSingleton<IAuthorizationEndpointLogic, DefaultAuthorizationEndpointLogic>();
         serviceCollection.TryAddSingleton<IResultExecutor<AuthorizationResult>, DefaultAuthorizationResultExecutor>();
 
         // TODO
+        // Continue Providers
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IContinueProvider, DefaultAuthorizationContinueProvider>());
 
+        // Serialization
+        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IOpenIdJsonConverterProvider, AuthorizationJsonConverterProvider>());
+
+        // Mediator
         serviceCollection.TryAddSingleton<ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>, DefaultLoadAuthorizationRequestHandler>();
         serviceCollection.TryAddSingleton<ICommandHandler<ValidateAuthorizationRequestCommand>, DefaultValidateAuthorizationRequestHandler>();
         serviceCollection.TryAddSingleton<ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>, DefaultAuthenticateSubjectHandler>();

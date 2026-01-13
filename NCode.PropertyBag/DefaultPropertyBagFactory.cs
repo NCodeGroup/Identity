@@ -20,8 +20,6 @@ using JetBrains.Annotations;
 
 namespace NCode.PropertyBag;
 
-// TODO: register in DI
-
 /// <summary>
 /// Provides a default implementation of the <see cref="IPropertyBagFactory"/> abstraction.
 /// </summary>

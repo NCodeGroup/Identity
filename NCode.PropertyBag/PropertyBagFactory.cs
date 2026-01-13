@@ -29,6 +29,7 @@ public interface IPropertyBagFactory
     /// <summary>
     /// Factory method to create a new instance of the <see cref="IPropertyBag"/> abstraction.
     /// </summary>
+    /// <returns>A new <see cref="IPropertyBag"/> instance.</returns>
     IPropertyBag Create();
 }
 
@@ -36,6 +37,18 @@ public interface IPropertyBagFactory
 [PublicAPI]
 public static class PropertyBagFactory
 {
+    /// <summary>
+    /// Gets or sets the default <see cref="IPropertyBagFactory"/> instance used by the static <see cref="Create"/> method.
+    /// </summary>
+    /// <value>
+    /// The default factory instance. If not explicitly set, returns <see cref="DefaultPropertyBagFactory.Singleton"/>.
+    /// </value>
+    public static IPropertyBagFactory DefaultFactory
+    {
+        get => field ?? DefaultPropertyBagFactory.Singleton;
+        set;
+    }
+
     /// <inheritdoc cref="IPropertyBagFactory.Create"/>
-    public static IPropertyBag Create() => DefaultPropertyBagFactory.Singleton.Create();
+    public static IPropertyBag Create() => DefaultFactory.Create();
 }

@@ -63,7 +63,7 @@ public class TenantEntity : ISupportConcurrencyToken
     /// </summary>
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.TenantDomainName)]
-    public required string? DomainName { get; init; }
+    public required string? DomainName { get; set; }
 
     /// <summary>
     /// Gets or sets the value of <see cref="DomainName"/> in uppercase so that lookups can be sargable for DBMS
@@ -71,7 +71,7 @@ public class TenantEntity : ISupportConcurrencyToken
     /// </summary>
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.TenantDomainName)]
-    public required string? NormalizedDomainName { get; init; }
+    public required string? NormalizedDomainName { get; set; }
 
     //
 

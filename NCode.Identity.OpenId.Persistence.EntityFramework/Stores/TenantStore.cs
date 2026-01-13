@@ -236,7 +236,9 @@ public class TenantStore(
         tenantEntity.ConcurrencyToken = nextConcurrencyToken;
         tenantEntity.IsDisabled = persistedTenant.IsDisabled;
         tenantEntity.DisplayName = persistedTenant.DisplayName;
-        // TODO: DomainName
+
+        tenantEntity.DomainName = persistedTenant.DomainName;
+        tenantEntity.NormalizedDomainName = Normalize(persistedTenant.DomainName);
 
         DbContext.Tenants.Update(tenantEntity);
 

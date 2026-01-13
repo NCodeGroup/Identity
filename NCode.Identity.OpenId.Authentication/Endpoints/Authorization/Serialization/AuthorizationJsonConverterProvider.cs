@@ -17,6 +17,7 @@
 #endregion
 
 using System.Text.Json.Serialization;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Serialization;
 
@@ -33,7 +34,9 @@ public class AuthorizationJsonConverterProvider : IOpenIdJsonConverterProvider
     {
         return
         [
-            new AuthorizationRequestJsonConverter()
+            new AuthorizationRequestJsonConverter(),
+            new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
+            new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
         ];
     }
 }

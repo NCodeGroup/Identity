@@ -44,12 +44,9 @@ public class DefaultOpenIdJsonConverterProvider(IClaimsSerializer claimsSerializ
             new StringValuesJsonConverter(),
             new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
             new OpenIdMessageJsonConverterFactory(openIdEnvironment),
-            // TODO
-            // new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
-            // new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
             new ClaimJsonConverter(ClaimsSerializer),
             new ClaimsIdentityJsonConverter(ClaimsSerializer),
-            new ClaimsPrincipalJsonConverter(ClaimsSerializer)
+            new ClaimsPrincipalJsonConverter(ClaimsSerializer),
         ];
     }
 }

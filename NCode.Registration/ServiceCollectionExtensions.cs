@@ -27,14 +27,17 @@ namespace NCode.Registration;
 [PublicAPI]
 public static class ServiceCollectionExtensions
 {
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to check whether services are registered.</param>
+    /// <summary>
+    /// Provides extension methods for <see cref="IServiceCollection"/> to manage registration markers.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to extend.</param>
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
         /// Verifies that services for <typeparamref name="TMarker"/> are registered in the <see cref="IServiceCollection"/>.
         /// </summary>
         /// <param name="message">The message to include in the exception when required services are not registered.
-        /// Optional, a default message is used if not specified.</param>
+        /// If <c>null</c> or empty, a default message is used.</param>
         /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
         /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the required services for <typeparamref name="TMarker"/> are not registered in the <see cref="IServiceCollection"/>.</exception>
@@ -60,14 +63,24 @@ public static class ServiceCollectionExtensions
         /// </summary>
         /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
         /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
+        /// <remarks>
+        /// Registration markers are used to track which service groups have been registered,
+        /// enabling verification of required dependencies at application startup.
+        /// </remarks>
         public IServiceCollection AddRegistrationMarker<TMarker>()
             where TMarker : IRegistrationMarker<TMarker>, new()
         {
-            var marker = new TMarker(); // TODO: should we register the implementation type instead?
+            var marker = new TMarker();
             return serviceCollection.AddSingleton<IRegistrationMarker<TMarker>>(marker);
         }
     }
 
+    /// <summary>
+    /// Gets the effective error message for when a registration marker is not found.
+    /// </summary>
+    /// <param name="message">The custom message provided by the caller, or <c>null</c> to use the default message.</param>
+    /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
+    /// <returns>The effective error message to use in the exception.</returns>
     private static string GetEffectiveMessage<TMarker>(string? message)
         where TMarker : IRegistrationMarker<TMarker>, new()
     {

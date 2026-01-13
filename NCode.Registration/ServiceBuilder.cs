@@ -33,16 +33,18 @@ public interface IServiceBuilder
     IServiceCollection ServiceCollection { get; init; }
 
     /// <summary>
-    /// Factory method to create a new <see cref="IServiceBuilder{T}"/> instance with the specified type discriminator.
+    /// Factory method to create a new <see cref="IServiceBuilder{TMarker}"/> instance with the specified type discriminator.
     /// </summary>
     /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
+    /// <returns>A new <see cref="IServiceBuilder{TMarker}"/> instance.</returns>
     IServiceBuilder<TMarker> New<TMarker>()
         where TMarker : IMarker<TMarker>;
 
     /// <summary>
-    /// Factory method to create a new <see cref="IServiceBuilder{T}"/> instance and register a new registration marker with the specified type discriminator.
+    /// Factory method to create a new <see cref="IServiceBuilder{TMarker}"/> instance and register a new registration marker with the specified type discriminator.
     /// </summary>
     /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
+    /// <returns>A new <see cref="IServiceBuilder{TMarker}"/> instance with the registration marker registered.</returns>
     IServiceBuilder<TMarker> Register<TMarker>()
         where TMarker : IRegistrationMarker<TMarker>, new();
 }
@@ -65,10 +67,11 @@ public interface IServiceBuilder<TMarker> : IServiceBuilder
 public class ServiceBuilder : IServiceBuilder
 {
     /// <summary>
-    /// Creates a new instance of <see cref="IServiceBuilder{T}"/>.
+    /// Creates a new instance of <see cref="IServiceBuilder{TMarker}"/>.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> that is used to configure services.</param>
-    /// <typeparam name="TMarker">The type that discriminates the library builder.</typeparam>
+    /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
+    /// <returns>A new <see cref="IServiceBuilder{TMarker}"/> instance.</returns>
     public static IServiceBuilder<TMarker> Create<TMarker>(IServiceCollection serviceCollection)
         where TMarker : IMarker<TMarker>
     {
@@ -78,6 +81,13 @@ public class ServiceBuilder : IServiceBuilder
         };
     }
 
+    /// <summary>
+    /// Creates a new instance of a custom service builder type.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> that is used to configure services.</param>
+    /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
+    /// <typeparam name="TBuilder">The type of the service builder to create.</typeparam>
+    /// <returns>A new <typeparamref name="TBuilder"/> instance.</returns>
     public static TBuilder Create<TMarker, TBuilder>(IServiceCollection serviceCollection)
         where TMarker : IMarker<TMarker>
         where TBuilder : IServiceBuilder<TMarker>, new()
@@ -89,10 +99,11 @@ public class ServiceBuilder : IServiceBuilder
     }
 
     /// <summary>
-    /// Creates a new instance of <see cref="IServiceBuilder{T}"/> and registers a registration marker with the specified type discriminator.
+    /// Creates a new instance of <see cref="IServiceBuilder{TMarker}"/> and registers a registration marker with the specified type discriminator.
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> that is used to configure services.</param>
-    /// <typeparam name="TMarker">The type that discriminates the library builder.</typeparam>
+    /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
+    /// <returns>A new <see cref="IServiceBuilder{TMarker}"/> instance with the registration marker registered.</returns>
     public static IServiceBuilder<TMarker> Register<TMarker>(IServiceCollection serviceCollection)
         where TMarker : IRegistrationMarker<TMarker>, new()
     {
@@ -100,6 +111,13 @@ public class ServiceBuilder : IServiceBuilder
         return Create<TMarker>(serviceCollection);
     }
 
+    /// <summary>
+    /// Creates a new instance of a custom service builder type and registers a registration marker with the specified type discriminator.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> that is used to configure services.</param>
+    /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
+    /// <typeparam name="TBuilder">The type of the service builder to create.</typeparam>
+    /// <returns>A new <typeparamref name="TBuilder"/> instance with the registration marker registered.</returns>
     public static TBuilder Register<TMarker, TBuilder>(IServiceCollection serviceCollection)
         where TMarker : IRegistrationMarker<TMarker>, new()
         where TBuilder : IServiceBuilder<TMarker>, new()
@@ -128,7 +146,7 @@ public class ServiceBuilder : IServiceBuilder
 }
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IServiceBuilder{T}"/> abstraction.
+/// Provides a default implementation of the <see cref="IServiceBuilder{TMarker}"/> abstraction.
 /// </summary>
 /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
 public class ServiceBuilder<TMarker> : ServiceBuilder, IServiceBuilder<TMarker>

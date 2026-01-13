@@ -20,6 +20,11 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
 
+/// <summary>
+/// An <see cref="AuthorizationHandler{TRequirement}"/> that automatically succeeds any
+/// <see cref="IAuthorizationRequirement"/> when the user is a member of the <see cref="BuiltInRoles.GlobalAdmin"/> role.
+/// This handler provides a global bypass for administrators across all authorization requirements.
+/// </summary>
 public class GlobalAdminHandler : AuthorizationHandler<IAuthorizationRequirement>
 {
     /// <inheritdoc />
@@ -28,13 +33,13 @@ public class GlobalAdminHandler : AuthorizationHandler<IAuthorizationRequirement
         IAuthorizationRequirement requirement
     )
     {
-        if (context.User.IsInRole("GlobalAdmin")) // TODO: use constant
+        if (context.User.IsInRole(BuiltInRoles.GlobalAdmin))
         {
             context.Succeed(requirement);
         }
         else
         {
-            // TODO: remove
+            // TODO: remove, this is just for testing/development purposes
             context.Succeed(requirement);
         }
 

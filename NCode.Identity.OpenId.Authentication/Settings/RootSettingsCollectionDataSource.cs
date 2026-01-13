@@ -26,8 +26,6 @@ using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Settings;
 
-// TODO: interface marker?
-
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> for a collection of <see cref="Setting"/> instances
 /// that are loaded from a <see cref="IConfigurationSection"/> and the default values from <see cref="ISettingDescriptorCollectionProvider"/>.

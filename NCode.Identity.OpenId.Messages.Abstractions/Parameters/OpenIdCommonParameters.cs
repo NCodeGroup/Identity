@@ -59,16 +59,6 @@ public static class OpenIdCommonParameters
             ShouldSerialize = ShouldSerializeAsJsonOnly,
         };
 
-    // TODO
-    // /// <summary>
-    // /// Gets the <see cref="KnownParameter"/> for the <c>claims</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IRequestClaims"/> result.
-    // /// </summary>
-    // public static readonly KnownParameter<IRequestClaims> Claims =
-    //     new(OpenIdConstants.Parameters.Claims, ParameterParsers.RequestClaims)
-    //     {
-    //         AllowMissingStringValues = true,
-    //     };
-
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>claims_locales</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
@@ -276,17 +266,6 @@ public static class OpenIdCommonParameters
         {
             AllowMissingStringValues = true,
         };
-
-    // TODO
-    // /// <summary>
-    // /// Gets the <see cref="KnownParameter"/> for the <c>$request_object_source</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="RequestObjectSource"/> result.
-    // /// </summary>
-    // public static readonly KnownParameter<RequestObjectSource> RequestObjectSource =
-    //     new(OpenIdConstants.Parameters.RequestObjectSource, EnumParser<RequestObjectSource>.Singleton)
-    //     {
-    //         AllowMissingStringValues = true,
-    //         ShouldSerialize = ShouldSerializeAsJsonOnly,
-    //     };
 
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>request_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="Uri"/> result.

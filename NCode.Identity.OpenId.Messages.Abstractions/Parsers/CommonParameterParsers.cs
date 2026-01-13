@@ -28,12 +28,6 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 [PublicAPI]
 public static class CommonParameterParsers
 {
-    // TODO
-    // /// <summary>
-    // /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="IRequestClaims"/> from a JSON payload.
-    // /// </summary>
-    // public static readonly JsonParser<IRequestClaims> RequestClaims = new();
-
     /// <summary>
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="string"/> values.
     /// </summary>

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,13 +37,14 @@ public static class DefaultRegistration
 
         services.AddAuthorization();
         services.AddAuthorizationHandler<GlobalAdminHandler>();
+        services.AddAuthorizationHandler<TenantAdminHandler>();
 
         serviceBuilder.AddEndpointProvider<ServerApiEndpointHandler>();
 
         return serviceBuilder;
     }
 
-    public static IServiceCollection AddAuthorizationHandler<THandler>(this IServiceCollection services)
+    public static IServiceCollection AddAuthorizationHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler>(this IServiceCollection services)
         where THandler : class, IAuthorizationHandler
     {
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, THandler>());

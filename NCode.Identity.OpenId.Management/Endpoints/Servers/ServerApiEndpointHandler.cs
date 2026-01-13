@@ -71,6 +71,24 @@ public class ServerApiEndpointHandler(
         servers.MapGet("/{serverId}/secrets", GetSecretsAsync);
     }
 
+    internal virtual JsonElement SerializeToElement(JsonObject jsonObject)
+    {
+        return JsonSerializer.SerializeToElement(jsonObject);
+    }
+
+    internal virtual JsonObject ToJsonObject(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Null:
+            case JsonValueKind.Object:
+                return JsonObject.Create(element) ?? new JsonObject();
+
+            default:
+                return new JsonObject();
+        }
+    }
+
     internal virtual ServerResource ToServerResource(PersistedServer server)
     {
         return new ServerResource
@@ -177,12 +195,11 @@ public class ServerApiEndpointHandler(
 
         if (authorizationResult.Succeeded)
         {
-            // TODO: this can throw wrong element type
-            var jsonObject = JsonObject.Create(serverSettings.Value) ?? new JsonObject();
+            var jsonObject = ToJsonObject(serverSettings.Value);
 
             request.ApplyTo(jsonObject);
 
-            serverSettings.Value = JsonSerializer.SerializeToElement(jsonObject);
+            serverSettings.Value = SerializeToElement(jsonObject);
 
             await store.UpdateSettingsAsync(serverSettings, cancellationToken);
 

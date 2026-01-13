@@ -64,7 +64,6 @@ public static class DefaultRegistration
         serviceCollection.TryAddSingleton<IAuthorizationEndpointLogic, DefaultAuthorizationEndpointLogic>();
         serviceCollection.TryAddSingleton<IResultExecutor<AuthorizationResult>, DefaultAuthorizationResultExecutor>();
 
-        // TODO
         // Continue Providers
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IContinueProvider, DefaultAuthorizationContinueProvider>());
 

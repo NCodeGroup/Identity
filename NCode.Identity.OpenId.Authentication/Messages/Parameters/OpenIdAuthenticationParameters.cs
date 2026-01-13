@@ -32,7 +32,6 @@ namespace NCode.Identity.OpenId.Authentication.Messages.Parameters;
 [PublicAPI]
 public static class OpenIdAuthenticationParameters
 {
-    // TODO
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>claims</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IRequestClaims"/> result.
     /// </summary>
@@ -42,7 +41,6 @@ public static class OpenIdAuthenticationParameters
             AllowMissingStringValues = true,
         };
 
-    // TODO
     /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>$request_object_source</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="RequestObjectSource"/> result.
     /// </summary>

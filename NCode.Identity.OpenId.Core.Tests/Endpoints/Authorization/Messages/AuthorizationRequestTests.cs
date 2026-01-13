@@ -22,6 +22,7 @@ using System.Text.Json.Serialization;
 using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 using NCode.Identity.OpenId.Authentication.Messages.Parameters;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;

@@ -20,8 +20,9 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 
 /// <summary>
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="IAuthorizationRequest"/>

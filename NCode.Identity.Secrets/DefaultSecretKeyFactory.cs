@@ -72,10 +72,10 @@ public class DefaultSecretKeyFactory(
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<char> password)
     {
         var keySizeBytes = SecureEncoding.UTF8.GetByteCount(password);
-        using var lease = SecureMemoryPool<byte>.Shared.Rent(keySizeBytes);
-        var bytesWritten = SecureEncoding.UTF8.GetBytes(password, lease.Memory.Span);
+        using var _ = SecureMemoryFactory.Rent(keySizeBytes, isSensitive: true, out Span<byte> span);
+        var bytesWritten = SecureEncoding.UTF8.GetBytes(password, span);
         Debug.Assert(bytesWritten == keySizeBytes);
-        return CreateSymmetric(metadata, lease.Memory.Span[..keySizeBytes]);
+        return CreateSymmetric(metadata, span);
     }
 
     #endregion
@@ -128,17 +128,17 @@ public class DefaultSecretKeyFactory(
 
     private byte[] ExportProtectedPkcs8PrivateKey(AsymmetricAlgorithm asymmetricAlgorithm)
     {
-        using var protectedPrivateKeyBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+        using var protectedPrivateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer();
         IBufferWriter<byte> protectedPrivateKeyWriter = protectedPrivateKeyBuffer;
 
         var byteCount = SecureMemoryPool<byte>.PageSize;
         while (true)
         {
-            using var lease = SecureMemoryPool<byte>.Shared.Rent(byteCount);
+            using var _ = SecureMemoryFactory.Rent(byteCount, isSensitive: true, out Span<byte> span);
 
-            if (asymmetricAlgorithm.TryExportPkcs8PrivateKey(lease.Memory.Span, out var bytesWritten))
+            if (asymmetricAlgorithm.TryExportPkcs8PrivateKey(span, out var bytesWritten))
             {
-                DataProtector.ProtectSpan(lease.Memory.Span[..bytesWritten], ref protectedPrivateKeyWriter);
+                DataProtector.ProtectSpan(span[..bytesWritten], ref protectedPrivateKeyWriter);
 
                 return protectedPrivateKeyBuffer.AsReadOnlySequence.ToArray();
             }

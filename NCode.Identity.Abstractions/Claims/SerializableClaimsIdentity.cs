@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace NCode.Identity.Claims;
 
@@ -36,11 +37,10 @@ public class SerializableClaimsIdentity
     /// </summary>
     public required string? Label { get; init; }
 
-    // TODO: use JsonElement
     /// <summary>
     /// Gets or sets the value for the <see cref="ClaimsIdentity.BootstrapContext"/> property.
     /// </summary>
-    public required string? BootstrapContext { get; init; }
+    public required JsonElement BootstrapContext { get; init; }
 
     /// <summary>
     /// Gets or sets the value for the <see cref="ClaimsIdentity.AuthenticationType"/> property.

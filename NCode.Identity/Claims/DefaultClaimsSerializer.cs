@@ -19,6 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace NCode.Identity.Claims;
 
@@ -35,6 +36,9 @@ public class DefaultClaimsSerializer : IClaimsSerializer
     [return: NotNullIfNotNull(nameof(value))]
     private static string? GetReferenceId(object? value) =>
         value?.GetHashCode().ToString(CultureInfo.InvariantCulture);
+
+    internal virtual JsonElement SerializeToElement(object? value) =>
+        JsonSerializer.SerializeToElement(value);
 
     /// <inheritdoc />
     public SerializableClaim SerializeClaim(Claim claim) =>
@@ -70,7 +74,7 @@ public class DefaultClaimsSerializer : IClaimsSerializer
         {
             ReferenceId = referenceId,
             Label = identity.Label,
-            BootstrapContext = identity.BootstrapContext as string, // we only allow strings
+            BootstrapContext = SerializeToElement(identity.BootstrapContext),
             AuthenticationType = identity.AuthenticationType,
             NameClaimType = identity.NameClaimType,
             RoleClaimType = identity.RoleClaimType,
@@ -120,7 +124,8 @@ public class DefaultClaimsSerializer : IClaimsSerializer
             claims: null,
             serializableIdentity.AuthenticationType,
             serializableIdentity.NameClaimType,
-            serializableIdentity.RoleClaimType)
+            serializableIdentity.RoleClaimType
+        )
         {
             Label = serializableIdentity.Label,
             BootstrapContext = serializableIdentity.BootstrapContext,

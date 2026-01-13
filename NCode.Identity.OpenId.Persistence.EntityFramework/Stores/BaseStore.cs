@@ -28,34 +28,40 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 /// <summary>
-/// Provides a base implementation for <see cref="IStore"/> that uses entity framework.
+/// Provides a base implementation for <see cref="IStore"/> that uses Entity Framework Core for data persistence.
+/// This abstract class provides common functionality for CRUD operations, entity mapping, and tenant management.
 /// </summary>
-/// <typeparam name="TItem">The type of the persisted item, also known as a <c>Data Transfer Object</c> or <c>DTO</c>.</typeparam>
-/// <typeparam name="TEntity">The type of the corresponding entity.</typeparam>
+/// <typeparam name="TItem">The type of the persisted item, also known as a <c>Data Transfer Object</c> (DTO),
+/// which represents the data contract used outside of the persistence layer.</typeparam>
+/// <typeparam name="TEntity">The type of the corresponding Entity Framework entity used for database operations.</typeparam>
 [PublicAPI]
 public abstract class BaseStore<TItem, TEntity> : IStore
     where TItem : class
     where TEntity : class
 {
     /// <summary>
-    /// Gets the <see cref="IStoreProvider"/> for this store.
+    /// Gets the <see cref="IStoreProvider"/> instance that provides access to other stores
+    /// and dependency injection services.
     /// </summary>
     protected abstract IStoreProvider StoreProvider { get; }
 
     /// <summary>
-    /// Gets the <see cref="IdGenerator"/> for this store.
+    /// Gets the <see cref="IIdGenerator{T}"/> instance used to generate unique identifiers for entities.
     /// </summary>
     protected abstract IIdGenerator<long> IdGenerator { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdDbContext"/> for this store.
+    /// Gets the <see cref="OpenIdDbContext"/> instance used for database operations in this store.
     /// </summary>
     protected abstract OpenIdDbContext DbContext { get; }
 
     /// <summary>
-    /// Gets the next unique identifier for an entity if not already provided.
+    /// Gets the next unique identifier for an entity. If a value is already provided and non-zero,
+    /// returns that value; otherwise generates a new unique identifier using the <see cref="IdGenerator"/>.
     /// </summary>
-    /// <param name="value">The current value of the identifier, if any.</param>
+    /// <param name="value">The current value of the identifier, if any. When <c>null</c> or zero,
+    /// a new identifier will be generated.</param>
+    /// <returns>The provided identifier if non-zero; otherwise a newly generated unique identifier.</returns>
     protected long NextId(long? value = null)
     {
         var valueOrDefault = value.GetValueOrDefault(0);
@@ -63,17 +69,22 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     }
 
     /// <summary>
-    /// Gets the next unique concurrency token for an entity.
+    /// Generates a new unique concurrency token for optimistic concurrency control.
+    /// The token is a GUID formatted as a 32-character hexadecimal string without hyphens.
     /// </summary>
+    /// <returns>A new unique concurrency token string.</returns>
     protected static string NextConcurrencyToken()
     {
         return Guid.NewGuid().ToString("N");
     }
 
     /// <summary>
-    /// Returns a string value in uppercase so that lookups can be sargable for DBMS
-    /// engines that don't support case-insensitive indices.
+    /// Normalizes a string value to uppercase for case-insensitive database lookups.
+    /// This enables sargable (Search ARGument ABLE) queries for DBMS engines that
+    /// don't support case-insensitive indices natively.
     /// </summary>
+    /// <param name="value">The string value to normalize, or <c>null</c>.</param>
+    /// <returns>The uppercase version of the input string, or <c>null</c> if the input was <c>null</c>.</returns>
     [return: NotNullIfNotNull("value")]
     protected static string? Normalize(string? value) => value?.ToUpperInvariant();
 
@@ -148,7 +159,7 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     }
 
     /// <summary>
-    /// Attempts to retrieve a <see cref="TenantEntity"/> instance from the store using any object that supports the <see cref="ISupportTenantId"/> abtraction.
+    /// Attempts to retrieve a <see cref="TenantEntity"/> instance from the store using any object that supports the <see cref="ISupportTenantId"/> abstraction.
     /// </summary>
     /// <param name="supportTenantId">An object that supports a tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -162,7 +173,7 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     }
 
     /// <summary>
-    /// Gets a <see cref="TenantEntity"/> instance from the store using any object that supports the <see cref="ISupportTenantId"/> abtraction.
+    /// Gets a <see cref="TenantEntity"/> instance from the store using any object that supports the <see cref="ISupportTenantId"/> abstraction.
     /// </summary>
     /// <param name="supportTenantId">An object that supports a tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -200,10 +211,11 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// Maps a <see cref="PersistedSecret"/> DTO to its corresponding <see cref="SecretEntity"/>.
     /// </summary>
     /// <param name="secret">The <see cref="PersistedSecret"/> DTO to map.</param>
+    /// <param name="id">The optional identifier for the entity. If <c>null</c> or zero, a new identifier will be generated.</param>
     /// <returns>The newly mapped <see cref="SecretEntity"/> entity.</returns>
-    protected SecretEntity MapToSecretEntity(PersistedSecret secret) => new()
+    protected SecretEntity MapToSecretEntity(PersistedSecret secret, long? id = null) => new()
     {
-        Id = NextId(), // TODO
+        Id = NextId(id),
         SecretId = secret.SecretId,
         NormalizedSecretId = Normalize(secret.SecretId),
         ConcurrencyToken = secret.ConcurrencyToken,

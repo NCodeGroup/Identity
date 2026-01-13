@@ -275,47 +275,47 @@ partial class JoseSerializer
             Base64Url.GetCharCountForEncode(payload.Length) :
             SecureEncoding.UTF8.GetCharCount(payload);
 
-        IDisposable lease;
-        Span<char> encodedPayload;
+        IDisposable owner;
+        Span<char> workingPayload;
+        int payloadCharsWritten;
 
         if (signingOptions.DetachPayload)
         {
-            var payloadLease = MemoryPool<char>.Shared.Rent(payloadCharCount);
-            encodedPayload = payloadLease.Memory.Span[..payloadCharCount];
-            lease = payloadLease;
+            var lease = MemoryPool<char>.Shared.Rent(payloadCharCount);
+            workingPayload = lease.Memory.Span;
+            owner = lease;
         }
         else
         {
-            encodedPayload = tokenWriter.GetSpan(payloadCharCount + 1);
-            lease = Disposable.Empty;
+            workingPayload = tokenWriter.GetSpan(payloadCharCount + 1); // with dot
+            owner = Disposable.Empty;
         }
 
-        try
+        if (signingOptions.EncodePayload)
         {
-            var encodeResult = TryEncodeJose(signingOptions.EncodePayload, payload, encodedPayload, out var payloadCharsWritten);
-            Debug.Assert(encodeResult && payloadCharsWritten == payloadCharCount);
-
-            if (signingOptions.DetachPayload)
-            {
-                var span = tokenWriter.GetSpan(1);
-                span[0] = '.';
-                tokenWriter.Advance(1);
-            }
-            else
-            {
-                encodedPayload[payloadCharsWritten] = '.';
-                tokenWriter.Advance(payloadCharsWritten + 1);
-            }
-
-            encodedPayloadPart = encodedPayload[..payloadCharsWritten]; // without dot
+            var result = Base64Url.TryEncode(payload, workingPayload, out payloadCharsWritten);
+            Debug.Assert(result && payloadCharsWritten == payloadCharCount);
         }
-        catch
+        else
         {
-            lease.Dispose();
-            throw;
+            payloadCharsWritten = SecureEncoding.UTF8.GetChars(payload, workingPayload);
+            Debug.Assert(payloadCharsWritten == payloadCharCount);
         }
 
-        return lease;
+        if (signingOptions.DetachPayload)
+        {
+            var span = tokenWriter.GetSpan(1);
+            span[0] = '.';
+            tokenWriter.Advance(1);
+        }
+        else
+        {
+            workingPayload[payloadCharsWritten] = '.';
+            tokenWriter.Advance(payloadCharsWritten + 1); // with dot
+        }
+
+        encodedPayloadPart = workingPayload[..payloadCharsWritten]; // without dot
+        return owner;
     }
 
     private static void EncodeJwsSignature(

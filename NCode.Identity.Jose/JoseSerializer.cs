@@ -25,6 +25,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.CryptoMemory;
+using NCode.Disposables;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
@@ -242,25 +243,8 @@ public partial class JoseSerializer : IJoseSerializer
         out ReadOnlySpan<char> chars
     )
     {
-        using var bytesLease = SerializeToUtf8(value, options: null, out var bytes);
+        using var _ = SerializeToUtf8(value, options: null, out var bytes);
         return EncodeJose(b64, bytes, out chars);
-    }
-
-    // TODO
-    private static bool TryEncodeJose(
-        bool b64,
-        ReadOnlySpan<byte> bytes,
-        Span<char> chars,
-        out int charsWritten
-    )
-    {
-        if (b64)
-        {
-            return Base64Url.TryEncode(bytes, chars, out charsWritten);
-        }
-
-        charsWritten = SecureEncoding.UTF8.GetChars(bytes, chars);
-        return charsWritten > 0;
     }
 
     private static IDisposable EncodeJose(
@@ -269,26 +253,45 @@ public partial class JoseSerializer : IJoseSerializer
         out ReadOnlySpan<char> chars
     )
     {
-        var charCount = b64 ?
-            Base64Url.GetCharCountForEncode(bytes.Length) :
-            SecureEncoding.UTF8.GetCharCount(bytes);
+        var byteCount = bytes.Length;
+        if (byteCount == 0)
+        {
+            chars = ReadOnlySpan<char>.Empty;
+            return Disposable.Empty;
+        }
 
-        var charLease = MemoryPool<char>.Shared.Rent(charCount);
+        var buffer = SecureMemoryFactory.CreateSecureBuffer<char>();
         try
         {
-            var span = charLease.Memory.Span[..charCount];
-            var encodeResult = TryEncodeJose(b64, bytes, span, out var charsWritten);
-            Debug.Assert(encodeResult && charsWritten == charCount);
+            if (b64)
+            {
+                var charCount = Base64Url.GetCharCountForEncode(byteCount);
+                var span = buffer.GetSpan(charCount);
 
-            chars = span;
+                var result = Base64Url.TryEncode(bytes, span, out var charsWritten);
+                buffer.Advance(charsWritten);
+                Debug.Assert(result);
+
+                chars = span[..charsWritten];
+            }
+            else
+            {
+                var charCount = SecureEncoding.UTF8.GetMaxCharCount(byteCount);
+                var span = buffer.GetSpan(charCount);
+
+                var charsWritten = SecureEncoding.UTF8.GetChars(bytes, span);
+                buffer.Advance(charsWritten);
+
+                chars = span[..charsWritten];
+            }
+
+            return buffer;
         }
         catch
         {
-            charLease.Dispose();
+            buffer.Dispose();
             throw;
         }
-
-        return charLease;
     }
 
     private static IDisposable Encode(
@@ -358,24 +361,38 @@ public partial class JoseSerializer : IJoseSerializer
         bool b64 = true
     )
     {
-        var charCount = b64 ?
-            Base64Url.GetCharCountForEncode(bytes.Length) :
-            SecureEncoding.UTF8.GetCharCount(bytes);
-
+        var byteCount = bytes.Length;
         var dotLength = addDot ? 1 : 0;
-        var totalLength = charCount + dotLength;
 
-        var span = writer.GetSpan(totalLength);
-        var encodeResult = TryEncodeJose(b64, bytes, span, out var charsWritten);
-        Debug.Assert(encodeResult && charsWritten == charCount);
+        int encodeCount;
+        Span<char> chars;
+
+        if (b64)
+        {
+            encodeCount = Base64Url.GetCharCountForEncode(byteCount);
+            chars = writer.GetSpan(encodeCount + dotLength);
+
+            var result = Base64Url.TryEncode(bytes, chars, out var charsWritten);
+            Debug.Assert(result && charsWritten == encodeCount);
+        }
+        else
+        {
+            var maxCharCount = SecureEncoding.UTF8.GetMaxCharCount(byteCount);
+            chars = writer.GetSpan(maxCharCount + dotLength);
+
+            var charsWritten = SecureEncoding.UTF8.GetChars(bytes, chars);
+            Debug.Assert(charsWritten <= maxCharCount);
+
+            encodeCount = charsWritten;
+        }
 
         if (addDot)
         {
-            span[charsWritten] = '.';
+            chars[encodeCount] = '.';
         }
 
+        var totalLength = encodeCount + dotLength;
         writer.Advance(totalLength);
-
-        return span[..totalLength];
+        return chars[..totalLength];
     }
 }

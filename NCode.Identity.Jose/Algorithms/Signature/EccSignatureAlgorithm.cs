@@ -19,7 +19,6 @@
 
 using System.Security.Cryptography;
 using JetBrains.Annotations;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.Signature;
@@ -62,7 +61,7 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
 
         Code = code;
 
-        KeyBitSizes = new[] { new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0) };
+        KeyBitSizes = [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
     }
 
     /// <inheritdoc />

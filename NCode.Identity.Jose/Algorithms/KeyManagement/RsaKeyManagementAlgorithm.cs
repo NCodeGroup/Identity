@@ -92,7 +92,6 @@ public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
         (kekSizeBits + 7) >> 3;
 
-
     /// <inheritdoc />
     public override void WrapKey(
         SecretKey secretKey,

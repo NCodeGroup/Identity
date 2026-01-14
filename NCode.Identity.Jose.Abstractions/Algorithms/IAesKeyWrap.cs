@@ -55,18 +55,6 @@ public interface IAesKeyWrap
     ) where TWriter : IBufferWriter<byte>, allows ref struct;
 
     /// <summary>
-    /// Performs the cryptographic operation of encrypting key data using the AES key wrap algorithm.
-    /// </summary>
-    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
-    /// <param name="contentKey">Contains the content encryption key (CEK) that is to be encrypted.</param>
-    /// <param name="encryptedContentKeyWriter">Destination for result of encrypting the content key.</param>
-    void WrapKey<TWriter>(
-        ReadOnlySequence<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> contentKey,
-        ref TWriter encryptedContentKeyWriter
-    ) where TWriter : IBufferWriter<byte>, allows ref struct;
-
-    /// <summary>
     /// Gets the size, in bytes, of the resulting plaintext for <see cref="UnwrapKey{TWriter}(ReadOnlySpan{byte}, ReadOnlySpan{byte}, ref TWriter)"/>.
     /// </summary>
     /// <param name="encryptedContentKeySizeBytes">The size, in bytes, of the encrypted key encryption key (KEK).</param>
@@ -81,18 +69,6 @@ public interface IAesKeyWrap
     /// <param name="contentKeyWriter">Destination for result of decrypting the encrypted content key.</param>
     void UnwrapKey<TWriter>(
         ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> encryptedContentKey,
-        ref TWriter contentKeyWriter
-    ) where TWriter : IBufferWriter<byte>, allows ref struct;
-
-    /// <summary>
-    /// Performs the cryptographic operation of decrypting key data using the AES key wrap algorithm.
-    /// </summary>
-    /// <param name="keyEncryptionKey">Contains the key encryption key (KEK).</param>
-    /// <param name="encryptedContentKey">Contains the encrypted content encryption key (CEK) that is to be decrypted.</param>
-    /// <param name="contentKeyWriter">Destination for result of decrypting the encrypted content key.</param>
-    void UnwrapKey<TWriter>(
-        ReadOnlySequence<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
         ref TWriter contentKeyWriter
     ) where TWriter : IBufferWriter<byte>, allows ref struct;

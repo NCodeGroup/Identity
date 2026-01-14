@@ -83,8 +83,11 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
         Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
+        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        var privateKeySpan = privateKeySpanLease.Span;
+
         AesKeyWrap.WrapKey(
-            privateKeyBuffer,
+            privateKeySpan,
             contentKey,
             ref encryptedContentKeyWriter
         );
@@ -114,10 +117,13 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
         Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
+        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        var privateKeySpan = privateKeySpanLease.Span;
+
         var contentKeyWriter = contentKey.GetFixedBufferWriter();
 
         AesKeyWrap.UnwrapKey(
-            privateKeyBuffer,
+            privateKeySpan,
             encryptedContentKey,
             ref contentKeyWriter
         );

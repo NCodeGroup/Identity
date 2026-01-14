@@ -80,8 +80,9 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         return contentKeySizeBytes + ChunkByteCount;
     }
 
-    private static void UnsafeWrapKey<TWriter>(
-        byte[] keyEncryptionKey,
+    /// <inheritdoc />
+    public void WrapKey<TWriter>(
+        ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> contentKey,
         ref TWriter encryptedContentKeyWriter
     )
@@ -96,7 +97,7 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         var encryptedContentKeySizeBytes = GetCipherTextSizeBytes(contentKey.Length, out var n);
 
         using var aes = Aes.Create();
-        aes.Key = keyEncryptionKey;
+        aes.SetKey(keyEncryptionKey);
         aes.Mode = CipherMode.ECB;
         aes.Padding = PaddingMode.None;
 
@@ -162,30 +163,6 @@ public class DefaultAesKeyWrap : IAesKeyWrap
     }
 
     /// <inheritdoc />
-    public void WrapKey<TWriter>(
-        ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> contentKey,
-        ref TWriter encryptedContentKeyWriter
-    )
-        where TWriter : IBufferWriter<byte>, allows ref struct
-    {
-        // there is no point in pinning the KEK here, as Aes.Create() will copy it internally anyway
-        UnsafeWrapKey(keyEncryptionKey.ToArray(), contentKey, ref encryptedContentKeyWriter);
-    }
-
-    /// <inheritdoc />
-    public void WrapKey<TWriter>(
-        ReadOnlySequence<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> contentKey,
-        ref TWriter encryptedContentKeyWriter
-    )
-        where TWriter : IBufferWriter<byte>, allows ref struct
-    {
-        // there is no point in pinning the KEK here, as Aes.Create() will copy it internally anyway
-        UnsafeWrapKey(keyEncryptionKey.ToArray(), contentKey, ref encryptedContentKeyWriter);
-    }
-
-    /// <inheritdoc />
     public int GetContentKeySizeBytes(int encryptedContentKeySizeBytes) =>
         GetUnwrapKeySizeBytes(encryptedContentKeySizeBytes, out _);
 
@@ -206,12 +183,12 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         return encryptedContentKeySizeBytes - ChunkByteCount;
     }
 
-    private static void UnsafeUnwrapKey<TWriter>(
-        byte[] keyEncryptionKey,
+    /// <inheritdoc />
+    public void UnwrapKey<TWriter>(
+        ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
         ref TWriter contentKeyWriter
-    )
-        where TWriter : IBufferWriter<byte>, allows ref struct
+    ) where TWriter : IBufferWriter<byte>, allows ref struct
     {
         /*
            Inputs:  Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}, and
@@ -222,7 +199,7 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         var contentKeySizeBytes = GetUnwrapKeySizeBytes(encryptedContentKey.Length, out var n);
 
         using var aes = Aes.Create();
-        aes.Key = keyEncryptionKey;
+        aes.SetKey(keyEncryptionKey);
         aes.Mode = CipherMode.ECB;
         aes.Padding = PaddingMode.None;
 
@@ -290,29 +267,6 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         var contentKeySpan = contentKeyWriter.GetSpan(contentKeySizeBytes);
         Concat(r, contentKeySpan);
         contentKeyWriter.Advance(contentKeySizeBytes);
-    }
-
-    /// <inheritdoc />
-    public void UnwrapKey<TWriter>(
-        ReadOnlySpan<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> encryptedContentKey,
-        ref TWriter contentKeyWriter
-    ) where TWriter : IBufferWriter<byte>, allows ref struct
-    {
-        // there is no point in pinning the KEK here, as Aes.Create() will copy it internally anyway
-        UnsafeUnwrapKey(keyEncryptionKey.ToArray(), encryptedContentKey, ref contentKeyWriter);
-    }
-
-    /// <inheritdoc />
-    public void UnwrapKey<TWriter>(
-        ReadOnlySequence<byte> keyEncryptionKey,
-        ReadOnlySpan<byte> encryptedContentKey,
-        ref TWriter contentKeyWriter
-    )
-        where TWriter : IBufferWriter<byte>, allows ref struct
-    {
-        // there is no point in pinning the KEK here, as Aes.Create() will copy it internally anyway
-        UnsafeUnwrapKey(keyEncryptionKey.ToArray(), encryptedContentKey, ref contentKeyWriter);
     }
 
     private static void Xor(ReadOnlySpan<byte> xBuffer, long y, Span<byte> destination)

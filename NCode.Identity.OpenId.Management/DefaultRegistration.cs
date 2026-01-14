@@ -31,6 +31,7 @@ namespace NCode.Identity.OpenId.Management;
 [PublicAPI]
 public static class DefaultRegistration
 {
+    // TODO: should we extend from IServiceBuilder?
     public static IServiceBuilder AddOpenIdManagement(this IServiceBuilder serviceBuilder)
     {
         var services = serviceBuilder.ServiceCollection;

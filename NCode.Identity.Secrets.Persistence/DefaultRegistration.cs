@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -28,7 +29,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <summary>
 /// Provides extension methods to configure services and handlers for Identity Secrets Persistence.
 /// </summary>
-// [PublicAPI]
+[PublicAPI]
 public static class DefaultRegistration
 {
     /// <summary>
@@ -57,9 +58,13 @@ public static class DefaultRegistration
     /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services.</param>
     /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
-    public static IServiceBuilder<SecretPersistenceLibrary> AddEncoding<T>(
+    public static IServiceBuilder<SecretPersistenceLibrary> AddEncoding<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+        T
+    >(
         this IServiceBuilder<SecretPersistenceLibrary> builder
-    ) where T : class, ISecretEncoding
+    )
+        where T : class, ISecretEncoding
     {
         var serviceCollection = builder.ServiceCollection;
         serviceCollection.AddSecretPersistenceEncoding<T>();
@@ -71,9 +76,13 @@ public static class DefaultRegistration
     /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to configure services.</param>
     /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
-    public static IServiceCollection AddSecretPersistenceEncoding<T>(
+    public static IServiceCollection AddSecretPersistenceEncoding<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+        T
+    >(
         this IServiceCollection serviceCollection
-    ) where T : class, ISecretEncoding
+    )
+        where T : class, ISecretEncoding
     {
         serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ISecretEncoding, T>());
         return serviceCollection;

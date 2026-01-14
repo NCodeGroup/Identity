@@ -35,7 +35,7 @@ public readonly struct CompactJwt
     /// Initializes a new instance of the <see cref="CompactJwt"/> struct.
     /// </summary>
     /// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
-    /// <param name="segments">Contains the substrings from the JWT seperated by '.' (aka dot).</param>
+    /// <param name="segments">Contains the substrings from the JWT separated by '.' (aka dot).</param>
     /// <param name="deserializedHeader">Contains the deserialized header from the JWT.</param>
     public CompactJwt(string protectionType, StringSegments segments, JsonElement deserializedHeader)
     {

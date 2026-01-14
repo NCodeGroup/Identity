@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics;
-using JetBrains.Annotations;
 using NCode.CryptoMemory;
 using NCode.Encoders;
 
@@ -26,7 +25,6 @@ namespace NCode.Identity.Secrets.Persistence.Encodings;
 /// <summary>
 /// Provides an implementation for the <see cref="ISecretEncoding"/> abstraction that uses basic encoding.
 /// </summary>
-[PublicAPI]
 public class BasicSecretEncoding : ISecretEncoding
 {
     /// <inheritdoc />

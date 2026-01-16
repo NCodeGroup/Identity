@@ -28,20 +28,22 @@ namespace NCode.Identity.OpenId.Authentication.Logic;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for OpenId Logic services.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationLibrary> AddLogicServices(
-        this IServiceBuilder<OpenIdAuthenticationLibrary> builder
-    )
+    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
-        var serviceCollection = builder.ServiceCollection;
+        /// <summary>
+        /// Configures services and handlers for OpenId Logic services.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddLogicServices()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddSingleton<IAuthorizationCodeService, DefaultAuthorizationCodeService>();
-        serviceCollection.TryAddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
+            serviceCollection.TryAddSingleton<IAuthorizationCodeService, DefaultAuthorizationCodeService>();
+            serviceCollection.TryAddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
 
-        return builder;
+            return builder;
+        }
     }
 }

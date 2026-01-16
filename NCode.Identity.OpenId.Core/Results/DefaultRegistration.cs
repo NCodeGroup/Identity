@@ -29,21 +29,24 @@ namespace NCode.Identity.OpenId.Results;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for OpenId Result services.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdCoreLibrary> AddResultServices(
-        this IServiceBuilder<OpenIdCoreLibrary> builder
-    )
+    extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
-        var serviceCollection = builder.ServiceCollection;
+        /// <summary>
+        /// Configures services and handlers for OpenId Result services.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdCoreLibrary> AddResultServices()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddSingleton<
-            IResultExecutor<OpenIdRedirectResult>,
-            DefaultOpenIdRedirectResultExecutor>();
+            serviceCollection.TryAddSingleton<
+                IResultExecutor<OpenIdRedirectResult>,
+                DefaultOpenIdRedirectResultExecutor
+            >();
 
-        return builder;
+            return builder;
+        }
     }
 }

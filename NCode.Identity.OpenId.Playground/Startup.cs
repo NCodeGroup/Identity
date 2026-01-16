@@ -63,11 +63,9 @@ internal class Startup(IConfiguration configuration)
         services.Configure<OpenIdOptions>(options => options.SectionName = openIdOptionsSectionName);
 
         services.AddEndpointsApiExplorer();
-        services.AddIdentityServer(builder =>
-        {
-            //
-        });
 
+        // TODO
+        services.AddIdentityServer();
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
 
         services.AddDatabaseDeveloperPageExceptionFilter();

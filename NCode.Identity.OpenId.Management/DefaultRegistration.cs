@@ -31,24 +31,31 @@ namespace NCode.Identity.OpenId.Management;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    // TODO: should we extend from IServiceBuilder?
-    public static IServiceBuilder AddOpenIdManagement(this IServiceBuilder serviceBuilder)
+    extension(IServiceBuilder<IdentityLibrary> builder)
     {
-        var services = serviceBuilder.ServiceCollection;
+        [PublicAPI]
+        public IServiceBuilder<OpenIdManagementLibrary> AddOpenIdManagement()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        services.AddAuthorization();
-        services.AddAuthorizationHandler<GlobalAdminHandler>();
-        services.AddAuthorizationHandler<TenantAdminHandler>();
+            serviceCollection.AddAuthorization();
+            serviceCollection.AddAuthorizationHandler<GlobalAdminHandler>();
+            serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
 
-        serviceBuilder.AddEndpointProvider<ServerApiEndpointHandler>();
+            builder.AddEndpointProvider<ServerApiEndpointHandler>();
 
-        return serviceBuilder;
+            return builder.NewBuilder<OpenIdManagementLibrary>();
+        }
     }
 
-    public static IServiceCollection AddAuthorizationHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler>(this IServiceCollection services)
-        where THandler : class, IAuthorizationHandler
+    extension(IServiceCollection services)
     {
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, THandler>());
-        return services;
+        [PublicAPI]
+        public IServiceCollection AddAuthorizationHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler>()
+            where THandler : class, IAuthorizationHandler
+        {
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, THandler>());
+            return services;
+        }
     }
 }

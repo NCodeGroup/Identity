@@ -32,37 +32,52 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for OpenId Token services.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationLibrary> AddTokenServices(
-        this IServiceBuilder<OpenIdAuthenticationLibrary> builder
-    )
+    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
-        var serviceCollection = builder.ServiceCollection;
+        /// <summary>
+        /// Configures services and handlers for OpenId Token services.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddTokenServices()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddSingleton<
-            ITokenService,
-            DefaultTokenService>();
+            serviceCollection.TryAddSingleton<
+                ITokenService,
+                DefaultTokenService
+            >();
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<GetIdTokenSubjectClaimsCommand>,
-            DefaultGetIdTokenSubjectClaimsHandler>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetIdTokenSubjectClaimsCommand>,
+                    DefaultGetIdTokenSubjectClaimsHandler
+                >()
+            );
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<GetIdTokenPayloadClaimsCommand>,
-            DefaultGetIdTokenPayloadClaimsHandler>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetIdTokenPayloadClaimsCommand>,
+                    DefaultGetIdTokenPayloadClaimsHandler
+                >()
+            );
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
-            DefaultGetAccessTokenSubjectClaimsHandler>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
+                    DefaultGetAccessTokenSubjectClaimsHandler
+                >()
+            );
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<GetAccessTokenPayloadClaimsCommand>,
-            DefaultGetAccessTokenPayloadClaimsHandler>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetAccessTokenPayloadClaimsCommand>,
+                    DefaultGetAccessTokenPayloadClaimsHandler
+                >()
+            );
 
-        return builder;
+            return builder;
+        }
     }
 }

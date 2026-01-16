@@ -30,43 +30,48 @@ namespace NCode.Identity.OpenId.Authentication.Tenants;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for OpenId Tenant services.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationLibrary> AddTenantServices(
-        this IServiceBuilder<OpenIdAuthenticationLibrary> builder
-    )
+    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
-        var serviceCollection = builder.ServiceCollection;
+        /// <summary>
+        /// Configures services and handlers for OpenId Tenant services.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddTenantServices()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.AddMemoryCache();
+            serviceCollection.AddMemoryCache();
 
-        serviceCollection.TryAddSingleton<
-            IOpenIdTenantCache,
-            DefaultOpenIdTenantCache>();
+            serviceCollection.TryAddSingleton<
+                IOpenIdTenantCache,
+                DefaultOpenIdTenantCache
+            >();
 
-        serviceCollection.TryAddSingleton<
-            IOpenIdTenantFactory,
-            DefaultOpenIdTenantFactory>();
+            serviceCollection.TryAddSingleton<
+                IOpenIdTenantFactory,
+                DefaultOpenIdTenantFactory
+            >();
 
-        serviceCollection.TryAddSingleton<
-            IOpenIdTenantProviderSelector,
-            DefaultOpenIdTenantProviderSelector>();
+            serviceCollection.TryAddSingleton<
+                IOpenIdTenantProviderSelector,
+                DefaultOpenIdTenantProviderSelector
+            >();
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            IOpenIdTenantProvider,
-            DefaultStaticSingleOpenIdTenantProvider>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultStaticSingleOpenIdTenantProvider>()
+            );
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            IOpenIdTenantProvider,
-            DefaultDynamicByHostOpenIdTenantProvider>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultDynamicByHostOpenIdTenantProvider>()
+            );
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            IOpenIdTenantProvider,
-            DefaultDynamicByPathOpenIdTenantProvider>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultDynamicByPathOpenIdTenantProvider>()
+            );
 
-        return builder;
+            return builder;
+        }
     }
 }

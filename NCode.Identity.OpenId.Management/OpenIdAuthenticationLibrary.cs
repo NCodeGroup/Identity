@@ -19,17 +19,19 @@
 using JetBrains.Annotations;
 using NCode.Registration;
 
-namespace NCode.Identity.Server;
+namespace NCode.Identity.OpenId.Management;
+
+// TODO: move into abstractions
 
 /// <summary>
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct IdentityServer : IRegistrationMarker<IdentityServer>
+public readonly struct OpenIdManagementLibrary : IRegistrationMarker<OpenIdManagementLibrary>
 {
     /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.Server";
+    public string DisplayName => "NCode.Identity.OpenId.Management";
 
     /// <inheritdoc />
-    public string ConfigureMethod => nameof(DefaultRegistration.AddIdentityServer);
+    public string ConfigureMethod => "AddOpenIdManagement";
 }

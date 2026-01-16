@@ -28,25 +28,29 @@ namespace NCode.Identity.OpenId.Authentication.Servers;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for OpenId Server services.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationLibrary> AddServerServices(
-        this IServiceBuilder<OpenIdAuthenticationLibrary> builder
-    )
+    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
-        var serviceCollection = builder.ServiceCollection;
+        /// <summary>
+        /// Configures services and handlers for OpenId Server services.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddServerServices()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddSingleton<
-            IOpenIdServerFactory,
-            DefaultOpenIdServerFactory>();
+            serviceCollection.TryAddSingleton<
+                IOpenIdServerFactory,
+                DefaultOpenIdServerFactory
+            >();
 
-        serviceCollection.TryAddSingleton<
-            IOpenIdServerProvider,
-            DefaultOpenIdServerProvider>();
+            serviceCollection.TryAddSingleton<
+                IOpenIdServerProvider,
+                DefaultOpenIdServerProvider
+            >();
 
-        return builder;
+            return builder;
+        }
     }
 }

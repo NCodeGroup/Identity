@@ -27,13 +27,16 @@ namespace NCode.Collections.Providers;
 [PublicAPI]
 public static class CollectionProviderExtensions
 {
-    /// <summary>
-    /// Adapts an <see cref="ICollectionProvider{TItem,TCollection}"/> to an <see cref="ICollectionDataSource{TItem}"/>.
-    /// The newly created <see cref="ICollectionDataSource{TItem}"/> will not be disposable since the original
-    /// <see cref="ICollectionProvider{TItem,TCollection}"/> controls the lifetime of the items.
-    /// </summary>
-    public static ICollectionDataSource<TItem> AsDataSource<TItem>(this ICollectionProvider<TItem, IEnumerable<TItem>> provider)
+    extension<TItem>(ICollectionProvider<TItem, IEnumerable<TItem>> provider)
     {
-        return new CollectionDataSourceAdapter<TItem>(provider);
+        /// <summary>
+        /// Adapts an <see cref="ICollectionProvider{TItem,TCollection}"/> to an <see cref="ICollectionDataSource{TItem}"/>.
+        /// The newly created <see cref="ICollectionDataSource{TItem}"/> will not be disposable since the original
+        /// <see cref="ICollectionProvider{TItem,TCollection}"/> controls the lifetime of the items.
+        /// </summary>
+        public ICollectionDataSource<TItem> AsDataSource()
+        {
+            return new CollectionDataSourceAdapter<TItem>(provider);
+        }
     }
 }

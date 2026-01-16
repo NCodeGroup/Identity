@@ -45,7 +45,8 @@ public class DefaultCollectionDataSourceFactory : ICollectionDataSourceFactory
     {
         return new StaticCollectionDataSource<T>(
             collection,
-            owns);
+            owns
+        );
     }
 
     /// <inheritdoc />
@@ -55,7 +56,8 @@ public class DefaultCollectionDataSourceFactory : ICollectionDataSourceFactory
     {
         return new ObservableCollectionDataSource<T>(
             observableCollection,
-            owns);
+            owns
+        );
     }
 
     /// <inheritdoc />
@@ -71,6 +73,7 @@ public class DefaultCollectionDataSourceFactory : ICollectionDataSourceFactory
             initialCollection,
             refreshInterval,
             refreshCollectionAsync,
-            handleExceptionAsync);
+            handleExceptionAsync
+        );
     }
 }

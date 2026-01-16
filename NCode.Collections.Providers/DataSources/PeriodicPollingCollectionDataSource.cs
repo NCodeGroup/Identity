@@ -34,7 +34,7 @@ namespace NCode.Collections.Providers.DataSources;
 public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
     : IAsyncDisposableCollectionDataSource<TItem>
 {
-    private object SyncObj { get; } = new();
+    private Lock SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private CancellationChangeToken? ConsumerChangeToken { get; set; }
@@ -74,7 +74,8 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
         IReadOnlyCollection<TItem> initialCollection,
         TimeSpan refreshInterval,
         RefreshCollectionAsyncDelegate<TItem, TState> refreshCollectionAsync,
-        HandleExceptionAsyncDelegate? handleExceptionAsync = default)
+        HandleExceptionAsyncDelegate? handleExceptionAsync = null
+    )
     {
         State = state;
         CurrentCollection = initialCollection;
@@ -87,7 +88,8 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
 
     private static ValueTask DefaultHandleExceptionAsync(
         ExceptionDispatchInfo exception,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         exception.Throw();
         return ValueTask.CompletedTask;
@@ -115,7 +117,7 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
                 ChangeTokenSource
             ];
 
-            CurrentCollection = Array.Empty<TItem>();
+            CurrentCollection = [];
 
             ChangeTokenSource = null;
             ConsumerChangeToken = null;
@@ -174,7 +176,8 @@ public sealed class PeriodicPollingCollectionDataSource<TItem, TState>
                 {
                     await HandleExceptionAsync(
                         ExceptionDispatchInfo.Capture(exception),
-                        cancellationToken);
+                        cancellationToken
+                    );
                 }
             }
         }

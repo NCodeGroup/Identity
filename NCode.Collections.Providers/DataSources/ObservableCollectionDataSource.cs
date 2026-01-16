@@ -33,7 +33,7 @@ namespace NCode.Collections.Providers.DataSources;
 public sealed class ObservableCollectionDataSource<T> : IDisposableCollectionDataSource<T>
 {
     private bool Owns { get; }
-    private object SyncObj { get; } = new();
+    private Lock SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private CancellationChangeToken? ConsumerChangeToken { get; set; }

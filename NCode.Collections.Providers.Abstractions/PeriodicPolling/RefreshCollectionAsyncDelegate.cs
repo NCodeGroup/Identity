@@ -27,4 +27,5 @@ namespace NCode.Collections.Providers.PeriodicPolling;
 public delegate ValueTask<RefreshCollectionResult<TItem>> RefreshCollectionAsyncDelegate<TItem, in TState>(
     TState state,
     IReadOnlyCollection<TItem> current,
-    CancellationToken cancellationToken);
+    CancellationToken cancellationToken
+);

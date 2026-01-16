@@ -27,4 +27,5 @@ namespace NCode.Collections.Providers.PeriodicPolling;
 [PublicAPI]
 public delegate ValueTask HandleExceptionAsyncDelegate(
     ExceptionDispatchInfo exception,
-    CancellationToken cancellationToken);
+    CancellationToken cancellationToken
+);

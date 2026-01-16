@@ -33,7 +33,8 @@ public class DefaultCollectionProviderFactory : ICollectionProviderFactory
         return new CollectionProvider<TItem, TCollection>(
             collectionFactory,
             dataSource,
-            owns);
+            owns
+        );
     }
 
     /// <inheritdoc />
@@ -46,6 +47,7 @@ public class DefaultCollectionProviderFactory : ICollectionProviderFactory
         return new CollectionProvider<TItem, TCollection>(
             collectionFactory,
             dataSources,
-            owns);
+            owns
+        );
     }
 }

@@ -34,7 +34,7 @@ namespace NCode.Collections.Providers.DataSources;
 [PublicAPI]
 public sealed class CompositeCollectionDataSource<T> : IAsyncDisposableCollectionDataSource<T>
 {
-    private object SyncObj { get; } = new();
+    private Lock SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
@@ -87,7 +87,8 @@ public sealed class CompositeCollectionDataSource<T> : IAsyncDisposableCollectio
     /// <param name="additionalChangeTokenProducers">A collection of <see cref="ISupportChangeToken"/> instances that additionally produce change notifications.</param>
     public CompositeCollectionDataSource(
         IEnumerable<ICollectionDataSource<T>> dataSources,
-        IEnumerable<ISupportChangeToken> additionalChangeTokenProducers)
+        IEnumerable<ISupportChangeToken> additionalChangeTokenProducers
+    )
     {
         var dataSourcesList = dataSources.ToList();
 
@@ -175,7 +176,8 @@ public sealed class CompositeCollectionDataSource<T> : IAsyncDisposableCollectio
     {
         ChangeTokenRegistrations ??= [];
         ChangeTokenRegistrations.AddRange(ChangeTokenProducers.Select(changeTokenProducer =>
-            ChangeToken.OnChange(changeTokenProducer.GetChangeToken, HandleChange)));
+            ChangeToken.OnChange(changeTokenProducer.GetChangeToken, HandleChange))
+        );
     }
 
     private void HandleChange()

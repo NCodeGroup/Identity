@@ -34,7 +34,7 @@ public abstract class BaseCollectionProvider<TItem, TCollection> :
     ICollectionDataSource<TItem>
     where TCollection : IEnumerable<TItem>
 {
-    private object SyncObj { get; } = new();
+    private Lock SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
     private CancellationTokenSource? ChangeTokenSource { get; set; }
     private IChangeToken? ConsumerChangeToken { get; set; }
@@ -66,7 +66,8 @@ public abstract class BaseCollectionProvider<TItem, TCollection> :
     /// when the provider itself is disposed. The default is <c>true</c>.</param>
     protected BaseCollectionProvider(
         ICollectionDataSource<TItem> dataSource,
-        bool owns = true)
+        bool owns = true
+    )
     {
         Owns = owns;
         DataSource = dataSource;
@@ -84,7 +85,8 @@ public abstract class BaseCollectionProvider<TItem, TCollection> :
     protected BaseCollectionProvider(
         ICollectionDataSource<TItem> dataSource,
         IEnumerable<ISupportChangeToken> additionalChangeTokenProducers,
-        bool owns = true)
+        bool owns = true
+    )
     {
         Owns = owns;
         DataSource = dataSource;
@@ -101,7 +103,8 @@ public abstract class BaseCollectionProvider<TItem, TCollection> :
     /// when this class is disposed. The default is <c>false</c>.</param>
     protected BaseCollectionProvider(
         IEnumerable<ICollectionDataSource<TItem>> dataSources,
-        bool owns = false)
+        bool owns = false
+    )
     {
         var dataSource = new CompositeCollectionDataSource<TItem>(dataSources)
         {
@@ -125,7 +128,8 @@ public abstract class BaseCollectionProvider<TItem, TCollection> :
     protected BaseCollectionProvider(
         IEnumerable<ICollectionDataSource<TItem>> dataSources,
         IEnumerable<ISupportChangeToken> additionalChangeTokenProducers,
-        bool owns = false)
+        bool owns = false
+    )
     {
         var dataSource = new CompositeCollectionDataSource<TItem>(dataSources)
         {

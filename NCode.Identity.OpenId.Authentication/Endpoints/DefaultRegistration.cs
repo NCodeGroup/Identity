@@ -32,22 +32,24 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for OpenId Authentication endpoints.
-    /// </summary>
-    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationLibrary> AddEndpoints(
-        this IServiceBuilder<OpenIdAuthenticationLibrary> builder
-    )
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
+    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
-        var newBuilder = builder.Register<OpenIdAuthenticationEndpoints>();
+        /// <summary>
+        /// Configures services and handlers for OpenId Authentication endpoints.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddEndpoints()
+        {
+            var newBuilder = builder.NewBuilder<OpenIdAuthenticationEndpoints>();
 
-        newBuilder.AddAuthorizationEndpoint();
-        newBuilder.AddContinueEndpoint();
-        newBuilder.AddDiscoveryEndpoint();
-        newBuilder.AddTokenEndpoint();
+            newBuilder.AddAuthorizationEndpoint();
+            newBuilder.AddContinueEndpoint();
+            newBuilder.AddDiscoveryEndpoint();
+            newBuilder.AddTokenEndpoint();
 
-        return builder;
+            return builder;
+        }
     }
 }

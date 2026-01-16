@@ -18,15 +18,6 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.Jose;
-using NCode.Identity.JsonWebTokens;
-using NCode.Identity.OpenId;
-using NCode.Identity.OpenId.Authentication;
-using NCode.Identity.OpenId.Management;
-using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence;
-using NCode.Mediator;
-using NCode.Registration;
 
 namespace NCode.Identity.Server;
 
@@ -36,42 +27,16 @@ namespace NCode.Identity.Server;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for Identity Server.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to configure services.</param>
-    /// <param name="configure">The action to configure services for <see cref="IdentityServer"/>.</param>
-    /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddIdentityServer(
-        this IServiceCollection serviceCollection,
-        Action<IServiceBuilder<IdentityServer>> configure
-    )
+    extension(IServiceCollection serviceCollection)
     {
-        var serverBuilder = ServiceBuilder.Register<IdentityServer>(serviceCollection);
-        configure(serverBuilder);
-
-        // TODO: Allow configuration of data protection
-        var dataProtectionBuilder = serviceCollection.AddDataProtection();
-
-        serviceCollection.AddSecretServices(secretBuilder =>
+        /// <summary>
+        /// Configures services and handlers for Identity Server.
+        /// </summary>
+        /// <returns>The <see cref="IIdentityServerBuilder"/> instance for additional configuration.</returns>
+        public IIdentityServerBuilder AddIdentityServer()
         {
-            secretBuilder.AddPersistenceServices(persistenceBuilder =>
-            {
-                // TODO
-            });
-        });
-
-        serviceCollection.AddMediatorServices();
-        serviceCollection.AddJoseServices();
-        serviceCollection.AddJsonWebTokenServices();
-
-        serviceCollection.AddIdentityServices(identityBuilder =>
-        {
-            identityBuilder.AddOpenIdCore();
-            identityBuilder.AddOpenIdAuthentication();
-            identityBuilder.AddOpenIdManagement();
-        });
-
-        return serviceCollection;
+            return new IdentityServerBuilder(serviceCollection);
+        }
     }
 }

@@ -32,59 +32,56 @@ namespace NCode.Identity.Secrets.Persistence;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for Identity Secrets Persistence.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="SecretsLibrary"/>.</param>
-    /// <param name="configure">The action to configure services for <see cref="SecretPersistenceLibrary"/>.</param>
-    public static IServiceBuilder<SecretsLibrary> AddPersistenceServices(
-        this IServiceBuilder<SecretsLibrary> builder,
-        Action<IServiceBuilder<SecretPersistenceLibrary>> configure
-    )
+    extension(IServiceBuilder<SecretsLibrary> builder)
     {
-        var newBuilder = builder.Register<SecretPersistenceLibrary>();
-        configure(newBuilder);
+        /// <summary>
+        /// Configures services and handlers for Identity Secrets Persistence.
+        /// </summary>
+        [PublicAPI]
+        public IServiceBuilder<SecretPersistenceLibrary> AddSecretPersistence()
+        {
+            var newBuilder = builder.NewBuilder<SecretPersistenceLibrary>();
 
-        newBuilder.AddEncoding<BasicSecretEncoding>();
+            newBuilder.AddEncoding<BasicSecretEncoding>();
 
-        var serviceCollection = builder.ServiceCollection;
-        serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
+            var serviceCollection = builder.ServiceCollection;
+            serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
 
-        return builder;
+            return newBuilder;
+        }
     }
 
-    /// <summary>
-    /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services.</param>
-    /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
-    public static IServiceBuilder<SecretPersistenceLibrary> AddEncoding<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
-        T
-    >(
-        this IServiceBuilder<SecretPersistenceLibrary> builder
-    )
-        where T : class, ISecretEncoding
+    extension(IServiceBuilder<SecretPersistenceLibrary> builder)
     {
-        var serviceCollection = builder.ServiceCollection;
-        serviceCollection.AddSecretPersistenceEncoding<T>();
-        return builder;
+        /// <summary>
+        /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
+        /// </summary>
+        /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
+        [PublicAPI]
+        public IServiceBuilder<SecretPersistenceLibrary> AddEncoding<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+            where T : class, ISecretEncoding
+        {
+            var serviceCollection = builder.ServiceCollection;
+            serviceCollection.AddSecretPersistenceEncoding<T>();
+            return builder;
+        }
     }
 
-    /// <summary>
-    /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to configure services.</param>
-    /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
-    public static IServiceCollection AddSecretPersistenceEncoding<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
-        T
-    >(
-        this IServiceCollection serviceCollection
-    )
-        where T : class, ISecretEncoding
+    extension(IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ISecretEncoding, T>());
-        return serviceCollection;
+        /// <summary>
+        /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
+        /// </summary>
+        /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
+        [PublicAPI]
+        public IServiceCollection AddSecretPersistenceEncoding<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+            where T : class, ISecretEncoding
+        {
+            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ISecretEncoding, T>());
+            return serviceCollection;
+        }
     }
 }

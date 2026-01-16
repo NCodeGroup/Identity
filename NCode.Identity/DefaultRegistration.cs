@@ -29,7 +29,7 @@ using NCode.Registration;
 namespace NCode.Identity;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register identity server services and handlers.
+/// Provides extension methods for <see cref="IServiceCollection"/> to register identity services and handlers.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -38,54 +38,34 @@ public static class DefaultRegistration
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
-        /// Registers identity server services and handlers into the provided <see cref="IServiceCollection"/> instance.
+        /// Registers identity services and handlers into the provided <see cref="IServiceCollection"/> instance.
         /// </summary>
-        /// <param name="configure">The action to configure services for <see cref="IdentityLibrary"/>.</param>
-        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddIdentityServices(Action<IServiceBuilder<IdentityLibrary>> configure)
+        [PublicAPI]
+        public IServiceBuilder<IdentityLibrary> AddIdentityLibrary()
         {
-            var builder = ServiceBuilder.Register<IdentityLibrary>(serviceCollection);
-            configure(builder);
-
-            serviceCollection.AddFrameworkServices();
-            serviceCollection.AddClaimServices();
-            serviceCollection.AddEndpointServices();
-            serviceCollection.AddLogicServices();
-            serviceCollection.AddSettingServices();
-
-            return serviceCollection;
-        }
-
-        private void AddFrameworkServices()
-        {
+            // Framework
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton(ArrayPool<char>.Shared);
             serviceCollection.TryAddSingleton(ArrayPool<byte>.Shared);
-        }
 
-        private void AddClaimServices()
-        {
+            // Claims
             serviceCollection.TryAddSingleton<IClaimsService, DefaultClaimsService>();
             serviceCollection.TryAddSingleton<IClaimsSerializer>(DefaultClaimsSerializer.Singleton);
-        }
 
-        private void AddEndpointServices()
-        {
+            // Endpoints
             serviceCollection.TryAddSingleton<IIdentityEndpointRouteBuilder, DefaultIdentityEndpointRouteBuilder>();
-        }
 
-        private void AddLogicServices()
-        {
+            // Logic
             serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();
-        }
 
-        private void AddSettingServices()
-        {
+            // Settings
             serviceCollection.TryAddSingleton<ISettingDescriptorCollectionProvider, DefaultSettingDescriptorCollectionProvider>();
             serviceCollection.TryAddSingleton<IReadOnlySettingCollectionProviderFactory, DefaultReadOnlySettingCollectionProviderFactory>();
             serviceCollection.TryAddSingleton<ISettingDescriptorJsonProvider, DefaultSettingDescriptorJsonProvider>();
             serviceCollection.TryAddSingleton<ISettingCollectionFactory, DefaultSettingCollectionFactory>();
             serviceCollection.TryAddSingleton<ISettingSerializer, DefaultSettingSerializer>();
+
+            return serviceCollection.NewBuilder<IdentityLibrary>();
         }
     }
 }

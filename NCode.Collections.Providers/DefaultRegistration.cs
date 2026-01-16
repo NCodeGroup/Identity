@@ -29,26 +29,31 @@ namespace NCode.Collections.Providers;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Registers the required services for collection providers into the provided <see cref="IServiceCollection"/> instance.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddCollectionProviders(this IServiceCollection serviceCollection)
+    extension(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddRegistrationMarker<CollectionProvidersLibrary>();
+        /// <summary>
+        /// Registers the required services for collection providers into the provided <see cref="IServiceCollection"/> instance.
+        /// </summary>
+        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceCollection AddCollectionProviders()
+        {
+            serviceCollection.AddRegistrationMarker<CollectionProvidersLibrary>();
 
-        serviceCollection.TryAddSingleton<INullChangeToken>(_
-            => NullChangeToken.Singleton);
+            serviceCollection.TryAddSingleton<INullChangeToken>(NullChangeToken.Singleton);
 
-        serviceCollection.TryAddSingleton<
-            ICollectionDataSourceFactory,
-            DefaultCollectionDataSourceFactory>();
+            serviceCollection.TryAddSingleton<
+                ICollectionDataSourceFactory,
+                DefaultCollectionDataSourceFactory
+            >();
 
-        serviceCollection.TryAddSingleton<
-            ICollectionProviderFactory,
-            DefaultCollectionProviderFactory>();
+            serviceCollection.TryAddSingleton<
+                ICollectionProviderFactory,
+                DefaultCollectionProviderFactory
+            >();
 
-        return serviceCollection;
+            return serviceCollection;
+        }
     }
 }

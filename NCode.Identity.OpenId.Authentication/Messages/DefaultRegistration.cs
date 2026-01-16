@@ -35,25 +35,28 @@ namespace NCode.Identity.OpenId.Authentication.Messages;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures the services and handlers for essential OpenId Messages.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationLibrary> AddMessageServices(
-        this IServiceBuilder<OpenIdAuthenticationLibrary> builder
-    )
+    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
-        var serviceCollection = builder.ServiceCollection;
+        /// <summary>
+        /// Configures the services and handlers for essential OpenId Messages.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddMessageServices()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICollectionDataSource<KnownParameter>,
-            DefaultAuthenticationParameterDataSource>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ICollectionDataSource<KnownParameter>, DefaultAuthenticationParameterDataSource>()
+            );
 
-        serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>,
-            DefaultLoadRequestValuesHandler>();
+            serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>,
+                DefaultLoadRequestValuesHandler
+            >();
 
-        return builder;
+            return builder;
+        }
     }
 }

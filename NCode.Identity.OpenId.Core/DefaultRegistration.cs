@@ -38,19 +38,9 @@ public static class DefaultRegistration
         /// <summary>
         /// Configures OpenId Core services and handlers.
         /// </summary>
-        public IServiceBuilder<IdentityLibrary> AddOpenIdCore()
+        public IServiceBuilder<OpenIdCoreLibrary> AddOpenIdCore()
         {
-            return builder.AddOpenIdCore(_ => { });
-        }
-
-        /// <summary>
-        /// Configures OpenId Core services and handlers.
-        /// </summary>
-        /// <param name="configure">The action to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
-        public IServiceBuilder<IdentityLibrary> AddOpenIdCore(Action<IServiceBuilder<OpenIdCoreLibrary>> configure)
-        {
-            var newBuilder = builder.Register<OpenIdCoreLibrary>();
-            configure(newBuilder);
+            var newBuilder = builder.NewBuilder<OpenIdCoreLibrary>();
 
             newBuilder
                 .AddSerializationServices()
@@ -59,7 +49,7 @@ public static class DefaultRegistration
                 .AddMessageServices()
                 .AddResultServices();
 
-            return builder;
+            return newBuilder;
         }
     }
 }

@@ -37,41 +37,33 @@ public static class DefaultRegistration
         /// <summary>
         /// Configures services and handlers for Identity Secrets.
         /// </summary>
-        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-        public IServiceCollection AddSecretServices()
+        public IServiceBuilder<SecretsLibrary> AddSecretsLibrary()
         {
-            return serviceCollection.AddSecretServices(_ => { });
-        }
-
-        /// <summary>
-        /// Configures services and handlers for Identity Secrets.
-        /// </summary>
-        /// <param name="configure">The action to configure services for <see cref="SecretsLibrary"/>.</param>
-        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-        public IServiceCollection AddSecretServices(Action<IServiceBuilder<SecretsLibrary>> configure)
-        {
-            var builder = ServiceBuilder.Register<SecretsLibrary>(serviceCollection);
-            configure(builder);
+            var builder = serviceCollection.NewBuilder<SecretsLibrary>();
 
             serviceCollection.AddCollectionProviders();
 
             serviceCollection.TryAddSingleton<
                 ISecretKeyCollectionProvider,
-                DefaultSecretKeyCollectionProvider>();
+                DefaultSecretKeyCollectionProvider
+            >();
 
             serviceCollection.TryAddSingleton<
                 ISecretKeyCollectionProviderFactory,
-                DefaultSecretKeyCollectionProviderFactory>();
+                DefaultSecretKeyCollectionProviderFactory
+            >();
 
             serviceCollection.TryAddSingleton<
                 ISecretKeyFactory,
-                DefaultSecretKeyFactory>();
+                DefaultSecretKeyFactory
+            >();
 
             serviceCollection.TryAddSingleton<
                 ISecretKeyCollectionFactory,
-                DefaultSecretKeyCollectionFactory>();
+                DefaultSecretKeyCollectionFactory
+            >();
 
-            return serviceCollection;
+            return builder;
         }
     }
 }

@@ -22,18 +22,23 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace NCode.Identity.Endpoints;
 
+// TODO
+
 /// <summary>
 /// Provides the ability to map identity endpoints to the HTTP request pipeline.
 /// </summary>
 [PublicAPI]
 public static class EndpointRouteBuilderExtensions
 {
-    /// <summary>
-    /// Maps all the identity endpoints that have been registered with the service provider.
-    /// </summary>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance to map the endpoints to.</param>
-    public static void MapIdentityEndpoints(this IEndpointRouteBuilder endpoints)
+    extension(IEndpointRouteBuilder endpoints)
     {
-        endpoints.ServiceProvider.GetRequiredService<IIdentityEndpointRouteBuilder>().Map(endpoints);
+        /// <summary>
+        /// Maps all the identity endpoints that have been registered with the service provider.
+        /// </summary>
+        public void MapIdentityEndpoints()
+        {
+            endpoints.ServiceProvider.GetRequiredService<IIdentityEndpointRouteBuilder>().Map(endpoints);
+        }
     }
 }

@@ -42,6 +42,7 @@ public static class DefaultRegistration
         /// </summary>
         /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> to use.</typeparam>
         /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        [PublicAPI]
         public IServiceCollection AddEntityFrameworkPersistenceServices<TDbContext>()
             where TDbContext : DbContext
         {

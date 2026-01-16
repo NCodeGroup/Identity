@@ -31,32 +31,36 @@ namespace NCode.Identity.OpenId.Messages;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for <see cref="OpenIdCoreLibrary"/>.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdCoreLibrary> AddMessageServices(
-        this IServiceBuilder<OpenIdCoreLibrary> builder
-    )
+    extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
-        builder.AddMessageFactory<OpenIdError>();
-        builder.AddMessageFactory<OpenIdMessage>();
+        /// <summary>
+        /// Configures services and handlers for <see cref="OpenIdCoreLibrary"/>.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdCoreLibrary> AddMessageServices()
+        {
+            builder.AddMessageFactory<OpenIdError>();
+            builder.AddMessageFactory<OpenIdMessage>();
 
-        var serviceCollection = builder.ServiceCollection;
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICollectionDataSource<KnownParameter>,
-            DefaultCommonParameterDataSource>());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ICollectionDataSource<KnownParameter>, DefaultCommonParameterDataSource>()
+            );
 
-        serviceCollection.TryAddSingleton<
-            IKnownParameterCollectionProvider,
-            DefaultKnownParameterCollectionProvider>();
+            serviceCollection.TryAddSingleton<
+                IKnownParameterCollectionProvider,
+                DefaultKnownParameterCollectionProvider
+            >();
 
-        serviceCollection.TryAddSingleton<
-            IOpenIdMessageFactorySelector,
-            DefaultOpenIdMessageFactorySelector>();
+            serviceCollection.TryAddSingleton<
+                IOpenIdMessageFactorySelector,
+                DefaultOpenIdMessageFactorySelector
+            >();
 
-        return builder;
+            return builder;
+        }
     }
 }

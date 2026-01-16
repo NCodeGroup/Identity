@@ -24,22 +24,25 @@ using NCode.Registration;
 
 namespace NCode.Identity.Endpoints;
 
+// TODO
+
 /// <summary>
 /// Provides extension methods to configure identity endpoint providers.
 /// </summary>
 [PublicAPI]
 public static class EndpointProviderRegistration
 {
-    /// <summary>
-    /// Registers an <see cref="IEndpointProvider"/> implementation.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure.</param>
-    public static void AddEndpointProvider<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
-        this IServiceBuilder builder
-    )
-        where T : class, IEndpointProvider
+    extension(IServiceBuilder builder)
     {
-        var serviceCollection = builder.ServiceCollection;
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IEndpointProvider, T>());
+        /// <summary>
+        /// Registers an <see cref="IEndpointProvider"/> implementation.
+        /// </summary>
+        public void AddEndpointProvider<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+            where T : class, IEndpointProvider
+        {
+            var serviceCollection = builder.ServiceCollection;
+            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IEndpointProvider, T>());
+        }
     }
 }

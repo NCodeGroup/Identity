@@ -43,21 +43,10 @@ public static class DefaultRegistration
         /// <summary>
         /// Configures services and handlers for OpenId Authentication.
         /// </summary>
-        public IServiceBuilder<IdentityLibrary> AddOpenIdAuthentication()
+        [PublicAPI]
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddOpenIdAuthentication()
         {
-            return builder.AddOpenIdAuthentication(_ => { });
-        }
-
-        /// <summary>
-        /// Configures services and handlers for OpenId Authentication.
-        /// </summary>
-        /// <param name="configure">The action to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-        public IServiceBuilder<IdentityLibrary> AddOpenIdAuthentication(
-            Action<IServiceBuilder<OpenIdAuthenticationLibrary>> configure
-        )
-        {
-            var newBuilder = builder.Register<OpenIdAuthenticationLibrary>();
-            configure(newBuilder);
+            var newBuilder = builder.NewBuilder<OpenIdAuthenticationLibrary>();
 
             newBuilder
                 .AddClientServices()
@@ -71,7 +60,7 @@ public static class DefaultRegistration
                 .AddTenantServices()
                 .AddTokenServices();
 
-            return builder;
+            return newBuilder;
         }
     }
 }

@@ -28,20 +28,22 @@ namespace NCode.Identity.OpenId.Environments;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for <see cref="OpenIdCoreLibrary"/>.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdCoreLibrary> AddEnvironmentServices(
-        this IServiceBuilder<OpenIdCoreLibrary> builder
-    )
+    extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
-        var serviceCollection = builder.ServiceCollection;
+        /// <summary>
+        /// Configures services and handlers for <see cref="OpenIdCoreLibrary"/>.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceBuilder<OpenIdCoreLibrary> AddEnvironmentServices()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddSingleton<IOpenIdEnvironmentFactory, DefaultOpenIdEnvironmentFactory>();
-        serviceCollection.TryAddSingleton<IOpenIdEnvironmentProvider, DefaultOpenIdEnvironmentProvider>();
+            serviceCollection.TryAddSingleton<IOpenIdEnvironmentFactory, DefaultOpenIdEnvironmentFactory>();
+            serviceCollection.TryAddSingleton<IOpenIdEnvironmentProvider, DefaultOpenIdEnvironmentProvider>();
 
-        return builder;
+            return builder;
+        }
     }
 }

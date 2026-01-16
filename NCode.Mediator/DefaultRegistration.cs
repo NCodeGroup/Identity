@@ -31,42 +31,54 @@ namespace NCode.Mediator;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for Mediator.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddMediatorServices(this IServiceCollection serviceCollection)
+    extension(IServiceCollection serviceCollection)
     {
-        serviceCollection.TryAddScoped(
-            typeof(ICommandHandlerWrapper<>),
-            typeof(CommandHandlerWrapper<>));
+        /// <summary>
+        /// Configures services and handlers for Mediator.
+        /// </summary>
+        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        [PublicAPI]
+        public IServiceCollection AddMediatorServices()
+        {
+            serviceCollection.TryAddScoped(
+                typeof(ICommandHandlerWrapper<>),
+                typeof(CommandHandlerWrapper<>)
+            );
 
-        serviceCollection.TryAddScoped(
-            typeof(ICommandResponseHandlerWrapper<,>),
-            typeof(CommandResponseHandlerWrapper<,>));
+            serviceCollection.TryAddScoped(
+                typeof(ICommandResponseHandlerWrapper<,>),
+                typeof(CommandResponseHandlerWrapper<,>)
+            );
 
-        serviceCollection.TryAddScoped(
-            typeof(CommandExceptionListenerWrapper<,>));
+            serviceCollection.TryAddScoped(
+                typeof(CommandExceptionListenerWrapper<,>)
+            );
 
-        serviceCollection.TryAddScoped(
-            typeof(CommandExceptionHandlerWrapper<,>));
+            serviceCollection.TryAddScoped(
+                typeof(CommandExceptionHandlerWrapper<,>)
+            );
 
-        serviceCollection.TryAddScoped(
-            typeof(CommandResponseExceptionHandlerWrapper<,,>));
+            serviceCollection.TryAddScoped(
+                typeof(CommandResponseExceptionHandlerWrapper<,,>)
+            );
 
-        serviceCollection.TryAddScoped(
-            typeof(ICommandMiddleware<>),
-            typeof(StandardCommandMiddleware<>));
+            serviceCollection.TryAddScoped(
+                typeof(ICommandMiddleware<>),
+                typeof(StandardCommandMiddleware<>)
+            );
 
-        serviceCollection.TryAddScoped(
-            typeof(ICommandResponseMiddleware<,>),
-            typeof(StandardCommandResponseMiddleware<,>));
+            serviceCollection.TryAddScoped(
+                typeof(ICommandResponseMiddleware<,>),
+                typeof(StandardCommandResponseMiddleware<,>)
+            );
 
-        serviceCollection.TryAddScoped<
-            IMediator,
-            DefaultMediator>();
+            serviceCollection.TryAddScoped<
+                IMediator,
+                DefaultMediator
+            >();
 
-        return serviceCollection;
+            return serviceCollection;
+        }
     }
 }

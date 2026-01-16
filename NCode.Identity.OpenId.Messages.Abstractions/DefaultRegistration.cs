@@ -27,23 +27,24 @@ namespace NCode.Identity.OpenId.Messages;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Registers a default message factory for the specified OpenId message type.
-    /// </summary>
     /// <param name="builder">The <see cref="IServiceBuilder"/> that is used to configure services.</param>
-    /// <typeparam name="TMessage">The type of the <see cref="OpenIdMessage"/> for the factory.</typeparam>
-    public static void AddMessageFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessage>(
-        this IServiceBuilder builder
-    )
-        where TMessage : OpenIdMessage, new()
+    extension(IServiceBuilder builder)
     {
-        var serviceCollection = builder.ServiceCollection;
+        /// <summary>
+        /// Registers a default message factory for the specified OpenId message type.
+        /// </summary>
+        /// <typeparam name="TMessage">The type of the <see cref="OpenIdMessage"/> for the factory.</typeparam>
+        public void AddMessageFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessage>()
+            where TMessage : OpenIdMessage, new()
+        {
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                IOpenIdMessageFactory,
-                DefaultOpenIdMessageFactory<TMessage>
-            >()
-        );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IOpenIdMessageFactory,
+                    DefaultOpenIdMessageFactory<TMessage>
+                >()
+            );
+        }
     }
 }

@@ -31,5 +31,5 @@ public readonly struct IdentityServer : IRegistrationMarker<IdentityServer>
     public string DisplayName => "NCode.Identity.Server";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddIdentityServer";
+    public string ConfigureMethod => nameof(DefaultRegistration.AddIdentityServer);
 }

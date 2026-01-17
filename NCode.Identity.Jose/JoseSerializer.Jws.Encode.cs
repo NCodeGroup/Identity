@@ -21,7 +21,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
@@ -148,7 +148,7 @@ partial class JoseSerializer
     )
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var payloadLease = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        using var payloadLease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
 
         var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
@@ -339,7 +339,7 @@ partial class JoseSerializer
         var payloadByteCount = Encoding.ASCII.GetByteCount(encodedPayloadPart);
 
         var inputByteCount = headerByteCount + payloadByteCount;
-        using var inputLease = SecureMemoryFactory.Rent(inputByteCount, isSensitive: false, out Span<byte> inputData);
+        using var inputLease = BufferFactory.Rent(inputByteCount, isSensitive: false, out Span<byte> inputData);
 
         var headerWritten = Encoding.ASCII.GetBytes(encodedHeaderPart, inputData);
         Debug.Assert(headerWritten == headerByteCount);
@@ -347,7 +347,7 @@ partial class JoseSerializer
         var payloadWritten = Encoding.ASCII.GetBytes(encodedPayloadPart, inputData[headerByteCount..]);
         Debug.Assert(payloadWritten == payloadByteCount);
 
-        using var signatureLease = SecureMemoryFactory.Rent(signatureByteCount, isSensitive: false, out Span<byte> signatureBytes);
+        using var signatureLease = BufferFactory.Rent(signatureByteCount, isSensitive: false, out Span<byte> signatureBytes);
         var signResult = signatureAlgorithm.TrySign(secretKey, inputData, signatureBytes, out var signatureBytesWritten);
         Debug.Assert(signResult && signatureBytesWritten == signatureByteCount);
 

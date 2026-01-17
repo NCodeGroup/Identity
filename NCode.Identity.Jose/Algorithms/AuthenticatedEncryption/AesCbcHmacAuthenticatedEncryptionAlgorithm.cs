@@ -21,7 +21,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose.Exceptions;
 
 namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
@@ -82,7 +82,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEnc
         Debug.Assert(aes.BlockSize == BlockSizeBits);
 
         // no point in using SecureMemory here since Aes clones the key anyway
-        using var bytes = SecureMemoryFactory.CreatePinnedArray(key.Length);
+        using var bytes = BufferFactory.CreatePinnedArray(key.Length);
         try
         {
             key.CopyTo(bytes);

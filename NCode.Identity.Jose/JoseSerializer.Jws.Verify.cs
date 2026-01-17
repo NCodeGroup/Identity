@@ -19,7 +19,7 @@
 
 using System.Diagnostics;
 using System.Text.Json;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Extensions;
@@ -157,7 +157,7 @@ partial class JoseSerializer
         if (b64)
         {
             var byteCount = SecureEncoding.UTF8.GetByteCount(detachedPayload);
-            using var lease = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+            using var lease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
             var bytesWritten = SecureEncoding.UTF8.GetBytes(detachedPayload, payloadBytes);
             Debug.Assert(bytesWritten == byteCount);
 
@@ -275,7 +275,7 @@ partial class JoseSerializer
         var headerByteCount = SecureEncoding.UTF8.GetByteCount(encodedHeader);
         var payloadByteCount = SecureEncoding.UTF8.GetByteCount(encodedPayload);
         var totalByteCount = headerByteCount + 1 + payloadByteCount;
-        var lease = SecureMemoryFactory.Rent(totalByteCount, isSensitive: false, out Span<byte> span);
+        var lease = BufferFactory.Rent(totalByteCount, isSensitive: false, out Span<byte> span);
         try
         {
             var bytesRead = SecureEncoding.UTF8.GetBytes(encodedHeader, span);

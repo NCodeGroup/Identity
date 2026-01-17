@@ -17,7 +17,7 @@
 
 #endregion
 
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Exceptions;
 using ControlAesKeyWrap = Jose.AesKeyWrap;

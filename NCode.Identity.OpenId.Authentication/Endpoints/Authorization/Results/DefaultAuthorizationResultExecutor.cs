@@ -22,7 +22,7 @@ using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.Results;

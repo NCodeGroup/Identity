@@ -22,7 +22,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
@@ -111,7 +111,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
             return false;
         }
 
-        using var newKek = SecureMemoryFactory.CreatePinnedArray(KekSizeBytes);
+        using var newKek = BufferFactory.CreatePinnedArray(KekSizeBytes);
 
         var result = base.TryUnwrapKey(secretKey, header, [], newKek, out var newKekBytesWritten);
         Debug.Assert(result && newKekBytesWritten == KekSizeBytes);

@@ -17,7 +17,7 @@
 #endregion
 
 using System.Diagnostics;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
@@ -131,7 +131,7 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
 
         var encoding = SecureEncoding.ASCII;
         var encodeByteCount = encoding.GetByteCount(value);
-        using var _ = SecureMemoryFactory.Rent(encodeByteCount, isSensitive: false, out Span<byte> encodeBuffer);
+        using var _ = BufferFactory.Rent(encodeByteCount, isSensitive: false, out Span<byte> encodeBuffer);
         var encodeBytesWritten = encoding.GetBytes(value, encodeBuffer);
         Debug.Assert(encodeBytesWritten == encodeByteCount);
 

@@ -22,7 +22,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Extensions;
@@ -82,13 +82,13 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
         Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
         using var key = new AesGcm(privateKeySpan, TagSizeBytes);
@@ -134,13 +134,13 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         ValidateHeaderForUnwrap(header, iv, tag);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
         Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
         try

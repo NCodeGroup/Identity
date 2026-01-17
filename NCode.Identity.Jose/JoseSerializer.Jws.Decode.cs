@@ -20,7 +20,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Text;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;

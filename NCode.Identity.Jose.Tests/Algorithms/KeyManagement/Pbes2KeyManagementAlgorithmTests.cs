@@ -21,7 +21,7 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Jose;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;

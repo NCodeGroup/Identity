@@ -22,7 +22,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Compression;
 using NCode.Identity.Jose.Encoders;
@@ -142,7 +142,7 @@ partial class JoseSerializer
     )
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var payloadLease = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        using var payloadLease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
 
         var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
@@ -220,7 +220,7 @@ partial class JoseSerializer
             header[JoseClaimNames.Header.Kid] = keyId;
 
         var cekSizeBytes = authenticatedEncryptionAlgorithm.ContentKeySizeBytes;
-        using var cekLease = SecureMemoryFactory.Rent(cekSizeBytes, isSensitive: true, out Span<byte> cek);
+        using var cekLease = BufferFactory.Rent(cekSizeBytes, isSensitive: true, out Span<byte> cek);
 
         using var encryptedCekBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
 
@@ -250,7 +250,7 @@ partial class JoseSerializer
         using var aadLease = Encode(Encoding.ASCII, encodedHeader, out var aad);
 
         var cipherTextSizeBytes = authenticatedEncryptionAlgorithm.GetCipherTextSizeBytes(plainText.Length);
-        using var cipherTextLease = SecureMemoryFactory.Rent(cipherTextSizeBytes, isSensitive: false, out Span<byte> cipherText);
+        using var cipherTextLease = BufferFactory.Rent(cipherTextSizeBytes, isSensitive: false, out Span<byte> cipherText);
         authenticatedEncryptionAlgorithm.Encrypt(cek, nonce, plainText, aad, cipherText, tag);
 
         // BASE64URL(UTF8(JWE Protected Header)) || '.' ||
@@ -344,7 +344,7 @@ partial class JoseSerializer
         var authenticatedEncryptionAlgorithm = GetAuthenticatedEncryptionAlgorithm(authenticatedEncryptionAlgorithmCode);
 
         var cekSizeBytes = authenticatedEncryptionAlgorithm.ContentKeySizeBytes;
-        using var contentKeyLease = SecureMemoryFactory.Rent(cekSizeBytes, isSensitive: true, out Span<byte> contentKey);
+        using var contentKeyLease = BufferFactory.Rent(cekSizeBytes, isSensitive: true, out Span<byte> contentKey);
 
         var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
             secretKey,
@@ -378,7 +378,7 @@ partial class JoseSerializer
         using var associatedDataLease = Encode(Encoding.ASCII, compactJwt.EncodedHeader, out var associatedDataBytes);
 
         var plainTextSizeBytes = authenticatedEncryptionAlgorithm.GetMaxPlainTextSizeBytes(cipherTextBytes.Length);
-        using var plainTextLease = SecureMemoryFactory.Rent(plainTextSizeBytes, isSensitive: false, out Span<byte> plainTextBytes);
+        using var plainTextLease = BufferFactory.Rent(plainTextSizeBytes, isSensitive: false, out Span<byte> plainTextBytes);
 
         /*
            16.  Decrypt the JWE Ciphertext using the CEK, the JWE Initialization

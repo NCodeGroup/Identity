@@ -20,7 +20,7 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.Signature;
@@ -86,12 +86,12 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
 
-        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
         return KeyedHashFunction(privateKeySpan, inputData, signature, out bytesWritten);

@@ -22,7 +22,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 
 namespace NCode.Identity.Secrets;
 
@@ -70,7 +70,7 @@ public static class DataProtectorExtensions
                 // pin the plaintext bytes to prevent the GC from moving it around
                 // can't use ArrayPool with GCHandle because it doesn't guarantee to return an exact size
                 // and data protector doesn't support span (yet)
-                using var plaintextBytes = SecureMemoryFactory.CreatePinnedArray(plaintext.Length);
+                using var plaintextBytes = BufferFactory.CreatePinnedArray(plaintext.Length);
 
                 plaintext.CopyTo(plaintextBytes);
                 var protectedBytes = dataProtector.Protect(plaintextBytes);
@@ -142,12 +142,12 @@ public static class DataProtectorExtensions
         public T ExportAsymmetricAlgorithm<T>(byte[] protectedPkcs8PrivateKey, Func<T> algorithmFactory)
             where T : AsymmetricAlgorithm
         {
-            using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer();
+            using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
             IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
             dataProtector.UnprotectSpan(protectedPkcs8PrivateKey, ref privateKeyWriter);
 
-            using var spanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+            using var spanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
 
             var algorithm = algorithmFactory();
             try

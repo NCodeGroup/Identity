@@ -18,7 +18,7 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Contexts;
@@ -130,7 +130,7 @@ public class ClientSecretBasicClientAuthenticationHandler(
     )
     {
         var base64ByteCount = Base64Url.GetByteCountForDecode(encodedCredentials.Length);
-        using var base64Lease = SecureMemoryFactory.Rent(base64ByteCount, isSensitive: true, out Span<byte> base64Bytes);
+        using var base64Lease = BufferFactory.Rent(base64ByteCount, isSensitive: true, out Span<byte> base64Bytes);
 
         var base64Result = Convert.TryFromBase64Chars(encodedCredentials.Span, base64Bytes, out var base64BytesWritten);
         Debug.Assert(base64Result && base64BytesWritten == base64ByteCount);

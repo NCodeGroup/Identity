@@ -74,10 +74,12 @@ public static class DefaultRegistration
                 DefaultCredentialSelector
             >();
 
-            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-                ICollectionDataSource<Algorithm>,
-                DefaultAlgorithmDataSource
-            >());
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<Algorithm>,
+                    DefaultAlgorithmDataSource
+                >()
+            );
 
             serviceCollection.TryAddSingleton<
                 IJoseSerializer,

@@ -39,7 +39,8 @@ public abstract class JoseEncoder
     public abstract void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
@@ -52,7 +53,8 @@ public abstract class JoseEncoder
     public abstract string Encode<T>(
         T payload,
         JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
@@ -66,7 +68,8 @@ public abstract class JoseEncoder
         IBufferWriter<char> tokenWriter,
         T payload,
         JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
@@ -80,7 +83,8 @@ public abstract class JoseEncoder
         string payload,
         JoseSigningCredentials signingCredentials,
         JoseSigningOptions? signingOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
@@ -91,7 +95,8 @@ public abstract class JoseEncoder
     public abstract void Encode(
         IBufferWriter<char> tokenWriter,
         string payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
@@ -101,7 +106,8 @@ public abstract class JoseEncoder
     /// <returns>The encoded JOSE token.</returns>
     public abstract string Encode(
         ReadOnlySpan<char> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
@@ -112,7 +118,8 @@ public abstract class JoseEncoder
     public abstract void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<char> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
@@ -122,5 +129,6 @@ public abstract class JoseEncoder
     /// <returns>The encoded JOSE token.</returns>
     public abstract string Encode(
         ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    );
 }

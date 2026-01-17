@@ -34,7 +34,8 @@ partial interface IJoseSerializer
     void VerifyJws(
         string token,
         SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload);
+        ReadOnlySpan<byte> detachedPayload
+    );
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.

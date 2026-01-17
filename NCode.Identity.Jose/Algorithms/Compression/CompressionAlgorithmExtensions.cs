@@ -18,7 +18,7 @@
 #endregion
 
 using System.Buffers;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Disposables;
 using Nerdbank.Streams;
 

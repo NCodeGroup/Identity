@@ -20,7 +20,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose.Exceptions;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
@@ -112,7 +112,7 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         Span<byte> a = stackalloc byte[sizeof(long)];
         DefaultIV.CopyTo(a);
 
-        using var lease = SecureMemoryFactory.Rent(contentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
+        using var lease = BufferFactory.Rent(contentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
         contentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> keyMemory = leaseMemory;
 
@@ -211,7 +211,7 @@ public class DefaultAesKeyWrap : IAesKeyWrap
                    R[i] = C[i]
         */
 
-        using var _ = SecureMemoryFactory.Rent(encryptedContentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
+        using var _ = BufferFactory.Rent(encryptedContentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
         encryptedContentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> encryptedKeyMemory = leaseMemory;
 

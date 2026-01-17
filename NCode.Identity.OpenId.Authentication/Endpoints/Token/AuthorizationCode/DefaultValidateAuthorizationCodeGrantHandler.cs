@@ -17,8 +17,9 @@
 #endregion
 
 using System.Diagnostics;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -203,7 +204,7 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
 
-            if (!CryptoService.FixedTimeEquals(expectedCodeChallenge.AsSpan(), codeChallenge.AsSpan()))
+            if (!CryptographicOperations.FixedTimeEquals(expectedCodeChallenge.AsSpan(), codeChallenge.AsSpan()))
                 throw errorFactory
                     .InvalidGrant("PKCE verification failed.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)

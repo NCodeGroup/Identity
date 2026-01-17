@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Numerics;
 using System.Text;
 using JetBrains.Annotations;
 
@@ -43,7 +42,8 @@ public interface ICryptoService
     /// <returns>The binary data encoded as a string.</returns>
     string EncodeBinary(
         ReadOnlySpan<byte> data,
-        BinaryEncodingType binaryEncodingType);
+        BinaryEncodingType binaryEncodingType
+    );
 
     /// <summary>
     /// Generates a random key of the specified length and returns an encoded string of the key.
@@ -53,7 +53,8 @@ public interface ICryptoService
     /// <returns>The newly generated random bytes encoded as a string.</returns>
     string GenerateKey(
         int byteLength,
-        BinaryEncodingType binaryEncodingType);
+        BinaryEncodingType binaryEncodingType
+    );
 
     /// <summary>
     /// Hashes binary data and returns an encoded string of the hash.
@@ -65,7 +66,8 @@ public interface ICryptoService
     string HashValue(
         ReadOnlySpan<byte> data,
         HashAlgorithmType hashAlgorithmType,
-        BinaryEncodingType binaryEncodingType);
+        BinaryEncodingType binaryEncodingType
+    );
 
     /// <summary>
     /// Hashes a string value and returns an encoded string of the hash.
@@ -80,30 +82,6 @@ public interface ICryptoService
         string data,
         HashAlgorithmType hashAlgorithmType,
         BinaryEncodingType binaryEncodingType,
-        Encoding? encoding = null);
-
-    /// <summary>
-    /// Determine the equality of two sequences in an amount of time which depends on the length of the sequences,
-    /// but not the values.
-    /// </summary>
-    /// <param name="left">The first buffer to compare.</param>
-    /// <param name="right">The second buffer to compare.</param>
-    /// <returns>
-    ///   <c>true</c> if <paramref name="left"/> and <paramref name="right"/> have the same
-    ///   values for <see cref="ReadOnlySpan{T}.Length"/> and the same contents, <c>false</c>
-    ///   otherwise.
-    /// </returns>
-    /// <remarks>
-    ///   This method compares two buffers' contents for equality in a manner which does not
-    ///   leak timing information, making it ideal for use within cryptographic routines.
-    ///   This method will short-circuit and return <c>false</c> only if <paramref name="left"/>
-    ///   and <paramref name="right"/> have different lengths.
-    ///
-    ///   Fixed-time behavior is guaranteed in all other cases, including if <paramref name="left"/>
-    ///   and <paramref name="right"/> reference the same address.
-    ///
-    ///   This method was adapted from the .NET Core source code and credit goes to the .NET Core team.
-    /// </remarks>
-    bool FixedTimeEquals<T>(ReadOnlySpan<T> left, ReadOnlySpan<T> right)
-        where T : IEqualityOperators<T, T, bool>;
+        Encoding? encoding = null
+    );
 }

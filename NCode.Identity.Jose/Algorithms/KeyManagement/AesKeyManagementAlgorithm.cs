@@ -22,7 +22,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Secrets;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
@@ -77,13 +77,13 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
         Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
         AesKeyWrap.WrapKey(
@@ -111,13 +111,13 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         }
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(true, secretKey.KeySizeBytes);
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
         Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
         var contentKeyWriter = contentKey.GetFixedBufferWriter();

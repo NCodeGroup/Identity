@@ -18,7 +18,7 @@
 #endregion
 
 using System.Text.Json;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose.Json;
 
 namespace NCode.Jose.Tests.Json;

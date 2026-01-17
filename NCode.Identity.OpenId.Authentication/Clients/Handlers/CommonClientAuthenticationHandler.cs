@@ -21,7 +21,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -107,7 +107,7 @@ public abstract class CommonClientAuthenticationHandler(
 
         var clientSecretChars = clientSecret.Span;
         var byteCount = SecureEncoding.UTF8.GetByteCount(clientSecretChars);
-        using var _ = SecureMemoryFactory.Rent(byteCount, isSensitive: true, out Memory<byte> clientSecretBytes);
+        using var _ = BufferFactory.Rent(byteCount, isSensitive: true, out Memory<byte> clientSecretBytes);
 
         var decodeResult = SecureEncoding.UTF8.TryGetBytes(clientSecretChars, clientSecretBytes.Span, out var bytesWritten);
         Debug.Assert(decodeResult && bytesWritten == byteCount);
@@ -223,12 +223,12 @@ public abstract class CommonClientAuthenticationHandler(
     protected static bool IsSecretEqual(SymmetricSecretKey secretKey, ReadOnlySpan<byte> clientSecretBytes)
     {
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(clientSecretBytes.Length);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, clientSecretBytes.Length);
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         secretKey.ExportPrivateKey(ref privateKeyWriter);
 
-        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
         return CryptographicOperations.FixedTimeEquals(privateKeySpan, clientSecretBytes);

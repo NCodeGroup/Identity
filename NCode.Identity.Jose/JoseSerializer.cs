@@ -24,7 +24,6 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
-using NCode.CryptoMemory;
 using NCode.Disposables;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
@@ -53,7 +52,7 @@ public partial class JoseSerializer : IJoseSerializer
     public static IDisposable DecodeBase64Url(ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
-        var lease = SecureMemoryFactory.Rent(byteCount, isSensitive, out bytes);
+        var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
         try
         {
             var decodeResult = Base64Url.TryDecode(chars, bytes, out var bytesWritten);
@@ -260,7 +259,7 @@ public partial class JoseSerializer : IJoseSerializer
             return Disposable.Empty;
         }
 
-        var buffer = SecureMemoryFactory.CreateSecureBuffer<char>();
+        var buffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: true);
         try
         {
             if (b64)
@@ -301,7 +300,7 @@ public partial class JoseSerializer : IJoseSerializer
     )
     {
         var byteCount = encoding.GetByteCount(chars);
-        var byteLease = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> span);
+        var byteLease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> span);
         try
         {
             var bytesWritten = encoding.GetBytes(chars, span);

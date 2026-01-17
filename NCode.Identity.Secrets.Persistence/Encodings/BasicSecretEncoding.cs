@@ -17,7 +17,7 @@
 #endregion
 
 using System.Diagnostics;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Encoders;
 
 namespace NCode.Identity.Secrets.Persistence.Encodings;
@@ -34,7 +34,7 @@ public class BasicSecretEncoding : ISecretEncoding
     public T Decode<T>(string encodedValue, Func<Memory<byte>, T> factory)
     {
         var byteCount = Base64Url.GetByteCountForDecode(encodedValue.Length);
-        using var _ = SecureMemoryFactory.Rent(byteCount, isSensitive: true, out Memory<byte> privateKeyBytes);
+        using var _ = BufferFactory.Rent(byteCount, isSensitive: true, out Memory<byte> privateKeyBytes);
 
         var decodeResult = Base64Url.TryDecode(encodedValue, privateKeyBytes.Span, out var bytesWritten);
         Debug.Assert(decodeResult && bytesWritten == byteCount);

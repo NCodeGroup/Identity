@@ -23,7 +23,7 @@ using Jose;
 using Jose.keys;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;

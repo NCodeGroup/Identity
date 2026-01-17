@@ -22,7 +22,6 @@
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
       <PackageReference Include="Microsoft.OpenApi" Version="1.6.14" />
       <PackageReference Include="NCode.Base64Url" Version="2.0.0" />
-      <PackageReference Include="NCode.CryptoMemory" Version="3.1.0" />
     </ItemGroup>
 
 </Project>

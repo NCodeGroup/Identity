@@ -18,11 +18,9 @@
 #endregion
 
 using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
@@ -65,7 +63,7 @@ public class DefaultCryptoService : ICryptoService
             }
             else
             {
-                lease = SecureMemoryFactory.Rent(byteLength, isSensitive: false, out bytes);
+                lease = BufferFactory.Rent(byteLength, isSensitive: false, out bytes);
             }
 
             GenerateBytes(bytes);
@@ -88,7 +86,11 @@ public class DefaultCryptoService : ICryptoService
         };
 
     /// <inheritdoc />
-    public string HashValue(ReadOnlySpan<byte> data, HashAlgorithmType hashAlgorithmType, BinaryEncodingType binaryEncodingType)
+    public string HashValue(
+        ReadOnlySpan<byte> data,
+        HashAlgorithmType hashAlgorithmType,
+        BinaryEncodingType binaryEncodingType
+    )
     {
         var tryComputeHash = GetHashFunction(hashAlgorithmType);
 
@@ -105,7 +107,7 @@ public class DefaultCryptoService : ICryptoService
             }
             else
             {
-                lease = SecureMemoryFactory.Rent(hashByteLength, isSensitive: false, out hashBytes);
+                lease = BufferFactory.Rent(hashByteLength, isSensitive: false, out hashBytes);
             }
 
             var result = tryComputeHash(data, hashBytes, out var bytesWritten);
@@ -124,7 +126,8 @@ public class DefaultCryptoService : ICryptoService
         string data,
         HashAlgorithmType hashAlgorithmType,
         BinaryEncodingType binaryEncodingType,
-        Encoding? encoding = null)
+        Encoding? encoding = null
+    )
     {
         var effectiveEncoding = encoding ?? SecureEncoding.UTF8;
         var lease = Disposable.Empty;
@@ -140,7 +143,7 @@ public class DefaultCryptoService : ICryptoService
             }
             else
             {
-                lease = SecureMemoryFactory.Rent(dataByteLength, isSensitive: false, out dataBytes);
+                lease = BufferFactory.Rent(dataByteLength, isSensitive: false, out dataBytes);
             }
 
             var bytesWritten = effectiveEncoding.GetBytes(data, dataBytes);
@@ -152,26 +155,5 @@ public class DefaultCryptoService : ICryptoService
         {
             lease.Dispose();
         }
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public bool FixedTimeEquals<T>(ReadOnlySpan<T> left, ReadOnlySpan<T> right)
-        where T : IEqualityOperators<T, T, bool>
-    {
-        if (left.Length != right.Length)
-        {
-            return false;
-        }
-
-        var numberOfItemsThatAreDifferent = 0;
-
-        var length = left.Length;
-        for (var i = 0; i < length; ++i)
-        {
-            numberOfItemsThatAreDifferent += left[i] == right[i] ? 0 : 1;
-        }
-
-        return numberOfItemsThatAreDifferent == 0;
     }
 }

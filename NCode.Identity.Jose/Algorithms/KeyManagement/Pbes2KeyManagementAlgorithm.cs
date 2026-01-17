@@ -22,7 +22,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Extensions;
@@ -146,16 +146,16 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         header[JoseClaimNames.Header.P2s] = Base64Url.Encode(saltInput);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
         Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
-        using var newKek = SecureMemoryFactory.CreatePinnedArray(KeySizeBytes);
+        using var newKek = BufferFactory.CreatePinnedArray(KeySizeBytes);
 
         Rfc2898DeriveBytes.Pbkdf2(
             privateKeySpan,
@@ -243,16 +243,16 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         Debug.Assert(saltInputResult && saltInputBytesWritten == SaltInputSizeBytes);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer(secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
         Debug.Assert(privateKeyBuffer.Length == validatedSecretKey.KeySizeBytes);
 
-        using var privateKeySpanLease = privateKeyBuffer.Sequence.GetSpanLease(isSensitive: true);
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
-        using var newKek = SecureMemoryFactory.CreatePinnedArray(KeySizeBytes);
+        using var newKek = BufferFactory.CreatePinnedArray(KeySizeBytes);
 
         Rfc2898DeriveBytes.Pbkdf2(
             privateKeySpan,

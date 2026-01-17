@@ -22,7 +22,7 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
 
@@ -235,7 +235,7 @@ partial class DefaultJsonWebTokenService
     private static JsonElement CreateJsonElement(string json)
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(json);
-        using var _ = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> buffer);
+        using var _ = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> buffer);
 
         var bytesWritten = SecureEncoding.UTF8.GetBytes(json, buffer);
         Debug.Assert(bytesWritten == byteCount);

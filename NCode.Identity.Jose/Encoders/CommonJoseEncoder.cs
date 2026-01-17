@@ -21,7 +21,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using NCode.Identity.Jose.Credentials;
 using Nerdbank.Streams;
 
@@ -150,7 +150,7 @@ public abstract class CommonJoseEncoder : JoseEncoder
     )
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var _ = SecureMemoryFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        using var _ = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
 
         var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);

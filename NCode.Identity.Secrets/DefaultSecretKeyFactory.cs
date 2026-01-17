@@ -22,7 +22,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
-using NCode.CryptoMemory;
+using NCode.Buffers;
 using Nerdbank.Streams;
 
 namespace NCode.Identity.Secrets;
@@ -72,7 +72,7 @@ public class DefaultSecretKeyFactory(
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<char> password)
     {
         var keySizeBytes = SecureEncoding.UTF8.GetByteCount(password);
-        using var _ = SecureMemoryFactory.Rent(keySizeBytes, isSensitive: true, out Span<byte> span);
+        using var _ = BufferFactory.Rent(keySizeBytes, isSensitive: true, out Span<byte> span);
         var bytesWritten = SecureEncoding.UTF8.GetBytes(password, span);
         Debug.Assert(bytesWritten == keySizeBytes);
         return CreateSymmetric(metadata, span);
@@ -128,13 +128,13 @@ public class DefaultSecretKeyFactory(
 
     private byte[] ExportProtectedPkcs8PrivateKey(AsymmetricAlgorithm asymmetricAlgorithm)
     {
-        using var protectedPrivateKeyBuffer = SecureMemoryFactory.CreateSecureBuffer();
+        using var protectedPrivateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
         IBufferWriter<byte> protectedPrivateKeyWriter = protectedPrivateKeyBuffer;
 
         var byteCount = SecureMemoryPool<byte>.PageSize;
         while (true)
         {
-            using var _ = SecureMemoryFactory.Rent(byteCount, isSensitive: true, out Span<byte> span);
+            using var _ = BufferFactory.Rent(byteCount, isSensitive: true, out Span<byte> span);
 
             if (asymmetricAlgorithm.TryExportPkcs8PrivateKey(span, out var bytesWritten))
             {

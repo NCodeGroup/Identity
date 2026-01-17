@@ -29,8 +29,6 @@ namespace NCode.Identity.Jose;
 [PublicAPI]
 public readonly struct CompactJwt
 {
-    private string? ProtectionTypeOrDefault { get; }
-
     /// <summary>
     /// Initializes a new instance of the <see cref="CompactJwt"/> struct.
     /// </summary>
@@ -39,7 +37,7 @@ public readonly struct CompactJwt
     /// <param name="deserializedHeader">Contains the deserialized header from the JWT.</param>
     public CompactJwt(string protectionType, StringSegments segments, JsonElement deserializedHeader)
     {
-        ProtectionTypeOrDefault = protectionType;
+        ProtectionType = protectionType;
         Segments = segments;
         DeserializedHeader = deserializedHeader;
     }
@@ -47,7 +45,7 @@ public readonly struct CompactJwt
     /// <summary>
     /// Gets a value indicating how the JWT is protected, either 'JWS' or 'JWE'.
     /// </summary>
-    public string ProtectionType => ProtectionTypeOrDefault ?? string.Empty;
+    public string ProtectionType { get; }
 
     /// <summary>
     /// Gets the segment collection from the JWT.

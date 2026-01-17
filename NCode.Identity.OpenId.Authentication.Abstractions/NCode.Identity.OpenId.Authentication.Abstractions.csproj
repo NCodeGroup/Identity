@@ -16,7 +16,7 @@
 
     <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
-      <PackageReference Include="NCode.Disposables" Version="5.2.1" />
+      <PackageReference Include="NCode.Disposables" Version="5.3.0" />
     </ItemGroup>
 
     <ItemGroup>

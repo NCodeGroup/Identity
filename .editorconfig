@@ -15,7 +15,7 @@ indent_size = 4
 csharp_wrap_parameters_style = chop_if_long
 csharp_wrap_before_declaration_lpar = false
 csharp_wrap_after_declaration_lpar = true
-csharp_closing_paren_on_new_line = true
+csharp_wrap_before_declaration_rpar = true
 
 csharp_place_method_attribute_on_same_line = never
 csharp_place_constructor_initializer_on_same_line = false
@@ -33,4 +33,3 @@ trim_trailing_whitespace = false
 # Web Files
 [*.{htm,html,cshtml,js,ts,css,scss}]
 indent_size = 2
-insert_final_newline = true

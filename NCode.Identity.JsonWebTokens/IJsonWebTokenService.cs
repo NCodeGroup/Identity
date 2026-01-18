@@ -48,5 +48,6 @@ public interface IJsonWebTokenService
     ValueTask<ValidateJwtResult> ValidateJwtAsync(
         string token,
         ValidateJwtParameters parameters,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

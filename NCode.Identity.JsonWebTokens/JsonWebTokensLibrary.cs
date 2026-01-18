@@ -31,5 +31,5 @@ public readonly struct JsonWebTokensLibrary : IRegistrationMarker<JsonWebTokensL
     public string DisplayName => "NCode.Identity.JsonWebTokens";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddJsonWebTokenServices";
+    public string ConfigureMethod => "AddJsonWebTokensLibrary";
 }

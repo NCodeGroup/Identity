@@ -31,5 +31,5 @@ public readonly struct IdentityLibrary : IRegistrationMarker<IdentityLibrary>
     public string DisplayName => "NCode.Identity";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddIdentityServices";
+    public string ConfigureMethod => "AddIdentityLibrary";
 }

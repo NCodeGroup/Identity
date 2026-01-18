@@ -47,7 +47,8 @@ public static class DefaultValidationKeyResolver
     public static IEnumerable<SecretKey> ResolveValidationKeys(
         string protectionType,
         JsonElement header,
-        ISecretKeyCollection secretKeys)
+        ISecretKeyCollection secretKeys
+    )
     {
         // attempt to lookup by 'kid'
         if (header.TryGetPropertyValue<string>(JoseClaimNames.Header.Kid, out var keyId) &&
@@ -130,7 +131,8 @@ public static class DefaultValidationKeyResolver
         X509Certificate certificate,
         HashAlgorithmName hashAlgorithmName,
         ReadOnlySpan<byte> expected,
-        Span<byte> actual)
+        Span<byte> actual
+    )
     {
         if (expected.IsEmpty) return false;
 

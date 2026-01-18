@@ -31,5 +31,5 @@ public readonly struct SecretPersistenceLibrary : IRegistrationMarker<SecretPers
     public string DisplayName => "NCode.Identity.Secrets.Persistence";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddPersistenceServices";
+    public string ConfigureMethod => "AddPersistenceLibrary";
 }

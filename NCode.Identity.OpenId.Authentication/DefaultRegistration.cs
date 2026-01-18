@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -27,6 +28,7 @@ using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tenants;
 using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Mediator;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication;
@@ -46,6 +48,11 @@ public static class DefaultRegistration
         [PublicAPI]
         public IServiceBuilder<OpenIdAuthenticationLibrary> AddOpenIdAuthenticationLibrary()
         {
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.VerifyIsRegistered<MediatorLibrary>();
+            serviceCollection.VerifyIsRegistered<JoseLibrary>();
+
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationLibrary>();
 
             newBuilder

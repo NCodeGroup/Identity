@@ -31,5 +31,5 @@ public readonly struct OpenIdCoreLibrary : IRegistrationMarker<OpenIdCoreLibrary
     public string DisplayName => "NCode.Identity.OpenId.Core";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddOpenIdCore";
+    public string ConfigureMethod => "AddOpenIdCoreLibrary";
 }

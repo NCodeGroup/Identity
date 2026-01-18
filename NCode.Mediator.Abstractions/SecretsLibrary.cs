@@ -19,19 +19,17 @@
 using JetBrains.Annotations;
 using NCode.Registration;
 
-namespace NCode.Identity.OpenId.Management;
-
-// TODO: move into abstractions
+namespace NCode.Mediator;
 
 /// <summary>
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct OpenIdManagementLibrary : IRegistrationMarker<OpenIdManagementLibrary>
+public readonly struct MediatorLibrary : IRegistrationMarker<MediatorLibrary>
 {
     /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.OpenId.Management";
+    public string DisplayName => "NCode.Mediator";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddOpenIdManagementLibrary";
+    public string ConfigureMethod => "AddMediatorLibrary";
 }

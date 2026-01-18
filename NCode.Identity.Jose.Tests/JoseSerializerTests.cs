@@ -55,7 +55,7 @@ public class JoseSerializerTests : BaseTests
     private static void ConfigureServices(IServiceCollection services)
     {
         services.AddSecretsLibrary();
-        services.AddJoseServices();
+        services.AddJoseLibrary();
     }
 
     protected override async ValueTask DisposeAsyncCore()

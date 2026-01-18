@@ -77,15 +77,15 @@ public sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIde
     {
         DataProtectionBuilder = serviceCollection.AddDataProtection();
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();
-        SecretPersistenceLibraryBuilder = SecretsLibraryBuilder.AddSecretPersistence();
+        SecretPersistenceLibraryBuilder = SecretsLibraryBuilder.AddPersistenceLibrary();
 
         serviceCollection.AddMediatorServices();
         serviceCollection.AddJoseServices();
         serviceCollection.AddJsonWebTokenServices();
 
         IdentityLibraryBuilder = serviceCollection.AddIdentityLibrary();
-        OpenIdCoreLibraryBuilder = IdentityLibraryBuilder.AddOpenIdCore();
-        OpenIdAuthenticationLibraryBuilder = IdentityLibraryBuilder.AddOpenIdAuthentication();
-        OpenIdManagementLibraryBuilder = IdentityLibraryBuilder.AddOpenIdManagement();
+        OpenIdCoreLibraryBuilder = IdentityLibraryBuilder.AddOpenIdCoreLibrary();
+        OpenIdAuthenticationLibraryBuilder = IdentityLibraryBuilder.AddOpenIdAuthenticationLibrary();
+        OpenIdManagementLibraryBuilder = IdentityLibraryBuilder.AddOpenIdManagementLibrary();
     }
 }

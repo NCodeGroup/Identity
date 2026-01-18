@@ -44,7 +44,7 @@ public static class DefaultRegistration
         /// Configures services and handlers for OpenId Authentication.
         /// </summary>
         [PublicAPI]
-        public IServiceBuilder<OpenIdAuthenticationLibrary> AddOpenIdAuthentication()
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddOpenIdAuthenticationLibrary()
         {
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationLibrary>();
 

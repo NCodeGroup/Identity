@@ -34,7 +34,7 @@ public static class DefaultRegistration
     extension(IServiceBuilder<IdentityLibrary> builder)
     {
         [PublicAPI]
-        public IServiceBuilder<OpenIdManagementLibrary> AddOpenIdManagement()
+        public IServiceBuilder<OpenIdManagementLibrary> AddOpenIdManagementLibrary()
         {
             var serviceCollection = builder.ServiceCollection;
 

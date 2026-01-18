@@ -38,7 +38,7 @@ public static class DefaultRegistration
         /// <summary>
         /// Configures OpenId Core services and handlers.
         /// </summary>
-        public IServiceBuilder<OpenIdCoreLibrary> AddOpenIdCore()
+        public IServiceBuilder<OpenIdCoreLibrary> AddOpenIdCoreLibrary()
         {
             var newBuilder = builder.NewBuilder<OpenIdCoreLibrary>();
 

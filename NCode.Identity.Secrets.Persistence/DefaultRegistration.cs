@@ -39,7 +39,7 @@ public static class DefaultRegistration
         /// Configures services and handlers for Identity Secrets Persistence.
         /// </summary>
         [PublicAPI]
-        public IServiceBuilder<SecretPersistenceLibrary> AddSecretPersistence()
+        public IServiceBuilder<SecretPersistenceLibrary> AddPersistenceLibrary()
         {
             var newBuilder = builder.NewBuilder<SecretPersistenceLibrary>();
 
@@ -64,24 +64,8 @@ public static class DefaultRegistration
             where T : class, ISecretEncoding
         {
             var serviceCollection = builder.ServiceCollection;
-            serviceCollection.AddSecretPersistenceEncoding<T>();
-            return builder;
-        }
-    }
-
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to configure services.</param>
-    extension(IServiceCollection serviceCollection)
-    {
-        /// <summary>
-        /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
-        /// </summary>
-        /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
-        [PublicAPI]
-        public IServiceCollection AddSecretPersistenceEncoding<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
-            where T : class, ISecretEncoding
-        {
             serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ISecretEncoding, T>());
-            return serviceCollection;
+            return builder;
         }
     }
 }

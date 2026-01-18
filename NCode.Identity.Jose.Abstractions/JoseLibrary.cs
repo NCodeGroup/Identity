@@ -31,5 +31,5 @@ public readonly struct JoseLibrary : IRegistrationMarker<JoseLibrary>
     public string DisplayName => "NCode.Identity.Jose";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddJoseServices";
+    public string ConfigureMethod => "AddJoseLibrary";
 }

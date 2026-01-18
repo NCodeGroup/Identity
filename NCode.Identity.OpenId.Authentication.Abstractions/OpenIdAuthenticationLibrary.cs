@@ -31,5 +31,5 @@ public readonly struct OpenIdAuthenticationLibrary : IRegistrationMarker<OpenIdA
     public string DisplayName => "NCode.Identity.OpenId.Authentication";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddOpenIdAuthentication";
+    public string ConfigureMethod => "AddOpenIdAuthenticationLibrary";
 }

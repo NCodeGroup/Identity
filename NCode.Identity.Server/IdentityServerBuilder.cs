@@ -40,6 +40,12 @@ public interface IIdentityServerBuilder : IServiceBuilder<IdentityServer>
 
     IServiceBuilder<SecretPersistenceLibrary> SecretPersistenceLibraryBuilder { get; }
 
+    IServiceBuilder<MediatorLibrary> MediatorLibraryBuilder { get; }
+
+    IServiceBuilder<JoseLibrary> JoseLibraryBuilder { get; }
+
+    IServiceBuilder<JsonWebTokensLibrary> JsonWebTokensLibraryBuilder { get; }
+
     IServiceBuilder<IdentityLibrary> IdentityLibraryBuilder { get; }
 
     IServiceBuilder<OpenIdCoreLibrary> OpenIdCoreLibraryBuilder { get; }
@@ -61,6 +67,15 @@ public sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIde
     public IServiceBuilder<SecretPersistenceLibrary> SecretPersistenceLibraryBuilder { get; }
 
     /// <inheritdoc />
+    public IServiceBuilder<MediatorLibrary> MediatorLibraryBuilder { get; }
+
+    /// <inheritdoc />
+    public IServiceBuilder<JoseLibrary> JoseLibraryBuilder { get; }
+
+    /// <inheritdoc />
+    public IServiceBuilder<JsonWebTokensLibrary> JsonWebTokensLibraryBuilder { get; }
+
+    /// <inheritdoc />
     public IServiceBuilder<IdentityLibrary> IdentityLibraryBuilder { get; }
 
     /// <inheritdoc />
@@ -79,9 +94,9 @@ public sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIde
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();
         SecretPersistenceLibraryBuilder = SecretsLibraryBuilder.AddPersistenceLibrary();
 
-        serviceCollection.AddMediatorServices();
-        serviceCollection.AddJoseServices();
-        serviceCollection.AddJsonWebTokenServices();
+        MediatorLibraryBuilder = serviceCollection.AddMediatorLibrary();
+        JoseLibraryBuilder = serviceCollection.AddJoseLibrary();
+        JsonWebTokensLibraryBuilder = serviceCollection.AddJsonWebTokensLibrary();
 
         IdentityLibraryBuilder = serviceCollection.AddIdentityLibrary();
         OpenIdCoreLibraryBuilder = IdentityLibraryBuilder.AddOpenIdCoreLibrary();

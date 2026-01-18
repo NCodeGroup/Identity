@@ -42,22 +42,12 @@ public static class DefaultRegistration
         /// <summary>
         /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/>.
         /// </summary>
-        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-        public IServiceCollection AddJoseServices() =>
-            serviceCollection.AddJoseServices(_ => { });
-
-        /// <summary>
-        /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/> instance.
-        /// </summary>
-        /// <param name="configureJoseOptions">The action used to configure the <see cref="JoseSerializerOptions"/>.</param>
-        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-        public IServiceCollection AddJoseServices(Action<JoseSerializerOptions> configureJoseOptions)
+        /// <returns>The <see cref="IServiceBuilder"/> so that additional calls can be chained.</returns>
+        public IServiceBuilder<JoseLibrary> AddJoseLibrary()
         {
             serviceCollection.VerifyIsRegistered<SecretsLibrary>();
 
-            serviceCollection.AddRegistrationMarker<JoseLibrary>();
-
-            serviceCollection.Configure(configureJoseOptions);
+            var newBuilder = serviceCollection.NewBuilder<JoseLibrary>();
 
             serviceCollection.TryAddSingleton<
                 IAesKeyWrap,
@@ -86,7 +76,7 @@ public static class DefaultRegistration
                 JoseSerializer
             >();
 
-            return serviceCollection;
+            return newBuilder;
         }
     }
 }

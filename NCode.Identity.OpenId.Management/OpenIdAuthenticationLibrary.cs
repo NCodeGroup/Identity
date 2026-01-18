@@ -33,5 +33,5 @@ public readonly struct OpenIdManagementLibrary : IRegistrationMarker<OpenIdManag
     public string DisplayName => "NCode.Identity.OpenId.Management";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddOpenIdManagement";
+    public string ConfigureMethod => "AddOpenIdManagementLibrary";
 }

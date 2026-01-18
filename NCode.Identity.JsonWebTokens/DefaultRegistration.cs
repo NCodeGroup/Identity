@@ -32,23 +32,26 @@ namespace NCode.Identity.JsonWebTokens;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Registers the required Json Web Token (JWT) services to the specified <see cref="IServiceCollection"/> instance.
-    /// Make sure to also register the required services from the <c>NCode.Identity.Jose</c> package.
-    /// </summary>
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddJsonWebTokenServices(
-        this IServiceCollection serviceCollection)
+    extension(IServiceCollection serviceCollection)
     {
-        serviceCollection.VerifyIsRegistered<JoseLibrary>();
+        /// <summary>
+        /// Registers the required Json Web Token (JWT) services to the specified <see cref="IServiceCollection"/> instance.
+        /// Make sure to also register the required services from the <c>NCode.Identity.Jose</c> package.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder"/> so that additional calls can be chained.</returns>
+        public IServiceBuilder<JsonWebTokensLibrary> AddJsonWebTokensLibrary()
+        {
+            serviceCollection.VerifyIsRegistered<JoseLibrary>();
 
-        serviceCollection.AddRegistrationMarker<JsonWebTokensLibrary>();
+            var newBuilder = serviceCollection.NewBuilder<JsonWebTokensLibrary>();
 
-        serviceCollection.TryAddSingleton<
-            IJsonWebTokenService,
-            DefaultJsonWebTokenService>();
+            serviceCollection.TryAddSingleton<
+                IJsonWebTokenService,
+                DefaultJsonWebTokenService
+            >();
 
-        return serviceCollection;
+            return newBuilder;
+        }
     }
 }

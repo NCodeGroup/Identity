@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Mediator.Middleware;
 using NCode.Mediator.Wrappers;
+using NCode.Registration;
 
 namespace NCode.Mediator;
 
@@ -37,9 +38,9 @@ public static class DefaultRegistration
         /// <summary>
         /// Configures services and handlers for Mediator.
         /// </summary>
-        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        /// <returns>The <see cref="IServiceBuilder"/> instance for method chaining.</returns>
         [PublicAPI]
-        public IServiceCollection AddMediatorServices()
+        public IServiceBuilder<MediatorLibrary> AddMediatorLibrary()
         {
             serviceCollection.TryAddScoped(
                 typeof(ICommandHandlerWrapper<>),
@@ -78,7 +79,7 @@ public static class DefaultRegistration
                 DefaultMediator
             >();
 
-            return serviceCollection;
+            return serviceCollection.NewBuilder<MediatorLibrary>();
         }
     }
 }

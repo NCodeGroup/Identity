@@ -40,5 +40,6 @@ public interface ICommandResponseHandler<in TCommand, TResponse>
     /// value from the handler.</returns>
     ValueTask<TResponse> HandleAsync(
         TCommand command,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

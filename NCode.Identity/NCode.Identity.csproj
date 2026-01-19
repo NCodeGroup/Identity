@@ -8,7 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj" />
       <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
       <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
       <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
@@ -17,6 +16,8 @@
     <ItemGroup>
       <PackageReference Include="NCode.Base64Url" Version="2.0.1" />
       <PackageReference Include="NCode.Buffers" Version="4.0.0" />
+      <PackageReference Include="NCode.Collections.Providers" Version="1.0.0" />
+      <PackageReference Include="NCode.Disposables" Version="5.3.0" />
     </ItemGroup>
 
 </Project>

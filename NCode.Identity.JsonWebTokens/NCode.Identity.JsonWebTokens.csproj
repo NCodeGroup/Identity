@@ -16,7 +16,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2" />
         <PackageReference Include="NCode.Base64Url" Version="2.0.1" />
-        <PackageReference Include="NCode.PropertyBag" Version="1.1.1" />
+        <PackageReference Include="NCode.PropertyBag" Version="1.2.0" />
     </ItemGroup>
 
     <ItemGroup>

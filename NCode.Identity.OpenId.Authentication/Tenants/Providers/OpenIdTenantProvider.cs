@@ -144,13 +144,13 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         CancellationToken cancellationToken
     )
     {
-        if (propertyBag.TryGet<PersistedTenant>(out var persistedTenant, tenantId) && persistedTenant.TenantId == tenantId)
+        if (propertyBag.TryGet<PersistedTenant>(out var persistedTenant, tenantId) && persistedTenant?.TenantId == tenantId)
             return persistedTenant;
 
         persistedTenant = await TryGetTenantByIdAsync(tenantId, cancellationToken);
-        propertyBag.Set(persistedTenant);
 
         var errorFactory = openIdEnvironment.ErrorFactory;
+        propertyBag.Set(persistedTenant);
 
         if (persistedTenant == null)
             throw errorFactory

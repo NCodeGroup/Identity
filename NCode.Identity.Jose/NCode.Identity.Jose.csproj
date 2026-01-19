@@ -9,7 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Collections.Providers\NCode.Collections.Providers.csproj"/>
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj"/>
     </ItemGroup>
 
@@ -21,6 +20,7 @@
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.2" />
         <PackageReference Include="NCode.Base64Url" Version="2.0.1" />
         <PackageReference Include="NCode.Buffers" Version="4.0.0" />
+        <PackageReference Include="NCode.Collections.Providers" Version="1.0.0" />
         <PackageReference Include="NCode.Disposables" Version="5.3.0" />
         <PackageReference Include="Nerdbank.Streams" Version="2.13.16" />
     </ItemGroup>

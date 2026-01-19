@@ -30,7 +30,6 @@
         <ProjectReference Include="..\NCode.Identity\NCode.Identity.csproj"/>
         <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj"/>
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj"/>
-        <ProjectReference Include="..\NCode.Mediator\NCode.Mediator.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

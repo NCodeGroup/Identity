@@ -50,7 +50,8 @@ public static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.VerifyIsRegistered<MediatorLibrary>();
+            serviceCollection.AddMediator();
+
             serviceCollection.VerifyIsRegistered<JoseLibrary>();
 
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationLibrary>();

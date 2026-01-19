@@ -11,7 +11,6 @@
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Mediator.Abstractions\NCode.Mediator.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.PropertyBag.Abstractions\NCode.PropertyBag.Abstractions.csproj" />
     </ItemGroup>
 
     <ItemGroup>

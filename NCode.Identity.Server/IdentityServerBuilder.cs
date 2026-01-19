@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Management;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Mediator;
+using NCode.PropertyBag;
 using NCode.Registration;
 
 namespace NCode.Identity.Server;
@@ -90,6 +91,8 @@ public sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIde
     public IdentityServerBuilder(IServiceCollection serviceCollection)
         : base(serviceCollection)
     {
+        serviceCollection.AddPropertyBag();
+
         DataProtectionBuilder = serviceCollection.AddDataProtection();
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();
         SecretPersistenceLibraryBuilder = SecretsLibraryBuilder.AddPersistenceLibrary();

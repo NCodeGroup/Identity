@@ -9,14 +9,14 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.PropertyBag\NCode.PropertyBag.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" PrivateAssets="All" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2" />
         <PackageReference Include="NCode.Base64Url" Version="2.0.1" />
+        <PackageReference Include="NCode.PropertyBag" Version="1.1.1" />
     </ItemGroup>
 
     <ItemGroup>

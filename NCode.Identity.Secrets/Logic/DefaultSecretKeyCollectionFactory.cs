@@ -1,7 +1,6 @@
-#region Copyright Preamble
+﻿#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2024 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,24 +16,16 @@
 
 #endregion
 
-namespace NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
-/// Provides an <see cref="SecretKey"/> implementation that is empty.
+/// Provides a default implementation for the <see cref="ISecretKeyCollectionFactory"/> abstraction.
 /// </summary>
-public sealed class EmptySecretKey : SecretKey
+public class DefaultSecretKeyCollectionFactory : ISecretKeyCollectionFactory
 {
-    /// <summary>
-    /// Gets a singleton instance of <see cref="EmptySecretKey"/>.
-    /// </summary>
-    public static EmptySecretKey Singleton { get; } = new();
-
     /// <inheritdoc />
-    public override string KeyType => string.Empty;
-
-    /// <inheritdoc />
-    public override KeyMetadata Metadata => default;
-
-    /// <inheritdoc />
-    public override int KeySizeBits => 0;
+    public ISecretKeyCollection Create(IEnumerable<SecretKey> items) =>
+        new DefaultSecretKeyCollection(items);
 }

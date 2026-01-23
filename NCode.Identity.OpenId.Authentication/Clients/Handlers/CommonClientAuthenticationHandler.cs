@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -199,8 +200,7 @@ public abstract class CommonClientAuthenticationHandler(
         var effectiveSettings = parentSettings.Merge(clientSettings);
 
         var secrets = SecretSerializer.DeserializeSecrets(
-            persistedClient.Secrets.Value,
-            out _
+            persistedClient.Secrets.Value
         );
 
         var publicClient = await ClientFactory.CreatePublicClientAsync(

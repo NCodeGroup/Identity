@@ -1,4 +1,5 @@
 ﻿#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,11 +14,12 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.AspNetCore.DataProtection;
-using NCode.Identity.Secrets;
+using Microsoft.Extensions.Logging.Abstractions;
+using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Jose.Tests;
 
@@ -25,8 +27,7 @@ public class BaseTests : IAsyncDisposable
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
-    protected static IDataProtectionProvider DataProtectionProvider { get; } = new EphemeralDataProtectionProvider();
-    protected static DefaultSecretKeyFactory SecretKeyFactory { get; } = new(DataProtectionProvider);
+    protected static DefaultSecretKeyFactory SecretKeyFactory { get; } = new(new DefaultSecretKeyDataProtectorFactory(NullLoggerFactory.Instance));
 
     public async ValueTask DisposeAsync()
     {

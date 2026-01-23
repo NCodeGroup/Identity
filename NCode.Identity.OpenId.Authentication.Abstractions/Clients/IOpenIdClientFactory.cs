@@ -20,6 +20,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;

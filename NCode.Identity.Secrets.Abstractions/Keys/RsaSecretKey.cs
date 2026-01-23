@@ -1,6 +1,7 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+//
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,21 +17,28 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using JetBrains.Annotations;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.Secrets.Persistence;
+namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
-/// Contains constants for the possible values of the <see cref="PersistedSecret.EncodingType"/> property.
+/// Represents an <see cref="AsymmetricSecretKey"/> implementation using <c>RSA</c> cryptographic keys.
 /// </summary>
 [PublicAPI]
-[ExcludeFromCodeCoverage]
-public static class SecretEncodingTypes
+public abstract class RsaSecretKey : AsymmetricSecretKey
 {
     /// <summary>
-    /// Indicates that the secret is stored as base64url without encryption.
+    /// OID for <c>RSA</c> public key cryptography.
     /// </summary>
-    public const string Basic = "basic";
+    public const string Oid = "1.2.840.113549.1.1.1";
+
+    /// <inheritdoc />
+    public override string KeyType => SecretKeyTypes.Rsa;
+
+    /// <summary>
+    /// Factory method to create an <see cref="RSA"/> instance from the current <c>RSA</c> key material.
+    /// </summary>
+    /// <returns>The newly created <see cref="RSA"/> instance</returns>
+    public abstract RSA ExportRSA();
 }

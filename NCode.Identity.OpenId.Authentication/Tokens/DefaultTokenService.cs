@@ -37,6 +37,7 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens;

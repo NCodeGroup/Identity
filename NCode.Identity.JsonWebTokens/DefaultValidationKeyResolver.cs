@@ -26,6 +26,8 @@ using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.JsonWebTokens;
 

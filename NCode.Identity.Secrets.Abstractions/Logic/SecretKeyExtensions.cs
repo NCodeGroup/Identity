@@ -19,8 +19,9 @@
 
 using System.Security.Cryptography;
 using JetBrains.Annotations;
+using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Provides extensions methods for the <see cref="SecretKey"/> abstraction.

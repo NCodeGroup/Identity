@@ -19,6 +19,8 @@
 
 
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Jose.Tests.SecretKeys;
 

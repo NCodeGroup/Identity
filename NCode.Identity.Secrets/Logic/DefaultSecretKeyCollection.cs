@@ -19,8 +19,9 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretKeyCollection"/> interface.

@@ -19,6 +19,7 @@
 
 using System.Text.Json;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose;
 

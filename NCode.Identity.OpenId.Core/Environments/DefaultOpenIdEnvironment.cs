@@ -33,6 +33,7 @@ namespace NCode.Identity.OpenId.Environments;
 /// </summary>
 public class DefaultOpenIdEnvironment(
     IDataProtector dataProtector,
+    IDataProtector ephemeralDataProtector,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     IOpenIdMessageFactorySelector openIdMessageFactorySelector,
     IEnumerable<IOpenIdJsonConverterProvider> jsonConverterProviders
@@ -48,6 +49,9 @@ public class DefaultOpenIdEnvironment(
 
     /// <inheritdoc />
     public override IDataProtector DataProtector { get; } = dataProtector;
+
+    /// <inheritdoc />
+    public override IDataProtector EphemeralDataProtector { get; } = ephemeralDataProtector;
 
     /// <inheritdoc />
     public override IKnownParameterCollection KnownParameters => knownParameterCollectionProvider.Collection;

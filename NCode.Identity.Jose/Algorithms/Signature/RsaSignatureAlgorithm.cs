@@ -20,6 +20,8 @@
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.Jose.Algorithms.Signature;
 

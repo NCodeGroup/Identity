@@ -21,8 +21,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
+using NCode.Identity.Secrets.Logic;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="RsaSecretKey"/> abstraction.
@@ -31,13 +32,13 @@ public class DefaultRsaSecretKey(
     IDataProtector dataProtector,
     KeyMetadata metadata,
     int modulusSizeBits,
-    byte[] protectedPkcs8PrivateKey,
-    byte[]? certificateRawData
+    ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
+    ReadOnlyMemory<byte>? certificateRawData
 ) : RsaSecretKey
 {
     private IDataProtector DataProtector { get; } = dataProtector;
-    private byte[] ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
-    private byte[]? CertificateRawData { get; } = certificateRawData;
+    private ReadOnlyMemory<byte> ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
+    private ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
 
     /// <inheritdoc />
     public override KeyMetadata Metadata { get; } = metadata;
@@ -47,15 +48,16 @@ public class DefaultRsaSecretKey(
 
     /// <inheritdoc />
     [MemberNotNullWhen(true, nameof(CertificateRawData))]
-    public override bool HasCertificate => CertificateRawData is not null;
+    public override bool HasCertificate => CertificateRawData.HasValue;
 
     /// <inheritdoc />
     public override X509Certificate2? ExportCertificate() =>
-        HasCertificate ? X509CertificateLoader.LoadCertificate(CertificateRawData) : null;
+        HasCertificate ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span) : null;
 
     /// <inheritdoc />
     public override RSA ExportRSA() =>
         DataProtector.ExportAsymmetricAlgorithm(
-            ProtectedPkcs8PrivateKey,
-            RSA.Create);
+            ProtectedPkcs8PrivateKey.Span,
+            RSA.Create
+        );
 }

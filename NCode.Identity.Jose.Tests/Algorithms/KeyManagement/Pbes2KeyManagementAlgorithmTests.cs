@@ -25,6 +25,7 @@ using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;

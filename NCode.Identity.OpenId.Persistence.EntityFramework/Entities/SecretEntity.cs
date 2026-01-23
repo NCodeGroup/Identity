@@ -108,20 +108,9 @@ public class SecretEntity : ISupportConcurrencyToken
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets or sets any identifying information about how the key material is encoded, encrypted, versioned, etc.
+    /// Gets or sets the base64url encoded value of the key material.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(SecretMaxLengths.EncodingType)]
-    public required string EncodingType { get; init; }
-
-    /// <summary>
-    /// Gets or sets the encoded value of the key material.
-    /// Any details about how the key material is encoded, encrypted, versioned, etc.
-    /// must be described in the <see cref="EncodingType"/> property.
-    /// </summary>
-    [Unicode(false)]
-    [MaxLength(-1)]
-    // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
-    // We never know how long the value will be.
+    [MaxLength(SecretMaxLengths.EncodedValue)]
     public required string EncodedValue { get; init; }
 }

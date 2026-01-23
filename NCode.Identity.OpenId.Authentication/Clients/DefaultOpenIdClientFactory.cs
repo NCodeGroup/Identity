@@ -21,6 +21,8 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 

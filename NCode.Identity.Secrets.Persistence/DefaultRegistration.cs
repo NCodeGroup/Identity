@@ -16,56 +16,57 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Secrets.Persistence.Encodings;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Registration;
 
 namespace NCode.Identity.Secrets.Persistence;
 
 /// <summary>
-/// Provides extension methods to configure services and handlers for Identity Secrets Persistence.
+/// Provides extension methods for <see cref="IServiceBuilder{T}"/> to register services
+/// required for persisting and serializing identity secrets.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class extends the <see cref="SecretsLibrary"/> service builder to add persistence capabilities,
+/// including secret serialization for storage in databases or other persistent stores.
+/// </para>
+/// </remarks>
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="SecretsLibrary"/>.</param>
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> instance for configuring
+    /// <see cref="SecretsLibrary"/> services.</param>
     extension(IServiceBuilder<SecretsLibrary> builder)
     {
         /// <summary>
-        /// Configures services and handlers for Identity Secrets Persistence.
+        /// Adds services required for persisting identity secrets, including serialization support.
         /// </summary>
+        /// <returns>A new <see cref="IServiceBuilder{T}"/> for <see cref="SecretPersistenceLibrary"/>
+        /// that can be used to further configure persistence-related services.</returns>
+        /// <remarks>
+        /// <para>
+        /// This method registers the following services:
+        /// </para>
+        /// <list type="bullet">
+        /// <item><description><see cref="ISecretSerializer"/> - Serializes and deserializes secret keys
+        /// for persistent storage.</description></item>
+        /// </list>
+        /// <para>
+        /// Services are registered using <c>TryAddSingleton</c> semantics, meaning existing registrations
+        /// will not be overwritten.
+        /// </para>
+        /// </remarks>
         [PublicAPI]
         public IServiceBuilder<SecretPersistenceLibrary> AddPersistenceLibrary()
         {
             var newBuilder = builder.NewBuilder<SecretPersistenceLibrary>();
 
-            newBuilder.AddEncoding<BasicSecretEncoding>();
-
             var serviceCollection = builder.ServiceCollection;
             serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
 
             return newBuilder;
-        }
-    }
-
-    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services.</param>
-    extension(IServiceBuilder<SecretPersistenceLibrary> builder)
-    {
-        /// <summary>
-        /// Registers the specified <typeparamref name="T"/> implementation for the <see cref="ISecretEncoding"/> abstraction.
-        /// </summary>
-        /// <typeparam name="T">The type of the <see cref="ISecretEncoding"/> implementation to register.</typeparam>
-        [PublicAPI]
-        public IServiceBuilder<SecretPersistenceLibrary> AddEncoding<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
-            where T : class, ISecretEncoding
-        {
-            var serviceCollection = builder.ServiceCollection;
-            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<ISecretEncoding, T>());
-            return builder;
         }
     }
 }

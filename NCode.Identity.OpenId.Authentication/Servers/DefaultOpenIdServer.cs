@@ -18,6 +18,7 @@
 #endregion
 
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 

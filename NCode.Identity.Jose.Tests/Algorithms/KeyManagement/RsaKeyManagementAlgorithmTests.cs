@@ -23,6 +23,7 @@ using System.Text.Json;
 using Jose;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 

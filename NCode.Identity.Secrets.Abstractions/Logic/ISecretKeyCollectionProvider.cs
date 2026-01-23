@@ -17,24 +17,18 @@
 
 #endregion
 
-using System.Buffers;
 using JetBrains.Annotations;
+using NCode.Collections.Providers;
+using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
-/// Represents an <see cref="SecretKey"/> implementation using <c>symmetric</c> cryptographic keys.
+/// Provides the composition root (i.e. top-level collection) of <see cref="SecretKey"/> instances by
+/// aggregating multiple data sources and providing change notifications.
 /// </summary>
 [PublicAPI]
-public abstract class SymmetricSecretKey : SecretKey
+public interface ISecretKeyCollectionProvider : ICollectionProvider<SecretKey, ISecretKeyCollection>
 {
-    /// <inheritdoc />
-    public override string KeyType => SecretKeyTypes.Symmetric;
-
-    /// <summary>
-    /// Exports the private key to a <see cref="IBufferWriter{T}"/>.
-    /// </summary>
-    /// <param name="destination">The destination buffer writer.</param>
-    public abstract void ExportPrivateKey<TWriter>(ref TWriter destination)
-        where TWriter : IBufferWriter<byte>, allows ref struct;
+    // nothing
 }

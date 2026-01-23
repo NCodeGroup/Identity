@@ -35,9 +35,9 @@ public static class ServiceCollectionExtensions
     {
         [PublicAPI]
         public bool IsRegistered<TMarker>()
-            where TMarker : IMarker<TMarker>
+            where TMarker : IRegistrationMarker<TMarker>, new()
         {
-            return serviceCollection.Any(descriptor => typeof(TMarker).IsAssignableFrom(descriptor.ServiceType));
+            return serviceCollection.Any(descriptor => descriptor.ImplementationInstance is TMarker);
         }
 
         /// <summary>

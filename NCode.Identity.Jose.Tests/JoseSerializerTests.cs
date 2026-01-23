@@ -29,6 +29,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Jose.Tests;
 

@@ -29,6 +29,7 @@ using NCode.Identity.Jose.Encoders;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 using Nerdbank.Streams;
 
 namespace NCode.Identity.Jose;

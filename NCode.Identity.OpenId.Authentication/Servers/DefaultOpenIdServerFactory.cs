@@ -31,6 +31,8 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -307,7 +309,7 @@ public class DefaultOpenIdServerFactory(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var initialSecrets = SecretSerializer.DeserializeSecrets(persistedServer.Secrets.Value, out _);
+        var initialSecrets = SecretSerializer.DeserializeSecrets(persistedServer.Secrets.Value);
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedServer,
@@ -343,7 +345,7 @@ public class DefaultOpenIdServerFactory(
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value, out _);
+        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value);
 
         // update the state after successfully deserializing the secrets
         persistedServer.Secrets = newSecrets;

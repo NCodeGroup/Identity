@@ -95,16 +95,8 @@ public class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcu
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets or sets any identifying information about how the key material is encoded, encrypted, versioned, etc.
-    /// See <see cref="SecretEncodingTypes"/> for possible values.
+    /// Gets or sets the base64url encoded value of the key material.
     /// </summary>
-    [MaxLength(SecretMaxLengths.EncodingType)]
-    public required string EncodingType { get; init; }
-
-    /// <summary>
-    /// Gets or sets the encoded value of the key material.
-    /// Any details about how the key material is encoded, encrypted, versioned, etc.
-    /// must be described in the <see cref="EncodingType"/> property.
-    /// </summary>
+    [MaxLength(SecretMaxLengths.EncodedValue)]
     public required string EncodedValue { get; init; }
 }

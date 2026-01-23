@@ -21,6 +21,8 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using NCode.Identity.Jose;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.JsonWebTokens;

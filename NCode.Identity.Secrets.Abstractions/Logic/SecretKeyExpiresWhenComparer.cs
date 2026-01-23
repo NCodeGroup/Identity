@@ -18,8 +18,9 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Provides an implementation of <see cref="IComparer{SecretKey}"/> that compares <see cref="SecretKey"/> instances using

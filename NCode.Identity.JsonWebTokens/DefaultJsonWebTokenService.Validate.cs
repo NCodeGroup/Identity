@@ -23,6 +23,7 @@ using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens.Exceptions;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.JsonWebTokens;
 

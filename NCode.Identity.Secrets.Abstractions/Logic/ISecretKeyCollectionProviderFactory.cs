@@ -18,8 +18,9 @@
 
 using JetBrains.Annotations;
 using NCode.Collections.Providers;
+using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Factory abstraction for creating <see cref="ISecretKeyCollectionProvider"/> instances.

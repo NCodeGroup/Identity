@@ -35,6 +35,8 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -494,7 +496,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         );
 
         var refreshInterval = OpenIdOptions.Tenant.SecretsPeriodicRefreshInterval;
-        var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets.Value, out _);
+        var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets.Value);
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedTenant,
@@ -531,7 +533,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value, out _);
+        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value);
 
         // update the state after successfully deserializing the secrets
         persistedTenant.Secrets = newSecrets;

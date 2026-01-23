@@ -29,22 +29,22 @@ namespace NCode.Identity.Secrets.Persistence;
 public static class SecretMaxLengths
 {
     /// <summary>
-    /// Specifies the maximum length of a <c>SecretUse</c>.
+    /// Specifies the maximum length of the <c>SecretUse</c> field.
     /// </summary>
     public const int Use = 100;
 
     /// <summary>
-    /// Specifies the maximum length of a <c>SecretAlgorithm</c>.
+    /// Specifies the maximum length of the <c>SecretAlgorithm</c> field.
     /// </summary>
     public const int Algorithm = 100;
 
     /// <summary>
-    /// Specifies the maximum length of a <c>SecretType</c>.
+    /// Specifies the maximum length of the <c>SecretType</c> field.
     /// </summary>
     public const int SecretType = 100;
 
     /// <summary>
-    /// Specifies the maximum length of a <c>EncodingType</c>.
+    /// Specifies the maximum length of the <c>EncodedValue</c> field.
     /// </summary>
-    public const int EncodingType = 100;
+    public const int EncodedValue = 8000;
 }

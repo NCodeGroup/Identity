@@ -21,6 +21,8 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens.Options;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.JsonWebTokens;
 

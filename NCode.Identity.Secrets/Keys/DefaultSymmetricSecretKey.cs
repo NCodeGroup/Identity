@@ -18,8 +18,9 @@
 #endregion
 
 using Microsoft.AspNetCore.DataProtection;
+using NCode.Extensions.DataProtection;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="SymmetricSecretKey"/> abstraction.
@@ -28,11 +29,11 @@ public class DefaultSymmetricSecretKey(
     IDataProtector dataProtector,
     KeyMetadata metadata,
     int keySizeBytes,
-    byte[] protectedPrivateKey
+    ReadOnlyMemory<byte> protectedPrivateKey
 ) : SymmetricSecretKey
 {
     private IDataProtector DataProtector { get; } = dataProtector;
-    private byte[] ProtectedPrivateKey { get; } = protectedPrivateKey;
+    private ReadOnlyMemory<byte> ProtectedPrivateKey { get; } = protectedPrivateKey;
 
     /// <inheritdoc />
     public override KeyMetadata Metadata { get; } = metadata;
@@ -45,5 +46,5 @@ public class DefaultSymmetricSecretKey(
 
     /// <inheritdoc />
     public override void ExportPrivateKey<TWriter>(ref TWriter destination) =>
-        DataProtector.UnprotectSpan(ProtectedPrivateKey, ref destination);
+        DataProtector.UnprotectSpan(ProtectedPrivateKey.Span, ref destination);
 }

@@ -20,7 +20,7 @@
 using System.Security.Cryptography.X509Certificates;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
 /// Common abstractions for all secret keys using <c>asymmetric</c> cryptographic keys.

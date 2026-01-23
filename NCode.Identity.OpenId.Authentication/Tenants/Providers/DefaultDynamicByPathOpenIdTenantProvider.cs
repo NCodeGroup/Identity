@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Authentication.Options;
 using NCode.Identity.OpenId.Authentication.Servers;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;

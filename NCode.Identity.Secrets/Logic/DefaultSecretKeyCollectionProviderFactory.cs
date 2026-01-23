@@ -18,8 +18,9 @@
 
 using NCode.Collections.Providers;
 using NCode.Collections.Providers.DataSources;
+using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecretKeyCollectionProviderFactory"/> abstraction.

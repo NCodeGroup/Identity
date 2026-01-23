@@ -17,10 +17,16 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.DataProtection;
+using NCode.Buffers;
+using NCode.Encoders;
+using NCode.Extensions.DataProtection;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Encodings;
 
 namespace NCode.Identity.Secrets.Persistence.Logic;
 
@@ -29,84 +35,71 @@ namespace NCode.Identity.Secrets.Persistence.Logic;
 /// </summary>
 public class DefaultSecretSerializer(
     ISecretKeyFactory secretKeyFactory,
-    IEnumerable<ISecretEncoding> secretEncodings
+    IDataProtectorFactory<PersistedSecret> dataProtectorFactory
 ) : ISecretSerializer
 {
-    private const string ActiveEncodingType = SecretEncodingTypes.Basic;
-
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
-
-    private Dictionary<string, ISecretEncoding> SecretEncodings { get; } =
-        secretEncodings.ToDictionary(x => x.EncodingType, StringComparer.Ordinal);
+    private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
 
     /// <inheritdoc />
     public IReadOnlyCollection<SecretKey> DeserializeSecrets(
-        IEnumerable<PersistedSecret> persistedSecrets,
-        out bool requiresMigration
+        IEnumerable<PersistedSecret> persistedSecrets
     )
     {
-        var anyRequiresMigration = false;
         var secretKeys = new SortedSet<SecretKey>(SecretKeyExpiresWhenComparer.Singleton);
 
         foreach (var persistedSecret in persistedSecrets)
         {
-            secretKeys.Add(DeserializeSecret(persistedSecret, out var secretRequiresMigration));
-            anyRequiresMigration |= secretRequiresMigration;
+            secretKeys.Add(DeserializeSecret(persistedSecret));
         }
 
-        requiresMigration = anyRequiresMigration;
         return secretKeys;
     }
 
     /// <inheritdoc />
-    public SecretKey DeserializeSecret(PersistedSecret persistedSecret, out bool requiresMigration) =>
+    public SecretKey DeserializeSecret(PersistedSecret persistedSecret) =>
         persistedSecret.SecretType switch
         {
-            SecretTypes.Certificate => DeserializeCertificate(persistedSecret, out requiresMigration),
-            SecretTypes.Symmetric => DeserializeSymmetric(persistedSecret, out requiresMigration),
-            SecretTypes.Rsa => DeserializeRsa(persistedSecret, out requiresMigration),
-            SecretTypes.Ecc => DeserializeEcc(persistedSecret, out requiresMigration),
+            SecretTypes.Certificate => DeserializeCertificate(persistedSecret),
+            SecretTypes.Symmetric => DeserializeSymmetric(persistedSecret),
+            SecretTypes.Rsa => DeserializeRsa(persistedSecret),
+            SecretTypes.Ecc => DeserializeEcc(persistedSecret),
             _ => throw new InvalidOperationException($"The '{persistedSecret.SecretType}' secret type is not supported.")
         };
 
-    private AsymmetricSecretKey DeserializeCertificate(PersistedSecret persistedSecret, out bool requiresMigration) =>
-        CreateSecretKey(persistedSecret, CreateUsingCertificate, out requiresMigration);
+    private AsymmetricSecretKey DeserializeCertificate(PersistedSecret persistedSecret) =>
+        CreateSecretKey(persistedSecret, CreateUsingCertificate);
 
-    private AsymmetricSecretKey CreateUsingCertificate(KeyMetadata metadata, Memory<byte> privateKeyBytes)
+    private AsymmetricSecretKey CreateUsingCertificate(KeyMetadata metadata, ReadOnlySpan<byte> privateKeyBytes)
     {
-        using var certificate = new X509Certificate2(privateKeyBytes.Span);
+        using var certificate = X509CertificateLoader.LoadCertificate(privateKeyBytes);
         return SecretKeyFactory.Create(metadata, certificate);
     }
 
-    private SymmetricSecretKey DeserializeSymmetric(PersistedSecret persistedSecret, out bool requiresMigration) =>
-        CreateSecretKey(persistedSecret, CreateUsingSymmetric, out requiresMigration);
+    private SymmetricSecretKey DeserializeSymmetric(PersistedSecret persistedSecret) =>
+        CreateSecretKey(persistedSecret, CreateUsingSymmetric);
 
-    private SymmetricSecretKey CreateUsingSymmetric(KeyMetadata metadata, Memory<byte> privateKeyBytes) =>
-        SecretKeyFactory.CreateSymmetric(metadata, privateKeyBytes.Span);
+    private SymmetricSecretKey CreateUsingSymmetric(KeyMetadata metadata, ReadOnlySpan<byte> privateKeyBytes) =>
+        SecretKeyFactory.CreateSymmetric(metadata, privateKeyBytes);
 
-    private RsaSecretKey DeserializeRsa(PersistedSecret persistedSecret, out bool requiresMigration) =>
-        CreateSecretKey(persistedSecret, CreateUsingRsa, out requiresMigration);
+    private RsaSecretKey DeserializeRsa(PersistedSecret persistedSecret) =>
+        CreateSecretKey(persistedSecret, CreateUsingRsa);
 
-    private RsaSecretKey CreateUsingRsa(KeyMetadata metadata, Memory<byte> privateKeyBytes) =>
-        SecretKeyFactory.CreateRsaPkcs8(metadata, privateKeyBytes.Span);
+    private RsaSecretKey CreateUsingRsa(KeyMetadata metadata, ReadOnlySpan<byte> privateKeyBytes) =>
+        SecretKeyFactory.CreateRsaPkcs8(metadata, privateKeyBytes);
 
-    private EccSecretKey DeserializeEcc(PersistedSecret persistedSecret, out bool requiresMigration) =>
-        CreateSecretKey(persistedSecret, CreateUsingEcc, out requiresMigration);
+    private EccSecretKey DeserializeEcc(PersistedSecret persistedSecret) =>
+        CreateSecretKey(persistedSecret, CreateUsingEcc);
 
-    private EccSecretKey CreateUsingEcc(KeyMetadata metadata, Memory<byte> privateKeyBytes) =>
-        SecretKeyFactory.CreateEccPkcs8(metadata, privateKeyBytes.Span);
+    private EccSecretKey CreateUsingEcc(KeyMetadata metadata, ReadOnlySpan<byte> privateKeyBytes) =>
+        SecretKeyFactory.CreateEccPkcs8(metadata, privateKeyBytes);
 
     private T CreateSecretKey<T>(
         PersistedSecret persistedSecret,
-        Func<KeyMetadata, Memory<byte>, T> factory,
-        out bool requiresMigration
-    ) where T : SecretKey
+        Func<KeyMetadata, ReadOnlySpan<byte>, T> factory
+    )
+        where T : SecretKey
     {
-        if (!SecretEncodings.TryGetValue(persistedSecret.EncodingType, out var secretEncoding))
-        {
-            throw new InvalidOperationException($"The '{persistedSecret.EncodingType}' secret encoding type is not supported.");
-        }
-
         var metadata = new KeyMetadata
         {
             KeyId = persistedSecret.SecretId,
@@ -115,18 +108,26 @@ public class DefaultSecretSerializer(
             ExpiresWhen = persistedSecret.ExpiresWhen
         };
 
-        var secretKey = secretEncoding.Decode(
-            persistedSecret.EncodedValue,
-            privateKeyBytes => factory(metadata, privateKeyBytes)
-        );
+        const bool base64UrlIsSensitive = false;
+        const bool privateKeyIsSensitive = true;
+
+        using var protectedDataWriter = BufferFactory.CreatePooledBufferWriter(base64UrlIsSensitive);
+
+        Base64Url.Decode(persistedSecret.EncodedValue, protectedDataWriter);
+
+        using var protectedDataSpanLease = protectedDataWriter.GetSpanLease(base64UrlIsSensitive);
+
+        var keySizeBytes = persistedSecret.KeySizeBits >> 3;
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(privateKeyIsSensitive, keySizeBytes);
+        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
+
+        DataProtector.UnprotectSpan(protectedDataSpanLease.Span, ref privateKeyWriter);
+
+        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(privateKeyIsSensitive);
+
+        var secretKey = factory(metadata, privateKeySpanLease.Span);
 
         Debug.Assert(secretKey.KeySizeBits == persistedSecret.KeySizeBits);
-
-        requiresMigration = !string.Equals(
-            ActiveEncodingType,
-            persistedSecret.EncodingType,
-            StringComparison.Ordinal
-        );
 
         return secretKey;
     }

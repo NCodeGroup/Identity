@@ -21,8 +21,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
+using NCode.Identity.Secrets.Logic;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="EccSecretKey"/> abstraction.
@@ -34,13 +35,13 @@ public class DefaultEccSecretKey(
     IDataProtector dataProtector,
     KeyMetadata metadata,
     int curveSizeBits,
-    byte[] protectedPkcs8PrivateKey,
-    byte[]? certificateRawData
+    ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
+    ReadOnlyMemory<byte>? certificateRawData
 ) : EccSecretKey
 {
     private IDataProtector DataProtector { get; } = dataProtector;
-    private byte[] ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
-    private byte[]? CertificateRawData { get; } = certificateRawData;
+    private ReadOnlyMemory<byte> ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
+    private ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
 
     /// <inheritdoc />
     public override KeyMetadata Metadata { get; } = metadata;
@@ -50,11 +51,11 @@ public class DefaultEccSecretKey(
 
     /// <inheritdoc />
     [MemberNotNullWhen(true, nameof(CertificateRawData))]
-    public override bool HasCertificate => CertificateRawData is not null;
+    public override bool HasCertificate => CertificateRawData.HasValue;
 
     /// <inheritdoc />
     public override X509Certificate2? ExportCertificate() =>
-        HasCertificate ? X509CertificateLoader.LoadCertificate(CertificateRawData) : null;
+        HasCertificate ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span) : null;
 
     /// <inheritdoc />
     public override ECCurve GetECCurve() => KeySizeBits switch
@@ -75,12 +76,14 @@ public class DefaultEccSecretKey(
     /// <inheritdoc />
     public override ECDsa ExportECDsa() =>
         DataProtector.ExportAsymmetricAlgorithm(
-            ProtectedPkcs8PrivateKey,
-            ECDsa.Create);
+            ProtectedPkcs8PrivateKey.Span,
+            ECDsa.Create
+        );
 
     /// <inheritdoc />
     public override ECDiffieHellman ExportECDiffieHellman() =>
         DataProtector.ExportAsymmetricAlgorithm(
-            ProtectedPkcs8PrivateKey,
-            ECDiffieHellman.Create);
+            ProtectedPkcs8PrivateKey.Span,
+            ECDiffieHellman.Create
+        );
 }

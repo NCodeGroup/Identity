@@ -20,7 +20,7 @@
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Provides the ability to validate key sizes using <see cref="KeySizes"/>.

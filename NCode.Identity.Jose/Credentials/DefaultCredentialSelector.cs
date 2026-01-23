@@ -21,6 +21,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using AlgorithmType = NCode.Identity.Jose.Algorithms.AlgorithmType;
 using IAlgorithmCollection = NCode.Identity.Jose.Algorithms.IAlgorithmCollection;
 using KeyedAlgorithm = NCode.Identity.Jose.Algorithms.KeyedAlgorithm;
@@ -34,19 +36,19 @@ namespace NCode.Identity.Jose.Credentials;
 /// </summary>
 public class DefaultCredentialSelector : ICredentialSelector
 {
-    private static bool IsSecretKeyUseCompatible(SecretKey secretKey, string expectedUse) =>
+    private static bool IsSecretKeyUseCompatible(Secrets.Keys.SecretKey secretKey, string expectedUse) =>
         secretKey.Metadata.Use is null || secretKey.Metadata.Use == expectedUse;
 
-    private static bool IsSecretKeyAlgorithmCompatible(SecretKey secretKey, string algorithmCode) =>
+    private static bool IsSecretKeyAlgorithmCompatible(Secrets.Keys.SecretKey secretKey, string algorithmCode) =>
         secretKey.Metadata.Algorithm is null || secretKey.Metadata.Algorithm == algorithmCode;
 
-    private static bool IsSecretKeyTypeCompatible(SecretKey secretKey, Type keyType) =>
+    private static bool IsSecretKeyTypeCompatible(Secrets.Keys.SecretKey secretKey, Type keyType) =>
         keyType.IsInstanceOfType(secretKey);
 
-    private static bool IsSecretKeySizeCompatible(SecretKey secretKey, IEnumerable<KeySizes> legalBitSizes) =>
+    private static bool IsSecretKeySizeCompatible(Secrets.Keys.SecretKey secretKey, IEnumerable<KeySizes> legalBitSizes) =>
         KeySizesUtility.IsLegalSize(legalBitSizes, secretKey.KeySizeBits);
 
-    private static bool IsSecretKeyCompatible(SecretKey secretKey, KeyedAlgorithm algorithm, string expectedUse) =>
+    private static bool IsSecretKeyCompatible(Secrets.Keys.SecretKey secretKey, KeyedAlgorithm algorithm, string expectedUse) =>
         IsSecretKeyUseCompatible(secretKey, expectedUse) &&
         IsSecretKeyAlgorithmCompatible(secretKey, algorithm.Code) &&
         IsSecretKeyTypeCompatible(secretKey, algorithm.KeyType) &&
@@ -76,8 +78,8 @@ public class DefaultCredentialSelector : ICredentialSelector
         AlgorithmType algorithmType,
         IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredAlgorithms,
-        IReadOnlyCollection<SecretKey> candidateKeys,
-        out (SecretKey SecretKey, T Algorithm) credentials)
+        IReadOnlyCollection<Secrets.Keys.SecretKey> candidateKeys,
+        out (Secrets.Keys.SecretKey SecretKey, T Algorithm) credentials)
         where T : KeyedAlgorithm
     {
         foreach (var algorithmCode in preferredAlgorithms)

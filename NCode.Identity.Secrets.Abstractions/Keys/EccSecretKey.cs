@@ -20,7 +20,7 @@
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
 /// Represents an <see cref="AsymmetricSecretKey"/> implementation using <c>Elliptic-Curve</c> cryptographic keys.

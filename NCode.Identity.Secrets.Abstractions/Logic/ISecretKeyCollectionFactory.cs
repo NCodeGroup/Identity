@@ -17,8 +17,9 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Factory abstraction for creating new <see cref="ISecretKeyCollection"/> instances.

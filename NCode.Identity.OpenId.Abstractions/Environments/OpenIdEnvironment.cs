@@ -42,6 +42,8 @@ public abstract class OpenIdEnvironment
     /// </summary>
     public abstract IDataProtector DataProtector { get; }
 
+    public abstract IDataProtector EphemeralDataProtector { get; }
+
     /// <summary>
     /// Gets the <see cref="IKnownParameterCollection"/> which contains all known parameters.
     /// </summary>

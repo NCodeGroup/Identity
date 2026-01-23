@@ -17,28 +17,24 @@
 
 #endregion
 
-using System.Security.Cryptography;
+using System.Buffers;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
-/// Represents an <see cref="AsymmetricSecretKey"/> implementation using <c>RSA</c> cryptographic keys.
+/// Represents an <see cref="SecretKey"/> implementation using <c>symmetric</c> cryptographic keys.
 /// </summary>
 [PublicAPI]
-public abstract class RsaSecretKey : AsymmetricSecretKey
+public abstract class SymmetricSecretKey : SecretKey
 {
-    /// <summary>
-    /// OID for <c>RSA</c> public key cryptography.
-    /// </summary>
-    public const string Oid = "1.2.840.113549.1.1.1";
-
     /// <inheritdoc />
-    public override string KeyType => SecretKeyTypes.Rsa;
+    public override string KeyType => SecretKeyTypes.Symmetric;
 
     /// <summary>
-    /// Factory method to create an <see cref="RSA"/> instance from the current <c>RSA</c> key material.
+    /// Exports the private key to a <see cref="IBufferWriter{T}"/>.
     /// </summary>
-    /// <returns>The newly created <see cref="RSA"/> instance</returns>
-    public abstract RSA ExportRSA();
+    /// <param name="destination">The destination buffer writer.</param>
+    public abstract void ExportPrivateKey<TWriter>(ref TWriter destination)
+        where TWriter : IBufferWriter<byte>, allows ref struct;
 }

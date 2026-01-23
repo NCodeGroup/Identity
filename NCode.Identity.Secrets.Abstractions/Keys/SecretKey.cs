@@ -19,7 +19,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Secrets;
+namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
 /// Common abstraction for all cryptographic key material.

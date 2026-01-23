@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Secrets;
 

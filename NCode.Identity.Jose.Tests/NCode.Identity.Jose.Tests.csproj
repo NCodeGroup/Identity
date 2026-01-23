@@ -5,18 +5,19 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <DocumentationFile />
+        <DocumentationFile/>
         <LangVersion>latest</LangVersion>
         <RootNamespace>NCode.Jose.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="jose-jwt" Version="5.2.0" />
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.2" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-        <PackageReference Include="Moq" Version="4.20.72" />
-        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="jose-jwt" Version="5.2.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1"/>
+        <PackageReference Include="Moq" Version="4.20.72"/>
+        <PackageReference Include="xunit" Version="2.9.3"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
@@ -28,12 +29,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
-        <ProjectReference Include="..\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj"/>
 
     </ItemGroup>
-
-
-
 
 </Project>

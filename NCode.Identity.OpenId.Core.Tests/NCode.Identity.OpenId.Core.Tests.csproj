@@ -32,8 +32,4 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj"/>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Serialization\" />
-    </ItemGroup>
-
 </Project>

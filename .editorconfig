@@ -38,3 +38,38 @@ trim_trailing_whitespace = false
 # Web Files
 [*.{htm,html,cshtml,js,ts,css,scss}]
 indent_size = 2
+
+# ── Analyzer tuning ─────────────────────────────────────────────────────────
+[*.cs]
+# Public entry points validate arguments explicitly where it matters; the broad CA1062 nullness rule
+# is noisy against nullable-reference-type analysis.
+dotnet_diagnostic.CA1062.severity = none
+# Intention-revealing public API names (e.g. 'Error', 'Get') are deliberate; do not rename to dodge keywords.
+dotnet_diagnostic.CA1716.severity = none
+# LoggerMessage source-gen delegates are a micro-optimization not warranted on rarely-hit paths.
+dotnet_diagnostic.CA1848.severity = none
+# No ConfigureAwait(false): this is an ASP.NET-Core-only library. ASP.NET Core installs no
+# SynchronizationContext (and no custom TaskScheduler), so ConfigureAwait(false) is a no-op here.
+dotnet_diagnostic.CA2007.severity = none
+# Namespaces are organized independently of folders (the public API is a stable contract; folders
+# organize by purpose). Opt out of "namespace must match folder".
+dotnet_style_namespace_match_folder = false
+dotnet_diagnostic.IDE0130.severity = none
+# Rider/ReSharper has its own inspection (CheckNamespace) that reads resharper_* keys; silence it too.
+resharper_check_namespace_highlighting = none
+
+# ── Test projects only ──────────────────────────────────────────────────────
+# The following rules are legitimate on shipping code but pure noise in xUnit tests.
+[*Tests/**/*.cs]
+# Test method names use the Method_State_Expected underscore idiom by convention.
+dotnet_diagnostic.CA1707.severity = none
+# Test base classes have no finalizer, so Dispose() calling GC.SuppressFinalize would be pointless.
+dotnet_diagnostic.CA1816.severity = none
+# Tests deliberately hold collaborators via their (mocked/abstract) interface, not the concrete type.
+dotnet_diagnostic.CA1859.severity = none
+# Tests pass inline array literals straight to assertion helpers; hoisting each to a field hurts readability.
+dotnet_diagnostic.CA1861.severity = none
+# Moq setups return already-completed ValueTasks; CA2012's "await once" rule is a false positive when arranging.
+dotnet_diagnostic.CA2012.severity = none
+# Unused usings in tests are low-value and cleaned by `dotnet format`; keep IDE0005 off there.
+dotnet_diagnostic.IDE0005.severity = none

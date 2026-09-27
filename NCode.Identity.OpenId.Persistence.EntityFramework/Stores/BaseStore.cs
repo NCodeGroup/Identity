@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// This abstract class provides common functionality for CRUD operations, entity mapping, and tenant management.
 /// </summary>
 /// <typeparam name="TItem">The type of the persisted item, also known as a <c>Data Transfer Object</c> (DTO),
-/// which represents the data contract used outside of the persistence layer.</typeparam>
+/// which represents the data contract used outside the persistence layer.</typeparam>
 /// <typeparam name="TEntity">The type of the corresponding Entity Framework entity used for database operations.</typeparam>
 [PublicAPI]
 public abstract class BaseStore<TItem, TEntity> : IStore
@@ -79,14 +79,14 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     }
 
     /// <summary>
-    /// Normalizes a string value to uppercase for case-insensitive database lookups.
+    /// Normalizes a string value to lowercase for case-insensitive database lookups.
     /// This enables sargable (Search ARGument ABLE) queries for DBMS engines that
     /// don't support case-insensitive indices natively.
     /// </summary>
     /// <param name="value">The string value to normalize, or <c>null</c>.</param>
-    /// <returns>The uppercase version of the input string, or <c>null</c> if the input was <c>null</c>.</returns>
+    /// <returns>The lowercase version of the input string, or <c>null</c> if the input was <c>null</c>.</returns>
     [return: NotNullIfNotNull("value")]
-    protected static string? Normalize(string? value) => value?.ToUpperInvariant();
+    protected static string? Normalize(string? value) => value?.ToLowerInvariant();
 
     /// <summary>
     /// Maps an entity to its corresponding DTO.

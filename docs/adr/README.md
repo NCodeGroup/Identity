@@ -22,3 +22,4 @@ consequences. ADRs are immutable once **Accepted** — if a decision changes, ad
 | ADR | Title | Status |
 |-----|-------|--------|
 | [0001](./0001-mediator-vs-dependency-injection-logic-classes.md) | Mediator (commands & handlers) vs. dependency-injected logic classes | Accepted |
+| [0002](./0002-ephemeral-development-keys.md) | Ephemeral development keys are an explicit opt-in, never a silent default | Accepted |

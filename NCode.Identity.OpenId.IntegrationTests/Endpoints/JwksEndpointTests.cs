@@ -30,7 +30,7 @@ public class JwksEndpointTests(PlaygroundApplicationFactory factory)
     private PlaygroundApplicationFactory Factory { get; } = factory;
 
     [Fact]
-    public async Task GetJwks_ReturnsKeySetContract()
+    public async Task GetJwks_WithEphemeralDeveloperKeys_PublishesRsaSigningKey()
     {
         var client = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -44,12 +44,17 @@ public class JwksEndpointTests(PlaygroundApplicationFactory factory)
         var json = await response.Content.ReadAsStringAsync();
         using var document = JsonDocument.Parse(json);
 
-        // The response must always be a well-formed key set with a "keys" array.
         Assert.True(document.RootElement.TryGetProperty("keys", out var keys));
         Assert.Equal(JsonValueKind.Array, keys.ValueKind);
+        Assert.True(keys.GetArrayLength() >= 1);
 
-        // NOTE: the key set is currently EMPTY because the default/test environment loads no signing
-        // keys. Once an ephemeral development key composition is applied by the test host, add an
-        // assertion here that a valid signing JWK (kty/kid/alg + public material) is published.
+        // The Playground opts into an ephemeral RSA signing key, so a valid public JWK must be published.
+        var key = keys[0];
+        Assert.Equal("RSA", key.GetProperty("kty").GetString());
+        Assert.Equal("sig", key.GetProperty("use").GetString());
+        Assert.Equal("RS256", key.GetProperty("alg").GetString());
+        Assert.False(string.IsNullOrEmpty(key.GetProperty("kid").GetString()));
+        Assert.False(string.IsNullOrEmpty(key.GetProperty("n").GetString()));
+        Assert.False(string.IsNullOrEmpty(key.GetProperty("e").GetString()));
     }
 }

@@ -69,15 +69,22 @@ internal class Startup(IConfiguration configuration)
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
 
         services.AddDatabaseDeveloperPageExceptionFilter();
+
+        // Select the database provider based on configuration. When a connection string named 'OpenId'
+        // is provided (e.g. via appsettings.json, environment variables, or user secrets) SQL Server is
+        // used; otherwise the Playground falls back to a zero-setup in-memory database so it can run
+        // without any external dependencies.
+        var connectionString = Configuration.GetConnectionString("OpenId");
         services.AddDbContextFactory<OpenIdDbContext>(builder =>
         {
-            // TODO
-            // builder.UseInMemoryDatabase("OpenId");
-            builder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB; Initial Catalog=OIDC;", options =>
+            if (string.IsNullOrEmpty(connectionString))
             {
-                // options.MigrationsAssembly("NCode.Identity.OpenId.Persistence.EntityFramework");
-                // options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-            });
+                builder.UseInMemoryDatabase("OpenId");
+            }
+            else
+            {
+                builder.UseSqlServer(connectionString);
+            }
         });
 
         services.AddControllers();

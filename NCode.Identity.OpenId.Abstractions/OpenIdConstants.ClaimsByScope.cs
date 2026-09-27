@@ -29,15 +29,15 @@ public static partial class OpenIdConstants
     public static IReadOnlyCollection<string> ProtocolClaims { get; } = new HashSet<string>
     {
         JoseClaimNames.Payload.Acr,
-        // TODO: act
+        JoseClaimNames.Payload.Act,
         JoseClaimNames.Payload.Amr,
         JoseClaimNames.Payload.AtHash,
         JoseClaimNames.Payload.Aud,
         JoseClaimNames.Payload.AuthTime,
-        // TODO: azp
+        JoseClaimNames.Payload.Azp,
         JoseClaimNames.Payload.CHash,
         JoseClaimNames.Payload.ClientId,
-        // TODO: cnf
+        JoseClaimNames.Payload.Cnf,
         JoseClaimNames.Payload.Exp,
         JoseClaimNames.Payload.Iat,
         JoseClaimNames.Payload.Idp,
@@ -45,9 +45,10 @@ public static partial class OpenIdConstants
         JoseClaimNames.Payload.Jti,
         JoseClaimNames.Payload.Nbf,
         JoseClaimNames.Payload.Nonce,
-        // TODO: role
+        JoseClaimNames.Payload.Role,
         JoseClaimNames.Payload.SHash,
-        // TODO: sid
+        JoseClaimNames.Payload.Scope,
+        JoseClaimNames.Payload.Sid,
         JoseClaimNames.Payload.Sub,
         JoseClaimNames.Payload.Tid,
     };

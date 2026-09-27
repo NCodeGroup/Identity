@@ -81,8 +81,10 @@ public class DefaultGetIdTokenSubjectClaimsHandler(
             claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Phone);
         }
 
-        // TODO: add specific claims requested by the client via the claims parameter
+        // TODO: add specific claims requested by the client via the 'claims' request parameter.
         // https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
+        // Deferred: requires the parsed 'claims' request parameter to be carried on the token request
+        // (CreateSecurityTokenRequest) so it is available here.
 
         ClaimsService.CopyClaims(
             sourceClaims,

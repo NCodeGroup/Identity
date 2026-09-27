@@ -1,0 +1,25 @@
+# Banned APIs (enforced by Microsoft.CodeAnalysis.BannedApiAnalyzers, diagnostic RS0030).
+# Format: <documentation-comment-id>;<message>
+# Using any symbol listed here is a build error (once warnings-as-errors is on). Add entries as house rules emerge.
+
+# System.Text.Json is the JSON stack for this library; Newtonsoft.Json must not be used (kept out of the dependency graph).
+T:Newtonsoft.Json.JsonConvert;Use System.Text.Json.JsonSerializer instead of Newtonsoft.Json.
+T:Newtonsoft.Json.JsonSerializer;Use System.Text.Json.JsonSerializer instead of Newtonsoft.Json.
+T:Newtonsoft.Json.Linq.JToken;Use System.Text.Json.Nodes.JsonNode instead of Newtonsoft.Json.Linq.
+T:Newtonsoft.Json.Linq.JObject;Use System.Text.Json.Nodes.JsonObject instead of Newtonsoft.Json.Linq.
+T:Newtonsoft.Json.Linq.JArray;Use System.Text.Json.Nodes.JsonArray instead of Newtonsoft.Json.Linq.
+
+# Sync-over-async is banned: blocking on a Task/ValueTask deadlocks and starves the thread pool. Await instead.
+P:System.Threading.Tasks.Task`1.Result;Sync-over-async is banned. Await the task instead of blocking on .Result.
+P:System.Threading.Tasks.ValueTask`1.Result;Sync-over-async is banned. Await the ValueTask instead of blocking on .Result.
+M:System.Threading.Tasks.Task.Wait;Sync-over-async is banned. Await the task instead of Task.Wait().
+M:System.Threading.Tasks.Task.Wait(System.Int32);Sync-over-async is banned. Await the task instead of Task.Wait().
+M:System.Threading.Tasks.Task.Wait(System.TimeSpan);Sync-over-async is banned. Await the task instead of Task.Wait().
+M:System.Threading.Tasks.Task.Wait(System.Threading.CancellationToken);Sync-over-async is banned. Await the task instead of Task.Wait().
+M:System.Threading.Tasks.Task.Wait(System.Int32,System.Threading.CancellationToken);Sync-over-async is banned. Await the task instead of Task.Wait().
+M:System.Threading.Tasks.Task.WaitAll(System.Threading.Tasks.Task[]);Sync-over-async is banned. Use await Task.WhenAll(...).
+M:System.Threading.Tasks.Task.WaitAny(System.Threading.Tasks.Task[]);Sync-over-async is banned. Use await Task.WhenAny(...).
+M:System.Runtime.CompilerServices.TaskAwaiter.GetResult;Sync-over-async is banned. Await the task instead of .GetAwaiter().GetResult().
+M:System.Runtime.CompilerServices.TaskAwaiter`1.GetResult;Sync-over-async is banned. Await the task instead of .GetAwaiter().GetResult().
+M:System.Runtime.CompilerServices.ValueTaskAwaiter.GetResult;Sync-over-async is banned. Await the ValueTask instead of .GetAwaiter().GetResult().
+M:System.Runtime.CompilerServices.ValueTaskAwaiter`1.GetResult;Sync-over-async is banned. Await the ValueTask instead of .GetAwaiter().GetResult().

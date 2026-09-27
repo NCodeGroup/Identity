@@ -1,0 +1,86 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- Build / provenance / analyzer tooling -->
+  <ItemGroup>
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.111" />
+    <!-- Transitive-pinned above Nerdbank.GitVersioning's baseline to pick up the patched band. -->
+    <PackageVersion Include="Microsoft.Build.Tasks.Git" Version="10.0.111" />
+    <!-- Public-API-surface gate; referenced by every packable project via Directory.Build.targets. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
+    <PackageVersion Include="Nullable.Extended.Analyzer" Version="1.15.6581" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2025.2.4" />
+  </ItemGroup>
+
+  <!-- Microsoft.Extensions / ASP.NET Core / EF Core (pinned to the net10 runtime band) -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Primitives" Version="10.0.2" />
+  </ItemGroup>
+
+  <!-- OpenID / JOSE / token stack -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.OpenApi" Version="1.6.14" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+    <PackageVersion Include="System.Linq.Async" Version="7.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.2" />
+    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    <PackageVersion Include="SystemTextJsonPatch" Version="4.2.0" />
+  </ItemGroup>
+
+  <!-- NCode building blocks (published separately on nuget.org) -->
+  <ItemGroup>
+    <PackageVersion Include="NCode.Base64Url" Version="2.0.1" />
+    <PackageVersion Include="NCode.Buffers" Version="4.1.0" />
+    <PackageVersion Include="NCode.Collections.Providers" Version="1.0.0" />
+    <PackageVersion Include="NCode.Collections.Providers.Abstractions" Version="1.0.0" />
+    <PackageVersion Include="NCode.Disposables" Version="5.3.0" />
+    <PackageVersion Include="NCode.Extensions.DataProtection" Version="1.0.1" />
+    <PackageVersion Include="NCode.Mediator" Version="1.0.0" />
+    <PackageVersion Include="NCode.Mediator.Abstractions" Version="1.0.0" />
+    <PackageVersion Include="NCode.PasswordGenerator" Version="1.0.1" />
+    <PackageVersion Include="NCode.PropertyBag" Version="1.2.0" />
+    <PackageVersion Include="NCode.PropertyBag.Abstractions" Version="1.2.0" />
+    <PackageVersion Include="Nerdbank.Streams" Version="2.13.16" />
+  </ItemGroup>
+
+  <!-- Playground-only helpers -->
+  <ItemGroup>
+    <PackageVersion Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageVersion Include="Humanizer.Core" Version="3.0.1" />
+    <PackageVersion Include="IdGen" Version="3.0.7" />
+    <PackageVersion Include="IdGen.DependencyInjection" Version="3.0.7" />
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.7.0" />
+  </ItemGroup>
+
+  <!-- Test stack -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="JunitXml.TestLogger" Version="5.0.0" />
+    <PackageVersion Include="jose-jwt" Version="5.2.0" />
+  </ItemGroup>
+</Project>

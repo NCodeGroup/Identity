@@ -19,14 +19,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" PrivateAssets="All" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.2" />
-        <PackageReference Include="NCode.Disposables" Version="5.3.0" />
-        <PackageReference Include="NCode.Mediator.Abstractions" Version="1.0.0" />
-        <PackageReference Include="NCode.PropertyBag.Abstractions" Version="1.2.0" />
-        <PackageReference Include="System.Text.Json" Version="10.0.2" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+        <PackageReference Include="NCode.Disposables" />
+        <PackageReference Include="NCode.Mediator.Abstractions" />
+        <PackageReference Include="NCode.PropertyBag.Abstractions" />
+        <PackageReference Include="System.Text.Json" />
     </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -14,10 +14,10 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="NCode.Base64Url" Version="2.0.1" />
-      <PackageReference Include="NCode.Buffers" Version="4.1.0" />
-      <PackageReference Include="NCode.Collections.Providers" Version="1.0.0" />
-      <PackageReference Include="NCode.Disposables" Version="5.3.0" />
+      <PackageReference Include="NCode.Base64Url" />
+      <PackageReference Include="NCode.Buffers" />
+      <PackageReference Include="NCode.Collections.Providers" />
+      <PackageReference Include="NCode.Disposables" />
     </ItemGroup>
 
 </Project>

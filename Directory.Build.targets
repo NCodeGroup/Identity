@@ -1,0 +1,46 @@
+<Project>
+  <!-- These settings are gated on IsPackable. Test projects and the Playground set <IsPackable>false</IsPackable>
+       in their body (visible here, since Directory.Build.targets is imported after the project body); shipping
+       libraries leave it unset. The SDK defaults an unset IsPackable to 'true' only later in evaluation, so we gate
+       on "not explicitly false" rather than "== true" — otherwise shipping projects (still empty here) are skipped. -->
+
+  <!-- Packaging + provenance defaults for the shipping (non-test) assemblies. This is an open-source library
+       published from a PUBLIC GitHub repo, so we lean on SourceLink to github.com plus a portable symbol
+       package (.snupkg) for step-into debugging — no auth wall to trip over. -->
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <DebugType>portable</DebugType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!-- Pack on build: `dotnet build` (the DoD, CI, and local/IDE builds) emits each shippable .nupkg + .snupkg
+         directly, so there is no separate pack step and all packages land in one folder for the publish job. -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts/packages</PackageOutputPath>
+    <PackageReadmeFile Condition="Exists('$(MSBuildProjectDirectory)\README.md')"
+      >README.md</PackageReadmeFile
+    >
+    <PackageTags>oauth;oauth2;oidc;openid-connect;jwt;jose;jws;jwe;jwk;identity;authentication;security</PackageTags>
+    <PackageReleaseNotes>See the changelog: https://github.com/NCodeGroup/Identity/blob/main/CHANGELOG.md</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false' And Exists('$(MSBuildProjectDirectory)\README.md')">
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- Deterministic, source-linked builds to github.com so consumers can step into the exact released source. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Bans disallowed APIs on shipping code (RS0030), from the shared BannedSymbols.txt. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+</Project>

@@ -25,6 +25,7 @@ using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Options;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
+using NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 using NCode.Identity.Server;
 
 /*
@@ -67,6 +68,11 @@ internal class Startup(IConfiguration configuration)
         // TODO
         services.AddIdentityServer();
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
+
+        // DEVELOPMENT ONLY: generate an ephemeral in-memory RSA signing key so the server is fully
+        // runnable (token signing + JWKS) without any configured/persisted secrets. Production must
+        // supply a stable, securely-managed signing key instead. See docs/adr/0002.
+        services.AddEphemeralDeveloperKeys();
 
         services.AddDatabaseDeveloperPageExceptionFilter();
 

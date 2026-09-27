@@ -40,7 +40,8 @@ public class DefaultGetAccessTokenPayloadClaimsHandler(
     /// <inheritdoc />
     public ValueTask HandleAsync(GetAccessTokenPayloadClaimsCommand command, CancellationToken cancellationToken)
     {
-        var (openIdContext, openIdClient, _, payloadClaims) = command;
+        var (openIdContext, openIdClient, tokenContext, payloadClaims) = command;
+        var (tokenRequest, _, _, _) = tokenContext;
 
         var tenant = openIdContext.Tenant;
 
@@ -55,13 +56,27 @@ public class DefaultGetAccessTokenPayloadClaimsHandler(
         payloadClaims[JoseClaimNames.Payload.Tid] = tenant.TenantId;
         payloadClaims[JoseClaimNames.Payload.ClientId] = openIdClient.ClientId;
 
-        // TODO
-        // sid
-        // cnf
-        // scope (except offline_access unless subject is present)
-        // [optional subject claims (acr)]
-        // [api resource claims]
-        // [api scope claims]
+        // scope
+        // https://datatracker.ietf.org/doc/html/rfc9068#section-2.2.3
+        // The 'offline_access' scope is only meaningful when an end-user (subject) is present since it
+        // controls the issuance of a refresh token bound to that user; omit it otherwise.
+        var hasSubject = tokenRequest.SubjectAuthentication.HasValue;
+        var scopesToInclude = hasSubject
+            ? tokenRequest.EffectiveScopes
+            : tokenRequest.EffectiveScopes.Where(scope =>
+                !string.Equals(scope, OpenIdConstants.ScopeTypes.OfflineAccess, StringComparison.Ordinal));
+
+        var scopeValue = string.Join(OpenIdConstants.ParameterSeparatorChar, scopesToInclude);
+        if (!string.IsNullOrEmpty(scopeValue))
+        {
+            payloadClaims[JoseClaimNames.Payload.Scope] = scopeValue;
+        }
+
+        // TODO: the following protocol claims require foundational subsystems that do not yet exist:
+        // - sid: requires a session-management subsystem
+        // - cnf: requires a proof-of-possession (e.g. DPoP/mTLS) subsystem
+        // - acr: requires authentication-context-class tracking
+        // - api resource / api scope claims: require a resource (audience) subsystem
 
         return ValueTask.CompletedTask;
     }

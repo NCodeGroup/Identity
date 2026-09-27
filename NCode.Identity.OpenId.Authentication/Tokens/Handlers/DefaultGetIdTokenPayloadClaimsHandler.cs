@@ -43,12 +43,21 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
     /// <inheritdoc />
     public ValueTask HandleAsync(GetIdTokenPayloadClaimsCommand command, CancellationToken cancellationToken)
     {
-        var (openIdContext, _, tokenContext, payloadClaims) = command;
+        var (openIdContext, openIdClient, tokenContext, payloadClaims) = command;
         var (tokenRequest, signingCredentials, _, _) = tokenContext;
 
         // tid
         var tenant = openIdContext.Tenant;
         payloadClaims[JoseClaimNames.Payload.Tid] = tenant.TenantId;
+
+        // client_id
+        // https://datatracker.ietf.org/doc/html/rfc9068#section-2.2
+        payloadClaims[JoseClaimNames.Payload.ClientId] = openIdClient.ClientId;
+
+        // azp (authorized party)
+        // https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        // Identifies the party to which the ID Token was issued, which is the requesting client.
+        payloadClaims[JoseClaimNames.Payload.Azp] = openIdClient.ClientId;
 
         // nonce
         var nonce = tokenRequest.Nonce;
@@ -66,9 +75,10 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             signingCredentials
         );
 
-        // TODO
-        // client_id, acr, sid (if present from request), cnf
-        // azp (https://bitbucket.org/openid/connect/issues/973/)
+        // TODO: the following protocol claims require foundational subsystems that do not yet exist:
+        // - sid: requires a session-management subsystem (also flows to front/back-channel logout)
+        // - cnf: requires a proof-of-possession (e.g. DPoP/mTLS) subsystem
+        // - acr: requires authentication-context-class tracking
 
         return ValueTask.CompletedTask;
     }

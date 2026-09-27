@@ -85,6 +85,12 @@ public static class JoseClaimNames
         public const string Acr = "acr";
 
         /// <summary>
+        /// Contains a constant with the value: <c>act</c>
+        /// https://datatracker.ietf.org/doc/html/rfc8693#section-4.1
+        /// </summary>
+        public const string Act = "act";
+
+        /// <summary>
         /// Contains a constant with the value: <c>actort</c>
         /// </summary>
         public const string Actort = "actort";
@@ -120,6 +126,12 @@ public static class JoseClaimNames
         public const string AuthTime = "auth_time";
 
         /// <summary>
+        /// Contains a constant with the value: <c>azp</c>
+        /// https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        /// </summary>
+        public const string Azp = "azp";
+
+        /// <summary>
         /// Contains a constant with the value: <c>birthdate</c>
         /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
         /// </summary>
@@ -136,6 +148,12 @@ public static class JoseClaimNames
         /// https://datatracker.ietf.org/doc/html/rfc9068#section-2.2
         /// </summary>
         public const string ClientId = "client_id";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>cnf</c>
+        /// https://datatracker.ietf.org/doc/html/rfc7800#section-3.1
+        /// </summary>
+        public const string Cnf = "cnf";
 
         /// <summary>
         /// Contains a constant with the value: <c>email</c>
@@ -263,10 +281,27 @@ public static class JoseClaimNames
         public const string Profile = "profile";
 
         /// <summary>
+        /// Contains a constant with the value: <c>role</c>
+        /// </summary>
+        public const string Role = "role";
+
+        /// <summary>
         /// Contains a constant with the value: <c>s_hash</c>
         /// https://openid.net/specs/openid-financial-api-part-2-1_0.html#id-token-as-detached-signature
         /// </summary>
         public const string SHash = "s_hash";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>scope</c>
+        /// https://datatracker.ietf.org/doc/html/rfc9068#section-2.2.3
+        /// </summary>
+        public const string Scope = "scope";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>sid</c>
+        /// https://openid.net/specs/openid-connect-frontchannel-1_0.html#ClaimsContents
+        /// </summary>
+        public const string Sid = "sid";
 
         /// <summary>
         /// Contains a constant with the value: <c>sub</c>

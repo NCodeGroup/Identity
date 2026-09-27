@@ -61,6 +61,12 @@ public static partial class OpenIdConstants
         public const string Discovery = "discovery_endpoint";
 
         /// <summary>
+        /// Contains the name for the <c>JSON Web Key Set (JWKS)</c> endpoint.
+        /// This value is also used as the <c>jwks_uri</c> key in the discovery metadata.
+        /// </summary>
+        public const string Jwks = "jwks_uri";
+
+        /// <summary>
         /// Contains the name for the <c>token</c> endpoint.
         /// </summary>
         public const string Token = "token_endpoint";
@@ -91,6 +97,11 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>discovery</c> endpoint.
         /// </summary>
         public const string Discovery = "/.well-known/openid-configuration";
+
+        /// <summary>
+        /// Contains the relative path for the <c>JSON Web Key Set (JWKS)</c> endpoint.
+        /// </summary>
+        public const string Jwks = $"{Prefix}/jwks";
 
         /// <summary>
         /// Contains the relative path for the <c>token</c> endpoint.

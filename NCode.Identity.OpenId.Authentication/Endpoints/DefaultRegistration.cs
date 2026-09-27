@@ -21,6 +21,7 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
+using NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token;
 using NCode.Registration;
 
@@ -47,6 +48,7 @@ public static class DefaultRegistration
             newBuilder.AddAuthorizationEndpoint();
             newBuilder.AddContinueEndpoint();
             newBuilder.AddDiscoveryEndpoint();
+            newBuilder.AddJwksEndpoint();
             newBuilder.AddTokenEndpoint();
 
             return builder;

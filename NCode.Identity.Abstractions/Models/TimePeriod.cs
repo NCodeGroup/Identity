@@ -26,8 +26,6 @@ namespace NCode.Identity.Models;
 [PublicAPI]
 public readonly record struct TimePeriod
 {
-    // DateTimeOffset StartTime, DateTimeOffset? EndTime
-
     /// <summary>
     /// Gets or sets the start time of the period.
     /// </summary>

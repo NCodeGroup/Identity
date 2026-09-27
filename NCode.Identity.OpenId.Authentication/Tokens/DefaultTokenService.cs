@@ -36,7 +36,6 @@ using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 
@@ -349,7 +348,7 @@ public class DefaultTokenService(
         var jwt = JsonWebTokenService.EncodeJwt(parameters);
         var securityToken = new SecurityToken
         {
-            TokenType =tokenContext.TokenType,
+            TokenType = tokenContext.TokenType,
             TokenValue = jwt,
             TokenLifetime = tokenLifetime
         };
@@ -427,8 +426,8 @@ public class DefaultTokenService(
 
         var securityToken = new SecurityToken
         {
-            TokenType =OpenIdConstants.SecurityTokenTypes.RefreshToken,
-            TokenValue =refreshToken,
+            TokenType = OpenIdConstants.SecurityTokenTypes.RefreshToken,
+            TokenValue = refreshToken,
             TokenLifetime = tokenLifetime
         };
 
@@ -457,7 +456,8 @@ public class DefaultTokenService(
                 candidateAlgorithms,
                 signingAlgValuesSupported,
                 secretKeys,
-                out var signingCredentials)
+                out var signingCredentials
+            )
            )
         {
             throw new JoseCredentialsNotFoundException("Unable to locate signing credentials.");

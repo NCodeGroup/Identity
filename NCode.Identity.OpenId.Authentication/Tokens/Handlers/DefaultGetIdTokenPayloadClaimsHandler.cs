@@ -78,7 +78,8 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
         string? accessToken,
         string? state,
         IDictionary<string, object> payloadClaims,
-        JoseSigningCredentials signingCredentials)
+        JoseSigningCredentials signingCredentials
+    )
     {
         var hashAlgorithmName = signingCredentials.SignatureAlgorithm.HashAlgorithmName;
         var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
@@ -93,7 +94,8 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             payloadClaims[JoseClaimNames.Payload.CHash] = GetHashValue(
                 authorizationCode,
                 hashFunction,
-                hashBuffer);
+                hashBuffer
+            );
         }
 
         // at_hash
@@ -102,7 +104,8 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             payloadClaims[JoseClaimNames.Payload.AtHash] = GetHashValue(
                 accessToken,
                 hashFunction,
-                hashBuffer);
+                hashBuffer
+            );
         }
 
         // s_hash
@@ -111,14 +114,16 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
             payloadClaims[JoseClaimNames.Payload.SHash] = GetHashValue(
                 state,
                 hashFunction,
-                hashBuffer);
+                hashBuffer
+            );
         }
     }
 
     private static string GetHashValue(
         string value,
         HashFunctionDelegate hashFunction,
-        Span<byte> hashBuffer)
+        Span<byte> hashBuffer
+    )
     {
         /*
             Specification from `c_hash` but also applies to `at_hash` and `s_hash`...

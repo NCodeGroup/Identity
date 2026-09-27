@@ -1,0 +1,13 @@
+# Test + coverage output (generated).
+**/TestResults/
+**/*.cobertura.xml
+
+# Build output (CSharpier skips bin/obj by default; listed for clarity).
+**/bin/
+**/obj/
+artifacts/
+
+# Restored NuGet packages. CI can point NUGET_PACKAGES at an in-tree cache; without this
+# CSharpier would recurse into third-party package files and fail.
+.nuget/
+**/.nuget/

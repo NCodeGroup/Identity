@@ -28,3 +28,4 @@ consequences. ADRs are immutable once **Accepted** — if a decision changes, ad
 | [0005](./0005-public-api-surface-is-tracked-and-evolves-compatibly.md) | The public API surface is tracked and evolves backward-compatibly         | Accepted |
 | [0006](./0006-single-canonical-impl-is-defaultfoo.md)                  | The single canonical implementation of an interface is named DefaultFoo   | Accepted |
 | [0007](./0007-provenance-sourcelink-and-symbols.md)                    | Provenance — SourceLink to GitHub and a portable symbol package           | Accepted |
+| [0008](./0008-conventions-and-lessons-live-in-the-repository.md)       | Conventions and lessons live in the repository, not in volatile memory    | Accepted |

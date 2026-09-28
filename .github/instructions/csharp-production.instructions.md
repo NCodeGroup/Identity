@@ -29,6 +29,10 @@ rationale.
 - ✅ **No sync-over-async.** Blocking on a `Task`/`ValueTask` — `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`,
   `Task.WaitAll` / `Task.WaitAny` — is banned by `BannedApiAnalyzers` (`RS0030`, see
   [`BannedSymbols.txt`](../../BannedSymbols.txt)). Always `await`.
+- 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate.** `StartNew`
+  over an `async` lambda returns an unobserved `Task<Task>` and drops the inner task's exceptions; `Task.Run` unwraps it.
+  Prefer not offloading at all — offload only when the work must leave the calling thread (e.g. disposing an evicted
+  cache entry off the eviction callback): `_ = Task.Run(async () => await x.DisposeAsync());`.
 - ✅ **No `ConfigureAwait(false)`.** This is an ASP.NET-Core-oriented library, and ASP.NET Core installs no
   `SynchronizationContext` (nor a custom `TaskScheduler`), so `ConfigureAwait(false)` is a runtime no-op — the
   deadlock/marshalling reason for it belonged to classic ASP.NET (Framework) and UI apps. `CA2007` is disabled, not required.
@@ -85,6 +89,13 @@ rationale.
   sequence is genuinely large/unbounded, I/O-backed, or usually short-circuited. Never return a deferred sequence that
   **captures request/ambient context** (it goes stale off-request — see §7), and never hand back as lazy a sequence a
   caller will enumerate more than once or need `Count` on.
+- 👁 **Own every stored collection; pick the concrete type by usage.** A constructor or method that keeps a collection
+  parameter — including a DI-injected `IEnumerable<T>` or a sequence a deferred closure will capture — **buffers it once
+  into an owned, immutable copy**; never store the caller's reference through (they can mutate it, and a lazy sequence
+  re-enumerates on every read). Choose the type by how it is read: a set-once membership/lookup table read many times is
+  a `FrozenSet<T>` / `FrozenDictionary<K,V>` (concrete, immutable, O(1) — **not** `IReadOnlyDictionary<K,V>`, which is an
+  interface); a set-once sequence you iterate is an `ImmutableArray<T>` (`Foo { get; } = [.. items];`); a genuinely
+  mutable working set stays a `List<T>`. Prefer `params IEnumerable<T>` over `params T[]` (C# 13) and buffer inside.
 - 👁 **No behavior-selecting flag arguments** (the "boolean trap"). A `bool`/`enum` parameter whose only job is to
   switch a method between two behaviors becomes **two intention-revealing methods**. A `bool` carried as data the
   method does not branch on is fine.
@@ -140,6 +151,10 @@ rationale.
 - ✅ **One receiver-type per static class.** Multiple `extension(...)` blocks with different receiver types in one class
   trip `CA1708` — split them (which also fits one-type-per-file).
 - 👁 Keep null-guards on the receiver (extension members can be invoked on `null`).
+- 👁 **Name the receiver in a receiver-argument exception even though `CA2208` objects.** When an `extension(...)` member
+  throws `ArgumentException` about its receiver, still pass `nameof(receiver)` — the receiver *is* the offending argument.
+  `CA2208` does not yet treat an extension-block receiver as a parameter, so wrap only those throws in a tight
+  `#pragma warning disable/restore CA2208` with a one-line reason; never drop the `paramName` to silence it.
 - 👁 **Choose the DI shape deliberately** per [ADR-0001](../../docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md):
   a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
   (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)

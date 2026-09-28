@@ -80,6 +80,8 @@ NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.ParameterLoader() -> void
 NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>
 NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.ParameterParser() -> void
 NCode.Identity.OpenId.Messages.Parsers.ParameterParserExtensions
+NCode.Identity.OpenId.Messages.Parsers.ParameterParserExtensions.extension<T>(NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>!)
+NCode.Identity.OpenId.Messages.Parsers.ParameterParserExtensions.extension<T>(NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>!).AsNullableValue() -> NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T?>!
 NCode.Identity.OpenId.Messages.Parsers.StringListParser
 NCode.Identity.OpenId.Messages.Parsers.StringListParser.StringListParser() -> void
 NCode.Identity.OpenId.Messages.Parsers.StringParser
@@ -133,7 +135,6 @@ static NCode.Identity.OpenId.Messages.Parameters.Parameter.Load(NCode.Identity.O
 static NCode.Identity.OpenId.Messages.Parameters.Parameter.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, string! parameterName, params System.Collections.Generic.IEnumerable<string!>! stringValues) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
 static NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>.Singleton.get -> NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>!
 static NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Default.get -> NCode.Identity.OpenId.Messages.Parsers.ParameterLoader!
-static NCode.Identity.OpenId.Messages.Parsers.ParameterParserExtensions.AsNullableValue<T>(this NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser) -> NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T?>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AccessToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AcrValues -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!

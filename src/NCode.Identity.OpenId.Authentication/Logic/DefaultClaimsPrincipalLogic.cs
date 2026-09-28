@@ -40,13 +40,15 @@ public delegate string? GetSubjectIdDelegate(ClaimsPrincipal subject);
 /// </summary>
 public static class DefaultClaimsPrincipalLogic
 {
-    /// <summary>
-    /// Returns the default implementation of <see cref="GetSubjectIdentityDelegate"/> that extracts the primary <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
-    /// </summary>
-    /// <param name="subject">The <see cref="ClaimsPrincipal"/> to extract the <see cref="ClaimsIdentity"/> from.</param>
-    /// <returns>The <see cref="ClaimsIdentity"/> from the <see cref="ClaimsPrincipal"/>.</returns>
-    public static ClaimsIdentity GetSubjectIdentity(this ClaimsPrincipal subject) =>
-        subject.Identity as ClaimsIdentity ?? subject.Identities.First();
+    extension(ClaimsPrincipal subject)
+    {
+        /// <summary>
+        /// Returns the default implementation of <see cref="GetSubjectIdentityDelegate"/> that extracts the primary <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
+        /// </summary>
+        /// <returns>The <see cref="ClaimsIdentity"/> from the <see cref="ClaimsPrincipal"/>.</returns>
+        public ClaimsIdentity GetSubjectIdentity() =>
+            subject.Identity as ClaimsIdentity ?? subject.Identities.First();
+    }
 
     /// <summary>
     /// Returns the default implementation of a delegate that extracts the subject id from a <see cref="ClaimsPrincipal"/>.

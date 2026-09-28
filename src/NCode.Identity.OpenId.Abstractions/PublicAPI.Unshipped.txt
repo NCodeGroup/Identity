@@ -57,6 +57,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Continue = "/oauth2/co
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Discovery = "/.well-known/openid-configuration" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Jwks = "/oauth2/jwks" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Token = "/oauth2/token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.OpenId = "oidc" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccessDenied = "access_denied" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccountSelectionRequired = "account_selection_required" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ConsentRequired = "consent_required" -> string!
@@ -351,6 +352,7 @@ NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
 NCode.Identity.OpenId.OpenIdConstants.DisplayTypes
 NCode.Identity.OpenId.OpenIdConstants.EndpointNames
 NCode.Identity.OpenId.OpenIdConstants.EndpointPaths
+NCode.Identity.OpenId.OpenIdConstants.EndpointTags
 NCode.Identity.OpenId.OpenIdConstants.ErrorCodes
 NCode.Identity.OpenId.OpenIdConstants.GrantTypes
 NCode.Identity.OpenId.OpenIdConstants.Parameters
@@ -374,6 +376,8 @@ NCode.Identity.OpenId.Results.OpenIdRedirectResult.OpenIdRedirectResult() -> voi
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.RedirectUrl.get -> string!
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.RedirectUrl.init -> void
 NCode.Identity.OpenId.Results.OpenIdResponseExtensions
+NCode.Identity.OpenId.Results.OpenIdResponseExtensions.extension<T>(T!)
+NCode.Identity.OpenId.Results.OpenIdResponseExtensions.extension<T>(T!).AsHttpResult() -> Microsoft.AspNetCore.Http.IResult!
 NCode.Identity.OpenId.Results.OpenIdResult<T>
 NCode.Identity.OpenId.Results.OpenIdResult<T>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext) -> System.Threading.Tasks.Task!
 NCode.Identity.OpenId.Results.OpenIdResult<T>.OpenIdResult(T! response) -> void
@@ -398,4 +402,3 @@ static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Email.get -> System.C
 static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Phone.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Profile.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.ProtocolClaims.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
-static NCode.Identity.OpenId.Results.OpenIdResponseExtensions.AsHttpResult<T>(this T! response) -> Microsoft.AspNetCore.Http.IResult!

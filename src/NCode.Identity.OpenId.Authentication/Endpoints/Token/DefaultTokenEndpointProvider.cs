@@ -82,7 +82,7 @@ public class DefaultTokenEndpointProvider(
         return new OpenApiOperation
         {
             OperationId = OpenIdConstants.EndpointNames.Token,
-            Tags = [new OpenApiTag { Name = "oidc" }], // TODO: use constant
+            Tags = [new OpenApiTag { Name = OpenIdConstants.EndpointTags.OpenId }],
             RequestBody = new OpenApiRequestBody
             {
                 Content = new Dictionary<string, OpenApiMediaType>

@@ -72,5 +72,5 @@ public class OpenIdOptions
     /// <summary>
     /// Gets a list of delegates that can configure the <see cref="JsonSerializerOptions"/> used by OpenID.
     /// </summary>
-    public IList<Action<JsonSerializerOptions>> JsonOptionsConfigurators { get; } = [];
+    public List<Action<JsonSerializerOptions>> JsonOptionsConfigurators { get; } = [];
 }

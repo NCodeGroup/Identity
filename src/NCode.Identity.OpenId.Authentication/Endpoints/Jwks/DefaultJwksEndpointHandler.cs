@@ -50,7 +50,7 @@ public class DefaultJwksEndpointHandler(
         endpoints
             .MapGet(OpenIdConstants.EndpointPaths.Jwks, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Jwks)
-            .WithTags("oidc") // TODO: use constant
+            .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .WithOpenIdDiscoverable();
 
     private async ValueTask<JsonHttpResult<JsonWebKeySetResult>> HandleRouteAsync(

@@ -32,7 +32,7 @@ public class JoseSerializerOptions
     /// <summary>
     /// Gets or sets a list containing the codes of all the disabled algorithms.
     /// </summary>
-    public ICollection<string> DisabledAlgorithms { get; set; } = [];
+    public List<string> DisabledAlgorithms { get; set; } = [];
 
     /// <summary>
     /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.

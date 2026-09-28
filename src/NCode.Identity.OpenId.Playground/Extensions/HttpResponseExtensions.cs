@@ -19,11 +19,14 @@ namespace NCode.Identity.OpenId.Playground.Extensions;
 
 internal static class HttpResponseExtensions
 {
-    public static void SetNoCache(this HttpResponse response)
+    extension(HttpResponse response)
     {
-        ArgumentNullException.ThrowIfNull(response);
+        public void SetNoCache()
+        {
+            ArgumentNullException.ThrowIfNull(response);
 
-        response.Headers["Pragma"] = "no-cache";
-        response.Headers["Cache-Control"] = "no-store, no-cache, max-age=0";
+            response.Headers["Pragma"] = "no-cache";
+            response.Headers["Cache-Control"] = "no-store, no-cache, max-age=0";
+        }
     }
 }

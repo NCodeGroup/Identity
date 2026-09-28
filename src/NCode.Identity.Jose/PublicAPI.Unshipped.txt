@@ -92,7 +92,7 @@ NCode.Identity.Jose.JoseSerializer.VerifyJws<T>(NCode.Identity.Jose.CompactJwt c
 NCode.Identity.Jose.JoseSerializer.VerifyJws<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload, System.Text.Json.JsonSerializerOptions? jsonOptions) -> void
 NCode.Identity.Jose.JoseSerializer.VerifyJws<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload, System.Text.Json.JsonSerializerOptions? jsonOptions, out System.Text.Json.JsonElement header) -> void
 NCode.Identity.Jose.JoseSerializerOptions
-NCode.Identity.Jose.JoseSerializerOptions.DisabledAlgorithms.get -> System.Collections.Generic.ICollection<string!>!
+NCode.Identity.Jose.JoseSerializerOptions.DisabledAlgorithms.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Jose.JoseSerializerOptions.DisabledAlgorithms.set -> void
 NCode.Identity.Jose.JoseSerializerOptions.JoseSerializerOptions() -> void
 NCode.Identity.Jose.JoseSerializerOptions.JsonSerializerOptions.get -> System.Text.Json.JsonSerializerOptions!

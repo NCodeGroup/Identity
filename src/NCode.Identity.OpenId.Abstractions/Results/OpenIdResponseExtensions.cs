@@ -30,23 +30,25 @@ namespace NCode.Identity.OpenId.Results;
 [PublicAPI]
 public static class OpenIdResponseExtensions
 {
-    /// <summary>
-    /// Wraps the <see cref="IOpenIdResponse"/> in an HTTP <see cref="IResult"/>.
-    /// </summary>
-    /// <param name="response">The <see cref="IOpenIdResponse"/> to wrap.</param>
-    /// <returns>The <see cref="IResult"/> instance.</returns>
-    public static IResult AsHttpResult<T>(this T response)
+    extension<T>(T response)
         where T : class, IOpenIdResponse
     {
-        // prevent metadata from being serialized into the HTTP response
-        if (response is IOpenIdMessage message)
+        /// <summary>
+        /// Wraps the <see cref="IOpenIdResponse"/> in an HTTP <see cref="IResult"/>.
+        /// </summary>
+        /// <returns>The <see cref="IResult"/> instance.</returns>
+        public IResult AsHttpResult()
         {
-            message.SerializationFormat = SerializationFormat.OpenId;
-        }
+            // prevent metadata from being serialized into the HTTP response
+            if (response is IOpenIdMessage message)
+            {
+                message.SerializationFormat = SerializationFormat.OpenId;
+            }
 
-        // ReSharper disable once SuspiciousTypeConversion.Global
-        return response is IResultProvider resultProvider
-            ? resultProvider.AsHttpResult()
-            : new OpenIdResult<T>(response);
+            // ReSharper disable once SuspiciousTypeConversion.Global
+            return response is IResultProvider resultProvider
+                ? resultProvider.AsHttpResult()
+                : new OpenIdResult<T>(response);
+        }
     }
 }

@@ -410,6 +410,8 @@ NCode.Identity.OpenId.Authentication.Logic.DefaultAuthorizationCodeService
 NCode.Identity.OpenId.Authentication.Logic.DefaultAuthorizationCodeService.CreateAuthorizationCodeAsync(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest! authorizationRequest, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication subjectAuthentication, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken>
 NCode.Identity.OpenId.Authentication.Logic.DefaultAuthorizationCodeService.DefaultAuthorizationCodeService(System.TimeProvider! timeProvider, NCode.Identity.Logic.ICryptoService! cryptoService, NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService! persistedGrantService) -> void
 NCode.Identity.OpenId.Authentication.Logic.DefaultClaimsPrincipalLogic
+NCode.Identity.OpenId.Authentication.Logic.DefaultClaimsPrincipalLogic.extension(System.Security.Claims.ClaimsPrincipal!)
+NCode.Identity.OpenId.Authentication.Logic.DefaultClaimsPrincipalLogic.extension(System.Security.Claims.ClaimsPrincipal!).GetSubjectIdentity() -> System.Security.Claims.ClaimsIdentity!
 NCode.Identity.OpenId.Authentication.Logic.DefaultPersistedGrantService
 NCode.Identity.OpenId.Authentication.Logic.DefaultPersistedGrantService.AddAsync<TPayload>(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload> grant, System.DateTimeOffset createdWhen, System.TimeSpan? lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Logic.DefaultPersistedGrantService.ConsumeOnceOrDefault<TPayload>(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>?>
@@ -470,7 +472,7 @@ NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.GetSubjectId.get -> N
 NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.GetSubjectId.set -> void
 NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.GetSubjectIdentity.get -> NCode.Identity.OpenId.Authentication.Logic.GetSubjectIdentityDelegate!
 NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.GetSubjectIdentity.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.JsonOptionsConfigurators.get -> System.Collections.Generic.IList<System.Action<System.Text.Json.JsonSerializerOptions!>!>!
+NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.JsonOptionsConfigurators.get -> System.Collections.Generic.List<System.Action<System.Text.Json.JsonSerializerOptions!>!>!
 NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.OpenIdOptions() -> void
 NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.SectionName.get -> string!
 NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.SectionName.set -> void
@@ -707,7 +709,6 @@ static NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.DefaultEcc
 static NCode.Identity.OpenId.Authentication.Endpoints.Jwks.DefaultRegistration.AddJwksEndpoint(this NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.Endpoints.OpenIdAuthenticationEndpoints>! builder) -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.Endpoints.OpenIdAuthenticationEndpoints>!
 static NCode.Identity.OpenId.Authentication.Endpoints.Token.DefaultRegistration.AddTokenEndpoint(this NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.Endpoints.OpenIdAuthenticationEndpoints>! builder) -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.Endpoints.OpenIdAuthenticationEndpoints>!
 static NCode.Identity.OpenId.Authentication.Logic.DefaultClaimsPrincipalLogic.GetSubjectId(bool allowNameId, bool allowUpn) -> NCode.Identity.OpenId.Authentication.Logic.GetSubjectIdDelegate!
-static NCode.Identity.OpenId.Authentication.Logic.DefaultClaimsPrincipalLogic.GetSubjectIdentity(this System.Security.Claims.ClaimsPrincipal! subject) -> System.Security.Claims.ClaimsIdentity!
 static NCode.Identity.OpenId.Authentication.Settings.DefaultSettingDescriptorDataSource.And(bool current, bool other) -> bool
 static NCode.Identity.OpenId.Authentication.Settings.DefaultSettingDescriptorDataSource.Intersect<TItem>(System.Collections.Generic.IEnumerable<TItem>! current, System.Collections.Generic.IEnumerable<TItem>! other) -> System.Collections.Generic.List<TItem>!
 static NCode.Identity.OpenId.Authentication.Settings.DefaultSettingDescriptorDataSource.Or(bool current, bool other) -> bool

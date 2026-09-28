@@ -113,6 +113,17 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
+    /// Contains the OpenAPI tag names applied to <c>OAuth</c> and <c>OpenID Connect</c> endpoints.
+    /// </summary>
+    public static class EndpointTags
+    {
+        /// <summary>
+        /// Contains the OpenAPI tag applied to all <c>OAuth</c> and <c>OpenID Connect</c> endpoints.
+        /// </summary>
+        public const string OpenId = "oidc";
+    }
+
+    /// <summary>
     /// Contains constants for various codes that can be used to identify the tenant provider.
     /// </summary>
     public static class TenantProviderCodes

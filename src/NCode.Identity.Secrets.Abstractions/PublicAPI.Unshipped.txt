@@ -61,6 +61,8 @@ NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer
 NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer.Compare(NCode.Identity.Secrets.Keys.SecretKey? x, NCode.Identity.Secrets.Keys.SecretKey? y) -> int
 NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer.SecretKeyExpiresWhenComparer() -> void
 NCode.Identity.Secrets.Logic.SecretKeyExtensions
+NCode.Identity.Secrets.Logic.SecretKeyExtensions.extension(NCode.Identity.Secrets.Keys.SecretKey!)
+NCode.Identity.Secrets.Logic.SecretKeyExtensions.extension(NCode.Identity.Secrets.Keys.SecretKey!).Validate<T>(System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! legalKeyBitSizes) -> T!
 NCode.Identity.Secrets.SecretKeyTypes
 NCode.Identity.Secrets.SecretKeyUses
 NCode.Identity.Secrets.SecretsLibrary
@@ -75,7 +77,6 @@ static NCode.Identity.Secrets.Keys.SecretKey.QuoteOrNull(string? value) -> strin
 static NCode.Identity.Secrets.Logic.KeySizesUtility.IsLegalSize(System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! legalSizes, int size) -> bool
 static NCode.Identity.Secrets.Logic.KeySizesUtility.IsLegalSize(System.Security.Cryptography.KeySizes! legalSize, int size) -> bool
 static NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer.Singleton.get -> NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer!
-static NCode.Identity.Secrets.Logic.SecretKeyExtensions.Validate<T>(this NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! legalKeyBitSizes) -> T!
 virtual NCode.Identity.Secrets.Keys.SecretKey.FormatToString() -> string!
 virtual NCode.Identity.Secrets.Keys.SecretKey.KeyId.get -> string?
 virtual NCode.Identity.Secrets.Keys.SecretKey.KeySizeBytes.get -> int

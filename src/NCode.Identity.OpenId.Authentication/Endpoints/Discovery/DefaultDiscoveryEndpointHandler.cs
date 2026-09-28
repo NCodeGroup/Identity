@@ -43,7 +43,7 @@ public class DefaultDiscoveryEndpointHandler(IOpenIdContextFactory contextFactor
         endpoints
             .MapGet(OpenIdConstants.EndpointPaths.Discovery, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Discovery)
-            .WithTags("oidc") // TODO: use constant
+            .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .WithOpenIdDiscoverable();
 
     private async ValueTask<JsonHttpResult<DiscoveryResult>> HandleRouteAsync(

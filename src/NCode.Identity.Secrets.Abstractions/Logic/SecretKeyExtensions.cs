@@ -29,32 +29,32 @@ namespace NCode.Identity.Secrets.Logic;
 [PublicAPI]
 public static class SecretKeyExtensions
 {
-    /// <summary>
-    /// Validates the <paramref name="secretKey"/> is of the expected type and size.
-    /// </summary>
-    /// <param name="secretKey">The <see cref="SecretKey"/> to validate.</param>
-    /// <param name="legalKeyBitSizes">Contains a collection of valid key sizes.</param>
-    /// <typeparam name="T">The expected type of the secret key.</typeparam>
-    /// <returns>The secret key as the expected type.</returns>
-    public static T Validate<T>(this SecretKey secretKey, IEnumerable<KeySizes> legalKeyBitSizes)
-        where T : SecretKey
+    extension(SecretKey secretKey)
     {
-        if (secretKey is not T typedSecretKey)
+        /// <summary>
+        /// Validates the <see cref="SecretKey"/> is of the expected type and size.
+        /// </summary>
+        /// <param name="legalKeyBitSizes">Contains a collection of valid key sizes.</param>
+        /// <typeparam name="T">The expected type of the secret key.</typeparam>
+        /// <returns>The secret key as the expected type.</returns>
+        public T Validate<T>(IEnumerable<KeySizes> legalKeyBitSizes)
+            where T : SecretKey
         {
-            throw new ArgumentException(
-                $"The secret key was expected to be a type of '{typeof(T).FullName}', but '{secretKey.GetType().FullName}' was given instead.",
-                nameof(secretKey)
-            );
-        }
+            if (secretKey is not T typedSecretKey)
+            {
+                throw new ArgumentException(
+                    $"The secret key was expected to be a type of '{typeof(T).FullName}', but '{secretKey.GetType().FullName}' was given instead."
+                );
+            }
 
-        if (!KeySizesUtility.IsLegalSize(legalKeyBitSizes, secretKey.KeySizeBits))
-        {
-            throw new ArgumentException(
-                "The secret key does not have a valid size for this cryptographic algorithm.",
-                nameof(secretKey)
-            );
-        }
+            if (!KeySizesUtility.IsLegalSize(legalKeyBitSizes, secretKey.KeySizeBits))
+            {
+                throw new ArgumentException(
+                    "The secret key does not have a valid size for this cryptographic algorithm."
+                );
+            }
 
-        return typedSecretKey;
+            return typedSecretKey;
+        }
     }
 }

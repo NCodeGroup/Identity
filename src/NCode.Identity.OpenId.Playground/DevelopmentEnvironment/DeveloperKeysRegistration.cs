@@ -34,35 +34,38 @@ namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 [PublicAPI]
 public static class DeveloperKeysRegistration
 {
-    /// <summary>
-    /// Replaces the default static-single tenant provider with one that generates an ephemeral in-memory
-    /// <c>RSA</c> signing key, so that token signing and the JWKS endpoint work out-of-the-box for local
-    /// development and testing. Must not be used in production.
-    /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/> to configure.</param>
-    /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-    public static IServiceCollection AddEphemeralDeveloperKeys(this IServiceCollection services)
+    extension(IServiceCollection services)
     {
-        // Surgically replace only the static-single provider; leave any dynamic tenant providers intact.
-        var existing = services
-            .Where(descriptor =>
-                descriptor.ServiceType == typeof(IOpenIdTenantProvider)
-                && descriptor.ImplementationType == typeof(DefaultStaticSingleOpenIdTenantProvider)
-            )
-            .ToList();
-
-        foreach (var descriptor in existing)
+        /// <summary>
+        /// Replaces the default static-single tenant provider with one that generates an ephemeral in-memory
+        /// <c>RSA</c> signing key, so that token signing and the JWKS endpoint work out-of-the-box for local
+        /// development and testing. Must not be used in production.
+        /// </summary>
+        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        public IServiceCollection AddEphemeralDeveloperKeys()
         {
-            services.Remove(descriptor);
+            // Surgically replace only the static-single provider; leave any dynamic tenant providers intact.
+            var existing = services
+                .Where(descriptor =>
+                    descriptor.ServiceType == typeof(IOpenIdTenantProvider)
+                    && descriptor.ImplementationType
+                        == typeof(DefaultStaticSingleOpenIdTenantProvider)
+                )
+                .ToList();
+
+            foreach (var descriptor in existing)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IOpenIdTenantProvider,
+                    EphemeralStaticSingleOpenIdTenantProvider
+                >()
+            );
+
+            return services;
         }
-
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                IOpenIdTenantProvider,
-                EphemeralStaticSingleOpenIdTenantProvider
-            >()
-        );
-
-        return services;
     }
 }

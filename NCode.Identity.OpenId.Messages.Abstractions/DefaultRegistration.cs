@@ -34,7 +34,9 @@ public static class DefaultRegistration
         /// Registers a default message factory for the specified OpenId message type.
         /// </summary>
         /// <typeparam name="TMessage">The type of the <see cref="OpenIdMessage"/> for the factory.</typeparam>
-        public void AddMessageFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessage>()
+        public void AddMessageFactory<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessage
+        >()
             where TMessage : OpenIdMessage, new()
         {
             var serviceCollection = builder.ServiceCollection;

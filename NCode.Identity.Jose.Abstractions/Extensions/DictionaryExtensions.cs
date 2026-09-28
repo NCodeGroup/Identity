@@ -37,7 +37,11 @@ public static class DictionaryExtensions
     /// otherwise, the default value for the type of the value parameter. This parameter is passed uninitialized.</param>
     /// <typeparam name="T">The type of value to retrieve.</typeparam>
     /// <returns><c>true</c> if a value with the specified key was found; otherwise, <c>false</c>.</returns>
-    public static bool TryGetValue<T>(this IDictionary<string, object> collection, string key, [MaybeNullWhen(false)] out T value)
+    public static bool TryGetValue<T>(
+        this IDictionary<string, object> collection,
+        string key,
+        [MaybeNullWhen(false)] out T value
+    )
     {
         if (collection.TryGetValue(key, out var obj) && obj is T typedValue)
         {

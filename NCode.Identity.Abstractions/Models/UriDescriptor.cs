@@ -64,5 +64,6 @@ public readonly record struct UriDescriptor
     /// Gets a canonical string representation of the URI. The format is "scheme://host[:port]/path[?query]" where
     /// the host is the unicode representation (not punycode), port is optional, path is unescaped, and query is escaped and optional.
     /// </summary>
-    public override string ToString() => $"{Scheme}{Uri.SchemeDelimiter}{Host.Value}{Path.Value}{Query.Value}";
+    public override string ToString() =>
+        $"{Scheme}{Uri.SchemeDelimiter}{Host.Value}{Path.Value}{Query.Value}";
 }

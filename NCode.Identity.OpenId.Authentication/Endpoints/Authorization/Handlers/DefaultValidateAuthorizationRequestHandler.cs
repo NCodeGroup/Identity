@@ -31,7 +31,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateAuthorizationRequestCommand"/> message.
 /// </summary>
-public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<ValidateAuthorizationRequestCommand>, ISupportMediatorPriority
+public class DefaultValidateAuthorizationRequestHandler
+    : ICommandHandler<ValidateAuthorizationRequestCommand>,
+        ISupportMediatorPriority
 {
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -39,7 +41,8 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
     /// <inheritdoc />
     public ValueTask HandleAsync(
         ValidateAuthorizationRequestCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, authorizationRequest) = command;
 
@@ -79,13 +82,15 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
     [AssertionMethod]
     private void ValidateRequestObject(
         IAuthorizationRequestMessage requestMessage,
-        IAuthorizationRequestObject requestObject)
+        IAuthorizationRequestObject requestObject
+    )
     {
         var errorFactory = requestMessage.OpenIdEnvironment.ErrorFactory;
 
-        var errorCode = requestObject.RequestObjectSource == RequestObjectSource.Remote ?
-            OpenIdConstants.ErrorCodes.InvalidRequestUri :
-            OpenIdConstants.ErrorCodes.InvalidRequestJwt;
+        var errorCode =
+            requestObject.RequestObjectSource == RequestObjectSource.Remote
+                ? OpenIdConstants.ErrorCodes.InvalidRequestUri
+                : OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
         /*
          * request and request_uri parameters MUST NOT be included in Request Objects.
@@ -93,12 +98,18 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
 
         if (requestObject.Parameters.Contains(OpenIdConstants.Parameters.Request))
             throw errorFactory
-                .InvalidRequest("The JWT request object must not contain the 'request' parameter.", errorCode)
+                .InvalidRequest(
+                    "The JWT request object must not contain the 'request' parameter.",
+                    errorCode
+                )
                 .AsException();
 
         if (requestObject.Parameters.Contains(OpenIdConstants.Parameters.RequestUri))
             throw errorFactory
-                .InvalidRequest("The JWT request object must not contain the 'request_uri' parameter.", errorCode)
+                .InvalidRequest(
+                    "The JWT request object must not contain the 'request_uri' parameter.",
+                    errorCode
+                )
                 .AsException();
 
         /*
@@ -113,7 +124,10 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
             var requestObjectResponseTypes = requestObject.ResponseTypes.Order();
             if (!requestMessageResponseTypes.SequenceEqual(requestObjectResponseTypes))
                 throw errorFactory
-                    .InvalidRequest("The 'response_type' parameter in the JWT request object must match the same value from the request message.", errorCode)
+                    .InvalidRequest(
+                        "The 'response_type' parameter in the JWT request object must match the same value from the request message.",
+                        errorCode
+                    )
                     .AsException();
         }
 
@@ -123,12 +137,24 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
 
         if (string.IsNullOrEmpty(requestObject.ClientId))
             throw errorFactory
-                .MissingParameter("The 'client_id' parameter in the JWT request object is missing.", errorCode)
+                .MissingParameter(
+                    "The 'client_id' parameter in the JWT request object is missing.",
+                    errorCode
+                )
                 .AsException();
 
-        if (!string.Equals(requestObject.ClientId, requestMessage.ClientId, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                requestObject.ClientId,
+                requestMessage.ClientId,
+                StringComparison.Ordinal
+            )
+        )
             throw errorFactory
-                .InvalidRequest("The 'client_id' parameter in the JWT request object must match the same value from the request message.", errorCode)
+                .InvalidRequest(
+                    "The 'client_id' parameter in the JWT request object must match the same value from the request message.",
+                    errorCode
+                )
                 .AsException();
     }
 
@@ -136,7 +162,8 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
     private void ValidateRequest(
         OpenIdEnvironment openIdEnvironment,
         OpenIdClient openIdClient,
-        IAuthorizationRequest request)
+        IAuthorizationRequest request
+    )
     {
         var errorFactory = openIdEnvironment.ErrorFactory;
         var settings = openIdClient.Settings;
@@ -148,31 +175,39 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
         var isHybrid = request.GrantType == OpenIdConstants.GrantTypes.Hybrid;
 
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
-        var codeChallengeMethodIsPlain = !hasCodeChallenge || request.CodeChallengeMethod == OpenIdConstants.CodeChallengeMethods.Plain;
+        var codeChallengeMethodIsPlain =
+            !hasCodeChallenge
+            || request.CodeChallengeMethod == OpenIdConstants.CodeChallengeMethods.Plain;
 
         if (requestedScopes.Count == 0)
-            throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.Scope)
-                .AsException();
+            throw errorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
 
         if (request.ResponseTypes.Count == 0)
             throw errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.ResponseType)
                 .AsException();
 
-        if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken) && string.IsNullOrEmpty(request.Nonce))
-            throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.Nonce)
-                .AsException();
+        if (
+            request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken)
+            && string.IsNullOrEmpty(request.Nonce)
+        )
+            throw errorFactory.MissingParameter(OpenIdConstants.Parameters.Nonce).AsException();
 
-        if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken) && !hasOpenIdScope)
+        if (
+            request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken) && !hasOpenIdScope
+        )
             throw errorFactory
                 .InvalidRequest("The 'openid' scope is required when requesting id tokens.")
                 .AsException();
 
-        if (request.ResponseMode == OpenIdConstants.ResponseModes.Query && request.GrantType != OpenIdConstants.GrantTypes.AuthorizationCode)
+        if (
+            request.ResponseMode == OpenIdConstants.ResponseModes.Query
+            && request.GrantType != OpenIdConstants.GrantTypes.AuthorizationCode
+        )
             throw errorFactory
-                .InvalidRequest("The 'query' encoding is only allowed for the authorization code grant.")
+                .InvalidRequest(
+                    "The 'query' encoding is only allowed for the authorization code grant."
+                )
                 .AsException();
 
         if (request.PromptTypes.Count > 1)
@@ -191,20 +226,32 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
         var hasNonce = !string.IsNullOrEmpty(request.Nonce);
         if (hasOpenIdScope && !hasNonce && (isImplicit || isHybrid))
             throw errorFactory
-                .InvalidRequest("The nonce parameter is required when using the implicit or hybrid flows for openid requests.")
+                .InvalidRequest(
+                    "The nonce parameter is required when using the implicit or hybrid flows for openid requests."
+                )
                 .AsException();
 
         // perform configurable checks...
 
-        if (request.OriginalRequestObject is null && settings.GetValue(OpenIdSettingKeys.RequireRequestObject))
+        if (
+            request.OriginalRequestObject is null
+            && settings.GetValue(OpenIdSettingKeys.RequireRequestObject)
+        )
             throw errorFactory
-                .InvalidRequest("The configuration requires the use of either request or request_uri parameters.")
+                .InvalidRequest(
+                    "The configuration requires the use of either request or request_uri parameters."
+                )
                 .AsException();
 
         // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
-        if (request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.Token) && !settings.GetValue(OpenIdSettingKeys.AllowUnsafeTokenResponse))
+        if (
+            request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.Token)
+            && !settings.GetValue(OpenIdSettingKeys.AllowUnsafeTokenResponse)
+        )
             throw errorFactory
-                .UnauthorizedClient("The configuration prohibits the use of unsafe token responses.")
+                .UnauthorizedClient(
+                    "The configuration prohibits the use of unsafe token responses."
+                )
                 .AsException();
 
         // require_pkce
@@ -214,7 +261,10 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
                 .AsException();
 
         // allow_plain_code_challenge_method
-        if (codeChallengeMethodIsPlain && !settings.GetValue(OpenIdSettingKeys.AllowPlainCodeChallengeMethod))
+        if (
+            codeChallengeMethodIsPlain
+            && !settings.GetValue(OpenIdSettingKeys.AllowPlainCodeChallengeMethod)
+        )
             throw errorFactory
                 .UnauthorizedClient("The configuration prohibits the plain PKCE method.")
                 .AsException();
@@ -224,13 +274,16 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
         {
             var acrValues = request.AcrValues;
             if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported).Any())
-                throw errorFactory
-                    .NotSupported(OpenIdConstants.Parameters.AcrValues)
-                    .AsException();
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.AcrValues).AsException();
         }
 
         // claims_locales_supported
-        if (settings.TryGetValue(OpenIdSettingKeys.ClaimsLocalesSupported, out var claimsLocalesSupported))
+        if (
+            settings.TryGetValue(
+                OpenIdSettingKeys.ClaimsLocalesSupported,
+                out var claimsLocalesSupported
+            )
+        )
         {
             var claimsLocales = request.ClaimsLocales;
             if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported).Any())
@@ -240,35 +293,47 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
         }
 
         // claims_parameter_supported
-        if (settings.TryGetValue(OpenIdSettingKeys.ClaimsParameterSupported, out var claimsParameterSupported))
+        if (
+            settings.TryGetValue(
+                OpenIdSettingKeys.ClaimsParameterSupported,
+                out var claimsParameterSupported
+            )
+        )
         {
-            var claimCount = request.Claims?.UserInfo?.Count ?? 0 + request.Claims?.IdToken?.Count ?? 0;
+            var claimCount =
+                request.Claims?.UserInfo?.Count ?? 0 + request.Claims?.IdToken?.Count ?? 0;
             if (claimCount > 0 && !claimsParameterSupported)
-                throw errorFactory
-                    .NotSupported(OpenIdConstants.Parameters.Claims)
-                    .AsException();
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Claims).AsException();
         }
 
         // display_values_supported
-        if (settings.TryGetValue(OpenIdSettingKeys.DisplayValuesSupported, out var displayValuesSupported))
+        if (
+            settings.TryGetValue(
+                OpenIdSettingKeys.DisplayValuesSupported,
+                out var displayValuesSupported
+            )
+        )
         {
             if (!displayValuesSupported.Contains(request.DisplayType))
-                throw errorFactory
-                    .NotSupported(OpenIdConstants.Parameters.Display)
-                    .AsException();
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.Display).AsException();
         }
 
         // grant_types_supported
-        if (settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypesSupported))
+        if (
+            settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypesSupported)
+        )
         {
             if (!grantTypesSupported.Contains(request.GrantType))
-                throw errorFactory
-                    .NotSupported(OpenIdConstants.Parameters.GrantType)
-                    .AsException();
+                throw errorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
         }
 
         // prompt_values_supported
-        if (settings.TryGetValue(OpenIdSettingKeys.PromptValuesSupported, out var promptValuesSupported))
+        if (
+            settings.TryGetValue(
+                OpenIdSettingKeys.PromptValuesSupported,
+                out var promptValuesSupported
+            )
+        )
         {
             /*
              * https://openid.net/specs/openid-connect-prompt-create-1_0.html#section-4.1
@@ -281,13 +346,20 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
             var invalidPromptValues = request.PromptTypes.Except(promptValuesSupported).ToList();
             if (invalidPromptValues.Count != 0)
                 throw errorFactory
-                    .InvalidRequest($"The following prompt values are not supported: {string.Join(", ", invalidPromptValues)}")
+                    .InvalidRequest(
+                        $"The following prompt values are not supported: {string.Join(", ", invalidPromptValues)}"
+                    )
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
         }
 
         // response_modes_supported
-        if (settings.TryGetValue(OpenIdSettingKeys.ResponseModesSupported, out var responseModesSupported))
+        if (
+            settings.TryGetValue(
+                OpenIdSettingKeys.ResponseModesSupported,
+                out var responseModesSupported
+            )
+        )
         {
             if (!responseModesSupported.Contains(request.ResponseMode))
                 throw errorFactory
@@ -296,7 +368,12 @@ public class DefaultValidateAuthorizationRequestHandler : ICommandHandler<Valida
         }
 
         // response_types_supported
-        if (settings.TryGetValue(OpenIdSettingKeys.ResponseTypesSupported, out var responseTypesSupported))
+        if (
+            settings.TryGetValue(
+                OpenIdSettingKeys.ResponseTypesSupported,
+                out var responseTypesSupported
+            )
+        )
         {
             if (request.ResponseTypes.Except(responseTypesSupported).Any())
                 throw errorFactory

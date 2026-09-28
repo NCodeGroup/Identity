@@ -33,7 +33,8 @@ namespace NCode.Identity.OpenId.Messages;
 [PublicAPI]
 public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
 {
-    private static Exception NotInitializedException => new InvalidOperationException("Not initialized");
+    private static Exception NotInitializedException =>
+        new InvalidOperationException("Not initialized");
 
     [MemberNotNullWhen(true, nameof(OpenIdEnvironmentOrNull), nameof(ParametersOrNull))]
     private bool IsInitialized { get; set; }
@@ -48,7 +49,8 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     public SerializationFormat SerializationFormat { get; set; }
 
     /// <inheritdoc />
-    public OpenIdEnvironment OpenIdEnvironment => OpenIdEnvironmentOrNull ?? throw NotInitializedException;
+    public OpenIdEnvironment OpenIdEnvironment =>
+        OpenIdEnvironmentOrNull ?? throw NotInitializedException;
 
     /// <inheritdoc />
     public IParameterCollection Parameters => ParametersOrNull ?? throw NotInitializedException;
@@ -87,7 +89,11 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     /// <param name="parameters">The collection of <see cref="Parameter"/> values.</param>
     /// <param name="cloneParameters"><c>true</c> if the <see cref="Parameter"/> instances should be deep-cloned; otherwise,
     /// <c>false</c>. The default value is <c>false</c>.</param>
-    public OpenIdMessage(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
+    public OpenIdMessage(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<IParameter> parameters,
+        bool cloneParameters = false
+    )
     {
         Initialize(openIdEnvironment, parameters, cloneParameters);
     }
@@ -116,7 +122,11 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     /// <param name="cloneParameters"><c>true</c> if the <see cref="IParameter"/> instances should be deep-cloned; otherwise,
     /// <c>false</c>. The default value is <c>false</c>.</param>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is already initialized.</exception>
-    public void Initialize(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
+    public void Initialize(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<IParameter> parameters,
+        bool cloneParameters = false
+    )
     {
         if (IsInitialized)
             throw new InvalidOperationException("Already initialized");
@@ -150,9 +160,13 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
     /// <param name="parsedValue">The value of the well known parameter.</param>
     /// <typeparam name="T">The data type of the well known parameter.</typeparam>
     /// <exception cref="InvalidOperationException">Thrown when the current instance is not initialized.</exception>
-    protected internal virtual void SetKnownParameter<T>(KnownParameter<T> knownParameter, T? parsedValue)
+    protected internal virtual void SetKnownParameter<T>(
+        KnownParameter<T> knownParameter,
+        T? parsedValue
+    )
     {
-        if (!IsInitialized) throw NotInitializedException;
+        if (!IsInitialized)
+            throw NotInitializedException;
 
         var parameterName = knownParameter.Name;
         if (parsedValue is null)
@@ -162,7 +176,12 @@ public class OpenIdMessage : IOpenIdMessage, ISupportClone<IOpenIdMessage>
         }
 
         var descriptor = new ParameterDescriptor(knownParameter);
-        var parameter = knownParameter.Parser.Create(OpenIdEnvironmentOrNull, descriptor, knownParameter.Parser, parsedValue);
+        var parameter = knownParameter.Parser.Create(
+            OpenIdEnvironmentOrNull,
+            descriptor,
+            knownParameter.Parser,
+            parsedValue
+        );
         ParametersOrNull.Set(parameter);
     }
 }
@@ -195,7 +214,11 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <param name="cloneParameters"><c>true</c> if the <see cref="IParameter"/> instances should be deep-cloned; otherwise,
     /// <c>false</c>. The default value is <c>false</c>.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
+    public static T Load(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<IParameter> parameters,
+        bool cloneParameters = false
+    )
     {
         var message = new T();
         message.Initialize(openIdEnvironment, parameters, cloneParameters);
@@ -208,8 +231,16 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance.</param>
     /// <param name="properties">The collection of <see cref="StringValues"/> key-value pairs to be parsed into <see cref="IParameter{T}"/> values.</param>
     /// <returns>A new instance of <typeparamref name="T"/>.</returns>
-    public static T Load(OpenIdEnvironment openIdEnvironment, IEnumerable<KeyValuePair<string, StringValues>> properties) =>
-        Load(openIdEnvironment, properties.Select(property => Parameter.Load(openIdEnvironment, property.Key, property.Value)));
+    public static T Load(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<KeyValuePair<string, StringValues>> properties
+    ) =>
+        Load(
+            openIdEnvironment,
+            properties.Select(property =>
+                Parameter.Load(openIdEnvironment, property.Key, property.Value)
+            )
+        );
 
     /// <inheritdoc />
     protected OpenIdMessage()
@@ -232,7 +263,11 @@ public abstract class OpenIdMessage<T> : OpenIdMessage
     }
 
     /// <inheritdoc />
-    protected OpenIdMessage(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
+    protected OpenIdMessage(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<IParameter> parameters,
+        bool cloneParameters = false
+    )
         : base(openIdEnvironment, parameters, cloneParameters)
     {
         // nothing

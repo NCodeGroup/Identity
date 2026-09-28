@@ -119,7 +119,10 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedTenant"/> instance.</returns>
-    protected virtual async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(string tenantId, CancellationToken cancellationToken)
+    protected virtual async ValueTask<PersistedTenant?> TryGetTenantByIdAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
@@ -146,7 +149,10 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         CancellationToken cancellationToken
     )
     {
-        if (propertyBag.TryGet<PersistedTenant>(out var persistedTenant, tenantId) && persistedTenant?.TenantId == tenantId)
+        if (
+            propertyBag.TryGet<PersistedTenant>(out var persistedTenant, tenantId)
+            && persistedTenant?.TenantId == tenantId
+        )
             return persistedTenant;
 
         persistedTenant = await TryGetTenantByIdAsync(tenantId, cancellationToken);
@@ -281,7 +287,9 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     /// Creates and returns an <see cref="InvalidOperationException"/> instance for when the tenant options are missing.
     /// </summary>
     protected InvalidOperationException MissingTenantOptionsException() =>
-        new($"The OpenIdTenant ProviderCode is '{ProviderCode}' but the corresponding options are missing.");
+        new(
+            $"The OpenIdTenant ProviderCode is '{ProviderCode}' but the corresponding options are missing."
+        );
 
     /// <summary>
     /// Used to get the tenant's <see cref="TenantDescriptor"/> instance from the current HTTP request.
@@ -310,7 +318,9 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="IReadOnlySettingCollectionProvider"/> instance.</returns>
-    protected virtual async ValueTask<AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider>> GetTenantSettingsAsync(
+    protected virtual async ValueTask<
+        AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider>
+    > GetTenantSettingsAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
         OpenIdServer openIdServer,
@@ -330,7 +340,10 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var initialSettingsJson = persistedTenant.Settings.Value;
-        var initialSettings = SettingSerializer.DeserializeSettings(initialSettingsJson, jsonOptions);
+        var initialSettings = SettingSerializer.DeserializeSettings(
+            initialSettingsJson,
+            jsonOptions
+        );
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             new RefreshSettingsState(openIdEnvironment, openIdServer, persistedTenant),
@@ -342,13 +355,10 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         var dataSources = new List<ICollectionDataSource<Setting>>
         {
             openIdServer.SettingsProvider.AsDataSource(),
-            periodicPollingSource
+            periodicPollingSource,
         };
 
-        var provider = SettingCollectionProviderFactory.Create(
-            dataSources,
-            owns: true
-        );
+        var provider = SettingCollectionProviderFactory.Create(dataSources, owns: true);
 
         return provider.AsSharedReference();
     }
@@ -372,10 +382,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
 
         var tenantId = persistedTenant.TenantId;
 
-        var newSettings = await store.GetSettingsAsync(
-            tenantId,
-            cancellationToken
-        );
+        var newSettings = await store.GetSettingsAsync(tenantId, cancellationToken);
 
         var prevSettings = persistedTenant.Settings;
         var prevConcurrencyToken = prevSettings.ConcurrencyToken;
@@ -425,7 +432,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         {
             Scheme = httpRequest.Scheme,
             Host = httpRequest.Host,
-            Path = basePath
+            Path = basePath,
         };
 
         return ValueTask.FromResult(baseAddress);
@@ -452,7 +459,10 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     {
         var settings = tenantSettings.Value.Collection;
 
-        if (settings.TryGetValue(OpenIdSettingKeys.TenantIssuer, out var tenantIssuer) && !string.IsNullOrEmpty(tenantIssuer))
+        if (
+            settings.TryGetValue(OpenIdSettingKeys.TenantIssuer, out var tenantIssuer)
+            && !string.IsNullOrEmpty(tenantIssuer)
+        )
         {
             return ValueTask.FromResult(tenantIssuer);
         }
@@ -474,7 +484,9 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISecretKeyCollectionProvider"/> instance.</returns>
-    protected virtual async ValueTask<AsyncSharedReferenceLease<ISecretKeyCollectionProvider>> GetTenantSecretsAsync(
+    protected virtual async ValueTask<
+        AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
+    > GetTenantSecretsAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
         OpenIdServer openIdServer,
@@ -521,10 +533,7 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
 
         var tenantId = persistedTenant.TenantId;
 
-        var newSecrets = await store.GetSecretsAsync(
-            tenantId,
-            cancellationToken
-        );
+        var newSecrets = await store.GetSecretsAsync(tenantId, cancellationToken);
 
         var prevSecrets = persistedTenant.Secrets;
         var prevConcurrencyToken = prevSecrets.ConcurrencyToken;

@@ -49,11 +49,16 @@ public class DefaultContinueEndpointHandler(
     private IContinueProviderSelector ContinueProviderSelector { get; } = continueProviderSelector;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
-        .MapMethods(OpenIdConstants.EndpointPaths.Continue, [HttpMethods.Get, HttpMethods.Post], HandleRouteAsync)
-        .WithName(OpenIdConstants.EndpointNames.Continue)
-        .WithTags("oidc") // TODO: use constant
-        .WithOpenIdDiscoverable(false);
+    public void Map(IEndpointRouteBuilder endpoints) =>
+        endpoints
+            .MapMethods(
+                OpenIdConstants.EndpointPaths.Continue,
+                [HttpMethods.Get, HttpMethods.Post],
+                HandleRouteAsync
+            )
+            .WithName(OpenIdConstants.EndpointNames.Continue)
+            .WithTags("oidc") // TODO: use constant
+            .WithOpenIdDiscoverable(false);
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
@@ -71,7 +76,8 @@ public class DefaultContinueEndpointHandler(
         var openIdContext = await ContextFactory.CreateAsync(
             httpContext,
             mediator,
-            cancellationToken);
+            cancellationToken
+        );
 
         var tenantId = openIdContext.Tenant.TenantId;
 
@@ -81,11 +87,12 @@ public class DefaultContinueEndpointHandler(
             state
         );
 
-        var persistedGrantOrNull = await PersistedGrantService.ConsumeOnceOrDefault<ContinueEnvelope>(
-            openIdContext,
-            persistedGrantId,
-            cancellationToken
-        );
+        var persistedGrantOrNull =
+            await PersistedGrantService.ConsumeOnceOrDefault<ContinueEnvelope>(
+                openIdContext,
+                persistedGrantId,
+                cancellationToken
+            );
 
         if (!persistedGrantOrNull.HasValue)
         {
@@ -98,7 +105,11 @@ public class DefaultContinueEndpointHandler(
 
         var continueEnvelope = persistedGrant.Payload;
         var provider = ContinueProviderSelector.SelectProvider(continueEnvelope.Code);
-        var disposition = await provider.ContinueAsync(openIdContext, continueEnvelope.PayloadJson, cancellationToken);
+        var disposition = await provider.ContinueAsync(
+            openIdContext,
+            continueEnvelope.PayloadJson,
+            cancellationToken
+        );
 
         if (disposition.HasHttpResult)
         {

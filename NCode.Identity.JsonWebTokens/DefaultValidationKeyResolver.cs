@@ -53,15 +53,23 @@ public static class DefaultValidationKeyResolver
     )
     {
         // attempt to lookup by 'kid'
-        if (header.TryGetPropertyValue<string>(JoseClaimNames.Header.Kid, out var keyId) &&
-            secretKeys.TryGetByKeyId(keyId, out var specificKey))
+        if (
+            header.TryGetPropertyValue<string>(JoseClaimNames.Header.Kid, out var keyId)
+            && secretKeys.TryGetByKeyId(keyId, out var specificKey)
+        )
         {
             return [specificKey];
         }
 
         // attempt to lookup by certificate thumbprint
-        var hasThumbprintSha1 = header.TryGetPropertyValue<string>(JoseClaimNames.Header.X5t, out var thumbprintSha1);
-        var hasThumbprintSha256 = header.TryGetPropertyValue<string>(JoseClaimNames.Header.X5tS256, out var thumbprintSha256);
+        var hasThumbprintSha1 = header.TryGetPropertyValue<string>(
+            JoseClaimNames.Header.X5t,
+            out var thumbprintSha1
+        );
+        var hasThumbprintSha256 = header.TryGetPropertyValue<string>(
+            JoseClaimNames.Header.X5tS256,
+            out var thumbprintSha256
+        );
 
         if (hasThumbprintSha1 && secretKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
         {
@@ -81,31 +89,57 @@ public static class DefaultValidationKeyResolver
             var expectedSha1 = hasThumbprintSha1 ? stackalloc byte[sha1HashSize] : default;
             if (hasThumbprintSha1)
             {
-                var result = Base64Url.TryDecode(thumbprintSha1, expectedSha1, out var bytesWritten);
+                var result = Base64Url.TryDecode(
+                    thumbprintSha1,
+                    expectedSha1,
+                    out var bytesWritten
+                );
                 Debug.Assert(result && bytesWritten == sha1HashSize);
             }
 
             var expectedSha256 = hasThumbprintSha256 ? stackalloc byte[sha256HashSize] : default;
             if (hasThumbprintSha256)
             {
-                var result = Base64Url.TryDecode(thumbprintSha256, expectedSha256, out var bytesWritten);
+                var result = Base64Url.TryDecode(
+                    thumbprintSha256,
+                    expectedSha256,
+                    out var bytesWritten
+                );
                 Debug.Assert(result && bytesWritten == sha256HashSize);
             }
 
             Span<byte> actualHash = stackalloc byte[sha256HashSize];
 
-            var keysWithCertificates = secretKeys.OfType<AsymmetricSecretKey>().Where(key => key.HasCertificate);
+            var keysWithCertificates = secretKeys
+                .OfType<AsymmetricSecretKey>()
+                .Where(key => key.HasCertificate);
             foreach (var secretKey in keysWithCertificates)
             {
                 using var certificate = secretKey.ExportCertificate();
                 Debug.Assert(certificate is not null);
 
-                if (hasThumbprintSha1 && VerifyCertificateHash(certificate, HashAlgorithmName.SHA1, expectedSha1, actualHash))
+                if (
+                    hasThumbprintSha1
+                    && VerifyCertificateHash(
+                        certificate,
+                        HashAlgorithmName.SHA1,
+                        expectedSha1,
+                        actualHash
+                    )
+                )
                 {
                     return [secretKey];
                 }
 
-                if (hasThumbprintSha256 && VerifyCertificateHash(certificate, HashAlgorithmName.SHA256, expectedSha256, actualHash))
+                if (
+                    hasThumbprintSha256
+                    && VerifyCertificateHash(
+                        certificate,
+                        HashAlgorithmName.SHA256,
+                        expectedSha256,
+                        actualHash
+                    )
+                )
                 {
                     return [secretKey];
                 }
@@ -118,15 +152,16 @@ public static class DefaultValidationKeyResolver
         {
             JoseProtectionTypes.Jws => SecretKeyUses.Signature,
             JoseProtectionTypes.Jwe => SecretKeyUses.Encryption,
-            _ => protectionType
+            _ => protectionType,
         };
 
         header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var algorithm);
         Debug.Assert(algorithm is not null);
 
         return secretKeys.Where(key =>
-            (key.Metadata.Use is null || key.Metadata.Use == use) &&
-            (key.Metadata.Algorithm is null || key.Metadata.Algorithm == algorithm));
+            (key.Metadata.Use is null || key.Metadata.Use == use)
+            && (key.Metadata.Algorithm is null || key.Metadata.Algorithm == algorithm)
+        );
     }
 
     private static bool VerifyCertificateHash(
@@ -136,15 +171,13 @@ public static class DefaultValidationKeyResolver
         Span<byte> actual
     )
     {
-        if (expected.IsEmpty) return false;
+        if (expected.IsEmpty)
+            return false;
 
-        var result = certificate.TryGetCertHash(
-            hashAlgorithmName,
-            actual,
-            out var bytesWritten);
+        var result = certificate.TryGetCertHash(hashAlgorithmName, actual, out var bytesWritten);
 
-        return result &&
-               bytesWritten == expected.Length &&
-               expected.SequenceEqual(actual[..bytesWritten]);
+        return result
+            && bytesWritten == expected.Length
+            && expected.SequenceEqual(actual[..bytesWritten]);
     }
 }

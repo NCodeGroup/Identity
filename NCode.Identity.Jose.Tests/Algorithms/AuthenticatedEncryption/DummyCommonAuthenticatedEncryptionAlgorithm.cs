@@ -31,17 +31,13 @@ public class DummyCommonAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEn
         Inner = inner;
     }
 
-    public override string Code =>
-        Inner.Code;
+    public override string Code => Inner.Code;
 
-    public override int ContentKeySizeBytes =>
-        Inner.ContentKeySizeBytes;
+    public override int ContentKeySizeBytes => Inner.ContentKeySizeBytes;
 
-    public override int NonceSizeBytes =>
-        Inner.NonceSizeBytes;
+    public override int NonceSizeBytes => Inner.NonceSizeBytes;
 
-    public override int AuthenticationTagSizeBytes =>
-        Inner.AuthenticationTagSizeBytes;
+    public override int AuthenticationTagSizeBytes => Inner.AuthenticationTagSizeBytes;
 
     public override int GetCipherTextSizeBytes(int plainTextSizeBytes) =>
         Inner.GetCipherTextSizeBytes(plainTextSizeBytes);
@@ -55,14 +51,8 @@ public class DummyCommonAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEn
         ReadOnlySpan<byte> plainText,
         ReadOnlySpan<byte> associatedData,
         Span<byte> cipherText,
-        Span<byte> authenticationTag) =>
-        Inner.Encrypt(
-            cek,
-            nonce,
-            plainText,
-            associatedData,
-            cipherText,
-            authenticationTag);
+        Span<byte> authenticationTag
+    ) => Inner.Encrypt(cek, nonce, plainText, associatedData, cipherText, authenticationTag);
 
     public override bool TryDecrypt(
         ReadOnlySpan<byte> cek,
@@ -71,7 +61,8 @@ public class DummyCommonAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEn
         ReadOnlySpan<byte> associatedData,
         ReadOnlySpan<byte> authenticationTag,
         Span<byte> plainText,
-        out int bytesWritten) =>
+        out int bytesWritten
+    ) =>
         Inner.TryDecrypt(
             cek,
             nonce,
@@ -79,5 +70,6 @@ public class DummyCommonAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEn
             associatedData,
             authenticationTag,
             plainText,
-            out bytesWritten);
+            out bytesWritten
+        );
 }

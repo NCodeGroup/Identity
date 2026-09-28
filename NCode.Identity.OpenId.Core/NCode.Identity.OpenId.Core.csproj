@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <LangVersion>preview</LangVersion>
@@ -11,7 +10,7 @@
 
     <ItemGroup>
         <!-- https://learn.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore -->
-        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
     <ItemGroup>
@@ -26,7 +25,7 @@
         <PackageReference Include="Microsoft.Extensions.Primitives" />
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Disposables" />
-        <PackageReference Include="NCode.PasswordGenerator"/>
+        <PackageReference Include="NCode.PasswordGenerator" />
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
         <PackageReference Include="System.Linq.Async" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
@@ -34,12 +33,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj"/>
+        <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Messages.Abstractions\NCode.Identity.OpenId.Messages.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.Abstractions\NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
     </ItemGroup>
-
 </Project>

@@ -71,7 +71,7 @@ public class DefaultAuthorizationCodeService(
             TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
-            Payload = authorizationRequest
+            Payload = authorizationRequest,
         };
 
         var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
@@ -89,14 +89,14 @@ public class DefaultAuthorizationCodeService(
         var tokenLifetime = new TimePeriod
         {
             StartTime = createdWhen,
-            EndTime = createdWhen + lifetime
+            EndTime = createdWhen + lifetime,
         };
 
         var securityToken = new SecurityToken
         {
             TokenType = OpenIdConstants.SecurityTokenTypes.AuthorizationCode,
             TokenValue = authorizationCode,
-            TokenLifetime = tokenLifetime
+            TokenLifetime = tokenLifetime,
         };
 
         await mediator.SendAsync(

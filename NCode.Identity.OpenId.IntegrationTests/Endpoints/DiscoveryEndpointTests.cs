@@ -32,10 +32,9 @@ public class DiscoveryEndpointTests(PlaygroundApplicationFactory factory)
     [Fact]
     public async Task GetDiscovery_ReturnsMetadataWithIssuerAndJwksUri()
     {
-        var client = Factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
 

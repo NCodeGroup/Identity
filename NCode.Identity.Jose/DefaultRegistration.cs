@@ -49,20 +49,14 @@ public static class DefaultRegistration
 
             var newBuilder = serviceCollection.NewBuilder<JoseLibrary>();
 
-            serviceCollection.TryAddSingleton<
-                IAesKeyWrap,
-                DefaultAesKeyWrap
-            >();
+            serviceCollection.TryAddSingleton<IAesKeyWrap, DefaultAesKeyWrap>();
 
             serviceCollection.TryAddSingleton<
                 IAlgorithmCollectionProvider,
                 DefaultAlgorithmCollectionProvider
             >();
 
-            serviceCollection.TryAddSingleton<
-                ICredentialSelector,
-                DefaultCredentialSelector
-            >();
+            serviceCollection.TryAddSingleton<ICredentialSelector, DefaultCredentialSelector>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
@@ -71,10 +65,7 @@ public static class DefaultRegistration
                 >()
             );
 
-            serviceCollection.TryAddSingleton<
-                IJoseSerializer,
-                JoseSerializer
-            >();
+            serviceCollection.TryAddSingleton<IJoseSerializer, JoseSerializer>();
 
             return newBuilder;
         }

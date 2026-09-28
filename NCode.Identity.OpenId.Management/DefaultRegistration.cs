@@ -51,10 +51,14 @@ public static class DefaultRegistration
     extension(IServiceCollection services)
     {
         [PublicAPI]
-        public IServiceCollection AddAuthorizationHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler>()
+        public IServiceCollection AddAuthorizationHandler<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler
+        >()
             where THandler : class, IAuthorizationHandler
         {
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorizationHandler, THandler>());
+            services.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IAuthorizationHandler, THandler>()
+            );
             return services;
         }
     }

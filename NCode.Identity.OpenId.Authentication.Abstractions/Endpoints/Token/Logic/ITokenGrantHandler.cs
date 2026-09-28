@@ -47,5 +47,6 @@ public interface ITokenGrantHandler
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

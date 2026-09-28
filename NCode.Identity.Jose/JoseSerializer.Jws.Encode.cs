@@ -49,17 +49,9 @@ partial class JoseSerializer
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        using var _ = SerializeToUtf8(
-            payload,
-            jsonOptions,
-            out var payloadBytes);
+        using var _ = SerializeToUtf8(payload, jsonOptions, out var payloadBytes);
 
-        Encode(
-            tokenBuffer,
-            payloadBytes,
-            signingOptions,
-            extraHeaders
-        );
+        Encode(tokenBuffer, payloadBytes, signingOptions, extraHeaders);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -73,17 +65,9 @@ partial class JoseSerializer
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
     )
     {
-        using var _ = SerializeToUtf8(
-            payload,
-            jsonOptions,
-            out var bytes);
+        using var _ = SerializeToUtf8(payload, jsonOptions, out var bytes);
 
-        Encode(
-            tokenWriter,
-            bytes,
-            signingOptions,
-            extraHeaders
-        );
+        Encode(tokenWriter, bytes, signingOptions, extraHeaders);
     }
 
     /// <inheritdoc />
@@ -95,12 +79,7 @@ partial class JoseSerializer
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(
-            tokenBuffer,
-            payload.AsSpan(),
-            signingOptions,
-            extraHeaders
-        );
+        Encode(tokenBuffer, payload.AsSpan(), signingOptions, extraHeaders);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -113,12 +92,7 @@ partial class JoseSerializer
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
     )
     {
-        Encode(
-            tokenWriter,
-            payload.AsSpan(),
-            signingOptions,
-            extraHeaders
-        );
+        Encode(tokenWriter, payload.AsSpan(), signingOptions, extraHeaders);
     }
 
     /// <inheritdoc />
@@ -130,12 +104,7 @@ partial class JoseSerializer
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(
-            tokenBuffer,
-            payload,
-            signingOptions,
-            extraHeaders
-        );
+        Encode(tokenBuffer, payload, signingOptions, extraHeaders);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -149,17 +118,16 @@ partial class JoseSerializer
     )
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var payloadLease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        using var payloadLease = BufferFactory.Rent(
+            byteCount,
+            isSensitive: false,
+            out Span<byte> payloadBytes
+        );
 
         var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
 
-        Encode(
-            tokenWriter,
-            payloadBytes,
-            signingOptions,
-            extraHeaders
-        );
+        Encode(tokenWriter, payloadBytes, signingOptions, extraHeaders);
     }
 
     /// <inheritdoc />
@@ -171,12 +139,7 @@ partial class JoseSerializer
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(
-            tokenBuffer,
-            payload,
-            signingOptions,
-            extraHeaders
-        );
+        Encode(tokenBuffer, payload, signingOptions, extraHeaders);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -235,9 +198,10 @@ partial class JoseSerializer
         out ReadOnlySpan<char> encodedHeaderPart
     )
     {
-        var header = extraHeaders != null ?
-            new Dictionary<string, object>(extraHeaders) :
-            new Dictionary<string, object>();
+        var header =
+            extraHeaders != null
+                ? new Dictionary<string, object>(extraHeaders)
+                : new Dictionary<string, object>();
 
         var tokenType = signingOptions.TokenType;
         if (!string.IsNullOrEmpty(tokenType))
@@ -252,7 +216,12 @@ partial class JoseSerializer
         if (!signingOptions.EncodePayload)
         {
             var critical = new HashSet<string> { JoseClaimNames.Header.B64 };
-            if (header.TryGetValue<IEnumerable<string>>(JoseClaimNames.Header.Crit, out var existing))
+            if (
+                header.TryGetValue<IEnumerable<string>>(
+                    JoseClaimNames.Header.Crit,
+                    out var existing
+                )
+            )
             {
                 critical.UnionWith(existing);
             }
@@ -272,9 +241,9 @@ partial class JoseSerializer
         out ReadOnlySpan<char> encodedPayloadPart
     )
     {
-        var payloadCharCount = signingOptions.EncodePayload ?
-            Base64Url.GetCharCountForEncode(payload.Length) :
-            SecureEncoding.UTF8.GetCharCount(payload);
+        var payloadCharCount = signingOptions.EncodePayload
+            ? Base64Url.GetCharCountForEncode(payload.Length)
+            : SecureEncoding.UTF8.GetCharCount(payload);
 
         IDisposable owner;
         Span<char> workingPayload;
@@ -340,22 +309,42 @@ partial class JoseSerializer
         var payloadByteCount = Encoding.ASCII.GetByteCount(encodedPayloadPart);
 
         var inputByteCount = headerByteCount + payloadByteCount;
-        using var inputLease = BufferFactory.Rent(inputByteCount, isSensitive: false, out Span<byte> inputData);
+        using var inputLease = BufferFactory.Rent(
+            inputByteCount,
+            isSensitive: false,
+            out Span<byte> inputData
+        );
 
         var headerWritten = Encoding.ASCII.GetBytes(encodedHeaderPart, inputData);
         Debug.Assert(headerWritten == headerByteCount);
 
-        var payloadWritten = Encoding.ASCII.GetBytes(encodedPayloadPart, inputData[headerByteCount..]);
+        var payloadWritten = Encoding.ASCII.GetBytes(
+            encodedPayloadPart,
+            inputData[headerByteCount..]
+        );
         Debug.Assert(payloadWritten == payloadByteCount);
 
-        using var signatureLease = BufferFactory.Rent(signatureByteCount, isSensitive: false, out Span<byte> signatureBytes);
-        var signResult = signatureAlgorithm.TrySign(secretKey, inputData, signatureBytes, out var signatureBytesWritten);
+        using var signatureLease = BufferFactory.Rent(
+            signatureByteCount,
+            isSensitive: false,
+            out Span<byte> signatureBytes
+        );
+        var signResult = signatureAlgorithm.TrySign(
+            secretKey,
+            inputData,
+            signatureBytes,
+            out var signatureBytesWritten
+        );
         Debug.Assert(signResult && signatureBytesWritten == signatureByteCount);
 
         var signatureCharCount = Base64Url.GetCharCountForEncode(signatureByteCount);
         var encodedSignature = tokenWriter.GetSpan(signatureCharCount);
 
-        var encodeResult = Base64Url.TryEncode(signatureBytes, encodedSignature, out var signatureCharsWritten);
+        var encodeResult = Base64Url.TryEncode(
+            signatureBytes,
+            encodedSignature,
+            out var signatureCharsWritten
+        );
         Debug.Assert(encodeResult && signatureCharsWritten == signatureCharCount);
 
         tokenWriter.Advance(signatureCharsWritten);

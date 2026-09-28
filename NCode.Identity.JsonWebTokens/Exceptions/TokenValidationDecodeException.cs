@@ -31,7 +31,8 @@ public class TokenValidationDecodeException : TokenValidationException
     /// <summary>
     /// Contains the default error message for the <see cref="TokenValidationDecodeException"/> class.
     /// </summary>
-    public const string DefaultMessage = "Token validation failed. Unable to decode the token with any of the provided keys.";
+    public const string DefaultMessage =
+        "Token validation failed. Unable to decode the token with any of the provided keys.";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TokenValidationDecodeException"/> class with a default error message.

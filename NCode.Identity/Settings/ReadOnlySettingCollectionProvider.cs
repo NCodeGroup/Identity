@@ -28,11 +28,14 @@ public class ReadOnlySettingCollectionProvider(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     IEnumerable<ICollectionDataSource<Setting>> dataSources,
     bool owns = false
-) : BaseCollectionProvider<Setting, IReadOnlySettingCollection>(
-    new CompositeCollectionDataSource<Setting>(dataSources) { Owns = owns, CombineFunc = Merge }
-), IReadOnlySettingCollectionProvider
+)
+    : BaseCollectionProvider<Setting, IReadOnlySettingCollection>(
+        new CompositeCollectionDataSource<Setting>(dataSources) { Owns = owns, CombineFunc = Merge }
+    ),
+        IReadOnlySettingCollectionProvider
 {
-    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } =
+        settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
     protected override IReadOnlySettingCollection CreateCollection(IEnumerable<Setting> items)

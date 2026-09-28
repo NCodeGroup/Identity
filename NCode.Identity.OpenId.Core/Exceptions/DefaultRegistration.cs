@@ -40,7 +40,10 @@ public static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.TryAddSingleton<IOpenIdExceptionHandler, DefaultOpenIdExceptionHandler>();
+            serviceCollection.TryAddSingleton<
+                IOpenIdExceptionHandler,
+                DefaultOpenIdExceptionHandler
+            >();
 
             return builder;
         }

@@ -46,8 +46,9 @@ public static class DeveloperKeysRegistration
         // Surgically replace only the static-single provider; leave any dynamic tenant providers intact.
         var existing = services
             .Where(descriptor =>
-                descriptor.ServiceType == typeof(IOpenIdTenantProvider) &&
-                descriptor.ImplementationType == typeof(DefaultStaticSingleOpenIdTenantProvider))
+                descriptor.ServiceType == typeof(IOpenIdTenantProvider)
+                && descriptor.ImplementationType == typeof(DefaultStaticSingleOpenIdTenantProvider)
+            )
             .ToList();
 
         foreach (var descriptor in existing)
@@ -55,9 +56,12 @@ public static class DeveloperKeysRegistration
             services.Remove(descriptor);
         }
 
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<
-            IOpenIdTenantProvider,
-            EphemeralStaticSingleOpenIdTenantProvider>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IOpenIdTenantProvider,
+                EphemeralStaticSingleOpenIdTenantProvider
+            >()
+        );
 
         return services;
     }

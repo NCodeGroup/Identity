@@ -70,7 +70,8 @@ public class UniqueCollection<T> : ICollection<T>, IReadOnlyCollection<T>
     {
         if (collection.TryGetNonEnumeratedCount(out var count))
         {
-            if (count == 0) return;
+            if (count == 0)
+                return;
             Dictionary.EnsureCapacity(count);
         }
 

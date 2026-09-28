@@ -33,7 +33,8 @@ namespace NCode.Identity.JsonWebTokens;
 [PublicAPI]
 public delegate ValueTask ValidateJwtAsync(
     ValidateJwtContext context,
-    CancellationToken cancellationToken);
+    CancellationToken cancellationToken
+);
 
 /// <summary>
 /// Provides the signature for a delegate that is used to return a collection of <see cref="SecretKey"/> instances
@@ -44,7 +45,8 @@ public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
     CompactJwt compactJwt,
     IPropertyBag propertyBag,
     ISecretKeyCollectionProvider secretKeyCollectionProvider,
-    CancellationToken cancellationToken);
+    CancellationToken cancellationToken
+);
 
 /// <summary>
 /// Contains the signature for a delegate that is used to create a <see cref="ClaimsIdentity"/> instance
@@ -57,7 +59,8 @@ public delegate ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
     string authenticationType,
     string nameClaimType,
     string roleClaimType,
-    CancellationToken cancellationToken);
+    CancellationToken cancellationToken
+);
 
 /// <summary>
 /// Contains a set of parameters that are used to validate a Json Web Token (JWT).
@@ -104,7 +107,9 @@ public class ValidateJwtParameters
                 DefaultValidationKeyResolver.ResolveValidationKeys(
                     compactJwt.ProtectionType,
                     compactJwt.DeserializedHeader,
-                    secretKeyProvider.Collection));
+                    secretKeyProvider.Collection
+                )
+            );
 
     /// <summary>
     /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).
@@ -116,7 +121,9 @@ public class ValidateJwtParameters
                     authenticationType,
                     nameClaimType,
                     roleClaimType,
-                    decodedJwt.Payload));
+                    decodedJwt.Payload
+                )
+            );
 
     /// <summary>
     /// Gets or sets the amount of time to allow for clock skew when validating <see cref="DateTime"/> claims.

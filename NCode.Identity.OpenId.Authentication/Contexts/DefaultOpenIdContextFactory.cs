@@ -36,7 +36,8 @@ public class DefaultOpenIdContextFactory(
     IOpenIdTenantFactory openIdTenantFactory
 ) : IOpenIdContextFactory
 {
-    private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } = openIdEnvironmentProvider;
+    private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
+        openIdEnvironmentProvider;
     private IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
     private IOpenIdTenantFactory OpenIdTenantFactory { get; } = openIdTenantFactory;
 
@@ -48,7 +49,10 @@ public class DefaultOpenIdContextFactory(
     )
     {
         var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var openIdServer = await OpenIdServerProvider.GetAsync(openIdEnvironment, cancellationToken);
+        var openIdServer = await OpenIdServerProvider.GetAsync(
+            openIdEnvironment,
+            cancellationToken
+        );
 
         await using var tenantReference = await OpenIdTenantFactory.CreateTenantAsync(
             httpContext,
@@ -98,8 +102,6 @@ public class DefaultOpenIdContextFactory(
     /// <summary>
     /// Factory method to create a new instance of <see cref="IOpenIdContextFeature"/>.
     /// </summary>
-    protected internal virtual IOpenIdContextFeature CreateFeature(
-        OpenIdContext openIdContext
-    ) =>
+    protected internal virtual IOpenIdContextFeature CreateFeature(OpenIdContext openIdContext) =>
         new OpenIdContextFeature { OpenIdContext = openIdContext };
 }

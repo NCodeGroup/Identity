@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -15,13 +14,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="IdGen" />
-      <PackageReference Include="JetBrains.Annotations" />
-      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-      <PackageReference Include="Microsoft.OpenApi" />
-      <PackageReference Include="NCode.Base64Url" />
-      <PackageReference Include="NCode.Collections.Providers" />
-      <PackageReference Include="NCode.Mediator" />
+        <PackageReference Include="IdGen" />
+        <PackageReference Include="JetBrains.Annotations" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.OpenApi" />
+        <PackageReference Include="NCode.Base64Url" />
+        <PackageReference Include="NCode.Collections.Providers" />
+        <PackageReference Include="NCode.Mediator" />
     </ItemGroup>
-
 </Project>

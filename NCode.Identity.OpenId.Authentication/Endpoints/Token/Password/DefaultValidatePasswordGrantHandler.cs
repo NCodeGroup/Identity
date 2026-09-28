@@ -34,7 +34,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="PasswordGrant"/>.
 /// </summary>
-public class DefaultValidatePasswordGrantHandler : ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>, ISupportMediatorPriority
+public class DefaultValidatePasswordGrantHandler
+    : ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>,
+        ISupportMediatorPriority
 {
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -42,7 +44,8 @@ public class DefaultValidatePasswordGrantHandler : ICommandHandler<ValidateToken
     /// <inheritdoc />
     public async ValueTask HandleAsync(
         ValidateTokenGrantCommand<PasswordGrant> command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, tokenRequest, passwordGrant) = command;
         var subjectAuthentication = passwordGrant.SubjectAuthentication;
@@ -51,8 +54,13 @@ public class DefaultValidatePasswordGrantHandler : ICommandHandler<ValidateToken
 
         // DefaultClientAuthenticationService already performs this check for us
         Debug.Assert(
-            string.IsNullOrEmpty(tokenRequest.ClientId) ||
-            string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
+            string.IsNullOrEmpty(tokenRequest.ClientId)
+                || string.Equals(
+                    openIdClient.ClientId,
+                    tokenRequest.ClientId,
+                    StringComparison.Ordinal
+                )
+        );
 
         // validate the subject
         await ValidateSubjectAsync(
@@ -69,7 +77,8 @@ public class DefaultValidatePasswordGrantHandler : ICommandHandler<ValidateToken
         OpenIdClient openIdClient,
         IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var mediator = openIdContext.Mediator;
         var operationDisposition = new OperationDisposition<IOpenIdError>();
@@ -87,8 +96,8 @@ public class DefaultValidatePasswordGrantHandler : ICommandHandler<ValidateToken
 
         if (operationDisposition.HasError)
         {
-            throw operationDisposition.Error
-                .WithStatusCode(StatusCodes.Status400BadRequest)
+            throw operationDisposition
+                .Error.WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
     }

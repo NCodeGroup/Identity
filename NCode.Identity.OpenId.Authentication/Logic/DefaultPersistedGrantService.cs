@@ -46,9 +46,9 @@ public class DefaultPersistedGrantService(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     private static string GetHashInput(PersistedGrantId grantId) =>
-        string.IsNullOrEmpty(grantId.TenantId) ?
-            grantId.GrantKey :
-            string.Concat(grantId.TenantId.AsSpan(), TenantDelimiter, grantId.GrantKey.AsSpan());
+        string.IsNullOrEmpty(grantId.TenantId)
+            ? grantId.GrantKey
+            : string.Concat(grantId.TenantId.AsSpan(), TenantDelimiter, grantId.GrantKey.AsSpan());
 
     private string GetHashedKey(PersistedGrantId grantId) =>
         CryptoService.HashValue(
@@ -63,7 +63,7 @@ public class DefaultPersistedGrantService(
         {
             TenantId = tenantId,
             GrantType = grantType,
-            GrantKey = grantKey
+            GrantKey = grantKey,
         };
 
     /// <inheritdoc />
@@ -101,7 +101,7 @@ public class DefaultPersistedGrantService(
             ExpiresWhen = expiresWhen,
             RevokedWhen = null,
             ConsumedWhen = null,
-            PayloadJson = payloadJson
+            PayloadJson = payloadJson,
         };
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -160,7 +160,7 @@ public class DefaultPersistedGrantService(
             TenantId = envelope.TenantId,
             ClientId = envelope.ClientId,
             SubjectId = envelope.SubjectId,
-            Payload = payload
+            Payload = payload,
         };
 
         return persistedGrant;
@@ -213,7 +213,7 @@ public class DefaultPersistedGrantService(
             TenantId = envelope.TenantId,
             ClientId = envelope.ClientId,
             SubjectId = envelope.SubjectId,
-            Payload = payload
+            Payload = payload,
         };
 
         return persistedGrant;

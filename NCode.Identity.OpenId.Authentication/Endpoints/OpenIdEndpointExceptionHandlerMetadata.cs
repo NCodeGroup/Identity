@@ -26,10 +26,20 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// Provides a default implementation of the <see cref="IOpenIdEndpointExceptionHandlerMetadata"/> abstraction.
 /// </summary>
 public class OpenIdEndpointExceptionHandlerMetadata(
-    Func<HttpContext, OpenIdEnvironment, CancellationToken, ValueTask<IOpenIdExceptionHandler>> getter
+    Func<
+        HttpContext,
+        OpenIdEnvironment,
+        CancellationToken,
+        ValueTask<IOpenIdExceptionHandler>
+    > getter
 ) : IOpenIdEndpointExceptionHandlerMetadata
 {
-    private Func<HttpContext, OpenIdEnvironment, CancellationToken, ValueTask<IOpenIdExceptionHandler>> Getter { get; } = getter;
+    private Func<
+        HttpContext,
+        OpenIdEnvironment,
+        CancellationToken,
+        ValueTask<IOpenIdExceptionHandler>
+    > Getter { get; } = getter;
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdExceptionHandler> GetExceptionHandlerAsync(

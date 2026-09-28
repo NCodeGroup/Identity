@@ -96,7 +96,10 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// newly mapped DTO instance.</returns>
-    protected abstract ValueTask<TItem> MapFromEntityAsync(TEntity entity, CancellationToken cancellationToken);
+    protected abstract ValueTask<TItem> MapFromEntityAsync(
+        TEntity entity,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Attempts to retrieve an entity from the store using the provided predicate.
@@ -127,13 +130,11 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     #region IStoreProvider
 
     /// <inheritdoc />
-    public object? GetService(Type serviceType)
-        => StoreProvider.GetService(serviceType);
+    public object? GetService(Type serviceType) => StoreProvider.GetService(serviceType);
 
     /// <inheritdoc />
     public virtual TStore GetStore<TStore>()
-        where TStore : IStore
-        => StoreProvider.GetStore<TStore>();
+        where TStore : IStore => StoreProvider.GetStore<TStore>();
 
     #endregion
 
@@ -151,10 +152,10 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     )
     {
         var normalizedTenantId = Normalize(tenantId);
-        return await DbContext.Tenants
-            .Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
+        return await DbContext
+            .Tenants.Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
             .Include(tenant => tenant.Secrets)
-            .ThenInclude(tenantSecret => tenantSecret.Secret)
+                .ThenInclude(tenantSecret => tenantSecret.Secret)
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -200,7 +201,10 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     )
     {
         var tenantEntity = await GetTenantEntityOrDefaultAsync(tenantId, cancellationToken);
-        return tenantEntity ?? throw new InvalidOperationException($"An OpenId Tenant with '{tenantId}' was not found.");
+        return tenantEntity
+            ?? throw new InvalidOperationException(
+                $"An OpenId Tenant with '{tenantId}' was not found."
+            );
     }
 
     #endregion
@@ -213,38 +217,40 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// <param name="secret">The <see cref="PersistedSecret"/> DTO to map.</param>
     /// <param name="id">The optional identifier for the entity. If <c>null</c> or zero, a new identifier will be generated.</param>
     /// <returns>The newly mapped <see cref="SecretEntity"/> entity.</returns>
-    protected SecretEntity MapToSecretEntity(PersistedSecret secret, long? id = null) => new()
-    {
-        Id = NextId(id),
-        SecretId = secret.SecretId,
-        NormalizedSecretId = Normalize(secret.SecretId),
-        ConcurrencyToken = secret.ConcurrencyToken,
-        Use = secret.Use,
-        Algorithm = secret.Algorithm,
-        CreatedWhen = secret.CreatedWhen.ToUniversalTime(),
-        ExpiresWhen = secret.ExpiresWhen.ToUniversalTime(),
-        SecretType = secret.SecretType,
-        KeySizeBits = secret.KeySizeBits,
-        EncodedValue = secret.EncodedValue,
-    };
+    protected SecretEntity MapToSecretEntity(PersistedSecret secret, long? id = null) =>
+        new()
+        {
+            Id = NextId(id),
+            SecretId = secret.SecretId,
+            NormalizedSecretId = Normalize(secret.SecretId),
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = secret.CreatedWhen.ToUniversalTime(),
+            ExpiresWhen = secret.ExpiresWhen.ToUniversalTime(),
+            SecretType = secret.SecretType,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+        };
 
     /// <summary>
     /// Maps a <see cref="SecretEntity"/> to its corresponding <see cref="PersistedSecret"/> DTO.
     /// </summary>
     /// <param name="secret">The <see cref="SecretEntity"/> entity to map.</param>
     /// <returns>The newly mapped <see cref="PersistedSecret"/> DTO.</returns>
-    protected static PersistedSecret MapToPersistedSecret(SecretEntity secret) => new()
-    {
-        SecretId = secret.SecretId,
-        ConcurrencyToken = secret.ConcurrencyToken,
-        Use = secret.Use,
-        Algorithm = secret.Algorithm,
-        CreatedWhen = secret.CreatedWhen,
-        ExpiresWhen = secret.ExpiresWhen,
-        SecretType = secret.SecretType,
-        KeySizeBits = secret.KeySizeBits,
-        EncodedValue = secret.EncodedValue
-    };
+    protected static PersistedSecret MapToPersistedSecret(SecretEntity secret) =>
+        new()
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = secret.ExpiresWhen,
+            SecretType = secret.SecretType,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+        };
 
     /// <summary>
     /// Maps a <see cref="SecretEntity"/> to its corresponding <see cref="PersistedSecret"/> DTO.
@@ -259,8 +265,9 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// </summary>
     /// <param name="collection">The collection of <see cref="SecretEntity"/> instances to map.</param>
     /// <returns>The newly mapped collection of <see cref="PersistedSecret"/> DTOs.</returns>
-    protected static IReadOnlyCollection<PersistedSecret> MapToPersistedSecrets(IEnumerable<ISupportSecretEntity> collection) =>
-        collection.Select(MapToPersistedSecret).ToList();
+    protected static IReadOnlyCollection<PersistedSecret> MapToPersistedSecrets(
+        IEnumerable<ISupportSecretEntity> collection
+    ) => collection.Select(MapToPersistedSecret).ToList();
 
     #endregion
 }

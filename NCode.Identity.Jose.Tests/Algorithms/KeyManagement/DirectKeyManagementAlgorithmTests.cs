@@ -105,7 +105,10 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
             Algorithm.NewKey(secretKey, header, cek);
         });
 
-        Assert.Equal("The size of the destination buffer for CEK must identical to the KEK size.", exception.Message);
+        Assert.Equal(
+            "The size of the destination buffer for CEK must identical to the KEK size.",
+            exception.Message
+        );
     }
 
     [Fact]
@@ -123,7 +126,10 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
             Algorithm.WrapKey(secretKey, header, cek, encryptedCekWriter);
         });
 
-        Assert.Equal("The direct key management algorithm does not support using an existing CEK.", exception.Message);
+        Assert.Equal(
+            "The direct key management algorithm does not support using an existing CEK.",
+            exception.Message
+        );
     }
 
     [Fact]
@@ -139,7 +145,13 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
         var header = new JsonObject();
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
-        var unwrapResult = Algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCek, cek, out var bytesWritten);
+        var unwrapResult = Algorithm.TryUnwrapKey(
+            secretKey,
+            headerForUnwrap,
+            encryptedCek,
+            cek,
+            out var bytesWritten
+        );
         Assert.True(unwrapResult);
         Assert.Equal(kekSizeBytes, bytesWritten);
         Assert.Equal(kek.ToArray(), cek.ToArray());
@@ -164,6 +176,9 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
             Algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCek, cek, out _);
         });
 
-        Assert.Equal("The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.", exception.Message);
+        Assert.Equal(
+            "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
+            exception.Message
+        );
     }
 }

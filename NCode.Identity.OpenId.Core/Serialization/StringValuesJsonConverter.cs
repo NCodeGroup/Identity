@@ -29,7 +29,11 @@ namespace NCode.Identity.OpenId.Serialization;
 public class StringValuesJsonConverter : JsonConverter<StringValues>
 {
     /// <inheritdoc />
-    public override StringValues Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override StringValues Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         if (reader.TokenType == JsonTokenType.Null)
         {
@@ -37,11 +41,17 @@ public class StringValuesJsonConverter : JsonConverter<StringValues>
         }
 
         var parsedValue = reader.GetString();
-        return string.IsNullOrEmpty(parsedValue) ? StringValues.Empty : parsedValue.Split(OpenIdConstants.ParameterSeparatorChar);
+        return string.IsNullOrEmpty(parsedValue)
+            ? StringValues.Empty
+            : parsedValue.Split(OpenIdConstants.ParameterSeparatorChar);
     }
 
     /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, StringValues value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        StringValues value,
+        JsonSerializerOptions options
+    )
     {
         switch (value.Count)
         {
@@ -52,7 +62,9 @@ public class StringValuesJsonConverter : JsonConverter<StringValues>
                 writer.WriteStringValue(value[0]);
                 break;
             default:
-                writer.WriteStringValue(string.Join(OpenIdConstants.ParameterSeparatorChar, value.AsEnumerable()));
+                writer.WriteStringValue(
+                    string.Join(OpenIdConstants.ParameterSeparatorChar, value.AsEnumerable())
+                );
                 break;
         }
     }

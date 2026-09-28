@@ -67,10 +67,7 @@ public class OpenIdOptions
     /// For compatibility, <see cref="ClaimTypes.NameIdentifier"/> should be allowed because it's used by <c>Microsoft.AspNetCore.Identity</c>.
     /// </remarks>
     public GetSubjectIdDelegate GetSubjectId { get; set; } =
-        DefaultClaimsPrincipalLogic.GetSubjectId(
-            allowNameId: true,
-            allowUpn: false
-        );
+        DefaultClaimsPrincipalLogic.GetSubjectId(allowNameId: true, allowUpn: false);
 
     /// <summary>
     /// Gets a list of delegates that can configure the <see cref="JsonSerializerOptions"/> used by OpenID.

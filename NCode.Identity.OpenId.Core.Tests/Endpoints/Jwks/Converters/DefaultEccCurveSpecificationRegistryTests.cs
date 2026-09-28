@@ -68,7 +68,10 @@ public class DefaultEccCurveSpecificationRegistryTests
     [InlineData(256, "P-256")]
     [InlineData(384, "P-384")]
     [InlineData(521, "P-521")]
-    public void TryGetByCurveSizeBits_WithSupportedSize_ReturnsSpecification(int curveSizeBits, string expectedCurveName)
+    public void TryGetByCurveSizeBits_WithSupportedSize_ReturnsSpecification(
+        int curveSizeBits,
+        string expectedCurveName
+    )
     {
         var registry = new DefaultEccCurveSpecificationRegistry([]);
 

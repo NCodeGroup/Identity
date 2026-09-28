@@ -22,19 +22,20 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
 /// <summary>
 /// Provides a default implementation of the <see cref="IContinueProviderSelector"/> abstraction.
 /// </summary>
-public class DefaultContinueProviderSelector(
-    IEnumerable<IContinueProvider> providers
-) : IContinueProviderSelector
+public class DefaultContinueProviderSelector(IEnumerable<IContinueProvider> providers)
+    : IContinueProviderSelector
 {
-    private Dictionary<string, IContinueProvider> Lookup { get; }
-        = providers.ToDictionary(x => x.ContinueCode, StringComparer.Ordinal);
+    private Dictionary<string, IContinueProvider> Lookup { get; } =
+        providers.ToDictionary(x => x.ContinueCode, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public IContinueProvider SelectProvider(string continueCode)
     {
         if (!Lookup.TryGetValue(continueCode, out var provider))
         {
-            throw new InvalidOperationException($"No continue provider found with continue code '{continueCode}'.");
+            throw new InvalidOperationException(
+                $"No continue provider found with continue code '{continueCode}'."
+            );
         }
 
         return provider;

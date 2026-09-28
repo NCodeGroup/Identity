@@ -27,7 +27,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// <typeparam name="TItem">The type of the persisted item, also known as a <c>Data Transfer Object</c> or <c>DTO</c>.</typeparam>
 /// <typeparam name="TEntity">The type of the corresponding entity.</typeparam>
 [PublicAPI]
-public abstract class BaseStoreWithResourceId<TItem, TEntity> : BaseStore<TItem, TEntity>, IStore<TItem>
+public abstract class BaseStoreWithResourceId<TItem, TEntity>
+    : BaseStore<TItem, TEntity>,
+        IStore<TItem>
     where TItem : class
     where TEntity : class
 {
@@ -61,7 +63,8 @@ public abstract class BaseStoreWithResourceId<TItem, TEntity> : BaseStore<TItem,
     )
     {
         var entity = await GetEntityOrDefaultAsync(resourceId, cancellationToken);
-        return entity ?? throw new InvalidOperationException($"An entity with '{resourceId}' was not found.");
+        return entity
+            ?? throw new InvalidOperationException($"An entity with '{resourceId}' was not found.");
     }
 
     /// <summary>

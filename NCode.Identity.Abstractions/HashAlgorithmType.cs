@@ -45,5 +45,5 @@ public enum HashAlgorithmType
     /// <summary>
     /// Specifies to use the <c>SHA-512</c> cryptographic hash algorithm.
     /// </summary>
-    Sha512 = 64
+    Sha512 = 64,
 }

@@ -38,7 +38,11 @@ public static class JsonElementExtensions
     /// <param name="value">When this method returns, contains the value of the JSON property if it was successfully found and converted to <typeparamref name="T"/>.</param>
     /// <typeparam name="T">The type of the JSON property to get.</typeparam>
     /// <returns><c>true</c> if the operation succeeded; otherwise, <c>false</c> if the JSON property wasn't found or the value wasn't able to be converted to <typeparamref name="T"/>.</returns>
-    public static bool TryGetPropertyValue<T>(this JsonElement jsonElement, string propertyName, [MaybeNullWhen(false)] out T value)
+    public static bool TryGetPropertyValue<T>(
+        this JsonElement jsonElement,
+        string propertyName,
+        [MaybeNullWhen(false)] out T value
+    )
     {
         if (!jsonElement.TryGetProperty(propertyName, out var property))
         {
@@ -71,29 +75,36 @@ public static class JsonElementExtensions
             return true;
         }
 
-        var isDateTimeOffsetType = typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?);
+        var isDateTimeOffsetType =
+            typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?);
         var isDateTimeType = typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?);
         if (property.ValueKind == JsonValueKind.String && (isDateTimeOffsetType || isDateTimeType))
         {
             var stringValue = property.ToString();
 
-            if (isDateTimeOffsetType &&
-                DateTimeOffset.TryParse(
+            if (
+                isDateTimeOffsetType
+                && DateTimeOffset.TryParse(
                     stringValue,
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal,
-                    out var dateTimeOffsetValue))
+                    out var dateTimeOffsetValue
+                )
+            )
             {
                 value = (T)(object)dateTimeOffsetValue;
                 return true;
             }
 
-            if (isDateTimeType &&
-                DateTime.TryParse(
+            if (
+                isDateTimeType
+                && DateTime.TryParse(
                     stringValue,
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal,
-                    out var dateTimeValue))
+                    out var dateTimeValue
+                )
+            )
             {
                 value = (T)(object)dateTimeValue;
                 return true;

@@ -27,9 +27,8 @@ namespace NCode.Identity.OpenId.Messages;
 /// Provides a <see cref="JsonConverterFactory"/> implementation that can serialize and deserialize <see cref="IOpenIdMessage"/>
 /// instances to and from JSON.
 /// </summary>
-public class OpenIdMessageJsonConverterFactory(
-    OpenIdEnvironment openIdEnvironment
-) : JsonConverterFactory
+public class OpenIdMessageJsonConverterFactory(OpenIdEnvironment openIdEnvironment)
+    : JsonConverterFactory
 {
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;
 
@@ -40,7 +39,10 @@ public class OpenIdMessageJsonConverterFactory(
     }
 
     /// <inheritdoc />
-    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    public override JsonConverter? CreateConverter(
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         var typeOfConverter = typeof(OpenIdMessageJsonConverter<>).MakeGenericType(typeToConvert);
         return (JsonConverter?)Activator.CreateInstance(typeOfConverter, OpenIdEnvironment);

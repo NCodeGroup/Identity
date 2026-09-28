@@ -32,23 +32,32 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthorizeSubjectCommand"/> message.
 /// </summary>
-public class DefaultAuthorizeSubjectHandler(
-    ILogger<DefaultAuthorizeSubjectHandler> logger
-) : ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>
+public class DefaultAuthorizeSubjectHandler(ILogger<DefaultAuthorizeSubjectHandler> logger)
+    : ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>
 {
     private ILogger<DefaultAuthorizeSubjectHandler> Logger { get; } = logger;
 
     internal virtual AuthorizeSubjectDisposition Failed(IOpenIdError error) => new(error);
+
     internal virtual AuthorizeSubjectDisposition Authorized() => new(ChallengeRequired: false);
-    internal virtual AuthorizeSubjectDisposition ChallengeRequired() => new(ChallengeRequired: true);
-    internal virtual AuthorizeSubjectDisposition LoginRequired(IOpenIdErrorFactory errorFactory) => Failed(errorFactory.LoginRequired());
-    internal virtual AuthorizeSubjectDisposition InteractionRequired(IOpenIdErrorFactory errorFactory, bool noPrompt) => noPrompt ? LoginRequired(errorFactory) : ChallengeRequired();
+
+    internal virtual AuthorizeSubjectDisposition ChallengeRequired() =>
+        new(ChallengeRequired: true);
+
+    internal virtual AuthorizeSubjectDisposition LoginRequired(IOpenIdErrorFactory errorFactory) =>
+        Failed(errorFactory.LoginRequired());
+
+    internal virtual AuthorizeSubjectDisposition InteractionRequired(
+        IOpenIdErrorFactory errorFactory,
+        bool noPrompt
+    ) => noPrompt ? LoginRequired(errorFactory) : ChallengeRequired();
 
     /// <inheritdoc />
     [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
     public async ValueTask<AuthorizeSubjectDisposition> HandleAsync(
         AuthorizeSubjectCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, authorizationRequest, authenticationTicket) = command;
 
@@ -63,8 +72,8 @@ public class DefaultAuthorizeSubjectHandler(
         }
 
         var reAuthenticate =
-            promptTypes.Contains(OpenIdConstants.PromptTypes.Login) ||
-            promptTypes.Contains(OpenIdConstants.PromptTypes.SelectAccount);
+            promptTypes.Contains(OpenIdConstants.PromptTypes.Login)
+            || promptTypes.Contains(OpenIdConstants.PromptTypes.SelectAccount);
 
         if (reAuthenticate)
         {
@@ -96,7 +105,8 @@ public class DefaultAuthorizeSubjectHandler(
         OpenIdClient openIdClient,
         IOpenIdRequest openIdRequest,
         SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var mediator = openIdContext.Mediator;
         var operationDisposition = new OperationDisposition<IOpenIdError>();

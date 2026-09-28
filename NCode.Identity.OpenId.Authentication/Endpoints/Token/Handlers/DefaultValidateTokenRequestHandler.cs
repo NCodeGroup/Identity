@@ -28,7 +28,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenRequestCommand"/> messsage.
 /// </summary>
-public class DefaultValidateTokenRequestHandler : ICommandHandler<ValidateTokenRequestCommand>, ISupportMediatorPriority
+public class DefaultValidateTokenRequestHandler
+    : ICommandHandler<ValidateTokenRequestCommand>,
+        ISupportMediatorPriority
 {
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -36,7 +38,8 @@ public class DefaultValidateTokenRequestHandler : ICommandHandler<ValidateTokenR
     /// <inheritdoc />
     public ValueTask HandleAsync(
         ValidateTokenRequestCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, tokenRequest) = command;
 
@@ -45,12 +48,19 @@ public class DefaultValidateTokenRequestHandler : ICommandHandler<ValidateTokenR
 
         // DefaultClientAuthenticationService already performs this check for us
         Debug.Assert(
-            string.IsNullOrEmpty(tokenRequest.ClientId) ||
-            string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
+            string.IsNullOrEmpty(tokenRequest.ClientId)
+                || string.Equals(
+                    openIdClient.ClientId,
+                    tokenRequest.ClientId,
+                    StringComparison.Ordinal
+                )
+        );
 
         // scopes_supported
         var requestedScopes = tokenRequest.Scopes;
-        var hasInvalidScopes = requestedScopes?.Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported)).Any() ?? false;
+        var hasInvalidScopes =
+            requestedScopes?.Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported)).Any()
+            ?? false;
         if (hasInvalidScopes)
             // invalid_scope
             throw errorFactory

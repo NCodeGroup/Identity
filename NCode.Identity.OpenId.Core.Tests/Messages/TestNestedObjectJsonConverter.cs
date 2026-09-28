@@ -22,12 +22,20 @@ namespace NCode.Identity.OpenId.Tests.Messages;
 
 internal class TestNestedObjectJsonConverter : JsonConverter<ITestNestedObject?>
 {
-    public override ITestNestedObject? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override ITestNestedObject? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         return JsonSerializer.Deserialize<TestNestedObject>(ref reader, options);
     }
 
-    public override void Write(Utf8JsonWriter writer, ITestNestedObject? value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        ITestNestedObject? value,
+        JsonSerializerOptions options
+    )
     {
         var type = value?.GetType() ?? typeof(TestNestedObject);
         JsonSerializer.Serialize(writer, value, type, options);

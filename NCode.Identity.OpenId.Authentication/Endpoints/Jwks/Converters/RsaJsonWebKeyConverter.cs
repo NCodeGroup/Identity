@@ -43,7 +43,7 @@ public class RsaJsonWebKeyConverter : JsonWebKeyConverter<RsaSecretKey>
             Use = NullIfEmpty(metadata.Use),
             Algorithm = NullIfEmpty(metadata.Algorithm),
             Modulus = Base64Url.Encode(parameters.Modulus!),
-            Exponent = Base64Url.Encode(parameters.Exponent!)
+            Exponent = Base64Url.Encode(parameters.Exponent!),
         };
     }
 }

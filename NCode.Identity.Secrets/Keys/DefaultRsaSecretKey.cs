@@ -52,12 +52,11 @@ public class DefaultRsaSecretKey(
 
     /// <inheritdoc />
     public override X509Certificate2? ExportCertificate() =>
-        HasCertificate ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span) : null;
+        HasCertificate
+            ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span)
+            : null;
 
     /// <inheritdoc />
     public override RSA ExportRSA() =>
-        DataProtector.ExportAsymmetricAlgorithm(
-            ProtectedPkcs8PrivateKey.Span,
-            RSA.Create
-        );
+        DataProtector.ExportAsymmetricAlgorithm(ProtectedPkcs8PrivateKey.Span, RSA.Create);
 }

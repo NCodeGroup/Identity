@@ -35,18 +35,24 @@ public class DefaultOpenIdEnvironmentFactory(
     IEnumerable<IOpenIdJsonConverterProvider> jsonConverterProviders
 ) : IOpenIdEnvironmentFactory
 {
-    private EphemeralDataProtectionProvider EphemeralDataProtectionProvider { get; } = new(loggerFactory);
+    private EphemeralDataProtectionProvider EphemeralDataProtectionProvider { get; } =
+        new(loggerFactory);
 
     private IDataProtectionProvider DataProtectionProvider { get; } = dataProtectionProvider;
-    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
-    private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } = openIdMessageFactorySelector;
-    private IEnumerable<IOpenIdJsonConverterProvider> JsonConverterProviders { get; } = jsonConverterProviders;
+    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
+        knownParameterCollectionProvider;
+    private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } =
+        openIdMessageFactorySelector;
+    private IEnumerable<IOpenIdJsonConverterProvider> JsonConverterProviders { get; } =
+        jsonConverterProviders;
 
     /// <inheritdoc />
     public OpenIdEnvironment Create()
     {
         var dataProtector = DataProtectionProvider.CreateProtector("NCode.Identity.OpenId");
-        var ephemeralDataProtector = EphemeralDataProtectionProvider.CreateProtector("NCode.Identity.OpenId");
+        var ephemeralDataProtector = EphemeralDataProtectionProvider.CreateProtector(
+            "NCode.Identity.OpenId"
+        );
 
         var openIdEnvironment = new DefaultOpenIdEnvironment(
             dataProtector,

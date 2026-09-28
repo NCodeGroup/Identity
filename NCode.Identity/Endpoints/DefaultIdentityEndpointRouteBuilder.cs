@@ -23,9 +23,8 @@ namespace NCode.Identity.Endpoints;
 /// <summary>
 /// Provides a default implementation of the <see cref="IIdentityEndpointRouteBuilder"/> abstraction.
 /// </summary>
-public class DefaultIdentityEndpointRouteBuilder(
-    IEnumerable<IEndpointProvider> endpointProviders
-) : IIdentityEndpointRouteBuilder
+public class DefaultIdentityEndpointRouteBuilder(IEnumerable<IEndpointProvider> endpointProviders)
+    : IIdentityEndpointRouteBuilder
 {
     private IEnumerable<IEndpointProvider> EndpointProviders { get; } = endpointProviders;
 

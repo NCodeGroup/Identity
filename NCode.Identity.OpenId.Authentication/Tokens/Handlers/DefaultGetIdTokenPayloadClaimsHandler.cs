@@ -35,13 +35,18 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by
 /// <see cref="DefaultGetIdTokenSubjectClaimsHandler"/>.
 /// </remarks>
-public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenPayloadClaimsCommand>, ISupportMediatorPriority
+public class DefaultGetIdTokenPayloadClaimsHandler
+    : ICommandHandler<GetIdTokenPayloadClaimsCommand>,
+        ISupportMediatorPriority
 {
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(GetIdTokenPayloadClaimsCommand command, CancellationToken cancellationToken)
+    public ValueTask HandleAsync(
+        GetIdTokenPayloadClaimsCommand command,
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, tokenContext, payloadClaims) = command;
         var (tokenRequest, signingCredentials, _, _) = tokenContext;
@@ -146,7 +151,11 @@ public class DefaultGetIdTokenPayloadClaimsHandler : ICommandHandler<GetIdTokenP
 
         var encoding = SecureEncoding.ASCII;
         var encodeByteCount = encoding.GetByteCount(value);
-        using var _ = BufferFactory.Rent(encodeByteCount, isSensitive: false, out Span<byte> encodeBuffer);
+        using var _ = BufferFactory.Rent(
+            encodeByteCount,
+            isSensitive: false,
+            out Span<byte> encodeBuffer
+        );
         var encodeBytesWritten = encoding.GetBytes(value, encodeBuffer);
         Debug.Assert(encodeBytesWritten == encodeByteCount);
 

@@ -49,7 +49,8 @@ public static class DefaultRegistration
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationEndpoints"/>.</param>
     /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
     public static IServiceBuilder<OpenIdAuthenticationEndpoints> AddTokenEndpoint(
-        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder
+    )
     {
         builder.AddEndpointProvider<DefaultTokenEndpointProvider>();
 
@@ -62,55 +63,75 @@ public static class DefaultRegistration
 
         serviceCollection.TryAddSingleton<
             ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>,
-            DefaultSelectTokenGrantHandlerHandler>();
+            DefaultSelectTokenGrantHandlerHandler
+        >();
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<ValidateTokenRequestCommand>,
-            DefaultValidateTokenRequestHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<ValidateTokenRequestCommand>,
+                DefaultValidateTokenRequestHandler
+            >()
+        );
 
         // Authorization Code
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ITokenGrantHandler,
-            DefaultAuthorizationCodeGrantHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultAuthorizationCodeGrantHandler>()
+        );
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>,
-            DefaultValidateAuthorizationCodeGrantHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>,
+                DefaultValidateAuthorizationCodeGrantHandler
+            >()
+        );
 
         // Refresh Token
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ITokenGrantHandler,
-            DefaultRefreshTokenGrantHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultRefreshTokenGrantHandler>()
+        );
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>,
-            DefaultValidateRefreshTokenGrantHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>,
+                DefaultValidateRefreshTokenGrantHandler
+            >()
+        );
 
         // Client Credentials
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ITokenGrantHandler,
-            DefaultClientCredentialsGrantHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultClientCredentialsGrantHandler>()
+        );
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>,
-            DefaultValidateClientCredentialsGrantHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>,
+                DefaultValidateClientCredentialsGrantHandler
+            >()
+        );
 
         // Password
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ITokenGrantHandler,
-            DefaultPasswordGrantHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultPasswordGrantHandler>()
+        );
 
         serviceCollection.TryAddSingleton<
-            ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>,
-            DefaultAuthenticatePasswordGrantHandler>();
+            ICommandResponseHandler<
+                AuthenticatePasswordGrantCommand,
+                AuthenticateSubjectDisposition
+            >,
+            DefaultAuthenticatePasswordGrantHandler
+        >();
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>,
-            DefaultValidatePasswordGrantHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>,
+                DefaultValidatePasswordGrantHandler
+            >()
+        );
 
         return builder;
     }

@@ -50,8 +50,8 @@ public static class KeySizesUtility
             return size == legalSize.MinSize;
         }
 
-        return size >= legalSize.MinSize &&
-               size <= legalSize.MaxSize &&
-               (size - legalSize.MinSize) % legalSize.SkipSize == 0;
+        return size >= legalSize.MinSize
+            && size <= legalSize.MaxSize
+            && (size - legalSize.MinSize) % legalSize.SkipSize == 0;
     }
 }

@@ -23,14 +23,17 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction.
 /// </summary>
-public class DefaultSettingSerializer(
-    ISettingDescriptorJsonProvider settingDescriptorJsonProvider
-) : ISettingSerializer
+public class DefaultSettingSerializer(ISettingDescriptorJsonProvider settingDescriptorJsonProvider)
+    : ISettingSerializer
 {
-    private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } = settingDescriptorJsonProvider;
+    private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } =
+        settingDescriptorJsonProvider;
 
     /// <inheritdoc />
-    public IReadOnlyCollection<Setting> DeserializeSettings(JsonElement settingsJson, JsonSerializerOptions jsonOptions)
+    public IReadOnlyCollection<Setting> DeserializeSettings(
+        JsonElement settingsJson,
+        JsonSerializerOptions jsonOptions
+    )
     {
         if (settingsJson.ValueKind == JsonValueKind.Null)
         {
@@ -46,7 +49,10 @@ public class DefaultSettingSerializer(
 
         foreach (var jsonProperty in settingsJson.EnumerateObject())
         {
-            var descriptor = SettingDescriptorJsonProvider.GetDescriptor(jsonProperty.Name, jsonProperty.Value.ValueKind);
+            var descriptor = SettingDescriptorJsonProvider.GetDescriptor(
+                jsonProperty.Name,
+                jsonProperty.Value.ValueKind
+            );
             var value = jsonProperty.Value.Deserialize(descriptor.ValueType, jsonOptions);
 
             Setting setting;

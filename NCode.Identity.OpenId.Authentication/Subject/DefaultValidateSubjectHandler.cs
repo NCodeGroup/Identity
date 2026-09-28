@@ -56,7 +56,13 @@ public class DefaultValidateSubjectHandler(
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, openIdClient, openIdRequest, subjectAuthentication, operationDisposition) = command;
+        var (
+            openIdContext,
+            openIdClient,
+            openIdRequest,
+            subjectAuthentication,
+            operationDisposition
+        ) = command;
 
         var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
@@ -80,7 +86,9 @@ public class DefaultValidateSubjectHandler(
         }
 
         // verify the subject is authenticated
-        var isAuthenticated = subjectAuthentication.Subject.Identities.All(identity => identity.IsAuthenticated);
+        var isAuthenticated = subjectAuthentication.Subject.Identities.All(identity =>
+            identity.IsAuthenticated
+        );
         if (!isAuthenticated)
         {
             const string message = "The end-user is not authenticated.";
@@ -93,10 +101,13 @@ public class DefaultValidateSubjectHandler(
         var authTime = GetAuthTime(subjectAuthentication.Subject);
 
         // verify the request's max age
-        var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(OpenIdCommonParameters.MaxAge);
+        var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(
+            OpenIdCommonParameters.MaxAge
+        );
         if (!ValidateMaxAge(authTime, requestMaxAge, clockSkew))
         {
-            const string message = "The end-user's authentication time is too old from the request's MaxAge.";
+            const string message =
+                "The end-user's authentication time is too old from the request's MaxAge.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
@@ -106,7 +117,8 @@ public class DefaultValidateSubjectHandler(
         var clientMaxAge = settings.GetValue(OpenIdSettingKeys.SubjectMaxAge);
         if (!ValidateMaxAge(authTime, clientMaxAge, clockSkew))
         {
-            const string message = "The end-user's authentication time is too old from the client's MaxAge.";
+            const string message =
+                "The end-user's authentication time is too old from the client's MaxAge.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
@@ -125,7 +137,8 @@ public class DefaultValidateSubjectHandler(
         // check allowed IdP
         if (!IsReceivedIdpAllowed(receivedIdp, settings))
         {
-            const string message = "The end-user's IdP is not allowed according to the client's settings.";
+            const string message =
+                "The end-user's IdP is not allowed according to the client's settings.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
             Logger.LogWarning(message);
             return ValueTask.CompletedTask;
@@ -134,7 +147,10 @@ public class DefaultValidateSubjectHandler(
         return ValueTask.CompletedTask;
     }
 
-    private static bool IsReceivedIdpAllowed(string? receivedIdp, IReadOnlySettingCollection settings)
+    private static bool IsReceivedIdpAllowed(
+        string? receivedIdp,
+        IReadOnlySettingCollection settings
+    )
     {
         var allowed = settings.GetValue(OpenIdSettingKeys.AllowedIdentityProviders);
         return allowed.Count == 0 || allowed.Contains(receivedIdp, StringComparer.Ordinal);
@@ -143,13 +159,17 @@ public class DefaultValidateSubjectHandler(
     private static bool IsRequestedIdpValid(string? receivedIdp, IOpenIdRequest openIdRequest)
     {
         // if no specific acr values were requested, then any idp is valid
-        var acrValues = openIdRequest.Parameters.GetValueOrDefault(OpenIdCommonParameters.AcrValues);
+        var acrValues = openIdRequest.Parameters.GetValueOrDefault(
+            OpenIdCommonParameters.AcrValues
+        );
         if (acrValues is null || acrValues.Count == 0)
         {
             return true;
         }
 
-        const string prefix = OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider;
+        const string prefix = OpenIdConstants
+            .AuthenticationContextClassReferencePrefixes
+            .IdentityProvider;
 
         var anyRequested = false;
         var requestedIdpValues = acrValues
@@ -174,8 +194,12 @@ public class DefaultValidateSubjectHandler(
     private static string? GetReceivedTenantId(SubjectAuthentication subjectAuthentication)
     {
         // when we challenge, we store the tenant id in the authentication properties
-        var tenantId = subjectAuthentication.AuthenticationProperties.GetString(OpenIdConstants.AuthenticationPropertyItems.TenantId);
-        return !string.IsNullOrEmpty(tenantId) ? tenantId : subjectAuthentication.Subject.FindFirstValue(JoseClaimNames.Payload.Tid);
+        var tenantId = subjectAuthentication.AuthenticationProperties.GetString(
+            OpenIdConstants.AuthenticationPropertyItems.TenantId
+        );
+        return !string.IsNullOrEmpty(tenantId)
+            ? tenantId
+            : subjectAuthentication.Subject.FindFirstValue(JoseClaimNames.Payload.Tid);
     }
 
     private static DateTimeOffset? GetAuthTime(ClaimsPrincipal subject)

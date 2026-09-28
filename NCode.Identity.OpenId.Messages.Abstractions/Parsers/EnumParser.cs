@@ -42,16 +42,13 @@ public class EnumParser<T> : ParameterParser<T>
     public static EnumParser<T> Singleton { get; } = new();
 
     private static JsonNamingPolicy JsonNamingPolicy => JsonNamingPolicy.SnakeCaseLower;
-    private static bool HasFlagsAttribute { get; } = typeof(T).IsDefined(typeof(FlagsAttribute), false);
+    private static bool HasFlagsAttribute { get; } =
+        typeof(T).IsDefined(typeof(FlagsAttribute), false);
 
     private static T[] Values { get; } = Enum.GetValues<T>();
 
     private static Dictionary<string, T> NameMap { get; } =
-        Values.ToDictionary(
-            ConvertToString,
-            value => value,
-            StringComparer.OrdinalIgnoreCase
-        );
+        Values.ToDictionary(ConvertToString, value => value, StringComparer.OrdinalIgnoreCase);
 
     private static Dictionary<string, T>.AlternateLookup<ReadOnlySpan<char>> NameLookup { get; } =
         NameMap.GetAlternateLookup<ReadOnlySpan<char>>();
@@ -63,7 +60,8 @@ public class EnumParser<T> : ParameterParser<T>
 
     private static bool TryParseValue(ReadOnlySpan<char> value, out T result)
     {
-        return NameLookup.TryGetValue(value, out result) || Enum.TryParse(value, ignoreCase: true, out result);
+        return NameLookup.TryGetValue(value, out result)
+            || Enum.TryParse(value, ignoreCase: true, out result);
     }
 
     /// <inheritdoc/>
@@ -100,14 +98,12 @@ public class EnumParser<T> : ParameterParser<T>
 
             case 0:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
+                    .ErrorFactory.MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1 when !HasFlagsAttribute:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
+                    .ErrorFactory.TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
         }
 
@@ -119,11 +115,7 @@ public class EnumParser<T> : ParameterParser<T>
         var stringValue = stringValues[0];
         Debug.Assert(stringValue is not null);
 
-        return ParseValue(
-            openIdEnvironment,
-            descriptor,
-            stringValue.AsSpan()
-        );
+        return ParseValue(openIdEnvironment, descriptor, stringValue.AsSpan());
     }
 
     private static T ParseValue(
@@ -135,8 +127,7 @@ public class EnumParser<T> : ParameterParser<T>
         if (!TryParseValue(value, out var parsedValue))
         {
             throw openIdEnvironment
-                .ErrorFactory
-                .InvalidParameterValue(descriptor.ParameterName)
+                .ErrorFactory.InvalidParameterValue(descriptor.ParameterName)
                 .AsException();
         }
 
@@ -156,35 +147,75 @@ public class EnumParser<T> : ParameterParser<T>
 
         if (underlyingType == typeof(byte))
         {
-            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, byte>(ref result));
+            ParseFlags(
+                openIdEnvironment,
+                descriptor,
+                stringValues,
+                out Unsafe.As<T, byte>(ref result)
+            );
         }
         else if (underlyingType == typeof(sbyte))
         {
-            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, sbyte>(ref result));
+            ParseFlags(
+                openIdEnvironment,
+                descriptor,
+                stringValues,
+                out Unsafe.As<T, sbyte>(ref result)
+            );
         }
         else if (underlyingType == typeof(short))
         {
-            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, short>(ref result));
+            ParseFlags(
+                openIdEnvironment,
+                descriptor,
+                stringValues,
+                out Unsafe.As<T, short>(ref result)
+            );
         }
         else if (underlyingType == typeof(ushort))
         {
-            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, ushort>(ref result));
+            ParseFlags(
+                openIdEnvironment,
+                descriptor,
+                stringValues,
+                out Unsafe.As<T, ushort>(ref result)
+            );
         }
         else if (underlyingType == typeof(int))
         {
-            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, int>(ref result));
+            ParseFlags(
+                openIdEnvironment,
+                descriptor,
+                stringValues,
+                out Unsafe.As<T, int>(ref result)
+            );
         }
         else if (underlyingType == typeof(uint))
         {
-            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, uint>(ref result));
+            ParseFlags(
+                openIdEnvironment,
+                descriptor,
+                stringValues,
+                out Unsafe.As<T, uint>(ref result)
+            );
         }
         else if (underlyingType == typeof(long))
         {
-            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, long>(ref result));
+            ParseFlags(
+                openIdEnvironment,
+                descriptor,
+                stringValues,
+                out Unsafe.As<T, long>(ref result)
+            );
         }
         else if (underlyingType == typeof(ulong))
         {
-            ParseFlags(openIdEnvironment, descriptor, stringValues, out Unsafe.As<T, ulong>(ref result));
+            ParseFlags(
+                openIdEnvironment,
+                descriptor,
+                stringValues,
+                out Unsafe.As<T, ulong>(ref result)
+            );
         }
         else
         {
@@ -201,7 +232,9 @@ public class EnumParser<T> : ParameterParser<T>
         StringValues stringValues,
         out TUnderlying result
     )
-        where TUnderlying : struct, INumber<TUnderlying>, IBitwiseOperators<TUnderlying, TUnderlying, TUnderlying>
+        where TUnderlying : struct,
+            INumber<TUnderlying>,
+            IBitwiseOperators<TUnderlying, TUnderlying, TUnderlying>
     {
         TUnderlying accumulator = default;
 

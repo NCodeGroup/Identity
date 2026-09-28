@@ -28,7 +28,6 @@ namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class KeyedHashSignatureAlgorithmTests : BaseTests
 {
-
     [Fact]
     public void Code_Valid()
     {
@@ -100,7 +99,11 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetRoundTripTestData))]
-    public void RoundTrip_Valid(int keySizeBits, int signatureSizeBits, KeyedHashFunctionDelegate keyedHashFunction)
+    public void RoundTrip_Valid(
+        int keySizeBits,
+        int signatureSizeBits,
+        KeyedHashFunctionDelegate keyedHashFunction
+    )
     {
         const string keyId = nameof(keyId);
         const string code = nameof(code);
@@ -121,7 +124,12 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
 
         var algorithm = new KeyedHashSignatureAlgorithm(code, hashAlgorithmName, keyedHashFunction);
 
-        var signResult = algorithm.TrySign(secretKey, inputData, signature, out var signBytesWritten);
+        var signResult = algorithm.TrySign(
+            secretKey,
+            inputData,
+            signature,
+            out var signBytesWritten
+        );
         Assert.True(signResult);
         Assert.Equal(hashSizeBytes, signBytesWritten);
 
@@ -135,7 +143,11 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
         var verifyHashFromControl = algorithm.Verify(secretKey, inputData, controlHash);
         Assert.True(verifyHashFromControl);
 
-        var verifyHashUsingControl = controlAlgorithm.Verify(signature.ToArray(), inputData.ToArray(), key.ToArray());
+        var verifyHashUsingControl = controlAlgorithm.Verify(
+            signature.ToArray(),
+            inputData.ToArray(),
+            key.ToArray()
+        );
         Assert.True(verifyHashUsingControl);
     }
 }

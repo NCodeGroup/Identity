@@ -37,7 +37,8 @@ public class TimeSpanParser : ParameterParser<TimeSpan>
     public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        TimeSpan parsedValue)
+        TimeSpan parsedValue
+    )
     {
         var wholeSeconds = (int)parsedValue.TotalSeconds;
         return wholeSeconds.ToString(CultureInfo.InvariantCulture);
@@ -47,7 +48,8 @@ public class TimeSpanParser : ParameterParser<TimeSpan>
     public override TimeSpan Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues)
+        StringValues stringValues
+    )
     {
         switch (stringValues.Count)
         {
@@ -56,14 +58,12 @@ public class TimeSpanParser : ParameterParser<TimeSpan>
 
             case 0:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
+                    .ErrorFactory.MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
+                    .ErrorFactory.TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
         }
 
@@ -73,8 +73,7 @@ public class TimeSpanParser : ParameterParser<TimeSpan>
         if (!int.TryParse(stringValue, CultureInfo.InvariantCulture, out var seconds))
         {
             throw openIdEnvironment
-                .ErrorFactory
-                .InvalidParameterValue(descriptor.ParameterName)
+                .ErrorFactory.InvalidParameterValue(descriptor.ParameterName)
                 .AsException();
         }
 

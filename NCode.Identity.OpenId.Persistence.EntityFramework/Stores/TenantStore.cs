@@ -57,12 +57,14 @@ public class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedTenantSettings
-        {
-            TenantId = tenantEntity.TenantId,
-            ConcurrencyToken = tenantEntity.SettingsConcurrencyToken,
-            Value = tenantEntity.SettingsJson
-        });
+        return ValueTask.FromResult(
+            new PersistedTenantSettings
+            {
+                TenantId = tenantEntity.TenantId,
+                ConcurrencyToken = tenantEntity.SettingsConcurrencyToken,
+                Value = tenantEntity.SettingsJson,
+            }
+        );
     }
 
     /// <summary>
@@ -76,12 +78,14 @@ public class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedTenantSecrets
-        {
-            TenantId = tenantEntity.TenantId,
-            ConcurrencyToken = tenantEntity.SecretsConcurrencyToken,
-            Value = MapToPersistedSecrets(tenantEntity.Secrets)
-        });
+        return ValueTask.FromResult(
+            new PersistedTenantSecrets
+            {
+                TenantId = tenantEntity.TenantId,
+                ConcurrencyToken = tenantEntity.SecretsConcurrencyToken,
+                Value = MapToPersistedSecrets(tenantEntity.Secrets),
+            }
+        );
     }
 
     /// <inheritdoc />
@@ -98,7 +102,7 @@ public class TenantStore(
             IsDisabled = tenantEntity.IsDisabled,
             DisplayName = tenantEntity.DisplayName,
             Settings = await MapSettingsAsync(tenantEntity, cancellationToken),
-            Secrets = await MapSecretsAsync(tenantEntity, cancellationToken)
+            Secrets = await MapSecretsAsync(tenantEntity, cancellationToken),
         };
     }
 
@@ -108,9 +112,9 @@ public class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        return await DbContext.Tenants
-            .Include(tenant => tenant.Secrets)
-            .ThenInclude(tenantSecret => tenantSecret.Secret)
+        return await DbContext
+            .Tenants.Include(tenant => tenant.Secrets)
+                .ThenInclude(tenantSecret => tenantSecret.Secret)
             .SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
@@ -185,7 +189,7 @@ public class TenantStore(
             IsDisabled = persistedTenant.IsDisabled,
             DisplayName = persistedTenant.DisplayName,
             SettingsJson = persistedTenant.Settings.Value,
-            Secrets = secrets
+            Secrets = secrets,
         };
 
         foreach (var persistedSecret in persistedTenant.Secrets.Value)
@@ -224,7 +228,13 @@ public class TenantStore(
         var tenantId = persistedTenant.TenantId;
         var tenantEntity = await GetEntityAsync(tenantId, cancellationToken);
 
-        if (!string.Equals(persistedTenant.ConcurrencyToken, tenantEntity.ConcurrencyToken, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                persistedTenant.ConcurrencyToken,
+                tenantEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
         {
             throw new DbUpdateConcurrencyException(
                 $"The OpenId Tenant with TenantId='{tenantId}' has been modified by another process. Please reload and try again."
@@ -254,7 +264,13 @@ public class TenantStore(
         var tenantId = persistedTenantSettings.TenantId;
         var tenantEntity = await GetEntityAsync(tenantId, cancellationToken);
 
-        if (!string.Equals(persistedTenantSettings.ConcurrencyToken, tenantEntity.SettingsConcurrencyToken, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                persistedTenantSettings.ConcurrencyToken,
+                tenantEntity.SettingsConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
         {
             throw new DbUpdateConcurrencyException(
                 $"The settings for OpenId Tenant with TenantId='{tenantId}' have been modified by another process. Please reload and try again."

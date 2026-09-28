@@ -54,16 +54,13 @@ public class ParameterCollection : IParameterCollection
     }
 
     /// <inheritdoc />
-    public IEnumerator<IParameter> GetEnumerator() =>
-        Store.Values.GetEnumerator();
+    public IEnumerator<IParameter> GetEnumerator() => Store.Values.GetEnumerator();
 
     /// <inheritdoc />
-    IEnumerator IEnumerable.GetEnumerator() =>
-        GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <inheritdoc />
-    public bool Contains(string parameterName) =>
-        Store.ContainsKey(parameterName);
+    public bool Contains(string parameterName) => Store.ContainsKey(parameterName);
 
     /// <inheritdoc />
     public bool TryGet(string parameterName, [MaybeNullWhen(false)] out IParameter parameter) =>
@@ -72,7 +69,10 @@ public class ParameterCollection : IParameterCollection
     /// <inheritdoc />
     public bool TryGet<T>(ParameterKey<T> key, [MaybeNullWhen(false)] out IParameter<T> parameter)
     {
-        if (Store.TryGetValue(key.ParameterName, out var baseParameter) && baseParameter is IParameter<T> typedParameter)
+        if (
+            Store.TryGetValue(key.ParameterName, out var baseParameter)
+            && baseParameter is IParameter<T> typedParameter
+        )
         {
             parameter = typedParameter;
             return true;
@@ -83,7 +83,10 @@ public class ParameterCollection : IParameterCollection
     }
 
     /// <inheritdoc />
-    public bool TryGet<T>(KnownParameter<T> knownParameter, [MaybeNullWhen(false)] out IParameter<T> parameter)
+    public bool TryGet<T>(
+        KnownParameter<T> knownParameter,
+        [MaybeNullWhen(false)] out IParameter<T> parameter
+    )
     {
         ParameterKey<T> key = knownParameter;
         return TryGet(key, out parameter);
@@ -101,10 +104,8 @@ public class ParameterCollection : IParameterCollection
     }
 
     /// <inheritdoc />
-    public bool Remove(string parameterName) =>
-        Store.Remove(parameterName);
+    public bool Remove(string parameterName) => Store.Remove(parameterName);
 
     /// <inheritdoc />
-    public void Set(IParameter parameter) =>
-        Store[parameter.Descriptor.ParameterName] = parameter;
+    public void Set(IParameter parameter) => Store[parameter.Descriptor.ParameterName] = parameter;
 }

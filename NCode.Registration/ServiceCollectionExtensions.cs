@@ -37,7 +37,9 @@ public static class ServiceCollectionExtensions
         public bool IsRegistered<TMarker>()
             where TMarker : IRegistrationMarker<TMarker>, new()
         {
-            return serviceCollection.Any(descriptor => descriptor.ImplementationInstance is TMarker);
+            return serviceCollection.Any(descriptor =>
+                descriptor.ImplementationInstance is TMarker
+            );
         }
 
         /// <summary>
@@ -83,7 +85,9 @@ public static class ServiceCollectionExtensions
 
             if (serviceCollection.IsRegistered<TMarker>())
             {
-                throw new InvalidOperationException($"Services for '{marker.DisplayName}' have already been registered.");
+                throw new InvalidOperationException(
+                    $"Services for '{marker.DisplayName}' have already been registered."
+                );
             }
 
             return serviceCollection.AddSingleton<IRegistrationMarker<TMarker>>(marker);
@@ -109,7 +113,8 @@ public static class ServiceCollectionExtensions
         if (string.IsNullOrEmpty(message))
         {
             var marker = new TMarker();
-            message = $"The services for '{marker.DisplayName}' have not been registered. Please call the '{marker.ConfigureMethod}' method.";
+            message =
+                $"The services for '{marker.DisplayName}' have not been registered. Please call the '{marker.ConfigureMethod}' method.";
         }
 
         return message;

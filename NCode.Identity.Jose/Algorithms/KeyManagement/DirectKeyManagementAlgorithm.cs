@@ -42,14 +42,10 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public static DirectKeyManagementAlgorithm Singleton { get; } = new();
 
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
-    [
-        new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
-    ];
+    [new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)];
 
     private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
-    [
-        new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
-    ];
+    [new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)];
 
     /// <inheritdoc />
     public override string Code => AlgorithmCodes.KeyManagement.Direct;
@@ -69,7 +65,8 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
+        StaticCekByteSizes;
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => 0;
@@ -84,7 +81,9 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
         if (contentKey.Length != validatedSecretKey.KeySizeBytes)
         {
-            throw new JoseException("The size of the destination buffer for CEK must identical to the KEK size.");
+            throw new JoseException(
+                "The size of the destination buffer for CEK must identical to the KEK size."
+            );
         }
 
         var privateKeyWriter = contentKey.GetFixedBufferWriter();
@@ -100,7 +99,9 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         IBufferWriter<byte> encryptedContentKeyWriter
     )
     {
-        throw new JoseException("The direct key management algorithm does not support using an existing CEK.");
+        throw new JoseException(
+            "The direct key management algorithm does not support using an existing CEK."
+        );
     }
 
     /// <inheritdoc />
@@ -125,7 +126,9 @@ public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     {
         if (encryptedContentKey.Length != 0)
         {
-            throw new JoseException("The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.");
+            throw new JoseException(
+                "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm."
+            );
         }
 
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);

@@ -51,10 +51,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm
     /// <param name="kekSizeBits">The size, in bits, of the key encryption key (KEK).</param>
     /// <param name="cekSizeBytes">The size, in bytes, of the content encryption key (CEK).</param>
     /// <returns>The size, in bytes, of the encrypted content encryption key (CEK).</returns>
-    public abstract int GetEncryptedContentKeySizeBytes(
-        int kekSizeBits,
-        int cekSizeBytes
-    );
+    public abstract int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes);
 
     /// <summary>
     /// Generates a new content encryption key (CEK).

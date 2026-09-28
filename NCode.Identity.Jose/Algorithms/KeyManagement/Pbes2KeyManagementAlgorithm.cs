@@ -43,9 +43,7 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
     private const int DefaultIterationCount = 8192;
 
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
-    [
-        new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)
-    ];
+    [new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)];
 
     private IAesKeyWrap AesKeyWrap { get; }
 
@@ -117,12 +115,16 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         if (iterationCount < MinIterationCount)
         {
-            throw new JoseException($"The 'p2c' field in the JWT header must be at least {MinIterationCount}");
+            throw new JoseException(
+                $"The 'p2c' field in the JWT header must be at least {MinIterationCount}"
+            );
         }
 
         if (iterationCount > MaxIterationCount)
         {
-            throw new JoseException($"The 'p2c' field in the JWT header must be at most {MaxIterationCount}");
+            throw new JoseException(
+                $"The 'p2c' field in the JWT header must be at most {MaxIterationCount}"
+            );
         }
 
         ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length);
@@ -130,9 +132,10 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var algByteCount = SecureEncoding.ASCII.GetByteCount(alg);
         var saltByteCount = algByteCount + 1 + SaltInputSizeBytes;
 
-        var salt = saltByteCount <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[saltByteCount] :
-            GC.AllocateUninitializedArray<byte>(saltByteCount, pinned: false);
+        var salt =
+            saltByteCount <= JoseConstants.MaxStackAlloc
+                ? stackalloc byte[saltByteCount]
+                : GC.AllocateUninitializedArray<byte>(saltByteCount, pinned: false);
 
         var algBytesWritten = SecureEncoding.ASCII.GetBytes(alg, salt);
         Debug.Assert(algBytesWritten == algByteCount);
@@ -148,7 +151,10 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         header[JoseClaimNames.Header.P2s] = Base64Url.Encode(saltInput);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: true,
+            secretKey.KeySizeBytes
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
@@ -159,13 +165,7 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         using var newKek = BufferFactory.CreatePinnedArray(KeySizeBytes);
 
-        Rfc2898DeriveBytes.Pbkdf2(
-            privateKeySpan,
-            salt,
-            newKek,
-            iterationCount,
-            HashAlgorithmName
-        );
+        Rfc2898DeriveBytes.Pbkdf2(privateKeySpan, salt, newKek, iterationCount, HashAlgorithmName);
 
         AesKeyWrap.WrapKey(newKek, contentKey, ref encryptedContentKeyWriter);
     }
@@ -200,24 +200,36 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         if (iterationCount < MinIterationCount)
         {
-            throw new JoseException($"The 'p2c' field in the JWT header must be at least {MinIterationCount}");
+            throw new JoseException(
+                $"The 'p2c' field in the JWT header must be at least {MinIterationCount}"
+            );
         }
 
         if (iterationCount > MaxIterationCount)
         {
-            throw new JoseException($"The 'p2c' field in the JWT header must be at most {MaxIterationCount}");
+            throw new JoseException(
+                $"The 'p2c' field in the JWT header must be at most {MaxIterationCount}"
+            );
         }
 
         var saltInputByteCount = Base64Url.GetByteCountForDecode(saltInputString.Length);
         if (saltInputByteCount != SaltInputSizeBytes)
         {
-            throw new JoseException("The salt input ('p2s') does not have a valid size for this cryptographic algorithm.");
+            throw new JoseException(
+                "The salt input ('p2s') does not have a valid size for this cryptographic algorithm."
+            );
         }
 
-        const int minEncryptedContentKeyByteCount = DefaultAesKeyWrap.IntermediateByteCount + DefaultAesKeyWrap.ChunkByteCount;
-        if (encryptedContentKey.Length < minEncryptedContentKeyByteCount || encryptedContentKey.Length % DefaultAesKeyWrap.ChunkByteCount != 0)
+        const int minEncryptedContentKeyByteCount =
+            DefaultAesKeyWrap.IntermediateByteCount + DefaultAesKeyWrap.ChunkByteCount;
+        if (
+            encryptedContentKey.Length < minEncryptedContentKeyByteCount
+            || encryptedContentKey.Length % DefaultAesKeyWrap.ChunkByteCount != 0
+        )
         {
-            throw new JoseException("The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.");
+            throw new JoseException(
+                "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm."
+            );
         }
 
         var minContentKeyByteCount = encryptedContentKey.Length - DefaultAesKeyWrap.ChunkByteCount;
@@ -230,9 +242,10 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var algByteCount = SecureEncoding.ASCII.GetByteCount(alg);
         var saltByteCount = algByteCount + 1 + SaltInputSizeBytes;
 
-        var salt = saltByteCount <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[saltByteCount] :
-            GC.AllocateUninitializedArray<byte>(saltByteCount, pinned: false);
+        var salt =
+            saltByteCount <= JoseConstants.MaxStackAlloc
+                ? stackalloc byte[saltByteCount]
+                : GC.AllocateUninitializedArray<byte>(saltByteCount, pinned: false);
 
         var algBytesWritten = SecureEncoding.ASCII.GetBytes(alg, salt);
         Debug.Assert(algBytesWritten == algByteCount);
@@ -241,11 +254,18 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         var saltInput = salt[(algByteCount + 1)..];
         Debug.Assert(saltInput.Length == SaltInputSizeBytes);
-        var saltInputResult = Base64Url.TryDecode(saltInputString, saltInput, out var saltInputBytesWritten);
+        var saltInputResult = Base64Url.TryDecode(
+            saltInputString,
+            saltInput,
+            out var saltInputBytesWritten
+        );
         Debug.Assert(saltInputResult && saltInputBytesWritten == SaltInputSizeBytes);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: true,
+            secretKey.KeySizeBytes
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
@@ -256,13 +276,7 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         using var newKek = BufferFactory.CreatePinnedArray(KeySizeBytes);
 
-        Rfc2898DeriveBytes.Pbkdf2(
-            privateKeySpan,
-            salt,
-            newKek,
-            iterationCount,
-            HashAlgorithmName
-        );
+        Rfc2898DeriveBytes.Pbkdf2(privateKeySpan, salt, newKek, iterationCount, HashAlgorithmName);
 
         var contentKeyWriter = contentKey.GetFixedBufferWriter();
 

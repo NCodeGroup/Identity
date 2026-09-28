@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <IsPackable>false</IsPackable>
@@ -14,7 +13,7 @@
         <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="jose-jwt" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="Moq"/>
+        <PackageReference Include="Moq" />
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -27,9 +26,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity\NCode.Identity.csproj"/>
-        <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj"/>
-        <ProjectReference Include="..\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj"/>
+        <ProjectReference Include="..\NCode.Identity\NCode.Identity.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj" />
     </ItemGroup>
-
 </Project>

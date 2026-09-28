@@ -39,7 +39,8 @@ public class AuthorizationRequest : IAuthorizationRequest
     public AuthorizationRequest(
         bool isContinuation,
         IAuthorizationRequestMessage requestMessage,
-        IAuthorizationRequestObject? requestObject)
+        IAuthorizationRequestObject? requestObject
+    )
     {
         IsContinuation = isContinuation;
         OriginalRequestMessage = requestMessage;
@@ -57,20 +58,22 @@ public class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestObject = other.OriginalRequestObject?.Clone();
     }
 
-    private static IReadOnlyList<T> Coalesce<T>(IReadOnlyList<T>? first, IReadOnlyList<T>? second) =>
-        first ?? second ?? [];
+    private static IReadOnlyList<T> Coalesce<T>(
+        IReadOnlyList<T>? first,
+        IReadOnlyList<T>? second
+    ) => first ?? second ?? [];
 
     private static string DetermineGrantType(IReadOnlyCollection<string> responseTypes) =>
-        responseTypes.Contains(OpenIdConstants.ResponseTypes.Code) ?
-            responseTypes.Count == 1 ?
-                OpenIdConstants.GrantTypes.AuthorizationCode :
-                OpenIdConstants.GrantTypes.Hybrid :
-            OpenIdConstants.GrantTypes.Implicit;
+        responseTypes.Contains(OpenIdConstants.ResponseTypes.Code)
+            ? responseTypes.Count == 1
+                ? OpenIdConstants.GrantTypes.AuthorizationCode
+                : OpenIdConstants.GrantTypes.Hybrid
+            : OpenIdConstants.GrantTypes.Implicit;
 
     private static string DetermineDefaultResponseMode(string grantType) =>
-        grantType == OpenIdConstants.GrantTypes.AuthorizationCode ?
-            OpenIdConstants.ResponseModes.Query :
-            OpenIdConstants.ResponseModes.Fragment;
+        grantType == OpenIdConstants.GrantTypes.AuthorizationCode
+            ? OpenIdConstants.ResponseModes.Query
+            : OpenIdConstants.ResponseModes.Fragment;
 
     /// <inheritdoc />
     public string AuthorizationSourceType => AuthorizationSourceTypes.Union;
@@ -82,12 +85,12 @@ public class AuthorizationRequest : IAuthorizationRequest
     public IParameterCollection Parameters => ParametersOrNull ??= ComposeParameters();
 
     private IParameterCollection ComposeParameters() =>
-        OriginalRequestObject is not null ?
-            new CompositeParameterCollection(
+        OriginalRequestObject is not null
+            ? new CompositeParameterCollection(
                 OriginalRequestObject.Parameters,
                 OriginalRequestMessage.Parameters
-            ) :
-            OriginalRequestMessage.Parameters;
+            )
+            : OriginalRequestMessage.Parameters;
 
     /// <inheritdoc />
     public bool IsContinuation { get; set; }
@@ -107,120 +110,93 @@ public class AuthorizationRequest : IAuthorizationRequest
      */
 
     /// <inheritdoc />
-    public IReadOnlyList<string> AcrValues => Coalesce(
-        OriginalRequestObject?.AcrValues,
-        OriginalRequestMessage.AcrValues
-    );
+    public IReadOnlyList<string> AcrValues =>
+        Coalesce(OriginalRequestObject?.AcrValues, OriginalRequestMessage.AcrValues);
 
     /// <inheritdoc />
-    public IRequestClaims? Claims =>
-        OriginalRequestObject?.Claims ??
-        OriginalRequestMessage.Claims;
+    public IRequestClaims? Claims => OriginalRequestObject?.Claims ?? OriginalRequestMessage.Claims;
 
     /// <inheritdoc />
-    public IReadOnlyList<string> ClaimsLocales => Coalesce(
-        OriginalRequestObject?.ClaimsLocales,
-        OriginalRequestMessage.ClaimsLocales
-    );
+    public IReadOnlyList<string> ClaimsLocales =>
+        Coalesce(OriginalRequestObject?.ClaimsLocales, OriginalRequestMessage.ClaimsLocales);
 
     /// <inheritdoc />
     public string ClientId =>
-        OriginalRequestObject?.ClientId ??
-        OriginalRequestMessage.ClientId ??
-        throw OpenIdEnvironment
-            .ErrorFactory
-            .MissingParameter(OpenIdConstants.Parameters.ClientId)
+        OriginalRequestObject?.ClientId
+        ?? OriginalRequestMessage.ClientId
+        ?? throw OpenIdEnvironment
+            .ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ClientId)
             .AsException();
 
     /// <inheritdoc />
     public string? CodeChallenge =>
-        OriginalRequestObject?.CodeChallenge ??
-        OriginalRequestMessage.CodeChallenge;
+        OriginalRequestObject?.CodeChallenge ?? OriginalRequestMessage.CodeChallenge;
 
     /// <inheritdoc />
     public string CodeChallengeMethod =>
-        OriginalRequestObject?.CodeChallengeMethod ??
-        OriginalRequestMessage.CodeChallengeMethod ??
-        OpenIdConstants.CodeChallengeMethods.Plain;
+        OriginalRequestObject?.CodeChallengeMethod
+        ?? OriginalRequestMessage.CodeChallengeMethod
+        ?? OpenIdConstants.CodeChallengeMethods.Plain;
 
     /// <inheritdoc />
     public string? CodeVerifier =>
-        OriginalRequestObject?.CodeVerifier ??
-        OriginalRequestMessage.CodeVerifier;
+        OriginalRequestObject?.CodeVerifier ?? OriginalRequestMessage.CodeVerifier;
 
     /// <inheritdoc />
     public string DisplayType =>
-        OriginalRequestObject?.DisplayType ??
-        OriginalRequestMessage.DisplayType ??
-        OpenIdConstants.DisplayTypes.Page;
+        OriginalRequestObject?.DisplayType
+        ?? OriginalRequestMessage.DisplayType
+        ?? OpenIdConstants.DisplayTypes.Page;
 
     /// <inheritdoc />
-    public string GrantType =>
-        DetermineGrantType(ResponseTypes);
+    public string GrantType => DetermineGrantType(ResponseTypes);
 
     /// <inheritdoc />
     public string? IdTokenHint =>
-        OriginalRequestObject?.IdTokenHint ??
-        OriginalRequestMessage.IdTokenHint;
+        OriginalRequestObject?.IdTokenHint ?? OriginalRequestMessage.IdTokenHint;
 
     /// <inheritdoc />
     public string? LoginHint =>
-        OriginalRequestObject?.LoginHint ??
-        OriginalRequestMessage.LoginHint;
+        OriginalRequestObject?.LoginHint ?? OriginalRequestMessage.LoginHint;
 
     /// <inheritdoc />
-    public TimeSpan? MaxAge =>
-        OriginalRequestObject?.MaxAge ??
-        OriginalRequestMessage.MaxAge;
+    public TimeSpan? MaxAge => OriginalRequestObject?.MaxAge ?? OriginalRequestMessage.MaxAge;
 
     /// <inheritdoc />
-    public string? Nonce =>
-        OriginalRequestObject?.Nonce ??
-        OriginalRequestMessage.Nonce;
+    public string? Nonce => OriginalRequestObject?.Nonce ?? OriginalRequestMessage.Nonce;
 
     /// <inheritdoc />
-    public IReadOnlyList<string> PromptTypes => Coalesce(
-        OriginalRequestObject?.PromptTypes,
-        OriginalRequestMessage.PromptTypes
-    );
+    public IReadOnlyList<string> PromptTypes =>
+        Coalesce(OriginalRequestObject?.PromptTypes, OriginalRequestMessage.PromptTypes);
 
     /// <inheritdoc />
     public Uri RedirectUri =>
-        OriginalRequestObject?.RedirectUri ??
-        OriginalRequestMessage.RedirectUri ??
-        throw OpenIdEnvironment
-            .ErrorFactory
-            .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+        OriginalRequestObject?.RedirectUri
+        ?? OriginalRequestMessage.RedirectUri
+        ?? throw OpenIdEnvironment
+            .ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri)
             .AsException();
 
     /// <inheritdoc />
     public string ResponseMode =>
-        OriginalRequestObject?.ResponseMode ??
-        OriginalRequestMessage.ResponseMode ??
-        DetermineDefaultResponseMode(GrantType);
+        OriginalRequestObject?.ResponseMode
+        ?? OriginalRequestMessage.ResponseMode
+        ?? DetermineDefaultResponseMode(GrantType);
 
     /// <inheritdoc />
-    public IReadOnlyList<string> ResponseTypes => Coalesce(
-        OriginalRequestObject?.ResponseTypes,
-        OriginalRequestMessage.ResponseTypes
-    );
+    public IReadOnlyList<string> ResponseTypes =>
+        Coalesce(OriginalRequestObject?.ResponseTypes, OriginalRequestMessage.ResponseTypes);
 
     /// <inheritdoc />
-    public IReadOnlyList<string> Scopes => Coalesce(
-        OriginalRequestObject?.Scopes,
-        OriginalRequestMessage.Scopes
-    );
+    public IReadOnlyList<string> Scopes =>
+        Coalesce(OriginalRequestObject?.Scopes, OriginalRequestMessage.Scopes);
 
     /// <inheritdoc />
-    public string? State =>
-        OriginalRequestObject?.State ??
-        OriginalRequestMessage.State;
+    public string? State => OriginalRequestObject?.State ?? OriginalRequestMessage.State;
 
     /// <inheritdoc />
-    public IReadOnlyList<string> UiLocales => Coalesce(
-        OriginalRequestObject?.UiLocales,
-        OriginalRequestMessage.UiLocales
-    );
+    public IReadOnlyList<string> UiLocales =>
+        Coalesce(OriginalRequestObject?.UiLocales, OriginalRequestMessage.UiLocales);
 
     /// <inheritdoc />
     public IAuthorizationRequest Clone() => new AuthorizationRequest(this);

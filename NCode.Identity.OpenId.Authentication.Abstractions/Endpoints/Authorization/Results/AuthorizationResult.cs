@@ -62,7 +62,12 @@ public class AuthorizationResult : IResult, ISupportOpenIdError
         Debug.Assert(ticket.State is not null);
     }
 
-    private AuthorizationResult(Uri redirectUri, string responseMode, IOpenIdError? error, IAuthorizationTicket? ticket)
+    private AuthorizationResult(
+        Uri redirectUri,
+        string responseMode,
+        IOpenIdError? error,
+        IAuthorizationTicket? ticket
+    )
     {
         RedirectUri = redirectUri;
         ResponseMode = responseMode;
@@ -101,7 +106,9 @@ public class AuthorizationResult : IResult, ISupportOpenIdError
     /// <inheritdoc />
     public async Task ExecuteAsync(HttpContext httpContext)
     {
-        var executor = httpContext.RequestServices.GetRequiredService<IResultExecutor<AuthorizationResult>>();
+        var executor = httpContext.RequestServices.GetRequiredService<
+            IResultExecutor<AuthorizationResult>
+        >();
         await executor.ExecuteAsync(httpContext, this, httpContext.RequestAborted);
     }
 }

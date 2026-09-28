@@ -52,20 +52,22 @@ public class GrantStore(
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedGrant
-        {
-            GrantType = entity.GrantType,
-            HashedKey = entity.HashedKey,
-            ConcurrencyToken = entity.ConcurrencyToken,
-            TenantId = entity.Tenant?.TenantId,
-            ClientId = entity.Client?.ClientId,
-            SubjectId = entity.SubjectId,
-            CreatedWhen = entity.CreatedWhen,
-            ExpiresWhen = entity.ExpiresWhen,
-            RevokedWhen = entity.RevokedWhen,
-            ConsumedWhen = entity.ConsumedWhen,
-            PayloadJson = entity.PayloadJson,
-        });
+        return ValueTask.FromResult(
+            new PersistedGrant
+            {
+                GrantType = entity.GrantType,
+                HashedKey = entity.HashedKey,
+                ConcurrencyToken = entity.ConcurrencyToken,
+                TenantId = entity.Tenant?.TenantId,
+                ClientId = entity.Client?.ClientId,
+                SubjectId = entity.SubjectId,
+                CreatedWhen = entity.CreatedWhen,
+                ExpiresWhen = entity.ExpiresWhen,
+                RevokedWhen = entity.RevokedWhen,
+                ConsumedWhen = entity.ConsumedWhen,
+                PayloadJson = entity.PayloadJson,
+            }
+        );
     }
 
     /// <inheritdoc />
@@ -74,8 +76,8 @@ public class GrantStore(
         CancellationToken cancellationToken
     )
     {
-        return await DbContext.Grants
-            .Include(entity => entity.Tenant)
+        return await DbContext
+            .Grants.Include(entity => entity.Tenant)
             .Include(entity => entity.Client)
             .SingleOrDefaultAsync(predicate, cancellationToken);
     }
@@ -88,9 +90,7 @@ public class GrantStore(
     )
     {
         var grantEntity = await GetEntityOrDefaultAsync(
-            entity =>
-                entity.GrantType == grantType &&
-                entity.HashedKey == hashedKey,
+            entity => entity.GrantType == grantType && entity.HashedKey == hashedKey,
             cancellationToken
         );
 
@@ -111,7 +111,10 @@ public class GrantStore(
         TenantEntity? tenantEntity = null;
         if (!string.IsNullOrEmpty(persistedGrant.TenantId))
         {
-            tenantEntity = await GetTenantEntityOrDefaultAsync(persistedGrant.TenantId, cancellationToken);
+            tenantEntity = await GetTenantEntityOrDefaultAsync(
+                persistedGrant.TenantId,
+                cancellationToken
+            );
         }
 
         ClientEntity? clientEntity = null;
@@ -119,19 +122,23 @@ public class GrantStore(
         {
             if (tenantEntity is null)
             {
-                throw new InvalidOperationException("TenantId is required when ClientId is specified.");
+                throw new InvalidOperationException(
+                    "TenantId is required when ClientId is specified."
+                );
             }
 
             var normalizedClientId = Normalize(persistedGrant.ClientId);
             clientEntity = await DbContext.Clients.FirstOrDefaultAsync(
                 entity =>
-                    entity.TenantId == tenantEntity.Id &&
-                    entity.NormalizedClientId == normalizedClientId,
+                    entity.TenantId == tenantEntity.Id
+                    && entity.NormalizedClientId == normalizedClientId,
                 cancellationToken
             );
 
             if (clientEntity is null)
-                throw new InvalidOperationException($"Client '{persistedGrant.ClientId}' not found.");
+                throw new InvalidOperationException(
+                    $"Client '{persistedGrant.ClientId}' not found."
+                );
         }
 
         persistedGrant.ConcurrencyToken = NextConcurrencyToken();
@@ -152,7 +159,7 @@ public class GrantStore(
             ConsumedWhen = persistedGrant.ConsumedWhen?.ToUniversalTime(),
             PayloadJson = persistedGrant.PayloadJson,
             Tenant = tenantEntity,
-            Client = clientEntity
+            Client = clientEntity,
         };
 
         await DbContext.Grants.AddAsync(grantEntity, cancellationToken);
@@ -166,8 +173,8 @@ public class GrantStore(
     {
         var grantEntity = await GetEntityOrDefaultAsync(
             entity =>
-                entity.GrantType == persistedGrant.GrantType &&
-                entity.HashedKey == persistedGrant.HashedKey,
+                entity.GrantType == persistedGrant.GrantType
+                && entity.HashedKey == persistedGrant.HashedKey,
             cancellationToken
         );
 
@@ -176,7 +183,13 @@ public class GrantStore(
             throw new InvalidOperationException("The specified grant was not found.");
         }
 
-        if (!string.Equals(persistedGrant.ConcurrencyToken, grantEntity.ConcurrencyToken, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                persistedGrant.ConcurrencyToken,
+                grantEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
         {
             throw new DbUpdateConcurrencyException(
                 "The OpenId Grant has been modified by another process. Please reload and try again."

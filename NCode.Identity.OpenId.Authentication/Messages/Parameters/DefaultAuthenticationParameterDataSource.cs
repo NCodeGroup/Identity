@@ -25,9 +25,8 @@ namespace NCode.Identity.OpenId.Authentication.Messages.Parameters;
 /// <summary>
 /// Provides the default implementation for a data source collection of <see cref="KnownParameter"/> instances supported by this library.
 /// </summary>
-public class DefaultAuthenticationParameterDataSource(
-    INullChangeToken nullChangeToken
-) : ICollectionDataSource<KnownParameter>
+public class DefaultAuthenticationParameterDataSource(INullChangeToken nullChangeToken)
+    : ICollectionDataSource<KnownParameter>
 {
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 
@@ -41,14 +40,12 @@ public class DefaultAuthenticationParameterDataSource(
         {
             var type = typeof(OpenIdAuthenticationParameters);
 
-            var fromFields = type
-                .GetFields()
+            var fromFields = type.GetFields()
                 .Where(x => typeof(KnownParameter).IsAssignableFrom(x.FieldType))
                 .Select(x => x.GetValue(null))
                 .OfType<KnownParameter>();
 
-            var fromProperties = type
-                .GetProperties()
+            var fromProperties = type.GetProperties()
                 .Where(x => typeof(KnownParameter).IsAssignableFrom(x.PropertyType) && x.CanRead)
                 .Select(x => x.GetValue(null))
                 .OfType<KnownParameter>();

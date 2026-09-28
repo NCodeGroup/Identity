@@ -42,7 +42,11 @@ public class DefaultAesKeyWrapTests
     [InlineData(16 + 8, 24 + 8, 3)]
     [InlineData(16 + 16, 24 + 16, 4)]
     [InlineData(16 + 24, 24 + 24, 5)]
-    public void GetCipherTextSizeBytes_Valid(int contentKeySizeBytes, int expectedResult, int expectedBlocks)
+    public void GetCipherTextSizeBytes_Valid(
+        int contentKeySizeBytes,
+        int expectedResult,
+        int expectedBlocks
+    )
     {
         var result = DefaultAesKeyWrap.GetCipherTextSizeBytes(contentKeySizeBytes, out var blocks);
         Assert.Equal(expectedResult, result);
@@ -55,7 +59,8 @@ public class DefaultAesKeyWrapTests
         const int contentKeySizeBytes = 16 - 1;
 
         var exception = Assert.Throws<JoseException>(() =>
-            DefaultAesKeyWrap.GetCipherTextSizeBytes(contentKeySizeBytes, out _));
+            DefaultAesKeyWrap.GetCipherTextSizeBytes(contentKeySizeBytes, out _)
+        );
 
         Assert.Equal("The CEK must be at least 128 bits.", exception.Message);
     }
@@ -66,7 +71,8 @@ public class DefaultAesKeyWrapTests
         const int contentKeySizeBytes = 16 + 1;
 
         var exception = Assert.Throws<JoseException>(() =>
-            DefaultAesKeyWrap.GetCipherTextSizeBytes(contentKeySizeBytes, out _));
+            DefaultAesKeyWrap.GetCipherTextSizeBytes(contentKeySizeBytes, out _)
+        );
 
         Assert.Equal("The CEK must be a multiple of 64 bits.", exception.Message);
     }
@@ -76,9 +82,16 @@ public class DefaultAesKeyWrapTests
     [InlineData(16 + 8, 8 + 8, 2)]
     [InlineData(16 + 16, 8 + 16, 3)]
     [InlineData(16 + 24, 8 + 24, 4)]
-    public void GetUnwrapKeySizeBytes_Valid(int encryptedContentKeySizeBytes, int expectedResult, int expectedBlocks)
+    public void GetUnwrapKeySizeBytes_Valid(
+        int encryptedContentKeySizeBytes,
+        int expectedResult,
+        int expectedBlocks
+    )
     {
-        var result = DefaultAesKeyWrap.GetUnwrapKeySizeBytes(encryptedContentKeySizeBytes, out var blocks);
+        var result = DefaultAesKeyWrap.GetUnwrapKeySizeBytes(
+            encryptedContentKeySizeBytes,
+            out var blocks
+        );
         Assert.Equal(expectedResult, result);
         Assert.Equal(expectedBlocks, blocks);
     }

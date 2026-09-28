@@ -1,37 +1,37 @@
 <Solution>
-  <Configurations>
-    <Platform Name="Any CPU" />
-    <Platform Name="x64" />
-    <Platform Name="x86" />
-  </Configurations>
-  <Folder Name="/Solution Items/">
-    <File Path=".editorconfig" />
-    <File Path="README.md" />
-  </Folder>
-  <Project Path="NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
-  <Project Path="NCode.Identity.Jose.Abstractions/NCode.Identity.Jose.Abstractions.csproj" />
-  <Project Path="NCode.Identity.Jose.Tests/NCode.Identity.Jose.Tests.csproj" />
-  <Project Path="NCode.Identity.Jose/NCode.Identity.Jose.csproj" />
-  <Project Path="NCode.Identity.JsonWebTokens/NCode.Identity.JsonWebTokens.csproj" />
-  <Project Path="NCode.Identity.OpenId.Abstractions/NCode.Identity.OpenId.Abstractions.csproj" />
-  <Project Path="NCode.Identity.OpenId.Authentication.Abstractions/NCode.Identity.OpenId.Authentication.Abstractions.csproj" />
-  <Project Path="NCode.Identity.OpenId.Authentication/NCode.Identity.OpenId.Authentication.csproj" />
-  <Project Path="NCode.Identity.OpenId.Core.Tests/NCode.Identity.OpenId.Core.Tests.csproj" />
-  <Project Path="NCode.Identity.OpenId.Core/NCode.Identity.OpenId.Core.csproj" />
-  <Project Path="NCode.Identity.OpenId.IntegrationTests/NCode.Identity.OpenId.IntegrationTests.csproj" />
-  <Project Path="NCode.Identity.OpenId.Management/NCode.Identity.OpenId.Management.csproj" />
-  <Project Path="NCode.Identity.OpenId.Messages.Abstractions/NCode.Identity.OpenId.Messages.Abstractions.csproj" />
-  <Project Path="NCode.Identity.OpenId.Persistence.Abstractions/NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
-  <Project Path="NCode.Identity.OpenId.Persistence.EntityFramework/NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />
-  <Project Path="NCode.Identity.OpenId.Persistence/NCode.Identity.OpenId.Persistence.csproj" />
-  <Project Path="NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj" />
-  <Project Path="NCode.Identity.Persistence.Abstractions/NCode.Identity.Persistence.Abstractions.csproj" />
-  <Project Path="NCode.Identity.Secrets.Abstractions/NCode.Identity.Secrets.Abstractions.csproj" />
-  <Project Path="NCode.Identity.Secrets.Persistence.Abstractions/NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
-  <Project Path="NCode.Identity.Secrets.Persistence/NCode.Identity.Secrets.Persistence.csproj" />
-  <Project Path="NCode.Identity.Secrets/NCode.Identity.Secrets.csproj" />
-  <Project Path="NCode.Identity.Server/NCode.Identity.Server.csproj" />
-  <Project Path="NCode.Identity/NCode.Identity.csproj" />
-  <Project Path="NCode.Persistence.Abstractions/NCode.Persistence.Abstractions.csproj" />
-  <Project Path="NCode.Registration/NCode.Registration.csproj" />
+    <Configurations>
+        <Platform Name="Any CPU" />
+        <Platform Name="x64" />
+        <Platform Name="x86" />
+    </Configurations>
+    <Folder Name="/Solution Items/">
+        <File Path=".editorconfig" />
+        <File Path="README.md" />
+    </Folder>
+    <Project Path="NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
+    <Project Path="NCode.Identity.Jose.Abstractions/NCode.Identity.Jose.Abstractions.csproj" />
+    <Project Path="NCode.Identity.Jose.Tests/NCode.Identity.Jose.Tests.csproj" />
+    <Project Path="NCode.Identity.Jose/NCode.Identity.Jose.csproj" />
+    <Project Path="NCode.Identity.JsonWebTokens/NCode.Identity.JsonWebTokens.csproj" />
+    <Project Path="NCode.Identity.OpenId.Abstractions/NCode.Identity.OpenId.Abstractions.csproj" />
+    <Project Path="NCode.Identity.OpenId.Authentication.Abstractions/NCode.Identity.OpenId.Authentication.Abstractions.csproj" />
+    <Project Path="NCode.Identity.OpenId.Authentication/NCode.Identity.OpenId.Authentication.csproj" />
+    <Project Path="NCode.Identity.OpenId.Core.Tests/NCode.Identity.OpenId.Core.Tests.csproj" />
+    <Project Path="NCode.Identity.OpenId.Core/NCode.Identity.OpenId.Core.csproj" />
+    <Project Path="NCode.Identity.OpenId.IntegrationTests/NCode.Identity.OpenId.IntegrationTests.csproj" />
+    <Project Path="NCode.Identity.OpenId.Management/NCode.Identity.OpenId.Management.csproj" />
+    <Project Path="NCode.Identity.OpenId.Messages.Abstractions/NCode.Identity.OpenId.Messages.Abstractions.csproj" />
+    <Project Path="NCode.Identity.OpenId.Persistence.Abstractions/NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
+    <Project Path="NCode.Identity.OpenId.Persistence.EntityFramework/NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />
+    <Project Path="NCode.Identity.OpenId.Persistence/NCode.Identity.OpenId.Persistence.csproj" />
+    <Project Path="NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj" />
+    <Project Path="NCode.Identity.Persistence.Abstractions/NCode.Identity.Persistence.Abstractions.csproj" />
+    <Project Path="NCode.Identity.Secrets.Abstractions/NCode.Identity.Secrets.Abstractions.csproj" />
+    <Project Path="NCode.Identity.Secrets.Persistence.Abstractions/NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
+    <Project Path="NCode.Identity.Secrets.Persistence/NCode.Identity.Secrets.Persistence.csproj" />
+    <Project Path="NCode.Identity.Secrets/NCode.Identity.Secrets.csproj" />
+    <Project Path="NCode.Identity.Server/NCode.Identity.Server.csproj" />
+    <Project Path="NCode.Identity/NCode.Identity.csproj" />
+    <Project Path="NCode.Persistence.Abstractions/NCode.Persistence.Abstractions.csproj" />
+    <Project Path="NCode.Registration/NCode.Registration.csproj" />
 </Solution>

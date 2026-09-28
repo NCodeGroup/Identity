@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <IsPackable>false</IsPackable>
@@ -28,5 +27,4 @@
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.OpenId.Playground\NCode.Identity.OpenId.Playground.csproj" />
     </ItemGroup>
-
 </Project>

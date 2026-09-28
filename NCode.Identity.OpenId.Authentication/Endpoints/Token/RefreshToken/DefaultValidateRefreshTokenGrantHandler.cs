@@ -34,7 +34,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 /// Provides a default implementation of handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="RefreshTokenGrant"/>.
 /// </summary>
-public class DefaultValidateRefreshTokenGrantHandler : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>, ISupportMediatorPriority
+public class DefaultValidateRefreshTokenGrantHandler
+    : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>,
+        ISupportMediatorPriority
 {
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -59,7 +61,11 @@ public class DefaultValidateRefreshTokenGrantHandler : ICommandHandler<ValidateT
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException("The refresh token belongs to a different client.");
 
-        if (!settings.GetValue(OpenIdSettingKeys.ScopesSupported).Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (
+            !settings
+                .GetValue(OpenIdSettingKeys.ScopesSupported)
+                .Contains(OpenIdConstants.ScopeTypes.OfflineAccess)
+        )
             throw errorFactory
                 .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
@@ -75,12 +81,17 @@ public class DefaultValidateRefreshTokenGrantHandler : ICommandHandler<ValidateT
             throw errorFactory
                 .InvalidScope()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException("The requested scope exceeds the scope granted by the resource owner.");
+                .AsException(
+                    "The requested scope exceeds the scope granted by the resource owner."
+                );
 
         // scopes_supported
-        var hasInvalidScopes = effectiveScopes.Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported)).Any();
+        var hasInvalidScopes = effectiveScopes
+            .Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported))
+            .Any();
         if (hasInvalidScopes)
-            throw errorFactory.InvalidScope()
+            throw errorFactory
+                .InvalidScope()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
@@ -121,8 +132,8 @@ public class DefaultValidateRefreshTokenGrantHandler : ICommandHandler<ValidateT
 
         if (operationDisposition.HasError)
         {
-            throw operationDisposition.Error
-                .WithStatusCode(StatusCodes.Status400BadRequest)
+            throw operationDisposition
+                .Error.WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
     }

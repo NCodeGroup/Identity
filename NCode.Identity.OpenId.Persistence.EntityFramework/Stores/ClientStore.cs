@@ -57,13 +57,15 @@ public class ClientStore(
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedClientSettings
-        {
-            TenantId = clientEntity.Tenant.TenantId,
-            ClientId = clientEntity.ClientId,
-            ConcurrencyToken = clientEntity.SettingsConcurrencyToken,
-            Value = clientEntity.SettingsJson
-        });
+        return ValueTask.FromResult(
+            new PersistedClientSettings
+            {
+                TenantId = clientEntity.Tenant.TenantId,
+                ClientId = clientEntity.ClientId,
+                ConcurrencyToken = clientEntity.SettingsConcurrencyToken,
+                Value = clientEntity.SettingsJson,
+            }
+        );
     }
 
     /// <summary>
@@ -77,13 +79,15 @@ public class ClientStore(
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedClientSecrets
-        {
-            TenantId = clientEntity.Tenant.TenantId,
-            ClientId = clientEntity.ClientId,
-            ConcurrencyToken = clientEntity.SecretsConcurrencyToken,
-            Value = MapToPersistedSecrets(clientEntity.Secrets),
-        });
+        return ValueTask.FromResult(
+            new PersistedClientSecrets
+            {
+                TenantId = clientEntity.Tenant.TenantId,
+                ClientId = clientEntity.ClientId,
+                ConcurrencyToken = clientEntity.SecretsConcurrencyToken,
+                Value = MapToPersistedSecrets(clientEntity.Secrets),
+            }
+        );
     }
 
     /// <inheritdoc />
@@ -99,7 +103,7 @@ public class ClientStore(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             Settings = await MapSettingsAsync(client, cancellationToken),
-            Secrets = await MapSecretsAsync(client, cancellationToken)
+            Secrets = await MapSecretsAsync(client, cancellationToken),
         };
     }
 
@@ -109,10 +113,10 @@ public class ClientStore(
         CancellationToken cancellationToken
     )
     {
-        return await DbContext.Clients
-            .Include(client => client.Tenant)
+        return await DbContext
+            .Clients.Include(client => client.Tenant)
             .Include(client => client.Secrets)
-            .ThenInclude(clientSecret => clientSecret.Secret)
+                .ThenInclude(clientSecret => clientSecret.Secret)
             .FirstOrDefaultAsync(predicate, cancellationToken);
     }
 
@@ -155,7 +159,7 @@ public class ClientStore(
             IsDisabled = persistedClient.IsDisabled,
             SettingsJson = persistedClient.Settings.Value,
             Tenant = tenantEntity,
-            Secrets = secrets
+            Secrets = secrets,
         };
 
         foreach (var persistedSecret in persistedClient.Secrets.Value)
@@ -197,7 +201,13 @@ public class ClientStore(
         var clientId = persistedClient.ClientId;
         var clientEntity = await GetEntityAsync(clientId, cancellationToken);
 
-        if (!string.Equals(persistedClient.ConcurrencyToken, clientEntity.ConcurrencyToken, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                persistedClient.ConcurrencyToken,
+                clientEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
         {
             throw new DbUpdateConcurrencyException(
                 $"The OpenId Client with ClientId='{clientId}' has been modified by another process. Please reload and try again."
@@ -223,7 +233,13 @@ public class ClientStore(
         var clientId = persistedClientSettings.ClientId;
         var clientEntity = await GetEntityAsync(clientId, cancellationToken);
 
-        if (!string.Equals(persistedClientSettings.ConcurrencyToken, clientEntity.SettingsConcurrencyToken, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                persistedClientSettings.ConcurrencyToken,
+                clientEntity.SettingsConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
         {
             throw new DbUpdateConcurrencyException(
                 $"The settings for OpenId Client with ClientId='{clientId}' have been modified by another process. Please reload and try again."

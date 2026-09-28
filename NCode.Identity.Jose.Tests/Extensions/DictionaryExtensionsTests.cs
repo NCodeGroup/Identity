@@ -29,10 +29,7 @@ public class DictionaryExtensionsTests
         const string key = nameof(key);
 
         var expected = DateTime.Now;
-        var dictionary = new Dictionary<string, object>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object> { [key] = expected };
 
         var exists = dictionary.TryGetValue<DateTime>(key, out var value);
         Assert.True(exists);
@@ -45,10 +42,7 @@ public class DictionaryExtensionsTests
         const string key = nameof(key);
 
         var expected = DateTime.Now;
-        var dictionary = new Dictionary<string, object>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object> { [key] = expected };
 
         var exists = dictionary.TryGetValue<DateTime?>(key, out var value);
         Assert.True(exists);
@@ -61,10 +55,7 @@ public class DictionaryExtensionsTests
         const string key = nameof(key);
         const string otherKey = nameof(otherKey);
 
-        var dictionary = new Dictionary<string, object>
-        {
-            [key] = DateTime.Now
-        };
+        var dictionary = new Dictionary<string, object> { [key] = DateTime.Now };
 
         var exists = dictionary.TryGetValue<DateTime>(otherKey, out var value);
         Assert.False(exists);
@@ -76,10 +67,7 @@ public class DictionaryExtensionsTests
     {
         const string key = nameof(key);
 
-        var dictionary = new Dictionary<string, object>
-        {
-            [key] = DateTime.Now
-        };
+        var dictionary = new Dictionary<string, object> { [key] = DateTime.Now };
 
         var exists = dictionary.TryGetValue<int>(key, out var value);
         Assert.False(exists);

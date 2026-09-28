@@ -48,11 +48,12 @@ public class DefaultAuthorizationCodeGrantHandler(
     private ITokenService TokenService { get; } = tokenService;
 
     /// <inheritdoc />
-    public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
-    {
-        OpenIdConstants.GrantTypes.AuthorizationCode,
-        OpenIdConstants.GrantTypes.Hybrid
-    };
+    public IReadOnlySet<string> GrantTypes { get; } =
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            OpenIdConstants.GrantTypes.AuthorizationCode,
+            OpenIdConstants.GrantTypes.Hybrid,
+        };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -78,11 +79,12 @@ public class DefaultAuthorizationCodeGrantHandler(
             authorizationCode
         );
 
-        var persistedGrantOrNull = await PersistedGrantService.ConsumeOnceOrDefault<AuthorizationGrant>(
-            openIdContext,
-            persistedGrantId,
-            cancellationToken
-        );
+        var persistedGrantOrNull =
+            await PersistedGrantService.ConsumeOnceOrDefault<AuthorizationGrant>(
+                openIdContext,
+                persistedGrantId,
+                cancellationToken
+            );
 
         if (!persistedGrantOrNull.HasValue)
             return errorFactory
@@ -142,7 +144,7 @@ public class DefaultAuthorizationCodeGrantHandler(
             OriginalScopes = originalScopes,
             EffectiveScopes = effectiveScopes,
             AuthorizationCode = tokenRequest.AuthorizationCode,
-            SubjectAuthentication = subjectAuthentication
+            SubjectAuthentication = subjectAuthentication,
         };
 
         // TODO: in order to support the 'claims' parameter, we need to somehow
@@ -164,10 +166,7 @@ public class DefaultAuthorizationCodeGrantHandler(
 
         if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
         {
-            var newRequest = securityTokenRequest with
-            {
-                AccessToken = tokenResponse.AccessToken
-            };
+            var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
             var securityToken = await TokenService.CreateIdTokenAsync(
                 openIdContext,
@@ -181,10 +180,7 @@ public class DefaultAuthorizationCodeGrantHandler(
 
         if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
         {
-            var newRequest = securityTokenRequest with
-            {
-                AccessToken = tokenResponse.AccessToken
-            };
+            var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
             var securityToken = await TokenService.CreateRefreshTokenAsync(
                 openIdContext,

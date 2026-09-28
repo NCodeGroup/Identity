@@ -31,7 +31,8 @@ public class PositiveIsActiveResult : IsActiveResult
     /// Initializes a new instance of the <see cref="PositiveIsActiveResult"/> class
     /// with <see cref="IsActiveResult.IsActive"/> initially set to <c>true</c>.
     /// </summary>
-    public PositiveIsActiveResult() : base(initial: true)
+    public PositiveIsActiveResult()
+        : base(initial: true)
     {
         // nothing
     }

@@ -40,10 +40,7 @@ public interface ICryptoService
     /// <param name="data">The binary data to encode.</param>
     /// <param name="binaryEncodingType">Specifies how to encode the binary data as a string.</param>
     /// <returns>The binary data encoded as a string.</returns>
-    string EncodeBinary(
-        ReadOnlySpan<byte> data,
-        BinaryEncodingType binaryEncodingType
-    );
+    string EncodeBinary(ReadOnlySpan<byte> data, BinaryEncodingType binaryEncodingType);
 
     /// <summary>
     /// Generates a random key of the specified length and returns an encoded string of the key.
@@ -51,10 +48,7 @@ public interface ICryptoService
     /// <param name="byteLength">Specifies the number of random bytes to generate.</param>
     /// <param name="binaryEncodingType">Specifies how to encode the binary data as a string.</param>
     /// <returns>The newly generated random bytes encoded as a string.</returns>
-    string GenerateKey(
-        int byteLength,
-        BinaryEncodingType binaryEncodingType
-    );
+    string GenerateKey(int byteLength, BinaryEncodingType binaryEncodingType);
 
     /// <summary>
     /// Hashes binary data and returns an encoded string of the hash.

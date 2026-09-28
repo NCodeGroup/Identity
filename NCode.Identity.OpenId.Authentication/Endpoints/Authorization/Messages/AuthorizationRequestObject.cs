@@ -26,9 +26,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationRequestObject"/> abstraction.
 /// </summary>
-public class AuthorizationRequestObject :
-    BaseAuthorizationRequestMessage<AuthorizationRequestObject>,
-    IAuthorizationRequestObject
+public class AuthorizationRequestObject
+    : BaseAuthorizationRequestMessage<AuthorizationRequestObject>,
+        IAuthorizationRequestObject
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizationRequestObject"/> class.
@@ -53,7 +53,11 @@ public class AuthorizationRequestObject :
     }
 
     /// <inheritdoc />
-    public AuthorizationRequestObject(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
+    public AuthorizationRequestObject(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<IParameter> parameters,
+        bool cloneParameters = false
+    )
         : base(openIdEnvironment, parameters, cloneParameters)
     {
         // nothing

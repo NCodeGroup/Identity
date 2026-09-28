@@ -1,13 +1,13 @@
 ﻿#region Copyright Preamble
-// 
+//
 //    Copyright @ 2023 NCode Group
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,9 +31,7 @@ public class AesGcmAuthenticatedEncryptionAlgorithmTests
     {
         const int cekSizeBits = -1; // dont care
 
-        var algorithm = new AesGcmAuthenticatedEncryptionAlgorithm(
-            "code",
-            cekSizeBits);
+        var algorithm = new AesGcmAuthenticatedEncryptionAlgorithm("code", cekSizeBits);
 
         var actual = algorithm.GetCipherTextSizeBytes(plainTextSizeBytes);
         Assert.Equal(expected, actual);
@@ -47,9 +45,7 @@ public class AesGcmAuthenticatedEncryptionAlgorithmTests
     {
         const int cekSizeBits = -1; // dont care
 
-        var algorithm = new AesGcmAuthenticatedEncryptionAlgorithm(
-            "code",
-            cekSizeBits);
+        var algorithm = new AesGcmAuthenticatedEncryptionAlgorithm("code", cekSizeBits);
 
         var actual = algorithm.GetMaxPlainTextSizeBytes(cipherTextSizeBytes);
         Assert.Equal(expected, actual);
@@ -76,26 +72,22 @@ public class AesGcmAuthenticatedEncryptionAlgorithmTests
         RandomNumberGenerator.Fill(associatedData);
 
         var controlAlgorithm = new AesGcmEncryption(cekSizeBits);
-        var expectedResult = controlAlgorithm.Encrypt(associatedData.ToArray(), plainText.ToArray(), cek.ToArray());
+        var expectedResult = controlAlgorithm.Encrypt(
+            associatedData.ToArray(),
+            plainText.ToArray(),
+            cek.ToArray()
+        );
         if (expectedResult is not [var nonce, var expectedCipherText, var expectedAuthTag])
         {
             throw new InvalidOperationException();
         }
 
-        var algorithm = new AesGcmAuthenticatedEncryptionAlgorithm(
-            "code",
-            cekSizeBits);
+        var algorithm = new AesGcmAuthenticatedEncryptionAlgorithm("code", cekSizeBits);
 
         Span<byte> cipherText = new byte[plainTextSizeBytes];
         Span<byte> authenticationTag = new byte[16];
 
-        algorithm.Encrypt(
-            cek,
-            nonce,
-            plainText,
-            associatedData,
-            cipherText,
-            authenticationTag);
+        algorithm.Encrypt(cek, nonce, plainText, associatedData, cipherText, authenticationTag);
 
         Assert.Equal(expectedCipherText, cipherText.ToArray());
         Assert.Equal(expectedAuthTag, authenticationTag.ToArray());
@@ -109,7 +101,8 @@ public class AesGcmAuthenticatedEncryptionAlgorithmTests
             associatedData,
             authenticationTag,
             plainTextOutput,
-            out var decryptBytesWritten);
+            out var decryptBytesWritten
+        );
 
         Assert.True(decryptResult);
         Assert.Equal(plainTextSizeBytes, decryptBytesWritten);

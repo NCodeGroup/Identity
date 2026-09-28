@@ -40,15 +40,19 @@ public static class DefaultRegistration
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationEndpoints"/>.</param>
     /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
     public static IServiceBuilder<OpenIdAuthenticationEndpoints> AddDiscoveryEndpoint(
-        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder
+    )
     {
         builder.AddEndpointProvider<DefaultDiscoveryEndpointHandler>();
 
         var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<
-            ICommandHandler<DiscoverMetadataCommand>,
-            DefaultDiscoverMetadataHandler>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<DiscoverMetadataCommand>,
+                DefaultDiscoverMetadataHandler
+            >()
+        );
 
         return builder;
     }

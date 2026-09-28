@@ -43,7 +43,10 @@ public static class HashAlgorithmNameExtensions
                 "SHA256" => 256,
                 "SHA384" => 384,
                 "SHA512" => 512,
-                _ => throw new ArgumentException($"The {hashAlgorithmName} hash algorithm is not supported.", nameof(hashAlgorithmName))
+                _ => throw new ArgumentException(
+                    $"The {hashAlgorithmName} hash algorithm is not supported.",
+                    nameof(hashAlgorithmName)
+                ),
             };
 
         /// <summary>
@@ -57,7 +60,10 @@ public static class HashAlgorithmNameExtensions
                 "SHA256" => SHA256.TryHashData,
                 "SHA384" => SHA384.TryHashData,
                 "SHA512" => SHA512.TryHashData,
-                _ => throw new ArgumentException($"The {hashAlgorithmName} hash algorithm is not supported.", nameof(hashAlgorithmName))
+                _ => throw new ArgumentException(
+                    $"The {hashAlgorithmName} hash algorithm is not supported.",
+                    nameof(hashAlgorithmName)
+                ),
             };
     }
 }

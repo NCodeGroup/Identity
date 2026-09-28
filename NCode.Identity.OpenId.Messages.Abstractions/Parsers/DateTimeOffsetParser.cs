@@ -35,8 +35,7 @@ public class DateTimeOffsetParser : ParameterParser<DateTimeOffset>
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         DateTimeOffset parsedValue
-    ) =>
-        parsedValue.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+    ) => parsedValue.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public override DateTimeOffset Parse(
@@ -52,25 +51,29 @@ public class DateTimeOffsetParser : ParameterParser<DateTimeOffset>
 
             case 0:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
+                    .ErrorFactory.MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
+                    .ErrorFactory.TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
         }
 
         var stringValue = stringValues[0];
         Debug.Assert(stringValue is not null);
 
-        if (!long.TryParse(stringValues[0], NumberStyles.None, CultureInfo.InvariantCulture, out var unixTimeSeconds))
+        if (
+            !long.TryParse(
+                stringValues[0],
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var unixTimeSeconds
+            )
+        )
         {
             throw openIdEnvironment
-                .ErrorFactory
-                .InvalidParameterValue(descriptor.ParameterName)
+                .ErrorFactory.InvalidParameterValue(descriptor.ParameterName)
                 .AsException();
         }
 

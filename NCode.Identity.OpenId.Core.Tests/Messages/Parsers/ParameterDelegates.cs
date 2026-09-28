@@ -67,6 +67,4 @@ internal delegate T ParseParameterDelegate<out T>(
 );
 
 [return: NotNullIfNotNull("value")]
-internal delegate T? CloneParameterDelegate<T>(
-    T? value
-);
+internal delegate T? CloneParameterDelegate<T>(T? value);

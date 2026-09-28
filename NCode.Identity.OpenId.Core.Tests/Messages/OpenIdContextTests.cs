@@ -67,7 +67,8 @@ public sealed class OpenIdContextTests : IDisposable
             MockOpenIdServer.Object,
             OpenIdTenantReference,
             MockMediator.Object,
-            MockPropertyBag.Object);
+            MockPropertyBag.Object
+        );
 
         Assert.Same(MockOpenIdTenant.Object, openIdContext.Tenant);
         Assert.Same(MockOpenIdServer.Object, openIdContext.Server);

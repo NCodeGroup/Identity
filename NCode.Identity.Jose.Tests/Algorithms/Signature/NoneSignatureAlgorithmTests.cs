@@ -57,7 +57,12 @@ public class NoneSignatureAlgorithmTests
     [Fact]
     public void TrySign_Valid()
     {
-        var result = Algorithm.TrySign(null!, Span<byte>.Empty, Span<byte>.Empty, out var bytesWritten);
+        var result = Algorithm.TrySign(
+            null!,
+            Span<byte>.Empty,
+            Span<byte>.Empty,
+            out var bytesWritten
+        );
         Assert.True(result);
         Assert.Equal(0, bytesWritten);
     }

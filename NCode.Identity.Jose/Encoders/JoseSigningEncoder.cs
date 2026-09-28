@@ -35,9 +35,7 @@ public class JoseSigningEncoder : CommonJoseEncoder
     /// </summary>
     /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
     /// <param name="signingOptions">The JOSE signing credentials and options.</param>
-    public JoseSigningEncoder(
-        JoseSerializer joseSerializer,
-        JoseSigningOptions signingOptions)
+    public JoseSigningEncoder(JoseSerializer joseSerializer, JoseSigningOptions signingOptions)
         : base(joseSerializer)
     {
         SigningOptions = signingOptions;
@@ -47,10 +45,6 @@ public class JoseSigningEncoder : CommonJoseEncoder
     public override void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null) =>
-        JoseSerializer.Encode(
-            tokenWriter,
-            payload,
-            SigningOptions,
-            extraHeaders);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    ) => JoseSerializer.Encode(tokenWriter, payload, SigningOptions, extraHeaders);
 }

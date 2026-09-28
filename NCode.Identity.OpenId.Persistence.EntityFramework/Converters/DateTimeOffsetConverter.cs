@@ -31,9 +31,7 @@ public class DateTimeOffsetConverter : ValueConverter<DateTimeOffset, DateTimeOf
     /// Initializes a new instance of the <see cref="DateTimeOffsetConverter"/> class.
     /// </summary>
     public DateTimeOffsetConverter()
-        : base(
-            value => value.ToUniversalTime(),
-            value => value.ToUniversalTime())
+        : base(value => value.ToUniversalTime(), value => value.ToUniversalTime())
     {
         // nothing
     }

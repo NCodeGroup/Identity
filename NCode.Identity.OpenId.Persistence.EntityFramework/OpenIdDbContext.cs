@@ -31,9 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 /// Contains the entity framework <see cref="DbContext"/> for <c>OAuth</c> and <c>OpenID Connect</c> entities.
 /// </summary>
 [PublicAPI]
-public class OpenIdDbContext(
-    DbContextOptions<OpenIdDbContext> options
-) : DbContext(options)
+public class OpenIdDbContext(DbContextOptions<OpenIdDbContext> options) : DbContext(options)
 {
     /// <summary>
     /// Gets or sets the <see cref="SecretEntity"/> entities.
@@ -78,7 +76,11 @@ public class OpenIdDbContext(
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        foreach (
+            var relationship in modelBuilder
+                .Model.GetEntityTypes()
+                .SelectMany(e => e.GetForeignKeys())
+        )
         {
             relationship.DeleteBehavior = DeleteBehavior.Restrict;
         }
@@ -93,19 +95,12 @@ public class OpenIdDbContext(
     /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
-        configurationBuilder
-            .Properties<DateTime>()
-            .HaveConversion<DateTimeConverter>();
+        configurationBuilder.Properties<DateTime>().HaveConversion<DateTimeConverter>();
 
-        configurationBuilder
-            .Properties<DateTimeOffset>()
-            .HaveConversion<DateTimeOffsetConverter>();
+        configurationBuilder.Properties<DateTimeOffset>().HaveConversion<DateTimeOffsetConverter>();
 
-        configurationBuilder
-            .Properties<JsonElement>()
-            .HaveConversion<JsonElementConverter>();
+        configurationBuilder.Properties<JsonElement>().HaveConversion<JsonElementConverter>();
 
-        configurationBuilder.Conventions.Add(_ =>
-            this.GetService<UseIdGeneratorConvention>());
+        configurationBuilder.Conventions.Add(_ => this.GetService<UseIdGeneratorConvention>());
     }
 }

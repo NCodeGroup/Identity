@@ -48,8 +48,12 @@ public class JoseSerializerTests : BaseTests
         ConfigureServices(services);
         ServiceProvider = services.BuildServiceProvider();
 
-        AlgorithmCollectionProvider = ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>();
-        MockJoseSerializer = CreatePartialMock<JoseSerializer>(Options.Create(JoseSerializerOptions), AlgorithmCollectionProvider);
+        AlgorithmCollectionProvider =
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>();
+        MockJoseSerializer = CreatePartialMock<JoseSerializer>(
+            Options.Create(JoseSerializerOptions),
+            AlgorithmCollectionProvider
+        );
         JoseSerializer = MockJoseSerializer.Object;
     }
 
@@ -78,11 +82,19 @@ public class JoseSerializerTests : BaseTests
         using var eccKey = ECDiffieHellman.Create(curve);
         var secretKey = SecretKeyFactory.CreateEcc(metadata, eccKey);
         var parameters = eccKey.ExportParameters(true);
-        var nativeKey = EccKey.New(parameters.Q.X, parameters.Q.Y, parameters.D, CngKeyUsages.KeyAgreement);
+        var nativeKey = EccKey.New(
+            parameters.Q.X,
+            parameters.Q.Y,
+            parameters.D,
+            CngKeyUsages.KeyAgreement
+        );
         return (nativeKey, secretKey);
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, JweEncryption jweEncryption)
+    private (object controlKey, SecretKey secretKey) CreateRandomEccKey(
+        string keyId,
+        JweEncryption jweEncryption
+    )
     {
         var curve = jweEncryption switch
         {
@@ -92,12 +104,15 @@ public class JoseSerializerTests : BaseTests
             JweEncryption.A128CBC_HS256 => ECCurve.NamedCurves.nistP256,
             JweEncryption.A192CBC_HS384 => ECCurve.NamedCurves.nistP384,
             JweEncryption.A256CBC_HS512 => ECCurve.NamedCurves.nistP521,
-            _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null),
         };
         return CreateRandomEccKey(keyId, curve);
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomSymmetricKey(string keyId, int bitCount)
+    private (object controlKey, SecretKey secretKey) CreateRandomSymmetricKey(
+        string keyId,
+        int bitCount
+    )
     {
         var byteCount = bitCount >> 3;
         var bytes = new byte[byteCount];
@@ -116,7 +131,10 @@ public class JoseSerializerTests : BaseTests
         return (password, secretKey);
     }
 
-    private (object? controlKey, SecretKey secretKey) CreateRandomKey(string keyId, JwsAlgorithm jwsAlgorithm)
+    private (object? controlKey, SecretKey secretKey) CreateRandomKey(
+        string keyId,
+        JwsAlgorithm jwsAlgorithm
+    )
     {
         switch (jwsAlgorithm)
         {
@@ -157,7 +175,8 @@ public class JoseSerializerTests : BaseTests
     private (object controlKey, SecretKey secretKey) CreateRandomKey(
         string keyId,
         JweAlgorithm jweAlgorithm,
-        JweEncryption jweEncryption) =>
+        JweEncryption jweEncryption
+    ) =>
         jweAlgorithm switch
         {
             JweAlgorithm.DIR => CreateRandomSymmetricKey(keyId, GetBitCount(jweEncryption)),
@@ -179,7 +198,7 @@ public class JoseSerializerTests : BaseTests
             JweAlgorithm.A192GCMKW => CreateRandomSymmetricKey(keyId, 192),
             JweAlgorithm.A256KW => CreateRandomSymmetricKey(keyId, 256),
             JweAlgorithm.A256GCMKW => CreateRandomSymmetricKey(keyId, 256),
-            _ => throw new ArgumentOutOfRangeException(nameof(jweAlgorithm), jweAlgorithm, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(jweAlgorithm), jweAlgorithm, null),
         };
 
     private static int GetBitCount(JweEncryption jweEncryption) =>
@@ -191,7 +210,7 @@ public class JoseSerializerTests : BaseTests
             JweEncryption.A128CBC_HS256 => 256,
             JweEncryption.A192CBC_HS384 => 386,
             JweEncryption.A256CBC_HS512 => 512,
-            _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null),
         };
 
     public static IEnumerable<object?[]> EncodeDecodeJweTestData
@@ -211,7 +230,11 @@ public class JoseSerializerTests : BaseTests
 
     [Theory]
     [MemberData(nameof(EncodeDecodeJweTestData))]
-    public void Encode_Jwe(JweAlgorithm jweAlgorithm, JweEncryption jweEncryption, JweCompression? jweCompression)
+    public void Encode_Jwe(
+        JweAlgorithm jweAlgorithm,
+        JweEncryption jweEncryption,
+        JweCompression? jweCompression
+    )
     {
         const string keyId = nameof(keyId);
 
@@ -221,7 +244,9 @@ public class JoseSerializerTests : BaseTests
 
         var keyManagementAlgorithmCode = controlSettings.JwaHeaderValue(jweAlgorithm);
         var encryptionAlgorithmCode = controlSettings.JweHeaderValue(jweEncryption);
-        var compressionAlgorithmCode = jweCompression.HasValue ? controlSettings.CompressionHeader(jweCompression.Value) : null;
+        var compressionAlgorithmCode = jweCompression.HasValue
+            ? controlSettings.CompressionHeader(jweCompression.Value)
+            : null;
 
         var originalPayload = new Dictionary<string, object>
         {
@@ -229,35 +254,45 @@ public class JoseSerializerTests : BaseTests
             ["key2"] = 12.34m,
             ["key3"] = "foo",
             ["key4"] = true,
-            ["key5"] = DateTimeOffset.Now
+            ["key5"] = DateTimeOffset.Now,
         };
 
         var originalExtraHeaders = new Dictionary<string, object>
         {
-            ["customHeader"] = "customValue"
+            ["customHeader"] = "customValue",
         };
 
-        if (!AlgorithmCollectionProvider.Collection.TryGetKeyManagementAlgorithm(
+        if (
+            !AlgorithmCollectionProvider.Collection.TryGetKeyManagementAlgorithm(
                 keyManagementAlgorithmCode,
-                out var keyManagementAlgorithm))
+                out var keyManagementAlgorithm
+            )
+        )
             throw new InvalidOperationException();
 
-        if (!AlgorithmCollectionProvider.Collection.TryGetAuthenticatedEncryptionAlgorithm(
+        if (
+            !AlgorithmCollectionProvider.Collection.TryGetAuthenticatedEncryptionAlgorithm(
                 encryptionAlgorithmCode,
-                out var encryptionAlgorithm))
+                out var encryptionAlgorithm
+            )
+        )
             throw new InvalidOperationException();
 
-        if (string.IsNullOrEmpty(compressionAlgorithmCode) ||
-            !AlgorithmCollectionProvider.Collection.TryGetCompressionAlgorithm(
+        if (
+            string.IsNullOrEmpty(compressionAlgorithmCode)
+            || !AlgorithmCollectionProvider.Collection.TryGetCompressionAlgorithm(
                 compressionAlgorithmCode,
-                out var compressionAlgorithm))
+                out var compressionAlgorithm
+            )
+        )
             compressionAlgorithm = null;
 
         var encryptingCredentials = new JoseEncryptionCredentials(
             secretKey,
             keyManagementAlgorithm,
             encryptionAlgorithm,
-            compressionAlgorithm);
+            compressionAlgorithm
+        );
 
         var encryptingOptions = new JoseEncryptionOptions(encryptingCredentials);
 
@@ -265,9 +300,13 @@ public class JoseSerializerTests : BaseTests
             originalPayload,
             encryptingOptions,
             JsonSerializerOptions,
-            originalExtraHeaders);
+            originalExtraHeaders
+        );
 
-        var originalJson = JsonSerializer.Serialize(originalPayload, JoseSerializerOptions.JsonSerializerOptions);
+        var originalJson = JsonSerializer.Serialize(
+            originalPayload,
+            JoseSerializerOptions.JsonSerializerOptions
+        );
         var deserializedJson = JWT.Decode(token, controlKey);
         var deserializedHeaders = JWT.Headers(token);
         Assert.Equal(originalJson, deserializedJson);
@@ -306,16 +345,33 @@ public class JoseSerializerTests : BaseTests
 
         var decodedPayload = JoseSerializer.Decode(token, secretKey, out var decodedHeaders);
         Assert.Equal(JsonSerializer.Serialize(originalPayload), decodedPayload);
-        Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(decodedHeaders));
+        Assert.Equal(
+            JsonSerializer.Serialize(deserializedHeaders),
+            JsonSerializer.Serialize(decodedHeaders)
+        );
 
-        var deserializedPayload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token, secretKey, out var deserializedHeaders2);
-        Assert.Equal(JsonSerializer.Serialize(originalPayload), JsonSerializer.Serialize(deserializedPayload));
-        Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders2));
+        var deserializedPayload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
+            token,
+            secretKey,
+            out var deserializedHeaders2
+        );
+        Assert.Equal(
+            JsonSerializer.Serialize(originalPayload),
+            JsonSerializer.Serialize(deserializedPayload)
+        );
+        Assert.Equal(
+            JsonSerializer.Serialize(deserializedHeaders),
+            JsonSerializer.Serialize(deserializedHeaders2)
+        );
     }
 
     [Theory]
     [MemberData(nameof(EncodeDecodeJweTestData))]
-    public void Decode_Jwe(JweAlgorithm jweAlgorithm, JweEncryption jweEncryption, JweCompression? jweCompression)
+    public void Decode_Jwe(
+        JweAlgorithm jweAlgorithm,
+        JweEncryption jweEncryption,
+        JweCompression? jweCompression
+    )
     {
         const string keyId = nameof(keyId);
         var (controlKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
@@ -328,23 +384,37 @@ public class JoseSerializerTests : BaseTests
             ["key2"] = 12.34,
             ["key3"] = "foo",
             ["key4"] = true,
-            ["key5"] = DateTimeOffset.Now
+            ["key5"] = DateTimeOffset.Now,
         };
         var originalExtraHeaders = new Dictionary<string, object>
         {
             ["typ"] = "JWT",
-            ["kid"] = keyId
+            ["kid"] = keyId,
         };
         var jwtSettings = new JwtSettings();
-        var originalToken = JWT.Encode(originalPayload, controlKey, jweAlgorithm, jweEncryption, jweCompression, originalExtraHeaders, jwtSettings);
+        var originalToken = JWT.Encode(
+            originalPayload,
+            controlKey,
+            jweAlgorithm,
+            jweEncryption,
+            jweCompression,
+            originalExtraHeaders,
+            jwtSettings
+        );
 
         var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings);
         Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
-        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKey, out var header);
+        var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(
+            originalToken,
+            secretKey,
+            out var header
+        );
         Assert.Equal(originalPayload, actualPayload);
 
-        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseSerializerOptions.JsonSerializerOptions);
+        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(
+            JoseSerializerOptions.JsonSerializerOptions
+        );
         Assert.NotNull(headerToVerify);
 
         var typ = Assert.IsType<string>(Assert.Contains("typ", headerToVerify));
@@ -397,25 +467,35 @@ public class JoseSerializerTests : BaseTests
             ["key2"] = 12.34,
             ["key3"] = "foo",
             ["key4"] = true,
-            ["key5"] = DateTimeOffset.Now
+            ["key5"] = DateTimeOffset.Now,
         };
 
         var originalExtraHeaders = new Dictionary<string, object>
         {
             ["typ"] = "JWT",
-            ["kid"] = keyId
+            ["kid"] = keyId,
         };
 
         var jwtSettings = new JwtSettings();
         var jwtOptions = new JwtOptions
         {
             EncodePayload = encodePayload,
-            DetachPayload = detachPayload
+            DetachPayload = detachPayload,
         };
 
-        var originalToken = JWT.Encode(originalPayload, controlKey, jwsAlgorithm, originalExtraHeaders, jwtSettings, jwtOptions);
+        var originalToken = JWT.Encode(
+            originalPayload,
+            controlKey,
+            jwsAlgorithm,
+            originalExtraHeaders,
+            jwtSettings,
+            jwtOptions
+        );
 
-        var originalPayloadJson = JsonSerializer.Serialize(originalPayload, JoseSerializerOptions.JsonSerializerOptions);
+        var originalPayloadJson = JsonSerializer.Serialize(
+            originalPayload,
+            JoseSerializerOptions.JsonSerializerOptions
+        );
         var detachedPayload = detachPayload ? originalPayloadJson : null;
 
         var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings, detachedPayload);
@@ -429,15 +509,22 @@ public class JoseSerializerTests : BaseTests
                 secretKey,
                 originalPayload,
                 JsonSerializerOptions,
-                out header);
+                out header
+            );
         }
         else
         {
-            var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(originalToken, secretKey, out header);
+            var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(
+                originalToken,
+                secretKey,
+                out header
+            );
             Assert.Equal(originalPayload, actualPayload);
         }
 
-        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(JoseSerializerOptions.JsonSerializerOptions);
+        var headerToVerify = header.Deserialize<Dictionary<string, object?>>(
+            JoseSerializerOptions.JsonSerializerOptions
+        );
         Assert.NotNull(headerToVerify);
 
         var typ = Assert.IsType<string>(Assert.Contains("typ", headerToVerify));
@@ -460,35 +547,31 @@ public class JoseSerializerTests : BaseTests
         var (controlKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
         var signatureAlgorithmCode = controlSettings.JwsHeaderValue(jwsAlgorithm);
 
-        if (!AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
+        if (
+            !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
                 signatureAlgorithmCode,
-                out var signatureAlgorithm))
+                out var signatureAlgorithm
+            )
+        )
             throw new InvalidOperationException();
 
-        var payload = new Dictionary<string, object>
-        {
-            ["key1"] = "p-value"
-        };
-        var extraHeaders = new Dictionary<string, object>
-        {
-            ["header1"] = "h-value"
-        };
+        var payload = new Dictionary<string, object> { ["key1"] = "p-value" };
+        var extraHeaders = new Dictionary<string, object> { ["header1"] = "h-value" };
 
-        var signingCredentials = new JoseSigningCredentials(
-            secretKey,
-            signatureAlgorithm);
+        var signingCredentials = new JoseSigningCredentials(secretKey, signatureAlgorithm);
 
         var signingOptions = new JoseSigningOptions(signingCredentials)
         {
             EncodePayload = encodePayload,
-            DetachPayload = detachPayload
+            DetachPayload = detachPayload,
         };
 
         var token = JoseSerializer.Encode(
             payload,
             signingOptions,
             JsonSerializerOptions,
-            extraHeaders);
+            extraHeaders
+        );
 
         var json = JsonSerializer.Serialize(payload, JoseSerializerOptions.JsonSerializerOptions);
         var token2 = JoseSerializer.Encode(json, signingOptions, extraHeaders);
@@ -496,30 +579,70 @@ public class JoseSerializerTests : BaseTests
         JsonElement deserializedHeaders;
         if (detachPayload)
         {
-            JoseSerializer.VerifyJws(token, secretKey, payload, JsonSerializerOptions, out deserializedHeaders);
+            JoseSerializer.VerifyJws(
+                token,
+                secretKey,
+                payload,
+                JsonSerializerOptions,
+                out deserializedHeaders
+            );
             JoseSerializer.VerifyJws(token, secretKey, json, out var deserializedHeaders2);
 
-            JoseSerializer.VerifyJws(token2, secretKey, payload, JsonSerializerOptions, out var deserializedHeaders3);
+            JoseSerializer.VerifyJws(
+                token2,
+                secretKey,
+                payload,
+                JsonSerializerOptions,
+                out var deserializedHeaders3
+            );
             JoseSerializer.VerifyJws(token2, secretKey, json, out var deserializedHeaders4);
 
-            Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders2));
-            Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders3));
-            Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders4));
+            Assert.Equal(
+                JsonSerializer.Serialize(deserializedHeaders),
+                JsonSerializer.Serialize(deserializedHeaders2)
+            );
+            Assert.Equal(
+                JsonSerializer.Serialize(deserializedHeaders),
+                JsonSerializer.Serialize(deserializedHeaders3)
+            );
+            Assert.Equal(
+                JsonSerializer.Serialize(deserializedHeaders),
+                JsonSerializer.Serialize(deserializedHeaders4)
+            );
         }
         else
         {
-            var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token, secretKey, out deserializedHeaders);
+            var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
+                token,
+                secretKey,
+                out deserializedHeaders
+            );
             Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized));
 
-            var deserialized2 = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(token2, secretKey, out var deserializedHeaders2);
-            Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized2));
-            Assert.Equal(JsonSerializer.Serialize(deserializedHeaders), JsonSerializer.Serialize(deserializedHeaders2));
+            var deserialized2 = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
+                token2,
+                secretKey,
+                out var deserializedHeaders2
+            );
+            Assert.Equal(
+                JsonSerializer.Serialize(payload),
+                JsonSerializer.Serialize(deserialized2)
+            );
+            Assert.Equal(
+                JsonSerializer.Serialize(deserializedHeaders),
+                JsonSerializer.Serialize(deserializedHeaders2)
+            );
 
             var controlPayload = JWT.Decode<Dictionary<string, object>>(token, controlKey);
-            Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(controlPayload));
+            Assert.Equal(
+                JsonSerializer.Serialize(payload),
+                JsonSerializer.Serialize(controlPayload)
+            );
         }
 
-        var headerToVerify = deserializedHeaders.Deserialize<Dictionary<string, object?>>(JoseSerializerOptions.JsonSerializerOptions);
+        var headerToVerify = deserializedHeaders.Deserialize<Dictionary<string, object?>>(
+            JoseSerializerOptions.JsonSerializerOptions
+        );
         Assert.NotNull(headerToVerify);
 
         if (secretKey.KeySizeBits > 0)

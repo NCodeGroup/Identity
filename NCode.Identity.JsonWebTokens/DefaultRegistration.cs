@@ -46,10 +46,7 @@ public static class DefaultRegistration
 
             var newBuilder = serviceCollection.NewBuilder<JsonWebTokensLibrary>();
 
-            serviceCollection.TryAddSingleton<
-                IJsonWebTokenService,
-                DefaultJsonWebTokenService
-            >();
+            serviceCollection.TryAddSingleton<IJsonWebTokenService, DefaultJsonWebTokenService>();
 
             return newBuilder;
         }

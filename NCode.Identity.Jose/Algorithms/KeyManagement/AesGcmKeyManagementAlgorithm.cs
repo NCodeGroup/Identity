@@ -42,9 +42,7 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     private const int TagSizeBytes = 128 >> 3;
 
     private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
-    [
-        new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
-    ];
+    [new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)];
 
     /// <inheritdoc />
     public override string Code { get; }
@@ -68,10 +66,12 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
+        StaticCekByteSizes;
 
     /// <inheritdoc />
-    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => cekSizeBytes;
+    public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
+        cekSizeBytes;
 
     /// <inheritdoc />
     public override void WrapKey(
@@ -84,7 +84,10 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: true,
+            secretKey.KeySizeBytes
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
@@ -136,7 +139,10 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         ValidateHeaderForUnwrap(header, iv, tag);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: true,
+            secretKey.KeySizeBytes
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
@@ -152,18 +158,17 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         }
         catch (CryptographicException exception)
         {
-            throw new JoseEncryptionException("Failed to decrypt the encrypted content encryption key (CEK).", exception);
+            throw new JoseEncryptionException(
+                "Failed to decrypt the encrypted content encryption key (CEK).",
+                exception
+            );
         }
 
         bytesWritten = encryptedContentKey.Length;
         return true;
     }
 
-    internal static void ValidateHeaderForUnwrap(
-        JsonElement header,
-        Span<byte> iv,
-        Span<byte> tag
-    )
+    internal static void ValidateHeaderForUnwrap(JsonElement header, Span<byte> iv, Span<byte> tag)
     {
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Iv, out var ivString))
         {
@@ -183,7 +188,10 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         }
         catch (Exception exception)
         {
-            throw new JoseException("Failed to deserialize the 'iv' field from the JWT header.", exception);
+            throw new JoseException(
+                "Failed to deserialize the 'iv' field from the JWT header.",
+                exception
+            );
         }
 
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Tag, out var tagString))
@@ -204,7 +212,10 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         }
         catch (Exception exception)
         {
-            throw new JoseException("Failed to deserialize the 'tag' field from the JWT header.", exception);
+            throw new JoseException(
+                "Failed to deserialize the 'tag' field from the JWT header.",
+                exception
+            );
         }
     }
 }

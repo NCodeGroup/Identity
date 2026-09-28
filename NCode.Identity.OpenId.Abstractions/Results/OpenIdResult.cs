@@ -50,13 +50,11 @@ public class OpenIdResult<T> : IResult
     public async Task ExecuteAsync(HttpContext httpContext)
     {
         var jsonSerializerOptions = Response.OpenIdEnvironment.JsonSerializerOptions;
-        var statusCode = Response is ISupportStatusCode supportStatusCode ? supportStatusCode.StatusCode : null;
+        var statusCode = Response is ISupportStatusCode supportStatusCode
+            ? supportStatusCode.StatusCode
+            : null;
 
-        var jsonResult = CreateJsonResult(
-            Response,
-            jsonSerializerOptions,
-            statusCode
-        );
+        var jsonResult = CreateJsonResult(Response, jsonSerializerOptions, statusCode);
 
         await jsonResult.ExecuteAsync(httpContext);
     }

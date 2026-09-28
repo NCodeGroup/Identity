@@ -26,10 +26,11 @@ namespace NCode.Identity.Jose.Algorithms;
 /// </summary>
 public class DefaultAlgorithmCollectionProvider(
     IEnumerable<ICollectionDataSource<Algorithm>> dataSources
-) : BaseCollectionProvider<Algorithm, IAlgorithmCollection>(dataSources),
-    IAlgorithmCollectionProvider
+)
+    : BaseCollectionProvider<Algorithm, IAlgorithmCollection>(dataSources),
+        IAlgorithmCollectionProvider
 {
     /// <inheritdoc />
-    protected override IAlgorithmCollection CreateCollection(IEnumerable<Algorithm> items)
-        => new AlgorithmCollection(items);
+    protected override IAlgorithmCollection CreateCollection(IEnumerable<Algorithm> items) =>
+        new AlgorithmCollection(items);
 }

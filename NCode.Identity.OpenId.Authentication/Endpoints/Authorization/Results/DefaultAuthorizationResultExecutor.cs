@@ -32,7 +32,11 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
 {
     /// <inheritdoc />
-    public async ValueTask ExecuteAsync(HttpContext httpContext, AuthorizationResult result, CancellationToken cancellationToken)
+    public async ValueTask ExecuteAsync(
+        HttpContext httpContext,
+        AuthorizationResult result,
+        CancellationToken cancellationToken
+    )
     {
         var httpResponse = httpContext.Response;
 
@@ -49,19 +53,31 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
         IOpenIdMessageResponse? error = result.Error;
         IOpenIdMessageResponse? ticket = result.Ticket;
 
-        var message = error ?? ticket ?? throw new InvalidOperationException("Both error and ticket are null.");
+        var message =
+            error
+            ?? ticket
+            ?? throw new InvalidOperationException("Both error and ticket are null.");
 
         // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (result.ResponseMode)
         {
             case OpenIdConstants.ResponseModes.Query:
             case OpenIdConstants.ResponseModes.Fragment:
-                var finalRedirectUri = GetFinalRedirectUri(result.RedirectUri, result.ResponseMode, message);
+                var finalRedirectUri = GetFinalRedirectUri(
+                    result.RedirectUri,
+                    result.ResponseMode,
+                    message
+                );
                 ExecuteUsingRedirect(httpResponse, finalRedirectUri);
                 break;
 
             case OpenIdConstants.ResponseModes.FormPost:
-                await ExecuteUsingFormPostAsync(httpResponse, result.RedirectUri, message, cancellationToken);
+                await ExecuteUsingFormPostAsync(
+                    httpResponse,
+                    result.RedirectUri,
+                    message,
+                    cancellationToken
+                );
                 break;
 
             default:
@@ -69,7 +85,11 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
         }
     }
 
-    private static Uri GetFinalRedirectUri(Uri redirectUri, string responseMode, IOpenIdMessageResponse message)
+    private static Uri GetFinalRedirectUri(
+        Uri redirectUri,
+        string responseMode,
+        IOpenIdMessageResponse message
+    )
     {
         if (responseMode == OpenIdConstants.ResponseModes.FormPost)
         {
@@ -79,19 +99,22 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
         var environment = message.OpenIdEnvironment;
         var useQuery = responseMode == OpenIdConstants.ResponseModes.Query;
 
-        var queryOnlyParameters = useQuery ?
-            QueryHelpers
+        var queryOnlyParameters = useQuery
+            ? QueryHelpers
                 .ParseQuery(redirectUri.Query)
                 .ExceptBy(
                     message.Parameters.Select(parameter => parameter.Descriptor.ParameterName),
                     tuple => tuple.Key,
-                    StringComparer.OrdinalIgnoreCase) :
-            [];
+                    StringComparer.OrdinalIgnoreCase
+                )
+            : [];
 
-        var messageOnlyParameters = message.Parameters.Select(parameter => KeyValuePair.Create(
-            parameter.Descriptor.ParameterName,
-            parameter.GetStringValues(environment)
-        ));
+        var messageOnlyParameters = message.Parameters.Select(parameter =>
+            KeyValuePair.Create(
+                parameter.Descriptor.ParameterName,
+                parameter.GetStringValues(environment)
+            )
+        );
 
         var allParameters = queryOnlyParameters.Concat(messageOnlyParameters);
         var serializedParameters = SerializeUriParameters(allParameters);
@@ -114,7 +137,9 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
         return uriBuilder.Uri;
     }
 
-    private static string SerializeUriParameters(IEnumerable<KeyValuePair<string, StringValues>> parameters)
+    private static string SerializeUriParameters(
+        IEnumerable<KeyValuePair<string, StringValues>> parameters
+    )
     {
         var first = true;
         var builder = new StringBuilder();
@@ -152,7 +177,8 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
 
                     builder.Append(Uri.EscapeDataString(parameterName));
 
-                    if (string.IsNullOrEmpty(stringValue)) continue;
+                    if (string.IsNullOrEmpty(stringValue))
+                        continue;
 
                     builder.Append('=');
                     builder.Append(Uri.EscapeDataString(stringValue));
@@ -173,8 +199,10 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
 
     private const string FormPostAction = "{FormPostAction}";
     private const string FormPostChildren = "{FormPostChildren}";
-    private const string FormPostJavascript = "window.addEventListener('load',function(){document.forms[0].submit();});";
-    private const string FormPostHtml = $"<html><head><title>Working...</title></head><body><form method='POST' action='{FormPostAction}'>{FormPostChildren}<noscript><p>Script is disabled. Click Submit to continue.</p><input type='submit' value='Submit'/></noscript></form><script language='javascript'>{FormPostJavascript}</script></body></html>";
+    private const string FormPostJavascript =
+        "window.addEventListener('load',function(){document.forms[0].submit();});";
+    private const string FormPostHtml =
+        $"<html><head><title>Working...</title></head><body><form method='POST' action='{FormPostAction}'>{FormPostChildren}<noscript><p>Script is disabled. Click Submit to continue.</p><input type='submit' value='Submit'/></noscript></form><script language='javascript'>{FormPostJavascript}</script></body></html>";
 
     private static async ValueTask ExecuteUsingFormPostAsync(
         HttpResponse httpResponse,
@@ -186,10 +214,13 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
         httpResponse.Headers.Pragma = "no-cache";
         httpResponse.Headers.CacheControl = "no-store, no-cache, max-age=0";
 
-        var scriptHash = Convert.ToBase64String(SHA256.HashData(Encoding.ASCII.GetBytes(FormPostJavascript)));
+        var scriptHash = Convert.ToBase64String(
+            SHA256.HashData(Encoding.ASCII.GetBytes(FormPostJavascript))
+        );
 
         httpResponse.Headers["Referrer-Policy"] = "no-referrer";
-        httpResponse.Headers.ContentSecurityPolicy = $"default-src 'none'; script-src 'sha256-{scriptHash}'";
+        httpResponse.Headers.ContentSecurityPolicy =
+            $"default-src 'none'; script-src 'sha256-{scriptHash}'";
 
         var html = GetFormPostHtml(redirectUri, message);
 
@@ -202,22 +233,25 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
     private static string GetFormPostHtml(Uri redirectUri, IOpenIdMessageResponse message)
     {
         var environment = message.OpenIdEnvironment;
-        var parameters = message.Parameters.Select(parameter => KeyValuePair.Create(
-            parameter.Descriptor.ParameterName,
-            parameter.GetStringValues(environment)
-        ));
+        var parameters = message.Parameters.Select(parameter =>
+            KeyValuePair.Create(
+                parameter.Descriptor.ParameterName,
+                parameter.GetStringValues(environment)
+            )
+        );
 
         // In the Form, encode spaces as '+'
         // But Uri.EscapeDataString uses '%20', so replace them
 
         var children = parameters.Aggregate(
             new StringBuilder(),
-            (builder, tuple) => builder
-                .Append("<input type='hidden' name='")
-                .Append(EncodeFormParameter(tuple.Key))
-                .Append("' value='")
-                .Append(EncodeFormParameter(tuple.Value))
-                .Append("'/>")
+            (builder, tuple) =>
+                builder
+                    .Append("<input type='hidden' name='")
+                    .Append(EncodeFormParameter(tuple.Key))
+                    .Append("' value='")
+                    .Append(EncodeFormParameter(tuple.Value))
+                    .Append("'/>")
         );
 
         var html = new StringBuilder(FormPostHtml);
@@ -230,5 +264,7 @@ public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationR
     private static string EncodeFormParameter(string? value) =>
         // Reference: `FormUrlEncodedContent.Encode`
         // Escape spaces as '+'.
-        string.IsNullOrEmpty(value) ? string.Empty : Uri.EscapeDataString(value).Replace("%20", "+");
+        string.IsNullOrEmpty(value)
+            ? string.Empty
+            : Uri.EscapeDataString(value).Replace("%20", "+");
 }

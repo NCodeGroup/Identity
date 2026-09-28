@@ -74,32 +74,41 @@ public static class Validators
             // use 'long' vs 'DateTime/DateTimeOffset' comparisons to avoid overflow exceptions
             var clockSkewTicks = parameters.ClockSkew.Ticks;
 
-            return parameters.AddValidator((context, cancellationToken) =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
+            return parameters.AddValidator(
+                (context, cancellationToken) =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                if (context.SecretKey is not AsymmetricSecretKey { HasCertificate: true } asymmetricSecretKey)
+                    if (
+                        context.SecretKey
+                        is not AsymmetricSecretKey { HasCertificate: true } asymmetricSecretKey
+                    )
+                        return ValueTask.CompletedTask;
+
+                    using var certificate = asymmetricSecretKey.ExportCertificate();
+                    Debug.Assert(certificate is not null);
+
+                    var nowTicks = context.TimeProvider.GetTimestampWithPrecisionInSeconds();
+
+                    var notBefore = certificate.NotBefore.WithPrecisionInSeconds();
+                    var notBeforeTicks = notBefore.Ticks;
+
+                    var notAfter = certificate.NotAfter.WithPrecisionInSeconds();
+                    var notAfterTicks = notAfter.Ticks;
+
+                    if (notBeforeTicks > nowTicks + clockSkewTicks)
+                        throw new TokenValidationException(
+                            $"The certificate is not valid before {notBefore}."
+                        );
+
+                    if (notAfterTicks < nowTicks - clockSkewTicks)
+                        throw new TokenValidationException(
+                            $"The certificate is not valid after {notAfter}."
+                        );
+
                     return ValueTask.CompletedTask;
-
-                using var certificate = asymmetricSecretKey.ExportCertificate();
-                Debug.Assert(certificate is not null);
-
-                var nowTicks = context.TimeProvider.GetTimestampWithPrecisionInSeconds();
-
-                var notBefore = certificate.NotBefore.WithPrecisionInSeconds();
-                var notBeforeTicks = notBefore.Ticks;
-
-                var notAfter = certificate.NotAfter.WithPrecisionInSeconds();
-                var notAfterTicks = notAfter.Ticks;
-
-                if (notBeforeTicks > nowTicks + clockSkewTicks)
-                    throw new TokenValidationException($"The certificate is not valid before {notBefore}.");
-
-                if (notAfterTicks < nowTicks - clockSkewTicks)
-                    throw new TokenValidationException($"The certificate is not valid after {notAfter}.");
-
-                return ValueTask.CompletedTask;
-            });
+                }
+            );
         }
 
         /// <summary>
@@ -114,36 +123,54 @@ public static class Validators
         /// </summary>
         /// <param name="configureOptions">A callback to configure validation options.</param>
         /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
-        public ValidateJwtParameters ValidateTokenLifeTime(Action<ValidateTokenLifeTimeOptions> configureOptions)
+        public ValidateJwtParameters ValidateTokenLifeTime(
+            Action<ValidateTokenLifeTimeOptions> configureOptions
+        )
         {
             var options = new ValidateTokenLifeTimeOptions();
             configureOptions(options);
 
             var clockSkewTicks = parameters.ClockSkew.Ticks;
 
-            return parameters.AddValidator((context, cancellationToken) =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
+            return parameters.AddValidator(
+                (context, cancellationToken) =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                var payload = context.DecodedJwt.Payload;
-                var hasNotBefore = payload.TryGetPropertyValue<DateTime>(JoseClaimNames.Payload.Nbf, out var notBefore);
-                var hasExpires = payload.TryGetPropertyValue<DateTime>(JoseClaimNames.Payload.Exp, out var expires);
-                var nowTicks = context.TimeProvider.GetTimestampWithPrecisionInSeconds();
+                    var payload = context.DecodedJwt.Payload;
+                    var hasNotBefore = payload.TryGetPropertyValue<DateTime>(
+                        JoseClaimNames.Payload.Nbf,
+                        out var notBefore
+                    );
+                    var hasExpires = payload.TryGetPropertyValue<DateTime>(
+                        JoseClaimNames.Payload.Exp,
+                        out var expires
+                    );
+                    var nowTicks = context.TimeProvider.GetTimestampWithPrecisionInSeconds();
 
-                if (!hasExpires && options.RequireExpirationTime)
-                    throw new TokenValidationException("The token is missing an expiration time.");
+                    if (!hasExpires && options.RequireExpirationTime)
+                        throw new TokenValidationException(
+                            "The token is missing an expiration time."
+                        );
 
-                if (hasNotBefore && hasExpires && notBefore > expires)
-                    throw new TokenValidationException($"The NotBefore value '{notBefore:O}' cannot be after the Expires value '{expires:O}'.");
+                    if (hasNotBefore && hasExpires && notBefore > expires)
+                        throw new TokenValidationException(
+                            $"The NotBefore value '{notBefore:O}' cannot be after the Expires value '{expires:O}'."
+                        );
 
-                if (hasNotBefore && notBefore.Ticks > nowTicks + clockSkewTicks)
-                    throw new TokenValidationException($"The token is not valid before '{notBefore:O}'.");
+                    if (hasNotBefore && notBefore.Ticks > nowTicks + clockSkewTicks)
+                        throw new TokenValidationException(
+                            $"The token is not valid before '{notBefore:O}'."
+                        );
 
-                if (hasExpires && expires.Ticks < nowTicks - clockSkewTicks)
-                    throw new TokenValidationException($"The token is not valid after '{expires:O}'.");
+                    if (hasExpires && expires.Ticks < nowTicks - clockSkewTicks)
+                        throw new TokenValidationException(
+                            $"The token is not valid after '{expires:O}'."
+                        );
 
-                return ValueTask.CompletedTask;
-            });
+                    return ValueTask.CompletedTask;
+                }
+            );
         }
     }
 }

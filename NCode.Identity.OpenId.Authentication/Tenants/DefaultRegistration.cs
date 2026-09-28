@@ -44,15 +44,9 @@ public static class DefaultRegistration
 
             serviceCollection.AddMemoryCache();
 
-            serviceCollection.TryAddSingleton<
-                IOpenIdTenantCache,
-                DefaultOpenIdTenantCache
-            >();
+            serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
 
-            serviceCollection.TryAddSingleton<
-                IOpenIdTenantFactory,
-                DefaultOpenIdTenantFactory
-            >();
+            serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
 
             serviceCollection.TryAddSingleton<
                 IOpenIdTenantProviderSelector,
@@ -60,15 +54,24 @@ public static class DefaultRegistration
             >();
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultStaticSingleOpenIdTenantProvider>()
+                ServiceDescriptor.Singleton<
+                    IOpenIdTenantProvider,
+                    DefaultStaticSingleOpenIdTenantProvider
+                >()
             );
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultDynamicByHostOpenIdTenantProvider>()
+                ServiceDescriptor.Singleton<
+                    IOpenIdTenantProvider,
+                    DefaultDynamicByHostOpenIdTenantProvider
+                >()
             );
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IOpenIdTenantProvider, DefaultDynamicByPathOpenIdTenantProvider>()
+                ServiceDescriptor.Singleton<
+                    IOpenIdTenantProvider,
+                    DefaultDynamicByPathOpenIdTenantProvider
+                >()
             );
 
             return builder;

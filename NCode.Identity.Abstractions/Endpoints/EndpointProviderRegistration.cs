@@ -38,7 +38,9 @@ public static class EndpointProviderRegistration
         /// <summary>
         /// Registers an <see cref="IEndpointProvider"/> implementation.
         /// </summary>
-        public void AddEndpointProvider<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+        public void AddEndpointProvider<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
+        >()
             where T : class, IEndpointProvider
         {
             var serviceCollection = builder.ServiceCollection;

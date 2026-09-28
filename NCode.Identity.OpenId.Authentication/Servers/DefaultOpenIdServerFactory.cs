@@ -63,9 +63,12 @@ public class DefaultOpenIdServerFactory(
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
-    private IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
-    private ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+    private ICollectionDataSourceFactory CollectionDataSourceFactory { get; } =
+        collectionDataSourceFactory;
+    private IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } =
+        settingCollectionProviderFactory;
+    private ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
+        secretKeyCollectionProviderFactory;
     private IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
     /// <summary>
@@ -93,13 +96,26 @@ public class DefaultOpenIdServerFactory(
 
         var disposables = new List<object>(2);
         var propertyBag = openIdEnvironment.PropertyBag.Clone();
-        var persistedServer = await GetPersistedServerAsync(serverId, propertyBag, cancellationToken);
+        var persistedServer = await GetPersistedServerAsync(
+            serverId,
+            propertyBag,
+            cancellationToken
+        );
         try
         {
-            var settingsProvider = await CreateSettingsProviderAsync(openIdEnvironment, persistedServer, propertyBag, cancellationToken);
+            var settingsProvider = await CreateSettingsProviderAsync(
+                openIdEnvironment,
+                persistedServer,
+                propertyBag,
+                cancellationToken
+            );
             disposables.Add(settingsProvider);
 
-            var secretsProvider = await CreateSecretsProviderAsync(persistedServer, propertyBag, cancellationToken);
+            var secretsProvider = await CreateSecretsProviderAsync(
+                persistedServer,
+                propertyBag,
+                cancellationToken
+            );
             disposables.Add(secretsProvider);
 
             return Create(serverId, settingsProvider, secretsProvider, propertyBag);
@@ -119,12 +135,7 @@ public class DefaultOpenIdServerFactory(
         IReadOnlySettingCollectionProvider settingsProvider,
         ISecretKeyCollectionProvider secretsProvider,
         IPropertyBag propertyBag
-    ) => new DefaultOpenIdServer(
-        serverId,
-        settingsProvider,
-        secretsProvider,
-        propertyBag
-    );
+    ) => new DefaultOpenIdServer(serverId, settingsProvider, secretsProvider, propertyBag);
 
     /// <summary>
     /// Attempts to retrieve the <see cref="PersistedServer"/> with the specified server ID from the store.
@@ -160,14 +171,14 @@ public class DefaultOpenIdServerFactory(
         {
             ServerId = serverId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            Value = JsonSerializer.SerializeToElement(null, typeof(object))
+            Value = JsonSerializer.SerializeToElement(null, typeof(object)),
         };
 
         var secrets = new PersistedServerSecrets
         {
             ServerId = serverId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            Value = []
+            Value = [],
         };
 
         return new PersistedServer
@@ -175,7 +186,7 @@ public class DefaultOpenIdServerFactory(
             ServerId = serverId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             Settings = settings,
-            Secrets = secrets
+            Secrets = secrets,
         };
     }
 
@@ -192,8 +203,11 @@ public class DefaultOpenIdServerFactory(
         var dataSources = new List<ICollectionDataSource<Setting>>(2);
         try
         {
-            dataSources.Add(await CreateRootSettingsDataSourceAsync(propertyBag, cancellationToken));
-            dataSources.Add(await CreateServerSettingsDataSourceAsync(
+            dataSources.Add(
+                await CreateRootSettingsDataSourceAsync(propertyBag, cancellationToken)
+            );
+            dataSources.Add(
+                await CreateServerSettingsDataSourceAsync(
                     openIdEnvironment,
                     persistedServer,
                     propertyBag,
@@ -212,14 +226,17 @@ public class DefaultOpenIdServerFactory(
     /// <summary>
     /// Used to create a data source for the server's settings that are derived from the configurable options.
     /// </summary>
-    protected internal virtual ValueTask<IDisposableCollectionDataSource<Setting>> CreateRootSettingsDataSourceAsync(
+    protected internal virtual ValueTask<
+        IDisposableCollectionDataSource<Setting>
+    > CreateRootSettingsDataSourceAsync(
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var configurationSectionName = $"{Options.SectionName}:{OpenIdServerOptions.SettingsSubsection}";
+        var configurationSectionName =
+            $"{Options.SectionName}:{OpenIdServerOptions.SettingsSubsection}";
         var configurationSection = Configuration.GetSection(configurationSectionName);
 
         var dataSource = ActivatorUtilities.CreateInstance<RootSettingsCollectionDataSource>(
@@ -233,7 +250,9 @@ public class DefaultOpenIdServerFactory(
     /// <summary>
     /// Used to create a data source for the server's settings that are persisted in a store.
     /// </summary>
-    protected internal virtual ValueTask<IAsyncDisposableCollectionDataSource<Setting>> CreateServerSettingsDataSourceAsync(
+    protected internal virtual ValueTask<
+        IAsyncDisposableCollectionDataSource<Setting>
+    > CreateServerSettingsDataSourceAsync(
         OpenIdEnvironment openIdEnvironment,
         PersistedServer persistedServer,
         IPropertyBag propertyBag,
@@ -249,10 +268,7 @@ public class DefaultOpenIdServerFactory(
         );
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            new RefreshSettingsState(
-                openIdEnvironment,
-                persistedServer
-            ),
+            new RefreshSettingsState(openIdEnvironment, persistedServer),
             initialSettings,
             Options.Server.SettingsPeriodicRefreshInterval,
             RefreshSettingsAsync

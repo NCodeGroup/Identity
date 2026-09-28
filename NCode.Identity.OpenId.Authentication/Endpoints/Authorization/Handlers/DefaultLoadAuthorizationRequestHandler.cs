@@ -46,14 +46,18 @@ public class DefaultLoadAuthorizationRequestHandler(
     /// <inheritdoc />
     public async ValueTask<IAuthorizationRequest> HandleAsync(
         LoadAuthorizationRequestCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, openIdRequestValues) = command;
 
         var openIdEnvironment = openIdContext.Environment;
 
         // the following will parse string-values into strongly-typed parameters and may throw
-        var requestMessage = AuthorizationRequestMessage.Load(openIdEnvironment, openIdRequestValues);
+        var requestMessage = AuthorizationRequestMessage.Load(
+            openIdEnvironment,
+            openIdRequestValues
+        );
         requestMessage.AuthorizationSourceType = openIdRequestValues.SourceType;
 
         // TODO: add support for OAuth 2.0 Pushed Authorization Requests (PAR)
@@ -63,13 +67,15 @@ public class DefaultLoadAuthorizationRequestHandler(
             openIdEnvironment,
             openIdClient,
             requestMessage,
-            cancellationToken);
+            cancellationToken
+        );
 
         const bool isContinuation = false;
         var authorizationRequest = new AuthorizationRequest(
             isContinuation,
             requestMessage,
-            requestObject);
+            requestObject
+        );
 
         return authorizationRequest;
     }
@@ -78,7 +84,8 @@ public class DefaultLoadAuthorizationRequestHandler(
         OpenIdEnvironment openIdEnvironment,
         OpenIdClient openIdClient,
         IAuthorizationRequestMessage requestMessage,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var errorFactory = openIdEnvironment.ErrorFactory;
 
@@ -91,16 +98,17 @@ public class DefaultLoadAuthorizationRequestHandler(
         if (requestUri is not null)
         {
             if (!openIdClient.Settings.GetValue(OpenIdSettingKeys.RequestUriParameterSupported))
-                throw errorFactory
-                    .RequestUriNotSupported()
-                    .AsException();
+                throw errorFactory.RequestUriNotSupported().AsException();
 
             requestObjectSource = RequestObjectSource.Remote;
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri;
 
             if (!string.IsNullOrEmpty(requestJwt))
                 throw errorFactory
-                    .InvalidRequest("Both the 'request' and 'request_uri' parameters cannot be present at the same time.", errorCode)
+                    .InvalidRequest(
+                        "Both the 'request' and 'request_uri' parameters cannot be present at the same time.",
+                        errorCode
+                    )
                     .AsException();
 
             requestJwt = await FetchRequestUriAsync(
@@ -113,9 +121,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         else if (!string.IsNullOrEmpty(requestJwt))
         {
             if (!openIdClient.Settings.GetValue(OpenIdSettingKeys.RequestParameterSupported))
-                throw errorFactory
-                    .RequestParameterNotSupported()
-                    .AsException();
+                throw errorFactory.RequestParameterNotSupported().AsException();
 
             requestObjectSource = RequestObjectSource.Inline;
             errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
@@ -134,14 +140,17 @@ public class DefaultLoadAuthorizationRequestHandler(
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();
 
-            var expectedAudience = openIdClient.Settings.GetValue(OpenIdSettingKeys.RequestObjectExpectedAudience);
+            var expectedAudience = openIdClient.Settings.GetValue(
+                OpenIdSettingKeys.RequestObjectExpectedAudience
+            );
             if (!string.IsNullOrEmpty(expectedAudience))
                 parameters.ValidateAudience(expectedAudience);
 
             var result = await JsonWebTokenService.ValidateJwtAsync(
                 requestJwt,
                 parameters,
-                cancellationToken);
+                cancellationToken
+            );
 
             if (!result.IsValid)
             {
@@ -153,16 +162,15 @@ public class DefaultLoadAuthorizationRequestHandler(
         catch (Exception exception)
         {
             Logger.LogWarning(exception, "Failed to decode JWT");
-            throw errorFactory
-                .FailedToDecodeJwt(errorCode)
-                .WithException(exception)
-                .AsException();
+            throw errorFactory.FailedToDecodeJwt(errorCode).WithException(exception).AsException();
         }
 
         try
         {
             // this will deserialize the object using OpenIdMessageJsonConverter
-            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(openIdEnvironment.JsonSerializerOptions);
+            var requestObject = jwtPayload.Deserialize<AuthorizationRequestObject>(
+                openIdEnvironment.JsonSerializerOptions
+            );
             if (requestObject == null)
                 throw new InvalidOperationException("JSON deserialization returned null.");
 
@@ -184,7 +192,8 @@ public class DefaultLoadAuthorizationRequestHandler(
         OpenIdEnvironment openIdEnvironment,
         OpenIdClient openIdClient,
         Uri requestUri,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var errorFactory = openIdEnvironment.ErrorFactory;
         var settings = openIdClient.Settings;
@@ -197,17 +206,30 @@ public class DefaultLoadAuthorizationRequestHandler(
 
         try
         {
-            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            using var response = await httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseContentRead,
+                cancellationToken
+            );
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw errorFactory
-                    .InvalidRequestUri($"The http status code of the response must be 200 OK. Received {(int)response.StatusCode} {response.StatusCode}.")
+                    .InvalidRequestUri(
+                        $"The http status code of the response must be 200 OK. Received {(int)response.StatusCode} {response.StatusCode}."
+                    )
                     .AsException();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            var expectedContentType = settings.GetValue(OpenIdSettingKeys.RequestUriExpectedContentType);
-            if (settings.GetValue(OpenIdSettingKeys.RequestUriRequireStrictContentType) && !string.Equals(contentType, expectedContentType, StringComparison.Ordinal))
+            var expectedContentType = settings.GetValue(
+                OpenIdSettingKeys.RequestUriExpectedContentType
+            );
+            if (
+                settings.GetValue(OpenIdSettingKeys.RequestUriRequireStrictContentType)
+                && !string.Equals(contentType, expectedContentType, StringComparison.Ordinal)
+            )
                 throw errorFactory
-                    .InvalidRequestUri($"The content type of the response must be '{expectedContentType}'. Received '{contentType}'.")
+                    .InvalidRequestUri(
+                        $"The content type of the response must be '{expectedContentType}'. Received '{contentType}'."
+                    )
                     .AsException();
 
             return await response.Content.ReadAsStringAsync(cancellationToken);

@@ -38,9 +38,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="AuthorizationGrant"/>.
 /// </summary>
-public class DefaultValidateAuthorizationCodeGrantHandler(
-    ICryptoService cryptoService
-) : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>, ISupportMediatorPriority
+public class DefaultValidateAuthorizationCodeGrantHandler(ICryptoService cryptoService)
+    : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>,
+        ISupportMediatorPriority
 {
     private ICryptoService CryptoService { get; } = cryptoService;
 
@@ -50,7 +50,8 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
     /// <inheritdoc />
     public async ValueTask HandleAsync(
         ValidateTokenGrantCommand<AuthorizationGrant> command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, tokenRequest, authorizationGrant) = command;
         var (authorizationRequest, subjectAuthentication) = authorizationGrant;
@@ -60,13 +61,24 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
 
         // DefaultClientAuthenticationService already performs this check for us
         Debug.Assert(
-            string.IsNullOrEmpty(tokenRequest.ClientId) ||
-            string.Equals(openIdClient.ClientId, tokenRequest.ClientId, StringComparison.Ordinal));
+            string.IsNullOrEmpty(tokenRequest.ClientId)
+                || string.Equals(
+                    openIdClient.ClientId,
+                    tokenRequest.ClientId,
+                    StringComparison.Ordinal
+                )
+        );
 
         // see DefaultValidateTokenRequestHandler for additional validation such as scope, etc
 
         // client_id from authorization request
-        if (!string.Equals(openIdClient.ClientId, authorizationRequest.ClientId, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                openIdClient.ClientId,
+                authorizationRequest.ClientId,
+                StringComparison.Ordinal
+            )
+        )
             throw errorFactory
                 .InvalidGrant("The provided authorization code was issued to a different client.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
@@ -85,7 +97,9 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         if (authorizationRequest.RedirectUri != redirectUri)
             // invalid_grant
             throw errorFactory
-                .InvalidGrant("The provided redirect uri does not match from the authorization request.")
+                .InvalidGrant(
+                    "The provided redirect uri does not match from the authorization request."
+                )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
@@ -101,10 +115,14 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             throw errorFactory
                 .InvalidScope()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException("The requested scope exceeds the scope granted by the resource owner.");
+                .AsException(
+                    "The requested scope exceeds the scope granted by the resource owner."
+                );
 
         // scopes_supported
-        var hasInvalidScopes = effectiveScopes.Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported)).Any();
+        var hasInvalidScopes = effectiveScopes
+            .Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported))
+            .Any();
         if (hasInvalidScopes)
             // invalid_scope
             throw errorFactory
@@ -133,7 +151,8 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
             tokenRequest.CodeVerifier,
             authorizationRequest.CodeChallenge,
             authorizationRequest.CodeChallengeMethod,
-            settings.GetValue(OpenIdSettingKeys.RequireCodeChallenge));
+            settings.GetValue(OpenIdSettingKeys.RequireCodeChallenge)
+        );
     }
 
     private static async ValueTask ValidateSubjectAsync(
@@ -160,8 +179,8 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
 
         if (operationDisposition.HasError)
         {
-            throw operationDisposition.Error
-                .WithStatusCode(StatusCodes.Status400BadRequest)
+            throw operationDisposition
+                .Error.WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
     }
@@ -181,7 +200,9 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
         {
             if (!hasCodeChallenge)
                 throw errorFactory
-                    .InvalidGrant("The 'code_challenge' parameter was missing in the original authorization request.")
+                    .InvalidGrant(
+                        "The 'code_challenge' parameter was missing in the original authorization request."
+                    )
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
 
@@ -192,19 +213,27 @@ public class DefaultValidateAuthorizationCodeGrantHandler(
                     codeVerifier,
                     HashAlgorithmType.Sha256,
                     BinaryEncodingType.Base64Url,
-                    SecureEncoding.ASCII),
-                _ => null
+                    SecureEncoding.ASCII
+                ),
+                _ => null,
             };
 
             // TODO: provide a way to allow custom code challenge methods
 
             if (expectedCodeChallenge is null)
                 throw errorFactory
-                    .InvalidGrant("The provided 'code_challenge_method' parameter contains a value that is not supported.")
+                    .InvalidGrant(
+                        "The provided 'code_challenge_method' parameter contains a value that is not supported."
+                    )
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
 
-            if (!CryptographicOperations.FixedTimeEquals(expectedCodeChallenge.AsSpan(), codeChallenge.AsSpan()))
+            if (
+                !CryptographicOperations.FixedTimeEquals(
+                    expectedCodeChallenge.AsSpan(),
+                    codeChallenge.AsSpan()
+                )
+            )
                 throw errorFactory
                     .InvalidGrant("PKCE verification failed.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)

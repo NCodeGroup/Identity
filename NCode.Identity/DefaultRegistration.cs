@@ -53,16 +53,31 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IClaimsSerializer>(DefaultClaimsSerializer.Singleton);
 
             // Endpoints
-            serviceCollection.TryAddSingleton<IIdentityEndpointRouteBuilder, DefaultIdentityEndpointRouteBuilder>();
+            serviceCollection.TryAddSingleton<
+                IIdentityEndpointRouteBuilder,
+                DefaultIdentityEndpointRouteBuilder
+            >();
 
             // Logic
             serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();
 
             // Settings
-            serviceCollection.TryAddSingleton<ISettingDescriptorCollectionProvider, DefaultSettingDescriptorCollectionProvider>();
-            serviceCollection.TryAddSingleton<IReadOnlySettingCollectionProviderFactory, DefaultReadOnlySettingCollectionProviderFactory>();
-            serviceCollection.TryAddSingleton<ISettingDescriptorJsonProvider, DefaultSettingDescriptorJsonProvider>();
-            serviceCollection.TryAddSingleton<ISettingCollectionFactory, DefaultSettingCollectionFactory>();
+            serviceCollection.TryAddSingleton<
+                ISettingDescriptorCollectionProvider,
+                DefaultSettingDescriptorCollectionProvider
+            >();
+            serviceCollection.TryAddSingleton<
+                IReadOnlySettingCollectionProviderFactory,
+                DefaultReadOnlySettingCollectionProviderFactory
+            >();
+            serviceCollection.TryAddSingleton<
+                ISettingDescriptorJsonProvider,
+                DefaultSettingDescriptorJsonProvider
+            >();
+            serviceCollection.TryAddSingleton<
+                ISettingCollectionFactory,
+                DefaultSettingCollectionFactory
+            >();
             serviceCollection.TryAddSingleton<ISettingSerializer, DefaultSettingSerializer>();
 
             return serviceCollection.NewBuilder<IdentityLibrary>();

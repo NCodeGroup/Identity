@@ -118,30 +118,27 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// Gets or sets the factory method used to create a new <see cref="Setting{TValue}"/> instance with the specified <paramref name="value"/>.
     /// The default implementation calls the <see cref="Setting{TValue}"/> constructor.
     /// </summary>
-    public Func<SettingDescriptor<TValue>, TValue, Setting<TValue>> OnCreate { get; init; }
-        = (descriptor, value) => new Setting<TValue>(descriptor, value);
+    public Func<SettingDescriptor<TValue>, TValue, Setting<TValue>> OnCreate { get; init; } =
+        (descriptor, value) => new Setting<TValue>(descriptor, value);
 
     /// <summary>
     /// Gets or sets the function that is used to merge two <see cref="Setting{TValue}"/> instances into a new <see cref="Setting{TValue}"/> instance.
     /// The default implementation always returns the other value.
     /// </summary>
-    public Func<TValue, TValue, TValue> OnMerge { get; init; }
-        = (_, other) => other;
+    public Func<TValue, TValue, TValue> OnMerge { get; init; } = (_, other) => other;
 
     /// <summary>
     /// Gets or sets the function that is used to format the setting's value to be returned in the discovery document.
     /// The default implementation returns the value as-is.
     /// </summary>
-    public Func<Setting<TValue>, object> OnFormat { get; init; }
-        = setting => setting.Value;
+    public Func<Setting<TValue>, object> OnFormat { get; init; } = setting => setting.Value;
 
     /// <inheritdoc />
-    public override Setting Create(object value)
-        => Create((TValue)value);
+    public override Setting Create(object value) => Create((TValue)value);
 
     /// <inheritdoc />
-    public override Setting CreateDefault()
-        => HasDefault ? Create(Default) : throw new InvalidOperationException();
+    public override Setting CreateDefault() =>
+        HasDefault ? Create(Default) : throw new InvalidOperationException();
 
     /// <summary>
     /// Factory method used to create a new <see cref="Setting{TValue}"/> instance with the specified <paramref name="value"/>.
@@ -149,12 +146,11 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// </summary>
     /// <param name="value">The value for the setting.</param>
     /// <returns>The newly created <see cref="Setting{TValue}"/> instance.</returns>
-    public virtual Setting<TValue> Create(TValue value)
-        => OnCreate(this, value);
+    public virtual Setting<TValue> Create(TValue value) => OnCreate(this, value);
 
     /// <inheritdoc />
-    public override Setting Merge(Setting current, Setting other)
-        => Merge((Setting<TValue>)current, (Setting<TValue>)other);
+    public override Setting Merge(Setting current, Setting other) =>
+        Merge((Setting<TValue>)current, (Setting<TValue>)other);
 
     /// <summary>
     /// Used to merge two <see cref="Setting{TValue}"/> instances into a new <see cref="Setting{TValue}"/> instance.
@@ -163,12 +159,11 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <param name="current">The current <see cref="Setting{TValue}"/> instance to merge.</param>
     /// <param name="other">The other <see cref="Setting{TValue}"/> instance to merge.</param>
     /// <returns>The <see cref="Setting{TValue}"/> instance from the result of the merge.</returns>
-    public virtual Setting<TValue> Merge(Setting<TValue> current, Setting<TValue> other)
-        => OnCreate(this, OnMerge(current.Value, other.Value));
+    public virtual Setting<TValue> Merge(Setting<TValue> current, Setting<TValue> other) =>
+        OnCreate(this, OnMerge(current.Value, other.Value));
 
     /// <inheritdoc />
-    public override object Format(Setting setting)
-        => Format((Setting<TValue>)setting);
+    public override object Format(Setting setting) => Format((Setting<TValue>)setting);
 
     /// <summary>
     /// Used to format the setting's value to be returned in the discovery document.
@@ -176,16 +171,13 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// </summary>
     /// <param name="setting">The <see cref="Setting"/> to format.</param>
     /// <returns>The setting's formatted value.</returns>
-    public virtual object Format(Setting<TValue> setting)
-        => OnFormat(setting);
+    public virtual object Format(Setting<TValue> setting) => OnFormat(setting);
 
     /// <summary>
     /// Operator overload to convert a <see cref="SettingDescriptor{TValue}"/> instance to a <see cref="SettingKey{TValue}"/> instance.
     /// </summary>
     /// <param name="descriptor">The <see cref="SettingDescriptor{TValue}"/> instance.</param>
     /// <returns>The <see cref="SettingKey{TValue}"/> instance.</returns>
-    public static implicit operator SettingKey<TValue>(SettingDescriptor<TValue> descriptor) => new()
-    {
-        SettingName = descriptor.Name
-    };
+    public static implicit operator SettingKey<TValue>(SettingDescriptor<TValue> descriptor) =>
+        new() { SettingName = descriptor.Name };
 }

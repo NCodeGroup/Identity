@@ -39,12 +39,14 @@ public class SecretKeyExpiresWhenComparer : IComparer<SecretKey>
     /// <inheritdoc />
     public int Compare(SecretKey? x, SecretKey? y)
     {
-        if (ReferenceEquals(x, y)) return 0;
+        if (ReferenceEquals(x, y))
+            return 0;
 
         var xExpiresWhen = x?.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue;
         var yExpiresWhen = y?.Metadata.ExpiresWhen ?? DateTimeOffset.MaxValue;
         var result = yExpiresWhen.CompareTo(xExpiresWhen); // notice that y then x
-        if (result != 0) return result;
+        if (result != 0)
+            return result;
 
         var xHashCode = x?.GetHashCode() ?? 0;
         var yHashCode = y?.GetHashCode() ?? 0;

@@ -32,16 +32,24 @@ public class ClientSecretPostClientAuthenticationHandler(
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer
-) : CommonClientAuthenticationHandler(storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
-    IClientAuthenticationHandler
+)
+    : CommonClientAuthenticationHandler(
+        storeManagerFactory,
+        clientFactory,
+        settingSerializer,
+        secretSerializer
+    ),
+        IClientAuthenticationHandler
 {
     /// <inheritdoc />
-    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost;
+    public override string AuthenticationMethod =>
+        OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var httpRequest = openIdContext.Http.Request;
 
@@ -53,13 +61,17 @@ public class ClientSecretPostClientAuthenticationHandler(
         if (!form.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId))
             return ClientAuthenticationResult.Undefined;
 
-        var hasClientSecret = form.TryGetValue(OpenIdConstants.Parameters.ClientSecret, out var clientSecret);
+        var hasClientSecret = form.TryGetValue(
+            OpenIdConstants.Parameters.ClientSecret,
+            out var clientSecret
+        );
 
         return await AuthenticateClientAsync(
             openIdContext,
             clientId.ToString(),
             clientSecret.ToString().AsMemory(),
             hasClientSecret,
-            cancellationToken);
+            cancellationToken
+        );
     }
 }

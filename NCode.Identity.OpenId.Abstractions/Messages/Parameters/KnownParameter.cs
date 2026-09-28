@@ -67,7 +67,12 @@ public abstract class KnownParameter
     /// Gets a delegate that determines whether the specified parameter should be serialized for the given
     /// <see cref="OpenIdEnvironment"/>, <see cref="IParameter"/>, and <see cref="SerializationFormat"/>.
     /// </summary>
-    public Func<OpenIdEnvironment, IParameter, SerializationFormat, bool>? ShouldSerialize { get; init; }
+    public Func<
+        OpenIdEnvironment,
+        IParameter,
+        SerializationFormat,
+        bool
+    >? ShouldSerialize { get; init; }
 
     /// <summary>
     /// Gets the <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.
@@ -106,5 +111,6 @@ public class KnownParameter<T> : KnownParameter
     /// </summary>
     /// <param name="knownParameter">The <see cref="KnownParameter{TValue}"/> instance.</param>
     /// <returns>The <see cref="ParameterKey{TValue}"/> instance.</returns>
-    public static implicit operator ParameterKey<T>(KnownParameter<T> knownParameter) => new(knownParameter.Name);
+    public static implicit operator ParameterKey<T>(KnownParameter<T> knownParameter) =>
+        new(knownParameter.Name);
 }

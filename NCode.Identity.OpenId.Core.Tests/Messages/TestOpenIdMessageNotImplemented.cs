@@ -39,9 +39,11 @@ internal class TestOpenIdMessageNotImplemented : ITestOpenIdMessage
     public void Initialize(OpenIdEnvironment openIdEnvironment) =>
         throw new NotImplementedException();
 
-    public void Initialize(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false) =>
-        throw new NotImplementedException();
+    public void Initialize(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<IParameter> parameters,
+        bool cloneParameters = false
+    ) => throw new NotImplementedException();
 
-    public IOpenIdMessage CloneMessage() =>
-        throw new NotImplementedException();
+    public IOpenIdMessage CloneMessage() => throw new NotImplementedException();
 }

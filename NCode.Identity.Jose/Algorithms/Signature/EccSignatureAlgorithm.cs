@@ -70,7 +70,12 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
 
     /// <inheritdoc />
-    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
+    public override bool TrySign(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        Span<byte> signature,
+        out int bytesWritten
+    )
     {
         var validatedSecurityKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 
@@ -80,7 +85,11 @@ public class EccSignatureAlgorithm : SignatureAlgorithm
     }
 
     /// <inheritdoc />
-    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
+    public override bool Verify(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        ReadOnlySpan<byte> signature
+    )
     {
         var validatedSecurityKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 

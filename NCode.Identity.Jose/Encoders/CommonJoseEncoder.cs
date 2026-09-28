@@ -56,17 +56,9 @@ public abstract class CommonJoseEncoder : JoseEncoder
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        using var _ = JoseSerializer.SerializeToUtf8(
-            payload,
-            jsonOptions,
-            out var payloadBytes
-        );
+        using var _ = JoseSerializer.SerializeToUtf8(payload, jsonOptions, out var payloadBytes);
 
-        Encode(
-            tokenBuffer,
-            payloadBytes,
-            extraHeaders
-        );
+        Encode(tokenBuffer, payloadBytes, extraHeaders);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -79,17 +71,9 @@ public abstract class CommonJoseEncoder : JoseEncoder
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
     )
     {
-        using var _ = JoseSerializer.SerializeToUtf8(
-            payload,
-            jsonOptions,
-            out var bytes
-        );
+        using var _ = JoseSerializer.SerializeToUtf8(payload, jsonOptions, out var bytes);
 
-        Encode(
-            tokenWriter,
-            bytes,
-            extraHeaders
-        );
+        Encode(tokenWriter, bytes, extraHeaders);
     }
 
     /// <inheritdoc />
@@ -102,11 +86,7 @@ public abstract class CommonJoseEncoder : JoseEncoder
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(
-            tokenBuffer,
-            payload.AsSpan(),
-            extraHeaders
-        );
+        Encode(tokenBuffer, payload.AsSpan(), extraHeaders);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -118,11 +98,7 @@ public abstract class CommonJoseEncoder : JoseEncoder
         IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
     )
     {
-        Encode(
-            tokenWriter,
-            payload.AsSpan(),
-            extraHeaders
-        );
+        Encode(tokenWriter, payload.AsSpan(), extraHeaders);
     }
 
     /// <inheritdoc />
@@ -133,11 +109,7 @@ public abstract class CommonJoseEncoder : JoseEncoder
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(
-            tokenBuffer,
-            payload,
-            extraHeaders
-        );
+        Encode(tokenBuffer, payload, extraHeaders);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
@@ -150,16 +122,16 @@ public abstract class CommonJoseEncoder : JoseEncoder
     )
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var _ = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+        using var _ = BufferFactory.Rent(
+            byteCount,
+            isSensitive: false,
+            out Span<byte> payloadBytes
+        );
 
         var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
 
-        Encode(
-            tokenWriter,
-            payloadBytes,
-            extraHeaders
-        );
+        Encode(tokenWriter, payloadBytes, extraHeaders);
     }
 
     /// <inheritdoc />
@@ -170,11 +142,7 @@ public abstract class CommonJoseEncoder : JoseEncoder
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(
-            tokenBuffer,
-            payload,
-            extraHeaders
-        );
+        Encode(tokenBuffer, payload, extraHeaders);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }

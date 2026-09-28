@@ -34,9 +34,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
-    [
-        new(minSize: 2048, maxSize: 16384, skipSize: 64)
-    ];
+    [new(minSize: 2048, maxSize: 16384, skipSize: 64)];
 
     /// <inheritdoc />
     public override string Code { get; }

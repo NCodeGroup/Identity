@@ -37,5 +37,6 @@ public interface IClientAuthenticationService
     /// containing the <see cref="ClientAuthenticationResult"/> from the client authentication process.</returns>
     ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

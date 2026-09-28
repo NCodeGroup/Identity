@@ -34,7 +34,11 @@ public class UriJsonConverter : JsonConverter<Uri>
     }
 
     /// <inheritdoc />
-    public override Uri? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Uri? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         var envelope = JsonSerializer.Deserialize<UriEnvelope>(ref reader, options);
         if (envelope is null)
@@ -59,7 +63,10 @@ public class UriJsonConverter : JsonConverter<Uri>
         var envelope = new UriEnvelope
         {
             IsAbsolute = value.IsAbsoluteUri,
-            EscapedValue = value.GetComponents(UriComponents.SerializationInfoString, UriFormat.UriEscaped),
+            EscapedValue = value.GetComponents(
+                UriComponents.SerializationInfoString,
+                UriFormat.UriEscaped
+            ),
         };
         JsonSerializer.Serialize(writer, envelope, options);
     }

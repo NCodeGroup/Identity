@@ -51,7 +51,12 @@ public abstract class SignatureAlgorithm : KeyedAlgorithm
     /// <param name="signature">Destination for the calculated signature.</param>
     /// <param name="bytesWritten">The number of bytes written to <paramref name="signature"/>.</param>
     /// <returns><c>true></c> if there was enough room in <paramref name="signature"/> to copy all computed bytes; otherwise, <c>false</c>.</returns>
-    public abstract bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten);
+    public abstract bool TrySign(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        Span<byte> signature,
+        out int bytesWritten
+    );
 
     /// <summary>
     /// Verifies a digital signature.
@@ -60,5 +65,9 @@ public abstract class SignatureAlgorithm : KeyedAlgorithm
     /// <param name="inputData">Contains the data what was signed.</param>
     /// <param name="signature">Contains the digital signature to verify.</param>
     /// <returns><c>true</c> if the computed signature matches the <paramref name="signature"/> parameter; otherwise, <c>false</c>.</returns>
-    public abstract bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature);
+    public abstract bool Verify(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        ReadOnlySpan<byte> signature
+    );
 }

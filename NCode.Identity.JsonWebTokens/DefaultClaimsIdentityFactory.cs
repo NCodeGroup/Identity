@@ -46,22 +46,27 @@ public static class DefaultClaimsIdentityFactory
         string authenticationType,
         string nameClaimType,
         string roleClaimType,
-        JsonElement payload)
+        JsonElement payload
+    )
     {
-        var effectiveNameClaimType = string.IsNullOrEmpty(nameClaimType) ?
-            ClaimsIdentity.DefaultNameClaimType :
-            nameClaimType;
+        var effectiveNameClaimType = string.IsNullOrEmpty(nameClaimType)
+            ? ClaimsIdentity.DefaultNameClaimType
+            : nameClaimType;
 
-        var effectiveRoleClaimType = string.IsNullOrEmpty(roleClaimType) ?
-            ClaimsIdentity.DefaultRoleClaimType :
-            roleClaimType;
+        var effectiveRoleClaimType = string.IsNullOrEmpty(roleClaimType)
+            ? ClaimsIdentity.DefaultRoleClaimType
+            : roleClaimType;
 
         var subject = new ClaimsIdentity(
             authenticationType,
             effectiveNameClaimType,
-            effectiveRoleClaimType);
+            effectiveRoleClaimType
+        );
 
-        if (!payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var issuer) || string.IsNullOrEmpty(issuer))
+        if (
+            !payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var issuer)
+            || string.IsNullOrEmpty(issuer)
+        )
         {
             issuer = ClaimsIdentity.DefaultIssuer;
         }
@@ -74,8 +79,8 @@ public static class DefaultClaimsIdentityFactory
             if (value.ValueKind == JsonValueKind.Array)
             {
                 subject.AddClaims(
-                    value.EnumerateArray().Select(item =>
-                        CreateClaim(name, item, issuer, subject)));
+                    value.EnumerateArray().Select(item => CreateClaim(name, item, issuer, subject))
+                );
             }
             else
             {
@@ -94,18 +99,61 @@ public static class DefaultClaimsIdentityFactory
     /// <param name="issuer">The issuer of the claim.</param>
     /// <param name="subject">The subject of the claim.</param>
     /// <returns>The newly created <see cref="Claim"/> instance.</returns>
-    public static Claim CreateClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject) =>
+    public static Claim CreateClaim(
+        string propertyName,
+        JsonElement jsonElement,
+        string issuer,
+        ClaimsIdentity subject
+    ) =>
         jsonElement.ValueKind switch
         {
             JsonValueKind.Undefined => throw new NotSupportedException(),
-            JsonValueKind.Null => new Claim(propertyName, string.Empty, JsonClaimValueTypes.JsonNull, issuer, issuer, subject),
-            JsonValueKind.Object => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.Json, issuer, issuer, subject),
-            JsonValueKind.Array => new Claim(propertyName, jsonElement.ToString(), JsonClaimValueTypes.JsonArray, issuer, issuer, subject),
+            JsonValueKind.Null => new Claim(
+                propertyName,
+                string.Empty,
+                JsonClaimValueTypes.JsonNull,
+                issuer,
+                issuer,
+                subject
+            ),
+            JsonValueKind.Object => new Claim(
+                propertyName,
+                jsonElement.ToString(),
+                JsonClaimValueTypes.Json,
+                issuer,
+                issuer,
+                subject
+            ),
+            JsonValueKind.Array => new Claim(
+                propertyName,
+                jsonElement.ToString(),
+                JsonClaimValueTypes.JsonArray,
+                issuer,
+                issuer,
+                subject
+            ),
             JsonValueKind.String => CreateStringClaim(propertyName, jsonElement, issuer, subject),
             JsonValueKind.Number => CreateNumberClaim(propertyName, jsonElement, issuer, subject),
-            JsonValueKind.True => new Claim(propertyName, "true", ClaimValueTypes.Boolean, issuer, issuer, subject),
-            JsonValueKind.False => new Claim(propertyName, "false", ClaimValueTypes.Boolean, issuer, issuer, subject),
-            _ => throw new ArgumentOutOfRangeException(nameof(jsonElement), "Unsupported JsonValueKind.")
+            JsonValueKind.True => new Claim(
+                propertyName,
+                "true",
+                ClaimValueTypes.Boolean,
+                issuer,
+                issuer,
+                subject
+            ),
+            JsonValueKind.False => new Claim(
+                propertyName,
+                "false",
+                ClaimValueTypes.Boolean,
+                issuer,
+                issuer,
+                subject
+            ),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(jsonElement),
+                "Unsupported JsonValueKind."
+            ),
         };
 
     /// <summary>
@@ -116,19 +164,26 @@ public static class DefaultClaimsIdentityFactory
     /// <param name="issuer">The issuer of the claim.</param>
     /// <param name="subject">The subject of the claim.</param>
     /// <returns>The newly created <see cref="Claim"/> instance.</returns>
-    public static Claim CreateStringClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject)
+    public static Claim CreateStringClaim(
+        string propertyName,
+        JsonElement jsonElement,
+        string issuer,
+        ClaimsIdentity subject
+    )
     {
         var stringValue = jsonElement.ToString();
         var valueType = ClaimValueTypes.String;
 
         try
         {
-            if (DateTime.TryParse(
+            if (
+                DateTime.TryParse(
                     stringValue,
                     CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal |
-                    DateTimeStyles.AdjustToUniversal,
-                    out var dateTimeValue))
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out var dateTimeValue
+                )
+            )
             {
                 stringValue = dateTimeValue.ToString("O", CultureInfo.InvariantCulture);
                 valueType = ClaimValueTypes.DateTime;
@@ -150,7 +205,12 @@ public static class DefaultClaimsIdentityFactory
     /// <param name="issuer">The issuer of the claim.</param>
     /// <param name="subject">The subject of the claim.</param>
     /// <returns>The newly created <see cref="Claim"/> instance.</returns>
-    public static Claim CreateNumberClaim(string propertyName, JsonElement jsonElement, string issuer, ClaimsIdentity subject)
+    public static Claim CreateNumberClaim(
+        string propertyName,
+        JsonElement jsonElement,
+        string issuer,
+        ClaimsIdentity subject
+    )
     {
         var stringValue = jsonElement.ToString();
         var valueType = ClaimValueTypes.String;

@@ -53,10 +53,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
         const int contentKeySizeBytes = 7;
         const int contentKeySizeBits = contentKeySizeBytes << 3;
 
-        MockAlgorithm
-            .Setup(x => x.ContentKeySizeBytes)
-            .Returns(contentKeySizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.ContentKeySizeBytes).Returns(contentKeySizeBytes).Verifiable();
 
         var results = Algorithm.KeyBitSizes;
         var result = Assert.Single(results);
@@ -71,10 +68,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
         const int contentKeySizeBytes = 7;
         const int contentKeySizeBits = contentKeySizeBytes << 3;
 
-        MockAlgorithm
-            .Setup(x => x.ContentKeySizeBytes)
-            .Returns(contentKeySizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.ContentKeySizeBytes).Returns(contentKeySizeBytes).Verifiable();
 
         var result = Algorithm.ContentKeySizeBits;
         Assert.Equal(contentKeySizeBits, result);
@@ -103,15 +97,9 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(cipherText);
         RandomNumberGenerator.Fill(authenticationTag);
 
-        MockAlgorithm
-            .Setup(x => x.ContentKeySizeBytes)
-            .Returns(contentKeySizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.ContentKeySizeBytes).Returns(contentKeySizeBytes).Verifiable();
 
-        MockAlgorithm
-            .Setup(x => x.NonceSizeBytes)
-            .Returns(nonceSizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.NonceSizeBytes).Returns(nonceSizeBytes).Verifiable();
 
         if (encrypt)
         {
@@ -126,13 +114,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
             .Returns(authenticationTagSizeBytes)
             .Verifiable();
 
-        Algorithm.ValidateParameters(
-            encrypt,
-            cek,
-            nonce,
-            plainText,
-            cipherText,
-            authenticationTag);
+        Algorithm.ValidateParameters(encrypt, cek, nonce, plainText, cipherText, authenticationTag);
     }
 
     [Theory]
@@ -146,10 +128,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
         const int cipherTextSizeBytes = 10;
         const int authenticationTagSizeBytes = 11;
 
-        MockAlgorithm
-            .Setup(x => x.ContentKeySizeBytes)
-            .Returns(contentKeySizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.ContentKeySizeBytes).Returns(contentKeySizeBytes).Verifiable();
 
         var exception = Assert.Throws<ArgumentException>(() =>
         {
@@ -171,10 +150,14 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
                 nonce,
                 plainText,
                 cipherText,
-                authenticationTag);
+                authenticationTag
+            );
         });
 
-        Assert.Equal("The specified content encryption key (CEK) does not have a valid size for this cryptographic algorithm. (Parameter 'cek')", exception.Message);
+        Assert.Equal(
+            "The specified content encryption key (CEK) does not have a valid size for this cryptographic algorithm. (Parameter 'cek')",
+            exception.Message
+        );
     }
 
     [Theory]
@@ -188,15 +171,9 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
         const int cipherTextSizeBytes = 10;
         const int authenticationTagSizeBytes = 11;
 
-        MockAlgorithm
-            .Setup(x => x.ContentKeySizeBytes)
-            .Returns(contentKeySizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.ContentKeySizeBytes).Returns(contentKeySizeBytes).Verifiable();
 
-        MockAlgorithm
-            .Setup(x => x.NonceSizeBytes)
-            .Returns(nonceSizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.NonceSizeBytes).Returns(nonceSizeBytes).Verifiable();
 
         var exception = Assert.Throws<ArgumentException>(() =>
         {
@@ -218,10 +195,14 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
                 nonce,
                 plainText,
                 cipherText,
-                authenticationTag);
+                authenticationTag
+            );
         });
 
-        Assert.Equal("The specified nonce does not have a valid size for this cryptographic algorithm. (Parameter 'nonce')", exception.Message);
+        Assert.Equal(
+            "The specified nonce does not have a valid size for this cryptographic algorithm. (Parameter 'nonce')",
+            exception.Message
+        );
     }
 
     [Theory]
@@ -235,15 +216,9 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
         const int cipherTextSizeBytes = 10;
         const int authenticationTagSizeBytes = 11;
 
-        MockAlgorithm
-            .Setup(x => x.ContentKeySizeBytes)
-            .Returns(contentKeySizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.ContentKeySizeBytes).Returns(contentKeySizeBytes).Verifiable();
 
-        MockAlgorithm
-            .Setup(x => x.NonceSizeBytes)
-            .Returns(nonceSizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.NonceSizeBytes).Returns(nonceSizeBytes).Verifiable();
 
         if (encrypt)
         {
@@ -282,10 +257,14 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
                     nonce,
                     plainText,
                     cipherText,
-                    authenticationTag);
+                    authenticationTag
+                );
             });
 
-            Assert.Equal("The specified plain text and cipher text do not have a valid size for this cryptographic algorithm. (Parameter 'cipherText')", exception.Message);
+            Assert.Equal(
+                "The specified plain text and cipher text do not have a valid size for this cryptographic algorithm. (Parameter 'cipherText')",
+                exception.Message
+            );
         }
         else
         {
@@ -307,7 +286,8 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
                 nonce,
                 plainText,
                 cipherText,
-                authenticationTag);
+                authenticationTag
+            );
         }
     }
 
@@ -322,15 +302,9 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
         const int cipherTextSizeBytes = 10;
         const int authenticationTagSizeBytes = 11;
 
-        MockAlgorithm
-            .Setup(x => x.ContentKeySizeBytes)
-            .Returns(contentKeySizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.ContentKeySizeBytes).Returns(contentKeySizeBytes).Verifiable();
 
-        MockAlgorithm
-            .Setup(x => x.NonceSizeBytes)
-            .Returns(nonceSizeBytes)
-            .Verifiable();
+        MockAlgorithm.Setup(x => x.NonceSizeBytes).Returns(nonceSizeBytes).Verifiable();
 
         if (encrypt)
         {
@@ -365,9 +339,13 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
                 nonce,
                 plainText,
                 cipherText,
-                authenticationTag);
+                authenticationTag
+            );
         });
 
-        Assert.Equal("The specified authentication tag does not have a valid size for this cryptographic algorithm. (Parameter 'authenticationTag')", exception.Message);
+        Assert.Equal(
+            "The specified authentication tag does not have a valid size for this cryptographic algorithm. (Parameter 'authenticationTag')",
+            exception.Message
+        );
     }
 }

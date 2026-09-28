@@ -51,17 +51,24 @@ internal class Startup(IConfiguration configuration)
         services.AddAntiforgery();
 
         services.AddHealthChecks();
-        services.AddHttpLogging(options => { options.LoggingFields = HttpLoggingFields.All; });
+        services.AddHttpLogging(options =>
+        {
+            options.LoggingFields = HttpLoggingFields.All;
+        });
         services.AddHttpClient();
 
-        var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
+        var openIdOptionsSectionName = Environment.GetEnvironmentVariable(
+            "OpenId_OptionsSectionName"
+        );
         if (string.IsNullOrEmpty(openIdOptionsSectionName))
         {
             openIdOptionsSectionName = OpenIdOptions.DefaultSectionName;
         }
 
         services.Configure<OpenIdOptions>(Configuration.GetSection(openIdOptionsSectionName));
-        services.Configure<OpenIdOptions>(options => options.SectionName = openIdOptionsSectionName);
+        services.Configure<OpenIdOptions>(options =>
+            options.SectionName = openIdOptionsSectionName
+        );
 
         services.AddEndpointsApiExplorer();
 
@@ -94,7 +101,13 @@ internal class Startup(IConfiguration configuration)
         });
 
         services.AddControllers();
-        services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "NCode.Identity.OpenId.Playground", Version = "v1" }); });
+        services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc(
+                "v1",
+                new OpenApiInfo { Title = "NCode.Identity.OpenId.Playground", Version = "v1" }
+            );
+        });
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -103,7 +116,9 @@ internal class Startup(IConfiguration configuration)
         {
             app.UseDeveloperExceptionPage();
             app.UseSwagger(c => { });
-            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "NCode.Identity.OpenId.Playground v1"));
+            app.UseSwaggerUI(c =>
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "NCode.Identity.OpenId.Playground v1")
+            );
         }
 
         app.UseHttpLogging();

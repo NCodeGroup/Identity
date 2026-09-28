@@ -31,17 +31,16 @@ public class BaseTests : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposing) return;
+        if (!disposing)
+            return;
         MockRepository.Verify();
     }
 
     protected Mock<T> CreateStrictMock<T>(params object[] args)
-        where T : class =>
-        MockRepository.Create<T>(args);
+        where T : class => MockRepository.Create<T>(args);
 
     protected Mock<T> CreateLooseMock<T>(params object[] args)
-        where T : class =>
-        MockRepository.Create<T>(MockBehavior.Loose, args);
+        where T : class => MockRepository.Create<T>(MockBehavior.Loose, args);
 
     protected Mock<T> CreatePartialMock<T>(params object[] args)
         where T : class

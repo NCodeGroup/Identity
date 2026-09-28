@@ -31,6 +31,5 @@ public static class ParameterParserExtensions
     /// </summary>
     /// <typeparam name="T">The type of parameter to parse.</typeparam>
     public static IParameterParser<T?> AsNullableValue<T>(this IParameterParser<T> parser)
-        where T : struct =>
-        new NullableValueTypeParameterParser<T>(parser);
+        where T : struct => new NullableValueTypeParameterParser<T>(parser);
 }

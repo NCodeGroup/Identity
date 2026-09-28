@@ -26,7 +26,8 @@ namespace NCode.Identity.OpenId.Authentication.Messages.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="LoadRequestValuesCommand"/> message.
 /// </summary>
-public class DefaultLoadRequestValuesHandler : ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>
+public class DefaultLoadRequestValuesHandler
+    : ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>
 {
     /// <inheritdoc />
     public async ValueTask<IRequestValues> HandleAsync(
@@ -48,11 +49,18 @@ public class DefaultLoadRequestValuesHandler : ICommandResponseHandler<LoadReque
         if (HttpMethods.IsPost(httpRequest.Method))
         {
             const string expectedContentType = OpenIdConstants.ContentType;
-            if (!httpRequest.ContentType?.StartsWith(expectedContentType, StringComparison.OrdinalIgnoreCase) ?? false)
+            if (
+                !httpRequest.ContentType?.StartsWith(
+                    expectedContentType,
+                    StringComparison.OrdinalIgnoreCase
+                ) ?? false
+            )
             {
                 throw errorFactory
                     .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
-                    .WithDescription($"The content type of POST requests must be '{expectedContentType}', received '{httpRequest.ContentType}'.")
+                    .WithDescription(
+                        $"The content type of POST requests must be '{expectedContentType}', received '{httpRequest.ContentType}'."
+                    )
                     .WithStatusCode(StatusCodes.Status415UnsupportedMediaType)
                     .AsException();
             }

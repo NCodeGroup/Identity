@@ -30,9 +30,8 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecretKeyFactory"/> abstraction.
 /// </summary>
-public class DefaultSecretKeyFactory(
-    IDataProtectorFactory<SecretKey> dataProtectorFactory
-) : ISecretKeyFactory
+public class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProtectorFactory)
+    : ISecretKeyFactory
 {
     private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
 
@@ -45,12 +44,7 @@ public class DefaultSecretKeyFactory(
         KeyMetadata metadata,
         int keySizeBytes,
         ReadOnlyMemory<byte> protectedPrivateKey
-    ) => new(
-        DataProtector,
-        metadata,
-        keySizeBytes,
-        protectedPrivateKey
-    );
+    ) => new(DataProtector, metadata, keySizeBytes, protectedPrivateKey);
 
     /// <inheritdoc />
     public SymmetricSecretKey CreateSymmetric(KeyMetadata metadata, ReadOnlySpan<byte> bytes)
@@ -84,12 +78,15 @@ public class DefaultSecretKeyFactory(
     public AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2 certificate)
     {
         if (!certificate.HasPrivateKey)
-            throw new ArgumentException("The certificate does not contain a private key.", nameof(certificate));
+            throw new ArgumentException(
+                "The certificate does not contain a private key.",
+                nameof(certificate)
+            );
 
         var newMetadata = metadata with
         {
             KeyId = metadata.KeyId ?? certificate.Thumbprint,
-            ExpiresWhen = metadata.ExpiresWhen ?? certificate.NotAfter
+            ExpiresWhen = metadata.ExpiresWhen ?? certificate.NotAfter,
         };
 
         using var ecDiffieHellman = certificate.GetECDiffieHellmanPrivateKey();
@@ -105,7 +102,9 @@ public class DefaultSecretKeyFactory(
             return CreateRsa(newMetadata, rsa, certificate);
 
         var algorithm = certificate.GetKeyAlgorithm();
-        throw new NotSupportedException($"The certificate uses a key algorithm '{algorithm}' that is not supported.");
+        throw new NotSupportedException(
+            $"The certificate uses a key algorithm '{algorithm}' that is not supported."
+        );
     }
 
     private delegate T AsymmetricSecretKeyFactoryDelegate<out T>(
@@ -126,7 +125,9 @@ public class DefaultSecretKeyFactory(
         return factory(protectedPkcs8PrivateKey, certificateRawData);
     }
 
-    private ReadOnlyMemory<byte> ExportProtectedPkcs8PrivateKey(AsymmetricAlgorithm asymmetricAlgorithm)
+    private ReadOnlyMemory<byte> ExportProtectedPkcs8PrivateKey(
+        AsymmetricAlgorithm asymmetricAlgorithm
+    )
     {
         var protectedPrivateKeyBuffer = BufferFactory.CreateArrayBufferWriter();
 
@@ -155,30 +156,28 @@ public class DefaultSecretKeyFactory(
         int modulusSizeBits,
         ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
         ReadOnlyMemory<byte>? certificateRawData
-    ) => new(
-        DataProtector,
-        metadata,
-        modulusSizeBits,
-        protectedPkcs8PrivateKey,
-        certificateRawData
-    );
+    ) =>
+        new(DataProtector, metadata, modulusSizeBits, protectedPkcs8PrivateKey, certificateRawData);
 
     /// <inheritdoc />
-    public RsaSecretKey CreateRsa(KeyMetadata metadata, RSA key, X509Certificate2? certificate = null)
-        => CreateAsymmetric<RsaSecretKey>(
+    public RsaSecretKey CreateRsa(
+        KeyMetadata metadata,
+        RSA key,
+        X509Certificate2? certificate = null
+    ) =>
+        CreateAsymmetric<RsaSecretKey>(
             key,
             certificate,
-            (keyBytes, certificateBytes)
-                => CreateRsa(
-                    metadata,
-                    key.KeySize,
-                    keyBytes,
-                    certificateBytes
-                )
+            (keyBytes, certificateBytes) =>
+                CreateRsa(metadata, key.KeySize, keyBytes, certificateBytes)
         );
 
     /// <inheritdoc />
-    public RsaSecretKey CreateRsaPem(KeyMetadata metadata, ReadOnlySpan<char> chars, X509Certificate2? certificate = null)
+    public RsaSecretKey CreateRsaPem(
+        KeyMetadata metadata,
+        ReadOnlySpan<char> chars,
+        X509Certificate2? certificate = null
+    )
     {
         using var key = RSA.Create();
         key.ImportFromPem(chars);
@@ -186,7 +185,11 @@ public class DefaultSecretKeyFactory(
     }
 
     /// <inheritdoc />
-    public RsaSecretKey CreateRsaPkcs8(KeyMetadata metadata, ReadOnlySpan<byte> bytes, X509Certificate2? certificate = null)
+    public RsaSecretKey CreateRsaPkcs8(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> bytes,
+        X509Certificate2? certificate = null
+    )
     {
         using var key = RSA.Create();
         key.ImportPkcs8PrivateKey(bytes, out var bytesRead);
@@ -203,30 +206,27 @@ public class DefaultSecretKeyFactory(
         int curveSizeBits,
         ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
         ReadOnlyMemory<byte>? certificateRawData
-    ) => new(
-        DataProtector,
-        metadata,
-        curveSizeBits,
-        protectedPkcs8PrivateKey,
-        certificateRawData
-    );
+    ) => new(DataProtector, metadata, curveSizeBits, protectedPkcs8PrivateKey, certificateRawData);
 
     /// <inheritdoc />
-    public EccSecretKey CreateEcc(KeyMetadata metadata, ECAlgorithm key, X509Certificate2? certificate = null)
-        => CreateAsymmetric<EccSecretKey>(
+    public EccSecretKey CreateEcc(
+        KeyMetadata metadata,
+        ECAlgorithm key,
+        X509Certificate2? certificate = null
+    ) =>
+        CreateAsymmetric<EccSecretKey>(
             key,
             certificate,
-            (keyBytes, certificateBytes)
-                => CreateEcc(
-                    metadata,
-                    key.KeySize,
-                    keyBytes,
-                    certificateBytes
-                )
+            (keyBytes, certificateBytes) =>
+                CreateEcc(metadata, key.KeySize, keyBytes, certificateBytes)
         );
 
     /// <inheritdoc />
-    public EccSecretKey CreateEccPem(KeyMetadata metadata, ReadOnlySpan<char> chars, X509Certificate2? certificate = null)
+    public EccSecretKey CreateEccPem(
+        KeyMetadata metadata,
+        ReadOnlySpan<char> chars,
+        X509Certificate2? certificate = null
+    )
     {
         using var key = ECDiffieHellman.Create();
         key.ImportFromPem(chars);
@@ -234,7 +234,11 @@ public class DefaultSecretKeyFactory(
     }
 
     /// <inheritdoc />
-    public EccSecretKey CreateEccPkcs8(KeyMetadata metadata, ReadOnlySpan<byte> bytes, X509Certificate2? certificate = null)
+    public EccSecretKey CreateEccPkcs8(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> bytes,
+        X509Certificate2? certificate = null
+    )
     {
         using var key = ECDiffieHellman.Create();
         key.ImportPkcs8PrivateKey(bytes, out var bytesRead);

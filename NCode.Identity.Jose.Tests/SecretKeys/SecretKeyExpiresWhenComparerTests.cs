@@ -42,20 +42,15 @@ public class SecretKeyExpiresWhenComparerTests : BaseTests
         var expiresWhenRight = expiresWhenLeft.AddDays(-1);
 
         var metadataLeft = new KeyMetadata { ExpiresWhen = expiresWhenLeft };
-        MockSecretKeyLeft
-            .Setup(x => x.Metadata)
-            .Returns(metadataLeft)
-            .Verifiable();
+        MockSecretKeyLeft.Setup(x => x.Metadata).Returns(metadataLeft).Verifiable();
 
         var metadataRight = new KeyMetadata { ExpiresWhen = expiresWhenRight };
-        MockSecretKeyRight
-            .Setup(x => x.Metadata)
-            .Returns(metadataRight)
-            .Verifiable();
+        MockSecretKeyRight.Setup(x => x.Metadata).Returns(metadataRight).Verifiable();
 
         var result = SecretKeyExpiresWhenComparer.Singleton.Compare(
             MockSecretKeyLeft.Object,
-            MockSecretKeyRight.Object);
+            MockSecretKeyRight.Object
+        );
         Assert.Equal(-1, result);
     }
 
@@ -66,20 +61,15 @@ public class SecretKeyExpiresWhenComparerTests : BaseTests
         var expiresWhenRight = expiresWhenLeft.AddDays(1);
 
         var metadataLeft = new KeyMetadata { ExpiresWhen = expiresWhenLeft };
-        MockSecretKeyLeft
-            .Setup(x => x.Metadata)
-            .Returns(metadataLeft)
-            .Verifiable();
+        MockSecretKeyLeft.Setup(x => x.Metadata).Returns(metadataLeft).Verifiable();
 
         var metadataRight = new KeyMetadata { ExpiresWhen = expiresWhenRight };
-        MockSecretKeyRight
-            .Setup(x => x.Metadata)
-            .Returns(metadataRight)
-            .Verifiable();
+        MockSecretKeyRight.Setup(x => x.Metadata).Returns(metadataRight).Verifiable();
 
         var result = SecretKeyExpiresWhenComparer.Singleton.Compare(
             MockSecretKeyLeft.Object,
-            MockSecretKeyRight.Object);
+            MockSecretKeyRight.Object
+        );
         Assert.Equal(1, result);
     }
 }

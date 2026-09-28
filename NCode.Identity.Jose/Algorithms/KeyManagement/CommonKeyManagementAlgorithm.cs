@@ -54,12 +54,7 @@ public abstract class CommonKeyManagementAlgorithm : KeyManagementAlgorithm
     {
         NewKey(secretKey, header, contentKey);
 
-        WrapKey(
-            secretKey,
-            header,
-            contentKey,
-            encryptedContentKeyWriter
-        );
+        WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter);
     }
 
     /// <summary>
@@ -73,7 +68,9 @@ public abstract class CommonKeyManagementAlgorithm : KeyManagementAlgorithm
         var legalCekByteSizes = GetLegalCekByteSizes(kekSizeBits);
         if (!KeySizesUtility.IsLegalSize(legalCekByteSizes, cekSizeBytes))
         {
-            throw new JoseException("The content encryption key (CEK) does not have a valid size for this cryptographic algorithm.");
+            throw new JoseException(
+                "The content encryption key (CEK) does not have a valid size for this cryptographic algorithm."
+            );
         }
     }
 }

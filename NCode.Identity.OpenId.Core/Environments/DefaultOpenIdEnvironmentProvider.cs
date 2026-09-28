@@ -23,9 +23,9 @@ namespace NCode.Identity.OpenId.Environments;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdEnvironmentProvider"/> abstraction.
 /// </summary>
-public class DefaultOpenIdEnvironmentProvider(
-    IOpenIdEnvironmentFactory factory
-) : IOpenIdEnvironmentProvider, IAsyncDisposable
+public class DefaultOpenIdEnvironmentProvider(IOpenIdEnvironmentFactory factory)
+    : IOpenIdEnvironmentProvider,
+        IAsyncDisposable
 {
     private IOpenIdEnvironmentFactory Factory { get; } = factory;
     private OpenIdEnvironment? InstanceOrNull { get; set; }

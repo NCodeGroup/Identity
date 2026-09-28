@@ -25,6 +25,4 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 /// Represents a client credentials grant.
 /// </summary>
 [PublicAPI]
-public readonly record struct ClientCredentialsGrant(
-    OpenIdConfidentialClient ConfidentialClient
-);
+public readonly record struct ClientCredentialsGrant(OpenIdConfidentialClient ConfidentialClient);

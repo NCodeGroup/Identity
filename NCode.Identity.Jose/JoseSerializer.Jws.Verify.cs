@@ -33,13 +33,17 @@ partial class JoseSerializer
     private static void AssertJwsDetached(CompactJwt compactJwt)
     {
         if (compactJwt.ProtectionType != JoseProtectionTypes.Jws)
-            throw new InvalidOperationException("Only JWS tokens can be validated with a detached payload.");
+            throw new InvalidOperationException(
+                "Only JWS tokens can be validated with a detached payload."
+            );
     }
 
     private SignatureAlgorithm GetSignatureAlgorithm(string code) =>
-        !AlgorithmCollection.TryGetSignatureAlgorithm(code, out var algorithm) ?
-            throw new JoseInvalidAlgorithmException($"The `{code}` algorithm is not supported for digital signatures.") :
-            AssertEnabled(algorithm);
+        !AlgorithmCollection.TryGetSignatureAlgorithm(code, out var algorithm)
+            ? throw new JoseInvalidAlgorithmException(
+                $"The `{code}` algorithm is not supported for digital signatures."
+            )
+            : AssertEnabled(algorithm);
 
     /// <inheritdoc />
     public void VerifyJws<T>(
@@ -47,8 +51,7 @@ partial class JoseSerializer
         SecretKey secretKey,
         T detachedPayload,
         JsonSerializerOptions? jsonOptions
-    ) =>
-        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload, jsonOptions);
+    ) => VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload, jsonOptions);
 
     /// <inheritdoc />
     public void VerifyJws<T>(
@@ -78,16 +81,8 @@ partial class JoseSerializer
     }
 
     /// <inheritdoc />
-    public void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        string detachedPayload
-    ) =>
-        VerifyJws(
-            ParseCompactJwt(token),
-            secretKey,
-            detachedPayload.AsSpan()
-        );
+    public void VerifyJws(string token, SecretKey secretKey, string detachedPayload) =>
+        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload.AsSpan());
 
     /// <inheritdoc />
     public void VerifyJws(
@@ -95,37 +90,15 @@ partial class JoseSerializer
         SecretKey secretKey,
         string detachedPayload,
         out JsonElement header
-    ) =>
-        VerifyJws(
-            token,
-            secretKey,
-            detachedPayload.AsSpan(),
-            out header
-        );
+    ) => VerifyJws(token, secretKey, detachedPayload.AsSpan(), out header);
 
     /// <inheritdoc />
-    public void VerifyJws(
-        CompactJwt compactJwt,
-        SecretKey secretKey,
-        string detachedPayload
-    ) =>
-        VerifyJws(
-            compactJwt,
-            secretKey,
-            detachedPayload.AsSpan()
-        );
+    public void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, string detachedPayload) =>
+        VerifyJws(compactJwt, secretKey, detachedPayload.AsSpan());
 
     /// <inheritdoc />
-    public void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload
-    ) =>
-        VerifyJws(
-            ParseCompactJwt(token),
-            secretKey,
-            detachedPayload
-        );
+    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload) =>
+        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload);
 
     /// <inheritdoc />
     public void VerifyJws(
@@ -158,7 +131,11 @@ partial class JoseSerializer
         if (b64)
         {
             var byteCount = SecureEncoding.UTF8.GetByteCount(detachedPayload);
-            using var lease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> payloadBytes);
+            using var lease = BufferFactory.Rent(
+                byteCount,
+                isSensitive: false,
+                out Span<byte> payloadBytes
+            );
             var bytesWritten = SecureEncoding.UTF8.GetBytes(detachedPayload, payloadBytes);
             Debug.Assert(bytesWritten == byteCount);
 
@@ -182,16 +159,8 @@ partial class JoseSerializer
     }
 
     /// <inheritdoc />
-    public void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload
-    ) =>
-        VerifyJws(
-            ParseCompactJwt(token),
-            secretKey,
-            detachedPayload
-        );
+    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload) =>
+        VerifyJws(ParseCompactJwt(token), secretKey, detachedPayload);
 
     /// <inheritdoc />
     public void VerifyJws(
@@ -244,7 +213,12 @@ partial class JoseSerializer
         ReadOnlySpan<char> encodedSignature
     )
     {
-        if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var signatureAlgorithmCode))
+        if (
+            !header.TryGetPropertyValue<string>(
+                JoseClaimNames.Header.Alg,
+                out var signatureAlgorithmCode
+            )
+        )
             throw new JoseException("The JWT header is missing the 'alg' field.");
 
         var signatureAlgorithm = GetSignatureAlgorithm(signatureAlgorithmCode);
@@ -252,16 +226,22 @@ partial class JoseSerializer
         using var signatureLease = DecodeBase64Url(
             encodedSignature,
             isSensitive: false,
-            out var signature);
+            out var signature
+        );
 
-        var expectedSignatureSizeBytes = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
+        var expectedSignatureSizeBytes = signatureAlgorithm.GetSignatureSizeBytes(
+            secretKey.KeySizeBits
+        );
         if (signature.Length != expectedSignatureSizeBytes)
-            throw new JoseIntegrityException($"Invalid signature size, expected {expectedSignatureSizeBytes} bytes but was {signature.Length} bytes.");
+            throw new JoseIntegrityException(
+                $"Invalid signature size, expected {expectedSignatureSizeBytes} bytes but was {signature.Length} bytes."
+            );
 
         using var signatureInputLease = GetSignatureInput(
             encodedHeader,
             encodedPayload,
-            out var signatureInput);
+            out var signatureInput
+        );
 
         if (!signatureAlgorithm.Verify(secretKey, signatureInput, signature))
             throw new JoseIntegrityException("Invalid signature, verification failed.");

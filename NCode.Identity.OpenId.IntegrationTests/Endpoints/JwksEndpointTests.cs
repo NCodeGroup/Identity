@@ -32,10 +32,9 @@ public class JwksEndpointTests(PlaygroundApplicationFactory factory)
     [Fact]
     public async Task GetJwks_WithEphemeralDeveloperKeys_PublishesRsaSigningKey()
     {
-        var client = Factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
 
         using var response = await client.GetAsync("/oauth2/jwks");
 

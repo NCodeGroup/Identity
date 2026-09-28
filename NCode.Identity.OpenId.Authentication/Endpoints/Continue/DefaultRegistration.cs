@@ -36,14 +36,18 @@ public static class DefaultRegistration
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationEndpoints"/>.</param>
     /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
     public static IServiceBuilder<OpenIdAuthenticationEndpoints> AddContinueEndpoint(
-        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder
+    )
     {
         builder.AddEndpointProvider<DefaultContinueEndpointHandler>();
 
         var serviceCollection = builder.ServiceCollection;
 
         serviceCollection.TryAddSingleton<IContinueService, DefaultContinueService>();
-        serviceCollection.TryAddSingleton<IContinueProviderSelector, DefaultContinueProviderSelector>();
+        serviceCollection.TryAddSingleton<
+            IContinueProviderSelector,
+            DefaultContinueProviderSelector
+        >();
 
         return builder;
     }

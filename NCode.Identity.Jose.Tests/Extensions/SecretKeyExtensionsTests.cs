@@ -26,7 +26,6 @@ namespace NCode.Jose.Tests.Extensions;
 
 public class SecretKeyExtensionsTests : BaseTests
 {
-
     [Fact]
     public void Validate_Valid()
     {
@@ -54,9 +53,13 @@ public class SecretKeyExtensionsTests : BaseTests
         var legalKeyBitSizes = new[] { new KeySizes(keySizeBits, keySizeBits, 0) };
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            secretKey.Validate<AsymmetricSecretKey>(legalKeyBitSizes));
+            secretKey.Validate<AsymmetricSecretKey>(legalKeyBitSizes)
+        );
 
-        Assert.Equal($"The secret key was expected to be a type of '{typeof(AsymmetricSecretKey).FullName}', but '{secretKey.GetType().FullName}' was given instead. (Parameter 'secretKey')", exception.Message);
+        Assert.Equal(
+            $"The secret key was expected to be a type of '{typeof(AsymmetricSecretKey).FullName}', but '{secretKey.GetType().FullName}' was given instead. (Parameter 'secretKey')",
+            exception.Message
+        );
     }
 
     [Fact]
@@ -71,8 +74,12 @@ public class SecretKeyExtensionsTests : BaseTests
         var legalKeyBitSizes = new[] { new KeySizes(keySizeBits + 8, keySizeBits + 8, 0) };
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            secretKey.Validate<SymmetricSecretKey>(legalKeyBitSizes));
+            secretKey.Validate<SymmetricSecretKey>(legalKeyBitSizes)
+        );
 
-        Assert.Equal("The secret key does not have a valid size for this cryptographic algorithm. (Parameter 'secretKey')", exception.Message);
+        Assert.Equal(
+            "The secret key does not have a valid size for this cryptographic algorithm. (Parameter 'secretKey')",
+            exception.Message
+        );
     }
 }

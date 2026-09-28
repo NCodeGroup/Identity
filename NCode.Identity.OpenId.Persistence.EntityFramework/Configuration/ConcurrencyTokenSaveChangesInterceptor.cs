@@ -28,7 +28,10 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 public class ConcurrencyTokenSaveChangesInterceptor : SaveChangesInterceptor
 {
     /// <inheritdoc />
-    public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
+    public override InterceptionResult<int> SavingChanges(
+        DbContextEventData eventData,
+        InterceptionResult<int> result
+    )
     {
         var entries = eventData.Context?.ChangeTracker.Entries();
         if (entries is null)

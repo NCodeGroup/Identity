@@ -37,10 +37,10 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         MockAesKeyWrap = CreateStrictMock<IAesKeyWrap>();
     }
 
-    private AesKeyManagementAlgorithm CreateAlgorithm(int? kekSizeBits = null, IAesKeyWrap? aesKeyWrap = null) => new(
-        aesKeyWrap ?? MockAesKeyWrap.Object,
-        "code",
-        kekSizeBits ?? 128);
+    private AesKeyManagementAlgorithm CreateAlgorithm(
+        int? kekSizeBits = null,
+        IAesKeyWrap? aesKeyWrap = null
+    ) => new(aesKeyWrap ?? MockAesKeyWrap.Object, "code", kekSizeBits ?? 128);
 
     [Fact]
     public void Code_Valid()
@@ -73,10 +73,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         var kekSizeBits = Random.Shared.Next();
         var legalCekByteSizes = new KeySizes[] { new(-1, -1, 0) };
 
-        MockAesKeyWrap
-            .Setup(x => x.LegalCekByteSizes)
-            .Returns(legalCekByteSizes)
-            .Verifiable();
+        MockAesKeyWrap.Setup(x => x.LegalCekByteSizes).Returns(legalCekByteSizes).Verifiable();
 
         var algorithm = CreateAlgorithm();
         Assert.Same(legalCekByteSizes, algorithm.GetLegalCekByteSizes(kekSizeBits));
@@ -131,11 +128,22 @@ public class AesKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(encryptedCekSizeBytes, encryptedCekWriter.WrittenCount);
 
         var controlAlgorithm = new AesKeyWrapManagement(kekSizeBits);
-        var controlResult = controlAlgorithm.Unwrap(encryptedCekWriter.WrittenSpan.ToArray(), kek.ToArray(), cekSizeBits, headerForWrap);
+        var controlResult = controlAlgorithm.Unwrap(
+            encryptedCekWriter.WrittenSpan.ToArray(),
+            kek.ToArray(),
+            cekSizeBits,
+            headerForWrap
+        );
         Assert.Equal(controlResult, cek.ToArray());
 
         var headerForUnwrap = JsonSerializer.SerializeToElement(headerForWrap);
-        var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCekWriter.WrittenSpan, decryptedCek, out var unwrapBytesWritten);
+        var unwrapResult = algorithm.TryUnwrapKey(
+            secretKey,
+            headerForUnwrap,
+            encryptedCekWriter.WrittenSpan,
+            decryptedCek,
+            out var unwrapBytesWritten
+        );
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
         Assert.Equal(controlResult, decryptedCek.ToArray());

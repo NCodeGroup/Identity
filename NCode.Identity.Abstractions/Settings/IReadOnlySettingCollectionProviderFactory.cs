@@ -33,5 +33,8 @@ public interface IReadOnlySettingCollectionProviderFactory
     /// <param name="dataSources">The collection of data sources to use to populate the collection.</param>
     /// <param name="owns">Specifies if the collection provider should own the data sources.</param>
     /// <returns>The new created collection provider instance.</returns>
-    IReadOnlySettingCollectionProvider Create(IEnumerable<ICollectionDataSource<Setting>> dataSources, bool owns = false);
+    IReadOnlySettingCollectionProvider Create(
+        IEnumerable<ICollectionDataSource<Setting>> dataSources,
+        bool owns = false
+    );
 }

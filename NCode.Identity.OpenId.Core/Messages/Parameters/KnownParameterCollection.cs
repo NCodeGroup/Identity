@@ -25,25 +25,23 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Provides a default implementation of the <see cref="IKnownParameterCollection"/> abstraction.
 /// </summary>
-public class KnownParameterCollection(
-    IEnumerable<KnownParameter> knownParameters
-) : IKnownParameterCollection
+public class KnownParameterCollection(IEnumerable<KnownParameter> knownParameters)
+    : IKnownParameterCollection
 {
     private Dictionary<string, KnownParameter> KnownParameters { get; } =
         knownParameters.ToDictionary(x => x.Name, StringComparer.Ordinal);
 
     /// <inheritdoc />
-    public int Count =>
-        KnownParameters.Count;
+    public int Count => KnownParameters.Count;
 
     /// <inheritdoc />
-    public bool TryGet(string parameterName, [MaybeNullWhen(false)] out KnownParameter knownParameter) =>
-        KnownParameters.TryGetValue(parameterName, out knownParameter);
+    public bool TryGet(
+        string parameterName,
+        [MaybeNullWhen(false)] out KnownParameter knownParameter
+    ) => KnownParameters.TryGetValue(parameterName, out knownParameter);
 
     /// <inheritdoc />
-    public IEnumerator<KnownParameter> GetEnumerator() =>
-        KnownParameters.Values.GetEnumerator();
+    public IEnumerator<KnownParameter> GetEnumerator() => KnownParameters.Values.GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() =>
-        GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

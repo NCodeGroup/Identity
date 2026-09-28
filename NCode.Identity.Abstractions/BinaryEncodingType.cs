@@ -43,5 +43,5 @@ public enum BinaryEncodingType
     /// <summary>
     /// Specifies to use the hexadecimal encoding.
     /// </summary>
-    Hex
+    Hex,
 }

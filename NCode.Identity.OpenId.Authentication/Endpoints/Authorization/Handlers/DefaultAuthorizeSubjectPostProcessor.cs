@@ -25,9 +25,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a post-processor for the <see cref="AuthorizeSubjectCommand"/> message.
 /// </summary>
-public class DefaultAuthorizeSubjectPostProcessor :
-    ICommandResponsePostProcessor<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
-    ISupportMediatorPriority
+public class DefaultAuthorizeSubjectPostProcessor
+    : ICommandResponsePostProcessor<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
+        ISupportMediatorPriority
 {
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
@@ -36,9 +36,14 @@ public class DefaultAuthorizeSubjectPostProcessor :
     public ValueTask PostProcessAsync(
         AuthorizeSubjectCommand command,
         AuthorizeSubjectDisposition response,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        if (response.HasError && response.Error.State == null && command.AuthorizationRequest.State != null)
+        if (
+            response.HasError
+            && response.Error.State == null
+            && command.AuthorizationRequest.State != null
+        )
         {
             response.Error.State = command.AuthorizationRequest.State;
         }

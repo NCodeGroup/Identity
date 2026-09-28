@@ -28,13 +28,11 @@ public class DefaultSettingDescriptorJsonProvider(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingDescriptorJsonProvider
 {
-    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } =
+        settingDescriptorCollectionProvider;
 
     private static SettingDescriptor<TValue> CreateDescriptor<TValue>(string settingName)
-        where TValue : notnull => new()
-    {
-        Name = settingName
-    };
+        where TValue : notnull => new() { Name = settingName };
 
     /// <inheritdoc />
     public SettingDescriptor GetDescriptor(string settingName, JsonTokenType jsonTokenType)
@@ -48,7 +46,7 @@ public class DefaultSettingDescriptorJsonProvider(
             JsonTokenType.True or JsonTokenType.False => CreateDescriptor<bool>(settingName),
             JsonTokenType.Number => CreateDescriptor<double>(settingName),
             JsonTokenType.StartArray => CreateDescriptor<List<string>>(settingName),
-            _ => CreateDescriptor<JsonElement>(settingName)
+            _ => CreateDescriptor<JsonElement>(settingName),
         };
     }
 
@@ -64,7 +62,7 @@ public class DefaultSettingDescriptorJsonProvider(
             JsonValueKind.True or JsonValueKind.False => CreateDescriptor<bool>(settingName),
             JsonValueKind.Number => CreateDescriptor<double>(settingName),
             JsonValueKind.Array => CreateDescriptor<List<string>>(settingName),
-            _ => CreateDescriptor<JsonElement>(settingName)
+            _ => CreateDescriptor<JsonElement>(settingName),
         };
     }
 }

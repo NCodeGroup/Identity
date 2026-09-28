@@ -37,7 +37,8 @@ public class JoseEncryptionEncoder : CommonJoseEncoder
     /// <param name="encryptionOptions">The JOSE encryption credentials and options.</param>
     public JoseEncryptionEncoder(
         JoseSerializer joseSerializer,
-        JoseEncryptionOptions encryptionOptions)
+        JoseEncryptionOptions encryptionOptions
+    )
         : base(joseSerializer)
     {
         EncryptionOptions = encryptionOptions;
@@ -47,10 +48,6 @@ public class JoseEncryptionEncoder : CommonJoseEncoder
     public override void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null) =>
-        JoseSerializer.Encode(
-            tokenWriter,
-            payload,
-            EncryptionOptions,
-            extraHeaders);
+        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+    ) => JoseSerializer.Encode(tokenWriter, payload, EncryptionOptions, extraHeaders);
 }

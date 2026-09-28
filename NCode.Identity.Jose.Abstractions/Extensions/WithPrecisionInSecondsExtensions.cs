@@ -45,7 +45,10 @@ public static class WithPrecisionInSecondsExtensions
         /// </summary>
         /// <returns>A <see cref="DateTimeOffset"/> truncated to the nearest second.</returns>
         public DateTimeOffset WithPrecisionInSeconds() =>
-            new(dateTimeOffset.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond, dateTimeOffset.Offset);
+            new(
+                dateTimeOffset.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond,
+                dateTimeOffset.Offset
+            );
     }
 
     /// <param name="timeProvider">The <see cref="TimeProvider"/> instance.</param>

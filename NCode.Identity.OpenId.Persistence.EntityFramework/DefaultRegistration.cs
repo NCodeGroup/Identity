@@ -49,7 +49,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IdValueGenerator>();
             serviceCollection.TryAddSingleton<UseIdGeneratorConvention>();
 
-            serviceCollection.TryAddSingleton<IStoreManagerFactory, EntityStoreManagerFactory<TDbContext>>();
+            serviceCollection.TryAddSingleton<
+                IStoreManagerFactory,
+                EntityStoreManagerFactory<TDbContext>
+            >();
             serviceCollection.TryAddScoped<IStoreManager, EntityStoreManager<TDbContext>>();
 
             serviceCollection.AddStore<TDbContext, IServerStore, ServerStore>();
@@ -65,13 +68,14 @@ public static class DefaultRegistration
             where TService : class
             where TImplementation : class, TService
         {
-            serviceCollection.AddSingleton<Func<IStoreProvider, TDbContext, TService>>(serviceProvider =>
-                (storeProvider, dbContext) =>
-                    ActivatorUtilities.CreateInstance<TImplementation>(
-                        serviceProvider,
-                        storeProvider,
-                        dbContext
-                    )
+            serviceCollection.AddSingleton<Func<IStoreProvider, TDbContext, TService>>(
+                serviceProvider =>
+                    (storeProvider, dbContext) =>
+                        ActivatorUtilities.CreateInstance<TImplementation>(
+                            serviceProvider,
+                            storeProvider,
+                            dbContext
+                        )
             );
         }
     }

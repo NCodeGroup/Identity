@@ -38,7 +38,8 @@ internal class TestParameterParser<T> : ParameterParser<T>
         ParameterDescriptor descriptor,
         IParameterParser<T1> parser,
         T1? parsedValue
-    ) where T1 : default
+    )
+        where T1 : default
     {
         if (CreateCallback == null)
             throw new NotImplementedException();
@@ -67,10 +68,8 @@ internal class TestParameterParser<T> : ParameterParser<T>
         return ParseCallback(openIdEnvironment, descriptor, stringValues);
     }
 
-    protected override T1? Deserialize<T1>(
-        ref Utf8JsonReader reader,
-        JsonSerializerOptions options
-    ) where T1 : default
+    protected override T1? Deserialize<T1>(ref Utf8JsonReader reader, JsonSerializerOptions options)
+        where T1 : default
     {
         if (DeserializeCallback == null)
             throw new NotImplementedException();

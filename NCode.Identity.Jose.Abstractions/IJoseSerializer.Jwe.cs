@@ -29,9 +29,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="encryptionOptions">The JOSE encryption credentials and options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
-    JoseEncoder CreateEncoder(
-        JoseEncryptionOptions encryptionOptions
-    );
+    JoseEncoder CreateEncoder(JoseEncryptionOptions encryptionOptions);
 
     /// <summary>
     /// Encrypts a JWE token given the specified payload.

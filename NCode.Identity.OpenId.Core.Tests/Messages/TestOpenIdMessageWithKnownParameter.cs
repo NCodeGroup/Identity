@@ -23,7 +23,8 @@ using NCode.Identity.OpenId.Messages.Parsers;
 
 namespace NCode.Identity.OpenId.Tests.Messages;
 
-internal class TestOpenIdMessageWithKnownParameter : OpenIdMessage<TestOpenIdMessageWithKnownParameter>
+internal class TestOpenIdMessageWithKnownParameter
+    : OpenIdMessage<TestOpenIdMessageWithKnownParameter>
 {
     public TestOpenIdMessageWithKnownParameter()
     {

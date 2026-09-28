@@ -43,14 +43,16 @@ public static class SecretKeyExtensions
         {
             throw new ArgumentException(
                 $"The secret key was expected to be a type of '{typeof(T).FullName}', but '{secretKey.GetType().FullName}' was given instead.",
-                nameof(secretKey));
+                nameof(secretKey)
+            );
         }
 
         if (!KeySizesUtility.IsLegalSize(legalKeyBitSizes, secretKey.KeySizeBits))
         {
             throw new ArgumentException(
                 "The secret key does not have a valid size for this cryptographic algorithm.",
-                nameof(secretKey));
+                nameof(secretKey)
+            );
         }
 
         return typedSecretKey;

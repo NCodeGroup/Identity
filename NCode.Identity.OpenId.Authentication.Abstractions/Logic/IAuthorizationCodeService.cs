@@ -45,5 +45,6 @@ public interface IAuthorizationCodeService
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
         SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

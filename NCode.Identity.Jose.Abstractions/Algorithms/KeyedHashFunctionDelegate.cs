@@ -29,4 +29,5 @@ public delegate bool KeyedHashFunctionDelegate(
     ReadOnlySpan<byte> key,
     ReadOnlySpan<byte> source,
     Span<byte> destination,
-    out int bytesWritten);
+    out int bytesWritten
+);

@@ -37,8 +37,6 @@ public class JoseSerializerOptions
     /// <summary>
     /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.
     /// </summary>
-    public JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { JoseObjectJsonConverter.Singleton }
-    };
+    public JsonSerializerOptions JsonSerializerOptions { get; } =
+        new(JsonSerializerDefaults.Web) { Converters = { JoseObjectJsonConverter.Singleton } };
 }

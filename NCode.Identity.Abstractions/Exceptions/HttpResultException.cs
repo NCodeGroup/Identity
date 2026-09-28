@@ -54,7 +54,11 @@ public class HttpResultException : Exception
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception, or a <c>null</c>
     /// reference if no inner exception is specified.</param>
-    public HttpResultException(IResult httpResult, string? message, Exception? innerException = null)
+    public HttpResultException(
+        IResult httpResult,
+        string? message,
+        Exception? innerException = null
+    )
         : base(message ?? GetMessage(httpResult) ?? innerException?.Message, innerException)
     {
         HttpResult = httpResult;

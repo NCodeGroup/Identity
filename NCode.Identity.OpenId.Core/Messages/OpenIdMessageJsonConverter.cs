@@ -32,9 +32,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// </summary>
 /// <typeparam name="T">The type of the <see cref="IOpenIdMessage"/> instance to serialize and deserialize.</typeparam>
 [PublicAPI]
-public class OpenIdMessageJsonConverter<T>(
-    OpenIdEnvironment openIdEnvironment
-) : JsonConverter<T?>
+public class OpenIdMessageJsonConverter<T>(OpenIdEnvironment openIdEnvironment) : JsonConverter<T?>
     where T : class, IOpenIdMessage
 {
     private const string TypeKey = "$type";
@@ -56,7 +54,8 @@ public class OpenIdMessageJsonConverter<T>(
         ref Utf8JsonReader reader,
         string parameterName,
         SerializationFormat format,
-        JsonSerializerOptions options)
+        JsonSerializerOptions options
+    )
     {
         var descriptor = OpenIdEnvironment.GetParameterDescriptor(parameterName);
         return descriptor.Loader.Read(ref reader, OpenIdEnvironment, descriptor, format, options);
@@ -72,7 +71,11 @@ public class OpenIdMessageJsonConverter<T>(
     }
 
     /// <inheritdoc />
-    public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override T? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         T? messageOrNull = null;
         var typeDiscriminator = DefaultTypeDiscriminator;
@@ -132,12 +135,16 @@ public class OpenIdMessageJsonConverter<T>(
                 var formatName = reader.GetString();
                 if (!Enum.TryParse(formatName, ignoreCase: true, out SerializationFormat format))
                 {
-                    throw new InvalidOperationException("Unable to parse the serialization format.");
+                    throw new InvalidOperationException(
+                        "Unable to parse the serialization format."
+                    );
                 }
 
                 if (formatOrNull.HasValue && formatOrNull.Value != format)
                 {
-                    throw new InvalidOperationException("The serialization format has already been set and cannot be changed.");
+                    throw new InvalidOperationException(
+                        "The serialization format has already been set and cannot be changed."
+                    );
                 }
 
                 formatOrNull = format;

@@ -89,14 +89,13 @@ public readonly struct ParameterDescriptor : IEquatable<ParameterDescriptor>
     public IParameterLoader Loader { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) =>
-        obj is ParameterDescriptor other && Equals(other);
+    public override bool Equals(object? obj) => obj is ParameterDescriptor other && Equals(other);
 
     /// <inheritdoc/>
     public bool Equals(ParameterDescriptor other) =>
-        KnownParameter == null ?
-            string.Equals(ParameterName, other.ParameterName, StringComparison.Ordinal) :
-            KnownParameter == other.KnownParameter;
+        KnownParameter == null
+            ? string.Equals(ParameterName, other.ParameterName, StringComparison.Ordinal)
+            : KnownParameter == other.KnownParameter;
 
     /// <inheritdoc/>
     public override int GetHashCode() =>

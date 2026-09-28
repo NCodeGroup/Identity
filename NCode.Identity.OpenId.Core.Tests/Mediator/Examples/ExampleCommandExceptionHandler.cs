@@ -22,14 +22,13 @@ using NCode.Mediator.Middleware;
 
 namespace NCode.Identity.OpenId.Tests.Mediator.Examples;
 
-internal interface IExampleCommandExceptionHandler :
-    ICommandExceptionHandler<ICommand, Exception>
+internal interface IExampleCommandExceptionHandler : ICommandExceptionHandler<ICommand, Exception>
 {
     // nothing
 }
 
-internal class ExampleCommandExceptionHandler<TCommand, TException> :
-    ICommandExceptionHandler<TCommand, TException>
+internal class ExampleCommandExceptionHandler<TCommand, TException>
+    : ICommandExceptionHandler<TCommand, TException>
     where TCommand : ICommand
     where TException : Exception
 {
@@ -42,10 +41,6 @@ internal class ExampleCommandExceptionHandler<TCommand, TException> :
         TCommand command,
         TException exception,
         CommandExceptionHandlerState state,
-        CancellationToken cancellationToken) =>
-        await Handler.HandleAsync(
-            command,
-            exception,
-            state,
-            cancellationToken);
+        CancellationToken cancellationToken
+    ) => await Handler.HandleAsync(command, exception, state, cancellationToken);
 }

@@ -27,9 +27,9 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// Provides a default implementation for a <see cref="GetIdTokenSubjectClaimsCommand"/> handler that generates the subject
 /// claims for an id token. Custom claims are added by additional handlers provided by the application.
 /// </summary>
-public class DefaultGetIdTokenSubjectClaimsHandler(
-    IClaimsService claimsService
-) : ICommandHandler<GetIdTokenSubjectClaimsCommand>, ISupportMediatorPriority
+public class DefaultGetIdTokenSubjectClaimsHandler(IClaimsService claimsService)
+    : ICommandHandler<GetIdTokenSubjectClaimsCommand>,
+        ISupportMediatorPriority
 {
     private IClaimsService ClaimsService { get; } = claimsService;
 
@@ -37,7 +37,10 @@ public class DefaultGetIdTokenSubjectClaimsHandler(
     public int MediatorPriority => DefaultMediatorPriorities.Low;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(GetIdTokenSubjectClaimsCommand command, CancellationToken cancellationToken)
+    public ValueTask HandleAsync(
+        GetIdTokenSubjectClaimsCommand command,
+        CancellationToken cancellationToken
+    )
     {
         var (_, _, tokenContext, targetClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
@@ -86,12 +89,7 @@ public class DefaultGetIdTokenSubjectClaimsHandler(
         // Deferred: requires the parsed 'claims' request parameter to be carried on the token request
         // (CreateSecurityTokenRequest) so it is available here.
 
-        ClaimsService.CopyClaims(
-            sourceClaims,
-            targetClaims,
-            preventDuplicates: true,
-            claimTypes
-        );
+        ClaimsService.CopyClaims(sourceClaims, targetClaims, preventDuplicates: true, claimTypes);
 
         ClaimsService.CopyClaims(
             sourceClaims,

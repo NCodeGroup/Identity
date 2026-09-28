@@ -91,7 +91,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // access_token_encryption_enc_values_supported
@@ -100,7 +100,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // access_token_encryption_required
@@ -110,7 +110,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // access_token_encryption_zip_values_supported
@@ -119,7 +119,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.AccessTokenEncryptionZipValuesSupported,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // access_token_lifetime
@@ -129,7 +129,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // access_token_signing_alg_values_supported
@@ -138,7 +138,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // access_token_type
@@ -148,7 +148,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = JoseTokenTypes.Jwt,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // acr_values_supported
@@ -157,7 +157,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.AcrValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // allow_loopback_redirect
@@ -167,7 +167,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // allow_plain_code_challenge_method
@@ -177,7 +177,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // allow_unsafe_token_response
@@ -187,7 +187,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // allowed_identity_providers
@@ -197,7 +197,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = [],
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // authorization_authenticate_scheme
@@ -210,7 +210,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = IdentityConstants.ApplicationScheme,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // authorization_challenge_scheme
@@ -223,7 +223,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = IdentityConstants.ApplicationScheme,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // authorization_code_lifetime
@@ -233,7 +233,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // claims_locales_supported
@@ -242,7 +242,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.ClaimsLocalesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // claims_parameter_supported
@@ -252,7 +252,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = false, // TODO: this is still a WIP
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // claims_supported
@@ -261,15 +261,15 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.ClaimsSupported,
                 Default =
                 [
-                    ..OpenIdConstants.ProtocolClaims,
-                    ..OpenIdConstants.ClaimsByScope.Profile,
-                    ..OpenIdConstants.ClaimsByScope.Email,
-                    ..OpenIdConstants.ClaimsByScope.Address,
-                    ..OpenIdConstants.ClaimsByScope.Phone,
+                    .. OpenIdConstants.ProtocolClaims,
+                    .. OpenIdConstants.ClaimsByScope.Profile,
+                    .. OpenIdConstants.ClaimsByScope.Email,
+                    .. OpenIdConstants.ClaimsByScope.Address,
+                    .. OpenIdConstants.ClaimsByScope.Phone,
                 ],
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // claims_supported_is_strict
@@ -279,7 +279,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // claim_types_supported
@@ -289,7 +289,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = [OpenIdConstants.ClaimTypes.Normal],
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // clock_skew
@@ -299,7 +299,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = TimeSpan.FromMinutes(5),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // continue_authorization_lifetime
@@ -309,7 +309,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = TimeSpan.FromMinutes(15),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // display_values_supported
@@ -318,7 +318,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.DisplayValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // grant_types_supported
@@ -328,11 +328,11 @@ public class DefaultSettingDescriptorDataSource(
                 Default =
                 [
                     OpenIdConstants.GrantTypes.AuthorizationCode,
-                    OpenIdConstants.GrantTypes.Implicit
+                    OpenIdConstants.GrantTypes.Implicit,
                 ],
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // id_token_encryption_alg_values_supported
@@ -341,7 +341,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // id_token_encryption_enc_values_supported
@@ -350,7 +350,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.IdTokenEncryptionEncValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // id_token_encryption_required
@@ -360,7 +360,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // id_token_encryption_zip_values_supported
@@ -369,7 +369,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.IdTokenEncryptionZipValuesSupported,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // id_token_lifetime
@@ -379,7 +379,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // id_token_signing_alg_values_supported
@@ -388,7 +388,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // op_policy_uri
@@ -397,7 +397,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.OpenIdProviderPolicyUri,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // op_tos_uri
@@ -406,7 +406,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.OpenIdProviderTermsOfServiceUri,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // prompt_values_supported
@@ -419,11 +419,11 @@ public class DefaultSettingDescriptorDataSource(
                     OpenIdConstants.PromptTypes.Login,
                     OpenIdConstants.PromptTypes.Consent,
                     OpenIdConstants.PromptTypes.SelectAccount,
-                    OpenIdConstants.PromptTypes.CreateAccount
+                    OpenIdConstants.PromptTypes.CreateAccount,
                 ],
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // redirect_uris
@@ -432,7 +432,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.RedirectUris,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // refresh_token_expiration_policy
@@ -442,7 +442,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = OpenIdConstants.RefreshTokenExpirationPolicy.Absolute,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // refresh_token_lifetime
@@ -452,7 +452,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = TimeSpan.FromDays(30.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // refresh_token_rotation_enabled
@@ -462,7 +462,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // request_object_encryption_alg_values_supported
@@ -471,7 +471,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // request_object_encryption_enc_values_supported
@@ -480,7 +480,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // request_object_encryption_zip_values_supported
@@ -489,7 +489,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.RequestObjectEncryptionZipValuesSupported,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // request_object_signing_alg_values_supported
@@ -498,7 +498,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.RequestObjectSigningAlgValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // request_object_expected_audience
@@ -508,7 +508,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // request_parameter_supported
@@ -518,7 +518,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // request_uri_parameter_supported
@@ -528,7 +528,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // request_uri_require_strict_content_type
@@ -538,7 +538,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // request_uri_expected_content_type
@@ -548,7 +548,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = "application/oauth-authz-req+jwt",
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // require_pkce
@@ -558,7 +558,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // require_request_uri_registration
@@ -567,7 +567,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.RequireRequestUriRegistration,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // response_modes_supported
@@ -578,11 +578,11 @@ public class DefaultSettingDescriptorDataSource(
                 [
                     OpenIdConstants.ResponseModes.Query,
                     OpenIdConstants.ResponseModes.Fragment,
-                    OpenIdConstants.ResponseModes.FormPost
+                    OpenIdConstants.ResponseModes.FormPost,
                 ],
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // response_types_supported
@@ -593,12 +593,12 @@ public class DefaultSettingDescriptorDataSource(
                 [
                     OpenIdConstants.ResponseTypes.Code,
                     OpenIdConstants.ResponseTypes.IdToken,
-                    OpenIdConstants.ResponseTypes.Token
+                    OpenIdConstants.ResponseTypes.Token,
                 ],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
-                OnFormat = FormatUniqueCombinations
+                OnFormat = FormatUniqueCombinations,
             };
 
             // scopes_supported
@@ -612,11 +612,11 @@ public class DefaultSettingDescriptorDataSource(
                     OpenIdConstants.ScopeTypes.Email,
                     OpenIdConstants.ScopeTypes.Address,
                     OpenIdConstants.ScopeTypes.Phone,
-                    OpenIdConstants.ScopeTypes.OfflineAccess
+                    OpenIdConstants.ScopeTypes.OfflineAccess,
                 ],
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // send_id_claims_in_access_token
@@ -626,7 +626,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // service_documentation
@@ -635,7 +635,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.ServiceDocumentation,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // subject_max_age
@@ -644,7 +644,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.SubjectMaxAge,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // subject_type
@@ -653,7 +653,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.SubjectType,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // subject_types_supported
@@ -662,7 +662,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.SubjectTypesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // tenant_issuer
@@ -671,7 +671,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.TenantIssuer,
 
                 IsDiscoverable = false,
-                OnMerge = Replace
+                OnMerge = Replace,
             };
 
             // token_endpoint_auth_methods_supported
@@ -681,7 +681,7 @@ public class DefaultSettingDescriptorDataSource(
                 Default = AuthMethods,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // token_endpoint_auth_signing_alg_values_supported
@@ -690,7 +690,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // ui_locales_supported
@@ -699,7 +699,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.UiLocalesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // userinfo_encryption_alg_values_supported
@@ -708,7 +708,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // userinfo_encryption_enc_values_supported
@@ -717,7 +717,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.UserInfoEncryptionEncValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // userinfo_encryption_zip_values_supported
@@ -726,7 +726,7 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.UserInfoEncryptionZipValuesSupported,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
 
             // userinfo_signing_alg_values_supported
@@ -735,21 +735,27 @@ public class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect
+                OnMerge = Intersect,
             };
         }
     }
 
-    private static string[] FormatUniqueCombinations(Setting<IReadOnlyCollection<string>> setting) =>
-        setting.Value
-            .Order()
+    private static string[] FormatUniqueCombinations(
+        Setting<IReadOnlyCollection<string>> setting
+    ) =>
+        setting
+            .Value.Order()
             .Aggregate(
                 Enumerable.Empty<IReadOnlyCollection<string>>(),
-                (acc, value) => acc
-                    .SelectMany(values => new[] { values, values.Append(value).ToArray() })
-                    .Append([value]),
-                permutations => permutations
-                    .OrderBy(combinations => combinations.Count)
-                    .Select(combinations => string.Join(OpenIdConstants.ParameterSeparatorChar, combinations)))
+                (acc, value) =>
+                    acc.SelectMany(values => new[] { values, values.Append(value).ToArray() })
+                        .Append([value]),
+                permutations =>
+                    permutations
+                        .OrderBy(combinations => combinations.Count)
+                        .Select(combinations =>
+                            string.Join(OpenIdConstants.ParameterSeparatorChar, combinations)
+                        )
+            )
             .ToArray();
 }

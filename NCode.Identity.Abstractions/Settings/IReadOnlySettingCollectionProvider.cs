@@ -26,7 +26,8 @@ namespace NCode.Identity.Settings;
 /// aggregating multiple data sources and providing change notifications.
 /// </summary>
 [PublicAPI]
-public interface IReadOnlySettingCollectionProvider : ICollectionProvider<Setting, IReadOnlySettingCollection>
+public interface IReadOnlySettingCollectionProvider
+    : ICollectionProvider<Setting, IReadOnlySettingCollection>
 {
     // nothing
 }

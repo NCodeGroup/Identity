@@ -25,6 +25,4 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 /// Represents a Resource Owner Password Credentials Grant.
 /// </summary>
 [PublicAPI]
-public readonly record struct PasswordGrant(
-    SubjectAuthentication SubjectAuthentication
-);
+public readonly record struct PasswordGrant(SubjectAuthentication SubjectAuthentication);

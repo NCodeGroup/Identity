@@ -48,7 +48,8 @@ public static class DefaultRegistration
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationEndpoints"/>.</param>
     /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
     public static IServiceBuilder<OpenIdAuthenticationEndpoints> AddAuthorizationEndpoint(
-        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder
+    )
     {
         // Endpoints
         builder.AddEndpointProvider<DefaultAuthorizationEndpointHandler>();
@@ -61,24 +62,64 @@ public static class DefaultRegistration
         var serviceCollection = builder.ServiceCollection;
 
         // Logic
-        serviceCollection.TryAddSingleton<IAuthorizationEndpointLogic, DefaultAuthorizationEndpointLogic>();
-        serviceCollection.TryAddSingleton<IResultExecutor<AuthorizationResult>, DefaultAuthorizationResultExecutor>();
+        serviceCollection.TryAddSingleton<
+            IAuthorizationEndpointLogic,
+            DefaultAuthorizationEndpointLogic
+        >();
+        serviceCollection.TryAddSingleton<
+            IResultExecutor<AuthorizationResult>,
+            DefaultAuthorizationResultExecutor
+        >();
 
         // Continue Providers
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IContinueProvider, DefaultAuthorizationContinueProvider>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IContinueProvider, DefaultAuthorizationContinueProvider>()
+        );
 
         // Serialization
-        serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IOpenIdJsonConverterProvider, AuthorizationJsonConverterProvider>());
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IOpenIdJsonConverterProvider,
+                AuthorizationJsonConverterProvider
+            >()
+        );
 
         // Mediator
-        serviceCollection.TryAddSingleton<ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>, DefaultLoadAuthorizationRequestHandler>();
-        serviceCollection.TryAddSingleton<ICommandHandler<ValidateAuthorizationRequestCommand>, DefaultValidateAuthorizationRequestHandler>();
-        serviceCollection.TryAddSingleton<ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>, DefaultAuthenticateSubjectHandler>();
-        serviceCollection.TryAddSingleton<ICommandResponsePostProcessor<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>, DefaultAuthenticateSubjectPostProcessor>();
-        serviceCollection.TryAddSingleton<ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>, DefaultAuthorizeSubjectHandler>();
-        serviceCollection.TryAddSingleton<ICommandResponsePostProcessor<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>, DefaultAuthorizeSubjectPostProcessor>();
-        serviceCollection.TryAddSingleton<ICommandResponseHandler<ChallengeSubjectCommand, ReadOnlyEndpointDisposition>, DefaultChallengeSubjectHandler>();
-        serviceCollection.TryAddSingleton<ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>, DefaultCreateAuthorizationTicketHandler>();
+        serviceCollection.TryAddSingleton<
+            ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>,
+            DefaultLoadAuthorizationRequestHandler
+        >();
+        serviceCollection.TryAddSingleton<
+            ICommandHandler<ValidateAuthorizationRequestCommand>,
+            DefaultValidateAuthorizationRequestHandler
+        >();
+        serviceCollection.TryAddSingleton<
+            ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
+            DefaultAuthenticateSubjectHandler
+        >();
+        serviceCollection.TryAddSingleton<
+            ICommandResponsePostProcessor<
+                AuthenticateSubjectCommand,
+                AuthenticateSubjectDisposition
+            >,
+            DefaultAuthenticateSubjectPostProcessor
+        >();
+        serviceCollection.TryAddSingleton<
+            ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
+            DefaultAuthorizeSubjectHandler
+        >();
+        serviceCollection.TryAddSingleton<
+            ICommandResponsePostProcessor<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
+            DefaultAuthorizeSubjectPostProcessor
+        >();
+        serviceCollection.TryAddSingleton<
+            ICommandResponseHandler<ChallengeSubjectCommand, ReadOnlyEndpointDisposition>,
+            DefaultChallengeSubjectHandler
+        >();
+        serviceCollection.TryAddSingleton<
+            ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>,
+            DefaultCreateAuthorizationTicketHandler
+        >();
 
         return builder;
     }

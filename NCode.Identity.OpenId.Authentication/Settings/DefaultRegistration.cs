@@ -44,7 +44,10 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<ICollectionDataSource<SettingDescriptor>, DefaultSettingDescriptorDataSource>()
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingDescriptor>,
+                    DefaultSettingDescriptorDataSource
+                >()
             );
 
             return builder;

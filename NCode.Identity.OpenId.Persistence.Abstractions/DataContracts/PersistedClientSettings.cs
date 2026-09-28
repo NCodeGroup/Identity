@@ -33,5 +33,6 @@ public class PersistedClientSettings : PersistedClientResource<JsonElement>
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
-    public override string ResourceType => $"{ResourceTypePrefix}{ResourceTypes.Separator}{OpenIdResourceTypes.Settings}";
+    public override string ResourceType =>
+        $"{ResourceTypePrefix}{ResourceTypes.Separator}{OpenIdResourceTypes.Settings}";
 }

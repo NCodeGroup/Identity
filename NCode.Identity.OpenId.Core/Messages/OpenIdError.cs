@@ -67,7 +67,9 @@ public class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportOpe
     /// <inheritdoc />
     public string Code
     {
-        get => GetKnownParameter(OpenIdCommonParameters.ErrorCode) ?? OpenIdConstants.ErrorCodes.ServerError;
+        get =>
+            GetKnownParameter(OpenIdCommonParameters.ErrorCode)
+            ?? OpenIdConstants.ErrorCodes.ServerError;
         set => SetKnownParameter(OpenIdCommonParameters.ErrorCode, value);
     }
 

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 /// This is useful for storing JSON data in a database column as a string.
 /// </summary>
 [PublicAPI]
-public class JsonElementConverter : ValueConverter<JsonElement, string>
+internal class JsonElementConverter : ValueConverter<JsonElement, string>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonElementConverter"/> class.

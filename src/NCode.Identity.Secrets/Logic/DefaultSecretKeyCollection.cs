@@ -28,7 +28,7 @@ namespace NCode.Identity.Secrets.Logic;
 /// The collection is sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
 /// </summary>
 /// <param name="items">A collection of <see cref="SecretKey"/> items.</param>
-public class DefaultSecretKeyCollection(IEnumerable<SecretKey> items) : ISecretKeyCollection
+internal class DefaultSecretKeyCollection(IEnumerable<SecretKey> items) : ISecretKeyCollection
 {
     private List<SecretKey> SecretKeys { get; } =
         items.Order(SecretKeyExpiresWhenComparer.Singleton).ToList();

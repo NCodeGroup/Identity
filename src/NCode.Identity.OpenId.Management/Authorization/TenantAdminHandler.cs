@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -28,7 +28,8 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// when the user is a member of the <see cref="BuiltInRoles.TenantAdmin"/> role and their tenant identifier matches
 /// the resource's tenant identifier. This handler enforces tenant-scoped administrative access control.
 /// </summary>
-public class TenantAdminHandler : AuthorizationHandler<IAuthorizationRequirement, ISupportTenantId>
+internal class TenantAdminHandler
+    : AuthorizationHandler<IAuthorizationRequirement, ISupportTenantId>
 {
     /// <inheritdoc />
     protected override Task HandleRequirementAsync(

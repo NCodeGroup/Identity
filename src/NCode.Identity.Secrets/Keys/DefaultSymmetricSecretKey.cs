@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.Keys;
 /// <summary>
 /// Provides a default implementation for the <see cref="SymmetricSecretKey"/> abstraction.
 /// </summary>
-public class DefaultSymmetricSecretKey(
+internal class DefaultSymmetricSecretKey(
     IDataProtector dataProtector,
     KeyMetadata metadata,
     int keySizeBytes,

@@ -86,7 +86,7 @@ public interface IIdentityServerBuilder : IServiceBuilder<IdentityServer>
 /// <summary>
 /// Provides the default implementation of <see cref="IIdentityServerBuilder"/>.
 /// </summary>
-public sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIdentityServerBuilder
+internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIdentityServerBuilder
 {
     /// <inheritdoc />
     public IDataProtectionBuilder DataProtectionBuilder { get; }

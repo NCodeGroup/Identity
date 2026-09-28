@@ -33,7 +33,7 @@ namespace NCode.Identity.Secrets.Persistence.Logic;
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretSerializer"/> abstraction.
 /// </summary>
-public class DefaultSecretSerializer(
+internal class DefaultSecretSerializer(
     ISecretKeyFactory secretKeyFactory,
     IDataProtectorFactory<PersistedSecret> dataProtectorFactory
 ) : ISecretSerializer

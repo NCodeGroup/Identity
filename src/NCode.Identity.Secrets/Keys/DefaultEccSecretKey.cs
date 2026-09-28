@@ -31,7 +31,7 @@ namespace NCode.Identity.Secrets.Keys;
 /// <remarks>
 /// Can be used for either <see cref="ECDsa"/> or <see cref="ECDiffieHellman"/> keys.
 /// </remarks>
-public class DefaultEccSecretKey(
+internal class DefaultEccSecretKey(
     IDataProtector dataProtector,
     KeyMetadata metadata,
     int curveSizeBits,

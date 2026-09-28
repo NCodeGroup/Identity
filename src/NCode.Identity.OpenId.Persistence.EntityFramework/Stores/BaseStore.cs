@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// which represents the data contract used outside the persistence layer.</typeparam>
 /// <typeparam name="TEntity">The type of the corresponding Entity Framework entity used for database operations.</typeparam>
 [PublicAPI]
-public abstract class BaseStore<TItem, TEntity> : IStore
+internal abstract class BaseStore<TItem, TEntity> : IStore
     where TItem : class
     where TEntity : class
 {

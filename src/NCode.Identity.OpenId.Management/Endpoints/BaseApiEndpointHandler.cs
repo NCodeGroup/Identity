@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// authorization and standard <c>GET</c> response processing.
 /// </summary>
 [PublicAPI]
-public abstract class BaseApiEndpointHandler
+internal abstract class BaseApiEndpointHandler
 {
     /// <summary>
     /// Gets the <see cref="IAuthorizationService"/> used to perform resource-based authorization.

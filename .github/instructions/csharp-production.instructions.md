@@ -91,6 +91,13 @@ rationale.
 - 👁 Data / options / context / event types are `sealed`, with `init` / get-only members and **concrete, buffered**
   collections (`List<T>`, not `IList<T>`) — AOT-friendly, cheap to re-enumerate, free of deferred-execution surprises.
   Interfaces appear only for a replaceable DI seam or a read-only slice.
+- 👁 **Seal by derivation intent, not by visibility.** A public **data / options / context / event / result / DTO** type
+  is `sealed` (above) — it is a leaf and sealing says so. A public type that is a **deliberate extension point** — an
+  abstract base or a class consumers subclass (the Abstractions surface: `SecretKey`, `Algorithm`, `OpenIdContext`,
+  `OpenIdClient`, `KnownParameter`, …) — is **not** sealed. A public **concrete leaf** with no extension point is
+  sealed too; if it only needs to be *test*-mockable, demote it to `internal` (left unsealed, §7) or mock its
+  interface — never keep it `public` **and** unsealed just for tests. `CA1852` (seal internal types) is **disabled**
+  precisely so internal impls can stay unsealed for mocking; that exemption does not license unsealed public leaves.
 - 👁 **Prefer a `readonly record struct` for a small, immutable value-like type** — an id, key, command, or disposition,
   the established shape across the family (`SettingKey<T>`, `UriDescriptor`, the `*Command` / `*Disposition` types) — so
   value equality and immutability come for free. Reach for a `class` / `record class` only for reference identity or a
@@ -253,6 +260,13 @@ Production code **must** be unit-test-friendly. These are 👁 review-only excep
   dependency — `internal virtual`, so a test subclass can stub/override it (`DynamicProxyGenAssembly2` lets Moq proxy
   it). Reach for an extracted interface collaborator when the seam is reused or substantial; use `internal virtual` for
   a one-off override point.
+- 👁 **Internal implementations stay unsealed so tests can mock them; public types are mocked through their interface.**
+  A concrete `internal` impl is left **unsealed** (and its test-relevant members `internal virtual`) so Moq/Castle can
+  subclass it — `CA1852` ("seal internal types") is therefore **disabled** ([`.editorconfig`](../../.editorconfig)):
+  the micro devirtualization win loses to mockability. Do **not** reach for `public virtual` to make a public class
+  mockable — a `public virtual` member is a permanent, SemVer-bound override point (fragile base class) and can let a
+  subclass weaken a security control; mock the **interface** the class implements instead. `sealed` remains correct for
+  data/options/event types (§2) and facade impls, where nothing needs to derive.
 - ✅/👁 **`internal` for test access.** Each package exposes its internals to its `.Tests` project via
   `InternalsVisibleTo` **plus `DynamicProxyGenAssembly2`** (so Moq/Castle can proxy `internal` types and members).
   Keep test-only reach `internal`, never widen the public surface for tests.

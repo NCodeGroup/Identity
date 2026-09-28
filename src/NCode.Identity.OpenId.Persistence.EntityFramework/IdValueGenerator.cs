@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 /// See the following article for more information:
 /// https://medium.com/ingeniouslysimple/why-did-we-shift-away-from-database-generated-ids-7e0e54a49bb3
 /// </remarks>
-public class IdValueGenerator(IIdGenerator<long> idGenerator) : ValueGenerator<long>
+internal class IdValueGenerator(IIdGenerator<long> idGenerator) : ValueGenerator<long>
 {
     private IIdGenerator<long> IdGenerator { get; } = idGenerator;
 

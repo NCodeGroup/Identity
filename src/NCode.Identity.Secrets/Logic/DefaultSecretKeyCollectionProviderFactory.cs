@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecretKeyCollectionProviderFactory"/> abstraction.
 /// </summary>
-public class DefaultSecretKeyCollectionProviderFactory(
+internal class DefaultSecretKeyCollectionProviderFactory(
     ISecretKeyCollectionFactory secretKeyCollectionFactory
 ) : ISecretKeyCollectionProviderFactory
 {

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// for the unit-of-work pattern.
 /// </summary>
 /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> instance.</typeparam>
-public sealed class EntityStoreManager<TDbContext>(
+internal sealed class EntityStoreManager<TDbContext>(
     IServiceProvider serviceProvider,
     IDbContextFactory<TDbContext> contextFactory
 ) : IStoreManager

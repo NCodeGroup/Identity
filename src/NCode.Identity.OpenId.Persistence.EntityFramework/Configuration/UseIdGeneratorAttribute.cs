@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 /// </summary>
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public sealed class UseIdGeneratorAttribute : Attribute
+internal sealed class UseIdGeneratorAttribute : Attribute
 {
     // nothing
 }

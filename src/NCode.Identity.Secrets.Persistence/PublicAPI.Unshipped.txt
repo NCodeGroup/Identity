@@ -2,7 +2,3 @@
 NCode.Identity.Secrets.Persistence.DefaultRegistration
 NCode.Identity.Secrets.Persistence.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
 NCode.Identity.Secrets.Persistence.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddPersistenceLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
-NCode.Identity.Secrets.Persistence.Logic.DefaultSecretSerializer
-NCode.Identity.Secrets.Persistence.Logic.DefaultSecretSerializer.DefaultSecretSerializer(NCode.Identity.Secrets.Logic.ISecretKeyFactory! secretKeyFactory, NCode.Extensions.DataProtection.IDataProtectorFactory<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! dataProtectorFactory) -> void
-NCode.Identity.Secrets.Persistence.Logic.DefaultSecretSerializer.DeserializeSecret(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret) -> NCode.Identity.Secrets.Keys.SecretKey!
-NCode.Identity.Secrets.Persistence.Logic.DefaultSecretSerializer.DeserializeSecrets(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!

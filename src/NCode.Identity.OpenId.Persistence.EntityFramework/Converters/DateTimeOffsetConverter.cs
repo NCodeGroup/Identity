@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 /// Provides an implementation of <see cref="ValueConverter"/> that always converts <see cref="DateTimeOffset"/> values to UTC.
 /// </summary>
 [PublicAPI]
-public class DateTimeOffsetConverter : ValueConverter<DateTimeOffset, DateTimeOffset>
+internal class DateTimeOffsetConverter : ValueConverter<DateTimeOffset, DateTimeOffset>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DateTimeOffsetConverter"/> class.

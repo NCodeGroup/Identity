@@ -36,6 +36,7 @@
     <Project Path="tests/NCode.Identity.Jose.Tests/NCode.Identity.Jose.Tests.csproj" />
     <Project Path="tests/NCode.Identity.OpenId.Core.Tests/NCode.Identity.OpenId.Core.Tests.csproj" />
     <Project Path="tests/NCode.Identity.OpenId.IntegrationTests/NCode.Identity.OpenId.IntegrationTests.csproj" />
+    <Project Path="tests/NCode.Identity.OpenId.Persistence.EntityFramework.Tests/NCode.Identity.OpenId.Persistence.EntityFramework.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Secrets.Abstractions.Tests/NCode.Identity.Secrets.Abstractions.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Secrets.Persistence.Tests/NCode.Identity.Secrets.Persistence.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Secrets.Tests/NCode.Identity.Secrets.Tests.csproj" />

@@ -29,6 +29,9 @@ using NCode.Identity.Results;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
+/// <summary>
+/// Provides the default implementation that executes an <see cref="AuthorizationResult"/> by writing it to the HTTP response.
+/// </summary>
 public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
 {
     /// <inheritdoc />

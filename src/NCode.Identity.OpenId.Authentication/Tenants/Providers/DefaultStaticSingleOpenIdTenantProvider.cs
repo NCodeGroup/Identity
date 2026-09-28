@@ -108,6 +108,7 @@ public class DefaultStaticSingleOpenIdTenantProvider(
     {
         await CachedTenant.DisposeAsync();
         CachedTenant = default;
+        GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc />

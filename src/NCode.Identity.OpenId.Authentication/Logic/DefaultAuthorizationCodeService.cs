@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Authentication.Logic;
 /// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationCodeService"/> abstraction.
 /// </summary>
-public class DefaultAuthorizationCodeService(
+internal class DefaultAuthorizationCodeService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IPersistedGrantService persistedGrantService

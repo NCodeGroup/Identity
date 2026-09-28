@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <summary>
 /// Provides the default implementation that executes an <see cref="AuthorizationResult"/> by writing it to the HTTP response.
 /// </summary>
-public class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
+internal class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
 {
     /// <inheritdoc />
     public async ValueTask ExecuteAsync(

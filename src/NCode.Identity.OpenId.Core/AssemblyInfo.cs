@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,13 +16,7 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+using System.Runtime.CompilerServices;
 
-/// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdEndpointDiscoverableMetadata"/> abstraction.
-/// </summary>
-internal class OpenIdEndpointDiscoverableMetadata : IOpenIdEndpointDiscoverableMetadata
-{
-    /// <inheritdoc />
-    public bool IsDiscoverable { get; init; } = true;
-}
+[assembly: InternalsVisibleTo("NCode.Identity.OpenId.Core.Tests")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

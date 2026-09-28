@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -31,7 +31,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// Provides the default implementation for a data source collection of <see cref="Algorithm"/> instances supported by this library.
 /// </summary>
 /// <param name="aesKeyWrap">Provides the common implementation for <c>AES Key Wrap</c> functionality.</param>
-public sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
+internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
     : ICollectionDataSource<Algorithm>
 {
     private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Provides a default implementation of the <see cref="IKnownParameterCollectionProvider"/> abstraction.
 /// </summary>
-public class DefaultKnownParameterCollectionProvider(
+internal class DefaultKnownParameterCollectionProvider(
     ICollectionProviderFactory collectionProviderFactory,
     IEnumerable<ICollectionDataSource<KnownParameter>> dataSources
 ) : IKnownParameterCollectionProvider

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// Provides extension methods to configure services and handlers for OpenId Setting services.
 /// </summary>
 [PublicAPI]
-public static class DefaultRegistration
+internal static class DefaultRegistration
 {
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)

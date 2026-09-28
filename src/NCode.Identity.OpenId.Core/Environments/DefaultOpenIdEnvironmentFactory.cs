@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Environments;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdEnvironmentFactory"/> abstraction.
 /// </summary>
-public class DefaultOpenIdEnvironmentFactory(
+internal class DefaultOpenIdEnvironmentFactory(
     ILoggerFactory loggerFactory,
     IDataProtectionProvider dataProtectionProvider,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,

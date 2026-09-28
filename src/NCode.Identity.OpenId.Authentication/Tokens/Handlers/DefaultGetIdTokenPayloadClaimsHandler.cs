@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by
 /// <see cref="DefaultGetIdTokenSubjectClaimsHandler"/>.
 /// </remarks>
-public class DefaultGetIdTokenPayloadClaimsHandler
+internal class DefaultGetIdTokenPayloadClaimsHandler
     : ICommandHandler<GetIdTokenPayloadClaimsCommand>,
         ISupportMediatorPriority
 {

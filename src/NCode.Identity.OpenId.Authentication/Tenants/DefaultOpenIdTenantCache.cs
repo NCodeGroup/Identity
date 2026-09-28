@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Tenants;
 /// Provides a default implementation of the <see cref="IOpenIdTenantCache"/> abstraction that uses <see cref="IMemoryCache"/>
 /// with a sliding expiration to cache <see cref="OpenIdTenant"/> instances.
 /// </summary>
-public class DefaultOpenIdTenantCache(
+internal class DefaultOpenIdTenantCache(
     IOptions<OpenIdOptions> optionsAccessor,
     IMemoryCache memoryCache
 ) : IOpenIdTenantCache

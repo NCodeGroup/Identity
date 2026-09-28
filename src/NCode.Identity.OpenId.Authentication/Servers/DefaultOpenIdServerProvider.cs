@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Authentication.Servers;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerProvider"/> abstraction.
 /// </summary>
-public class DefaultOpenIdServerProvider(IOpenIdServerFactory factory)
+internal class DefaultOpenIdServerProvider(IOpenIdServerFactory factory)
     : IOpenIdServerProvider,
         IAsyncDisposable
 {

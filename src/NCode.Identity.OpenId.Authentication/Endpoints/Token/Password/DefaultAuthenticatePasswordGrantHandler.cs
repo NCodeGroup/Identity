@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 /// Provides a default implementation of a handler for the <see cref="AuthenticatePasswordGrantCommand"/> message
 /// that returns <see cref="SubjectAuthentication"/>.
 /// </summary>
-public class DefaultAuthenticatePasswordGrantHandler(
+internal class DefaultAuthenticatePasswordGrantHandler(
     ILogger<DefaultAuthenticatePasswordGrantHandler> logger
 ) : ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>
 {

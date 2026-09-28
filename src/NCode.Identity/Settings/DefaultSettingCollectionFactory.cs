@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -21,7 +21,7 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingCollectionFactory"/> abstraction.
 /// </summary>
-public class DefaultSettingCollectionFactory(
+internal class DefaultSettingCollectionFactory(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingCollectionFactory
 {

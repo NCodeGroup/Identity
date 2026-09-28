@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// The application should also register an additional handler to validate the subject's active status.
 /// </remarks>
 [PublicAPI]
-public class DefaultValidateSubjectHandler(
+internal class DefaultValidateSubjectHandler(
     TimeProvider timeProvider,
     ILogger<DefaultValidateSubjectHandler> logger
 ) : ICommandHandler<ValidateSubjectCommand>, ISupportMediatorPriority

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 /// Provides extension methods to configure services and handlers for the OpenId Continue endpoint.
 /// </summary>
 [PublicAPI]
-public static class DefaultRegistration
+internal static class DefaultRegistration
 {
     extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
     {

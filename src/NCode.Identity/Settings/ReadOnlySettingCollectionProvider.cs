@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -24,7 +24,7 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation for the <see cref="IReadOnlySettingCollectionProvider"/> interface.
 /// </summary>
-public class ReadOnlySettingCollectionProvider(
+internal class ReadOnlySettingCollectionProvider(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     IEnumerable<ICollectionDataSource<Setting>> dataSources,
     bool owns = false

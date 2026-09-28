@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// Provides the default implementation for a data source collection of <see cref="SettingDescriptor"/> instances supported by this library.
 /// </summary>
 [PublicAPI]
-public class DefaultSettingDescriptorDataSource(
+internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IServiceProvider serviceProvider
 ) : ICollectionDataSource<SettingDescriptor>

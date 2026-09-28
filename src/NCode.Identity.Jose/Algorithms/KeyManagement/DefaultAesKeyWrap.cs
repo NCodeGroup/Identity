@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -32,7 +32,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// The variables in the implementation are identical to the following RFC so that code can be easily compared.
 /// https://datatracker.ietf.org/doc/html/rfc3394#section-2.2.1
 /// </remarks>
-public class DefaultAesKeyWrap : IAesKeyWrap
+internal class DefaultAesKeyWrap : IAesKeyWrap
 {
     /// <summary>
     /// Provides a singleton instance for <see cref="DefaultAesKeyWrap"/>.

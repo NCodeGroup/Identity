@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// Provides a default implementation of a handler for the <see cref="ChallengeSubjectCommand"/> message.
 /// </summary>
 [PublicAPI]
-public class DefaultChallengeSubjectHandler
+internal class DefaultChallengeSubjectHandler
     : ICommandResponseHandler<ChallengeSubjectCommand, ReadOnlyEndpointDisposition>
 {
     private bool DefaultChallengeSchemeFetched { get; set; }

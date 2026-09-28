@@ -36,7 +36,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// to validate a Json Web Token (JWT).
 /// </summary>
 [PublicAPI]
-public static class DefaultValidationKeyResolver
+internal static class DefaultValidationKeyResolver
 {
     /// <summary>
     /// Provides a default implementation for resolving the <see cref="SecretKey"/> instances that are to be used

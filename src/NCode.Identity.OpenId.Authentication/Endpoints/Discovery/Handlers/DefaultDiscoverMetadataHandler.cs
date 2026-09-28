@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="DiscoverMetadataCommand"/> message.
 /// </summary>
-public class DefaultDiscoverMetadataHandler(
+internal class DefaultDiscoverMetadataHandler(
     EndpointDataSource endpointDataSource,
     LinkGenerator linkGenerator
 ) : ICommandHandler<DiscoverMetadataCommand>, ISupportMediatorPriority

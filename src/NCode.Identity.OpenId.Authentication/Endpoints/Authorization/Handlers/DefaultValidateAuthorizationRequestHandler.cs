@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateAuthorizationRequestCommand"/> message.
 /// </summary>
-public class DefaultValidateAuthorizationRequestHandler
+internal class DefaultValidateAuthorizationRequestHandler
     : ICommandHandler<ValidateAuthorizationRequestCommand>,
         ISupportMediatorPriority
 {

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Authentication.Logic;
 /// <summary>
 /// Provides default implementations for various operations related to <see cref="ClaimsPrincipal"/>.
 /// </summary>
-public static class DefaultClaimsPrincipalLogic
+internal static class DefaultClaimsPrincipalLogic
 {
     extension(ClaimsPrincipal subject)
     {

@@ -32,7 +32,8 @@ namespace NCode.Identity.OpenId.Messages;
 /// </summary>
 /// <typeparam name="T">The type of the <see cref="IOpenIdMessage"/> instance to serialize and deserialize.</typeparam>
 [PublicAPI]
-public class OpenIdMessageJsonConverter<T>(OpenIdEnvironment openIdEnvironment) : JsonConverter<T?>
+internal class OpenIdMessageJsonConverter<T>(OpenIdEnvironment openIdEnvironment)
+    : JsonConverter<T?>
     where T : class, IOpenIdMessage
 {
     private const string TypeKey = "$type";

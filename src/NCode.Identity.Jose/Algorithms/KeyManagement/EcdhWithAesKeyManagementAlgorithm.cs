@@ -35,8 +35,11 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
 [PublicAPI]
-public class EcdhWithAesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int kekSizeBits)
-    : EcdhKeyManagementAlgorithm(code, isDirectAgreement: false)
+internal class EcdhWithAesKeyManagementAlgorithm(
+    IAesKeyWrap aesKeyWrap,
+    string code,
+    int kekSizeBits
+) : EcdhKeyManagementAlgorithm(code, isDirectAgreement: false)
 {
     private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
 

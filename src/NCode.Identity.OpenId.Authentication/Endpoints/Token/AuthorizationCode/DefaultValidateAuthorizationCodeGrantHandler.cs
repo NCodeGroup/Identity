@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -38,7 +38,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="AuthorizationGrant"/>.
 /// </summary>
-public class DefaultValidateAuthorizationCodeGrantHandler(ICryptoService cryptoService)
+internal class DefaultValidateAuthorizationCodeGrantHandler(ICryptoService cryptoService)
     : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>,
         ISupportMediatorPriority
 {

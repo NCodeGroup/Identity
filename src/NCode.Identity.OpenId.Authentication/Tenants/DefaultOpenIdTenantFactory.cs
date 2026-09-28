@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Tenants;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdTenantFactory"/> abstraction.
 /// </summary>
-public class DefaultOpenIdTenantFactory(IOpenIdTenantProviderSelector tenantProviderSelector)
+internal class DefaultOpenIdTenantFactory(IOpenIdTenantProviderSelector tenantProviderSelector)
     : IOpenIdTenantFactory
 {
     private IOpenIdTenantProviderSelector TenantProviderSelector { get; } = tenantProviderSelector;

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// Provides a <see cref="JsonConverterFactory"/> implementation that can serialize and deserialize <see cref="IOpenIdMessage"/>
 /// instances to and from JSON.
 /// </summary>
-public class OpenIdMessageJsonConverterFactory(OpenIdEnvironment openIdEnvironment)
+internal class OpenIdMessageJsonConverterFactory(OpenIdEnvironment openIdEnvironment)
     : JsonConverterFactory
 {
     private OpenIdEnvironment OpenIdEnvironment { get; } = openIdEnvironment;

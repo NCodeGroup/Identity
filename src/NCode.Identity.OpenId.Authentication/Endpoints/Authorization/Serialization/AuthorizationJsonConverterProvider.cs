@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serializa
 /// Provides <see cref="JsonConverter"/> instances for authorization-related types used during
 /// the OAuth 2.0 / OpenID Connect authorization endpoint processing.
 /// </summary>
-public class AuthorizationJsonConverterProvider : IOpenIdJsonConverterProvider
+internal class AuthorizationJsonConverterProvider : IOpenIdJsonConverterProvider
 {
     /// <inheritdoc />
     public IEnumerable<JsonConverter> GetJsonConverters(OpenIdEnvironment openIdEnvironment)

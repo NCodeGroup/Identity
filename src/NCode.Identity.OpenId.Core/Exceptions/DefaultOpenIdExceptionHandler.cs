@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Exceptions;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdExceptionHandler"/> abstraction.
 /// </summary>
-public class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandler> logger)
+internal class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandler> logger)
     : IOpenIdExceptionHandler
 {
     private ILogger<DefaultOpenIdExceptionHandler> Logger { get; } = logger;

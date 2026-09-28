@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -25,7 +25,7 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingCollection"/> abstraction.
 /// </summary>
-public class SettingCollection : ISettingCollection
+internal class SettingCollection : ISettingCollection
 {
     private Dictionary<string, Setting> Store { get; }
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }

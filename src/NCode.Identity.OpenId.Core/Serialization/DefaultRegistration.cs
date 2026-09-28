@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Serialization;
 /// Provides extension methods to configure services and handlers for <see cref="OpenIdCoreLibrary"/>.
 /// </summary>
 [PublicAPI]
-public static class DefaultRegistration
+internal static class DefaultRegistration
 {
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
     extension(IServiceBuilder<OpenIdCoreLibrary> builder)

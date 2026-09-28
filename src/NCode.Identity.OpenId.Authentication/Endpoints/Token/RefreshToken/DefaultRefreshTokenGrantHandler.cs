@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Refresh Token</c> grant type.
 /// </summary>
-public class DefaultRefreshTokenGrantHandler(
+internal class DefaultRefreshTokenGrantHandler(
     TimeProvider timeProvider,
     IPersistedGrantService persistedGrantService,
     ITokenService tokenService

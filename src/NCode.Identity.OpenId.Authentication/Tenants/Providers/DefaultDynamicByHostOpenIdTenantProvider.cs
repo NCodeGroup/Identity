@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -41,7 +41,7 @@ namespace NCode.Identity.OpenId.Authentication.Tenants.Providers;
 /// Provides a default implementation of <see cref="IOpenIdTenantProvider"/> that dynamically loads the tenant
 /// configuration using the host name from an HTTP request.
 /// </summary>
-public class DefaultDynamicByHostOpenIdTenantProvider(
+internal class DefaultDynamicByHostOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     IOpenIdServerProvider openIdServerProvider,

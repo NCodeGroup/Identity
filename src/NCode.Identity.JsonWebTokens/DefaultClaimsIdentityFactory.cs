@@ -30,7 +30,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// Factory class that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT) payload.
 /// </summary>
 [PublicAPI]
-public static class DefaultClaimsIdentityFactory
+internal static class DefaultClaimsIdentityFactory
 {
     /// <summary>
     /// Factory method that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT) payload.

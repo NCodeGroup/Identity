@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenRequestCommand"/> messsage.
 /// </summary>
-public class DefaultValidateTokenRequestHandler
+internal class DefaultValidateTokenRequestHandler
     : ICommandHandler<ValidateTokenRequestCommand>,
         ISupportMediatorPriority
 {

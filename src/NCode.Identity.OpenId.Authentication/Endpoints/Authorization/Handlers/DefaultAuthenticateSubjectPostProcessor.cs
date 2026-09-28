@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a post-processor for the <see cref="AuthenticateSubjectCommand"/> message.
 /// </summary>
-public class DefaultAuthenticateSubjectPostProcessor
+internal class DefaultAuthenticateSubjectPostProcessor
     : ICommandResponsePostProcessor<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
         ISupportMediatorPriority
 {

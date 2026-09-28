@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Serialization;
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="StringValues"/>
 /// instances to and from JSON.
 /// </summary>
-public class StringValuesJsonConverter : JsonConverter<StringValues>
+internal class StringValuesJsonConverter : JsonConverter<StringValues>
 {
     /// <inheritdoc />
     public override StringValues Read(

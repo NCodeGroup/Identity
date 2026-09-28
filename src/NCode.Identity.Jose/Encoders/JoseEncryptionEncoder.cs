@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,7 +28,7 @@ namespace NCode.Identity.Jose.Encoders;
 /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
 /// <param name="encryptionOptions">The JOSE encryption credentials and options.</param>
 [PublicAPI]
-public class JoseEncryptionEncoder(
+internal class JoseEncryptionEncoder(
     JoseSerializer joseSerializer,
     JoseEncryptionOptions encryptionOptions
 ) : CommonJoseEncoder(joseSerializer)

@@ -32,7 +32,7 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
 /// <param name="padding">Contains a <see cref="RSASignaturePadding"/> value that specifies the type of <c>RSA</c> padding to use.</param>
 [PublicAPI]
-public class RsaSignatureAlgorithm(
+internal class RsaSignatureAlgorithm(
     string code,
     HashAlgorithmName hashAlgorithmName,
     RSASignaturePadding padding

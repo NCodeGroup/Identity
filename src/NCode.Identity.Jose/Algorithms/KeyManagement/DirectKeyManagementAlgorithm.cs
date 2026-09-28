@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -34,7 +34,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>key encryption key (KEK)</c> directly for key agreement.
 /// </summary>
 [PublicAPI]
-public class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
+internal class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="DirectKeyManagementAlgorithm"/>.

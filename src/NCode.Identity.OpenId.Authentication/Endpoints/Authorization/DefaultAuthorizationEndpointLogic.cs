@@ -59,7 +59,7 @@ public interface IAuthorizationEndpointLogic
 /// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationEndpointLogic"/> abstraction.
 /// </summary>
-public class DefaultAuthorizationEndpointLogic(IContinueService continueService)
+internal class DefaultAuthorizationEndpointLogic(IContinueService continueService)
     : IAuthorizationEndpointLogic
 {
     private IContinueService ContinueService { get; } = continueService;

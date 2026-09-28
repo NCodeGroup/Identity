@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="PasswordGrant"/>.
 /// </summary>
-public class DefaultValidatePasswordGrantHandler
+internal class DefaultValidatePasswordGrantHandler
     : ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>,
         ISupportMediatorPriority
 {

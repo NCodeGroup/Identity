@@ -38,7 +38,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 /// tokens issued by this authorization server.
 /// </summary>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517">RFC 7517 - JSON Web Key (JWK)</seealso>
-public class DefaultJwksEndpointHandler(
+internal class DefaultJwksEndpointHandler(
     IOpenIdContextFactory contextFactory,
     IEnumerable<IJsonWebKeyConverter> jsonWebKeyConverters
 ) : IEndpointProvider

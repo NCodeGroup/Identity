@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -31,7 +31,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// Base implementation for all cryptographic key management algorithms.
 /// </summary>
 [PublicAPI]
-public abstract class CommonKeyManagementAlgorithm : KeyManagementAlgorithm
+internal abstract class CommonKeyManagementAlgorithm : KeyManagementAlgorithm
 {
     /// <inheritdoc />
     public override void NewKey(

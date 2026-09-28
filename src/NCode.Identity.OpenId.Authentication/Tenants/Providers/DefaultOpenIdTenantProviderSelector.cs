@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Tenants.Providers;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdTenantProviderSelector"/> abstraction.
 /// </summary>
-public class DefaultOpenIdTenantProviderSelector(
+internal class DefaultOpenIdTenantProviderSelector(
     IOptions<OpenIdOptions> optionsAccessor,
     IEnumerable<IOpenIdTenantProvider> tenantProviders
 ) : IOpenIdTenantProviderSelector

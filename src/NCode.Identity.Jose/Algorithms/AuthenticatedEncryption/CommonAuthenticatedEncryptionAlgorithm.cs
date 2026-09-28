@@ -28,7 +28,7 @@ namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 /// Provides common implementation for all cryptographic authenticated encryption (AEAD) algorithms.
 /// </summary>
 [PublicAPI]
-public abstract class CommonAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlgorithm
+internal abstract class CommonAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlgorithm
 {
     private IEnumerable<KeySizes>? KeyBitSizesOrNull { get; set; }
 

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -38,7 +38,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
 [PublicAPI]
-public class AesGcmKeyManagementAlgorithm(string code, int kekSizeBits)
+internal class AesGcmKeyManagementAlgorithm(string code, int kekSizeBits)
     : CommonKeyManagementAlgorithm
 {
     private const int IvSizeBytes = 96 >> 3;

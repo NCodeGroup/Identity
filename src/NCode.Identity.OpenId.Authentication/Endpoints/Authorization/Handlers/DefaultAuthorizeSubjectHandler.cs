@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthorizeSubjectCommand"/> message.
 /// </summary>
-public class DefaultAuthorizeSubjectHandler(ILogger<DefaultAuthorizeSubjectHandler> logger)
+internal class DefaultAuthorizeSubjectHandler(ILogger<DefaultAuthorizeSubjectHandler> logger)
     : ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>
 {
     private ILogger<DefaultAuthorizeSubjectHandler> Logger { get; } = logger;

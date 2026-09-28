@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Exceptions;
 /// Provides extension methods to configure services and handlers for OpenId Exception services.
 /// </summary>
 [PublicAPI]
-public static class DefaultRegistration
+internal static class DefaultRegistration
 {
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
     extension(IServiceBuilder<OpenIdCoreLibrary> builder)

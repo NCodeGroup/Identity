@@ -34,7 +34,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// <param name="timeProvider">An <see cref="TimeProvider"/> that can be used to get the current time.</param>
 /// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
 /// <param name="secretKeyCollectionProvider">An <see cref="ISecretKeyCollectionProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
-public sealed partial class DefaultJsonWebTokenService(
+internal sealed partial class DefaultJsonWebTokenService(
     IOptions<JsonWebTokenServiceOptions> optionsAccessor,
     IServiceProvider serviceProvider,
     TimeProvider timeProvider,

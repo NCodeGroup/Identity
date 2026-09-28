@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 /// <remarks>
 /// No, the duplicate ...Handler term is not a typo as this is a handler that returns a handler.
 /// </remarks>
-public class DefaultSelectTokenGrantHandlerHandler(IEnumerable<ITokenGrantHandler> handlers)
+internal class DefaultSelectTokenGrantHandlerHandler(IEnumerable<ITokenGrantHandler> handlers)
     : ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>
 {
     private ILookup<string, ITokenGrantHandler> HandlersByGrantType { get; } =

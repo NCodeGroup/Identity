@@ -22,7 +22,7 @@ using NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 
 namespace NCode.Jose.Tests.Algorithms.AuthenticatedEncryption;
 
-public class DummyCommonAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncryptionAlgorithm
+internal class DummyCommonAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncryptionAlgorithm
 {
     private AuthenticatedEncryptionAlgorithm Inner { get; }
 

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -44,7 +44,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the token endpoint.
 /// </summary>
-public class DefaultTokenEndpointProvider(
+internal class DefaultTokenEndpointProvider(
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider

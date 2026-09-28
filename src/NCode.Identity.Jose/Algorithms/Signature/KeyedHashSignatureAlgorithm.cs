@@ -31,7 +31,7 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// Provides an implementation of <see cref="SignatureAlgorithm"/> that uses a <c>keyed hash (HMAC)</c> cryptographic algorithm for digital signatures.
 /// </summary>
 [PublicAPI]
-public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
+internal class KeyedHashSignatureAlgorithm : SignatureAlgorithm
 {
     /// <inheritdoc />
     public override string Code { get; }

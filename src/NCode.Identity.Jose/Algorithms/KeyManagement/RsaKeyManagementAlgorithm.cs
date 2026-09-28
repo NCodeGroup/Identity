@@ -33,7 +33,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="padding">Contains a <see cref="RSAEncryptionPadding"/> value that describes the type of RSA padding to use.</param>
 [PublicAPI]
-public class RsaKeyManagementAlgorithm(string code, RSAEncryptionPadding padding)
+internal class RsaKeyManagementAlgorithm(string code, RSAEncryptionPadding padding)
     : CommonKeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =

@@ -37,7 +37,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>ECDH-ES</c> cryptographic algorithm for key management.
 /// </summary>
 [PublicAPI]
-public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
+internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="EcdhKeyManagementAlgorithm"/>.

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Tenants;
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdTenant"/> abstraction.
 /// </summary>
-public class DefaultOpenIdTenant(
+internal class DefaultOpenIdTenant(
     TenantDescriptor tenantDescriptor,
     string issuer,
     UriDescriptor baseAddress,

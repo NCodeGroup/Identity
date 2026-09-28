@@ -66,6 +66,9 @@ dotnet_diagnostic.CA1000.severity = none
 # CA1720: type-name identifiers (e.g. the CommonParameterParsers String/StringSet/StringList family)
 # are deliberate and intention-revealing for a parsing/serialization surface.
 dotnet_diagnostic.CA1720.severity = none
+# CA1852: internal implementations are deliberately left unsealed so unit tests can subclass/mock them
+# (via InternalsVisibleTo + DynamicProxyGenAssembly2). Mockability outranks the micro devirtualization win.
+dotnet_diagnostic.CA1852.severity = none
 
 # ── Test projects only ──────────────────────────────────────────────────────
 # The following rules are legitimate on shipping code but pure noise in xUnit tests.

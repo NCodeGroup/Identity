@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Serialization;
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="Uri"/>
 /// instances to and from JSON.
 /// </summary>
-public class UriJsonConverter : JsonConverter<Uri>
+internal class UriJsonConverter : JsonConverter<Uri>
 {
     private sealed class UriEnvelope
     {

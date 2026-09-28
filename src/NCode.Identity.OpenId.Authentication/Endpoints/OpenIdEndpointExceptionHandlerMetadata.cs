@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdEndpointExceptionHandlerMetadata"/> abstraction.
 /// </summary>
-public class OpenIdEndpointExceptionHandlerMetadata(
+internal class OpenIdEndpointExceptionHandlerMetadata(
     Func<
         HttpContext,
         OpenIdEnvironment,

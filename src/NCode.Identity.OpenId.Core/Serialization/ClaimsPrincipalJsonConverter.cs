@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Serialization;
 /// instances to and from JSON.
 /// </summary>
 [PublicAPI]
-public class ClaimsPrincipalJsonConverter(IClaimsSerializer serializer)
+internal class ClaimsPrincipalJsonConverter(IClaimsSerializer serializer)
     : JsonConverter<ClaimsPrincipal>
 {
     private IClaimsSerializer Serializer { get; } = serializer;

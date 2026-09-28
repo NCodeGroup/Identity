@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the continue endpoint.
 /// </summary>
-public class DefaultContinueEndpointHandler(
+internal class DefaultContinueEndpointHandler(
     ILogger<DefaultContinueEndpointHandler> logger,
     IOpenIdContextFactory contextFactory,
     IPersistedGrantService persistedGrantService,

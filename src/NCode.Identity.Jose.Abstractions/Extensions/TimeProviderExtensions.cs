@@ -30,21 +30,17 @@ public static class TimeProviderExtensions
     extension(TimeProvider timeProvider)
     {
         /// <summary>
-        /// Gets the current system timestamp truncated to the nearest second.
+        /// Gets the current wall-clock UTC time (in <see cref="DateTime.Ticks"/>) truncated to the nearest second.
         /// </summary>
-        /// <returns>A <see cref="long"/> representing the current system timestamp truncated to the nearest second.</returns>
-        public long GetTimestampWithPrecisionInSeconds()
-        {
-            var timestamp = timeProvider.GetTimestamp();
-            var frequency = timeProvider.TimestampFrequency;
-            return timestamp / frequency * frequency;
-        }
+        /// <returns>A <see cref="long"/> representing the current UTC time, in ticks, truncated to the nearest second.</returns>
+        public long GetTimestampWithPrecisionInSeconds() =>
+            timeProvider.GetUtcNowWithPrecisionInSeconds().UtcTicks;
 
         /// <summary>
         /// Gets the current system time in UTC truncated to the nearest second.
         /// </summary>
         /// <returns>A <see cref="DateTimeOffset"/> representing the current system time in UTC truncated to the nearest second.</returns>
         public DateTimeOffset GetUtcNowWithPrecisionInSeconds() =>
-            new DateTime(timeProvider.GetTimestampWithPrecisionInSeconds(), DateTimeKind.Utc);
+            timeProvider.GetUtcNow().WithPrecisionInSeconds();
     }
 }

@@ -31,36 +31,36 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for the OpenId <c>JSON Web Key Set (JWKS)</c> endpoint.
-    /// </summary>
-    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="OpenIdAuthenticationEndpoints"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationEndpoints> AddJwksEndpoint(
-        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder
-    )
+    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
     {
-        builder.AddEndpointProvider<DefaultJwksEndpointHandler>();
+        /// <summary>
+        /// Configures services and handlers for the OpenId <c>JSON Web Key Set (JWKS)</c> endpoint.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddJwksEndpoint()
+        {
+            builder.AddEndpointProvider<DefaultJwksEndpointHandler>();
 
-        var serviceCollection = builder.ServiceCollection;
+            var serviceCollection = builder.ServiceCollection;
 
-        // The registry is the single, discoverable source of truth for which EC curves are published.
-        // Applications can register additional EccCurveSpecification services to extend the supported set.
-        serviceCollection.TryAddSingleton<
-            IEccCurveSpecificationRegistry,
-            DefaultEccCurveSpecificationRegistry
-        >();
+            // The registry is the single, discoverable source of truth for which EC curves are published.
+            // Applications can register additional EccCurveSpecification services to extend the supported set.
+            serviceCollection.TryAddSingleton<
+                IEccCurveSpecificationRegistry,
+                DefaultEccCurveSpecificationRegistry
+            >();
 
-        // Register the built-in converters. Applications can register additional IJsonWebKeyConverter
-        // implementations to publish other secret key types without modifying the endpoint handler.
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IJsonWebKeyConverter, RsaJsonWebKeyConverter>()
-        );
+            // Register the built-in converters. Applications can register additional IJsonWebKeyConverter
+            // implementations to publish other secret key types without modifying the endpoint handler.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IJsonWebKeyConverter, RsaJsonWebKeyConverter>()
+            );
 
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IJsonWebKeyConverter, EccJsonWebKeyConverter>()
-        );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IJsonWebKeyConverter, EccJsonWebKeyConverter>()
+            );
 
-        return builder;
+            return builder;
+        }
     }
 }

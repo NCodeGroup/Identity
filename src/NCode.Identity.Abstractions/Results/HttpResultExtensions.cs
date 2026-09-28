@@ -29,14 +29,13 @@ namespace NCode.Identity.Results;
 [PublicAPI]
 public static class HttpResultExtensions
 {
-    /// <summary>
-    /// Wraps the HTTP <see cref="IResult"/> in a <see cref="HttpResultException"/>.
-    /// </summary>
-    /// <param name="httpResult">The HTTP <see cref="IResult"/> to wrap.</param>
-    /// <param name="message">The error message that explains the reason for the exception.</param>
-    /// <returns>The <see cref="HttpResultException"/> instance.</returns>
-    public static HttpResultException AsException(
-        this IResult httpResult,
-        string? message = null
-    ) => new(httpResult, message);
+    extension(IResult httpResult)
+    {
+        /// <summary>
+        /// Wraps the HTTP <see cref="IResult"/> in a <see cref="HttpResultException"/>.
+        /// </summary>
+        /// <param name="message">The error message that explains the reason for the exception.</param>
+        /// <returns>The <see cref="HttpResultException"/> instance.</returns>
+        public HttpResultException AsException(string? message = null) => new(httpResult, message);
+    }
 }

@@ -309,5 +309,7 @@ override NCode.Identity.Jose.Algorithms.SignatureAlgorithm.Type.get -> NCode.Ide
 override NCode.Identity.Jose.CompactJwt.ToString() -> string!
 override NCode.Identity.Jose.JoseEncryptionOptions.Credentials.get -> NCode.Identity.Jose.Credentials.JoseCredentials!
 override NCode.Identity.Jose.JoseSigningOptions.Credentials.get -> NCode.Identity.Jose.Credentials.JoseCredentials!
-static NCode.Identity.Jose.Extensions.DictionaryExtensions.TryGetValue<T>(this System.Collections.Generic.IDictionary<string!, object!>! collection, string! key, out T value) -> bool
-static NCode.Identity.Jose.Extensions.JsonElementExtensions.TryGetPropertyValue<T>(this System.Text.Json.JsonElement jsonElement, string! propertyName, out T value) -> bool
+NCode.Identity.Jose.Extensions.DictionaryExtensions.extension(System.Collections.Generic.IDictionary<string!, object!>!)
+NCode.Identity.Jose.Extensions.DictionaryExtensions.extension(System.Collections.Generic.IDictionary<string!, object!>!).TryGetValue<T>(string! key, out T value) -> bool
+NCode.Identity.Jose.Extensions.JsonElementExtensions.extension(System.Text.Json.JsonElement)
+NCode.Identity.Jose.Extensions.JsonElementExtensions.extension(System.Text.Json.JsonElement).TryGetPropertyValue<T>(string! propertyName, out T value) -> bool

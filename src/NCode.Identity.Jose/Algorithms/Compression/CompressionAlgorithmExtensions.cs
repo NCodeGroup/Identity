@@ -26,36 +26,38 @@ namespace NCode.Identity.Jose.Algorithms.Compression;
 
 internal static class CompressionAlgorithmExtensions
 {
-    public static IDisposable Compress(
-        this CompressionAlgorithm? algorithm,
-        IDictionary<string, object> header,
-        ReadOnlySpan<byte> uncompressedData,
-        out ReadOnlySpan<byte> compressedData
-    )
+    extension(CompressionAlgorithm? algorithm)
     {
-        if (algorithm == null || algorithm.Code == AlgorithmCodes.Compression.None)
+        public IDisposable Compress(
+            IDictionary<string, object> header,
+            ReadOnlySpan<byte> uncompressedData,
+            out ReadOnlySpan<byte> compressedData
+        )
         {
-            compressedData = uncompressedData;
-            return Disposable.Empty;
-        }
+            if (algorithm == null || algorithm.Code == AlgorithmCodes.Compression.None)
+            {
+                compressedData = uncompressedData;
+                return Disposable.Empty;
+            }
 
-        var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
-        {
-            // increase our chances of getting a single-segment buffer
-            MinimumSpanLength = Math.Min(uncompressedData.Length, 1024),
-        };
+            var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
+            {
+                // increase our chances of getting a single-segment buffer
+                MinimumSpanLength = Math.Min(uncompressedData.Length, 1024),
+            };
 
-        try
-        {
-            algorithm.Compress(uncompressedData, buffer);
-            header[JoseClaimNames.Header.Zip] = algorithm.Code;
+            try
+            {
+                algorithm.Compress(uncompressedData, buffer);
+                header[JoseClaimNames.Header.Zip] = algorithm.Code;
 
-            return buffer.ConsumeAsContiguousSpan(isSensitive: false, out compressedData);
-        }
-        catch
-        {
-            buffer.Dispose();
-            throw;
+                return buffer.ConsumeAsContiguousSpan(isSensitive: false, out compressedData);
+            }
+            catch
+            {
+                buffer.Dispose();
+                throw;
+            }
         }
     }
 }

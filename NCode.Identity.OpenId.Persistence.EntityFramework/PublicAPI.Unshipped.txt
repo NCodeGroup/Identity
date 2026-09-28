@@ -196,22 +196,22 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.Te
 NCode.Identity.OpenId.Persistence.EntityFramework.IdValueGenerator
 NCode.Identity.OpenId.Persistence.EntityFramework.IdValueGenerator.IdValueGenerator(IdGen.IIdGenerator<long>! idGenerator) -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Clients.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Clients.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity!>?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Clients.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ClientSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ClientSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity!>?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ClientSecrets.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Grants.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Grants.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity!>?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Grants.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.OpenIdDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!>! options) -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Secrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Secrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!>?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Secrets.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Servers.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Servers.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity!>?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Servers.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ServerSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ServerSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity!>?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ServerSecrets.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Tenants.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Tenants.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!>?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Tenants.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.TenantSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.TenantSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity!>?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.TenantSecrets.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>
 NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.BaseStore() -> void

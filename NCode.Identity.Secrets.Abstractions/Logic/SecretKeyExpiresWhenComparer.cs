@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Provides an implementation of <see cref="IComparer{SecretKey}"/> that compares <see cref="SecretKey"/> instances using
-/// the <see cref="KeyMetadata.ExpiresWhen"/> property descending and then the <see cref="M:SecretKey.GetHashCode"/> value
+/// the <see cref="KeyMetadata.ExpiresWhen"/> property descending and then the <c>GetHashCode()</c> value
 /// ascending. If any compared doesn't have a <see cref="KeyMetadata.ExpiresWhen"/> value, then it is treated as
 /// <see cref="DateTimeOffset.MaxValue"/>.
 /// </summary>

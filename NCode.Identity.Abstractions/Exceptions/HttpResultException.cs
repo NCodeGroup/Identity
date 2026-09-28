@@ -40,9 +40,19 @@ public class HttpResultException : Exception
     /// Initializes a new instance of the <see cref="HttpResultException"/> class.
     /// </summary>
     /// <param name="httpResult">The HTTP <see cref="IResult"/> to associate with the exception.</param>
+    public HttpResultException(IResult httpResult)
+        : this(httpResult, null, null)
+    {
+        // nothing
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HttpResultException"/> class.
+    /// </summary>
+    /// <param name="httpResult">The HTTP <see cref="IResult"/> to associate with the exception.</param>
     /// <param name="message">The error message that explains the reason for the exception.</param>
-    public HttpResultException(IResult httpResult, string? message = null)
-        : this(httpResult, message ?? GetMessage(httpResult), null)
+    public HttpResultException(IResult httpResult, string? message)
+        : this(httpResult, message, null)
     {
         // nothing
     }
@@ -54,11 +64,7 @@ public class HttpResultException : Exception
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception, or a <c>null</c>
     /// reference if no inner exception is specified.</param>
-    public HttpResultException(
-        IResult httpResult,
-        string? message,
-        Exception? innerException = null
-    )
+    public HttpResultException(IResult httpResult, string? message, Exception? innerException)
         : base(message ?? GetMessage(httpResult) ?? innerException?.Message, innerException)
     {
         HttpResult = httpResult;

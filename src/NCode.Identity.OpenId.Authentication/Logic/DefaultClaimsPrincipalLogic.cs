@@ -22,20 +22,6 @@ using NCode.Identity.Jose;
 namespace NCode.Identity.OpenId.Authentication.Logic;
 
 /// <summary>
-/// Represents a delegate that extracts a <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
-/// </summary>
-/// <param name="subject">The <see cref="ClaimsPrincipal"/> to extract the <see cref="ClaimsIdentity"/> from.</param>
-/// <returns>The <see cref="ClaimsIdentity"/> from the <see cref="ClaimsPrincipal"/>.</returns>
-public delegate ClaimsIdentity GetSubjectIdentityDelegate(ClaimsPrincipal subject);
-
-/// <summary>
-/// Represents a delegate that extracts the subject id from a <see cref="ClaimsPrincipal"/>.
-/// </summary>
-/// <param name="subject">The <see cref="ClaimsPrincipal"/> to search for the subject id.</param>
-/// <returns>The subject id if found; otherwise <c>null</c>.</returns>
-public delegate string? GetSubjectIdDelegate(ClaimsPrincipal subject);
-
-/// <summary>
 /// Provides default implementations for various operations related to <see cref="ClaimsPrincipal"/>.
 /// </summary>
 public static class DefaultClaimsPrincipalLogic

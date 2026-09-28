@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by
 /// <see cref="DefaultGetAccessTokenSubjectClaimsHandler"/>.
 /// </remarks>
-public class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoService)
+internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoService)
     : ICommandHandler<GetAccessTokenPayloadClaimsCommand>
 {
     private ICryptoService CryptoService { get; } = cryptoService;

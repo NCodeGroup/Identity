@@ -36,7 +36,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
 [PublicAPI]
-public class AesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int kekSizeBits)
+internal class AesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int kekSizeBits)
     : CommonKeyManagementAlgorithm
 {
     private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// Provides a default implementation of the <see cref="IOpenIdError"/> abstraction.
 /// </summary>
 [PublicAPI]
-public sealed class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportOpenIdError
+internal sealed class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportOpenIdError
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenIdError"/> class.

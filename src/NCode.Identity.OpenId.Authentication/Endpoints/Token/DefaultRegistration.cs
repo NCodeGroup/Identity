@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -41,7 +41,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 /// Provides extension methods to configure services and handlers for the OpenId Token endpoint.
 /// </summary>
 [PublicAPI]
-public static class DefaultRegistration
+internal static class DefaultRegistration
 {
     extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
     {

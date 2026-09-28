@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,7 +28,7 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// Provides an implementation of <see cref="SignatureAlgorithm"/> that doesn't calculate any digital signatures.
 /// </summary>
 [PublicAPI]
-public class NoneSignatureAlgorithm : SignatureAlgorithm
+internal class NoneSignatureAlgorithm : SignatureAlgorithm
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="NoneSignatureAlgorithm"/>.

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -23,7 +23,7 @@ namespace NCode.Identity.Claims;
 /// <summary>
 /// Provides a default implementation of the <see cref="IClaimsService"/> abstraction.
 /// </summary>
-public class DefaultClaimsService : IClaimsService
+internal class DefaultClaimsService : IClaimsService
 {
     /// <inheritdoc />
     public void CopyClaims(

@@ -27,7 +27,7 @@ using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
-public class DummyCommonKeyManagementAlgorithm(KeyManagementAlgorithm inner)
+internal class DummyCommonKeyManagementAlgorithm(KeyManagementAlgorithm inner)
     : CommonKeyManagementAlgorithm
 {
     private KeyManagementAlgorithm Inner { get; } = inner;

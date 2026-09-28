@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -46,7 +46,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the authorization endpoint.
 /// </summary>
-public class DefaultAuthorizationEndpointHandler(
+internal class DefaultAuthorizationEndpointHandler(
     ILogger<DefaultAuthorizationEndpointHandler> logger,
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService,

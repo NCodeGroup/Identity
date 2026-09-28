@@ -48,7 +48,7 @@ namespace NCode.Identity.Jose.Json;
 /// </list>
 /// </remarks>
 [PublicAPI]
-public sealed class JoseObjectJsonConverter : JsonConverter<object>
+internal sealed class JoseObjectJsonConverter : JsonConverter<object>
 {
     /// <summary>
     /// Gets a singleton instance for <see cref="JoseObjectJsonConverter"/>.

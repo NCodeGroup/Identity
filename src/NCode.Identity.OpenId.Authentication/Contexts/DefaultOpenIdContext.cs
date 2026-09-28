@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Contexts;
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdContext"/> abstraction.
 /// </summary>
-public class DefaultOpenIdContext(
+internal class DefaultOpenIdContext(
     HttpContext httpContext,
     OpenIdEnvironment openIdEnvironment,
     OpenIdServer openIdServer,

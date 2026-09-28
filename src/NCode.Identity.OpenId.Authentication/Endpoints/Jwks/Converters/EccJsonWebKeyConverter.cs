@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 /// publishing only the public members (<c>crv</c>, <c>x</c>, and <c>y</c>).
 /// </summary>
 [PublicAPI]
-public class EccJsonWebKeyConverter(IEccCurveSpecificationRegistry curveSpecificationRegistry)
+internal class EccJsonWebKeyConverter(IEccCurveSpecificationRegistry curveSpecificationRegistry)
     : JsonWebKeyConverter<EccSecretKey>
 {
     private IEccCurveSpecificationRegistry CurveSpecificationRegistry { get; } =

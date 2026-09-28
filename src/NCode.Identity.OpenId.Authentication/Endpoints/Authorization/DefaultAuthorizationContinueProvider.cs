@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// <summary>
 /// Provides a default implementation of the <see cref="IContinueProvider"/> abstraction for handling authorization continuations.
 /// </summary>
-public class DefaultAuthorizationContinueProvider(
+internal class DefaultAuthorizationContinueProvider(
     IClientAuthenticationService clientAuthenticationService,
     IAuthorizationEndpointLogic authorizationEndpointLogic
 ) : IContinueProvider

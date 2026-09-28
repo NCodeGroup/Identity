@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2023 NCode Group
 //
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdClient"/> abstraction.
 /// </summary>
-public class DefaultOpenIdClient(
+internal class DefaultOpenIdClient(
     string clientId,
     IReadOnlySettingCollection settings,
     ISecretKeyCollection secretKeys,

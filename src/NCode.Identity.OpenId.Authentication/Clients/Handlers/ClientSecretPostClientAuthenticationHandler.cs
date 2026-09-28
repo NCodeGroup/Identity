@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// <summary>
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses <c>client_id</c> and <c>client_secret</c> from the HTTP Request Body.
 /// </summary>
-public class ClientSecretPostClientAuthenticationHandler(
+internal class ClientSecretPostClientAuthenticationHandler(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,

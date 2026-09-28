@@ -29,7 +29,7 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// Provides an implementation of <see cref="SignatureAlgorithm"/> that uses an <c>Elliptic-Curve (ECC)</c> cryptographic algorithm for digital signatures.
 /// </summary>
 [PublicAPI]
-public class EccSignatureAlgorithm : SignatureAlgorithm
+internal class EccSignatureAlgorithm : SignatureAlgorithm
 {
     /// <inheritdoc />
     public override string Code { get; }

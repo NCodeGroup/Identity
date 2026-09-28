@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2023 NCode Group
 //
@@ -24,7 +24,7 @@ namespace NCode.Identity.Endpoints;
 /// <summary>
 /// Provides a default implementation of the <see cref="IIdentityEndpointRouteBuilder"/> abstraction.
 /// </summary>
-public class DefaultIdentityEndpointRouteBuilder(IEnumerable<IEndpointProvider> endpointProviders)
+internal class DefaultIdentityEndpointRouteBuilder(IEnumerable<IEndpointProvider> endpointProviders)
     : IIdentityEndpointRouteBuilder
 {
     private ImmutableArray<IEndpointProvider> EndpointProviders { get; } = [.. endpointProviders];

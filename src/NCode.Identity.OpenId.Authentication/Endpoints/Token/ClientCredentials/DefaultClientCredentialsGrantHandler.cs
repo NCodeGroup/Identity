@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.ClientCredentials
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Client Credentials</c> grant type.
 /// </summary>
-public class DefaultClientCredentialsGrantHandler(
+internal class DefaultClientCredentialsGrantHandler(
     TimeProvider timeProvider,
     ITokenService tokenService
 ) : ITokenGrantHandler

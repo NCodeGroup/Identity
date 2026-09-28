@@ -27,7 +27,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// Provides a default implementation for the <see cref="IAlgorithmCollection"/> interface.
 /// </summary>
 [PublicAPI]
-public class AlgorithmCollection(IEnumerable<Algorithm> items) : IAlgorithmCollection
+internal class AlgorithmCollection(IEnumerable<Algorithm> items) : IAlgorithmCollection
 {
     private Dictionary<(AlgorithmType type, string code), Algorithm> AlgorithmLookup { get; } =
         items.ToDictionary(algorithm => (algorithm.Type, algorithm.Code));

@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Messages;
 /// Provides an implementation of <see cref="IRequestValues"/> that wraps an <see cref="IFormCollection"/>.
 /// </summary>
 [PublicAPI]
-public class RequestValuesUsingForm(IFormCollection form) : IRequestValues
+internal class RequestValuesUsingForm(IFormCollection form) : IRequestValues
 {
     private IFormCollection Form { get; } = form;
 

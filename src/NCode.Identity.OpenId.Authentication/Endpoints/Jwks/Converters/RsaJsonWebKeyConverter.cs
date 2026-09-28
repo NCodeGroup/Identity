@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 /// publishing only the public members (<c>n</c> and <c>e</c>).
 /// </summary>
 [PublicAPI]
-public class RsaJsonWebKeyConverter : JsonWebKeyConverter<RsaSecretKey>
+internal class RsaJsonWebKeyConverter : JsonWebKeyConverter<RsaSecretKey>
 {
     /// <inheritdoc />
     protected override JsonWebKey Convert(RsaSecretKey secretKey)

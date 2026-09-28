@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -24,7 +24,7 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingDescriptorJsonProvider"/> abstraction.
 /// </summary>
-public class DefaultSettingDescriptorJsonProvider(
+internal class DefaultSettingDescriptorJsonProvider(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingDescriptorJsonProvider
 {

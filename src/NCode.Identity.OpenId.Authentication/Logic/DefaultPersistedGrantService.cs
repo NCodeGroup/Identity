@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Logic;
 /// <summary>
 /// Provides a default implementation for the <see cref="IPersistedGrantService"/> abstraction.
 /// </summary>
-public class DefaultPersistedGrantService(
+internal class DefaultPersistedGrantService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IStoreManagerFactory storeManagerFactory

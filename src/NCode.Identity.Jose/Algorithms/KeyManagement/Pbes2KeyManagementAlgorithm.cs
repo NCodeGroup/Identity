@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -41,7 +41,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="keySizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
 /// <param name="maxIterationCount">Contains the maximum number of iterations allowed for the PBKDF2 algorithm.</param>
 [PublicAPI]
-public class Pbes2KeyManagementAlgorithm(
+internal class Pbes2KeyManagementAlgorithm(
     IAesKeyWrap aesKeyWrap,
     string code,
     HashAlgorithmName hashAlgorithmName,

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> for a collection of <see cref="Setting"/> instances
 /// that are loaded from a <see cref="IConfigurationSection"/> and the default values from <see cref="ISettingDescriptorCollectionProvider"/>.
 /// </summary>
-public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<Setting>
+internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<Setting>
 {
     private IConfigurationSection ConfigurationSection { get; }
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; }

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2023 NCode Group
 //
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// <summary>
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses HTTP Basic Authentication.
 /// </summary>
-public class ClientSecretBasicClientAuthenticationHandler(
+internal class ClientSecretBasicClientAuthenticationHandler(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,

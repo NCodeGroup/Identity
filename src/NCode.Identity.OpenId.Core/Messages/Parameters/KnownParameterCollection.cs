@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Provides a default implementation of the <see cref="IKnownParameterCollection"/> abstraction.
 /// </summary>
-public class KnownParameterCollection(IEnumerable<KnownParameter> knownParameters)
+internal class KnownParameterCollection(IEnumerable<KnownParameter> knownParameters)
     : IKnownParameterCollection
 {
     private FrozenDictionary<string, KnownParameter> KnownParameters { get; } =

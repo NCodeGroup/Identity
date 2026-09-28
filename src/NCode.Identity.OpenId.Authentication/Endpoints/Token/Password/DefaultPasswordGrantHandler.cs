@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -36,7 +36,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Password</c> grant type.
 /// </summary>
-public class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenService tokenService)
+internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenService tokenService)
     : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;

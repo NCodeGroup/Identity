@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2023 NCode Group
 //
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Provides a default implementation of the <see cref="IOpenIdClientFactory"/> abstraction.
 /// </summary>
 [PublicAPI]
-public class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyCollectionFactory)
+internal class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyCollectionFactory)
     : IOpenIdClientFactory
 {
     private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } =

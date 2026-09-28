@@ -30,7 +30,7 @@ namespace NCode.Identity.Logic;
 /// <summary>
 /// Provides a default implementation for the <see cref="ICryptoService"/> abstraction.
 /// </summary>
-public class DefaultCryptoService : ICryptoService
+internal class DefaultCryptoService : ICryptoService
 {
     private const int MaxStackAlloc = 512 >> 3;
 

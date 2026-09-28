@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Tenants.Providers;
 /// Provides a default implementation of <see cref="IOpenIdTenantProvider"/> that dynamically loads the tenant
 /// configuration using a route parameter (aka path) from an HTTP request.
 /// </summary>
-public class DefaultDynamicByPathOpenIdTenantProvider(
+internal class DefaultDynamicByPathOpenIdTenantProvider(
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     IOpenIdServerProvider openIdServerProvider,

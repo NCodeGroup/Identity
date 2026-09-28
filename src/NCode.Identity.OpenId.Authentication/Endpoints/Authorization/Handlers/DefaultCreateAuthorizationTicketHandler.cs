@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="CreateAuthorizationTicketCommand"/> message.
 /// </summary>
-public class DefaultCreateAuthorizationTicketHandler(
+internal class DefaultCreateAuthorizationTicketHandler(
     TimeProvider timeProvider,
     IAuthorizationCodeService authorizationCodeService,
     ITokenService tokenService

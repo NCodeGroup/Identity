@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdConfidentialClient"/> abstraction.
 /// </summary>
-public class DefaultOpenIdConfidentialClient(
+internal class DefaultOpenIdConfidentialClient(
     OpenIdClient publicClient,
     string authenticationMethod,
     SecretKey secretKey,

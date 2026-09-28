@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -30,7 +30,7 @@ namespace NCode.Identity.Jose.Encoders;
 /// </summary>
 /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
 [PublicAPI]
-public abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseEncoder
+internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseEncoder
 {
     /// <summary>
     /// Gets the <see cref="JoseSerializer"/> instance.

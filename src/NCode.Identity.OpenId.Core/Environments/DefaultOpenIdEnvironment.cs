@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Environments;
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdEnvironment"/> abstraction.
 /// </summary>
-public class DefaultOpenIdEnvironment(
+internal class DefaultOpenIdEnvironment(
     IDataProtector dataProtector,
     IDataProtector ephemeralDataProtector,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,

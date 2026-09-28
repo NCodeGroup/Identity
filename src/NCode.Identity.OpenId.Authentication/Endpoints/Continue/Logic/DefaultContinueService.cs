@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
 /// <summary>
 /// Provides a default implementation of the <see cref="IContinueService"/> abstraction.
 /// </summary>
-public class DefaultContinueService(
+internal class DefaultContinueService(
     TimeProvider timeProvider,
     LinkGenerator linkGenerator,
     ICryptoService cryptoService,

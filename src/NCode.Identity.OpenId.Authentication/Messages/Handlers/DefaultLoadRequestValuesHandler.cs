@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Messages.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="LoadRequestValuesCommand"/> message.
 /// </summary>
-public class DefaultLoadRequestValuesHandler
+internal class DefaultLoadRequestValuesHandler
     : ICommandResponseHandler<LoadRequestValuesCommand, IRequestValues>
 {
     /// <inheritdoc />

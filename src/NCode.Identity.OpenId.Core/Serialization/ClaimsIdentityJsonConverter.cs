@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Serialization;
 /// instances to and from JSON.
 /// </summary>
 [PublicAPI]
-public class ClaimsIdentityJsonConverter(IClaimsSerializer serializer)
+internal class ClaimsIdentityJsonConverter(IClaimsSerializer serializer)
     : JsonConverter<ClaimsIdentity>
 {
     private IClaimsSerializer Serializer { get; } = serializer;

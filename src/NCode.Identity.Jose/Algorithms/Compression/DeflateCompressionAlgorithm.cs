@@ -29,7 +29,7 @@ namespace NCode.Identity.Jose.Algorithms.Compression;
 /// Provides an implementation of <see cref="CompressionAlgorithm"/> that uses the <c>DEFLATE (RFC1951)</c> algorithm for compression.
 /// </summary>
 [PublicAPI]
-public class DeflateCompressionAlgorithm : CompressionAlgorithm
+internal class DeflateCompressionAlgorithm : CompressionAlgorithm
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="DeflateCompressionAlgorithm"/>.

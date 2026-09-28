@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 /// Provides extension methods to configure services and handlers for the OpenId <c>JSON Web Key Set (JWKS)</c> endpoint.
 /// </summary>
 [PublicAPI]
-public static class DefaultRegistration
+internal static class DefaultRegistration
 {
     extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
     {

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Messages;
 /// Provides an implementation of <see cref="IRequestValues"/> that wraps an <see cref="IQueryCollection"/>.
 /// </summary>
 [PublicAPI]
-public class RequestValuesUsingQuery(IQueryCollection query) : IRequestValues
+internal class RequestValuesUsingQuery(IQueryCollection query) : IRequestValues
 {
     private IQueryCollection Query { get; } = query;
 

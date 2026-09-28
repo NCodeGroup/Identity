@@ -30,7 +30,7 @@ namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 /// Provides an implementation of <see cref="AuthenticatedEncryptionAlgorithm"/> that uses the <c>AES CBC HMAC</c> cryptographic algorithm for authenticated encryption (AEAD).
 /// </summary>
 [PublicAPI]
-public class AesCbcHmacAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncryptionAlgorithm
+internal class AesCbcHmacAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncryptionAlgorithm
 {
     private const int BlockSizeBits = 128;
     private const int BlockSizeBytes = BlockSizeBits >> 3;

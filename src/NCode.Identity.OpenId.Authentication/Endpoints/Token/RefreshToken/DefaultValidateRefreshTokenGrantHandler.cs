@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 /// Provides a default implementation of handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="RefreshTokenGrant"/>.
 /// </summary>
-public class DefaultValidateRefreshTokenGrantHandler
+internal class DefaultValidateRefreshTokenGrantHandler
     : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>,
         ISupportMediatorPriority
 {

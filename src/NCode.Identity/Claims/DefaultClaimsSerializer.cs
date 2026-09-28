@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -26,7 +26,7 @@ namespace NCode.Identity.Claims;
 /// <summary>
 /// Provides a default implementation of the <see cref="IClaimsSerializer"/> abstraction.
 /// </summary>
-public class DefaultClaimsSerializer : IClaimsSerializer
+internal class DefaultClaimsSerializer : IClaimsSerializer
 {
     /// <summary>
     /// Gets a singleton instance for <see cref="DefaultClaimsSerializer"/>.

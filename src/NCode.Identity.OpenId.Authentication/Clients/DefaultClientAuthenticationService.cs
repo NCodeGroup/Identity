@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <summary>
 /// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction.
 /// </summary>
-public class DefaultClientAuthenticationService : IClientAuthenticationService
+internal class DefaultClientAuthenticationService : IClientAuthenticationService
 {
     private ClientAuthenticationResult? ResultOrDefault { get; set; }
 

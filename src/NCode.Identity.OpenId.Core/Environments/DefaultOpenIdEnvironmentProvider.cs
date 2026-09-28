@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Environments;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdEnvironmentProvider"/> abstraction.
 /// </summary>
-public class DefaultOpenIdEnvironmentProvider(IOpenIdEnvironmentFactory factory)
+internal class DefaultOpenIdEnvironmentProvider(IOpenIdEnvironmentFactory factory)
     : IOpenIdEnvironmentProvider,
         IAsyncDisposable
 {

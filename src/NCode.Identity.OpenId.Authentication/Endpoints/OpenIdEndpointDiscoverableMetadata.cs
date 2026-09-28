@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdEndpointDiscoverableMetadata"/> abstraction.
 /// </summary>
-public class OpenIdEndpointDiscoverableMetadata : IOpenIdEndpointDiscoverableMetadata
+internal class OpenIdEndpointDiscoverableMetadata : IOpenIdEndpointDiscoverableMetadata
 {
     /// <inheritdoc />
     public bool IsDiscoverable { get; init; } = true;

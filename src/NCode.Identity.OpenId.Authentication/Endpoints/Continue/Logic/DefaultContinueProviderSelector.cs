@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
 /// <summary>
 /// Provides a default implementation of the <see cref="IContinueProviderSelector"/> abstraction.
 /// </summary>
-public class DefaultContinueProviderSelector(IEnumerable<IContinueProvider> providers)
+internal class DefaultContinueProviderSelector(IEnumerable<IContinueProvider> providers)
     : IContinueProviderSelector
 {
     private FrozenDictionary<string, IContinueProvider> Lookup { get; } =

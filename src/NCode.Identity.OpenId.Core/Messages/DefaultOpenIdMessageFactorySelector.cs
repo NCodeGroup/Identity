@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdMessageFactorySelector"/> abstraction.
 /// </summary>
-public class DefaultOpenIdMessageFactorySelector(IEnumerable<IOpenIdMessageFactory> factories)
+internal class DefaultOpenIdMessageFactorySelector(IEnumerable<IOpenIdMessageFactory> factories)
     : IOpenIdMessageFactorySelector
 {
     private FrozenDictionary<string, IOpenIdMessageFactory> Factories { get; } =

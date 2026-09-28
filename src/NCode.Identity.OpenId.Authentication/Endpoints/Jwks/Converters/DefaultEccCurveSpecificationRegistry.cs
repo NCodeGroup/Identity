@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 /// registered by the application are merged in and override a built-in that shares the same curve size.
 /// </summary>
 [PublicAPI]
-public class DefaultEccCurveSpecificationRegistry : IEccCurveSpecificationRegistry
+internal class DefaultEccCurveSpecificationRegistry : IEccCurveSpecificationRegistry
 {
     /// <summary>
     /// The <c>P-256</c> curve specification (<c>secp256r1</c> / <c>prime256v1</c>).

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serializa
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="IAuthorizationRequest"/>
 /// instances to and from JSON.
 /// </summary>
-public class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationRequest>
+internal class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationRequest>
 {
     /// <inheritdoc />
     public override bool CanConvert(Type typeToConvert)

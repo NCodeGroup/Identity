@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message.
 /// </summary>
 [PublicAPI]
-public class DefaultAuthenticateSubjectHandler(IOptions<OpenIdOptions> optionsAccessor)
+internal class DefaultAuthenticateSubjectHandler(IOptions<OpenIdOptions> optionsAccessor)
     : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;

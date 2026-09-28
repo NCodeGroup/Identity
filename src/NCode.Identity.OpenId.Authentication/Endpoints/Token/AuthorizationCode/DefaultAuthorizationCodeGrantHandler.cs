@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2023 NCode Group
 //
@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Authorization Code</c> grant type.
 /// </summary>
-public class DefaultAuthorizationCodeGrantHandler(
+internal class DefaultAuthorizationCodeGrantHandler(
     TimeProvider timeProvider,
     IPersistedGrantService persistedGrantService,
     ITokenService tokenService

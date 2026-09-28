@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// Provides a default implementation for a <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that generates the
 /// subject claims for an access token. Custom claims are added by additional handlers provided by the application.
 /// </summary>
-public class DefaultGetAccessTokenSubjectClaimsHandler(IClaimsService claimsService)
+internal class DefaultGetAccessTokenSubjectClaimsHandler(IClaimsService claimsService)
     : ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
         ISupportMediatorPriority
 {

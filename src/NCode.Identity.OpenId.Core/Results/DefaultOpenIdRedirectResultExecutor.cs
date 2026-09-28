@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Results;
 /// <summary>
 /// Provides the default implementation of <see cref="IResultExecutor{T}"/> for <see cref="OpenIdRedirectResult"/>.
 /// </summary>
-public class DefaultOpenIdRedirectResultExecutor : IResultExecutor<OpenIdRedirectResult>
+internal class DefaultOpenIdRedirectResultExecutor : IResultExecutor<OpenIdRedirectResult>
 {
     private const string AjaxHeaderValue = "XMLHttpRequest";
 

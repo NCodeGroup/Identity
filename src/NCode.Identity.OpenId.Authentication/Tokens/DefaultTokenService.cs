@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -44,7 +44,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenService"/> abstraction.
 /// </summary>
-public class DefaultTokenService(
+internal class DefaultTokenService(
     IOptions<OpenIdOptions> optionsAccessor,
     ICryptoService cryptoService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,

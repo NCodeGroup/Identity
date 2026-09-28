@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Provides the default implementation for a data source collection of <see cref="KnownParameter"/> instances supported by this library.
 /// </summary>
-public class DefaultCommonParameterDataSource(INullChangeToken nullChangeToken)
+internal class DefaultCommonParameterDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<KnownParameter>
 {
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;

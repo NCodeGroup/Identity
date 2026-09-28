@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -38,7 +38,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// Provides a common base for <see cref="IClientAuthenticationHandler"/> implementations.
 /// </summary>
 [PublicAPI]
-public abstract class CommonClientAuthenticationHandler(
+internal abstract class CommonClientAuthenticationHandler(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,

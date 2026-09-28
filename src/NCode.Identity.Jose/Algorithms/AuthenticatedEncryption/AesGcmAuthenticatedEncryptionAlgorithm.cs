@@ -29,7 +29,7 @@ namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="cekSizeBits">Contains the legal size, in bits, of the content encryption key (CEK).</param>
 [PublicAPI]
-public class AesGcmAuthenticatedEncryptionAlgorithm(string code, int cekSizeBits)
+internal class AesGcmAuthenticatedEncryptionAlgorithm(string code, int cekSizeBits)
     : CommonAuthenticatedEncryptionAlgorithm
 {
     /// <inheritdoc />

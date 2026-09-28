@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -26,7 +26,7 @@ namespace NCode.Identity.Jose.Algorithms.Compression;
 /// Provides an implementation of <see cref="CompressionAlgorithm"/> that does not perform compression and reads/writes data as-is.
 /// </summary>
 [PublicAPI]
-public class NoneCompressionAlgorithm : CompressionAlgorithm
+internal class NoneCompressionAlgorithm : CompressionAlgorithm
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="NoneCompressionAlgorithm"/>.

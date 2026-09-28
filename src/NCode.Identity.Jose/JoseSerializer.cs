@@ -40,7 +40,7 @@ namespace NCode.Identity.Jose;
 /// <param name="optionsAccessor">An accessor that provides <see cref="JoseSerializerOptions"/>.</param>
 /// <param name="algorithmCollectionProvider">An <see cref="IAlgorithmCollectionProvider"/> that provides a collection of <see cref="Algorithm"/> instances.</param>
 [PublicAPI]
-public partial class JoseSerializer(
+internal partial class JoseSerializer(
     IOptions<JoseSerializerOptions> optionsAccessor,
     IAlgorithmCollectionProvider algorithmCollectionProvider
 ) : IJoseSerializer

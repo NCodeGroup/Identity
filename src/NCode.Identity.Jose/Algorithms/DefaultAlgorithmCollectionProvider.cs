@@ -24,7 +24,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// <summary>
 /// Provides a default implementation for the <see cref="IAlgorithmCollectionProvider"/> interface.
 /// </summary>
-public class DefaultAlgorithmCollectionProvider(
+internal class DefaultAlgorithmCollectionProvider(
     IEnumerable<ICollectionDataSource<Algorithm>> dataSources
 )
     : BaseCollectionProvider<Algorithm, IAlgorithmCollection>(dataSources),

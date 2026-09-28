@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,7 +28,7 @@ namespace NCode.Identity.Jose.Encoders;
 /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
 /// <param name="signingOptions">The JOSE signing credentials and options.</param>
 [PublicAPI]
-public class JoseSigningEncoder(JoseSerializer joseSerializer, JoseSigningOptions signingOptions)
+internal class JoseSigningEncoder(JoseSerializer joseSerializer, JoseSigningOptions signingOptions)
     : CommonJoseEncoder(joseSerializer)
 {
     private JoseSigningOptions SigningOptions { get; } = signingOptions;

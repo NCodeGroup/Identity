@@ -64,6 +64,12 @@ dotnet_diagnostic.RS0027.severity = none
 # CA1711: the 'Delegate'/'Collection' suffixes on these types are intentional and intention-revealing
 # (a delegate type named *Delegate; a capability interface). Renaming would reduce clarity.
 dotnet_diagnostic.CA1711.severity = none
+# CA1000: static factory/singleton members on generic types (OpenIdMessage<T>.Create/Load,
+# EnumParser<T>.Singleton) are the intended, idiomatic public API for these value/message types.
+dotnet_diagnostic.CA1000.severity = none
+# CA1720: type-name identifiers (e.g. the CommonParameterParsers String/StringSet/StringList family)
+# are deliberate and intention-revealing for a parsing/serialization surface.
+dotnet_diagnostic.CA1720.severity = none
 
 # ── Test projects only ──────────────────────────────────────────────────────
 # The following rules are legitimate on shipping code but pure noise in xUnit tests.

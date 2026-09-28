@@ -38,6 +38,9 @@ public static partial class OpenIdConstants
     /// </summary>
     public const string ParameterSeparatorString = " ";
 
+    /// <summary>
+    /// Contains the <c>application/x-www-form-urlencoded</c> content type used by <c>OAuth</c> and <c>OpenID Connect</c> requests.
+    /// </summary>
     public const string ContentType = "application/x-www-form-urlencoded";
 
     /// <summary>
@@ -114,8 +117,19 @@ public static partial class OpenIdConstants
     /// </summary>
     public static class TenantProviderCodes
     {
+        /// <summary>
+        /// Identifies the tenant provider that always resolves the same single, statically-configured tenant.
+        /// </summary>
         public const string StaticSingle = nameof(StaticSingle);
+
+        /// <summary>
+        /// Identifies the tenant provider that resolves the tenant dynamically from the request host.
+        /// </summary>
         public const string DynamicByHost = nameof(DynamicByHost);
+
+        /// <summary>
+        /// Identifies the tenant provider that resolves the tenant dynamically from the request path.
+        /// </summary>
         public const string DynamicByPath = nameof(DynamicByPath);
     }
 
@@ -124,6 +138,9 @@ public static partial class OpenIdConstants
     /// </summary>
     public static class ContinueCodes
     {
+        /// <summary>
+        /// Identifies the continuation of a previously-initiated <c>authorization</c> operation.
+        /// </summary>
         public const string Authorization = "continue_authorization";
     }
 
@@ -132,8 +149,19 @@ public static partial class OpenIdConstants
     /// </summary>
     public static class PersistedGrantTypes
     {
+        /// <summary>
+        /// Identifies a persisted grant for a <c>continue</c> (aka callback) operation.
+        /// </summary>
         public const string Continue = "continue";
+
+        /// <summary>
+        /// Identifies a persisted grant for an <c>authorization code</c>.
+        /// </summary>
         public const string AuthorizationCode = "authorization_code";
+
+        /// <summary>
+        /// Identifies a persisted grant for a <c>refresh token</c>.
+        /// </summary>
         public const string RefreshToken = "refresh_token";
     }
 
@@ -142,9 +170,24 @@ public static partial class OpenIdConstants
     /// </summary>
     public static class SecurityTokenTypes
     {
+        /// <summary>
+        /// Identifies an <c>ID token</c> security token.
+        /// </summary>
         public const string IdToken = "id_token";
+
+        /// <summary>
+        /// Identifies an <c>access token</c> security token.
+        /// </summary>
         public const string AccessToken = "access_token";
+
+        /// <summary>
+        /// Identifies a <c>refresh token</c> security token.
+        /// </summary>
         public const string RefreshToken = "refresh_token";
+
+        /// <summary>
+        /// Identifies an <c>authorization code</c> security token.
+        /// </summary>
         public const string AuthorizationCode = "authorization_code";
     }
 
@@ -153,8 +196,19 @@ public static partial class OpenIdConstants
     /// </summary>
     public static class RefreshTokenExpirationPolicy
     {
+        /// <summary>
+        /// Indicates that refresh tokens do not expire.
+        /// </summary>
         public const string None = "none";
+
+        /// <summary>
+        /// Indicates that refresh tokens expire at a fixed point in time regardless of use.
+        /// </summary>
         public const string Absolute = "absolute";
+
+        /// <summary>
+        /// Indicates that the refresh token expiration is extended each time it is used, up to an absolute maximum.
+        /// </summary>
         public const string Sliding = "sliding";
     }
 
@@ -179,7 +233,14 @@ public static partial class OpenIdConstants
         /// </summary>
         public const string ClientSecretBasic = "client_secret_basic";
 
+        /// <summary>
+        /// Indicates that the client authenticates with a JWT signed using a secret derived from the Client Secret (<c>client_secret_jwt</c>).
+        /// </summary>
         public const string ClientSecretJwt = "client_secret_jwt";
+
+        /// <summary>
+        /// Indicates that the client authenticates with a JWT signed using its private key (<c>private_key_jwt</c>).
+        /// </summary>
         public const string PrivateKeyJwt = "private_key_jwt";
     }
 
@@ -193,21 +254,39 @@ public static partial class OpenIdConstants
     /// </remarks>
     public static class AuthenticationPropertyItems
     {
+        /// <summary>
+        /// Contains the item key for the current tenant identifier.
+        /// </summary>
         public const string TenantId = ".tenant";
     }
 
+    /// <summary>
+    /// Contains constants for the <c>subject_type</c> values supported by the authorization server.
+    /// </summary>
     public static class SubjectTypes
     {
+        /// <summary>
+        /// Indicates that the same subject (<c>sub</c>) value is returned to all clients (<c>public</c>).
+        /// </summary>
         public const string Public = "public";
 
         // https://docs.safewhere.com/identify/concepts/connections/oauth/advanced-topics/oauth-ppid.html
         // example: base64urlencode(HS256Signature(sectorIdentifier + client_id + salt, key))
+
+        /// <summary>
+        /// Indicates that a different subject (<c>sub</c>) value is returned to each client or sector (<c>pairwise</c>).
+        /// </summary>
         public const string Pairwise = "pairwise";
     }
 
-    // authentication context class reference (acr)
+    /// <summary>
+    /// Contains constants for well-known <c>authentication context class reference (acr)</c> value prefixes.
+    /// </summary>
     public static class AuthenticationContextClassReferencePrefixes
     {
+        /// <summary>
+        /// Contains the <c>acr</c> prefix that identifies the authenticating identity provider.
+        /// </summary>
         public const string IdentityProvider = "idp:";
     }
 }

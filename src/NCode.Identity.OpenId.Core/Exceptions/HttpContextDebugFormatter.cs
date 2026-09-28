@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Exceptions;
 #pragma warning disable CS1574 // XML comment has cref attribute that could not be resolved
 
 /// <summary>
-/// Copied from <see cref="Microsoft.AspNetCore.Shared.HttpContextDebugFormatter"/>.
+/// Copied from <c>Microsoft.AspNetCore.Shared.HttpContextDebugFormatter</c>.
 /// Credits to the Microsoft team.
 /// </summary>
 [GeneratedCode("Microsoft.AspNetCore.Shared", null)]

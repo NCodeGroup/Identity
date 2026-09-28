@@ -25,9 +25,16 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
+/// <summary>
+/// Provides common functionality for OpenID management API endpoint handlers, including resource-based
+/// authorization and standard <c>GET</c> response processing.
+/// </summary>
 [PublicAPI]
 public abstract class BaseApiEndpointHandler
 {
+    /// <summary>
+    /// Gets the <see cref="IAuthorizationService"/> used to perform resource-based authorization.
+    /// </summary>
     protected abstract IAuthorizationService AuthorizationService { get; }
 
     internal virtual IReadOnlyCollection<SecretResource> ToSecretsResource(
@@ -52,6 +59,14 @@ public abstract class BaseApiEndpointHandler
         };
     }
 
+    /// <summary>
+    /// Processes an HTTP <c>GET</c> request for the specified value, returning the value as-is when found and authorized.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="valueOrNull">The value to return, or <c>null</c> when not found.</param>
+    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate against the value.</param>
+    /// <typeparam name="TValue">The type of the value to return.</typeparam>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue>(
         HttpContext httpContext,
         TValue? valueOrNull,
@@ -66,6 +81,17 @@ public abstract class BaseApiEndpointHandler
         );
     }
 
+    /// <summary>
+    /// Processes an HTTP <c>GET</c> request for the specified value, mapping it to a response when found and authorized.
+    /// Emits an <c>ETag</c> and honors <c>If-None-Match</c> when the value supports a concurrency token.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="valueOrNull">The value to map and return, or <c>null</c> when not found.</param>
+    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate against the value.</param>
+    /// <param name="mapper">A function that maps the value to the response representation.</param>
+    /// <typeparam name="TValue">The type of the value being processed.</typeparam>
+    /// <typeparam name="TResponse">The type of the response representation.</typeparam>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
         HttpContext httpContext,
         TValue? valueOrNull,

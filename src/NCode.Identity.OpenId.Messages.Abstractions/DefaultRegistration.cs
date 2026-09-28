@@ -24,6 +24,9 @@ using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Messages;
 
+/// <summary>
+/// Provides extension methods to register OpenID message factories.
+/// </summary>
 [PublicAPI]
 public static class DefaultRegistration
 {

@@ -1,0 +1,29 @@
+#nullable enable
+NCode.Identity.Server.DefaultRegistration
+NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddIdentityServer() -> NCode.Identity.Server.IIdentityServerBuilder!
+NCode.Identity.Server.IdentityServer
+NCode.Identity.Server.IdentityServer.ConfigureMethod.get -> string!
+NCode.Identity.Server.IdentityServer.DisplayName.get -> string!
+NCode.Identity.Server.IdentityServer.IdentityServer() -> void
+NCode.Identity.Server.IdentityServerBuilder
+NCode.Identity.Server.IdentityServerBuilder.DataProtectionBuilder.get -> Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder!
+NCode.Identity.Server.IdentityServerBuilder.IdentityLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!
+NCode.Identity.Server.IdentityServerBuilder.IdentityServerBuilder(Microsoft.Extensions.DependencyInjection.IServiceCollection! serviceCollection) -> void
+NCode.Identity.Server.IdentityServerBuilder.JoseLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
+NCode.Identity.Server.IdentityServerBuilder.JsonWebTokensLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.JsonWebTokens.JsonWebTokensLibrary>!
+NCode.Identity.Server.IdentityServerBuilder.OpenIdAuthenticationLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!
+NCode.Identity.Server.IdentityServerBuilder.OpenIdCoreLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
+NCode.Identity.Server.IdentityServerBuilder.OpenIdManagementLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
+NCode.Identity.Server.IdentityServerBuilder.SecretPersistenceLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Server.IdentityServerBuilder.SecretsLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder
+NCode.Identity.Server.IIdentityServerBuilder.DataProtectionBuilder.get -> Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder!
+NCode.Identity.Server.IIdentityServerBuilder.IdentityLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.JoseLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.JsonWebTokensLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.JsonWebTokens.JsonWebTokensLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.OpenIdAuthenticationLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.OpenIdCoreLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.OpenIdManagementLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.SecretPersistenceLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.SecretsLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!

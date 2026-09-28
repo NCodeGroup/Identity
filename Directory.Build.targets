@@ -45,4 +45,15 @@
     </PackageReference>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
   </ItemGroup>
+
+  <!-- Tracks the public API surface (RS0016/RS0017/RS0024): each packable project lists its surface in the sibling
+       PublicAPI.Shipped.txt / PublicAPI.Unshipped.txt (auto-registered as AdditionalFiles by the analyzer). A public
+       change that isn't recorded fails the build. Pre-1.0: Shipped stays empty and the whole surface lives in
+       Unshipped; move Unshipped -> Shipped at v1. See docs/api-compatibility.md. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 </Project>

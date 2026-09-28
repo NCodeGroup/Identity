@@ -1,0 +1,11 @@
+#nullable enable
+NCode.Persistence.Stores.IStore
+NCode.Persistence.Stores.IStore<T>
+NCode.Persistence.Stores.IStore<T>.AddAsync(T item, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Persistence.Stores.IStore<T>.UpdateAsync(T item, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Persistence.Stores.IStoreManager
+NCode.Persistence.Stores.IStoreManager.SaveChangesAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Persistence.Stores.IStoreManagerFactory
+NCode.Persistence.Stores.IStoreManagerFactory.CreateAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.IStoreManager!>
+NCode.Persistence.Stores.IStoreProvider
+NCode.Persistence.Stores.IStoreProvider.GetStore<TStore>() -> TStore

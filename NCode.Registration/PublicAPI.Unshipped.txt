@@ -1,0 +1,19 @@
+#nullable enable
+NCode.Registration.IMarker<TMarker>
+NCode.Registration.IRegistrationMarker<TMarker>
+NCode.Registration.IRegistrationMarker<TMarker>.ConfigureMethod.get -> string!
+NCode.Registration.IRegistrationMarker<TMarker>.DisplayName.get -> string!
+NCode.Registration.IServiceBuilder
+NCode.Registration.IServiceBuilder.NewBuilder<TNewMarker>() -> NCode.Registration.IServiceBuilder<TNewMarker>!
+NCode.Registration.IServiceBuilder.ServiceCollection.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Registration.IServiceBuilder<TMarker>
+NCode.Registration.ServiceBuilder<TMarker>
+NCode.Registration.ServiceBuilder<TMarker>.NewBuilder<TNewMarker>() -> NCode.Registration.IServiceBuilder<TNewMarker>!
+NCode.Registration.ServiceBuilder<TMarker>.ServiceBuilder(Microsoft.Extensions.DependencyInjection.IServiceCollection! serviceCollection) -> void
+NCode.Registration.ServiceBuilder<TMarker>.ServiceCollection.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Registration.ServiceCollectionExtensions
+NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddRegistrationMarker<TMarker>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).IsRegistered<TMarker>() -> bool
+NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).NewBuilder<TNewMarker>() -> NCode.Registration.IServiceBuilder<TNewMarker>!
+NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).VerifyIsRegistered<TMarker>(string? message = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

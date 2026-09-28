@@ -42,6 +42,9 @@ public abstract class OpenIdEnvironment
     /// </summary>
     public abstract IDataProtector DataProtector { get; }
 
+    /// <summary>
+    /// Gets an ephemeral <see cref="IDataProtector"/> whose protected data is only valid for the lifetime of the current process.
+    /// </summary>
     public abstract IDataProtector EphemeralDataProtector { get; }
 
     /// <summary>

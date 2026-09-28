@@ -25,11 +25,18 @@ using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Management;
 
+/// <summary>
+/// Provides extension methods to register the OpenID management library and its services.
+/// </summary>
 [PublicAPI]
 public static class DefaultRegistration
 {
     extension(IServiceBuilder<IdentityLibrary> builder)
     {
+        /// <summary>
+        /// Registers the OpenID management library, its authorization handlers, and API endpoints.
+        /// </summary>
+        /// <returns>An <see cref="IServiceBuilder{TLibrary}"/> for the registered <see cref="OpenIdManagementLibrary"/>.</returns>
         [PublicAPI]
         public IServiceBuilder<OpenIdManagementLibrary> AddOpenIdManagementLibrary()
         {

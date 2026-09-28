@@ -48,6 +48,9 @@ GET api/tenants/{tenantId}/secrets
 
 */
 
+/// <summary>
+/// Provides the API endpoints for managing an OpenID Server, including its settings and secrets.
+/// </summary>
 public class ServerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService

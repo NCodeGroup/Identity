@@ -28,27 +28,19 @@ namespace NCode.Identity.Jose.Encoders;
 /// <summary>
 /// Provides an abstraction to encode a JOSE token.
 /// </summary>
+/// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
 [PublicAPI]
-public abstract class CommonJoseEncoder : JoseEncoder
+public abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseEncoder
 {
     /// <summary>
     /// Gets the <see cref="JoseSerializer"/> instance.
     /// </summary>
-    protected JoseSerializer JoseSerializer { get; }
+    protected JoseSerializer JoseSerializer { get; } = joseSerializer;
 
     /// <summary>
     /// Gets the <see cref="JoseEncodingOptions"/> that this encoder was created with.
     /// </summary>
     protected abstract JoseEncodingOptions EncodingOptions { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JoseEncoder"/> class.
-    /// </summary>
-    /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
-    protected CommonJoseEncoder(JoseSerializer joseSerializer)
-    {
-        JoseSerializer = joseSerializer;
-    }
 
     /// <inheritdoc />
     public override string Encode<T>(T payload)

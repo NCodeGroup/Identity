@@ -23,20 +23,12 @@ namespace NCode.Identity.Models;
 /// <summary>
 /// Contains an <see cref="IsActive"/> property indicating whether the result of the operation or context is active or not.
 /// </summary>
+/// <param name="initial">The initial value of the <see cref="IsActive"/> property.</param>
 [PublicAPI]
-public abstract class IsActiveResult
+public abstract class IsActiveResult(bool initial)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="IsActiveResult"/> class with the specified initial value.
-    /// </summary>
-    /// <param name="initial">The initial value of the <see cref="IsActive"/> property.</param>
-    protected IsActiveResult(bool initial)
-    {
-        IsActive = initial;
-    }
-
     /// <summary>
     /// Gets a <see cref="bool"/> value indicating whether the result of the operation or context is active or not.
     /// </summary>
-    public bool IsActive { get; protected set; }
+    public bool IsActive { get; protected set; } = initial;
 }

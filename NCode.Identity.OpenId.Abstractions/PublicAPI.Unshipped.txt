@@ -1,0 +1,401 @@
+#nullable enable
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.CreateError(string! errorCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.CreateMessage(string! typeDiscriminator, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters) -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.DataProtector.get -> Microsoft.AspNetCore.DataProtection.IDataProtector!
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.EphemeralDataProtector.get -> Microsoft.AspNetCore.DataProtection.IDataProtector!
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.ErrorFactory.get -> NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetParameterDescriptor(string! parameterName) -> NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.JsonSerializerOptions.get -> System.Text.Json.JsonSerializerOptions!
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.get -> NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection!
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ValueType.get -> System.Type!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider = "idp:" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ConfirmationBySms = "sms" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ConfirmationByTelephone = "tel" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.FacialRecognition = "face" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.FingerprintBiometric = "fpt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.Geolocation = "geo" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.IrisScanBiometric = "iris" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.KnowledgeBasedAuthentication = "kba" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.MultiFactorAuthentication = "mfa" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.MultipleChannelAuthentication = "mca" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.OneTimePassword = "otp" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.Password = "pwd" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.PersonalIdentificationOrPattern = "pin" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ProofOfPossessionHardwareSecuredKey = "hwk" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ProofOfPossessionSoftwareSecuredKey = "swk" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.RetinaScanBiometric = "retina" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.RiskBasedAuthentication = "rba" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.SmartCard = "sc" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.UserPresenceTest = "user" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.VoiceBiometric = "vbm" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.WindowsIntegratedAuthentication = "wia" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems.TenantId = ".tenant" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Aggregated = "aggregated" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Distributed = "distributed" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Normal = "normal" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic = "client_secret_basic" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt = "client_secret_jwt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost = "client_secret_post" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.None = "none" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt = "private_key_jwt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods.Plain = "plain" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods.S256 = "S256" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ContentType = "application/x-www-form-urlencoded" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ContinueCodes.Authorization = "continue_authorization" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Page = "page" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Popup = "popup" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Touch = "touch" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Wap = "wap" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Authorization = "authorization_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Continue = "continue_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Discovery = "discovery_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Jwks = "jwks_uri" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Token = "token_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Authorization = "/oauth2/authorize" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Continue = "/oauth2/continue" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Discovery = "/.well-known/openid-configuration" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Jwks = "/oauth2/jwks" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Token = "/oauth2/token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccessDenied = "access_denied" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccountSelectionRequired = "account_selection_required" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ConsentRequired = "consent_required" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InteractionRequired = "interaction_required" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidClient = "invalid_client" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidGrant = "invalid_grant" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequest = "invalid_request" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequestJwt = "invalid_request_object" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequestUri = "invalid_request_uri" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidScope = "invalid_scope" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.LoginRequired = "login_required" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RegistrationNotSupported = "registration_not_supported" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RequestNotSupported = "request_not_supported" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RequestUriNotSupported = "request_uri_not_supported" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ServerError = "server_error" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.TemporarilyUnavailable = "temporarily_unavailable" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnauthorizedClient = "unauthorized_client" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnsupportedGrantType = "unsupported_grant_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnsupportedResponseType = "unsupported_response_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.AuthorizationCode = "authorization_code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.ClientCredentials = "client_credentials" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.DeviceCode = "urn:ietf:params:oauth:grant-type:device_code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Hybrid = "hybrid" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Implicit = "implicit" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Password = "password" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.AccessToken = "access_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.AccessTokenHash = "at_hash" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.AcrValues = "acr_values" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Assertion = "assertion" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Audience = "audience" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.AuthorizationCode = "code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.AuthorizationSourceType = "$authorization_source_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.AuthTime = "auth_time" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Claims = "claims" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClaimsLocales = "claims_locales" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientAssertion = "client_assertion" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientAssertionType = "client_assertion_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientId = "client_id" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientSecret = "client_secret" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeChallenge = "code_challenge" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeChallengeMethod = "code_challenge_method" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeHash = "c_hash" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeVerifier = "code_verifier" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.CreatedWhen = "$created_when" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.DeviceCode = "device_code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Display = "display" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorCode = "error" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorDescription = "error_description" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorUri = "error_uri" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Essential = "essential" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Expiration = "exp" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ExpiresIn = "expires_in" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.GrantType = "grant_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdentityProvider = "identity_provider" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdToken = "id_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdTokenHint = "id_token_hint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuedAt = "iat" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuerLong = "issuer" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuerShort = "iss" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.LoginHint = "login_hint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.MaxAge = "max_age" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Nonce = "nonce" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Password = "password" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.PostLogoutRedirectUri = "post_logout_redirect_uri" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Prompt = "prompt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.RedirectUri = "redirect_uri" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Registration = "registration" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Request = "request" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestId = "request_id" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestObjectSource = "$request_object_source" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestUri = "request_uri" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Resource = "resource" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ResponseMode = "response_mode" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ResponseType = "response_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Scope = "scope" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.State = "state" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.StateHash = "s_hash" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Subject = "sub" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Token = "token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.TokenType = "token_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.TokenTypeHint = "token_type_hint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.UiLocales = "ui_locales" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.UserCode = "user_code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.UserInfo = "userinfo" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Username = "username" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Value = "value" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Values = "values" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ParameterSeparatorChar = ' ' -> char
+const NCode.Identity.OpenId.OpenIdConstants.ParameterSeparatorString = " " -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.AuthorizationCode = "authorization_code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.Continue = "continue" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Consent = "consent" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.CreateAccount = "create" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Login = "login" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.None = "none" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.SelectAccount = "select_account" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Absolute = "absolute" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.None = "none" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Sliding = "sliding" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FormPost = "form_post" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Fragment = "fragment" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Query = "query" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.Code = "code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.IdToken = "id_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.Token = "token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Address = "address" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Email = "email" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.OfflineAccess = "offline_access" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.OpenId = "openid" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Phone = "phone" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Profile = "profile" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.AccessToken = "access_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.AuthorizationCode = "authorization_code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.IdToken = "id_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Pairwise = "pairwise" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Public = "public" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantProviderCodes.DynamicByHost = "DynamicByHost" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantProviderCodes.DynamicByPath = "DynamicByPath" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantProviderCodes.StaticSingle = "StaticSingle" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.AccessToken = "access_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.Bearer = "Bearer" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.IdToken = "id_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.RefreshToken = "refresh_token" -> string!
+NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory
+NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory.Create() -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
+NCode.Identity.OpenId.Environments.IOpenIdEnvironmentProvider
+NCode.Identity.OpenId.Environments.IOpenIdEnvironmentProvider.Get() -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
+NCode.Identity.OpenId.Environments.OpenIdEnvironment
+NCode.Identity.OpenId.Environments.OpenIdEnvironment.OpenIdEnvironment() -> void
+NCode.Identity.OpenId.Errors.IOpenIdErrorFactory
+NCode.Identity.OpenId.Errors.IOpenIdErrorFactory.Create(string! errorCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.ISupportOpenIdError
+NCode.Identity.OpenId.Errors.ISupportOpenIdError.Error.get -> NCode.Identity.OpenId.Messages.IOpenIdError?
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!)
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).AsException() -> NCode.Identity.OpenId.Exceptions.OpenIdException!
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).AsException(string? message) -> NCode.Identity.OpenId.Exceptions.OpenIdException!
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithCode(string! code) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithDescription(string? description) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithException(System.Exception? exception) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithState(string? state) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithStatusCode(int? statusCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithUri(System.Uri? uri) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!)
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).AccessDenied(string! errorDescription) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).FailedToDecodeJwt(string! errorCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).FailedToDeserializeJson(string! errorCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidClient() -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidGrant(string! errorDescription, string! errorCode = "invalid_grant") -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidParameterValue(string! parameterName, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidRequest(string! errorDescription, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidRequestUri(string! errorDescription, string! errorCode = "invalid_request_uri") -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidScope() -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).LoginRequired() -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).MissingParameter(string! parameterName, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).NotSupported(string! parameterName) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).RequestParameterNotSupported(string! errorCode = "request_not_supported") -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).RequestUriNotSupported(string! errorCode = "request_uri_not_supported") -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).TooManyParameterValues(string! parameterName, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).UnauthorizedClient(string! errorDescription) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).UnsupportedGrantType(string! errorDescription) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler
+NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler.HandleExceptionAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Mediator.IMediator! mediator, System.Runtime.ExceptionServices.ExceptionDispatchInfo! exceptionDispatchInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Endpoints.ReadOnlyEndpointDisposition>
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.ExceptionDispatchInfo.get -> System.Runtime.ExceptionServices.ExceptionDispatchInfo!
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.ExceptionDispatchInfo.init -> void
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.ExceptionState.get -> NCode.Mediator.Middleware.CommandExceptionHandlerState!
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.ExceptionState.init -> void
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.HttpContext.init -> void
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.Mediator.get -> NCode.Mediator.IMediator!
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.Mediator.init -> void
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OnUnhandledExceptionCommand() -> void
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OnUnhandledExceptionCommand(NCode.Identity.OpenId.Environments.OpenIdEnvironment! OpenIdEnvironment, Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Mediator.IMediator! Mediator, System.Runtime.ExceptionServices.ExceptionDispatchInfo! ExceptionDispatchInfo, NCode.Mediator.Middleware.CommandExceptionHandlerState! ExceptionState) -> void
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OpenIdEnvironment.get -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
+NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OpenIdEnvironment.init -> void
+NCode.Identity.OpenId.Exceptions.OpenIdException
+NCode.Identity.OpenId.Exceptions.OpenIdException.Error.get -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error) -> void
+NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error, string? message) -> void
+NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error, string? message, System.Exception? innerException) -> void
+NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error, System.Exception? innerException) -> void
+NCode.Identity.OpenId.Messages.IBaseOpenIdMessage
+NCode.Identity.OpenId.Messages.IBaseOpenIdMessage.OpenIdEnvironment.get -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
+NCode.Identity.OpenId.Messages.IBaseOpenIdMessage.Parameters.get -> NCode.Identity.OpenId.Messages.Parameters.IParameterCollection!
+NCode.Identity.OpenId.Messages.IOpenIdError
+NCode.Identity.OpenId.Messages.IOpenIdError.Code.get -> string!
+NCode.Identity.OpenId.Messages.IOpenIdError.Code.set -> void
+NCode.Identity.OpenId.Messages.IOpenIdError.Description.get -> string?
+NCode.Identity.OpenId.Messages.IOpenIdError.Description.set -> void
+NCode.Identity.OpenId.Messages.IOpenIdError.Exception.get -> System.Exception?
+NCode.Identity.OpenId.Messages.IOpenIdError.Exception.set -> void
+NCode.Identity.OpenId.Messages.IOpenIdError.State.get -> string?
+NCode.Identity.OpenId.Messages.IOpenIdError.State.set -> void
+NCode.Identity.OpenId.Messages.IOpenIdError.Uri.get -> System.Uri?
+NCode.Identity.OpenId.Messages.IOpenIdError.Uri.set -> void
+NCode.Identity.OpenId.Messages.IOpenIdMessage
+NCode.Identity.OpenId.Messages.IOpenIdMessage.CloneMessage() -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
+NCode.Identity.OpenId.Messages.IOpenIdMessage.Initialize(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> void
+NCode.Identity.OpenId.Messages.IOpenIdMessage.Initialize(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters, bool cloneParameters = false) -> void
+NCode.Identity.OpenId.Messages.IOpenIdMessage.SerializationFormat.get -> NCode.Identity.OpenId.Messages.SerializationFormat
+NCode.Identity.OpenId.Messages.IOpenIdMessage.SerializationFormat.set -> void
+NCode.Identity.OpenId.Messages.IOpenIdMessage.TypeDiscriminator.get -> string!
+NCode.Identity.OpenId.Messages.IOpenIdMessageFactory
+NCode.Identity.OpenId.Messages.IOpenIdMessageFactory.Create(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters) -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
+NCode.Identity.OpenId.Messages.IOpenIdMessageFactory.TypeDiscriminator.get -> string!
+NCode.Identity.OpenId.Messages.IOpenIdMessageFactorySelector
+NCode.Identity.OpenId.Messages.IOpenIdMessageFactorySelector.GetFactory(string! typeDiscriminator) -> NCode.Identity.OpenId.Messages.IOpenIdMessageFactory!
+NCode.Identity.OpenId.Messages.IOpenIdMessageResponse
+NCode.Identity.OpenId.Messages.IOpenIdRequest
+NCode.Identity.OpenId.Messages.IOpenIdResponse
+NCode.Identity.OpenId.Messages.OpenIdTypeDiscriminatorAttribute
+NCode.Identity.OpenId.Messages.OpenIdTypeDiscriminatorAttribute.OpenIdTypeDiscriminatorAttribute(string! typeDiscriminator) -> void
+NCode.Identity.OpenId.Messages.OpenIdTypeDiscriminatorAttribute.TypeDiscriminator.get -> string!
+NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection
+NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection.TryGet(string! parameterName, out NCode.Identity.OpenId.Messages.Parameters.KnownParameter! knownParameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollectionProvider
+NCode.Identity.OpenId.Messages.Parameters.IParameter
+NCode.Identity.OpenId.Messages.Parameters.IParameter.Clone() -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+NCode.Identity.OpenId.Messages.Parameters.IParameter.Descriptor.get -> NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor
+NCode.Identity.OpenId.Messages.Parameters.IParameter.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> Microsoft.Extensions.Primitives.StringValues
+NCode.Identity.OpenId.Messages.Parameters.IParameter<T>
+NCode.Identity.OpenId.Messages.Parameters.IParameter<T>.ParsedValue.get -> T?
+NCode.Identity.OpenId.Messages.Parameters.IParameter<T>.Parser.get -> NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>!
+NCode.Identity.OpenId.Messages.Parameters.IParameterCollection
+NCode.Identity.OpenId.Messages.Parameters.IParameterCollection.Remove(string! parameterName) -> bool
+NCode.Identity.OpenId.Messages.Parameters.IParameterCollection.Set(NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter) -> void
+NCode.Identity.OpenId.Messages.Parameters.IReadOnlyParameterCollection
+NCode.Identity.OpenId.Messages.Parameters.IReadOnlyParameterCollection.Contains(string! parameterName) -> bool
+NCode.Identity.OpenId.Messages.Parameters.IReadOnlyParameterCollection.GetValueOrDefault<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter) -> T?
+NCode.Identity.OpenId.Messages.Parameters.IReadOnlyParameterCollection.GetValueOrDefault<T>(NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T> key) -> T?
+NCode.Identity.OpenId.Messages.Parameters.IReadOnlyParameterCollection.TryGet(string! parameterName, out NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.IReadOnlyParameterCollection.TryGet<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter, out NCode.Identity.OpenId.Messages.Parameters.IParameter<T>! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.IReadOnlyParameterCollection.TryGet<T>(NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T> key, out NCode.Identity.OpenId.Messages.Parameters.IParameter<T>! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.AllowMissingStringValues.get -> bool
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.AllowMissingStringValues.init -> void
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.KnownParameter(string! name, NCode.Identity.OpenId.Messages.Parsers.IParameterLoader! loader) -> void
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.Loader.get -> NCode.Identity.OpenId.Messages.Parsers.IParameterLoader!
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.Name.get -> string!
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ShouldSerialize.get -> System.Func<NCode.Identity.OpenId.Environments.OpenIdEnvironment!, NCode.Identity.OpenId.Messages.Parameters.IParameter!, NCode.Identity.OpenId.Messages.SerializationFormat, bool>?
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ShouldSerialize.init -> void
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.SortStringValues.get -> bool
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter.SortStringValues.init -> void
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>.KnownParameter(string! name, NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser) -> void
+NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>.Parser.get -> NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>!
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.AllowMissingStringValues.get -> bool
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.Equals(NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor other) -> bool
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.KnownParameter.get -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter?
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.Loader.get -> NCode.Identity.OpenId.Messages.Parsers.IParameterLoader!
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.ParameterDescriptor() -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.ParameterDescriptor(NCode.Identity.OpenId.Messages.Parameters.KnownParameter! knownParameter) -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.ParameterDescriptor(string! parameterName, NCode.Identity.OpenId.Messages.Parsers.IParameterLoader! loader) -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.ParameterName.get -> string!
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.ShouldSerialize.get -> System.Func<NCode.Identity.OpenId.Environments.OpenIdEnvironment!, NCode.Identity.OpenId.Messages.Parameters.IParameter!, NCode.Identity.OpenId.Messages.SerializationFormat, bool>!
+NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.SortStringValues.get -> bool
+NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>
+NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>.ParameterKey() -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>.ParameterKey(string! ParameterName) -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>.ParameterName.get -> string!
+NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>.ParameterName.init -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>.ValueType.get -> System.Type!
+NCode.Identity.OpenId.Messages.Parsers.IParameterLoader
+NCode.Identity.OpenId.Messages.Parsers.IParameterLoader.Create<T>(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser, T? parsedValue) -> NCode.Identity.OpenId.Messages.Parameters.IParameter<T>!
+NCode.Identity.OpenId.Messages.Parsers.IParameterLoader.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+NCode.Identity.OpenId.Messages.Parsers.IParameterLoader.ParameterType.get -> System.Type!
+NCode.Identity.OpenId.Messages.Parsers.IParameterLoader.Read(ref System.Text.Json.Utf8JsonReader reader, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.SerializationFormat format, System.Text.Json.JsonSerializerOptions! options) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+NCode.Identity.OpenId.Messages.Parsers.IParameterLoader.Write(System.Text.Json.Utf8JsonWriter! writer, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter, NCode.Identity.OpenId.Messages.SerializationFormat format, System.Text.Json.JsonSerializerOptions! options) -> void
+NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>
+NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>.Clone(T? value) -> T?
+NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, T? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> T?
+NCode.Identity.OpenId.Messages.SerializationFormat
+NCode.Identity.OpenId.Messages.SerializationFormat.Json = 0 -> NCode.Identity.OpenId.Messages.SerializationFormat
+NCode.Identity.OpenId.Messages.SerializationFormat.OpenId = 1 -> NCode.Identity.OpenId.Messages.SerializationFormat
+NCode.Identity.OpenId.OpenIdConstants
+NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes
+NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods
+NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems
+NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope
+NCode.Identity.OpenId.OpenIdConstants.ClaimTypes
+NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods
+NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods
+NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
+NCode.Identity.OpenId.OpenIdConstants.DisplayTypes
+NCode.Identity.OpenId.OpenIdConstants.EndpointNames
+NCode.Identity.OpenId.OpenIdConstants.EndpointPaths
+NCode.Identity.OpenId.OpenIdConstants.ErrorCodes
+NCode.Identity.OpenId.OpenIdConstants.GrantTypes
+NCode.Identity.OpenId.OpenIdConstants.Parameters
+NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes
+NCode.Identity.OpenId.OpenIdConstants.PromptTypes
+NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy
+NCode.Identity.OpenId.OpenIdConstants.ResponseModes
+NCode.Identity.OpenId.OpenIdConstants.ResponseTypes
+NCode.Identity.OpenId.OpenIdConstants.ScopeTypes
+NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes
+NCode.Identity.OpenId.OpenIdConstants.SubjectTypes
+NCode.Identity.OpenId.OpenIdConstants.TenantProviderCodes
+NCode.Identity.OpenId.OpenIdConstants.TokenTypes
+NCode.Identity.OpenId.Results.OpenIdRedirectResult
+NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.get -> int?
+NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.init -> void
+NCode.Identity.OpenId.Results.OpenIdRedirectResult.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext) -> System.Threading.Tasks.Task!
+NCode.Identity.OpenId.Results.OpenIdRedirectResult.IsAjaxRequest.get -> System.Func<Microsoft.AspNetCore.Http.HttpContext!, bool>?
+NCode.Identity.OpenId.Results.OpenIdRedirectResult.IsAjaxRequest.init -> void
+NCode.Identity.OpenId.Results.OpenIdRedirectResult.OpenIdRedirectResult() -> void
+NCode.Identity.OpenId.Results.OpenIdRedirectResult.RedirectUrl.get -> string!
+NCode.Identity.OpenId.Results.OpenIdRedirectResult.RedirectUrl.init -> void
+NCode.Identity.OpenId.Results.OpenIdResponseExtensions
+NCode.Identity.OpenId.Results.OpenIdResult<T>
+NCode.Identity.OpenId.Results.OpenIdResult<T>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext) -> System.Threading.Tasks.Task!
+NCode.Identity.OpenId.Results.OpenIdResult<T>.OpenIdResult(T! response) -> void
+NCode.Identity.OpenId.Results.OpenIdResult<T>.Response.get -> T!
+NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>
+NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.DelegatingJsonConverter() -> void
+NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.get -> bool
+NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
+NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
+NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
+override NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>.ValueType.get -> System.Type!
+override NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.Equals(object? obj) -> bool
+override NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.GetHashCode() -> int
+override NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.CanConvert(System.Type! typeToConvert) -> bool
+override NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> TInterface?
+override NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.Write(System.Text.Json.Utf8JsonWriter! writer, TInterface value, System.Text.Json.JsonSerializerOptions! options) -> void
+static NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>.implicit operator NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter) -> NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>
+static NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.operator !=(NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor left, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor right) -> bool
+static NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.operator ==(NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor left, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor right) -> bool
+static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Address.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Email.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Phone.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Profile.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+static NCode.Identity.OpenId.OpenIdConstants.ProtocolClaims.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+static NCode.Identity.OpenId.Results.OpenIdResponseExtensions.AsHttpResult<T>(this T! response) -> Microsoft.AspNetCore.Http.IResult!

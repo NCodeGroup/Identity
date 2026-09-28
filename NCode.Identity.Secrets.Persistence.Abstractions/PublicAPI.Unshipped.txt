@@ -1,0 +1,48 @@
+#nullable enable
+const NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ResourceTypePrefix = "secret" -> string!
+const NCode.Identity.Secrets.Persistence.SecretMaxLengths.Algorithm = 100 -> int
+const NCode.Identity.Secrets.Persistence.SecretMaxLengths.EncodedValue = 8000 -> int
+const NCode.Identity.Secrets.Persistence.SecretMaxLengths.SecretType = 100 -> int
+const NCode.Identity.Secrets.Persistence.SecretMaxLengths.Use = 100 -> int
+const NCode.Identity.Secrets.Persistence.SecretResourceTypes.Secret = "secret" -> string!
+const NCode.Identity.Secrets.Persistence.SecretResourceTypes.Secrets = "secrets" -> string!
+const NCode.Identity.Secrets.Persistence.SecretTypes.Certificate = "x509" -> string!
+const NCode.Identity.Secrets.Persistence.SecretTypes.Ecc = "ecc" -> string!
+const NCode.Identity.Secrets.Persistence.SecretTypes.Rsa = "rsa" -> string!
+const NCode.Identity.Secrets.Persistence.SecretTypes.Symmetric = "symmetric" -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Algorithm.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Algorithm.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ConcurrencyToken.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ConcurrencyToken.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.CreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.EncodedValue.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.EncodedValue.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ExpiresWhen.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeySizeBits.get -> int
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeySizeBits.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.PersistedSecret() -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ResourceId.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ResourceType.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretId.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretId.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretType.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretType.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Use.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Use.init -> void
+NCode.Identity.Secrets.Persistence.ISupportPersistedSecretCollection
+NCode.Identity.Secrets.Persistence.ISupportPersistedSecretCollection.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>!
+NCode.Identity.Secrets.Persistence.ISupportSecretId
+NCode.Identity.Secrets.Persistence.ISupportSecretId.SecretId.get -> string!
+NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer
+NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer.DeserializeSecret(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer.DeserializeSecrets(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.Secrets.Persistence.SecretMaxLengths
+NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary
+NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.ConfigureMethod.get -> string!
+NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.DisplayName.get -> string!
+NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.SecretPersistenceLibrary() -> void
+NCode.Identity.Secrets.Persistence.SecretResourceTypes
+NCode.Identity.Secrets.Persistence.SecretTypes

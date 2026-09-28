@@ -1,0 +1,12 @@
+#nullable enable
+const NCode.Identity.Persistence.MaxLengths.ConcurrencyToken = 50 -> int
+const NCode.Identity.Persistence.MaxLengths.ResourceId = 300 -> int
+const NCode.Identity.Persistence.MaxLengths.ResourceType = 100 -> int
+const NCode.Identity.Persistence.ResourceTypes.Separator = "/" -> string!
+NCode.Identity.Persistence.ISupportConcurrencyToken
+NCode.Identity.Persistence.ISupportConcurrencyToken.ConcurrencyToken.get -> string!
+NCode.Identity.Persistence.ISupportResource
+NCode.Identity.Persistence.ISupportResource.ResourceId.get -> string!
+NCode.Identity.Persistence.ISupportResource.ResourceType.get -> string!
+NCode.Identity.Persistence.MaxLengths
+NCode.Identity.Persistence.ResourceTypes

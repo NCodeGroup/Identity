@@ -1,0 +1,130 @@
+#nullable enable
+const NCode.Identity.JsonWebTokens.Exceptions.TokenValidationDecodeException.DefaultMessage = "Token validation failed. Unable to decode the token with any of the provided keys." -> string!
+const NCode.Identity.JsonWebTokens.JsonClaimValueTypes.Json = "JSON" -> string!
+const NCode.Identity.JsonWebTokens.JsonClaimValueTypes.JsonArray = "JSON_ARRAY" -> string!
+const NCode.Identity.JsonWebTokens.JsonClaimValueTypes.JsonNull = "JSON_NULL" -> string!
+NCode.Identity.JsonWebTokens.CreateClaimsIdentityAsync
+NCode.Identity.JsonWebTokens.DecodedJwt
+NCode.Identity.JsonWebTokens.DecodedJwt.DecodedJwt(NCode.Identity.Jose.CompactJwt compactJwt, System.Text.Json.JsonElement payload, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> void
+NCode.Identity.JsonWebTokens.DecodedJwt.EncodedToken.get -> string!
+NCode.Identity.JsonWebTokens.DecodedJwt.Header.get -> System.Text.Json.JsonElement
+NCode.Identity.JsonWebTokens.DecodedJwt.Payload.get -> System.Text.Json.JsonElement
+NCode.Identity.JsonWebTokens.DecodedJwt.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.JsonWebTokens.DefaultClaimsIdentityFactory
+NCode.Identity.JsonWebTokens.DefaultJsonWebTokenService
+NCode.Identity.JsonWebTokens.DefaultJsonWebTokenService.DefaultJsonWebTokenService(Microsoft.Extensions.Options.IOptions<NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions!>! optionsAccessor, System.IServiceProvider! serviceProvider, System.TimeProvider! timeProvider, NCode.Identity.Jose.IJoseSerializer! joseSerializer, NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider! secretKeyCollectionProvider) -> void
+NCode.Identity.JsonWebTokens.DefaultJsonWebTokenService.EncodeJwt(NCode.Identity.JsonWebTokens.EncodeJwtParameters! parameters) -> string!
+NCode.Identity.JsonWebTokens.DefaultJsonWebTokenService.ValidateJwtAsync(string! token, NCode.Identity.JsonWebTokens.ValidateJwtParameters! parameters, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.JsonWebTokens.ValidateJwtResult!>
+NCode.Identity.JsonWebTokens.DefaultRegistration
+NCode.Identity.JsonWebTokens.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.JsonWebTokens.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddJsonWebTokensLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.JsonWebTokens.JsonWebTokensLibrary>!
+NCode.Identity.JsonWebTokens.DefaultValidationKeyResolver
+NCode.Identity.JsonWebTokens.EncodeJwtParameters
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.AddKeyIdHeader.get -> bool
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.AddKeyIdHeader.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.Audience.get -> Microsoft.Extensions.Primitives.StringValues
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.Audience.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.EncodeJwtParameters() -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.EncryptionCredentials.get -> NCode.Identity.Jose.Credentials.JoseEncryptionCredentials?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.EncryptionCredentials.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.Expires.get -> System.DateTimeOffset?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.Expires.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.ExtraEncryptionHeaderClaims.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.ExtraEncryptionHeaderClaims.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.ExtraPayloadClaims.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.ExtraPayloadClaims.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.ExtraSignatureHeaderClaims.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.ExtraSignatureHeaderClaims.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.IssuedAt.get -> System.DateTimeOffset?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.IssuedAt.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.Issuer.get -> string?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.Issuer.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.NotBefore.get -> System.DateTimeOffset?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.NotBefore.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.SigningCredentials.get -> NCode.Identity.Jose.Credentials.JoseSigningCredentials?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.SigningCredentials.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.SubjectClaims.get -> System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>?
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.SubjectClaims.init -> void
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.TokenType.get -> string!
+NCode.Identity.JsonWebTokens.EncodeJwtParameters.TokenType.init -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationDecodeException
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationDecodeException.TokenValidationDecodeException() -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationDecodeException.TokenValidationDecodeException(string! message) -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationDecodeException.TokenValidationDecodeException(string! message, System.Exception! inner) -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationException
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationException.TokenValidationException() -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationException.TokenValidationException(string! message) -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationException.TokenValidationException(string! message, System.Exception! inner) -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationSecretKeyNotFoundException
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationSecretKeyNotFoundException.TokenValidationSecretKeyNotFoundException() -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationSecretKeyNotFoundException.TokenValidationSecretKeyNotFoundException(string! message) -> void
+NCode.Identity.JsonWebTokens.Exceptions.TokenValidationSecretKeyNotFoundException.TokenValidationSecretKeyNotFoundException(string! message, System.Exception! inner) -> void
+NCode.Identity.JsonWebTokens.IJsonWebTokenService
+NCode.Identity.JsonWebTokens.IJsonWebTokenService.EncodeJwt(NCode.Identity.JsonWebTokens.EncodeJwtParameters! parameters) -> string!
+NCode.Identity.JsonWebTokens.IJsonWebTokenService.ValidateJwtAsync(string! token, NCode.Identity.JsonWebTokens.ValidateJwtParameters! parameters, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.JsonWebTokens.ValidateJwtResult!>
+NCode.Identity.JsonWebTokens.JsonClaimValueTypes
+NCode.Identity.JsonWebTokens.JsonWebTokensLibrary
+NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.ConfigureMethod.get -> string!
+NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.DisplayName.get -> string!
+NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.JsonWebTokensLibrary() -> void
+NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions
+NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions.DefaultTokenLifetime.get -> System.TimeSpan
+NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions.EnsureTokenLifetime.get -> bool
+NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions.EnsureTokenLifetime.set -> void
+NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions.JsonWebTokenServiceOptions() -> void
+NCode.Identity.JsonWebTokens.Options.ValidateTokenLifeTimeOptions
+NCode.Identity.JsonWebTokens.Options.ValidateTokenLifeTimeOptions.RequireExpirationTime.get -> bool
+NCode.Identity.JsonWebTokens.Options.ValidateTokenLifeTimeOptions.RequireExpirationTime.set -> void
+NCode.Identity.JsonWebTokens.Options.ValidateTokenLifeTimeOptions.ValidateTokenLifeTimeOptions() -> void
+NCode.Identity.JsonWebTokens.ResolveValidationKeysAsync
+NCode.Identity.JsonWebTokens.ValidateJwtAsync
+NCode.Identity.JsonWebTokens.ValidateJwtContext
+NCode.Identity.JsonWebTokens.ValidateJwtContext.DecodedJwt.get -> NCode.Identity.JsonWebTokens.DecodedJwt!
+NCode.Identity.JsonWebTokens.ValidateJwtContext.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+NCode.Identity.JsonWebTokens.ValidateJwtContext.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.JsonWebTokens.ValidateJwtContext.ServiceProvider.get -> System.IServiceProvider!
+NCode.Identity.JsonWebTokens.ValidateJwtContext.TimeProvider.get -> System.TimeProvider!
+NCode.Identity.JsonWebTokens.ValidateJwtContext.ValidateJwtContext(NCode.Identity.Secrets.Keys.SecretKey! secretKey, NCode.Identity.JsonWebTokens.DecodedJwt! decodedJwt, NCode.PropertyBag.IPropertyBag! propertyBag, System.IServiceProvider! serviceProvider, System.TimeProvider! timeProvider) -> void
+NCode.Identity.JsonWebTokens.ValidateJwtParameters
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.AuthenticationType.get -> string!
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.AuthenticationType.set -> void
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.ClockSkew.get -> System.TimeSpan
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.ClockSkew.set -> void
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.CreateClaimsIdentityAsync.get -> NCode.Identity.JsonWebTokens.CreateClaimsIdentityAsync!
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.CreateClaimsIdentityAsync.set -> void
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.NameClaimType.get -> string!
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.NameClaimType.set -> void
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.ResolveValidationKeysAsync.get -> NCode.Identity.JsonWebTokens.ResolveValidationKeysAsync!
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.ResolveValidationKeysAsync.set -> void
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.RoleClaimType.get -> string!
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.RoleClaimType.set -> void
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.ValidateJwtParameters() -> void
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.Validators.get -> System.Collections.Generic.ICollection<NCode.Identity.JsonWebTokens.ValidateJwtAsync!>!
+NCode.Identity.JsonWebTokens.ValidateJwtParametersExtensions
+NCode.Identity.JsonWebTokens.ValidateJwtParametersExtensions.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!)
+NCode.Identity.JsonWebTokens.ValidateJwtParametersExtensions.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).AddValidator(NCode.Identity.JsonWebTokens.ValidateJwtAsync! validator) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.ValidateJwtParametersExtensions.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).UseValidationKeys(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! secretKeys) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.ValidateJwtParametersExtensions.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateClaim(string! claimName, bool usePayload, bool allowCollection, System.Collections.Generic.IEnumerable<string!>! validValues) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.ValidateJwtResult
+NCode.Identity.JsonWebTokens.ValidateJwtResult.DecodedJwt.get -> NCode.Identity.JsonWebTokens.DecodedJwt?
+NCode.Identity.JsonWebTokens.ValidateJwtResult.EncodedToken.get -> string!
+NCode.Identity.JsonWebTokens.ValidateJwtResult.Exception.get -> System.Exception?
+NCode.Identity.JsonWebTokens.ValidateJwtResult.GetClaimsIdentityAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsIdentity!>
+NCode.Identity.JsonWebTokens.ValidateJwtResult.IsValid.get -> bool
+NCode.Identity.JsonWebTokens.ValidateJwtResult.Parameters.get -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.ValidateJwtResult.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+NCode.Identity.JsonWebTokens.Validators
+NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!)
+NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateAudience(params string![]! validAudiences) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateCertificateLifeTime() -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateIssuer(params string![]! validIssuers) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateTokenLifeTime() -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateTokenLifeTime(System.Action<NCode.Identity.JsonWebTokens.Options.ValidateTokenLifeTimeOptions!>! configureOptions) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+static NCode.Identity.JsonWebTokens.DefaultClaimsIdentityFactory.CreateClaim(string! propertyName, System.Text.Json.JsonElement jsonElement, string! issuer, System.Security.Claims.ClaimsIdentity! subject) -> System.Security.Claims.Claim!
+static NCode.Identity.JsonWebTokens.DefaultClaimsIdentityFactory.CreateClaimsIdentity(string! authenticationType, string! nameClaimType, string! roleClaimType, System.Text.Json.JsonElement payload) -> System.Security.Claims.ClaimsIdentity!
+static NCode.Identity.JsonWebTokens.DefaultClaimsIdentityFactory.CreateNumberClaim(string! propertyName, System.Text.Json.JsonElement jsonElement, string! issuer, System.Security.Claims.ClaimsIdentity! subject) -> System.Security.Claims.Claim!
+static NCode.Identity.JsonWebTokens.DefaultClaimsIdentityFactory.CreateStringClaim(string! propertyName, System.Text.Json.JsonElement jsonElement, string! issuer, System.Security.Claims.ClaimsIdentity! subject) -> System.Security.Claims.Claim!
+static NCode.Identity.JsonWebTokens.DefaultValidationKeyResolver.ResolveValidationKeys(string! protectionType, System.Text.Json.JsonElement header, NCode.Identity.Secrets.Logic.ISecretKeyCollection! secretKeys) -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>!
+static NCode.Identity.JsonWebTokens.ValidateJwtResult.Fail(NCode.Identity.JsonWebTokens.ValidateJwtParameters! parameters, NCode.PropertyBag.IPropertyBag! propertyBag, string! encodedToken, System.Exception! exception) -> NCode.Identity.JsonWebTokens.ValidateJwtResult!
+static NCode.Identity.JsonWebTokens.ValidateJwtResult.Success(NCode.Identity.JsonWebTokens.ValidateJwtParameters! parameters, NCode.PropertyBag.IPropertyBag! propertyBag, NCode.Identity.JsonWebTokens.DecodedJwt! decodedJwt) -> NCode.Identity.JsonWebTokens.ValidateJwtResult!

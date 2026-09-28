@@ -1,0 +1,69 @@
+#nullable enable
+NCode.Identity.Claims.DefaultClaimsSerializer
+NCode.Identity.Claims.DefaultClaimsSerializer.DefaultClaimsSerializer() -> void
+NCode.Identity.Claims.DefaultClaimsSerializer.DeserializeClaim(NCode.Identity.Claims.SerializableClaim! serializableClaim) -> System.Security.Claims.Claim!
+NCode.Identity.Claims.DefaultClaimsSerializer.DeserializeClaim(NCode.Identity.Claims.SerializableClaim! serializableClaim, System.Security.Claims.ClaimsIdentity? subject) -> System.Security.Claims.Claim!
+NCode.Identity.Claims.DefaultClaimsSerializer.DeserializeIdentity(NCode.Identity.Claims.SerializableClaimsIdentity! serializableIdentity) -> System.Security.Claims.ClaimsIdentity!
+NCode.Identity.Claims.DefaultClaimsSerializer.DeserializePrincipal(NCode.Identity.Claims.SerializableClaimsPrincipal! serializablePrincipal) -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Claims.DefaultClaimsSerializer.SerializeClaim(System.Security.Claims.Claim! claim) -> NCode.Identity.Claims.SerializableClaim!
+NCode.Identity.Claims.DefaultClaimsSerializer.SerializeIdentity(System.Security.Claims.ClaimsIdentity! identity) -> NCode.Identity.Claims.SerializableClaimsIdentity!
+NCode.Identity.Claims.DefaultClaimsSerializer.SerializePrincipal(System.Security.Claims.ClaimsPrincipal! principal) -> NCode.Identity.Claims.SerializableClaimsPrincipal!
+NCode.Identity.Claims.DefaultClaimsService
+NCode.Identity.Claims.DefaultClaimsService.CopyClaims(System.Security.Claims.ClaimsPrincipal! source, System.Collections.Generic.ICollection<System.Security.Claims.Claim!>! target, bool preventDuplicates, params System.Collections.Generic.IEnumerable<string!>! claimTypes) -> void
+NCode.Identity.Claims.DefaultClaimsService.DefaultClaimsService() -> void
+NCode.Identity.DefaultRegistration
+NCode.Identity.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddIdentityLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!
+NCode.Identity.Endpoints.DefaultIdentityEndpointRouteBuilder
+NCode.Identity.Endpoints.DefaultIdentityEndpointRouteBuilder.DefaultIdentityEndpointRouteBuilder(System.Collections.Generic.IEnumerable<NCode.Identity.Endpoints.IEndpointProvider!>! endpointProviders) -> void
+NCode.Identity.Endpoints.DefaultIdentityEndpointRouteBuilder.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
+NCode.Identity.Logic.DefaultCryptoService
+NCode.Identity.Logic.DefaultCryptoService.DefaultCryptoService() -> void
+NCode.Identity.Logic.DefaultCryptoService.EncodeBinary(System.ReadOnlySpan<byte> data, NCode.Identity.BinaryEncodingType binaryEncodingType) -> string!
+NCode.Identity.Logic.DefaultCryptoService.GenerateBytes(System.Span<byte> destination) -> void
+NCode.Identity.Logic.DefaultCryptoService.GenerateKey(int byteLength, NCode.Identity.BinaryEncodingType binaryEncodingType) -> string!
+NCode.Identity.Logic.DefaultCryptoService.HashValue(string! data, NCode.Identity.HashAlgorithmType hashAlgorithmType, NCode.Identity.BinaryEncodingType binaryEncodingType, System.Text.Encoding? encoding = null) -> string!
+NCode.Identity.Logic.DefaultCryptoService.HashValue(System.ReadOnlySpan<byte> data, NCode.Identity.HashAlgorithmType hashAlgorithmType, NCode.Identity.BinaryEncodingType binaryEncodingType) -> string!
+NCode.Identity.Settings.DefaultReadOnlySettingCollectionProviderFactory
+NCode.Identity.Settings.DefaultReadOnlySettingCollectionProviderFactory.Create(System.Collections.Generic.IEnumerable<NCode.Collections.Providers.ICollectionDataSource<NCode.Identity.Settings.Setting!>!>! dataSources, bool owns = false) -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
+NCode.Identity.Settings.DefaultReadOnlySettingCollectionProviderFactory.DefaultReadOnlySettingCollectionProviderFactory(NCode.Identity.Settings.ISettingDescriptorCollectionProvider! settingDescriptorCollectionProvider) -> void
+NCode.Identity.Settings.DefaultSettingCollectionFactory
+NCode.Identity.Settings.DefaultSettingCollectionFactory.Create() -> NCode.Identity.Settings.ISettingCollection!
+NCode.Identity.Settings.DefaultSettingCollectionFactory.Create(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! settings) -> NCode.Identity.Settings.ISettingCollection!
+NCode.Identity.Settings.DefaultSettingCollectionFactory.DefaultSettingCollectionFactory(NCode.Identity.Settings.ISettingDescriptorCollectionProvider! settingDescriptorCollectionProvider) -> void
+NCode.Identity.Settings.DefaultSettingDescriptorCollectionProvider
+NCode.Identity.Settings.DefaultSettingDescriptorCollectionProvider.Collection.get -> NCode.Identity.Settings.ISettingDescriptorCollection!
+NCode.Identity.Settings.DefaultSettingDescriptorCollectionProvider.DefaultSettingDescriptorCollectionProvider(NCode.Collections.Providers.ICollectionProviderFactory! collectionProviderFactory, System.Collections.Generic.IEnumerable<NCode.Collections.Providers.ICollectionDataSource<NCode.Identity.Settings.SettingDescriptor!>!>! dataSources) -> void
+NCode.Identity.Settings.DefaultSettingDescriptorCollectionProvider.DisposeAsync() -> System.Threading.Tasks.ValueTask
+NCode.Identity.Settings.DefaultSettingDescriptorCollectionProvider.GetChangeToken() -> Microsoft.Extensions.Primitives.IChangeToken!
+NCode.Identity.Settings.DefaultSettingDescriptorJsonProvider
+NCode.Identity.Settings.DefaultSettingDescriptorJsonProvider.DefaultSettingDescriptorJsonProvider(NCode.Identity.Settings.ISettingDescriptorCollectionProvider! settingDescriptorCollectionProvider) -> void
+NCode.Identity.Settings.DefaultSettingDescriptorJsonProvider.GetDescriptor(string! settingName, System.Text.Json.JsonTokenType jsonTokenType) -> NCode.Identity.Settings.SettingDescriptor!
+NCode.Identity.Settings.DefaultSettingDescriptorJsonProvider.GetDescriptor(string! settingName, System.Text.Json.JsonValueKind jsonValueKind) -> NCode.Identity.Settings.SettingDescriptor!
+NCode.Identity.Settings.DefaultSettingSerializer
+NCode.Identity.Settings.DefaultSettingSerializer.DefaultSettingSerializer(NCode.Identity.Settings.ISettingDescriptorJsonProvider! settingDescriptorJsonProvider) -> void
+NCode.Identity.Settings.DefaultSettingSerializer.DeserializeSettings(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.Settings.ReadOnlySettingCollectionProvider
+NCode.Identity.Settings.ReadOnlySettingCollectionProvider.ReadOnlySettingCollectionProvider(NCode.Identity.Settings.ISettingDescriptorCollectionProvider! settingDescriptorCollectionProvider, System.Collections.Generic.IEnumerable<NCode.Collections.Providers.ICollectionDataSource<NCode.Identity.Settings.Setting!>!>! dataSources, bool owns = false) -> void
+NCode.Identity.Settings.SettingCollection
+NCode.Identity.Settings.SettingCollection.Count.get -> int
+NCode.Identity.Settings.SettingCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<NCode.Identity.Settings.Setting!>!
+NCode.Identity.Settings.SettingCollection.GetValue<TValue>(NCode.Identity.Settings.SettingKey<TValue> key) -> TValue
+NCode.Identity.Settings.SettingCollection.Merge(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! otherCollection) -> NCode.Identity.Settings.ISettingCollection!
+NCode.Identity.Settings.SettingCollection.Remove<TValue>(NCode.Identity.Settings.SettingKey<TValue> key) -> bool
+NCode.Identity.Settings.SettingCollection.Set(NCode.Identity.Settings.Setting! setting) -> void
+NCode.Identity.Settings.SettingCollection.Set<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, TValue value) -> void
+NCode.Identity.Settings.SettingCollection.SettingCollection(NCode.Identity.Settings.ISettingDescriptorCollectionProvider! settingDescriptorCollectionProvider) -> void
+NCode.Identity.Settings.SettingCollection.SettingCollection(NCode.Identity.Settings.ISettingDescriptorCollectionProvider! settingDescriptorCollectionProvider, System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! settings) -> void
+NCode.Identity.Settings.SettingCollection.TryGet(string! settingName, out NCode.Identity.Settings.Setting! setting) -> bool
+NCode.Identity.Settings.SettingCollection.TryGet<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, out NCode.Identity.Settings.Setting<TValue>! setting) -> bool
+NCode.Identity.Settings.SettingCollection.TryGetValue(string! settingName, out object! value) -> bool
+NCode.Identity.Settings.SettingCollection.TryGetValue<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, out TValue value) -> bool
+NCode.Identity.Settings.SettingDescriptorCollection
+NCode.Identity.Settings.SettingDescriptorCollection.Count.get -> int
+NCode.Identity.Settings.SettingDescriptorCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<NCode.Identity.Settings.SettingDescriptor!>!
+NCode.Identity.Settings.SettingDescriptorCollection.SettingDescriptorCollection(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.SettingDescriptor!>! descriptors) -> void
+NCode.Identity.Settings.SettingDescriptorCollection.TryGet(string! settingName, out NCode.Identity.Settings.SettingDescriptor! descriptor) -> bool
+NCode.Identity.Settings.SettingDescriptorCollection.TryGet<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, out NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> bool
+override NCode.Identity.Settings.ReadOnlySettingCollectionProvider.CreateCollection(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! items) -> NCode.Identity.Settings.IReadOnlySettingCollection!
+static NCode.Identity.Claims.DefaultClaimsSerializer.Singleton.get -> NCode.Identity.Claims.DefaultClaimsSerializer!

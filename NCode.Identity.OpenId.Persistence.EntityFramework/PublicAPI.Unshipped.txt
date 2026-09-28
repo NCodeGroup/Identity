@@ -1,0 +1,304 @@
+#nullable enable
+abstract NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.DbContext.get -> NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!
+abstract NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetEntityOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TEntity?>
+abstract NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.IdGenerator.get -> IdGen.IIdGenerator<long>!
+abstract NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.MapFromEntityAsync(TEntity! entity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TItem!>
+abstract NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.StoreProvider.get -> NCode.Persistence.Stores.IStoreProvider!
+abstract NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId<TItem, TEntity>.AddAsync(TItem! item, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId<TItem, TEntity>.GetEntityOrDefaultAsync(string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TEntity?>
+abstract NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId<TItem, TEntity>.UpdateAsync(TItem! item, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.ConcurrencyTokenSaveChangesInterceptor
+NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.ConcurrencyTokenSaveChangesInterceptor.ConcurrencyTokenSaveChangesInterceptor() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.UseIdGeneratorAttribute
+NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.UseIdGeneratorAttribute.UseIdGeneratorAttribute() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.UseIdGeneratorConvention
+NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.UseIdGeneratorConvention.ProcessPropertyAdded(Microsoft.EntityFrameworkCore.Metadata.Builders.IConventionPropertyBuilder! propertyBuilder, Microsoft.EntityFrameworkCore.Metadata.Conventions.IConventionContext<Microsoft.EntityFrameworkCore.Metadata.Builders.IConventionPropertyBuilder!>! context) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.UseIdGeneratorConvention.UseIdGeneratorConvention(NCode.Identity.OpenId.Persistence.EntityFramework.IdValueGenerator! idValueGenerator) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Converters.DateTimeConverter
+NCode.Identity.OpenId.Persistence.EntityFramework.Converters.DateTimeConverter.DateTimeConverter() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Converters.DateTimeOffsetConverter
+NCode.Identity.OpenId.Persistence.EntityFramework.Converters.DateTimeOffsetConverter.DateTimeOffsetConverter() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Converters.JsonElementConverter
+NCode.Identity.OpenId.Persistence.EntityFramework.Converters.JsonElementConverter.JsonElementConverter() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.DefaultRegistration
+NCode.Identity.OpenId.Persistence.EntityFramework.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.OpenId.Persistence.EntityFramework.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEntityFrameworkPersistenceServices<TDbContext>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.ClientEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.ClientId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.ClientId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.IsDisabled.get -> bool
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.IsDisabled.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.NormalizedClientId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.NormalizedClientId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.Secrets.get -> System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.Secrets.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.SecretsConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.SecretsConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.SettingsConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.SettingsConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.SettingsJson.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.SettingsJson.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.Tenant.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.TenantId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.Client.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.Client.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.ClientId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.ClientId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.ClientSecretEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.Secret.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.Secret.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.SecretId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.SecretId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.Tenant.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.TenantId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Client.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Client.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ClientId.get -> long?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ClientId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ConsumedWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ConsumedWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.CreatedWhen.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ExpiresWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.GrantEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.GrantType.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.GrantType.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.HashedKey.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.HashedKey.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.NormalizedSubjectId.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.NormalizedSubjectId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.PayloadJson.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.PayloadJson.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.RevokedWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.RevokedWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.SubjectId.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.SubjectId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Tenant.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.TenantId.get -> long?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportSecretEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportSecretEntity.Secret.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportSecretEntity.SecretId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity.TenantId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Algorithm.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Algorithm.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.CreatedWhen.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.EncodedValue.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.EncodedValue.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.KeySizeBits.get -> int
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.KeySizeBits.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.NormalizedSecretId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.NormalizedSecretId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.SecretEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.SecretId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.SecretId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.SecretType.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.SecretType.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Use.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Use.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.NormalizedServerId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.NormalizedServerId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.Secrets.get -> System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.Secrets.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.SecretsConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.SecretsConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.ServerEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.ServerId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.ServerId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.SettingsConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.SettingsConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.SettingsJson.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.SettingsJson.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.Secret.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.Secret.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.SecretId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.SecretId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.Server.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.Server.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.ServerId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.ServerId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity.ServerSecretEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.DisplayName.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.DisplayName.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.DomainName.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.DomainName.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.IsDisabled.get -> bool
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.IsDisabled.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.NormalizedDomainName.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.NormalizedDomainName.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.NormalizedTenantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.NormalizedTenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.Secrets.get -> System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.Secrets.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.SecretsConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.SecretsConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.SettingsConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.SettingsConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.SettingsJson.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.SettingsJson.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.TenantEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.Secret.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.Secret.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.SecretId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.SecretId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.Tenant.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.TenantId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity.TenantSecretEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.IdValueGenerator
+NCode.Identity.OpenId.Persistence.EntityFramework.IdValueGenerator.IdValueGenerator(IdGen.IIdGenerator<long>! idGenerator) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Clients.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Clients.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ClientSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ClientSecrets.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Grants.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Grants.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.OpenIdDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!>! options) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Secrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Secrets.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Servers.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Servers.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ServerSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ServerSecrets.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Tenants.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Tenants.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.TenantSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.TenantSecrets.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.BaseStore() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetService(System.Type! serviceType) -> object?
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetTenantEntityAsync(NCode.Identity.OpenId.Persistence.ISupportTenantId! supportTenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetTenantEntityAsync(string? tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetTenantEntityOrDefaultAsync(NCode.Identity.OpenId.Persistence.ISupportTenantId! supportTenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity?>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetTenantEntityOrDefaultAsync(string? tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity?>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.MapToSecretEntity(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, long? id = null) -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.NextId(long? value = null) -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId<TItem, TEntity>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId<TItem, TEntity>.BaseStoreWithResourceId() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId<TItem, TEntity>.GetOrDefaultAsync(string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TItem?>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.ClientStore(NCode.Persistence.Stores.IStoreProvider! storeProvider, IdGen.IIdGenerator<long>! idGenerator, NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext! openIdDbContext) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings! persistedClientSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManager<TDbContext>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManager<TDbContext>.DisposeAsync() -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManager<TDbContext>.EntityStoreManager(System.IServiceProvider! serviceProvider, Microsoft.EntityFrameworkCore.IDbContextFactory<TDbContext!>! contextFactory) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManager<TDbContext>.GetService(System.Type! serviceType) -> object?
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManager<TDbContext>.GetStore<TStore>() -> TStore
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManager<TDbContext>.SaveChangesAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManagerFactory<TDbContext>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManagerFactory<TDbContext>.CreateAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.IStoreManager!>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManagerFactory<TDbContext>.EntityStoreManagerFactory(System.IServiceProvider! serviceProvider) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant! persistedGrant, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.GetOrDefaultAsync(string! grantType, string! hashedKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.GrantStore(NCode.Persistence.Stores.IStoreProvider! storeProvider, IdGen.IIdGenerator<long>! idGenerator, NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext! openIdDbContext) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.UpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant! persistedGrant, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.GetSecretsOrDefaultAsync(string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSecrets?>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.GetSettingsOrDefaultAsync(string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSettings?>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.ServerStore(NCode.Persistence.Stores.IStoreProvider! storeProvider, IdGen.IIdGenerator<long>! idGenerator, NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext! openIdDbContext) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSettings! persistedServerSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.GetOrDefaultByDomainNameAsync(string! domainName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant?>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.GetSecretsAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSecrets!>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.GetSettingsAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSettings!>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.TenantStore(NCode.Persistence.Stores.IStoreProvider! storeProvider, IdGen.IIdGenerator<long>! idGenerator, NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext! openIdDbContext) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSettings! persistedTenantSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.ConcurrencyTokenSaveChangesInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
+override NCode.Identity.OpenId.Persistence.EntityFramework.IdValueGenerator.GeneratesTemporaryValues.get -> bool
+override NCode.Identity.OpenId.Persistence.EntityFramework.IdValueGenerator.Next(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry! entry) -> long
+override NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ConfigureConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> void
+override NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.OnConfiguring(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder) -> void
+override NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> void
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! persistedClient, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.DbContext.get -> NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.GetEntityOrDefaultAsync(string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity?>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.GetEntityOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity?>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.IdGenerator.get -> IdGen.IIdGenerator<long>!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.MapFromEntityAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity! client, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient!>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.StoreProvider.get -> NCode.Persistence.Stores.IStoreProvider!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.UpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! persistedClient, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.DbContext.get -> NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.GetEntityOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity?>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.IdGenerator.get -> IdGen.IIdGenerator<long>!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.MapFromEntityAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity! entity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant!>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore.StoreProvider.get -> NCode.Persistence.Stores.IStoreProvider!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! persistedServer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.DbContext.get -> NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.GetEntityOrDefaultAsync(string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity?>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.GetEntityOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity?>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.IdGenerator.get -> IdGen.IIdGenerator<long>!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.MapFromEntityAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity! entity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer!>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.StoreProvider.get -> NCode.Persistence.Stores.IStoreProvider!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.UpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! persistedServer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! persistedTenant, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.DbContext.get -> NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.GetEntityOrDefaultAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity?>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.GetEntityOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity?>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.IdGenerator.get -> IdGen.IIdGenerator<long>!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.MapFromEntityAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity! tenantEntity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.StoreProvider.get -> NCode.Persistence.Stores.IStoreProvider!
+override NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.UpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! persistedTenant, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+static NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.MapToPersistedSecret(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportSecretEntity! parent) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+static NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.MapToPersistedSecret(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity! secret) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+static NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.MapToPersistedSecrets(System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportSecretEntity!>! collection) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>!
+static NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.NextConcurrencyToken() -> string!
+static NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.Normalize(string? value) -> string?
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TItem?>
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetStore<TStore>() -> TStore
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId<TItem, TEntity>.GetEntityAsync(string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TEntity!>
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.MapSecretsAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity! clientEntity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets!>
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore.MapSettingsAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity! clientEntity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings!>
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.MapSecretsAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity! serverEntity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSecrets!>
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ServerStore.MapSettingsAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity! serverEntity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSettings!>
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.MapSecretsAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity! tenantEntity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSecrets!>
+virtual NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore.MapSettingsAsync(NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity! tenantEntity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSettings!>

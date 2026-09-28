@@ -1,0 +1,187 @@
+#nullable enable
+abstract NCode.Identity.OpenId.Messages.OpenIdMessage<T>.Clone() -> T!
+abstract NCode.Identity.OpenId.Messages.Parameters.Parameter.Clone() -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+abstract NCode.Identity.OpenId.Messages.Parameters.Parameter.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> Microsoft.Extensions.Primitives.StringValues
+abstract NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+abstract NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.ParameterType.get -> System.Type!
+abstract NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Read(ref System.Text.Json.Utf8JsonReader reader, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.SerializationFormat format, System.Text.Json.JsonSerializerOptions! options) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+abstract NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Write(System.Text.Json.Utf8JsonWriter! writer, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter, NCode.Identity.OpenId.Messages.SerializationFormat format, System.Text.Json.JsonSerializerOptions! options) -> void
+abstract NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, T? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+abstract NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> T?
+NCode.Identity.OpenId.Messages.DefaultOpenIdMessageFactory<T>
+NCode.Identity.OpenId.Messages.DefaultOpenIdMessageFactory<T>.Create(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters) -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
+NCode.Identity.OpenId.Messages.DefaultOpenIdMessageFactory<T>.DefaultOpenIdMessageFactory() -> void
+NCode.Identity.OpenId.Messages.DefaultOpenIdMessageFactory<T>.TypeDiscriminator.get -> string!
+NCode.Identity.OpenId.Messages.DefaultRegistration
+NCode.Identity.OpenId.Messages.DefaultRegistration.extension(NCode.Registration.IServiceBuilder!)
+NCode.Identity.OpenId.Messages.DefaultRegistration.extension(NCode.Registration.IServiceBuilder!).AddMessageFactory<TMessage>() -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage
+NCode.Identity.OpenId.Messages.OpenIdMessage.Initialize(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage.Initialize(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters, bool cloneParameters = false) -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage.OpenIdEnvironment.get -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
+NCode.Identity.OpenId.Messages.OpenIdMessage.OpenIdMessage() -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage.OpenIdMessage(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage.OpenIdMessage(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters, bool cloneParameters = false) -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage.OpenIdMessage(NCode.Identity.OpenId.Messages.OpenIdMessage! other) -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage.Parameters.get -> NCode.Identity.OpenId.Messages.Parameters.IParameterCollection!
+NCode.Identity.OpenId.Messages.OpenIdMessage.SerializationFormat.get -> NCode.Identity.OpenId.Messages.SerializationFormat
+NCode.Identity.OpenId.Messages.OpenIdMessage.SerializationFormat.set -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage<T>
+NCode.Identity.OpenId.Messages.OpenIdMessage<T>.OpenIdMessage() -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage<T>.OpenIdMessage(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage<T>.OpenIdMessage(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters, bool cloneParameters = false) -> void
+NCode.Identity.OpenId.Messages.OpenIdMessage<T>.OpenIdMessage(T! other) -> void
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.CompositeParameterCollection(params NCode.Identity.OpenId.Messages.Parameters.IParameterCollection![]! sources) -> void
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.Contains(string! parameterName) -> bool
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<NCode.Identity.OpenId.Messages.Parameters.IParameter!>!
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.GetValueOrDefault<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter) -> T?
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.GetValueOrDefault<T>(NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T> key) -> T?
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.Remove(string! parameterName) -> bool
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.Set(NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter) -> void
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.TryGet(string! parameterName, out NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.TryGet<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter, out NCode.Identity.OpenId.Messages.Parameters.IParameter<T>! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.TryGet<T>(NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T> key, out NCode.Identity.OpenId.Messages.Parameters.IParameter<T>! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters
+NCode.Identity.OpenId.Messages.Parameters.Parameter
+NCode.Identity.OpenId.Messages.Parameters.Parameter.Descriptor.get -> NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor
+NCode.Identity.OpenId.Messages.Parameters.Parameter.Parameter(NCode.Identity.OpenId.Messages.Parameters.Parameter! other) -> void
+NCode.Identity.OpenId.Messages.Parameters.Parameter.Parameter(NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor) -> void
+NCode.Identity.OpenId.Messages.Parameters.Parameter<T>
+NCode.Identity.OpenId.Messages.Parameters.Parameter<T>.Parameter(NCode.Identity.OpenId.Messages.Parameters.Parameter<T>! other) -> void
+NCode.Identity.OpenId.Messages.Parameters.Parameter<T>.Parameter(NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser, T? parsedValue) -> void
+NCode.Identity.OpenId.Messages.Parameters.Parameter<T>.ParsedValue.get -> T?
+NCode.Identity.OpenId.Messages.Parameters.Parameter<T>.Parser.get -> NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>!
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.Contains(string! parameterName) -> bool
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<NCode.Identity.OpenId.Messages.Parameters.IParameter!>!
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.GetValueOrDefault<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter) -> T?
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.GetValueOrDefault<T>(NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T> key) -> T?
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.ParameterCollection() -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.ParameterCollection(System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters, bool cloneParameters) -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.Remove(string! parameterName) -> bool
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.Set(NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter) -> void
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.TryGet(string! parameterName, out NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.TryGet<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter, out NCode.Identity.OpenId.Messages.Parameters.IParameter<T>! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parameters.ParameterCollection.TryGet<T>(NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T> key, out NCode.Identity.OpenId.Messages.Parameters.IParameter<T>! parameter) -> bool
+NCode.Identity.OpenId.Messages.Parsers.BoolParser
+NCode.Identity.OpenId.Messages.Parsers.BoolParser.BoolParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers
+NCode.Identity.OpenId.Messages.Parsers.DateTimeOffsetParser
+NCode.Identity.OpenId.Messages.Parsers.DateTimeOffsetParser.DateTimeOffsetParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>
+NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>.EnumParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.JsonParser<T>
+NCode.Identity.OpenId.Messages.Parsers.JsonParser<T>.JsonParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.NullableValueTypeParameterParser<T>
+NCode.Identity.OpenId.Messages.Parsers.NullableValueTypeParameterParser<T>.NullableValueTypeParameterParser(NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser) -> void
+NCode.Identity.OpenId.Messages.Parsers.ParameterLoader
+NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.ParameterLoader() -> void
+NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>
+NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.ParameterParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.ParameterParserExtensions
+NCode.Identity.OpenId.Messages.Parsers.StringListParser
+NCode.Identity.OpenId.Messages.Parsers.StringListParser.StringListParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.StringParser
+NCode.Identity.OpenId.Messages.Parsers.StringParser.StringParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.StringSetParser
+NCode.Identity.OpenId.Messages.Parsers.StringSetParser.StringSetParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.StringValuesParser
+NCode.Identity.OpenId.Messages.Parsers.StringValuesParser.StringValuesParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.TimeSpanParser
+NCode.Identity.OpenId.Messages.Parsers.TimeSpanParser.TimeSpanParser() -> void
+NCode.Identity.OpenId.Messages.Parsers.UriParser
+NCode.Identity.OpenId.Messages.Parsers.UriParser.UriParser() -> void
+override NCode.Identity.OpenId.Messages.OpenIdMessage<T>.CloneMessage() -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
+override NCode.Identity.OpenId.Messages.OpenIdMessage<T>.TypeDiscriminator.get -> string!
+override NCode.Identity.OpenId.Messages.Parameters.Parameter<T>.Clone() -> NCode.Identity.OpenId.Messages.Parameters.Parameter!
+override NCode.Identity.OpenId.Messages.Parameters.Parameter<T>.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.BoolParser.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, bool parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.BoolParser.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> bool
+override NCode.Identity.OpenId.Messages.Parsers.DateTimeOffsetParser.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, System.DateTimeOffset parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.DateTimeOffsetParser.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> System.DateTimeOffset
+override NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, T parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> T
+override NCode.Identity.OpenId.Messages.Parsers.JsonParser<T>.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, T? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.JsonParser<T>.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> T?
+override NCode.Identity.OpenId.Messages.Parsers.NullableValueTypeParameterParser<T>.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, T? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.NullableValueTypeParameterParser<T>.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> T?
+override NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+override NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.ParameterType.get -> System.Type!
+override NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Read(ref System.Text.Json.Utf8JsonReader reader, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.SerializationFormat format, System.Text.Json.JsonSerializerOptions! options) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+override NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Write(System.Text.Json.Utf8JsonWriter! writer, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter, NCode.Identity.OpenId.Messages.SerializationFormat format, System.Text.Json.JsonSerializerOptions! options) -> void
+override NCode.Identity.OpenId.Messages.Parsers.StringListParser.Clone(System.Collections.Generic.List<string!>? value) -> System.Collections.Generic.List<string!>?
+override NCode.Identity.OpenId.Messages.Parsers.StringListParser.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, System.Collections.Generic.List<string!>? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.StringListParser.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> System.Collections.Generic.List<string!>?
+override NCode.Identity.OpenId.Messages.Parsers.StringParser.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, string? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.StringParser.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> string?
+override NCode.Identity.OpenId.Messages.Parsers.StringSetParser.Clone(System.Collections.Generic.HashSet<string!>? value) -> System.Collections.Generic.HashSet<string!>?
+override NCode.Identity.OpenId.Messages.Parsers.StringSetParser.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, System.Collections.Generic.HashSet<string!>? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.StringSetParser.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> System.Collections.Generic.HashSet<string!>?
+override NCode.Identity.OpenId.Messages.Parsers.StringValuesParser.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.StringValuesParser.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.TimeSpanParser.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, System.TimeSpan parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.TimeSpanParser.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> System.TimeSpan
+override NCode.Identity.OpenId.Messages.Parsers.UriParser.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, System.Uri? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
+override NCode.Identity.OpenId.Messages.Parsers.UriParser.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> System.Uri?
+static NCode.Identity.OpenId.Messages.OpenIdMessage<T>.Create(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> T!
+static NCode.Identity.OpenId.Messages.OpenIdMessage<T>.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters, bool cloneParameters = false) -> T!
+static NCode.Identity.OpenId.Messages.OpenIdMessage<T>.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, Microsoft.Extensions.Primitives.StringValues>>! properties) -> T!
+static NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ShouldSerializeAsJsonOnly(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter, NCode.Identity.OpenId.Messages.SerializationFormat format) -> bool
+static NCode.Identity.OpenId.Messages.Parameters.Parameter.Create<T>(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser, T? parsedValue) -> NCode.Identity.OpenId.Messages.Parameters.IParameter<T>!
+static NCode.Identity.OpenId.Messages.Parameters.Parameter.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, string! parameterName, Microsoft.Extensions.Primitives.StringValues stringValues) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+static NCode.Identity.OpenId.Messages.Parameters.Parameter.Load(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, string! parameterName, params System.Collections.Generic.IEnumerable<string!>! stringValues) -> NCode.Identity.OpenId.Messages.Parameters.IParameter!
+static NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>.Singleton.get -> NCode.Identity.OpenId.Messages.Parsers.EnumParser<T>!
+static NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Default.get -> NCode.Identity.OpenId.Messages.Parsers.ParameterLoader!
+static NCode.Identity.OpenId.Messages.Parsers.ParameterParserExtensions.AsNullableValue<T>(this NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser) -> NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T?>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AccessToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AcrValues -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationSourceType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClaimsLocales -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientId -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientSecret -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeChallenge -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeChallengeMethod -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeVerifier -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CreatedWhen -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.DateTimeOffset>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DisplayType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorDescription -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ExpiresIn -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.GrantType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdTokenHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Issuer -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.LoginHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.MaxAge -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Nonce -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Password -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.PromptType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RedirectUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RefreshToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestJwt -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ResponseMode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ResponseTypes -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Scopes -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.State -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.TokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.UiLocales -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Username -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.Bool -> NCode.Identity.OpenId.Messages.Parsers.BoolParser!
+static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.DateTimeOffset -> NCode.Identity.OpenId.Messages.Parsers.DateTimeOffsetParser!
+static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.String -> NCode.Identity.OpenId.Messages.Parsers.StringParser!
+static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringList -> NCode.Identity.OpenId.Messages.Parsers.StringListParser!
+static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringSet -> NCode.Identity.OpenId.Messages.Parsers.StringSetParser!
+static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.StringValues -> NCode.Identity.OpenId.Messages.Parsers.StringValuesParser!
+static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.TimeSpan -> NCode.Identity.OpenId.Messages.Parsers.TimeSpanParser!
+static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.Uri -> NCode.Identity.OpenId.Messages.Parsers.UriParser!
+virtual NCode.Identity.OpenId.Messages.OpenIdMessage.CloneMessage() -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
+virtual NCode.Identity.OpenId.Messages.OpenIdMessage.GetKnownParameter<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter) -> T?
+virtual NCode.Identity.OpenId.Messages.OpenIdMessage.SetKnownParameter<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter, T? parsedValue) -> void
+virtual NCode.Identity.OpenId.Messages.OpenIdMessage.TypeDiscriminator.get -> string!
+virtual NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Create<T>(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser, T? parsedValue) -> NCode.Identity.OpenId.Messages.Parameters.IParameter<T>!
+virtual NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Clone(T? value) -> T?
+virtual NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Deserialize<T1>(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions! options) -> T1?

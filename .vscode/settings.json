@@ -2,6 +2,10 @@
   "chat.promptFilesRecommendations": {
     "audit-conventions": true
   },
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.formatOnSave": false,
   "[csharp]": {
     "editor.defaultFormatter": "csharpier.csharpier-vscode",
     "editor.formatOnSave": true

@@ -67,16 +67,21 @@ dotnet_diagnostic.CA1711.severity = none
 
 # ── Test projects only ──────────────────────────────────────────────────────
 # The following rules are legitimate on shipping code but pure noise in xUnit tests.
-[*Tests/**/*.cs]
+# Pattern note: '**.cs' (not '**/*.cs') so files directly in a *Tests project dir also match.
+[*Tests/**.cs]
 # Test method names use the Method_State_Expected underscore idiom by convention.
 dotnet_diagnostic.CA1707.severity = none
 # Test base classes have no finalizer, so Dispose() calling GC.SuppressFinalize would be pointless.
 dotnet_diagnostic.CA1816.severity = none
+# Test helper methods need not be static.
+dotnet_diagnostic.CA1822.severity = none
 # Tests deliberately hold collaborators via their (mocked/abstract) interface, not the concrete type.
 dotnet_diagnostic.CA1859.severity = none
 # Tests pass inline array literals straight to assertion helpers; hoisting each to a field hurts readability.
 dotnet_diagnostic.CA1861.severity = none
 # Moq setups return already-completed ValueTasks; CA2012's "await once" rule is a false positive when arranging.
 dotnet_diagnostic.CA2012.severity = none
+# Short-lived test fixtures need not chain base Dispose.
+dotnet_diagnostic.CA2215.severity = none
 # Unused usings in tests are low-value and cleaned by `dotnet format`; keep IDE0005 off there.
 dotnet_diagnostic.IDE0005.severity = none

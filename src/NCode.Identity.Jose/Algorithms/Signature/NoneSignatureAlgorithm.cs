@@ -50,7 +50,7 @@ internal class NoneSignatureAlgorithm : SignatureAlgorithm
     public override Type KeyType => typeof(SecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes => Array.Empty<KeySizes>();
+    public override IEnumerable<KeySizes> KeyBitSizes => [];
 
     /// <inheritdoc />
     public override HashAlgorithmName HashAlgorithmName => default;

@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Serialization;
 /// <typeparam name="TInterface">The original type to serialize and deserialize.</typeparam>
 /// <typeparam name="TImplementation">The implementation type that will be used to serialize and deserialize the original type.</typeparam>
 [PublicAPI]
-public class DelegatingJsonConverter<TInterface, TImplementation> : JsonConverter<TInterface>
+public sealed class DelegatingJsonConverter<TInterface, TImplementation> : JsonConverter<TInterface>
     where TImplementation : TInterface, new()
 {
     /// <summary>

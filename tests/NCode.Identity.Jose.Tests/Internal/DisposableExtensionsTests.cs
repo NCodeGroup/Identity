@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -19,7 +19,7 @@
 
 using NCode.Disposables;
 
-namespace NCode.Jose.Tests.Internal;
+namespace NCode.Identity.Jose.Tests.Internal;
 
 public class DisposableExtensionsTests : BaseTests
 {

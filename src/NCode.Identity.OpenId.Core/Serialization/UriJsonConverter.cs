@@ -27,12 +27,6 @@ namespace NCode.Identity.OpenId.Serialization;
 /// </summary>
 internal class UriJsonConverter : JsonConverter<Uri>
 {
-    private sealed class UriEnvelope
-    {
-        public bool IsAbsolute { get; init; }
-        public required string EscapedValue { get; init; }
-    }
-
     /// <inheritdoc />
     public override Uri? Read(
         ref Utf8JsonReader reader,

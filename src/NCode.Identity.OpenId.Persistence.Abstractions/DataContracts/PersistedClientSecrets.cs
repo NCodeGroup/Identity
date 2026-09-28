@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class PersistedClientSecrets
+public sealed class PersistedClientSecrets
     : PersistedClientResource<IReadOnlyCollection<PersistedSecret>>,
         ISupportPersistedSecretCollection
 {

@@ -24,7 +24,7 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 
-namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
+namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 
 [PublicAPI]
 internal class ProxyParameterParser<T> : ProxyParameterLoader, IParameterParser<T>

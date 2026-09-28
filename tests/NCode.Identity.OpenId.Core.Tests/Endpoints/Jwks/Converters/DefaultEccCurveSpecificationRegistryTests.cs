@@ -19,7 +19,7 @@
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Endpoints.Jwks.Converters;
+namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Jwks.Converters;
 
 public class DefaultEccCurveSpecificationRegistryTests
 {

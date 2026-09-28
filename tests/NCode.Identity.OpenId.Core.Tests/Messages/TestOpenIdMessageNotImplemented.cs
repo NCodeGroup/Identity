@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -20,7 +20,7 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 
-namespace NCode.Identity.OpenId.Tests.Messages;
+namespace NCode.Identity.OpenId.Core.Tests.Messages;
 
 internal class TestOpenIdMessageNotImplemented : ITestOpenIdMessage
 {

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -20,7 +20,7 @@
 using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
 
-namespace NCode.Jose.Tests.Extensions;
+namespace NCode.Identity.Jose.Tests.Extensions;
 
 public class HashAlgorithmNameExtensionsTests
 {

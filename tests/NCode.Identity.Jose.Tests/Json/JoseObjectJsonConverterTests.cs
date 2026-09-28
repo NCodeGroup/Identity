@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -21,7 +21,7 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Jose.Json;
 
-namespace NCode.Jose.Tests.Json;
+namespace NCode.Identity.Jose.Tests.Json;
 
 public class JoseObjectJsonConverterTests
 {

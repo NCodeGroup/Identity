@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -17,7 +17,7 @@
 
 using NCode.Identity.Jose.Algorithms;
 
-namespace NCode.Jose.Tests.Algorithms.Compression;
+namespace NCode.Identity.Jose.Tests.Algorithms.Compression;
 
 public class CompressionAlgorithmTests : BaseTests
 {

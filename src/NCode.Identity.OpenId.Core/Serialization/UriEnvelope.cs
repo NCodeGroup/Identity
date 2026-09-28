@@ -1,6 +1,6 @@
 #region Copyright Preamble
-//
-//    Copyright @ 2023 NCode Group
+
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -13,16 +13,16 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
-namespace NCode.Identity.OpenId.Core.Tests.Messages;
+namespace NCode.Identity.OpenId.Serialization;
 
-internal interface ITestNestedObject
+/// <summary>
+/// Represents the serialized JSON shape of a <see cref="Uri"/> — its escaped value plus whether it is absolute.
+/// </summary>
+internal sealed class UriEnvelope
 {
-    string? NestedPropertyName1 { get; set; }
-}
-
-internal class TestNestedObject : ITestNestedObject
-{
-    public string? NestedPropertyName1 { get; set; }
+    public bool IsAbsolute { get; init; }
+    public required string EscapedValue { get; init; }
 }

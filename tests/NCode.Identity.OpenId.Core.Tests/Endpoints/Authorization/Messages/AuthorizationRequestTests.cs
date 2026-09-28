@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -31,7 +31,7 @@ using NCode.Identity.OpenId.Messages.Parsers;
 using NCode.Identity.OpenId.Serialization;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Endpoints.Authorization.Messages;
+namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Messages;
 
 public class AuthorizationRequestTests : BaseTests
 {

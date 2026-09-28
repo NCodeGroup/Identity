@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results;
 /// Contains the parameters for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server metadata discovery response.
 /// </summary>
 [PublicAPI]
-public class DiscoveryResult
+public sealed class DiscoveryResult
 {
     /// <summary>
     /// Gets or sets the issuer identifier.

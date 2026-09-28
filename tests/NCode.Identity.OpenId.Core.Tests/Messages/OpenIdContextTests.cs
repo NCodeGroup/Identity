@@ -28,7 +28,7 @@ using NCode.Mediator;
 using NCode.PropertyBag;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Messages;
+namespace NCode.Identity.OpenId.Core.Tests.Messages;
 
 public sealed class OpenIdContextTests : IDisposable
 {

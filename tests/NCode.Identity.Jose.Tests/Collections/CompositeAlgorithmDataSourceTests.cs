@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -22,7 +22,7 @@ using NCode.Collections.Providers;
 using NCode.Collections.Providers.DataSources;
 using NCode.Identity.Jose.Algorithms;
 
-namespace NCode.Jose.Tests.Collections;
+namespace NCode.Identity.Jose.Tests.Collections;
 
 public class CompositeCollectionDataSourceTests : BaseTests
 {

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -22,7 +22,7 @@ using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms.Compression;
 using Nerdbank.Streams;
 
-namespace NCode.Jose.Tests.Algorithms.Compression;
+namespace NCode.Identity.Jose.Tests.Algorithms.Compression;
 
 public class NoneCompressionAlgorithmTests : BaseTests
 {

@@ -27,7 +27,7 @@ using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
+namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 
 public class ParameterParserErrorTests : BaseTests
 {

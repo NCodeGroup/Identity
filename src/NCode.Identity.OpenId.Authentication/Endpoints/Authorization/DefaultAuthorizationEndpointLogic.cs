@@ -34,29 +34,6 @@ using NCode.Identity.OpenId.Messages;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 
 /// <summary>
-/// Provides the logic for processing authorization requests or continuations for the OpenID Connect authorization endpoint.
-/// </summary>
-public interface IAuthorizationEndpointLogic
-{
-    /// <summary>
-    /// Processes an <c>OAuth</c> or <c>OpenID Connect</c> authorization request or continuation.
-    /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
-    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
-    /// <param name="authorizationRequest">The <see cref="IAuthorizationRequest"/> that represents the authorization request.</param>
-    /// <param name="clientRedirectContext">The <see cref="ClientRedirectContext"/> that contains information about how to redirect the user-agent.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ReadOnlyEndpointDisposition"/> with the result of processing the request.</returns>
-    ValueTask<ReadOnlyEndpointDisposition> ProcessRequestAsync(
-        OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        IAuthorizationRequest authorizationRequest,
-        ClientRedirectContext clientRedirectContext,
-        CancellationToken cancellationToken
-    );
-}
-
-/// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationEndpointLogic"/> abstraction.
 /// </summary>
 internal class DefaultAuthorizationEndpointLogic(IContinueService continueService)

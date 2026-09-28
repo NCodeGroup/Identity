@@ -35,7 +35,7 @@ public class NoneCompressionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsEmptyString()
     {
         var result = Algorithm.Code;
         Assert.Equal(string.Empty, result);
@@ -48,7 +48,7 @@ public class NoneCompressionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Compress_Valid()
+    public void Compress_ReturnsUncompressedData()
     {
         Span<byte> uncompressedData = new byte[4096];
         RandomNumberGenerator.Fill(uncompressedData);
@@ -67,7 +67,7 @@ public class NoneCompressionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Decompress_Valid()
+    public void Decompress_ReturnsUncompressedData()
     {
         Span<byte> compressedData = new byte[4096];
         RandomNumberGenerator.Fill(compressedData);

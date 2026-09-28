@@ -80,6 +80,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
     ```
 
 - 👁 **`MockBehavior.Strict`** so an unexpected call fails loudly (a real isolation guarantee).
+- 👁 **`MockBehavior.Loose` is the sanctioned exception for two narrow cases**, via a shared `CreateLooseMock<T>` /
+  `CreatePartialMock<T>` base helper: (a) a **partial mock** of an abstract base class where unset members must fall
+  through to the real base (`CreatePartialMock<KeyManagementAlgorithm>()`), which Moq only supports under Loose; and
+  (b) a pure **value-provider stub** whose members return data the test never asserts on (an `IReadOnlySettingCollection`
+  or `IOpenIdError` shim), where strict setup adds ceremony but no isolation value. Default to `Strict`; reach for Loose
+  only in these two cases.
 - 👁 **Hermetic — no network, no ambient host.** Use `DefaultHttpContext` with a test `RequestServices`, in-memory
   fakes, and constructed `ClaimsPrincipal`s. A resource/principal/stub a single test needs is a small local
   `private sealed` type in the test file.

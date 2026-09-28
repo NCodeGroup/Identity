@@ -37,7 +37,7 @@ public class DeflateCompressionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsDefCode()
     {
         var result = Algorithm.Code;
         Assert.Equal("DEF", result);
@@ -50,7 +50,7 @@ public class DeflateCompressionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Compress_Valid()
+    public void Compress_WhenGivenData_ReturnsCompressed()
     {
         Span<byte> uncompressedData = new byte[4096];
         RandomNumberGenerator.Fill(uncompressedData);
@@ -71,7 +71,7 @@ public class DeflateCompressionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Decompress_Valid()
+    public void Decompress_WhenGivenData_ReturnsDecompressed()
     {
         Span<byte> uncompressedData1 = new byte[4096];
         RandomNumberGenerator.Fill(uncompressedData1);

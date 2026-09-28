@@ -64,21 +64,21 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsCode()
     {
         var algorithm = Create();
         Assert.Equal("code", algorithm.Code);
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsSymmetricSecretKey()
     {
         var algorithm = Create();
         Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
     }
 
     [Fact]
-    public void KekBitSizes_Valid()
+    public void KekBitSizes_ReturnsExpected()
     {
         var algorithm = Create();
         var kekBitSizes = Assert.Single(algorithm.KeyBitSizes);
@@ -91,14 +91,14 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     [InlineData(128, 16)]
     [InlineData(192, 24)]
     [InlineData(256, 32)]
-    public void KeySizeBytes_Valid(int keySizeBits, int keySizeBytes)
+    public void KeySizeBytes_WhenGivenKeySizeBits_ReturnsExpected(int keySizeBits, int keySizeBytes)
     {
         var algorithm = Create(keySizeBits: keySizeBits);
         Assert.Equal(keySizeBytes, algorithm.KeySizeBytes);
     }
 
     [Fact]
-    public void GetLegalCekByteSizes_Valid()
+    public void GetLegalCekByteSizes_ReturnsExpected()
     {
         var expected = Random.Shared.Next();
         var kekSizeBits = Random.Shared.Next();
@@ -115,7 +115,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetEncryptedContentKeySizeBytes_Valid()
+    public void GetEncryptedContentKeySizeBytes_WhenGivenKeySizeBits_ReturnsExpected()
     {
         var expected = Enumerable.Empty<KeySizes>();
 
@@ -199,7 +199,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     [InlineData(192, 512)]
     [InlineData(256, 384)]
     [InlineData(256, 512)]
-    public void RoundTrip_Valid(int keySizeBits, int cekSizeBits)
+    public void RoundTrip_EncryptsAndDecrypts(int keySizeBits, int cekSizeBits)
     {
         const string keyId = nameof(keyId);
         const string alg = nameof(alg);

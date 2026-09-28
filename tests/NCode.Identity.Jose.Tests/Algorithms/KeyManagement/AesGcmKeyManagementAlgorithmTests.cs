@@ -36,21 +36,21 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         new("code", kekSizeBits ?? Random.Shared.Next());
 
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsCode()
     {
         var algorithm = CreateAlgorithm();
         Assert.Equal("code", algorithm.Code);
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsSymmetricSecretKey()
     {
         var algorithm = CreateAlgorithm();
         Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
     }
 
     [Fact]
-    public void KeyBitSizes_Valid()
+    public void KeyBitSizes_ReturnsExpected()
     {
         const int kekSizeBits = 256;
 
@@ -62,7 +62,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetLegalCekByteSizes_Valid()
+    public void GetLegalCekByteSizes_ReturnsExpected()
     {
         var algorithm = CreateAlgorithm();
         var results = algorithm.GetLegalCekByteSizes(Random.Shared.Next());
@@ -73,7 +73,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetEncryptedContentKeySizeBytes_Valid()
+    public void GetEncryptedContentKeySizeBytes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var cekSizeBytes = Random.Shared.Next();
@@ -89,7 +89,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     [InlineData(192, 256)]
     [InlineData(256, 128)]
     [InlineData(256, 256)]
-    public void RoundTrip_Valid(int kekSizeBits, int cekSizeBits)
+    public void RoundTrip_EncryptsAndDecrypts(int kekSizeBits, int cekSizeBits)
     {
         const string keyId = nameof(keyId);
 
@@ -143,7 +143,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingIV()
+    public void ValidateHeaderForUnwrap_WhenMissingIv_Throws()
     {
         var iv = new byte[1];
         var tag = new byte[1];
@@ -159,7 +159,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_InvalidIVSize()
+    public void ValidateHeaderForUnwrap_WhenInvalidIvSize_Throws()
     {
         var iv = new byte[1];
         var tag = new byte[1];
@@ -175,7 +175,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_InvalidIVValue()
+    public void ValidateHeaderForUnwrap_WhenInvalidIvValue_Throws()
     {
         var iv = new byte[1];
         var tag = new byte[1];
@@ -197,7 +197,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingTag()
+    public void ValidateHeaderForUnwrap_WhenMissingTag_Throws()
     {
         var iv = new byte[96 >> 3];
         var tag = new byte[1];
@@ -213,7 +213,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_InvalidTagSize()
+    public void ValidateHeaderForUnwrap_WhenInvalidTagSize_Throws()
     {
         var iv = new byte[96 >> 3];
         var tag = new byte[1];
@@ -233,7 +233,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_InvalidTagValue()
+    public void ValidateHeaderForUnwrap_WhenInvalidTagValue_Throws()
     {
         var iv = new byte[96 >> 3];
         var tag = new byte[1];

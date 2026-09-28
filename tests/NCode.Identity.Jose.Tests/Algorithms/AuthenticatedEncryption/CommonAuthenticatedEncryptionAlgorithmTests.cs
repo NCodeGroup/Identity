@@ -34,21 +34,21 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Type_Valid()
+    public void Type_ReturnsAuthenticatedEncryption()
     {
         var actual = Algorithm.Type;
         Assert.Equal(AlgorithmType.AuthenticatedEncryption, actual);
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsAuthenticatedEncryption()
     {
         var actual = Algorithm.KeyType;
         Assert.Equal(typeof(ReadOnlySpan<byte>), actual);
     }
 
     [Fact]
-    public void KeyBitSizes_Valid()
+    public void KeyBitSizes_ReturnsExpected()
     {
         const int contentKeySizeBytes = 7;
         const int contentKeySizeBits = contentKeySizeBytes << 3;
@@ -63,7 +63,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ContentKeySizeBits_Valid()
+    public void ContentKeySizeBits_ReturnsExpected()
     {
         const int contentKeySizeBytes = 7;
         const int contentKeySizeBits = contentKeySizeBytes << 3;
@@ -77,7 +77,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ValidateParameters_Valid(bool encrypt)
+    public void ValidateParameters_WhenGivenValidInput_Succeeds(bool encrypt)
     {
         const int contentKeySizeBytes = 7;
         const int nonceSizeBytes = 8;
@@ -120,7 +120,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ValidateParameters_Invalid_Cek(bool encrypt)
+    public void ValidateParameters_WhenGivenInvalidCek_Throws(bool encrypt)
     {
         const int contentKeySizeBytes = 7;
         const int nonceSizeBytes = 8;
@@ -163,7 +163,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ValidateParameters_Invalid_Nonce(bool encrypt)
+    public void ValidateParameters_WhenGivenInvalidNonce_Throws(bool encrypt)
     {
         const int contentKeySizeBytes = 7;
         const int nonceSizeBytes = 8;
@@ -208,7 +208,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ValidateParameters_Invalid_PlainText(bool encrypt)
+    public void ValidateParameters_WhenGivenInvalidPlainText_Throws(bool encrypt)
     {
         const int contentKeySizeBytes = 7;
         const int nonceSizeBytes = 8;
@@ -294,7 +294,7 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ValidateParameters_Invalid_AuthenticationTag(bool encrypt)
+    public void ValidateParameters_WhenGivenInvalidAuthenticationTag_Throws(bool encrypt)
     {
         const int contentKeySizeBytes = 7;
         const int nonceSizeBytes = 8;

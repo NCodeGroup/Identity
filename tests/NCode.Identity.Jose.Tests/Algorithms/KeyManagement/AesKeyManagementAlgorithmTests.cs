@@ -43,21 +43,21 @@ public class AesKeyManagementAlgorithmTests : BaseTests
     ) => new(aesKeyWrap ?? MockAesKeyWrap.Object, "code", kekSizeBits ?? 128);
 
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsCode()
     {
         var algorithm = CreateAlgorithm();
         Assert.Equal("code", algorithm.Code);
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsSymmetricSecretKey()
     {
         var algorithm = CreateAlgorithm();
         Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
     }
 
     [Fact]
-    public void KeyBitSizes_Valid()
+    public void KeyBitSizes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var algorithm = CreateAlgorithm(kekSizeBits);
@@ -68,7 +68,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetLegalCekByteSizes_Valid()
+    public void GetLegalCekByteSizes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var legalCekByteSizes = new KeySizes[] { new(-1, -1, 0) };
@@ -80,7 +80,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetEncryptedContentKeySizeBytes_Valid()
+    public void GetEncryptedContentKeySizeBytes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var cekSizeBytes = Random.Shared.Next();
@@ -103,7 +103,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
     [InlineData(192, 256)]
     [InlineData(256, 128)]
     [InlineData(256, 256)]
-    public void RoundTrip_Valid(int kekSizeBits, int cekSizeBits)
+    public void RoundTrip_EncryptsAndDecrypts(int kekSizeBits, int cekSizeBits)
     {
         const string keyId = nameof(keyId);
 

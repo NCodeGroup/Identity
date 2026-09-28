@@ -281,7 +281,7 @@ public class JsonElementExtensionsTests
     }
 
     [Fact]
-    public void TryGetPropertyValue_Invalid()
+    public void TryGetPropertyValue_UnsupportedType_ReturnsFalse()
     {
         const string key = nameof(key);
 

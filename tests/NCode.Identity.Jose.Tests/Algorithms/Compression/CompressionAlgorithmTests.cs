@@ -31,7 +31,7 @@ public class CompressionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Type_Valid()
+    public void Type_ReturnsCompression()
     {
         var result = CompressionAlgorithm.Type;
         Assert.Equal(AlgorithmType.Compression, result);

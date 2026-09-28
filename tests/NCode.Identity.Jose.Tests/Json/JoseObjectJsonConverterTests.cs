@@ -26,7 +26,7 @@ namespace NCode.Identity.Jose.Tests.Json;
 public class JoseObjectJsonConverterTests
 {
     [Fact]
-    public void RoundTrip_Valid()
+    public void RoundTrip_SerializeDeserializeVariousTypes_ProducesEqualJson()
     {
         var converter = JoseObjectJsonConverter.Singleton;
 

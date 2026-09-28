@@ -45,7 +45,7 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
     ) => new(aesKeyWrap ?? MockAesKeyWrap.Object, "code", kekSizeBits ?? Random.Shared.Next());
 
     [Fact]
-    public void GetEncryptedContentKeySizeBytes_Valid()
+    public void GetEncryptedContentKeySizeBytes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var cekSizeBytes = Random.Shared.Next();
@@ -82,7 +82,7 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(RoundTripTestData))]
-    public void RoundTrip_Valid(ECCurve curve, int cekSizeBytes)
+    public void RoundTrip_EncryptsAndDecrypts(ECCurve curve, int cekSizeBytes)
     {
         const string keyId = nameof(keyId);
         const string alg = nameof(alg);

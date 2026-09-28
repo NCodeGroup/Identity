@@ -48,7 +48,10 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
     [InlineData(48, 64)]
     [InlineData(63, 64)]
     [InlineData(64, 80)]
-    public void GetCipherTextSizeBytes_Valid(int plainTextSizeBytes, int expected)
+    public void GetCipherTextSizeBytes_WhenGivenSizes_ReturnsExpected(
+        int plainTextSizeBytes,
+        int expected
+    )
     {
         const int cekSizeBits = -1; // don't care
 
@@ -66,7 +69,10 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
     [InlineData(256, 256)]
     [InlineData(384, 384)]
     [InlineData(512, 512)]
-    public void GetMaxPlainTextSizeBytes_Valid(int cipherTextSizeBytes, int expected)
+    public void GetMaxPlainTextSizeBytes_WhenGivenSizes_ReturnsExpected(
+        int cipherTextSizeBytes,
+        int expected
+    )
     {
         const int cekSizeBits = -1; // don't care
 
@@ -81,7 +87,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
     }
 
     [Fact]
-    public void CreateAes_Valid()
+    public void CreateAes_CreatesWithCorrectKey()
     {
         Span<byte> key = new byte[256 >> 3];
         RandomNumberGenerator.Fill(key);
@@ -121,7 +127,7 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
 
     [Theory]
     [MemberData(nameof(RoundTripTestData))]
-    public void RoundTrip_Valid(
+    public void RoundTrip_EncryptsAndDecrypts(
         int cekSizeBits,
         KeyedHashFunctionDelegate keyedHashFunction,
         IJwsAlgorithm jwsAlgorithm,

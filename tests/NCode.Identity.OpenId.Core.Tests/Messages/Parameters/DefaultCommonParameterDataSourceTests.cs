@@ -35,14 +35,14 @@ public class DefaultCommonParameterDataSourceTests : BaseTests
     }
 
     [Fact]
-    public void GetChangeToken_Valid()
+    public void GetChangeToken_Called_ReturnsMockNullChangeToken()
     {
         var result = DataSource.GetChangeToken();
         Assert.Same(MockNullChangeToken.Object, result);
     }
 
     [Fact]
-    public void Collection_Valid()
+    public void Collection_Accessed_Returns36Parameters()
     {
         var results = DataSource.Collection;
         Assert.Equal(36, results.Count());

@@ -8,10 +8,6 @@ abstract NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Read(ref System.
 abstract NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Write(System.Text.Json.Utf8JsonWriter! writer, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.IParameter! parameter, NCode.Identity.OpenId.Messages.SerializationFormat format, System.Text.Json.JsonSerializerOptions! options) -> void
 abstract NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.GetStringValues(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, T? parsedValue) -> Microsoft.Extensions.Primitives.StringValues
 abstract NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Parse(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, Microsoft.Extensions.Primitives.StringValues stringValues) -> T?
-NCode.Identity.OpenId.Messages.DefaultOpenIdMessageFactory<T>
-NCode.Identity.OpenId.Messages.DefaultOpenIdMessageFactory<T>.Create(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters) -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
-NCode.Identity.OpenId.Messages.DefaultOpenIdMessageFactory<T>.DefaultOpenIdMessageFactory() -> void
-NCode.Identity.OpenId.Messages.DefaultOpenIdMessageFactory<T>.TypeDiscriminator.get -> string!
 NCode.Identity.OpenId.Messages.DefaultRegistration
 NCode.Identity.OpenId.Messages.DefaultRegistration.extension(NCode.Registration.IServiceBuilder!)
 NCode.Identity.OpenId.Messages.DefaultRegistration.extension(NCode.Registration.IServiceBuilder!).AddMessageFactory<TMessage>() -> void

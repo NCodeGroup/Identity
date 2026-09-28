@@ -49,20 +49,20 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsEcdhEs()
     {
         Assert.Equal("ECDH-ES", Algorithm.Code);
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsEccSecretKey()
     {
         Assert.Equal(typeof(EccSecretKey), Algorithm.KeyType);
     }
 
     [Fact]
     [SuppressMessage("ReSharper", "ParameterOnlyUsedForPreconditionCheck.Local")]
-    public void KeyBitSizes_Valid()
+    public void KeyBitSizes_ReturnsExpected()
     {
         Assert.Collection(
             Algorithm.KeyBitSizes,
@@ -85,7 +85,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     [InlineData(256)]
     [InlineData(384)]
     [InlineData(521)]
-    public void ExportKey_Valid(int curveSizeBits)
+    public void ExportKey_WhenGivenValidCurve_ExportsKeyToHeader(int curveSizeBits)
     {
         var curve = GetCurve(curveSizeBits);
 
@@ -110,7 +110,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_Valid()
+    public void ValidateHeaderForUnwrap_WhenValidHeader_Succeeds()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -160,7 +160,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingAlgorithm()
+    public void ValidateHeaderForUnwrap_WhenMissingAlgorithm_Throws()
     {
         const int curveSizeBits = 256;
 
@@ -189,7 +189,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingKey()
+    public void ValidateHeaderForUnwrap_WhenMissingKey_Throws()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -219,7 +219,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingKeyType()
+    public void ValidateHeaderForUnwrap_WhenMissingKeyType_Throws()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -249,7 +249,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_InvalidKeyType()
+    public void ValidateHeaderForUnwrap_WhenInvalidKeyType_Throws()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -283,7 +283,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingCurve()
+    public void ValidateHeaderForUnwrap_WhenMissingCurve_Throws()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -317,7 +317,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingX()
+    public void ValidateHeaderForUnwrap_WhenMissingX_Throws()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -351,7 +351,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingY()
+    public void ValidateHeaderForUnwrap_WhenMissingY_Throws()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -393,7 +393,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingApu()
+    public void ValidateHeaderForUnwrap_WhenMissingApu_Succeeds()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -438,7 +438,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_MissingApv()
+    public void ValidateHeaderForUnwrap_WhenMissingApv_Succeeds()
     {
         const string expectedAlgorithm = nameof(expectedAlgorithm);
         const int curveSizeBits = 256;
@@ -483,7 +483,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetLegalCekByteSizes_Valid()
+    public void GetLegalCekByteSizes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var results = Algorithm.GetLegalCekByteSizes(kekSizeBits);
@@ -494,7 +494,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetEncryptedContentKeySizeBytes_Valid()
+    public void GetEncryptedContentKeySizeBytes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var cekSizeBytes = Random.Shared.Next();
@@ -503,7 +503,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void WrapKey_Valid()
+    public void WrapKey_WhenCalled_Throws()
     {
         Assert.Throws<JoseException>(() =>
             Algorithm.WrapKey(null!, null!, Span<byte>.Empty, new ArrayBufferWriter<byte>())
@@ -531,7 +531,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(RoundTripTestData))]
-    public void RoundTrip_Valid(ECCurve curve, int keySizeBytes)
+    public void RoundTrip_EncryptsAndDecrypts(ECCurve curve, int keySizeBytes)
     {
         const string keyId = nameof(keyId);
         const string enc = "dir";

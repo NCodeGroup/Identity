@@ -30,7 +30,7 @@ namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 public class RsaKeyManagementAlgorithmTests : BaseTests
 {
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsCode()
     {
         const string code = nameof(code);
 
@@ -39,7 +39,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsRsaSecretKey()
     {
         const string code = nameof(code);
 
@@ -48,7 +48,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyBitSizes_Valid()
+    public void KeyBitSizes_ReturnsExpected()
     {
         const string code = nameof(code);
 
@@ -148,7 +148,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetLegalCekByteSizesTestData))]
-    public void GetLegalCekByteSizes_Valid(
+    public void GetLegalCekByteSizes_WhenGivenKeySize_ReturnsExpected(
         int kekSizeBits,
         RSAEncryptionPadding padding,
         IEnumerable<KeySizes> expected
@@ -176,7 +176,10 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     [InlineData(4087, 511)]
     [InlineData(4086, 511)]
     [InlineData(4085, 511)]
-    public void GetEncryptedContentKeySizeBytes_Valid(int kekSizeBits, int expected)
+    public void GetEncryptedContentKeySizeBytes_WhenGivenKeySize_ReturnsExpected(
+        int kekSizeBits,
+        int expected
+    )
     {
         const string code = nameof(code);
         var anyPadding = RSAEncryptionPadding.Pkcs1;
@@ -188,7 +191,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetCommonRsaKeyParameterTestData))]
-    public void WrapKey_Valid(int kekSizeBits, RSAEncryptionPadding padding)
+    public void WrapKey_WhenGivenValidKey_EncryptsKey(int kekSizeBits, RSAEncryptionPadding padding)
     {
         const string code = nameof(code);
 
@@ -218,7 +221,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetCommonRsaKeyParameterTestData))]
-    public void RoundTrip_Valid(int kekSizeBits, RSAEncryptionPadding padding)
+    public void RoundTrip_EncryptsAndDecrypts(int kekSizeBits, RSAEncryptionPadding padding)
     {
         const string code = nameof(code);
         const string keyId = nameof(keyId);

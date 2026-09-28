@@ -1,0 +1,15 @@
+<Project>
+
+  <!-- MSBuild uses the first Directory.Build.props found walking up, so explicitly import the
+       repository-root one to inherit shared metadata, analyzers, and provenance settings. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Test projects are never shipped: no XML documentation, and warnings must not fail the build. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

@@ -32,12 +32,12 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 [ExcludeFromCodeCoverage]
 public class ServerSettingsResource : ISupportServerId, ISupportConcurrencyToken
 {
-    /// <inheritdoc cref="PersistedServerSettings.ServerId"/>
+    /// <inheritdoc cref="ISupportServerId.ServerId"/>
     public required string ServerId { get; init; }
 
-    /// <inheritdoc cref="PersistedServerSettings.ConcurrencyToken"/>
+    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
 
-    /// <inheritdoc cref="PersistedServerSettings.Value"/>
+    /// <inheritdoc cref="PersistedServerResource{TValue}.Value"/>
     public required JsonElement Settings { get; init; }
 }

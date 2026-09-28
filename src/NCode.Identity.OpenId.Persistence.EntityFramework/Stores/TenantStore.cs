@@ -120,11 +120,11 @@ public class TenantStore(
 
     /// <inheritdoc />
     protected override async ValueTask<TenantEntity?> GetEntityOrDefaultAsync(
-        string tenantId,
+        string resourceId,
         CancellationToken cancellationToken
     )
     {
-        var normalizedTenantId = Normalize(tenantId);
+        var normalizedTenantId = Normalize(resourceId);
         return await GetEntityOrDefaultAsync(
             entity => entity.NormalizedTenantId == normalizedTenantId,
             cancellationToken

@@ -8,8 +8,6 @@ NCode.Identity.OpenId.Management.Authorization.TenantAdminHandler
 NCode.Identity.OpenId.Management.Authorization.TenantAdminHandler.TenantAdminHandler() -> void
 NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
-NCode.Identity.OpenId.Management.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.OpenId.Management.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddAuthorizationHandler<THandler>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
 NCode.Identity.OpenId.Management.Endpoints.BaseApiEndpointHandler
@@ -62,6 +60,9 @@ NCode.Identity.OpenId.Management.OpenIdManagementLibrary.ConfigureMethod.get -> 
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.DisplayName.get -> string!
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.OpenIdManagementLibrary() -> void
 NCode.Identity.OpenId.Management.Operations
+NCode.Identity.OpenId.Management.ServiceCollectionExtensions
+NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddAuthorizationHandler<THandler>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 override NCode.Identity.OpenId.Management.Authorization.GlobalAdminHandler.HandleRequirementAsync(Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext! context, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! requirement) -> System.Threading.Tasks.Task!
 override NCode.Identity.OpenId.Management.Authorization.TenantAdminHandler.HandleRequirementAsync(Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext! context, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! requirement, NCode.Identity.OpenId.Persistence.ISupportTenantId! resource) -> System.Threading.Tasks.Task!
 override NCode.Identity.OpenId.Management.Endpoints.Servers.ServerApiEndpointHandler.AuthorizationService.get -> Microsoft.AspNetCore.Authorization.IAuthorizationService!

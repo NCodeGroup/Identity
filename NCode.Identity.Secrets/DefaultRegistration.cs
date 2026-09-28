@@ -77,7 +77,10 @@ public static class DefaultRegistration
 
             serviceCollection.AddDataProtection();
             serviceCollection.AddDataProtectorFactory();
-            serviceCollection.AddDataProtectorFactory<SecretKey, DefaultSecretKeyDataProtectorFactory>();
+            serviceCollection.AddDataProtectorFactory<
+                SecretKey,
+                DefaultSecretKeyDataProtectorFactory
+            >();
 
             serviceCollection.TryAddSingleton<
                 ISecretKeyCollectionProvider,
@@ -89,10 +92,7 @@ public static class DefaultRegistration
                 DefaultSecretKeyCollectionProviderFactory
             >();
 
-            serviceCollection.TryAddSingleton<
-                ISecretKeyFactory,
-                DefaultSecretKeyFactory
-            >();
+            serviceCollection.TryAddSingleton<ISecretKeyFactory, DefaultSecretKeyFactory>();
 
             serviceCollection.TryAddSingleton<
                 ISecretKeyCollectionFactory,

@@ -84,7 +84,8 @@ public class DefaultStaticSingleOpenIdTenantProvider(
     protected override IOpenIdTenantCache TenantCache { get; } = tenantCache;
 
     /// <inheritdoc />
-    protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
+    protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } =
+        settingCollectionProviderFactory;
 
     /// <inheritdoc />
     protected override ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -93,10 +94,12 @@ public class DefaultStaticSingleOpenIdTenantProvider(
     protected override ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <inheritdoc />
-    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
+        secretKeyCollectionProviderFactory;
 
     /// <inheritdoc />
-    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
+    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } =
+        collectionDataSourceFactory;
 
     private IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
@@ -150,11 +153,7 @@ public class DefaultStaticSingleOpenIdTenantProvider(
         if (string.IsNullOrEmpty(displayName))
             displayName = StaticSingleOpenIdTenantOptions.DefaultDisplayName;
 
-        var descriptor = new TenantDescriptor
-        {
-            TenantId = tenantId,
-            DisplayName = displayName
-        };
+        var descriptor = new TenantDescriptor { TenantId = tenantId, DisplayName = displayName };
 
         return ValueTask.FromResult(descriptor);
     }
@@ -189,14 +188,14 @@ public class DefaultStaticSingleOpenIdTenantProvider(
         {
             TenantId = tenantId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            Value = JsonSerializer.SerializeToElement(null, typeof(object))
+            Value = JsonSerializer.SerializeToElement(null, typeof(object)),
         };
 
         var secrets = new PersistedTenantSecrets
         {
             TenantId = tenantId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            Value = []
+            Value = [],
         };
 
         return new PersistedTenant
@@ -207,7 +206,7 @@ public class DefaultStaticSingleOpenIdTenantProvider(
             IsDisabled = false,
             DisplayName = TenantOptions.DisplayName,
             Settings = settings,
-            Secrets = secrets
+            Secrets = secrets,
         };
     }
 }

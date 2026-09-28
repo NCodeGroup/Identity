@@ -31,13 +31,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 /// <remarks>
 /// No, the duplicate ...Handler term is not a typo as this is a handler that returns a handler.
 /// </remarks>
-public class DefaultSelectTokenGrantHandlerHandler(
-    IEnumerable<ITokenGrantHandler> handlers
-) : ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>
+public class DefaultSelectTokenGrantHandlerHandler(IEnumerable<ITokenGrantHandler> handlers)
+    : ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>
 {
-    private ILookup<string, ITokenGrantHandler> HandlersByGrantType { get; } = handlers
-        .SelectMany(handler => handler.GrantTypes.Select(grantType => (grantType, handler)))
-        .ToLookup(pair => pair.grantType, pair => pair.handler, StringComparer.Ordinal);
+    private ILookup<string, ITokenGrantHandler> HandlersByGrantType { get; } =
+        handlers
+            .SelectMany(handler => handler.GrantTypes.Select(grantType => (grantType, handler)))
+            .ToLookup(pair => pair.grantType, pair => pair.handler, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public ValueTask<ITokenGrantHandler> HandleAsync(
@@ -83,7 +83,9 @@ public class DefaultSelectTokenGrantHandlerHandler(
                 throw errorFactory
                     .UnsupportedGrantType("The provided grant type has multiple handlers.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
-                    .AsException("Invalid authorization server configuration. Multiple handlers for the same grant type have been registered.");
+                    .AsException(
+                        "Invalid authorization server configuration. Multiple handlers for the same grant type have been registered."
+                    );
             }
 
             selectedHandler = candidateHandler;
@@ -93,7 +95,9 @@ public class DefaultSelectTokenGrantHandlerHandler(
         {
             // unsupported_grant_type
             throw errorFactory
-                .UnsupportedGrantType("The provided grant type is not supported by the authorization server.")
+                .UnsupportedGrantType(
+                    "The provided grant type is not supported by the authorization server."
+                )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }

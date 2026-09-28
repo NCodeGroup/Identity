@@ -29,19 +29,31 @@ namespace NCode.Identity.OpenId.Serialization;
 /// instances to and from JSON.
 /// </summary>
 [PublicAPI]
-public class ClaimsIdentityJsonConverter(IClaimsSerializer serializer) : JsonConverter<ClaimsIdentity>
+public class ClaimsIdentityJsonConverter(IClaimsSerializer serializer)
+    : JsonConverter<ClaimsIdentity>
 {
     private IClaimsSerializer Serializer { get; } = serializer;
 
     /// <inheritdoc />
-    public override ClaimsIdentity? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override ClaimsIdentity? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
-        var serializable = JsonSerializer.Deserialize<SerializableClaimsIdentity>(ref reader, options);
+        var serializable = JsonSerializer.Deserialize<SerializableClaimsIdentity>(
+            ref reader,
+            options
+        );
         return serializable != null ? Serializer.DeserializeIdentity(serializable) : null;
     }
 
     /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, ClaimsIdentity value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        ClaimsIdentity value,
+        JsonSerializerOptions options
+    )
     {
         var serializable = Serializer.SerializeIdentity(value);
         JsonSerializer.Serialize(serializable, options);

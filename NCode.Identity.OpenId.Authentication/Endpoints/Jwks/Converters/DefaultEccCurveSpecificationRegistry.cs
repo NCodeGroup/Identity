@@ -32,17 +32,20 @@ public class DefaultEccCurveSpecificationRegistry : IEccCurveSpecificationRegist
     /// <summary>
     /// The <c>P-256</c> curve specification (<c>secp256r1</c> / <c>prime256v1</c>).
     /// </summary>
-    public static EccCurveSpecification P256 { get; } = new() { CurveName = "P-256", CurveSizeBits = 256 };
+    public static EccCurveSpecification P256 { get; } =
+        new() { CurveName = "P-256", CurveSizeBits = 256 };
 
     /// <summary>
     /// The <c>P-384</c> curve specification (<c>secp384r1</c>).
     /// </summary>
-    public static EccCurveSpecification P384 { get; } = new() { CurveName = "P-384", CurveSizeBits = 384 };
+    public static EccCurveSpecification P384 { get; } =
+        new() { CurveName = "P-384", CurveSizeBits = 384 };
 
     /// <summary>
     /// The <c>P-521</c> curve specification (<c>secp521r1</c>).
     /// </summary>
-    public static EccCurveSpecification P521 { get; } = new() { CurveName = "P-521", CurveSizeBits = 521 };
+    public static EccCurveSpecification P521 { get; } =
+        new() { CurveName = "P-521", CurveSizeBits = 521 };
 
     private static IEnumerable<EccCurveSpecification> BuiltInSpecifications => [P256, P384, P521];
 
@@ -56,7 +59,9 @@ public class DefaultEccCurveSpecificationRegistry : IEccCurveSpecificationRegist
     /// </summary>
     /// <param name="additionalSpecifications">Additional specifications registered by the application.
     /// These are merged with the built-in curves and override any built-in that shares the same curve size.</param>
-    public DefaultEccCurveSpecificationRegistry(IEnumerable<EccCurveSpecification> additionalSpecifications)
+    public DefaultEccCurveSpecificationRegistry(
+        IEnumerable<EccCurveSpecification> additionalSpecifications
+    )
     {
         SpecificationsByCurveSizeBits = new Dictionary<int, EccCurveSpecification>();
 
@@ -69,6 +74,8 @@ public class DefaultEccCurveSpecificationRegistry : IEccCurveSpecificationRegist
     }
 
     /// <inheritdoc />
-    public bool TryGetByCurveSizeBits(int curveSizeBits, [NotNullWhen(true)] out EccCurveSpecification? specification) =>
-        SpecificationsByCurveSizeBits.TryGetValue(curveSizeBits, out specification);
+    public bool TryGetByCurveSizeBits(
+        int curveSizeBits,
+        [NotNullWhen(true)] out EccCurveSpecification? specification
+    ) => SpecificationsByCurveSizeBits.TryGetValue(curveSizeBits, out specification);
 }

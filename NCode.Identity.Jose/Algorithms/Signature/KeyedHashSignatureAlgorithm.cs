@@ -76,19 +76,30 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
            effective security strength is the minimum of the security strength
            of the key and two times the size of the internal hash value.)
         */
-        KeyBitSizes = [new KeySizes(minSize: signatureSizeBits, maxSize: int.MaxValue, skipSize: 8)];
+        KeyBitSizes =
+        [
+            new KeySizes(minSize: signatureSizeBits, maxSize: int.MaxValue, skipSize: 8),
+        ];
     }
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
 
     /// <inheritdoc />
-    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
+    public override bool TrySign(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        Span<byte> signature,
+        out int bytesWritten
+    )
     {
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: true,
+            secretKey.KeySizeBytes
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
@@ -100,16 +111,21 @@ public class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     }
 
     /// <inheritdoc />
-    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
+    public override bool Verify(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        ReadOnlySpan<byte> signature
+    )
     {
         if (signature.Length != SignatureSizeBytes)
             return false;
 
-        var computedSignature = SignatureSizeBytes <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[SignatureSizeBytes] :
-            GC.AllocateUninitializedArray<byte>(SignatureSizeBytes, pinned: false);
+        var computedSignature =
+            SignatureSizeBytes <= JoseConstants.MaxStackAlloc
+                ? stackalloc byte[SignatureSizeBytes]
+                : GC.AllocateUninitializedArray<byte>(SignatureSizeBytes, pinned: false);
 
-        return TrySign(secretKey, inputData, computedSignature, out _) &&
-               CryptographicOperations.FixedTimeEquals(computedSignature, signature);
+        return TrySign(secretKey, inputData, computedSignature, out _)
+            && CryptographicOperations.FixedTimeEquals(computedSignature, signature);
     }
 }

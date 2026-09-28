@@ -27,7 +27,11 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Common interface for all persisted client resources.
 /// </summary>
 [PublicAPI]
-public interface ISupportPersistedClientResource : ISupportResource, ISupportClientId, ISupportConcurrencyToken, ISupportTenantId
+public interface ISupportPersistedClientResource
+    : ISupportResource,
+        ISupportClientId,
+        ISupportConcurrencyToken,
+        ISupportTenantId
 {
     // nothing
 }

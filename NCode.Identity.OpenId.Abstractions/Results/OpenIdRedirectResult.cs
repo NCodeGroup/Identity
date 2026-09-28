@@ -53,7 +53,9 @@ public class OpenIdRedirectResult : IResult
     /// <inheritdoc />
     public async Task ExecuteAsync(HttpContext httpContext)
     {
-        var executor = httpContext.RequestServices.GetRequiredService<IResultExecutor<OpenIdRedirectResult>>();
+        var executor = httpContext.RequestServices.GetRequiredService<
+            IResultExecutor<OpenIdRedirectResult>
+        >();
         await executor.ExecuteAsync(httpContext, this, httpContext.RequestAborted);
     }
 }

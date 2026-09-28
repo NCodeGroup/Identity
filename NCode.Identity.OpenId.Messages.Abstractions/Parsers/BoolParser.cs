@@ -52,14 +52,12 @@ public class BoolParser : ParameterParser<bool>
 
             case 0:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
+                    .ErrorFactory.MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
+                    .ErrorFactory.TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
         }
 
@@ -69,8 +67,7 @@ public class BoolParser : ParameterParser<bool>
         if (!bool.TryParse(stringValue, out var parsedValue))
         {
             throw openIdEnvironment
-                .ErrorFactory
-                .InvalidParameterValue(descriptor.ParameterName)
+                .ErrorFactory.InvalidParameterValue(descriptor.ParameterName)
                 .AsException();
         }
 

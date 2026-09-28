@@ -39,7 +39,8 @@ public interface IOpenIdTenantCache
     ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> TryGetAsync(
         TenantDescriptor tenantDescriptor,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Sets an <see cref="OpenIdTenant"/> instance in the cache using the specified <paramref name="tenantDescriptor"/>.
@@ -53,5 +54,6 @@ public interface IOpenIdTenantCache
         TenantDescriptor tenantDescriptor,
         AsyncSharedReferenceLease<OpenIdTenant> tenant,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

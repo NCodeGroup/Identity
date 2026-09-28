@@ -37,9 +37,16 @@ public class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationReq
     }
 
     /// <inheritdoc />
-    public override IAuthorizationRequest? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override IAuthorizationRequest? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
-        var envelope = JsonSerializer.Deserialize<AuthorizationRequestJsonEnvelope>(ref reader, options);
+        var envelope = JsonSerializer.Deserialize<AuthorizationRequestJsonEnvelope>(
+            ref reader,
+            options
+        );
 
         if (envelope.OriginalRequestMessage is null)
             return null;
@@ -48,19 +55,26 @@ public class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationReq
         Debug.Assert(requestMessage.OpenIdEnvironment != null);
 
         var requestObject = envelope.OriginalRequestObject;
-        Debug.Assert(requestObject == null || requestObject.OpenIdEnvironment == requestMessage.OpenIdEnvironment);
+        Debug.Assert(
+            requestObject == null
+                || requestObject.OpenIdEnvironment == requestMessage.OpenIdEnvironment
+        );
 
         return new AuthorizationRequest(envelope.IsContinuation, requestMessage, requestObject);
     }
 
     /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, IAuthorizationRequest value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        IAuthorizationRequest value,
+        JsonSerializerOptions options
+    )
     {
         var envelope = new AuthorizationRequestJsonEnvelope
         {
             IsContinuation = value.IsContinuation,
             OriginalRequestMessage = value.OriginalRequestMessage,
-            OriginalRequestObject = value.OriginalRequestObject
+            OriginalRequestObject = value.OriginalRequestObject,
         };
         JsonSerializer.Serialize(writer, envelope, options);
     }

@@ -27,6 +27,5 @@ namespace NCode.Identity.OpenId.Authentication.Messages.Commands;
 /// Represents a mediator command to load an <see cref="IRequestValues"/> for an HTTP request.
 /// </summary>
 [PublicAPI]
-public readonly record struct LoadRequestValuesCommand(
-    OpenIdContext OpenIdContext
-) : ICommand<IRequestValues>;
+public readonly record struct LoadRequestValuesCommand(OpenIdContext OpenIdContext)
+    : ICommand<IRequestValues>;

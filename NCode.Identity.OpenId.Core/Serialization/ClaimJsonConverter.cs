@@ -34,7 +34,11 @@ public class ClaimJsonConverter(IClaimsSerializer serializer) : JsonConverter<Cl
     private IClaimsSerializer Serializer { get; } = serializer;
 
     /// <inheritdoc />
-    public override Claim? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Claim? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         var serializable = JsonSerializer.Deserialize<SerializableClaim>(ref reader, options);
         return serializable != null ? Serializer.DeserializeClaim(serializable) : null;

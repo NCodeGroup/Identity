@@ -55,9 +55,12 @@ public class DefaultAuthorizationEndpointHandler(
 {
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
-    private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
-    private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } = authorizationEndpointLogic;
-    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
+    private IClientAuthenticationService ClientAuthenticationService { get; } =
+        clientAuthenticationService;
+    private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } =
+        authorizationEndpointLogic;
+    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
+        knownParameterCollectionProvider;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -75,8 +78,8 @@ public class DefaultAuthorizationEndpointHandler(
 
     private OpenApiOperation CreateOpenApiOperationMetadata()
     {
-        var properties = KnownParameterCollectionProvider.Collection
-            .OrderBy(parameter => parameter.Name)
+        var properties = KnownParameterCollectionProvider
+            .Collection.OrderBy(parameter => parameter.Name)
             .ToDictionary(
                 parameter => parameter.Name,
                 _ => new OpenApiSchema
@@ -84,7 +87,8 @@ public class DefaultAuthorizationEndpointHandler(
                     Type = "string",
                     Nullable = true,
                     Default = new OpenApiString(string.Empty),
-                });
+                }
+            );
 
         return new OpenApiOperation
         {
@@ -96,14 +100,10 @@ public class DefaultAuthorizationEndpointHandler(
                 {
                     [OpenIdConstants.ContentType] = new()
                     {
-                        Schema = new OpenApiSchema
-                        {
-                            Type = "object",
-                            Properties = properties,
-                        }
-                    }
-                }
-            }
+                        Schema = new OpenApiSchema { Type = "object", Properties = properties },
+                    },
+                },
+            },
         };
     }
 
@@ -152,12 +152,11 @@ public class DefaultAuthorizationEndpointHandler(
 
         // everything after this point is safe to redirect to the client
 
-        var authorizationRequest = await mediator.SendAsync<LoadAuthorizationRequestCommand, IAuthorizationRequest>(
-            new LoadAuthorizationRequestCommand(
-                openIdContext,
-                openIdClient,
-                requestValues
-            ),
+        var authorizationRequest = await mediator.SendAsync<
+            LoadAuthorizationRequestCommand,
+            IAuthorizationRequest
+        >(
+            new LoadAuthorizationRequestCommand(openIdContext, openIdClient, requestValues),
             cancellationToken
         );
 
@@ -192,10 +191,19 @@ public class DefaultAuthorizationEndpointHandler(
         var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
-        var hasState = requestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues);
-        var state = hasState && !StringValues.IsNullOrEmpty(stateStringValues) ? stateStringValues.ToString() : null;
+        var hasState = requestValues.TryGetValue(
+            OpenIdConstants.Parameters.State,
+            out var stateStringValues
+        );
+        var state =
+            hasState && !StringValues.IsNullOrEmpty(stateStringValues)
+                ? stateStringValues.ToString()
+                : null;
 
-        var hasResponseMode = requestValues.TryGetValue(OpenIdConstants.Parameters.ResponseMode, out var responseModeStringValues);
+        var hasResponseMode = requestValues.TryGetValue(
+            OpenIdConstants.Parameters.ResponseMode,
+            out var responseModeStringValues
+        );
         string effectiveResponseMode;
 
         if (hasResponseMode)
@@ -210,7 +218,11 @@ public class DefaultAuthorizationEndpointHandler(
             }
 
             effectiveResponseMode = responseModeStringValues.ToString();
-            if (!settings.GetValue(OpenIdSettingKeys.ResponseModesSupported).Contains(effectiveResponseMode))
+            if (
+                !settings
+                    .GetValue(OpenIdSettingKeys.ResponseModesSupported)
+                    .Contains(effectiveResponseMode)
+            )
             {
                 throw errorFactory
                     .InvalidParameterValue(OpenIdConstants.Parameters.ResponseMode)
@@ -244,18 +256,20 @@ public class DefaultAuthorizationEndpointHandler(
 
         var redirectUris = openIdClient.RedirectUris;
         var effectiveUri = redirectUri.GetComponents(
-            UriComponents.Scheme |
-            UriComponents.Host |
-            UriComponents.Port |
-            UriComponents.Path,
-            UriFormat.UriEscaped);
+            UriComponents.Scheme | UriComponents.Host | UriComponents.Port | UriComponents.Path,
+            UriFormat.UriEscaped
+        );
 
         var allowLoopbackRedirect = settings.GetValue(OpenIdSettingKeys.AllowLoopbackRedirect);
-        var isSafe = (allowLoopbackRedirect && redirectUri.IsLoopback) || redirectUris.Contains(effectiveUri);
+        var isSafe =
+            (allowLoopbackRedirect && redirectUri.IsLoopback)
+            || redirectUris.Contains(effectiveUri);
         if (!isSafe)
         {
             throw errorFactory
-                .UnauthorizedClient("The specified 'redirect_uri' is not valid for the associated 'client_id'.")
+                .UnauthorizedClient(
+                    "The specified 'redirect_uri' is not valid for the associated 'client_id'."
+                )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
                 .AsException();

@@ -40,15 +40,9 @@ public static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.TryAddSingleton<
-                IOpenIdServerFactory,
-                DefaultOpenIdServerFactory
-            >();
+            serviceCollection.TryAddSingleton<IOpenIdServerFactory, DefaultOpenIdServerFactory>();
 
-            serviceCollection.TryAddSingleton<
-                IOpenIdServerProvider,
-                DefaultOpenIdServerProvider
-            >();
+            serviceCollection.TryAddSingleton<IOpenIdServerProvider, DefaultOpenIdServerProvider>();
 
             return builder;
         }

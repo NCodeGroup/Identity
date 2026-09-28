@@ -42,7 +42,8 @@ public class StringParser : ParameterParser<string>
     public override string? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues)
+        StringValues stringValues
+    )
     {
         // ReSharper disable once ConvertSwitchStatementToSwitchExpression
         // That makes the code unreadable.
@@ -53,14 +54,12 @@ public class StringParser : ParameterParser<string>
 
             case 0:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
+                    .ErrorFactory.MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
+                    .ErrorFactory.TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
         }
 

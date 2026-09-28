@@ -67,8 +67,7 @@ public static class OpenIdSettingKeys
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'access_token_type' setting.
     /// </summary>
-    public static SettingKey<string> AccessTokenType =>
-        new(OpenIdSettingNames.AccessTokenType);
+    public static SettingKey<string> AccessTokenType => new(OpenIdSettingNames.AccessTokenType);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'acr_values_supported' setting.
@@ -151,8 +150,7 @@ public static class OpenIdSettingKeys
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'clock_skew' setting.
     /// </summary>
-    public static SettingKey<TimeSpan> ClockSkew =>
-        new(OpenIdSettingNames.ClockSkew);
+    public static SettingKey<TimeSpan> ClockSkew => new(OpenIdSettingNames.ClockSkew);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'continue_authorization_lifetime' setting.
@@ -199,8 +197,7 @@ public static class OpenIdSettingKeys
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_lifetime' setting.
     /// </summary>
-    public static SettingKey<TimeSpan> IdTokenLifetime =>
-        new(OpenIdSettingNames.IdTokenLifetime);
+    public static SettingKey<TimeSpan> IdTokenLifetime => new(OpenIdSettingNames.IdTokenLifetime);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_signing_alg_values_supported' setting.
@@ -253,19 +250,25 @@ public static class OpenIdSettingKeys
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_encryption_alg_values_supported' setting.
     /// </summary>
-    public static SettingKey<IReadOnlyCollection<string>> RequestObjectEncryptionAlgValuesSupported =>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > RequestObjectEncryptionAlgValuesSupported =>
         new(OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_encryption_enc_values_supported' setting.
     /// </summary>
-    public static SettingKey<IReadOnlyCollection<string>> RequestObjectEncryptionEncValuesSupported =>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > RequestObjectEncryptionEncValuesSupported =>
         new(OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_encryption_zip_values_supported' setting.
     /// </summary>
-    public static SettingKey<IReadOnlyCollection<string>> RequestObjectEncryptionZipValuesSupported =>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > RequestObjectEncryptionZipValuesSupported =>
         new(OpenIdSettingNames.RequestObjectEncryptionZipValuesSupported);
 
     /// <summary>
@@ -355,14 +358,12 @@ public static class OpenIdSettingKeys
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_max_age' setting.
     /// </summary>
-    public static SettingKey<TimeSpan> SubjectMaxAge =>
-        new(OpenIdSettingNames.SubjectMaxAge);
+    public static SettingKey<TimeSpan> SubjectMaxAge => new(OpenIdSettingNames.SubjectMaxAge);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_type' setting.
     /// </summary>
-    public static SettingKey<string> SubjectType =>
-        new(OpenIdSettingNames.SubjectType);
+    public static SettingKey<string> SubjectType => new(OpenIdSettingNames.SubjectType);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_types_supported' setting.
@@ -373,8 +374,7 @@ public static class OpenIdSettingKeys
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_issuer' setting.
     /// </summary>
-    public static SettingKey<string> TenantIssuer =>
-        new(OpenIdSettingNames.TenantIssuer);
+    public static SettingKey<string> TenantIssuer => new(OpenIdSettingNames.TenantIssuer);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'token_endpoint_auth_methods_supported' setting.
@@ -385,7 +385,9 @@ public static class OpenIdSettingKeys
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'token_endpoint_auth_signing_alg_values_supported' setting.
     /// </summary>
-    public static SettingKey<IReadOnlyCollection<string>> TokenEndpointAuthSigningAlgValuesSupported =>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > TokenEndpointAuthSigningAlgValuesSupported =>
         new(OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported);
 
     /// <summary>

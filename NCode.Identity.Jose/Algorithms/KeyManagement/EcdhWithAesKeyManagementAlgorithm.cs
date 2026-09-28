@@ -63,9 +63,10 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
         IBufferWriter<byte> encryptedContentKeyWriter
     )
     {
-        var newKek = KekSizeBytes <= JoseConstants.MaxStackAlloc ?
-            stackalloc byte[KekSizeBytes] :
-            GC.AllocateUninitializedArray<byte>(KekSizeBytes, pinned: true);
+        var newKek =
+            KekSizeBytes <= JoseConstants.MaxStackAlloc
+                ? stackalloc byte[KekSizeBytes]
+                : GC.AllocateUninitializedArray<byte>(KekSizeBytes, pinned: true);
 
         try
         {
@@ -89,12 +90,7 @@ public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
     {
         NewKey(secretKey, header, contentKey);
 
-        WrapKey(
-            secretKey,
-            header,
-            contentKey,
-            encryptedContentKeyWriter
-        );
+        WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter);
     }
 
     /// <inheritdoc />

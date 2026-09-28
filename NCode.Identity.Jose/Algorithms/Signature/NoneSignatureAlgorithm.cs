@@ -59,14 +59,23 @@ public class NoneSignatureAlgorithm : SignatureAlgorithm
     public override int GetSignatureSizeBytes(int keySizeBits) => 0;
 
     /// <inheritdoc />
-    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
+    public override bool TrySign(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        Span<byte> signature,
+        out int bytesWritten
+    )
     {
         bytesWritten = 0;
         return true;
     }
 
     /// <inheritdoc />
-    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
+    public override bool Verify(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        ReadOnlySpan<byte> signature
+    )
     {
         return signature.Length == 0;
     }

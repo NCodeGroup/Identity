@@ -31,7 +31,8 @@ public class NegativeIsActiveResult : IsActiveResult
     /// Initializes a new instance of the <see cref="NegativeIsActiveResult"/> class
     /// with <see cref="IsActiveResult.IsActive"/> initially set to <c>false</c>.
     /// </summary>
-    public NegativeIsActiveResult() : base(initial: false)
+    public NegativeIsActiveResult()
+        : base(initial: false)
     {
         // nothing
     }

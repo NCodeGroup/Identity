@@ -40,15 +40,21 @@ public class DelegatingJsonConverter<TInterface, TImplementation> : JsonConverte
 
     /// <inheritdoc />
     public override bool CanConvert(Type typeToConvert) =>
-        MatchExact ?
-            typeToConvert == typeof(TInterface) :
-            typeof(TInterface).IsAssignableTo(typeToConvert) && typeToConvert != typeof(object);
+        MatchExact
+            ? typeToConvert == typeof(TInterface)
+            : typeof(TInterface).IsAssignableTo(typeToConvert) && typeToConvert != typeof(object);
 
     /// <inheritdoc />
-    public override TInterface? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        JsonSerializer.Deserialize<TImplementation>(ref reader, options);
+    public override TInterface? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    ) => JsonSerializer.Deserialize<TImplementation>(ref reader, options);
 
     /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, TInterface value, JsonSerializerOptions options) =>
-        JsonSerializer.Serialize(writer, value, typeof(TImplementation), options);
+    public override void Write(
+        Utf8JsonWriter writer,
+        TInterface value,
+        JsonSerializerOptions options
+    ) => JsonSerializer.Serialize(writer, value, typeof(TImplementation), options);
 }

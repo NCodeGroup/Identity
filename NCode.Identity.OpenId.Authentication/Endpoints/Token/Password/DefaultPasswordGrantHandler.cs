@@ -36,19 +36,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenGrantHandler"/> for the <c>Password</c> grant type.
 /// </summary>
-public class DefaultPasswordGrantHandler(
-    TimeProvider timeProvider,
-    ITokenService tokenService
-) : ITokenGrantHandler
+public class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenService tokenService)
+    : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ITokenService TokenService { get; } = tokenService;
 
     /// <inheritdoc />
-    public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
-    {
-        OpenIdConstants.GrantTypes.Password
-    };
+    public IReadOnlySet<string> GrantTypes { get; } =
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.Password };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -69,21 +65,20 @@ public class DefaultPasswordGrantHandler(
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
-        var disposition = await mediator.SendAsync<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>(
-            new AuthenticatePasswordGrantCommand(
-                openIdContext,
-                openIdClient,
-                tokenRequest
-            ),
+        var disposition = await mediator.SendAsync<
+            AuthenticatePasswordGrantCommand,
+            AuthenticateSubjectDisposition
+        >(
+            new AuthenticatePasswordGrantCommand(openIdContext, openIdClient, tokenRequest),
             cancellationToken
         );
 
         if (!disposition.IsAuthenticated)
         {
-            return disposition.Error ??
-                   errorFactory
-                       .InvalidGrant("The provided credentials are invalid, expired, or revoked.")
-                       .WithStatusCode(StatusCodes.Status400BadRequest);
+            return disposition.Error
+                ?? errorFactory
+                    .InvalidGrant("The provided credentials are invalid, expired, or revoked.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
         var subjectAuthentication = disposition.Ticket.Value;
@@ -133,7 +128,7 @@ public class DefaultPasswordGrantHandler(
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.Password,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
-            SubjectAuthentication = passwordGrant.SubjectAuthentication
+            SubjectAuthentication = passwordGrant.SubjectAuthentication,
         };
 
         {
@@ -151,10 +146,7 @@ public class DefaultPasswordGrantHandler(
 
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
         {
-            var newRequest = securityTokenRequest with
-            {
-                AccessToken = tokenResponse.AccessToken
-            };
+            var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
             var securityToken = await TokenService.CreateIdTokenAsync(
                 openIdContext,
@@ -168,10 +160,7 @@ public class DefaultPasswordGrantHandler(
 
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
         {
-            var newRequest = securityTokenRequest with
-            {
-                AccessToken = tokenResponse.AccessToken
-            };
+            var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
             var securityToken = await TokenService.CreateRefreshTokenAsync(
                 openIdContext,

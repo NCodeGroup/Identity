@@ -55,16 +55,19 @@ public class DefaultEccSecretKey(
 
     /// <inheritdoc />
     public override X509Certificate2? ExportCertificate() =>
-        HasCertificate ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span) : null;
+        HasCertificate
+            ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span)
+            : null;
 
     /// <inheritdoc />
-    public override ECCurve GetECCurve() => KeySizeBits switch
-    {
-        256 => ECCurve.NamedCurves.nistP256,
-        384 => ECCurve.NamedCurves.nistP384,
-        521 => ECCurve.NamedCurves.nistP521,
-        _ => GetECCurveSlow()
-    };
+    public override ECCurve GetECCurve() =>
+        KeySizeBits switch
+        {
+            256 => ECCurve.NamedCurves.nistP256,
+            384 => ECCurve.NamedCurves.nistP384,
+            521 => ECCurve.NamedCurves.nistP521,
+            _ => GetECCurveSlow(),
+        };
 
     private ECCurve GetECCurveSlow()
     {
@@ -75,10 +78,7 @@ public class DefaultEccSecretKey(
 
     /// <inheritdoc />
     public override ECDsa ExportECDsa() =>
-        DataProtector.ExportAsymmetricAlgorithm(
-            ProtectedPkcs8PrivateKey.Span,
-            ECDsa.Create
-        );
+        DataProtector.ExportAsymmetricAlgorithm(ProtectedPkcs8PrivateKey.Span, ECDsa.Create);
 
     /// <inheritdoc />
     public override ECDiffieHellman ExportECDiffieHellman() =>

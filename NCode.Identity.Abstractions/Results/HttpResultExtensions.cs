@@ -35,6 +35,8 @@ public static class HttpResultExtensions
     /// <param name="httpResult">The HTTP <see cref="IResult"/> to wrap.</param>
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <returns>The <see cref="HttpResultException"/> instance.</returns>
-    public static HttpResultException AsException(this IResult httpResult, string? message = null) =>
-        new(httpResult, message);
+    public static HttpResultException AsException(
+        this IResult httpResult,
+        string? message = null
+    ) => new(httpResult, message);
 }

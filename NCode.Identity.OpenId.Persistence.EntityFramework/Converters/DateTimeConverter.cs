@@ -31,9 +31,7 @@ public class DateTimeConverter : ValueConverter<DateTime, DateTime>
     /// Initializes a new instance of the <see cref="DateTimeConverter"/> class.
     /// </summary>
     public DateTimeConverter()
-        : base(
-            value => value.ToUniversalTime(),
-            value => value.ToUniversalTime())
+        : base(value => value.ToUniversalTime(), value => value.ToUniversalTime())
     {
         // nothing
     }

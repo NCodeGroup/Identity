@@ -101,16 +101,19 @@ public class DefaultAuthorizationEndpointLogic(
         }
     }
 
-    private static IOpenIdError GetOpenIdError(IOpenIdErrorFactory errorFactory, Exception exception, string? state) =>
+    private static IOpenIdError GetOpenIdError(
+        IOpenIdErrorFactory errorFactory,
+        Exception exception,
+        string? state
+    ) =>
         exception switch
         {
-            OpenIdException openIdException => openIdException.Error
-                .WithState(state),
+            OpenIdException openIdException => openIdException.Error.WithState(state),
 
             _ => errorFactory
                 .Create(OpenIdConstants.ErrorCodes.ServerError)
                 .WithState(state)
-                .WithException(exception)
+                .WithException(exception),
         };
 
     private async ValueTask<ReadOnlyEndpointDisposition> CoreProcessRequestAsync(
@@ -126,9 +129,9 @@ public class DefaultAuthorizationEndpointLogic(
 
         // the request object may have changed the response mode
         var requestObject = authorizationRequest.OriginalRequestObject;
-        var effectiveResponseMode = !string.IsNullOrEmpty(requestObject?.ResponseMode) ?
-            requestObject.ResponseMode :
-            clientRedirectContext.ResponseMode;
+        var effectiveResponseMode = !string.IsNullOrEmpty(requestObject?.ResponseMode)
+            ? requestObject.ResponseMode
+            : clientRedirectContext.ResponseMode;
 
         await mediator.SendAsync(
             new ValidateAuthorizationRequestCommand(
@@ -139,12 +142,11 @@ public class DefaultAuthorizationEndpointLogic(
             cancellationToken
         );
 
-        var authenticateSubjectDisposition = await mediator.SendAsync<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>(
-            new AuthenticateSubjectCommand(
-                openIdContext,
-                openIdClient,
-                authorizationRequest
-            ),
+        var authenticateSubjectDisposition = await mediator.SendAsync<
+            AuthenticateSubjectCommand,
+            AuthenticateSubjectDisposition
+        >(
+            new AuthenticateSubjectCommand(openIdContext, openIdClient, authorizationRequest),
             cancellationToken
         );
 
@@ -171,7 +173,10 @@ public class DefaultAuthorizationEndpointLogic(
 
         var authenticationTicket = authenticateSubjectDisposition.Ticket.Value;
 
-        var authorizeSubjectDisposition = await mediator.SendAsync<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>(
+        var authorizeSubjectDisposition = await mediator.SendAsync<
+            AuthorizeSubjectCommand,
+            AuthorizeSubjectDisposition
+        >(
             new AuthorizeSubjectCommand(
                 openIdContext,
                 openIdClient,
@@ -202,7 +207,10 @@ public class DefaultAuthorizationEndpointLogic(
             );
         }
 
-        var authorizationTicket = await mediator.SendAsync<CreateAuthorizationTicketCommand, IAuthorizationTicket>(
+        var authorizationTicket = await mediator.SendAsync<
+            CreateAuthorizationTicketCommand,
+            IAuthorizationTicket
+        >(
             new CreateAuthorizationTicketCommand(
                 openIdContext,
                 openIdClient,
@@ -213,11 +221,7 @@ public class DefaultAuthorizationEndpointLogic(
         );
 
         return ReadOnlyEndpointDisposition.Handled(
-            new AuthorizationResult(
-                redirectUri,
-                effectiveResponseMode,
-                authorizationTicket
-            )
+            new AuthorizationResult(redirectUri, effectiveResponseMode, authorizationTicket)
         );
     }
 
@@ -241,10 +245,7 @@ public class DefaultAuthorizationEndpointLogic(
             cancellationToken
         );
 
-        var authenticationProperties = new AuthenticationProperties
-        {
-            RedirectUri = continueUrl
-        };
+        var authenticationProperties = new AuthenticationProperties { RedirectUri = continueUrl };
 
         authenticationProperties.SetString(
             OpenIdConstants.AuthenticationPropertyItems.TenantId,
@@ -274,7 +275,10 @@ public class DefaultAuthorizationEndpointLogic(
 
         // additional authentication properties can be set via mediator middleware
 
-        var disposition = await mediator.SendAsync<ChallengeSubjectCommand, ReadOnlyEndpointDisposition>(
+        var disposition = await mediator.SendAsync<
+            ChallengeSubjectCommand,
+            ReadOnlyEndpointDisposition
+        >(
             new ChallengeSubjectCommand(
                 openIdContext,
                 openIdClient,

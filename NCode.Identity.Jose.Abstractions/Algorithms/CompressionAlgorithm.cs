@@ -36,12 +36,18 @@ public abstract class CompressionAlgorithm : Algorithm
     /// </summary>
     /// <param name="uncompressedData">Contains the data to compress.</param>
     /// <param name="compressedData">Destination for the compressed data.</param>
-    public abstract void Compress(ReadOnlySpan<byte> uncompressedData, IBufferWriter<byte> compressedData);
+    public abstract void Compress(
+        ReadOnlySpan<byte> uncompressedData,
+        IBufferWriter<byte> compressedData
+    );
 
     /// <summary>
     /// When overridden in a derived class, decompresses data.
     /// </summary>
     /// <param name="compressedData">Contains the data to decompress.</param>
     /// <param name="uncompressedData">Destination for the uncompressed data.</param>
-    public abstract void Decompress(ReadOnlySpan<byte> compressedData, IBufferWriter<byte> uncompressedData);
+    public abstract void Decompress(
+        ReadOnlySpan<byte> compressedData,
+        IBufferWriter<byte> uncompressedData
+    );
 }

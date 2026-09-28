@@ -35,7 +35,11 @@ public readonly struct CompactJwt
     /// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
     /// <param name="segments">Contains the substrings from the JWT separated by '.' (aka dot).</param>
     /// <param name="deserializedHeader">Contains the deserialized header from the JWT.</param>
-    public CompactJwt(string protectionType, StringSegments segments, JsonElement deserializedHeader)
+    public CompactJwt(
+        string protectionType,
+        StringSegments segments,
+        JsonElement deserializedHeader
+    )
     {
         ProtectionType = protectionType;
         Segments = segments;

@@ -42,7 +42,8 @@ public interface ITokenService
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Generates a id token.
@@ -57,7 +58,8 @@ public interface ITokenService
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Generates a refresh token.
@@ -72,5 +74,6 @@ public interface ITokenService
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

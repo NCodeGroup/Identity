@@ -32,11 +32,7 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload
-    );
+    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -60,11 +56,7 @@ partial interface IJoseSerializer
     /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        CompactJwt compactJwt,
-        SecretKey secretKey,
-        ReadOnlySpan<byte> detachedPayload
-    );
+    void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -73,11 +65,7 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        string detachedPayload
-    );
+    void VerifyJws(string token, SecretKey secretKey, string detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -101,11 +89,7 @@ partial interface IJoseSerializer
     /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        CompactJwt compactJwt,
-        SecretKey secretKey,
-        string detachedPayload
-    );
+    void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, string detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -114,11 +98,7 @@ partial interface IJoseSerializer
     /// <param name="token">The Json Web Token (JWT) to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        string token,
-        SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload
-    );
+    void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.
@@ -142,11 +122,7 @@ partial interface IJoseSerializer
     /// <param name="compactJwt">The parsed JWT in compact form to validate.</param>
     /// <param name="secretKey">The Key Encryption Key (KEK) to use for validation.</param>
     /// <param name="detachedPayload">The detached payload to validate.</param>
-    void VerifyJws(
-        CompactJwt compactJwt,
-        SecretKey secretKey,
-        ReadOnlySpan<char> detachedPayload
-    );
+    void VerifyJws(CompactJwt compactJwt, SecretKey secretKey, ReadOnlySpan<char> detachedPayload);
 
     /// <summary>
     /// Validates a JWS protected Json Web Token (JWT) with a detached payload.

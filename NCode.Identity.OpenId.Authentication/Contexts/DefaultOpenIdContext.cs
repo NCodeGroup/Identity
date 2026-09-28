@@ -42,7 +42,8 @@ public class DefaultOpenIdContext(
 {
     private string? EndpointNameOrDefault { get; set; }
 
-    private AsyncSharedReferenceLease<OpenIdTenant> TenantReference { get; set; } = tenantReference.AddReference();
+    private AsyncSharedReferenceLease<OpenIdTenant> TenantReference { get; set; } =
+        tenantReference.AddReference();
 
     /// <inheritdoc />
     public override HttpContext Http { get; } = httpContext;
@@ -73,10 +74,6 @@ public class DefaultOpenIdContext(
     }
 
     private string GetEndpointName() =>
-        Http
-            .GetEndpoint()?
-            .Metadata
-            .GetMetadata<IEndpointNameMetadata>()?
-            .EndpointName ??
-        string.Empty;
+        Http.GetEndpoint()?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName
+        ?? string.Empty;
 }

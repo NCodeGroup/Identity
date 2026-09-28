@@ -42,10 +42,7 @@ public static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.TryAddSingleton<
-                IOpenIdClientFactory,
-                DefaultOpenIdClientFactory
-            >();
+            serviceCollection.TryAddSingleton<IOpenIdClientFactory, DefaultOpenIdClientFactory>();
 
             serviceCollection.TryAddSingleton<
                 IClientAuthenticationService,
@@ -53,15 +50,24 @@ public static class DefaultRegistration
             >();
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IClientAuthenticationHandler, ClientSecretBasicClientAuthenticationHandler>()
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticationHandler,
+                    ClientSecretBasicClientAuthenticationHandler
+                >()
             );
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IClientAuthenticationHandler, ClientSecretPostClientAuthenticationHandler>()
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticationHandler,
+                    ClientSecretPostClientAuthenticationHandler
+                >()
             );
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IClientAuthenticationHandler, NoneClientAuthenticationHandler>()
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticationHandler,
+                    NoneClientAuthenticationHandler
+                >()
             );
 
             return builder;

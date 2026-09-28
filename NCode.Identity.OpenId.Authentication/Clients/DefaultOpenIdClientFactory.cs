@@ -32,11 +32,11 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Provides a default implementation of the <see cref="IOpenIdClientFactory"/> abstraction.
 /// </summary>
 [PublicAPI]
-public class DefaultOpenIdClientFactory(
-    ISecretKeyCollectionFactory secretKeyCollectionFactory
-) : IOpenIdClientFactory
+public class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyCollectionFactory)
+    : IOpenIdClientFactory
 {
-    private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } = secretKeyCollectionFactory;
+    private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } =
+        secretKeyCollectionFactory;
 
     /// <inheritdoc />
     public ValueTask<OpenIdClient> CreatePublicClientAsync(
@@ -66,7 +66,9 @@ public class DefaultOpenIdClientFactory(
     /// <summary>
     /// Gets the collection of redirect URIs from the client settings.
     /// </summary>
-    protected internal virtual IReadOnlyCollection<string> GetRedirectUris(IReadOnlySettingCollection settings)
+    protected internal virtual IReadOnlyCollection<string> GetRedirectUris(
+        IReadOnlySettingCollection settings
+    )
     {
         if (!settings.TryGetValue(OpenIdSettingKeys.RedirectUris, out var redirectUris))
         {
@@ -85,14 +87,7 @@ public class DefaultOpenIdClientFactory(
         ISecretKeyCollection secretKeys,
         IReadOnlyCollection<string> redirectUris,
         IPropertyBag propertyBag
-    ) =>
-        new DefaultOpenIdClient(
-            clientId,
-            settings,
-            secretKeys,
-            redirectUris,
-            propertyBag
-        );
+    ) => new DefaultOpenIdClient(clientId, settings, secretKeys, redirectUris, propertyBag);
 
     /// <inheritdoc />
     public ValueTask<OpenIdConfidentialClient> CreateConfidentialClientAsync(

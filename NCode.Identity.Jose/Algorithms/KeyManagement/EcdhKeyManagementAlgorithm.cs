@@ -45,15 +45,10 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public static EcdhKeyManagementAlgorithm Singleton { get; } = new();
 
     private static IEnumerable<KeySizes> StaticKekBitSizes { get; } =
-    [
-        new(minSize: 256, maxSize: 384, skipSize: 128),
-        new(minSize: 521, maxSize: 521, skipSize: 0)
-    ];
+    [new(minSize: 256, maxSize: 384, skipSize: 128), new(minSize: 521, maxSize: 521, skipSize: 0)];
 
     private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
-    [
-        new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)
-    ];
+    [new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)];
 
     /// <inheritdoc />
     public override string Code { get; }
@@ -109,7 +104,7 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
                     [JoseClaimNames.Header.Crv] = $"P-{curveSizeBits}",
                     [JoseClaimNames.Header.X] = Base64Url.Encode(parameters.Q.X),
                     [JoseClaimNames.Header.Y] = Base64Url.Encode(parameters.Q.Y),
-                    [JoseClaimNames.Header.D] = Base64Url.Encode(parameters.D)
+                    [JoseClaimNames.Header.D] = Base64Url.Encode(parameters.D),
                 };
             }
             finally
@@ -172,11 +167,7 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var parameters = new ECParameters
         {
             Curve = curve,
-            Q = new ECPoint
-            {
-                X = Base64Url.Decode(x),
-                Y = Base64Url.Decode(y)
-            }
+            Q = new ECPoint { X = Base64Url.Decode(x), Y = Base64Url.Decode(y) },
         };
 
         algorithm = localAlgorithm;
@@ -188,7 +179,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     }
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) => StaticCekByteSizes;
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
+        StaticCekByteSizes;
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) => 0;
@@ -219,15 +211,7 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         using var senderKey = ephemeralKey.PublicKey;
 
-        DeriveKey(
-            algorithm,
-            apu,
-            apv,
-            curveSizeBits,
-            recipientKey,
-            senderKey,
-            contentKey
-        );
+        DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
     }
 
     /// <inheritdoc />
@@ -238,7 +222,9 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         IBufferWriter<byte> encryptedContentKeyWriter
     )
     {
-        throw new JoseException("The 'ECDH-ES' key management algorithm does not support using an existing CEK.");
+        throw new JoseException(
+            "The 'ECDH-ES' key management algorithm does not support using an existing CEK."
+        );
     }
 
     /// <inheritdoc />
@@ -265,7 +251,8 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         {
             throw new ArgumentException(
                 "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
-                nameof(encryptedContentKey));
+                nameof(encryptedContentKey)
+            );
         }
 
         var validatedSecretKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
@@ -284,15 +271,7 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         );
         using var senderKey = ephemeralKey.PublicKey;
 
-        DeriveKey(
-            algorithm,
-            apu,
-            apv,
-            curveSizeBits,
-            recipientKey,
-            senderKey,
-            contentKey
-        );
+        DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
 
         bytesWritten = contentKey.Length;
         return true;
@@ -365,22 +344,32 @@ public class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     )
     {
         var algorithmByteCount = Encoding.ASCII.GetByteCount(algorithm);
-        var apuByteCount = string.IsNullOrEmpty(apu) ? 0 : Base64Url.GetByteCountForDecode(apu.Length);
-        var apvByteCount = string.IsNullOrEmpty(apv) ? 0 : Base64Url.GetByteCountForDecode(apv.Length);
+        var apuByteCount = string.IsNullOrEmpty(apu)
+            ? 0
+            : Base64Url.GetByteCountForDecode(apu.Length);
+        var apvByteCount = string.IsNullOrEmpty(apv)
+            ? 0
+            : Base64Url.GetByteCountForDecode(apv.Length);
 
         var secretAppendByteCount =
             // algorithm length prefix
-            sizeof(int) +
+            sizeof(int)
+            +
             // algorithm ASCII bytes
-            algorithmByteCount +
+            algorithmByteCount
+            +
             // apu length prefix
-            sizeof(int) +
+            sizeof(int)
+            +
             // apu bytes
-            apuByteCount +
+            apuByteCount
+            +
             // apv length prefix
-            sizeof(int) +
+            sizeof(int)
+            +
             // apv bytes
-            apvByteCount +
+            apvByteCount
+            +
             // key size bits
             sizeof(int);
 

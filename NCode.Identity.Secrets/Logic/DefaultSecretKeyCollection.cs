@@ -30,7 +30,8 @@ public class DefaultSecretKeyCollection : ISecretKeyCollection
 {
     private List<SecretKey> SecretKeys { get; }
     private Dictionary<string, SecretKey>? SecretKeysByKeyIdOrNull { get; set; }
-    private Dictionary<string, SecretKey> SecretKeysByKeyId => SecretKeysByKeyIdOrNull ??= LoadSecretKeysByKeyId();
+    private Dictionary<string, SecretKey> SecretKeysByKeyId =>
+        SecretKeysByKeyIdOrNull ??= LoadSecretKeysByKeyId();
 
     /// <inheritdoc />
     public int Count => SecretKeys.Count;
@@ -52,7 +53,8 @@ public class DefaultSecretKeyCollection : ISecretKeyCollection
         foreach (var secretKey in SecretKeys)
         {
             var keyId = secretKey.KeyId;
-            if (string.IsNullOrEmpty(keyId)) continue;
+            if (string.IsNullOrEmpty(keyId))
+                continue;
             dictionary.TryAdd(keyId, secretKey);
         }
 
@@ -64,9 +66,7 @@ public class DefaultSecretKeyCollection : ISecretKeyCollection
         SecretKeysByKeyId.TryGetValue(keyId, out secretKey);
 
     /// <inheritdoc />
-    public IEnumerator<SecretKey> GetEnumerator() =>
-        SecretKeys.GetEnumerator();
+    public IEnumerator<SecretKey> GetEnumerator() => SecretKeys.GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() =>
-        GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

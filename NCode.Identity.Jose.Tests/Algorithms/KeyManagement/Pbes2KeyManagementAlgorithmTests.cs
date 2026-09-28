@@ -43,7 +43,8 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         IAesKeyWrap? aesKeyWrap = null,
         string? code = null,
         int? keySizeBits = null,
-        int? maxIterationCount = null)
+        int? maxIterationCount = null
+    )
     {
         var actualKeySizeBits = keySizeBits ?? 128;
         var hashAlgorithmName = actualKeySizeBits switch
@@ -51,14 +52,15 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
             128 => HashAlgorithmName.SHA256,
             192 => HashAlgorithmName.SHA384,
             256 => HashAlgorithmName.SHA512,
-            _ => throw new ArgumentOutOfRangeException(nameof(keySizeBits))
+            _ => throw new ArgumentOutOfRangeException(nameof(keySizeBits)),
         };
         return new Pbes2KeyManagementAlgorithm(
             aesKeyWrap ?? MockAesKeyWrap.Object,
             code ?? "code",
             hashAlgorithmName,
             actualKeySizeBits,
-            maxIterationCount ?? 310000);
+            maxIterationCount ?? 310000
+        );
     }
 
     [Fact]
@@ -117,10 +119,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     {
         var expected = Enumerable.Empty<KeySizes>();
 
-        MockAesKeyWrap
-            .Setup(x => x.LegalCekByteSizes)
-            .Returns(expected)
-            .Verifiable();
+        MockAesKeyWrap.Setup(x => x.LegalCekByteSizes).Returns(expected).Verifiable();
 
         var algorithm = Create();
         var kekSizeBits = Random.Shared.Next();
@@ -141,7 +140,8 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter));
+            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter)
+        );
 
         Assert.Equal("The JWT header is missing the 'alg' field.", exception.Message);
     }
@@ -155,17 +155,14 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var secretKey = SecretKeyFactory.CreateSymmetric(default, password);
 
-        var header = new Dictionary<string, object>
-        {
-            ["alg"] = "anything",
-            ["p2c"] = 1
-        };
+        var header = new Dictionary<string, object> { ["alg"] = "anything", ["p2c"] = 1 };
 
         var contentKey = Array.Empty<byte>();
         var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter));
+            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter)
+        );
 
         Assert.Equal("The 'p2c' field in the JWT header must be at least 1000", exception.Message);
     }
@@ -182,14 +179,15 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var header = new Dictionary<string, object>
         {
             ["alg"] = "anything",
-            ["p2c"] = int.MaxValue
+            ["p2c"] = int.MaxValue,
         };
 
         var contentKey = Array.Empty<byte>();
         var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter));
+            algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter)
+        );
 
         Assert.Equal("The 'p2c' field in the JWT header must be at most 310000", exception.Message);
     }
@@ -210,9 +208,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var keyBytes = SecureEncoding.UTF8.GetBytes(password);
         var cekSizeBytes = cekSizeBits >> 3;
 
-        var algorithm = Create(
-            keySizeBits: keySizeBits,
-            aesKeyWrap: DefaultAesKeyWrap.Singleton);
+        var algorithm = Create(keySizeBits: keySizeBits, aesKeyWrap: DefaultAesKeyWrap.Singleton);
 
         var metadata = new KeyMetadata { KeyId = keyId };
         var secretKey = SecretKeyFactory.CreateSymmetric(metadata, keyBytes);
@@ -221,11 +217,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         var p2c = Random.Shared.Next(Pbes2KeyManagementAlgorithm.MinIterationCount, 310000);
         var saltSize = alg.Length + 1 + Pbes2KeyManagementAlgorithm.SaltInputSizeBytes;
 
-        var header = new Dictionary<string, object>
-        {
-            [nameof(alg)] = alg,
-            [nameof(p2c)] = p2c
-        };
+        var header = new Dictionary<string, object> { [nameof(alg)] = alg, [nameof(p2c)] = p2c };
 
         var contentKey = new byte[cekSizeBytes];
         RandomNumberGenerator.Fill(contentKey);
@@ -242,13 +234,25 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
 
         var controlAlgorithm = new Pbse2HmacShaKeyManagementWithAesKeyWrap(
             keySizeBits,
-            new AesKeyWrapManagement(keySizeBits));
+            new AesKeyWrapManagement(keySizeBits)
+        );
 
-        var expectedControl = controlAlgorithm.Unwrap(encryptedContentKeyWriter.WrittenSpan.ToArray(), password, cekSizeBits, header);
+        var expectedControl = controlAlgorithm.Unwrap(
+            encryptedContentKeyWriter.WrittenSpan.ToArray(),
+            password,
+            cekSizeBits,
+            header
+        );
         Assert.Equal(expectedControl, contentKey.ToArray());
 
         var headerForUnwrap = JsonSerializer.SerializeToElement(header);
-        var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedContentKeyWriter.WrittenSpan, decryptedContentKey, out var unwrapBytesWritten);
+        var unwrapResult = algorithm.TryUnwrapKey(
+            secretKey,
+            headerForUnwrap,
+            encryptedContentKeyWriter.WrittenSpan,
+            decryptedContentKey,
+            out var unwrapBytesWritten
+        );
         Assert.True(unwrapResult);
         Assert.Equal(contentKey.Length, unwrapBytesWritten);
         Assert.Equal(contentKey, decryptedContentKey);

@@ -43,7 +43,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             256 => ECCurve.NamedCurves.nistP256,
             384 => ECCurve.NamedCurves.nistP384,
             521 => ECCurve.NamedCurves.nistP521,
-            _ => throw new NotSupportedException()
+            _ => throw new NotSupportedException(),
         };
         return curve;
     }
@@ -77,7 +77,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 Assert.Equal(521, size.MinSize);
                 Assert.Equal(521, size.MaxSize);
                 Assert.Equal(0, size.SkipSize);
-            });
+            }
+        );
     }
 
     [Theory]
@@ -136,10 +137,10 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}",
                 ["x"] = encodedX,
-                ["y"] = encodedY
+                ["y"] = encodedY,
             },
             ["apu"] = encodedApu,
-            ["apv"] = encodedApv
+            ["apv"] = encodedApv,
         };
 
         var headerForUnwrap = header.Deserialize<JsonElement>();
@@ -150,7 +151,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             headerForUnwrap,
             out var algorithm,
             out var apu,
-            out var apv);
+            out var apv
+        );
 
         Assert.Equal(expectedAlgorithm, algorithm);
         Assert.Equal(encodedApu, apu);
@@ -179,7 +181,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 headerForUnwrap,
                 out _,
                 out _,
-                out _));
+                out _
+            )
+        );
 
         Assert.Equal("The JWT header is missing the 'enc' field.", exception.Message);
     }
@@ -197,10 +201,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new JsonObject
-        {
-            ["enc"] = expectedAlgorithm
-        };
+        var header = new JsonObject { ["enc"] = expectedAlgorithm };
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
@@ -210,7 +211,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 headerForUnwrap,
                 out _,
                 out _,
-                out _));
+                out _
+            )
+        );
 
         Assert.Equal("The JWT header is missing the 'epk' field.", exception.Message);
     }
@@ -228,11 +231,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         RandomNumberGenerator.Fill(expectedApu);
         RandomNumberGenerator.Fill(expectedApv);
 
-        var header = new JsonObject
-        {
-            ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject()
-        };
+        var header = new JsonObject { ["enc"] = expectedAlgorithm, ["epk"] = new JsonObject() };
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
@@ -242,7 +241,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 headerForUnwrap,
                 out _,
                 out _,
-                out _));
+                out _
+            )
+        );
 
         Assert.Equal("The 'epk' header is missing the 'kty' field.", exception.Message);
     }
@@ -263,10 +264,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject
-            {
-                ["kty"] = "NotEC"
-            }
+            ["epk"] = new JsonObject { ["kty"] = "NotEC" },
         };
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
@@ -277,7 +275,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 headerForUnwrap,
                 out _,
                 out _,
-                out _));
+                out _
+            )
+        );
 
         Assert.Equal("The 'kty' field was expected to be 'EC'.", exception.Message);
     }
@@ -298,10 +298,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject
-            {
-                ["kty"] = "EC"
-            }
+            ["epk"] = new JsonObject { ["kty"] = "EC" },
         };
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
@@ -312,7 +309,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 headerForUnwrap,
                 out _,
                 out _,
-                out _));
+                out _
+            )
+        );
 
         Assert.Equal("The 'epk' header is missing the 'crv' field.", exception.Message);
     }
@@ -333,11 +332,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var header = new JsonObject
         {
             ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject
-            {
-                ["kty"] = "EC",
-                ["crv"] = $"P-{curveSizeBits}"
-            }
+            ["epk"] = new JsonObject { ["kty"] = "EC", ["crv"] = $"P-{curveSizeBits}" },
         };
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
@@ -348,7 +343,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 headerForUnwrap,
                 out _,
                 out _,
-                out _));
+                out _
+            )
+        );
 
         Assert.Equal("The 'epk' header is missing the 'x' field.", exception.Message);
     }
@@ -376,8 +373,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             {
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}",
-                ["x"] = encodedX
-            }
+                ["x"] = encodedX,
+            },
         };
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
@@ -388,7 +385,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 headerForUnwrap,
                 out _,
                 out _,
-                out _));
+                out _
+            )
+        );
 
         Assert.Equal("The 'epk' header is missing the 'y' field.", exception.Message);
     }
@@ -418,9 +417,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}",
                 ["x"] = encodedX,
-                ["y"] = encodedY
+                ["y"] = encodedY,
             },
-            ["apv"] = encodedApv
+            ["apv"] = encodedApv,
         };
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
@@ -430,7 +429,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             headerForUnwrap,
             out var algorithm,
             out var apu,
-            out var apv);
+            out var apv
+        );
 
         Assert.Equal(expectedAlgorithm, algorithm);
         Assert.Null(apu);
@@ -462,9 +462,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 ["kty"] = "EC",
                 ["crv"] = $"P-{curveSizeBits}",
                 ["x"] = encodedX,
-                ["y"] = encodedY
+                ["y"] = encodedY,
             },
-            ["apu"] = encodedApu
+            ["apu"] = encodedApu,
         };
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
@@ -474,7 +474,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             headerForUnwrap,
             out var algorithm,
             out var apu,
-            out var apv);
+            out var apv
+        );
 
         Assert.Equal(expectedAlgorithm, algorithm);
         Assert.Equal(encodedApu, apu);
@@ -505,7 +506,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     public void WrapKey_Valid()
     {
         Assert.Throws<JoseException>(() =>
-            Algorithm.WrapKey(null!, null!, Span<byte>.Empty, new ArrayBufferWriter<byte>()));
+            Algorithm.WrapKey(null!, null!, Span<byte>.Empty, new ArrayBufferWriter<byte>())
+        );
     }
 
     public static IEnumerable<object[]> RoundTripTestData
@@ -516,7 +518,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             {
                 ECCurve.NamedCurves.nistP256,
                 ECCurve.NamedCurves.nistP384,
-                ECCurve.NamedCurves.nistP521
+                ECCurve.NamedCurves.nistP521,
             };
 
             var keySizes = new[] { 16, 24, 32 };
@@ -553,7 +555,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         {
             ["enc"] = enc,
             ["apu"] = Base64Url.Encode(apu),
-            ["apv"] = Base64Url.Encode(apv)
+            ["apv"] = Base64Url.Encode(apv),
         };
 
         var cek1 = new byte[keySizeBytes];
@@ -568,9 +570,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             Q = new ECPoint
             {
                 X = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("x", epk))),
-                Y = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("y", epk)))
+                Y = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("y", epk))),
             },
-            D = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("d", epk)))
+            D = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("d", epk))),
         };
         using var key2 = ECDiffieHellman.Create(parameters2);
         var secretKey2 = SecretKeyFactory.CreateEcc(metadata, key2);
@@ -586,13 +588,19 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
                 ["kty"] = kty,
                 ["crv"] = crv,
                 ["x"] = Base64Url.Encode(parameters1.Q.X),
-                ["y"] = Base64Url.Encode(parameters1.Q.Y)
-            }
+                ["y"] = Base64Url.Encode(parameters1.Q.Y),
+            },
         };
         var header2ForUnwrap = JsonSerializer.SerializeToElement(header2);
 
         var cek2 = new byte[keySizeBytes];
-        var result = Algorithm.TryUnwrapKey(secretKey2, header2ForUnwrap, Array.Empty<byte>(), cek2, out var bytesWritten);
+        var result = Algorithm.TryUnwrapKey(
+            secretKey2,
+            header2ForUnwrap,
+            Array.Empty<byte>(),
+            cek2,
+            out var bytesWritten
+        );
 
         // assert
 
@@ -603,7 +611,12 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         // control
 
         var keySizeBits = keySizeBytes << 3;
-        var controlKey = EccKey.New(parameters2.Q.X, parameters2.Q.Y, parameters2.D, CngKeyUsages.KeyAgreement);
+        var controlKey = EccKey.New(
+            parameters2.Q.X,
+            parameters2.Q.Y,
+            parameters2.D,
+            CngKeyUsages.KeyAgreement
+        );
         var controlAlgorithm = new EcdhKeyManagementWin(true, new EcdhKeyManagementUnix(true));
         var controlResult = controlAlgorithm.Unwrap([], controlKey, keySizeBits, header2);
         Assert.Equal(controlResult, cek1);

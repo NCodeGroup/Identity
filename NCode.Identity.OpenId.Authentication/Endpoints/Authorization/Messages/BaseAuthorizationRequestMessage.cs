@@ -54,7 +54,11 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     }
 
     /// <inheritdoc />
-    protected BaseAuthorizationRequestMessage(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters, bool cloneParameters = false)
+    protected BaseAuthorizationRequestMessage(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<IParameter> parameters,
+        bool cloneParameters = false
+    )
         : base(openIdEnvironment, parameters, cloneParameters)
     {
         // nothing

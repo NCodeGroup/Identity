@@ -42,7 +42,10 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IOpenIdJsonConverterProvider, DefaultOpenIdJsonConverterProvider>()
+                ServiceDescriptor.Singleton<
+                    IOpenIdJsonConverterProvider,
+                    DefaultOpenIdJsonConverterProvider
+                >()
             );
 
             return builder;

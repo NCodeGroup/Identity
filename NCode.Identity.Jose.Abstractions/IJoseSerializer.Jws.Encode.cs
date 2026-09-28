@@ -29,9 +29,7 @@ partial interface IJoseSerializer
     /// </summary>
     /// <param name="signingOptions">The JOSE signing credentials and options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
-    JoseEncoder CreateEncoder(
-        JoseSigningOptions signingOptions
-    );
+    JoseEncoder CreateEncoder(JoseSigningOptions signingOptions);
 
     /// <summary>
     /// Encodes a JWS token given the specified payload.

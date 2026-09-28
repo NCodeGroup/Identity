@@ -37,9 +37,7 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
         A key of size 2048 bits or larger MUST be used with these algorithms.
     */
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
-    [
-        new(minSize: 2048, maxSize: 16384, skipSize: 64)
-    ];
+    [new(minSize: 2048, maxSize: 16384, skipSize: 64)];
 
     /// <inheritdoc />
     public override string Code { get; }
@@ -61,7 +59,11 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
     /// <param name="padding">Contains a <see cref="RSASignaturePadding"/> value that specifies the type of <c>RSA</c> padding to use.</param>
-    public RsaSignatureAlgorithm(string code, HashAlgorithmName hashAlgorithmName, RSASignaturePadding padding)
+    public RsaSignatureAlgorithm(
+        string code,
+        HashAlgorithmName hashAlgorithmName,
+        RSASignaturePadding padding
+    )
     {
         Code = code;
         HashAlgorithmName = hashAlgorithmName;
@@ -72,33 +74,31 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     public override int GetSignatureSizeBytes(int keySizeBits) => (keySizeBits + 7) >> 3;
 
     /// <inheritdoc />
-    public override bool TrySign(SecretKey secretKey, ReadOnlySpan<byte> inputData, Span<byte> signature, out int bytesWritten)
+    public override bool TrySign(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        Span<byte> signature,
+        out int bytesWritten
+    )
     {
         var validatedSecurityKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
 
         using var key = validatedSecurityKey.ExportRSA();
 
-        return key.TrySignData(
-            inputData,
-            signature,
-            HashAlgorithmName,
-            Padding,
-            out bytesWritten
-        );
+        return key.TrySignData(inputData, signature, HashAlgorithmName, Padding, out bytesWritten);
     }
 
     /// <inheritdoc />
-    public override bool Verify(SecretKey secretKey, ReadOnlySpan<byte> inputData, ReadOnlySpan<byte> signature)
+    public override bool Verify(
+        SecretKey secretKey,
+        ReadOnlySpan<byte> inputData,
+        ReadOnlySpan<byte> signature
+    )
     {
         var validatedSecurityKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
 
         using var key = validatedSecurityKey.ExportRSA();
 
-        return key.VerifyData(
-            inputData,
-            signature,
-            HashAlgorithmName,
-            Padding
-        );
+        return key.VerifyData(inputData, signature, HashAlgorithmName, Padding);
     }
 }

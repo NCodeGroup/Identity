@@ -32,7 +32,7 @@ public class JoseObjectJsonConverterTests
 
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
-            Converters = { converter }
+            Converters = { converter },
         };
 
         var i = 0;
@@ -45,7 +45,7 @@ public class JoseObjectJsonConverterTests
             [$"key{++i}"] = 12.34,
             [$"key{++i}"] = 12.34m,
             [$"key{++i}"] = DateTimeOffset.Now,
-            [$"key{++i}"] = new object[] { "value2", false, -1234 }
+            [$"key{++i}"] = new object[] { "value2", false, -1234 },
         };
 
         input[$"key{++i}.nested"] = new Dictionary<string, object>(input);

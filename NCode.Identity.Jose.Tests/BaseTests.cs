@@ -27,7 +27,8 @@ public class BaseTests : IAsyncDisposable
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
-    protected static DefaultSecretKeyFactory SecretKeyFactory { get; } = new(new DefaultSecretKeyDataProtectorFactory(NullLoggerFactory.Instance));
+    protected static DefaultSecretKeyFactory SecretKeyFactory { get; } =
+        new(new DefaultSecretKeyDataProtectorFactory(NullLoggerFactory.Instance));
 
     public async ValueTask DisposeAsync()
     {
@@ -36,7 +37,11 @@ public class BaseTests : IAsyncDisposable
         GC.SuppressFinalize(this);
     }
 
-    [SuppressMessage("Style", "VSTHRD200:Use \"Async\" suffix for async methods", Justification = "That isn't the recommended MS pattern.")]
+    [SuppressMessage(
+        "Style",
+        "VSTHRD200:Use \"Async\" suffix for async methods",
+        Justification = "That isn't the recommended MS pattern."
+    )]
     protected virtual ValueTask DisposeAsyncCore()
     {
         return ValueTask.CompletedTask;
@@ -44,17 +49,16 @@ public class BaseTests : IAsyncDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposing) return;
+        if (!disposing)
+            return;
         MockRepository.Verify();
     }
 
     protected Mock<T> CreateStrictMock<T>(params object[] args)
-        where T : class =>
-        MockRepository.Create<T>(args);
+        where T : class => MockRepository.Create<T>(args);
 
     protected Mock<T> CreateLooseMock<T>(params object[] args)
-        where T : class =>
-        MockRepository.Create<T>(MockBehavior.Loose, args);
+        where T : class => MockRepository.Create<T>(MockBehavior.Loose, args);
 
     protected Mock<T> CreatePartialMock<T>(params object[] args)
         where T : class

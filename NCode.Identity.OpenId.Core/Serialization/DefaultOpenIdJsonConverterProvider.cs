@@ -31,7 +31,8 @@ namespace NCode.Identity.OpenId.Serialization;
 /// It uses a provided <see cref="IClaimsSerializer"/> to handle serialization and deserialization of claims and claims identities.
 /// The converters are returned in a collection that can be used to configure JSON serialization options in an OpenID environment.
 /// </summary>
-public class DefaultOpenIdJsonConverterProvider(IClaimsSerializer claimsSerializer) : IOpenIdJsonConverterProvider
+public class DefaultOpenIdJsonConverterProvider(IClaimsSerializer claimsSerializer)
+    : IOpenIdJsonConverterProvider
 {
     private IClaimsSerializer ClaimsSerializer { get; } = claimsSerializer;
 

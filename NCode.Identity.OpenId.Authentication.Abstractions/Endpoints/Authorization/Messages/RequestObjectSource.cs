@@ -38,5 +38,5 @@ public enum RequestObjectSource
     /// <summary>
     /// Specifies that the <c>Request Object</c> was loaded by the fetching <c>request_uri</c> parameter.
     /// </summary>
-    Remote
+    Remote,
 }

@@ -48,16 +48,15 @@ public class DefaultOpenIdTenantProviderSelector(
             return TenantProviderOrNull;
 
         var providerCode = OpenIdOptions.Tenant.ProviderCode;
-        var tenantProvider = TenantProviders.FirstOrDefault(
-            provider => string.Equals(
-                providerCode,
-                provider.ProviderCode,
-                StringComparison.Ordinal));
+        var tenantProvider = TenantProviders.FirstOrDefault(provider =>
+            string.Equals(providerCode, provider.ProviderCode, StringComparison.Ordinal)
+        );
 
         TenantProviderOrNull =
-            tenantProvider ??
-            throw new InvalidOperationException(
-                $"Unable to find a tenant provider with code '{providerCode}'.");
+            tenantProvider
+            ?? throw new InvalidOperationException(
+                $"Unable to find a tenant provider with code '{providerCode}'."
+            );
 
         return tenantProvider;
     }

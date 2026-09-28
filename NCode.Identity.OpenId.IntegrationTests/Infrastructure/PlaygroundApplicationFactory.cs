@@ -59,11 +59,8 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
 
             var databaseRoot = new InMemoryDatabaseRoot();
             services.AddDbContextFactory<OpenIdDbContext>(options =>
-                options.UseInMemoryDatabase(DatabaseName, databaseRoot));
+                options.UseInMemoryDatabase(DatabaseName, databaseRoot)
+            );
         });
     }
 }
-
-
-
-

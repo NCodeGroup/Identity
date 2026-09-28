@@ -33,7 +33,8 @@ partial class DefaultJsonWebTokenService
     public async ValueTask<ValidateJwtResult> ValidateJwtAsync(
         string token,
         ValidateJwtParameters parameters,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var propertyBag = parameters.PropertyBag.Clone();
         try
@@ -44,24 +45,20 @@ partial class DefaultJsonWebTokenService
                 compactJwt,
                 propertyBag,
                 SecretKeyCollectionProvider,
-                cancellationToken);
+                cancellationToken
+            );
 
-            var payload = DeserializePayload(
-                compactJwt,
-                validationKeys,
-                out var secretKey);
+            var payload = DeserializePayload(compactJwt, validationKeys, out var secretKey);
 
-            var decodedJwt = new DecodedJwt(
-                compactJwt,
-                payload,
-                secretKey);
+            var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey);
 
             var context = new ValidateJwtContext(
                 secretKey,
                 decodedJwt,
                 propertyBag,
                 ServiceProvider,
-                TimeProvider);
+                TimeProvider
+            );
 
             await InvokeValidatorsAsync(context, parameters.Validators, cancellationToken);
 
@@ -76,7 +73,8 @@ partial class DefaultJsonWebTokenService
     private JsonElement DeserializePayload(
         CompactJwt compactJwt,
         IEnumerable<SecretKey> validationKeys,
-        out SecretKey secretKey)
+        out SecretKey secretKey
+    )
     {
         StringBuilder? exceptions = null;
         StringBuilder? attemptedKeys = null;
@@ -124,13 +122,15 @@ partial class DefaultJsonWebTokenService
         // END EXAMPLE
 
         throw new TokenValidationDecodeException(
-            $"{TokenValidationDecodeException.DefaultMessage}.\n\nToken:\n{compactJwt}\n\nKeys attempted:\n{attemptedKeys}\nInner exceptions:\n{exceptions}");
+            $"{TokenValidationDecodeException.DefaultMessage}.\n\nToken:\n{compactJwt}\n\nKeys attempted:\n{attemptedKeys}\nInner exceptions:\n{exceptions}"
+        );
     }
 
     private static async ValueTask InvokeValidatorsAsync(
         ValidateJwtContext context,
         IEnumerable<ValidateJwtAsync> validators,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         foreach (var validator in validators)
         {

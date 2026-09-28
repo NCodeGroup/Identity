@@ -26,7 +26,8 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// aggregating multiple data sources and providing change notifications.
 /// </summary>
 [PublicAPI]
-public interface IKnownParameterCollectionProvider : ICollectionProvider<KnownParameter, IKnownParameterCollection>
+public interface IKnownParameterCollectionProvider
+    : ICollectionProvider<KnownParameter, IKnownParameterCollection>
 {
     // nothing
 }

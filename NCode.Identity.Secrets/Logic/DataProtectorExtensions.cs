@@ -42,7 +42,10 @@ public static class DataProtectorExtensions
         /// <param name="algorithmFactory">Factory method that can be used to create <typeparamref name="T"/> instances.</param>
         /// <typeparam name="T">The type of the <see cref="AsymmetricAlgorithm"/>.</typeparam>
         /// <returns>The newly created asymmetric key initialized with it's corresponding key material.</returns>
-        public T ExportAsymmetricAlgorithm<T>(ReadOnlySpan<byte> protectedPkcs8PrivateKey, Func<T> algorithmFactory)
+        public T ExportAsymmetricAlgorithm<T>(
+            ReadOnlySpan<byte> protectedPkcs8PrivateKey,
+            Func<T> algorithmFactory
+        )
             where T : AsymmetricAlgorithm
         {
             using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);

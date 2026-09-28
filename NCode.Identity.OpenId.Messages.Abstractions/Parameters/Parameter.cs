@@ -68,7 +68,8 @@ public abstract class Parameter : IParameter
     public static IParameter Load(
         OpenIdEnvironment openIdEnvironment,
         string parameterName,
-        params IEnumerable<string> stringValues)
+        params IEnumerable<string> stringValues
+    )
     {
         return Load(openIdEnvironment, parameterName, stringValues.ToArray());
     }
@@ -83,7 +84,8 @@ public abstract class Parameter : IParameter
     public static IParameter Load(
         OpenIdEnvironment openIdEnvironment,
         string parameterName,
-        StringValues stringValues)
+        StringValues stringValues
+    )
     {
         var descriptor = openIdEnvironment.GetParameterDescriptor(parameterName);
         return descriptor.Loader.Load(openIdEnvironment, descriptor, stringValues);
@@ -102,8 +104,7 @@ public abstract class Parameter : IParameter
         ParameterDescriptor descriptor,
         IParameterParser<T> parser,
         T? parsedValue
-    ) =>
-        new Parameter<T>(descriptor, parser, parsedValue);
+    ) => new Parameter<T>(descriptor, parser, parsedValue);
 }
 
 /// <summary>

@@ -68,7 +68,8 @@ public class ValidateJwtContext
         DecodedJwt decodedJwt,
         IPropertyBag propertyBag,
         IServiceProvider serviceProvider,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider
+    )
     {
         SecretKey = secretKey;
         DecodedJwt = decodedJwt;

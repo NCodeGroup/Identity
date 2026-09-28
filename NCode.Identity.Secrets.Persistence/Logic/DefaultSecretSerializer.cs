@@ -64,13 +64,18 @@ public class DefaultSecretSerializer(
             SecretTypes.Symmetric => DeserializeSymmetric(persistedSecret),
             SecretTypes.Rsa => DeserializeRsa(persistedSecret),
             SecretTypes.Ecc => DeserializeEcc(persistedSecret),
-            _ => throw new InvalidOperationException($"The '{persistedSecret.SecretType}' secret type is not supported.")
+            _ => throw new InvalidOperationException(
+                $"The '{persistedSecret.SecretType}' secret type is not supported."
+            ),
         };
 
     private AsymmetricSecretKey DeserializeCertificate(PersistedSecret persistedSecret) =>
         CreateSecretKey(persistedSecret, CreateUsingCertificate);
 
-    private AsymmetricSecretKey CreateUsingCertificate(KeyMetadata metadata, ReadOnlySpan<byte> privateKeyBytes)
+    private AsymmetricSecretKey CreateUsingCertificate(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> privateKeyBytes
+    )
     {
         using var certificate = X509CertificateLoader.LoadCertificate(privateKeyBytes);
         return SecretKeyFactory.Create(metadata, certificate);
@@ -79,8 +84,10 @@ public class DefaultSecretSerializer(
     private SymmetricSecretKey DeserializeSymmetric(PersistedSecret persistedSecret) =>
         CreateSecretKey(persistedSecret, CreateUsingSymmetric);
 
-    private SymmetricSecretKey CreateUsingSymmetric(KeyMetadata metadata, ReadOnlySpan<byte> privateKeyBytes) =>
-        SecretKeyFactory.CreateSymmetric(metadata, privateKeyBytes);
+    private SymmetricSecretKey CreateUsingSymmetric(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> privateKeyBytes
+    ) => SecretKeyFactory.CreateSymmetric(metadata, privateKeyBytes);
 
     private RsaSecretKey DeserializeRsa(PersistedSecret persistedSecret) =>
         CreateSecretKey(persistedSecret, CreateUsingRsa);
@@ -105,20 +112,25 @@ public class DefaultSecretSerializer(
             KeyId = persistedSecret.SecretId,
             Use = persistedSecret.Use,
             Algorithm = persistedSecret.Algorithm,
-            ExpiresWhen = persistedSecret.ExpiresWhen
+            ExpiresWhen = persistedSecret.ExpiresWhen,
         };
 
         const bool base64UrlIsSensitive = false;
         const bool privateKeyIsSensitive = true;
 
-        using var protectedDataWriter = BufferFactory.CreatePooledBufferWriter(base64UrlIsSensitive);
+        using var protectedDataWriter = BufferFactory.CreatePooledBufferWriter(
+            base64UrlIsSensitive
+        );
 
         Base64Url.Decode(persistedSecret.EncodedValue, protectedDataWriter);
 
         using var protectedDataSpanLease = protectedDataWriter.GetSpanLease(base64UrlIsSensitive);
 
         var keySizeBytes = persistedSecret.KeySizeBits >> 3;
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(privateKeyIsSensitive, keySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            privateKeyIsSensitive,
+            keySizeBytes
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         DataProtector.UnprotectSpan(protectedDataSpanLease.Span, ref privateKeyWriter);

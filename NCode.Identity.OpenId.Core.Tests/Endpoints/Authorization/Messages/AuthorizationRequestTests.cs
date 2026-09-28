@@ -40,11 +40,15 @@ public class AuthorizationRequestTests : BaseTests
     private static Dictionary<string, KnownParameter> GetKnownParameters()
     {
         var dataSource = new DefaultCommonParameterDataSource(NullChangeToken.Singleton);
-        var knownParameters = dataSource.Collection.ToDictionary(knownParameter => knownParameter.Name);
+        var knownParameters = dataSource.Collection.ToDictionary(knownParameter =>
+            knownParameter.Name
+        );
 
         // Add authentication-specific parameters
-        knownParameters[OpenIdAuthenticationParameters.Claims.Name] = OpenIdAuthenticationParameters.Claims;
-        knownParameters[OpenIdAuthenticationParameters.RequestObjectSource.Name] = OpenIdAuthenticationParameters.RequestObjectSource;
+        knownParameters[OpenIdAuthenticationParameters.Claims.Name] =
+            OpenIdAuthenticationParameters.Claims;
+        knownParameters[OpenIdAuthenticationParameters.RequestObjectSource.Name] =
+            OpenIdAuthenticationParameters.RequestObjectSource;
 
         return knownParameters;
     }
@@ -70,7 +74,7 @@ public class AuthorizationRequestTests : BaseTests
                 new AuthorizationRequestJsonConverter(),
                 new DelegatingJsonConverter<IRequestClaim, RequestClaim>(),
                 new DelegatingJsonConverter<IRequestClaims, RequestClaims>(),
-            }
+            },
         };
 
         MockOpenIdEnvironment
@@ -174,11 +178,12 @@ public class AuthorizationRequestTests : BaseTests
         var authorizationRequest = new AuthorizationRequest(
             isContinuation,
             requestMessage,
-            requestObject);
+            requestObject
+        );
 
         var parameterCountBefore =
-            authorizationRequest.OriginalRequestMessage.Parameters.Count() +
-            authorizationRequest.OriginalRequestObject?.Parameters.Count();
+            authorizationRequest.OriginalRequestMessage.Parameters.Count()
+            + authorizationRequest.OriginalRequestObject?.Parameters.Count();
 
         var json = JsonSerializer.Serialize(authorizationRequest, jsonSerializerOptions);
         Debug.WriteLine(json);
@@ -187,29 +192,38 @@ public class AuthorizationRequestTests : BaseTests
 
         MockOpenIdEnvironment
             .Setup(x => x.GetParameterDescriptor(It.IsAny<string>()))
-            .Returns((string parameterName) =>
-                knownParameters.TryGetValue(parameterName, out var knownParameter) ?
-                    new ParameterDescriptor(knownParameter) :
-                    new ParameterDescriptor(parameterName, ParameterLoader.Default)
+            .Returns(
+                (string parameterName) =>
+                    knownParameters.TryGetValue(parameterName, out var knownParameter)
+                        ? new ParameterDescriptor(knownParameter)
+                        : new ParameterDescriptor(parameterName, ParameterLoader.Default)
             )
             .Verifiable();
 
         MockOpenIdEnvironment
-            .Setup(x => x.CreateMessage("AuthorizationRequestMessage", It.IsAny<IEnumerable<IParameter>>()))
-            .Returns((string _, IEnumerable<IParameter> parameters) =>
-                new AuthorizationRequestMessage(MockOpenIdEnvironment.Object, parameters))
+            .Setup(x =>
+                x.CreateMessage("AuthorizationRequestMessage", It.IsAny<IEnumerable<IParameter>>())
+            )
+            .Returns(
+                (string _, IEnumerable<IParameter> parameters) =>
+                    new AuthorizationRequestMessage(MockOpenIdEnvironment.Object, parameters)
+            )
             .Verifiable();
 
         MockOpenIdEnvironment
-            .Setup(x => x.CreateMessage("AuthorizationRequestObject", It.IsAny<IEnumerable<IParameter>>()))
-            .Returns((string _, IEnumerable<IParameter> parameters) =>
-                new AuthorizationRequestObject(MockOpenIdEnvironment.Object, parameters))
+            .Setup(x =>
+                x.CreateMessage("AuthorizationRequestObject", It.IsAny<IEnumerable<IParameter>>())
+            )
+            .Returns(
+                (string _, IEnumerable<IParameter> parameters) =>
+                    new AuthorizationRequestObject(MockOpenIdEnvironment.Object, parameters)
+            )
             .Verifiable();
 
         var result = JsonSerializer.Deserialize<IAuthorizationRequest>(json, jsonSerializerOptions);
         var parameterCountAfter =
-            authorizationRequest.OriginalRequestMessage.Parameters.Count() +
-            authorizationRequest.OriginalRequestObject?.Parameters.Count();
+            authorizationRequest.OriginalRequestMessage.Parameters.Count()
+            + authorizationRequest.OriginalRequestObject?.Parameters.Count();
 
         Assert.IsType<AuthorizationRequest>(result);
         Assert.Same(MockOpenIdEnvironment.Object, result.OpenIdEnvironment);
@@ -220,15 +234,24 @@ public class AuthorizationRequestTests : BaseTests
         Assert.Same(MockOpenIdEnvironment.Object, result.OriginalRequestMessage.OpenIdEnvironment);
         Assert.Equal(serializationFormat, result.OriginalRequestMessage.SerializationFormat);
         AssertParameters(requestMessage, result.OriginalRequestMessage);
-        Assert.Equal(requestMessage.AuthorizationSourceType, result.OriginalRequestMessage.AuthorizationSourceType);
+        Assert.Equal(
+            requestMessage.AuthorizationSourceType,
+            result.OriginalRequestMessage.AuthorizationSourceType
+        );
 
         // OriginalRequestObject
         Assert.NotNull(result.OriginalRequestObject);
         Assert.Same(MockOpenIdEnvironment.Object, result.OriginalRequestObject.OpenIdEnvironment);
         Assert.Equal(serializationFormat, result.OriginalRequestObject.SerializationFormat);
         AssertParameters(requestObject, result.OriginalRequestObject);
-        Assert.Equal(requestObject.AuthorizationSourceType, result.OriginalRequestObject.AuthorizationSourceType);
-        Assert.Equal(requestObject.RequestObjectSource, result.OriginalRequestObject.RequestObjectSource);
+        Assert.Equal(
+            requestObject.AuthorizationSourceType,
+            result.OriginalRequestObject.AuthorizationSourceType
+        );
+        Assert.Equal(
+            requestObject.RequestObjectSource,
+            result.OriginalRequestObject.RequestObjectSource
+        );
     }
 
     private static void AssertParameters(IOpenIdMessage original, IOpenIdMessage deserialized)
@@ -238,10 +261,16 @@ public class AuthorizationRequestTests : BaseTests
         foreach (var originalParameter in original.Parameters)
         {
             var parameterName = originalParameter.Descriptor.ParameterName;
-            var contains = deserialized.Parameters.TryGet(parameterName, out var deserializedParameter);
+            var contains = deserialized.Parameters.TryGet(
+                parameterName,
+                out var deserializedParameter
+            );
             Assert.True(contains);
             Assert.NotNull(deserializedParameter);
-            Assert.Equal(originalParameter.GetStringValues(environment), deserializedParameter.GetStringValues(environment));
+            Assert.Equal(
+                originalParameter.GetStringValues(environment),
+                deserializedParameter.GetStringValues(environment)
+            );
         }
     }
 }

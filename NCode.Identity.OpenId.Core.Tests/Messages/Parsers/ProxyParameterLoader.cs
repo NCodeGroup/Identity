@@ -35,7 +35,8 @@ internal class ProxyParameterLoader : IParameterLoader
     public ReadParameterDelegate? ReadCallback { get; set; }
     public WriteParameterDelegate? WriteCallback { get; set; }
 
-    public Type ParameterType => ParameterTypeCallback?.Invoke() ?? throw new NotImplementedException();
+    public Type ParameterType =>
+        ParameterTypeCallback?.Invoke() ?? throw new NotImplementedException();
 
     public IParameter<T> Create<T>(
         OpenIdEnvironment openIdEnvironment,
@@ -43,16 +44,16 @@ internal class ProxyParameterLoader : IParameterLoader
         IParameterParser<T> parser,
         T? parsedValue
     ) =>
-        (IParameter<T>?)CreateCallback?.Invoke(openIdEnvironment, descriptor, parser, parsedValue) ??
-        throw new NotImplementedException();
+        (IParameter<T>?)CreateCallback?.Invoke(openIdEnvironment, descriptor, parser, parsedValue)
+        ?? throw new NotImplementedException();
 
     public IParameter Load(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         StringValues stringValues
     ) =>
-        LoadCallback?.Invoke(openIdEnvironment, descriptor, stringValues) ??
-        throw new NotImplementedException();
+        LoadCallback?.Invoke(openIdEnvironment, descriptor, stringValues)
+        ?? throw new NotImplementedException();
 
     public IParameter Read(
         ref Utf8JsonReader reader,
@@ -61,8 +62,8 @@ internal class ProxyParameterLoader : IParameterLoader
         SerializationFormat format,
         JsonSerializerOptions options
     ) =>
-        ReadCallback?.Invoke(openIdEnvironment, descriptor, format, options) ??
-        throw new NotImplementedException();
+        ReadCallback?.Invoke(openIdEnvironment, descriptor, format, options)
+        ?? throw new NotImplementedException();
 
     public void Write(
         Utf8JsonWriter writer,

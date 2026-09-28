@@ -31,14 +31,23 @@ public class DefaultOpenIdRedirectResultExecutor : IResultExecutor<OpenIdRedirec
     private const string AjaxHeaderValue = "XMLHttpRequest";
 
     private static bool IsAjaxRequest(HttpContext httpContext) =>
-        string.Equals(httpContext.Request.Query[HeaderNames.XRequestedWith], AjaxHeaderValue, StringComparison.Ordinal) ||
-        string.Equals(httpContext.Request.Headers.XRequestedWith, AjaxHeaderValue, StringComparison.Ordinal);
+        string.Equals(
+            httpContext.Request.Query[HeaderNames.XRequestedWith],
+            AjaxHeaderValue,
+            StringComparison.Ordinal
+        )
+        || string.Equals(
+            httpContext.Request.Headers.XRequestedWith,
+            AjaxHeaderValue,
+            StringComparison.Ordinal
+        );
 
     /// <inheritdoc />
     public ValueTask ExecuteAsync(
         HttpContext httpContext,
         OpenIdRedirectResult result,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var isAjaxRequest = result.IsAjaxRequest ?? IsAjaxRequest;
         if (isAjaxRequest(httpContext))

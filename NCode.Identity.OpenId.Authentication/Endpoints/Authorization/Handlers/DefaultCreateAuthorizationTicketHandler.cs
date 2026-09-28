@@ -42,7 +42,8 @@ public class DefaultCreateAuthorizationTicketHandler(
     /// <inheritdoc />
     public async ValueTask<IAuthorizationTicket> HandleAsync(
         CreateAuthorizationTicketCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, authorizationRequest, subjectAuthentication) = command;
 
@@ -61,7 +62,8 @@ public class DefaultCreateAuthorizationTicketHandler(
                 openIdClient,
                 authorizationRequest,
                 subjectAuthentication,
-                cancellationToken);
+                cancellationToken
+            );
 
             ticket.AuthorizationCode = securityToken.TokenValue;
         }
@@ -75,7 +77,7 @@ public class DefaultCreateAuthorizationTicketHandler(
             OriginalScopes = authorizationRequest.Scopes,
             EffectiveScopes = authorizationRequest.Scopes,
             AuthorizationCode = ticket.AuthorizationCode,
-            SubjectAuthentication = subjectAuthentication
+            SubjectAuthentication = subjectAuthentication,
         };
 
         if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Token))
@@ -84,7 +86,8 @@ public class DefaultCreateAuthorizationTicketHandler(
                 openIdContext,
                 openIdClient,
                 securityTokenRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             ticket.AccessToken = securityToken.TokenValue;
             ticket.ExpiresIn = securityToken.TokenLifetime.Duration;
@@ -94,16 +97,14 @@ public class DefaultCreateAuthorizationTicketHandler(
         // ReSharper disable once InvertIf
         if (responseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken))
         {
-            var newRequest = securityTokenRequest with
-            {
-                AccessToken = ticket.AccessToken
-            };
+            var newRequest = securityTokenRequest with { AccessToken = ticket.AccessToken };
 
             var securityToken = await TokenService.CreateIdTokenAsync(
                 openIdContext,
                 openIdClient,
                 newRequest,
-                cancellationToken);
+                cancellationToken
+            );
 
             ticket.IdToken = securityToken.TokenValue;
         }

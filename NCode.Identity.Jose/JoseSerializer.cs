@@ -50,7 +50,11 @@ public partial class JoseSerializer : IJoseSerializer
     /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
     /// <param name="bytes">When this method returns, contains the buffer with the decoded data.</param>
     /// <returns>An <see cref="IDisposable"/> that manages the lifetime of the lease.</returns>
-    public static IDisposable DecodeBase64Url(ReadOnlySpan<char> chars, bool isSensitive, out Span<byte> bytes)
+    public static IDisposable DecodeBase64Url(
+        ReadOnlySpan<char> chars,
+        bool isSensitive,
+        out Span<byte> bytes
+    )
     {
         var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
         var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
@@ -79,7 +83,10 @@ public partial class JoseSerializer : IJoseSerializer
     /// </summary>
     /// <param name="optionsAccessor">An accessor that provides <see cref="JoseSerializerOptions"/>.</param>
     /// <param name="algorithmCollectionProvider">An <see cref="IAlgorithmCollectionProvider"/> that provides a collection of <see cref="Algorithm"/> instances.</param>
-    public JoseSerializer(IOptions<JoseSerializerOptions> optionsAccessor, IAlgorithmCollectionProvider algorithmCollectionProvider)
+    public JoseSerializer(
+        IOptions<JoseSerializerOptions> optionsAccessor,
+        IAlgorithmCollectionProvider algorithmCollectionProvider
+    )
     {
         JoseSerializerOptions = optionsAccessor.Value;
         AlgorithmCollectionProvider = algorithmCollectionProvider;
@@ -103,7 +110,9 @@ public partial class JoseSerializer : IJoseSerializer
         {
             JwsSegmentCount => JoseProtectionTypes.Jws,
             JweSegmentCount => JoseProtectionTypes.Jwe,
-            _ => throw new JoseException("The specified value does not represent a valid JOSE token in compact form.")
+            _ => throw new JoseException(
+                "The specified value does not represent a valid JOSE token in compact form."
+            ),
         };
 
         var deserializedHeader = DeserializeHeader(segments.First.Memory.Span);
@@ -135,7 +144,7 @@ public partial class JoseSerializer : IJoseSerializer
         {
             JoseProtectionTypes.Jws => DecodeJws(compactJwt, secretKey),
             JoseProtectionTypes.Jwe => DecodeJwe(compactJwt, secretKey),
-            _ => throw new InvalidOperationException()
+            _ => throw new InvalidOperationException(),
         };
 
     private static string DecodeUtf8(ReadOnlySequence<byte> byteSequence)
@@ -164,7 +173,7 @@ public partial class JoseSerializer : IJoseSerializer
         {
             JoseProtectionTypes.Jws => DeserializeJws<T>(compactJwt, secretKey),
             JoseProtectionTypes.Jwe => DeserializeJwe<T>(compactJwt, secretKey),
-            _ => throw new InvalidOperationException()
+            _ => throw new InvalidOperationException(),
         };
 
     private T? Deserialize<T>(ReadOnlySequence<byte> byteSequence)
@@ -174,7 +183,7 @@ public partial class JoseSerializer : IJoseSerializer
         {
             AllowTrailingCommas = jsonOptions.AllowTrailingCommas,
             CommentHandling = jsonOptions.ReadCommentHandling,
-            MaxDepth = jsonOptions.MaxDepth
+            MaxDepth = jsonOptions.MaxDepth,
         };
         var reader = new Utf8JsonReader(byteSequence, readerOptions);
         return JsonSerializer.Deserialize<T>(ref reader, jsonOptions);
@@ -204,13 +213,17 @@ public partial class JoseSerializer : IJoseSerializer
         var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
         {
             // increase our chances of getting a single-segment buffer
-            MinimumSpanLength = 1024
+            MinimumSpanLength = 1024,
         };
 
         try
         {
             using var writer = new Utf8JsonWriter(buffer);
-            JsonSerializer.Serialize(writer, value, options ?? JoseSerializerOptions.JsonSerializerOptions);
+            JsonSerializer.Serialize(
+                writer,
+                value,
+                options ?? JoseSerializerOptions.JsonSerializerOptions
+            );
 
             return buffer.ConsumeAsContiguousSpan(isSensitive: false, out bytes);
         }
@@ -237,11 +250,7 @@ public partial class JoseSerializer : IJoseSerializer
         }
     }
 
-    private IDisposable EncodeJose<T>(
-        bool b64,
-        T value,
-        out ReadOnlySpan<char> chars
-    )
+    private IDisposable EncodeJose<T>(bool b64, T value, out ReadOnlySpan<char> chars)
     {
         using var _ = SerializeToUtf8(value, options: null, out var bytes);
         return EncodeJose(b64, bytes, out chars);

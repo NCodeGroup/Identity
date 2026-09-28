@@ -27,9 +27,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// for the unit-of-work pattern.
 /// </summary>
 /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> instance.</typeparam>
-public sealed class EntityStoreManagerFactory<TDbContext>(
-    IServiceProvider serviceProvider
-) : IStoreManagerFactory
+public sealed class EntityStoreManagerFactory<TDbContext>(IServiceProvider serviceProvider)
+    : IStoreManagerFactory
     where TDbContext : DbContext
 {
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
@@ -37,7 +36,9 @@ public sealed class EntityStoreManagerFactory<TDbContext>(
     /// <inheritdoc />
     public ValueTask<IStoreManager> CreateAsync(CancellationToken cancellationToken)
     {
-        IStoreManager storeManager = ActivatorUtilities.CreateInstance<EntityStoreManager<TDbContext>>(ServiceProvider);
+        IStoreManager storeManager = ActivatorUtilities.CreateInstance<
+            EntityStoreManager<TDbContext>
+        >(ServiceProvider);
         return ValueTask.FromResult(storeManager);
     }
 }

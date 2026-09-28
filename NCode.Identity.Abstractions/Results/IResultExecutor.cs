@@ -44,5 +44,9 @@ public interface IResultExecutor<in TResult>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> which represents the asynchronous operation.</returns>
-    ValueTask ExecuteAsync(HttpContext httpContext, TResult result, CancellationToken cancellationToken);
+    ValueTask ExecuteAsync(
+        HttpContext httpContext,
+        TResult result,
+        CancellationToken cancellationToken
+    );
 }

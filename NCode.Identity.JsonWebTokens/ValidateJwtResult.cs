@@ -38,11 +38,12 @@ public class ValidateJwtResult
     /// <param name="encodedToken">A <see cref="string"/> that contains the Json Web Token (JWT) which failed validation.</param>
     /// <param name="exception">An <see cref="Exception"/> that contains the details why the validation failed.</param>
     /// <returns>A <see cref="ValidateJwtResult"/> instance that represents a failed JWT validation result.</returns>
-    public static ValidateJwtResult Fail(ValidateJwtParameters parameters, IPropertyBag propertyBag, string encodedToken, Exception exception) =>
-        new(parameters, propertyBag, encodedToken)
-        {
-            Exception = exception
-        };
+    public static ValidateJwtResult Fail(
+        ValidateJwtParameters parameters,
+        IPropertyBag propertyBag,
+        string encodedToken,
+        Exception exception
+    ) => new(parameters, propertyBag, encodedToken) { Exception = exception };
 
     /// <summary>
     /// Factory method to create a <see cref="ValidateJwtResult"/> instance that represents a successful JWT validation result.
@@ -51,7 +52,11 @@ public class ValidateJwtResult
     /// <param name="propertyBag">An <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.</param>
     /// <param name="decodedJwt">A <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT).</param>
     /// <returns></returns>
-    public static ValidateJwtResult Success(ValidateJwtParameters parameters, IPropertyBag propertyBag, DecodedJwt decodedJwt)
+    public static ValidateJwtResult Success(
+        ValidateJwtParameters parameters,
+        IPropertyBag propertyBag,
+        DecodedJwt decodedJwt
+    )
     {
         // immediately capture the values from the parameters to prevent any changes
         var createClaimsIdentityAsync = parameters.CreateClaimsIdentityAsync;
@@ -69,13 +74,17 @@ public class ValidateJwtResult
                     authenticationType,
                     nameClaimType,
                     roleClaimType,
-                    cancellationToken)
+                    cancellationToken
+                ),
         };
     }
 
     private ClaimsIdentity? ClaimsIdentityOrNull { get; set; }
 
-    private Func<CancellationToken, ValueTask<ClaimsIdentity>>? CreateClaimsIdentityAsync { get; init; }
+    private Func<
+        CancellationToken,
+        ValueTask<ClaimsIdentity>
+    >? CreateClaimsIdentityAsync { get; init; }
 
     /// <summary>
     /// Gets the <see cref="ValidateJwtParameters"/> instance that was used to validate the Json Web Token (JWT).
@@ -110,7 +119,11 @@ public class ValidateJwtResult
     /// </summary>
     public DecodedJwt? DecodedJwt { get; private init; }
 
-    private ValidateJwtResult(ValidateJwtParameters parameters, IPropertyBag propertyBag, string encodedToken)
+    private ValidateJwtResult(
+        ValidateJwtParameters parameters,
+        IPropertyBag propertyBag,
+        string encodedToken
+    )
     {
         Parameters = parameters;
         PropertyBag = propertyBag;
@@ -120,9 +133,12 @@ public class ValidateJwtResult
     /// <summary>
     /// Gets an <see cref="ClaimsIdentity"/> that contains the claims from the decoded Json Web Token (JWT).
     /// </summary>
-    public async ValueTask<ClaimsIdentity> GetClaimsIdentityAsync(CancellationToken cancellationToken)
+    public async ValueTask<ClaimsIdentity> GetClaimsIdentityAsync(
+        CancellationToken cancellationToken
+    )
     {
-        if (!IsValid) throw new InvalidOperationException();
+        if (!IsValid)
+            throw new InvalidOperationException();
         return ClaimsIdentityOrNull ??= await CreateClaimsIdentityAsync(cancellationToken);
     }
 }

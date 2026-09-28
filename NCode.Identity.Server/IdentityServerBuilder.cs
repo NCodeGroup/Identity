@@ -96,7 +96,8 @@ public sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIde
 
         IdentityLibraryBuilder = serviceCollection.AddIdentityLibrary();
         OpenIdCoreLibraryBuilder = IdentityLibraryBuilder.AddOpenIdCoreLibrary();
-        OpenIdAuthenticationLibraryBuilder = IdentityLibraryBuilder.AddOpenIdAuthenticationLibrary();
+        OpenIdAuthenticationLibraryBuilder =
+            IdentityLibraryBuilder.AddOpenIdAuthenticationLibrary();
         OpenIdManagementLibraryBuilder = IdentityLibraryBuilder.AddOpenIdManagementLibrary();
     }
 }

@@ -37,8 +37,10 @@ public class DefaultAuthorizationContinueProvider(
     IAuthorizationEndpointLogic authorizationEndpointLogic
 ) : IContinueProvider
 {
-    private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
-    private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } = authorizationEndpointLogic;
+    private IClientAuthenticationService ClientAuthenticationService { get; } =
+        clientAuthenticationService;
+    private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } =
+        authorizationEndpointLogic;
 
     /// <inheritdoc />
     public string ContinueCode => OpenIdConstants.ContinueCodes.Authorization;
@@ -66,7 +68,9 @@ public class DefaultAuthorizationContinueProvider(
         }
 
         var openIdClient = authResult.Client;
-        var authorizationRequest = continuePayloadJson.Deserialize<IAuthorizationRequest>(openIdEnvironment.JsonSerializerOptions);
+        var authorizationRequest = continuePayloadJson.Deserialize<IAuthorizationRequest>(
+            openIdEnvironment.JsonSerializerOptions
+        );
         if (authorizationRequest == null)
             throw new InvalidOperationException("JSON deserialization returned null.");
 

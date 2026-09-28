@@ -46,38 +46,21 @@ public class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner) : Ke
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey
-    ) =>
-        Inner.NewKey(
-            secretKey,
-            header,
-            contentKey
-        );
+    ) => Inner.NewKey(secretKey, header, contentKey);
 
     public override void WrapKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         ReadOnlySpan<byte> contentKey,
         IBufferWriter<byte> encryptedContentKeyWriter
-    ) =>
-        Inner.WrapKey(
-            secretKey,
-            header,
-            contentKey,
-            encryptedContentKeyWriter
-        );
+    ) => Inner.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter);
 
     public override void WrapNewKey(
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey,
         IBufferWriter<byte> encryptedContentKeyWriter
-    ) =>
-        Inner.WrapNewKey(
-            secretKey,
-            header,
-            contentKey,
-            encryptedContentKeyWriter
-        );
+    ) => Inner.WrapNewKey(secretKey, header, contentKey, encryptedContentKeyWriter);
 
     public override bool TryUnwrapKey(
         SecretKey secretKey,
@@ -85,12 +68,5 @@ public class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner) : Ke
         ReadOnlySpan<byte> encryptedContentKey,
         Span<byte> contentKey,
         out int bytesWritten
-    ) =>
-        Inner.TryUnwrapKey(
-            secretKey,
-            header,
-            encryptedContentKey,
-            contentKey,
-            out bytesWritten
-        );
+    ) => Inner.TryUnwrapKey(secretKey, header, encryptedContentKey, contentKey, out bytesWritten);
 }

@@ -43,14 +43,14 @@ public class JsonParser<T> : ParameterParser<T>
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
         T? parsedValue
-    ) =>
-        JsonSerializer.Serialize(parsedValue, openIdEnvironment.JsonSerializerOptions);
+    ) => JsonSerializer.Serialize(parsedValue, openIdEnvironment.JsonSerializerOptions);
 
     /// <inheritdoc/>
     public override T? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues)
+        StringValues stringValues
+    )
     {
         switch (stringValues.Count)
         {
@@ -59,14 +59,12 @@ public class JsonParser<T> : ParameterParser<T>
 
             case 0:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
+                    .ErrorFactory.MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
+                    .ErrorFactory.TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
         }
 
@@ -75,12 +73,15 @@ public class JsonParser<T> : ParameterParser<T>
 
         try
         {
-            return JsonSerializer.Deserialize<T>(stringValue, openIdEnvironment.JsonSerializerOptions);
+            return JsonSerializer.Deserialize<T>(
+                stringValue,
+                openIdEnvironment.JsonSerializerOptions
+            );
         }
         catch (Exception exception)
         {
-            throw openIdEnvironment.ErrorFactory
-                .FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest)
+            throw openIdEnvironment
+                .ErrorFactory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest)
                 .WithException(exception)
                 .AsException();
         }

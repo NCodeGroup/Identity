@@ -28,9 +28,7 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 /// </summary>
 /// <typeparam name="T">The type of parameter to parse.</typeparam>
 [PublicAPI]
-public class NullableValueTypeParameterParser<T>(
-    IParameterParser<T> parser
-) : ParameterParser<T?>
+public class NullableValueTypeParameterParser<T>(IParameterParser<T> parser) : ParameterParser<T?>
     where T : struct
 {
     private IParameterParser<T> Parser { get; } = parser;
@@ -41,9 +39,9 @@ public class NullableValueTypeParameterParser<T>(
         ParameterDescriptor descriptor,
         T? parsedValue
     ) =>
-        parsedValue.HasValue ?
-            Parser.GetStringValues(openIdEnvironment, descriptor, parsedValue.Value) :
-            StringValues.Empty;
+        parsedValue.HasValue
+            ? Parser.GetStringValues(openIdEnvironment, descriptor, parsedValue.Value)
+            : StringValues.Empty;
 
     /// <inheritdoc/>
     public override T? Parse(
@@ -51,7 +49,7 @@ public class NullableValueTypeParameterParser<T>(
         ParameterDescriptor descriptor,
         StringValues stringValues
     ) =>
-        stringValues.Count == 0 && descriptor.AllowMissingStringValues ?
-            null :
-            Parser.Parse(openIdEnvironment, descriptor, stringValues);
+        stringValues.Count == 0 && descriptor.AllowMissingStringValues
+            ? null
+            : Parser.Parse(openIdEnvironment, descriptor, stringValues);
 }

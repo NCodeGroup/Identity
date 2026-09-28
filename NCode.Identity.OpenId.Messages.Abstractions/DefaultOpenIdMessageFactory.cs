@@ -32,7 +32,10 @@ public class DefaultOpenIdMessageFactory<T> : IOpenIdMessageFactory
     public string TypeDiscriminator => typeof(T).Name;
 
     /// <inheritdoc />
-    public IOpenIdMessage Create(OpenIdEnvironment openIdEnvironment, IEnumerable<IParameter> parameters)
+    public IOpenIdMessage Create(
+        OpenIdEnvironment openIdEnvironment,
+        IEnumerable<IParameter> parameters
+    )
     {
         var message = new T();
         message.Initialize(openIdEnvironment, parameters);

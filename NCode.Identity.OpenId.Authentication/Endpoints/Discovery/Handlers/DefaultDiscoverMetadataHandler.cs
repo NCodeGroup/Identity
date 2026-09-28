@@ -60,8 +60,12 @@ public class DefaultDiscoverMetadataHandler(
     )
     {
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
-        var settingsToShow = settings.Where(setting => showAll || setting.Descriptor.IsDiscoverable);
-        var settingsToAdd = settingsToShow.Where(setting => !metadata.ContainsKey(setting.Descriptor.Name));
+        var settingsToShow = settings.Where(setting =>
+            showAll || setting.Descriptor.IsDiscoverable
+        );
+        var settingsToAdd = settingsToShow.Where(setting =>
+            !metadata.ContainsKey(setting.Descriptor.Name)
+        );
         foreach (var setting in settingsToAdd)
         {
             var value = setting.Descriptor.Format(setting);
@@ -79,11 +83,17 @@ public class DefaultDiscoverMetadataHandler(
 
         foreach (var endpoint in EndpointDataSource.Endpoints)
         {
-            var discoverable = endpoint.Metadata.GetMetadata<IOpenIdEndpointDiscoverableMetadata>()?.IsDiscoverable ?? false;
+            var discoverable =
+                endpoint.Metadata.GetMetadata<IOpenIdEndpointDiscoverableMetadata>()?.IsDiscoverable
+                ?? false;
             if (!discoverable && !showAll)
                 continue;
 
-            var suppressLinkGeneration = endpoint.Metadata.GetMetadata<ISuppressLinkGenerationMetadata>()?.SuppressLinkGeneration ?? false;
+            var suppressLinkGeneration =
+                endpoint
+                    .Metadata.GetMetadata<ISuppressLinkGenerationMetadata>()
+                    ?.SuppressLinkGeneration
+                ?? false;
             if (suppressLinkGeneration)
                 continue;
 

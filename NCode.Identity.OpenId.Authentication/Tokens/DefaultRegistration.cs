@@ -44,10 +44,7 @@ public static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.TryAddSingleton<
-                ITokenService,
-                DefaultTokenService
-            >();
+            serviceCollection.TryAddSingleton<ITokenService, DefaultTokenService>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

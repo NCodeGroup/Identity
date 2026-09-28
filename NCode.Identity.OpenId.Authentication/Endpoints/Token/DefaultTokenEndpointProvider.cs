@@ -51,21 +51,24 @@ public class DefaultTokenEndpointProvider(
 ) : IEndpointProvider
 {
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
-    private IClientAuthenticationService ClientAuthenticationService { get; } = clientAuthenticationService;
-    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } = knownParameterCollectionProvider;
+    private IClientAuthenticationService ClientAuthenticationService { get; } =
+        clientAuthenticationService;
+    private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
+        knownParameterCollectionProvider;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
-        .MapPost(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
-        .WithName(OpenIdConstants.EndpointNames.Token)
-        .WithMetadata(CreateOpenApiOperationMetadata())
-        .DisableAntiforgery()
-        .WithOpenIdDiscoverable();
+    public void Map(IEndpointRouteBuilder endpoints) =>
+        endpoints
+            .MapPost(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
+            .WithName(OpenIdConstants.EndpointNames.Token)
+            .WithMetadata(CreateOpenApiOperationMetadata())
+            .DisableAntiforgery()
+            .WithOpenIdDiscoverable();
 
     private OpenApiOperation CreateOpenApiOperationMetadata()
     {
-        var properties = KnownParameterCollectionProvider.Collection
-            .OrderBy(parameter => parameter.Name)
+        var properties = KnownParameterCollectionProvider
+            .Collection.OrderBy(parameter => parameter.Name)
             .ToDictionary(
                 parameter => parameter.Name,
                 _ => new OpenApiSchema
@@ -73,7 +76,8 @@ public class DefaultTokenEndpointProvider(
                     Type = "string",
                     Nullable = true,
                     Default = new OpenApiString(string.Empty),
-                });
+                }
+            );
 
         return new OpenApiOperation
         {
@@ -85,20 +89,16 @@ public class DefaultTokenEndpointProvider(
                 {
                     [OpenIdConstants.ContentType] = new()
                     {
-                        Schema = new OpenApiSchema
-                        {
-                            Type = "object",
-                            Properties = properties,
-                        }
-                    }
-                }
-            }
+                        Schema = new OpenApiSchema { Type = "object", Properties = properties },
+                    },
+                },
+            },
         };
     }
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
-        MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header) &&
-        header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
+        MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
+        && header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
@@ -119,7 +119,9 @@ public class DefaultTokenEndpointProvider(
         if (!isPostVerb || !IsApplicationFormContentType(httpContext))
         {
             return errorFactory
-                .InvalidRequest($"Only POST requests with Content-Type '{OpenIdConstants.ContentType}' are supported.")
+                .InvalidRequest(
+                    $"Only POST requests with Content-Type '{OpenIdConstants.ContentType}' are supported."
+                )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
         }
@@ -152,20 +154,12 @@ public class DefaultTokenEndpointProvider(
 
         // for simple validations before selecting the handler and materializing any grants
         await mediator.SendAsync(
-            new ValidateTokenRequestCommand(
-                openIdContext,
-                openIdClient,
-                tokenRequest
-            ),
+            new ValidateTokenRequestCommand(openIdContext, openIdClient, tokenRequest),
             cancellationToken
         );
 
         var handler = await mediator.SendAsync<SelectTokenGrantHandlerCommand, ITokenGrantHandler>(
-            new SelectTokenGrantHandlerCommand(
-                openIdContext,
-                openIdClient,
-                tokenRequest
-            ),
+            new SelectTokenGrantHandlerCommand(openIdContext, openIdClient, tokenRequest),
             cancellationToken
         );
 

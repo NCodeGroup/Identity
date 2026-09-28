@@ -25,10 +25,10 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 /// <summary>
 /// Provides the implementation for a dictionary with <see cref="IRequestClaim"/> instances.
 /// </summary>
-public class RequestClaimDictionary :
-    IDictionary<string, RequestClaim?>,
-    IReadOnlyDictionary<string, RequestClaim?>,
-    IReadOnlyDictionary<string, IRequestClaim?>
+public class RequestClaimDictionary
+    : IDictionary<string, RequestClaim?>,
+        IReadOnlyDictionary<string, RequestClaim?>,
+        IReadOnlyDictionary<string, IRequestClaim?>
 {
     private IDictionary<string, RequestClaim?> Inner { get; }
 
@@ -87,7 +87,9 @@ public class RequestClaimDictionary :
     }
 
     [MustDisposeResource]
-    IEnumerator<KeyValuePair<string, RequestClaim?>> IEnumerable<KeyValuePair<string, RequestClaim?>>.GetEnumerator()
+    IEnumerator<KeyValuePair<string, RequestClaim?>> IEnumerable<
+        KeyValuePair<string, RequestClaim?>
+    >.GetEnumerator()
     {
         return Inner.GetEnumerator();
     }
@@ -107,19 +109,24 @@ public class RequestClaimDictionary :
 
     bool ICollection<KeyValuePair<string, RequestClaim?>>.IsReadOnly => Inner.IsReadOnly;
 
-    bool ICollection<KeyValuePair<string, RequestClaim?>>.Contains(KeyValuePair<string, RequestClaim?> item)
+    bool ICollection<KeyValuePair<string, RequestClaim?>>.Contains(
+        KeyValuePair<string, RequestClaim?> item
+    )
     {
         return Inner.Contains(item);
     }
 
     void ICollection<KeyValuePair<string, RequestClaim?>>.CopyTo(
         KeyValuePair<string, RequestClaim?>[] array,
-        int arrayIndex)
+        int arrayIndex
+    )
     {
         Inner.CopyTo(array, arrayIndex);
     }
 
-    void ICollection<KeyValuePair<string, RequestClaim?>>.Add(KeyValuePair<string, RequestClaim?> item)
+    void ICollection<KeyValuePair<string, RequestClaim?>>.Add(
+        KeyValuePair<string, RequestClaim?> item
+    )
     {
         Inner.Add(item);
     }
@@ -129,7 +136,9 @@ public class RequestClaimDictionary :
         return Inner.Remove(key);
     }
 
-    bool ICollection<KeyValuePair<string, RequestClaim?>>.Remove(KeyValuePair<string, RequestClaim?> item)
+    bool ICollection<KeyValuePair<string, RequestClaim?>>.Remove(
+        KeyValuePair<string, RequestClaim?> item
+    )
     {
         return Inner.Remove(item);
     }

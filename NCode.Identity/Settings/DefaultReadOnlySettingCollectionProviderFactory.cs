@@ -27,15 +27,17 @@ public class DefaultReadOnlySettingCollectionProviderFactory(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : IReadOnlySettingCollectionProviderFactory
 {
-    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
-        = settingDescriptorCollectionProvider;
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } =
+        settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
     public IReadOnlySettingCollectionProvider Create(
         IEnumerable<ICollectionDataSource<Setting>> dataSources,
         bool owns = false
-    ) => new ReadOnlySettingCollectionProvider(
-        SettingDescriptorCollectionProvider,
-        dataSources,
-        owns);
+    ) =>
+        new ReadOnlySettingCollectionProvider(
+            SettingDescriptorCollectionProvider,
+            dataSources,
+            owns
+        );
 }

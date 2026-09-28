@@ -36,38 +36,44 @@ public class DefaultOpenIdTenantCache(
 {
     private IMemoryCache MemoryCache { get; } = memoryCache;
 
-    private MemoryCacheEntryOptions MemoryCacheEntryOptions { get; } = new()
-    {
-        SlidingExpiration = optionsAccessor.Value.Tenant.TenantCacheExpiration,
-
-        PostEvictionCallbacks =
+    private MemoryCacheEntryOptions MemoryCacheEntryOptions { get; } =
+        new()
         {
-            new PostEvictionCallbackRegistration
+            SlidingExpiration = optionsAccessor.Value.Tenant.TenantCacheExpiration,
+
+            PostEvictionCallbacks =
             {
-                EvictionCallback = EvictionCallback,
-            }
-        }
-    };
+                new PostEvictionCallbackRegistration { EvictionCallback = EvictionCallback },
+            },
+        };
 
     private static string GetCacheKey(TenantDescriptor tenantDescriptor) =>
         $"NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantCache:{tenantDescriptor.TenantId}";
 
-    private static void EvictionCallback(object key, object? value, EvictionReason reason, object? state)
+    private static void EvictionCallback(
+        object key,
+        object? value,
+        EvictionReason reason,
+        object? state
+    )
     {
-        if (value is not IAsyncDisposable asyncDisposable) return;
+        if (value is not IAsyncDisposable asyncDisposable)
+            return;
 
         _ = Task.Factory.StartNew(
             DisposeCallbackAsync,
             asyncDisposable,
             CancellationToken.None,
             TaskCreationOptions.DenyChildAttach,
-            TaskScheduler.Default);
+            TaskScheduler.Default
+        );
     }
 
     private static async Task DisposeCallbackAsync(object? state)
     {
         var asyncDisposable = (IAsyncDisposable?)state;
-        if (asyncDisposable is null) return;
+        if (asyncDisposable is null)
+            return;
         await asyncDisposable.DisposeAsync();
     }
 
@@ -75,12 +81,17 @@ public class DefaultOpenIdTenantCache(
     public ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> TryGetAsync(
         TenantDescriptor tenantDescriptor,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var key = GetCacheKey(tenantDescriptor);
 
-        if (MemoryCache.TryGetValue<AsyncSharedReferenceLease<OpenIdTenant>>(key, out var existingLease) &&
-            existingLease.TryAddReference(out var newLease))
+        if (
+            MemoryCache.TryGetValue<AsyncSharedReferenceLease<OpenIdTenant>>(
+                key,
+                out var existingLease
+            ) && existingLease.TryAddReference(out var newLease)
+        )
         {
             return ValueTask.FromResult(newLease);
         }
@@ -94,7 +105,8 @@ public class DefaultOpenIdTenantCache(
         TenantDescriptor tenantDescriptor,
         AsyncSharedReferenceLease<OpenIdTenant> tenant,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var key = GetCacheKey(tenantDescriptor);
         var newLease = tenant.AddReference();

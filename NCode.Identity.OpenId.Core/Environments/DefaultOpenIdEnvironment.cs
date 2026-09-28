@@ -39,13 +39,16 @@ public class DefaultOpenIdEnvironment(
     IEnumerable<IOpenIdJsonConverterProvider> jsonConverterProviders
 ) : OpenIdEnvironment, IOpenIdErrorFactory
 {
-    private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } = openIdMessageFactorySelector;
-    private IEnumerable<IOpenIdJsonConverterProvider> JsonConverterProviders { get; } = jsonConverterProviders;
+    private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } =
+        openIdMessageFactorySelector;
+    private IEnumerable<IOpenIdJsonConverterProvider> JsonConverterProviders { get; } =
+        jsonConverterProviders;
 
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
     /// <inheritdoc />
-    public override JsonSerializerOptions JsonSerializerOptions => JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
+    public override JsonSerializerOptions JsonSerializerOptions =>
+        JsonSerializerOptionsOrNull ??= CreateJsonSerializerOptions();
 
     /// <inheritdoc />
     public override IDataProtector DataProtector { get; } = dataProtector;
@@ -54,7 +57,8 @@ public class DefaultOpenIdEnvironment(
     public override IDataProtector EphemeralDataProtector { get; } = ephemeralDataProtector;
 
     /// <inheritdoc />
-    public override IKnownParameterCollection KnownParameters => knownParameterCollectionProvider.Collection;
+    public override IKnownParameterCollection KnownParameters =>
+        knownParameterCollectionProvider.Collection;
 
     /// <inheritdoc />
     public override IOpenIdErrorFactory ErrorFactory => this;
@@ -65,21 +69,21 @@ public class DefaultOpenIdEnvironment(
     /// <inheritdoc />
     public override ParameterDescriptor GetParameterDescriptor(string parameterName)
     {
-        return KnownParameters.TryGet(parameterName, out var knownParameter) ?
-            new ParameterDescriptor(knownParameter) :
-            new ParameterDescriptor(parameterName, ParameterLoader.Default);
+        return KnownParameters.TryGet(parameterName, out var knownParameter)
+            ? new ParameterDescriptor(knownParameter)
+            : new ParameterDescriptor(parameterName, ParameterLoader.Default);
     }
 
-    IOpenIdError IOpenIdErrorFactory.Create(string errorCode) =>
-        CreateError(errorCode);
+    IOpenIdError IOpenIdErrorFactory.Create(string errorCode) => CreateError(errorCode);
 
     /// <inheritdoc />
-    public override IOpenIdError CreateError(string errorCode) =>
-        new OpenIdError(this, errorCode);
+    public override IOpenIdError CreateError(string errorCode) => new OpenIdError(this, errorCode);
 
     /// <inheritdoc />
-    public override IOpenIdMessage CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters) =>
-        OpenIdMessageFactorySelector.GetFactory(typeDiscriminator).Create(this, parameters);
+    public override IOpenIdMessage CreateMessage(
+        string typeDiscriminator,
+        IEnumerable<IParameter> parameters
+    ) => OpenIdMessageFactorySelector.GetFactory(typeDiscriminator).Create(this, parameters);
 
     private JsonSerializerOptions CreateJsonSerializerOptions()
     {
@@ -89,7 +93,9 @@ public class DefaultOpenIdEnvironment(
             AllowTrailingCommas = true,
         };
 
-        var jsonConverters = JsonConverterProviders.SelectMany(provider => provider.GetJsonConverters(this));
+        var jsonConverters = JsonConverterProviders.SelectMany(provider =>
+            provider.GetJsonConverters(this)
+        );
         foreach (var converter in jsonConverters)
         {
             options.Converters.Add(converter);

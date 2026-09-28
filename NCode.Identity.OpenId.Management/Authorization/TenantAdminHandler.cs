@@ -41,7 +41,10 @@ public class TenantAdminHandler : AuthorizationHandler<IAuthorizationRequirement
         var userIsTenantAdmin = context.User.IsInRole(BuiltInRoles.TenantAdmin);
         var resourceTenantId = resource.TenantId;
 
-        if (userIsTenantAdmin && string.Equals(userTenantId, resourceTenantId, StringComparison.Ordinal))
+        if (
+            userIsTenantAdmin
+            && string.Equals(userTenantId, resourceTenantId, StringComparison.Ordinal)
+        )
         {
             context.Succeed(requirement);
         }

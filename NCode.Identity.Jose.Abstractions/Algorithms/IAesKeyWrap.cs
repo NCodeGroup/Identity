@@ -52,7 +52,8 @@ public interface IAesKeyWrap
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> contentKey,
         ref TWriter encryptedContentKeyWriter
-    ) where TWriter : IBufferWriter<byte>, allows ref struct;
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct;
 
     /// <summary>
     /// Gets the size, in bytes, of the resulting plaintext for <see cref="UnwrapKey{TWriter}(ReadOnlySpan{byte}, ReadOnlySpan{byte}, ref TWriter)"/>.
@@ -71,5 +72,6 @@ public interface IAesKeyWrap
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
         ref TWriter contentKeyWriter
-    ) where TWriter : IBufferWriter<byte>, allows ref struct;
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct;
 }

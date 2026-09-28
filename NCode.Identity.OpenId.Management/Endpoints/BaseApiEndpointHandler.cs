@@ -30,7 +30,9 @@ public abstract class BaseApiEndpointHandler
 {
     protected abstract IAuthorizationService AuthorizationService { get; }
 
-    internal virtual IReadOnlyCollection<SecretResource> ToSecretsResource(IReadOnlyCollection<PersistedSecret> secrets)
+    internal virtual IReadOnlyCollection<SecretResource> ToSecretsResource(
+        IReadOnlyCollection<PersistedSecret> secrets
+    )
     {
         return secrets.Select(ToSecretResource).ToList();
     }
@@ -46,7 +48,7 @@ public abstract class BaseApiEndpointHandler
             CreatedWhen = secret.CreatedWhen,
             ExpiresWhen = secret.ExpiresWhen,
             SecretType = secret.SecretType,
-            KeySizeBits = secret.KeySizeBits
+            KeySizeBits = secret.KeySizeBits,
         };
     }
 
@@ -56,7 +58,12 @@ public abstract class BaseApiEndpointHandler
         IAuthorizationRequirement authorizationRequirement
     )
     {
-        return await ProcessGetAsync(httpContext, valueOrNull, authorizationRequirement, value => value);
+        return await ProcessGetAsync(
+            httpContext,
+            valueOrNull,
+            authorizationRequirement,
+            value => value
+        );
     }
 
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(

@@ -44,10 +44,11 @@ public class DefaultClientCredentialsGrantHandler(
     private ITokenService TokenService { get; } = tokenService;
 
     /// <inheritdoc />
-    public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
-    {
-        OpenIdConstants.GrantTypes.ClientCredentials
-    };
+    public IReadOnlySet<string> GrantTypes { get; } =
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            OpenIdConstants.GrantTypes.ClientCredentials,
+        };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -61,9 +62,7 @@ public class DefaultClientCredentialsGrantHandler(
         var mediator = openIdContext.Mediator;
 
         if (!openIdClient.IsConfidential)
-            return errorFactory
-                .InvalidClient()
-                .WithStatusCode(StatusCodes.Status400BadRequest);
+            return errorFactory.InvalidClient().WithStatusCode(StatusCodes.Status400BadRequest);
 
         var confidentialClient = openIdClient.ConfidentialClient;
         var clientCredentialsGrant = new ClientCredentialsGrant(confidentialClient);
@@ -108,7 +107,7 @@ public class DefaultClientCredentialsGrantHandler(
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.ClientCredentials,
             OriginalScopes = scopes,
-            EffectiveScopes = scopes
+            EffectiveScopes = scopes,
         };
 
         var securityToken = await TokenService.CreateAccessTokenAsync(

@@ -79,7 +79,10 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: true,
+            secretKey.KeySizeBytes
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
@@ -88,11 +91,7 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
-        AesKeyWrap.WrapKey(
-            privateKeySpan,
-            contentKey,
-            ref encryptedContentKeyWriter
-        );
+        AesKeyWrap.WrapKey(privateKeySpan, contentKey, ref encryptedContentKeyWriter);
     }
 
     /// <inheritdoc />
@@ -113,7 +112,10 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         }
 
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(true, secretKey.KeySizeBytes);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            true,
+            secretKey.KeySizeBytes
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         validatedSecretKey.ExportPrivateKey(ref privateKeyWriter);
@@ -124,11 +126,7 @@ public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         var contentKeyWriter = contentKey.GetFixedBufferWriter();
 
-        AesKeyWrap.UnwrapKey(
-            privateKeySpan,
-            encryptedContentKey,
-            ref contentKeyWriter
-        );
+        AesKeyWrap.UnwrapKey(privateKeySpan, encryptedContentKey, ref contentKeyWriter);
 
         bytesWritten = contentKeyWriter.WrittenCount;
         return true;

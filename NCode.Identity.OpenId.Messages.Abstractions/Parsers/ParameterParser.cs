@@ -63,8 +63,10 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
     /// <summary>
     /// Wrapper method for <c>JsonSerializer.Deserialize</c> to allow for unit testing.
     /// </summary>
-    protected virtual T1? Deserialize<T1>(ref Utf8JsonReader reader, JsonSerializerOptions options) =>
-        JsonSerializer.Deserialize<T1>(ref reader, options);
+    protected virtual T1? Deserialize<T1>(
+        ref Utf8JsonReader reader,
+        JsonSerializerOptions options
+    ) => JsonSerializer.Deserialize<T1>(ref reader, options);
 
     /// <inheritdoc />
     public override IParameter Read(

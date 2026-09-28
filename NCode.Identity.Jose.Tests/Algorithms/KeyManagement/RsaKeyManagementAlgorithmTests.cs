@@ -29,7 +29,6 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class RsaKeyManagementAlgorithmTests : BaseTests
 {
-
     [Fact]
     public void Code_Valid()
     {
@@ -77,24 +76,83 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     {
         // https://crypto.stackexchange.com/a/42100
 
-        yield return new object[] { 1024, RSAEncryptionPadding.Pkcs1, new[] { new KeySizes(1, 117, 1) } };
-        yield return new object[] { 1024, RSAEncryptionPadding.OaepSHA256, new[] { new KeySizes(1, 62, 1) } };
-        yield return new object[] { 1024, RSAEncryptionPadding.OaepSHA384, new[] { new KeySizes(1, 30, 1) } };
+        yield return new object[]
+        {
+            1024,
+            RSAEncryptionPadding.Pkcs1,
+            new[] { new KeySizes(1, 117, 1) },
+        };
+        yield return new object[]
+        {
+            1024,
+            RSAEncryptionPadding.OaepSHA256,
+            new[] { new KeySizes(1, 62, 1) },
+        };
+        yield return new object[]
+        {
+            1024,
+            RSAEncryptionPadding.OaepSHA384,
+            new[] { new KeySizes(1, 30, 1) },
+        };
 
-        yield return new object[] { 2048, RSAEncryptionPadding.Pkcs1, new[] { new KeySizes(1, 245, 1) } };
-        yield return new object[] { 2048, RSAEncryptionPadding.OaepSHA256, new[] { new KeySizes(1, 190, 1) } };
-        yield return new object[] { 2048, RSAEncryptionPadding.OaepSHA384, new[] { new KeySizes(1, 158, 1) } };
-        yield return new object[] { 2048, RSAEncryptionPadding.OaepSHA512, new[] { new KeySizes(1, 126, 1) } };
+        yield return new object[]
+        {
+            2048,
+            RSAEncryptionPadding.Pkcs1,
+            new[] { new KeySizes(1, 245, 1) },
+        };
+        yield return new object[]
+        {
+            2048,
+            RSAEncryptionPadding.OaepSHA256,
+            new[] { new KeySizes(1, 190, 1) },
+        };
+        yield return new object[]
+        {
+            2048,
+            RSAEncryptionPadding.OaepSHA384,
+            new[] { new KeySizes(1, 158, 1) },
+        };
+        yield return new object[]
+        {
+            2048,
+            RSAEncryptionPadding.OaepSHA512,
+            new[] { new KeySizes(1, 126, 1) },
+        };
 
-        yield return new object[] { 3072, RSAEncryptionPadding.Pkcs1, new[] { new KeySizes(1, 373, 1) } };
-        yield return new object[] { 3072, RSAEncryptionPadding.OaepSHA256, new[] { new KeySizes(1, 318, 1) } };
-        yield return new object[] { 3072, RSAEncryptionPadding.OaepSHA384, new[] { new KeySizes(1, 286, 1) } };
-        yield return new object[] { 3072, RSAEncryptionPadding.OaepSHA512, new[] { new KeySizes(1, 254, 1) } };
+        yield return new object[]
+        {
+            3072,
+            RSAEncryptionPadding.Pkcs1,
+            new[] { new KeySizes(1, 373, 1) },
+        };
+        yield return new object[]
+        {
+            3072,
+            RSAEncryptionPadding.OaepSHA256,
+            new[] { new KeySizes(1, 318, 1) },
+        };
+        yield return new object[]
+        {
+            3072,
+            RSAEncryptionPadding.OaepSHA384,
+            new[] { new KeySizes(1, 286, 1) },
+        };
+        yield return new object[]
+        {
+            3072,
+            RSAEncryptionPadding.OaepSHA512,
+            new[] { new KeySizes(1, 254, 1) },
+        };
     }
 
     [Theory]
     [MemberData(nameof(GetLegalCekByteSizesTestData))]
-    public void GetLegalCekByteSizes_Valid(int kekSizeBits, RSAEncryptionPadding padding, IEnumerable<KeySizes> expected)
+    public void GetLegalCekByteSizes_Valid(
+        int kekSizeBits,
+        RSAEncryptionPadding padding,
+        IEnumerable<KeySizes> expected
+    )
     {
         const string code = nameof(code);
         var algorithm = new RsaKeyManagementAlgorithm(code, padding);
@@ -141,7 +199,10 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         var header = new Dictionary<string, object>();
 
         var cekSizeBytes = algorithm.GetLegalCekByteSizes(kekSizeBits).Single().MaxSize;
-        var encryptedCekSizeBytes = algorithm.GetEncryptedContentKeySizeBytes(secretKey.KeySizeBits, cekSizeBytes);
+        var encryptedCekSizeBytes = algorithm.GetEncryptedContentKeySizeBytes(
+            secretKey.KeySizeBits,
+            cekSizeBytes
+        );
 
         Span<byte> cek = new byte[cekSizeBytes];
         var encryptedCekWriter = new ArrayBufferWriter<byte>(encryptedCekSizeBytes);
@@ -170,7 +231,10 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         var headerForWrap = new Dictionary<string, object>();
 
         var cekSizeBytes = algorithm.GetLegalCekByteSizes(kekSizeBits).Single().MaxSize;
-        var encryptedCekSizeBytes = algorithm.GetEncryptedContentKeySizeBytes(secretKey.KeySizeBits, cekSizeBytes);
+        var encryptedCekSizeBytes = algorithm.GetEncryptedContentKeySizeBytes(
+            secretKey.KeySizeBits,
+            cekSizeBytes
+        );
 
         Span<byte> cek = new byte[cekSizeBytes];
         Span<byte> decryptedCek = new byte[cekSizeBytes];
@@ -178,18 +242,19 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
 
         RandomNumberGenerator.Fill(cek);
 
-        algorithm.WrapKey(
-            secretKey,
-            headerForWrap,
-            cek,
-            encryptedCekWriter);
+        algorithm.WrapKey(secretKey, headerForWrap, cek, encryptedCekWriter);
         Assert.Equal(encryptedCekSizeBytes, encryptedCekWriter.WrittenCount);
 
         var cekSizeBits = cekSizeBytes << 3;
         var controlAlgorithm = GetControlAlgorithm(padding);
         if (controlAlgorithm != null)
         {
-            var controlResult = controlAlgorithm.Unwrap(encryptedCekWriter.WrittenSpan.ToArray(), key, cekSizeBits, headerForWrap);
+            var controlResult = controlAlgorithm.Unwrap(
+                encryptedCekWriter.WrittenSpan.ToArray(),
+                key,
+                cekSizeBits,
+                headerForWrap
+            );
             Assert.Equal(cek.ToArray(), controlResult);
         }
 
@@ -199,7 +264,8 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
             headerForUnwrap,
             encryptedCekWriter.WrittenSpan,
             decryptedCek,
-            out var unwrapBytesWritten);
+            out var unwrapBytesWritten
+        );
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
         Assert.Equal(cek.ToArray(), decryptedCek.ToArray());

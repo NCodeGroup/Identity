@@ -28,7 +28,8 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> source,
         Span<byte> destination,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         throw new NotImplementedException();
     }
@@ -54,7 +55,8 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
         var algorithm = new AesCbcHmacAuthenticatedEncryptionAlgorithm(
             "code",
             KeyedHashFunctionNotImplemented,
-            cekSizeBits);
+            cekSizeBits
+        );
 
         var actual = algorithm.GetCipherTextSizeBytes(plainTextSizeBytes);
         Assert.Equal(expected, actual);
@@ -71,7 +73,8 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
         var algorithm = new AesCbcHmacAuthenticatedEncryptionAlgorithm(
             "code",
             KeyedHashFunctionNotImplemented,
-            cekSizeBits);
+            cekSizeBits
+        );
 
         var actual = algorithm.GetMaxPlainTextSizeBytes(cipherTextSizeBytes);
         Assert.Equal(expected, actual);
@@ -97,28 +100,33 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
                 256,
                 (KeyedHashFunctionDelegate)HMACSHA256.TryHashData,
                 new HmacUsingSha("SHA256"),
-                plainTextSizeBytesArray
+                plainTextSizeBytesArray,
             };
             yield return new object[]
             {
                 384,
                 (KeyedHashFunctionDelegate)HMACSHA384.TryHashData,
                 new HmacUsingSha("SHA384"),
-                plainTextSizeBytesArray
+                plainTextSizeBytesArray,
             };
             yield return new object[]
             {
                 512,
                 (KeyedHashFunctionDelegate)HMACSHA512.TryHashData,
                 new HmacUsingSha("SHA512"),
-                plainTextSizeBytesArray
+                plainTextSizeBytesArray,
             };
         }
     }
 
     [Theory]
     [MemberData(nameof(RoundTripTestData))]
-    public void RoundTrip_Valid(int cekSizeBits, KeyedHashFunctionDelegate keyedHashFunction, IJwsAlgorithm jwsAlgorithm, int[] plainTextSizeBytesArray)
+    public void RoundTrip_Valid(
+        int cekSizeBits,
+        KeyedHashFunctionDelegate keyedHashFunction,
+        IJwsAlgorithm jwsAlgorithm,
+        int[] plainTextSizeBytesArray
+    )
     {
         foreach (var plainTextSizeBytes in plainTextSizeBytesArray)
         {
@@ -136,7 +144,11 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
             RandomNumberGenerator.Fill(associatedData);
 
             var controlAlgorithm = new AesCbcHmacEncryption(jwsAlgorithm, cekSizeBits);
-            var expectedResult = controlAlgorithm.Encrypt(associatedData.ToArray(), plainText.ToArray(), cek.ToArray());
+            var expectedResult = controlAlgorithm.Encrypt(
+                associatedData.ToArray(),
+                plainText.ToArray(),
+                cek.ToArray()
+            );
             if (expectedResult is not [var nonce, var expectedCipherText, var expectedAuthTag])
             {
                 throw new InvalidOperationException();
@@ -145,7 +157,8 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
             var algorithm = new AesCbcHmacAuthenticatedEncryptionAlgorithm(
                 "code",
                 keyedHashFunction,
-                cekSizeBits);
+                cekSizeBits
+            );
 
             var cipherTextSizeBytes = algorithm.GetCipherTextSizeBytes(plainTextSizeBytes);
             Assert.Equal(expectedCipherText.Length, cipherTextSizeBytes);
@@ -159,7 +172,8 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
                 plainText,
                 associatedData,
                 cipherText,
-                authenticationTag);
+                authenticationTag
+            );
 
             Assert.Equal(expectedCipherText, cipherText.ToArray());
             Assert.Equal(expectedAuthTag, authenticationTag.ToArray());
@@ -173,7 +187,8 @@ public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
                 associatedData,
                 authenticationTag,
                 plainTextOutput,
-                out var decryptBytesWritten);
+                out var decryptBytesWritten
+            );
 
             Assert.True(decryptResult);
             Assert.Equal(plainTextSizeBytes, decryptBytesWritten);

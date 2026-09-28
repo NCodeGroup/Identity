@@ -41,13 +41,14 @@ partial class DefaultJsonWebTokenService
             var signingOptions = new JoseSigningOptions(parameters.SigningCredentials)
             {
                 TokenType = parameters.TokenType,
-                AddKeyIdHeader = parameters.AddKeyIdHeader
+                AddKeyIdHeader = parameters.AddKeyIdHeader,
             };
 
             encodedToken = JoseSerializer.Encode(
                 valueToEncode,
                 signingOptions,
-                extraHeaders: parameters.ExtraSignatureHeaderClaims);
+                extraHeaders: parameters.ExtraSignatureHeaderClaims
+            );
 
             // for the possibility of a nested token
             valueToEncode = encodedToken;
@@ -58,17 +59,21 @@ partial class DefaultJsonWebTokenService
             var encryptingOptions = new JoseEncryptionOptions(parameters.EncryptionCredentials)
             {
                 TokenType = parameters.TokenType,
-                AddKeyIdHeader = parameters.AddKeyIdHeader
+                AddKeyIdHeader = parameters.AddKeyIdHeader,
             };
 
             encodedToken = JoseSerializer.Encode(
                 valueToEncode,
                 encryptingOptions,
-                extraHeaders: parameters.ExtraEncryptionHeaderClaims);
+                extraHeaders: parameters.ExtraEncryptionHeaderClaims
+            );
         }
 
         if (encodedToken == null)
-            throw new ArgumentException("Both SigningOptions and EncryptingOptions cannot be null.", nameof(parameters));
+            throw new ArgumentException(
+                "Both SigningOptions and EncryptingOptions cannot be null.",
+                nameof(parameters)
+            );
 
         return encodedToken;
     }
@@ -90,9 +95,11 @@ partial class DefaultJsonWebTokenService
 
     private static void ProcessSubjectClaims(
         Dictionary<string, object> payload,
-        IEnumerable<Claim>? subjectClaims)
+        IEnumerable<Claim>? subjectClaims
+    )
     {
-        if (subjectClaims is null) return;
+        if (subjectClaims is null)
+            return;
 
         foreach (var claim in subjectClaims)
         {
@@ -109,11 +116,7 @@ partial class DefaultJsonWebTokenService
                 }
                 else
                 {
-                    payload[claim.Type] = new HashSet<object>
-                    {
-                        existingValue,
-                        nativeValue
-                    };
+                    payload[claim.Type] = new HashSet<object> { existingValue, nativeValue };
                 }
             }
             else
@@ -125,9 +128,11 @@ partial class DefaultJsonWebTokenService
 
     private static void ProcessExtraPayloadClaims(
         Dictionary<string, object> payload,
-        IReadOnlyDictionary<string, object>? extraClaims)
+        IReadOnlyDictionary<string, object>? extraClaims
+    )
     {
-        if (extraClaims is not { Count: > 1 }) return;
+        if (extraClaims is not { Count: > 1 })
+            return;
 
         foreach (var (key, value) in extraClaims)
         {
@@ -137,7 +142,8 @@ partial class DefaultJsonWebTokenService
 
     private static void ProcessRequestClaims(
         Dictionary<string, object> payload,
-        EncodeJwtParameters parameters)
+        EncodeJwtParameters parameters
+    )
     {
         if (!string.IsNullOrEmpty(parameters.Issuer))
         {
@@ -146,9 +152,10 @@ partial class DefaultJsonWebTokenService
 
         if (!StringValues.IsNullOrEmpty(parameters.Audience))
         {
-            payload[JoseClaimNames.Payload.Aud] = parameters.Audience.Count == 1 ?
-                parameters.Audience.ToString() :
-                parameters.Audience.ToArray();
+            payload[JoseClaimNames.Payload.Aud] =
+                parameters.Audience.Count == 1
+                    ? parameters.Audience.ToString()
+                    : parameters.Audience.ToArray();
         }
 
         if (parameters.IssuedAt.HasValue)
@@ -169,7 +176,8 @@ partial class DefaultJsonWebTokenService
 
     private void ProcessTokenLifetime(Dictionary<string, object> payload)
     {
-        if (!Options.EnsureTokenLifetime) return;
+        if (!Options.EnsureTokenLifetime)
+            return;
 
         DateTimeOffset issuedAt;
         if (payload.TryGetValue<long>(JoseClaimNames.Payload.Iat, out var iat))
@@ -198,38 +206,47 @@ partial class DefaultJsonWebTokenService
         claim.ValueType switch
         {
             ClaimValueTypes.String => claim.Value,
-            ClaimValueTypes.Boolean when bool.TryParse(
-                claim.Value,
-                out var boolValue) => boolValue,
-            ClaimValueTypes.Double when double.TryParse(
-                claim.Value,
-                NumberStyles.Any,
-                CultureInfo.InvariantCulture,
-                out var doubleValue) => doubleValue,
-            ClaimValueTypes.Integer or ClaimValueTypes.Integer32 when int.TryParse(
-                claim.Value,
-                NumberStyles.Any,
-                CultureInfo.InvariantCulture,
-                out var intValue) => intValue,
-            ClaimValueTypes.Integer64 when long.TryParse(
-                claim.Value,
-                NumberStyles.Any,
-                CultureInfo.InvariantCulture,
-                out var longValue) => longValue,
-            ClaimValueTypes.DateTime when DateTimeOffset.TryParse(
-                claim.Value,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal,
-                out var dateTimeOffsetValue) => dateTimeOffsetValue,
-            ClaimValueTypes.DateTime when DateTime.TryParse(
-                claim.Value,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal,
-                out var dateTimeValue) => dateTimeValue.ToUniversalTime(),
+            ClaimValueTypes.Boolean when bool.TryParse(claim.Value, out var boolValue) => boolValue,
+            ClaimValueTypes.Double
+                when double.TryParse(
+                    claim.Value,
+                    NumberStyles.Any,
+                    CultureInfo.InvariantCulture,
+                    out var doubleValue
+                ) => doubleValue,
+            ClaimValueTypes.Integer
+            or ClaimValueTypes.Integer32
+                when int.TryParse(
+                    claim.Value,
+                    NumberStyles.Any,
+                    CultureInfo.InvariantCulture,
+                    out var intValue
+                ) => intValue,
+            ClaimValueTypes.Integer64
+                when long.TryParse(
+                    claim.Value,
+                    NumberStyles.Any,
+                    CultureInfo.InvariantCulture,
+                    out var longValue
+                ) => longValue,
+            ClaimValueTypes.DateTime
+                when DateTimeOffset.TryParse(
+                    claim.Value,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal,
+                    out var dateTimeOffsetValue
+                ) => dateTimeOffsetValue,
+            ClaimValueTypes.DateTime
+                when DateTime.TryParse(
+                    claim.Value,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal,
+                    out var dateTimeValue
+                ) => dateTimeValue.ToUniversalTime(),
             JsonClaimValueTypes.Json => CreateJsonElement(claim.Value),
             JsonClaimValueTypes.JsonArray => CreateJsonElement(claim.Value),
             JsonClaimValueTypes.JsonNull => string.Empty,
-            _ => claim.Value
+            _ => claim.Value,
         };
 
     private static JsonElement CreateJsonElement(string json)
@@ -241,8 +258,8 @@ partial class DefaultJsonWebTokenService
         Debug.Assert(bytesWritten == byteCount);
 
         var reader = new Utf8JsonReader(buffer);
-        return JsonElement.TryParseValue(ref reader, out var jsonElement) ?
-            jsonElement.Value :
-            default;
+        return JsonElement.TryParseValue(ref reader, out var jsonElement)
+            ? jsonElement.Value
+            : default;
     }
 }

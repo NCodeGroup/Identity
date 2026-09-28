@@ -50,7 +50,8 @@ public sealed partial class DefaultJsonWebTokenService : IJsonWebTokenService
         IServiceProvider serviceProvider,
         TimeProvider timeProvider,
         IJoseSerializer joseSerializer,
-        ISecretKeyCollectionProvider secretKeyCollectionProvider)
+        ISecretKeyCollectionProvider secretKeyCollectionProvider
+    )
     {
         Options = optionsAccessor.Value;
         ServiceProvider = serviceProvider;

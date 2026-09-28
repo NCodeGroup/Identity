@@ -27,7 +27,6 @@ namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class EccSignatureAlgorithmTests : BaseTests
 {
-
     [Fact]
     public void Code_Valid()
     {
@@ -116,7 +115,12 @@ public class EccSignatureAlgorithmTests : BaseTests
 
         RandomNumberGenerator.Fill(inputData);
 
-        var signResult = algorithm.TrySign(secretKey, inputData, signature, out var signBytesWritten);
+        var signResult = algorithm.TrySign(
+            secretKey,
+            inputData,
+            signature,
+            out var signBytesWritten
+        );
         Assert.True(signResult);
         Assert.Equal(hashSizeBytes, signBytesWritten);
 
@@ -130,7 +134,11 @@ public class EccSignatureAlgorithmTests : BaseTests
         var verifyHashFromControl = algorithm.Verify(secretKey, inputData, controlHash);
         Assert.True(verifyHashFromControl);
 
-        var verifyHashUsingControl = controlAlgorithm.Verify(signature.ToArray(), inputData.ToArray(), key);
+        var verifyHashUsingControl = controlAlgorithm.Verify(
+            signature.ToArray(),
+            inputData.ToArray(),
+            key
+        );
         Assert.True(verifyHashUsingControl);
     }
 }

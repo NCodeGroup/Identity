@@ -46,5 +46,8 @@ public interface IEccCurveSpecificationRegistry
     /// <param name="specification">When this method returns <c>true</c>, contains the matching
     /// <see cref="EccCurveSpecification"/>; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if a supported curve of the specified size was found; otherwise, <c>false</c>.</returns>
-    bool TryGetByCurveSizeBits(int curveSizeBits, [NotNullWhen(true)] out EccCurveSpecification? specification);
+    bool TryGetByCurveSizeBits(
+        int curveSizeBits,
+        [NotNullWhen(true)] out EccCurveSpecification? specification
+    );
 }

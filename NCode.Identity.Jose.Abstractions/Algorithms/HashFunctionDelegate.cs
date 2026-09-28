@@ -28,4 +28,5 @@ namespace NCode.Identity.Jose.Algorithms;
 public delegate bool HashFunctionDelegate(
     ReadOnlySpan<byte> source,
     Span<byte> destination,
-    out int bytesWritten);
+    out int bytesWritten
+);

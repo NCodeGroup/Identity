@@ -81,7 +81,8 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     protected override IOpenIdTenantCache TenantCache { get; } = tenantCache;
 
     /// <inheritdoc />
-    protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
+    protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } =
+        settingCollectionProviderFactory;
 
     /// <inheritdoc />
     protected override ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -90,17 +91,25 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
     protected override ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <inheritdoc />
-    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
+        secretKeyCollectionProviderFactory;
 
     /// <inheritdoc />
-    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
+    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } =
+        collectionDataSourceFactory;
 
-    private async ValueTask<PersistedTenant> GetTenantByDomainAsync(string domainName, CancellationToken cancellationToken)
+    private async ValueTask<PersistedTenant> GetTenantByDomainAsync(
+        string domainName,
+        CancellationToken cancellationToken
+    )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var persistedTenant = await store.GetOrDefaultByDomainNameAsync(domainName, cancellationToken);
+        var persistedTenant = await store.GetOrDefaultByDomainNameAsync(
+            domainName,
+            cancellationToken
+        );
         if (persistedTenant is null)
             throw TypedResults
                 .NotFound()
@@ -122,9 +131,8 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
 
         var regex = DomainNameRegex ??= new Regex(
             options.RegexPattern,
-            RegexOptions.Compiled |
-            RegexOptions.CultureInvariant |
-            RegexOptions.Singleline);
+            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline
+        );
 
         var host = httpContext.Request.Host.Host;
         var match = regex.Match(host);
@@ -137,7 +145,7 @@ public class DefaultDynamicByHostOpenIdTenantProvider(
         {
             TenantId = persistedTenant.TenantId,
             DisplayName = persistedTenant.DisplayName,
-            DomainName = persistedTenant.DomainName
+            DomainName = persistedTenant.DomainName,
         };
     }
 }

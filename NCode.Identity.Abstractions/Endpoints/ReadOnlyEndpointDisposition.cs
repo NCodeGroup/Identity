@@ -31,14 +31,12 @@ public readonly record struct ReadOnlyEndpointDisposition
     /// <summary>
     /// Creates a new instance of the <see cref="ReadOnlyEndpointDisposition"/> class that indicates the endpoint was not handled.
     /// </summary>
-    public static ReadOnlyEndpointDisposition UnHandled() =>
-        new() { WasHandled = false };
+    public static ReadOnlyEndpointDisposition UnHandled() => new() { WasHandled = false };
 
     /// <summary>
     /// Creates a new instance of the <see cref="ReadOnlyEndpointDisposition"/> class that indicates the endpoint was handled.
     /// </summary>
-    public static ReadOnlyEndpointDisposition Handled() =>
-        new() { WasHandled = true };
+    public static ReadOnlyEndpointDisposition Handled() => new() { WasHandled = true };
 
     /// <summary>
     /// Creates a new instance of the <see cref="ReadOnlyEndpointDisposition"/> class that indicates the endpoint was handled

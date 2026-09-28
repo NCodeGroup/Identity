@@ -33,24 +33,25 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the discovery endpoint.
 /// </summary>
-public class DefaultDiscoveryEndpointHandler(
-    IOpenIdContextFactory contextFactory
-) : IEndpointProvider
+public class DefaultDiscoveryEndpointHandler(IOpenIdContextFactory contextFactory)
+    : IEndpointProvider
 {
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
-        .MapGet(OpenIdConstants.EndpointPaths.Discovery, HandleRouteAsync)
-        .WithName(OpenIdConstants.EndpointNames.Discovery)
-        .WithTags("oidc") // TODO: use constant
-        .WithOpenIdDiscoverable();
+    public void Map(IEndpointRouteBuilder endpoints) =>
+        endpoints
+            .MapGet(OpenIdConstants.EndpointPaths.Discovery, HandleRouteAsync)
+            .WithName(OpenIdConstants.EndpointNames.Discovery)
+            .WithTags("oidc") // TODO: use constant
+            .WithOpenIdDiscoverable();
 
     private async ValueTask<JsonHttpResult<DiscoveryResult>> HandleRouteAsync(
         HttpContext httpContext,
         [FromServices] IMediator mediator,
         [FromQuery] bool? showAll,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var openIdContext = await ContextFactory.CreateAsync(
             httpContext,
@@ -60,10 +61,7 @@ public class DefaultDiscoveryEndpointHandler(
 
         var openIdEnvironment = openIdContext.Environment;
 
-        var result = new DiscoveryResult
-        {
-            Issuer = openIdContext.Tenant.Issuer
-        };
+        var result = new DiscoveryResult { Issuer = openIdContext.Tenant.Issuer };
 
         await mediator.SendAsync(
             new DiscoverMetadataCommand(openIdContext, result.Metadata, showAll ?? false),

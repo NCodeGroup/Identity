@@ -76,7 +76,11 @@ public interface ISecretKeyFactory
     /// <param name="chars">The cryptographic key material using <c>PEM</c> encoding.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
     /// <returns>The newly created secret key.</returns>
-    RsaSecretKey CreateRsaPem(KeyMetadata metadata, ReadOnlySpan<char> chars, X509Certificate2? certificate = null);
+    RsaSecretKey CreateRsaPem(
+        KeyMetadata metadata,
+        ReadOnlySpan<char> chars,
+        X509Certificate2? certificate = null
+    );
 
     /// <summary>
     /// Factory method to create <see cref="RsaSecretKey"/> instances from cryptographic key material using <c>PKCS#8</c> encoding.
@@ -85,7 +89,11 @@ public interface ISecretKeyFactory
     /// <param name="bytes">The cryptographic key material using <c>PKCS#8</c> encoding.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
     /// <returns>The newly created secret key.</returns>
-    RsaSecretKey CreateRsaPkcs8(KeyMetadata metadata, ReadOnlySpan<byte> bytes, X509Certificate2? certificate = null);
+    RsaSecretKey CreateRsaPkcs8(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> bytes,
+        X509Certificate2? certificate = null
+    );
 
     /// <summary>
     /// Factory method to create <see cref="EccSecretKey"/> instances from <c>ECAlgorithm</c> cryptographic key material.
@@ -94,7 +102,11 @@ public interface ISecretKeyFactory
     /// <param name="key">The <c>ECAlgorithm</c> cryptographic key material.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
     /// <returns>The newly created secret key.</returns>
-    EccSecretKey CreateEcc(KeyMetadata metadata, ECAlgorithm key, X509Certificate2? certificate = null);
+    EccSecretKey CreateEcc(
+        KeyMetadata metadata,
+        ECAlgorithm key,
+        X509Certificate2? certificate = null
+    );
 
     /// <summary>
     /// Factory method to create <see cref="EccSecretKey"/> instances from cryptographic key material using <c>PEM</c> encoding.
@@ -103,7 +115,11 @@ public interface ISecretKeyFactory
     /// <param name="chars">The cryptographic key material using <c>PEM</c> encoding.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
     /// <returns>The newly created secret key.</returns>
-    EccSecretKey CreateEccPem(KeyMetadata metadata, ReadOnlySpan<char> chars, X509Certificate2? certificate = null);
+    EccSecretKey CreateEccPem(
+        KeyMetadata metadata,
+        ReadOnlySpan<char> chars,
+        X509Certificate2? certificate = null
+    );
 
     /// <summary>
     /// Factory method to create <see cref="EccSecretKey"/> instances from cryptographic key material using <c>PKCS#8</c> encoding.
@@ -112,5 +128,9 @@ public interface ISecretKeyFactory
     /// <param name="bytes">The cryptographic key material using <c>PKCS#8</c> encoding.</param>
     /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
     /// <returns>The newly created secret key.</returns>
-    EccSecretKey CreateEccPkcs8(KeyMetadata metadata, ReadOnlySpan<byte> bytes, X509Certificate2? certificate = null);
+    EccSecretKey CreateEccPkcs8(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> bytes,
+        X509Certificate2? certificate = null
+    );
 }

@@ -55,24 +55,38 @@ public class DefaultTokenService(
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private ICryptoService CryptoService { get; } = cryptoService;
-    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } = algorithmCollectionProvider;
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
+        algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
-    private static IEnumerable<Claim> FilterClaims(IReadOnlySettingCollection settings, IEnumerable<Claim> claims)
+    private static IEnumerable<Claim> FilterClaims(
+        IReadOnlySettingCollection settings,
+        IEnumerable<Claim> claims
+    )
     {
-        if (!settings.TryGetValue(OpenIdSettingKeys.ClaimsSupportedIsStrict, out var claimsSupportedIsStrict) || !claimsSupportedIsStrict)
+        if (
+            !settings.TryGetValue(
+                OpenIdSettingKeys.ClaimsSupportedIsStrict,
+                out var claimsSupportedIsStrict
+            ) || !claimsSupportedIsStrict
+        )
         {
             return claims;
         }
 
-        if (!settings.TryGetValue(OpenIdSettingKeys.ClaimsSupported, out var claimsSupported) || claimsSupported.Count == 0)
+        if (
+            !settings.TryGetValue(OpenIdSettingKeys.ClaimsSupported, out var claimsSupported)
+            || claimsSupported.Count == 0
+        )
         {
             return claims;
         }
 
-        var supported = claimsSupported as IReadOnlySet<string> ?? new HashSet<string>(claimsSupported, StringComparer.Ordinal);
+        var supported =
+            claimsSupported as IReadOnlySet<string>
+            ?? new HashSet<string>(claimsSupported, StringComparer.Ordinal);
         var filtered = claims.Where(claim => supported.Contains(claim.Type));
 
         return filtered;
@@ -178,7 +192,12 @@ public class DefaultTokenService(
             cancellationToken
         );
 
-        if (settings.TryGetValue(OpenIdSettingKeys.SendIdClaimsInAccessToken, out var sendIdClaimsInAccessToken) && sendIdClaimsInAccessToken)
+        if (
+            settings.TryGetValue(
+                OpenIdSettingKeys.SendIdClaimsInAccessToken,
+                out var sendIdClaimsInAccessToken
+            ) && sendIdClaimsInAccessToken
+        )
         {
             await mediator.SendAsync(
                 new GetIdTokenSubjectClaimsCommand(
@@ -194,21 +213,12 @@ public class DefaultTokenService(
         var lifetime = settings.GetValue(OpenIdSettingKeys.AccessTokenLifetime);
         var createdWhen = tokenRequest.CreatedWhen;
         var expiresWhen = createdWhen + lifetime;
-        var tokenLifetime = new TimePeriod
-        {
-            StartTime = createdWhen,
-            EndTime = expiresWhen
-        };
+        var tokenLifetime = new TimePeriod { StartTime = createdWhen, EndTime = expiresWhen };
 
         var filteredClaims = FilterClaims(settings, subjectClaims);
-        var effectiveClaims = ticket.HasValue ?
-            EnsureAuthTime(
-                openIdContext,
-                ticket.Value,
-                tokenRequest,
-                filteredClaims
-            ) :
-            filteredClaims;
+        var effectiveClaims = ticket.HasValue
+            ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
+            : filteredClaims;
 
         var parameters = new EncodeJwtParameters
         {
@@ -228,7 +238,7 @@ public class DefaultTokenService(
             ExtraPayloadClaims = payloadClaims,
 
             ExtraSignatureHeaderClaims = tokenRequest.ExtraSignatureHeaderClaims,
-            ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims
+            ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims,
         };
 
         var jwt = JsonWebTokenService.EncodeJwt(parameters);
@@ -236,7 +246,7 @@ public class DefaultTokenService(
         {
             TokenType = tokenContext.TokenType,
             TokenValue = jwt,
-            TokenLifetime = tokenLifetime
+            TokenLifetime = tokenLifetime,
         };
         var subjectId = tokenRequest.SubjectAuthentication?.SubjectId;
 
@@ -310,21 +320,12 @@ public class DefaultTokenService(
         var lifetime = settings.GetValue(OpenIdSettingKeys.IdTokenLifetime);
         var createdWhen = tokenRequest.CreatedWhen;
         var expiresWhen = createdWhen + lifetime;
-        var tokenLifetime = new TimePeriod
-        {
-            StartTime = createdWhen,
-            EndTime = expiresWhen
-        };
+        var tokenLifetime = new TimePeriod { StartTime = createdWhen, EndTime = expiresWhen };
 
         var filteredClaims = FilterClaims(settings, subjectClaims);
-        var effectiveClaims = ticket.HasValue ?
-            EnsureAuthTime(
-                openIdContext,
-                ticket.Value,
-                tokenRequest,
-                filteredClaims
-            ) :
-            filteredClaims;
+        var effectiveClaims = ticket.HasValue
+            ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
+            : filteredClaims;
 
         var parameters = new EncodeJwtParameters
         {
@@ -342,7 +343,7 @@ public class DefaultTokenService(
             ExtraPayloadClaims = payloadClaims,
 
             ExtraSignatureHeaderClaims = tokenRequest.ExtraSignatureHeaderClaims,
-            ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims
+            ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims,
         };
 
         var jwt = JsonWebTokenService.EncodeJwt(parameters);
@@ -350,7 +351,7 @@ public class DefaultTokenService(
         {
             TokenType = tokenContext.TokenType,
             TokenValue = jwt,
-            TokenLifetime = tokenLifetime
+            TokenLifetime = tokenLifetime,
         };
 
         var subjectId = tokenRequest.SubjectAuthentication?.SubjectId;
@@ -400,14 +401,15 @@ public class DefaultTokenService(
             TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
-            Payload = refreshTokenGrant
+            Payload = refreshTokenGrant,
         };
 
         var createdWhen = tokenRequest.CreatedWhen;
         var expirationPolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy);
-        var lifetime = expirationPolicy != OpenIdConstants.RefreshTokenExpirationPolicy.None ?
-            settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime) :
-            (TimeSpan?)null;
+        var lifetime =
+            expirationPolicy != OpenIdConstants.RefreshTokenExpirationPolicy.None
+                ? settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime)
+                : (TimeSpan?)null;
 
         await PersistedGrantService.AddAsync(
             openIdContext,
@@ -421,14 +423,14 @@ public class DefaultTokenService(
         var tokenLifetime = new TimePeriod
         {
             StartTime = createdWhen,
-            EndTime = createdWhen + lifetime
+            EndTime = createdWhen + lifetime,
         };
 
         var securityToken = new SecurityToken
         {
             TokenType = OpenIdConstants.SecurityTokenTypes.RefreshToken,
             TokenValue = refreshToken,
-            TokenLifetime = tokenLifetime
+            TokenLifetime = tokenLifetime,
         };
 
         await mediator.SendAsync(
@@ -439,11 +441,13 @@ public class DefaultTokenService(
         return securityToken;
     }
 
-    private static Dictionary<string, object> CreatePayloadClaims(IReadOnlyDictionary<string, object>? initial)
+    private static Dictionary<string, object> CreatePayloadClaims(
+        IReadOnlyDictionary<string, object>? initial
+    )
     {
-        return initial == null ?
-            new Dictionary<string, object>(StringComparer.Ordinal) :
-            new Dictionary<string, object>(initial, StringComparer.Ordinal);
+        return initial == null
+            ? new Dictionary<string, object>(StringComparer.Ordinal)
+            : new Dictionary<string, object>(initial, StringComparer.Ordinal);
     }
 
     private JoseSigningCredentials GetSigningCredentials(
@@ -452,13 +456,14 @@ public class DefaultTokenService(
         ISecretKeyCollection secretKeys
     )
     {
-        if (!CredentialSelector.TryGetSigningCredentials(
+        if (
+            !CredentialSelector.TryGetSigningCredentials(
                 candidateAlgorithms,
                 signingAlgValuesSupported,
                 secretKeys,
                 out var signingCredentials
             )
-           )
+        )
         {
             throw new JoseCredentialsNotFoundException("Unable to locate signing credentials.");
         }
@@ -478,7 +483,8 @@ public class DefaultTokenService(
         if (!encryptionRequired)
             return null;
 
-        if (!CredentialSelector.TryGetEncryptionCredentials(
+        if (
+            !CredentialSelector.TryGetEncryptionCredentials(
                 candidateAlgorithms,
                 encryptionAlgValuesSupported,
                 encryptionEncValuesSupported,
@@ -486,7 +492,7 @@ public class DefaultTokenService(
                 secretKeys,
                 out var encryptionCredentials
             )
-           )
+        )
         {
             throw new JoseCredentialsNotFoundException("Unable to locate encryption credentials.");
         }

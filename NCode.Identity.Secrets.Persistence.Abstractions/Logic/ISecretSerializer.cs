@@ -23,7 +23,6 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence.Logic;
 
-
 /// <summary>
 /// Provides the ability to serialize and deserialize secrets from persisted storage.
 /// </summary>
@@ -46,7 +45,5 @@ public interface ISecretSerializer
     /// </summary>
     /// <param name="persistedSecret">The <see cref="PersistedSecret"/> instance to deserialize into an <see cref="SecretKey"/> instance.</param>
     /// <returns>The deserialized <see cref="SecretKey"/> instance.</returns>
-    SecretKey DeserializeSecret(
-        PersistedSecret persistedSecret
-    );
+    SecretKey DeserializeSecret(PersistedSecret persistedSecret);
 }

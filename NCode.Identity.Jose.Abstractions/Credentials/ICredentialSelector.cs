@@ -44,7 +44,8 @@ public interface ICredentialSelector
         IAlgorithmCollection candidateAlgorithms,
         IEnumerable<string> preferredSignatureAlgorithms,
         IReadOnlyCollection<SecretKey> candidateKeys,
-        [MaybeNullWhen(false)] out JoseSigningCredentials credentials);
+        [MaybeNullWhen(false)] out JoseSigningCredentials credentials
+    );
 
     /// <summary>
     /// Attempts to retrieve <see cref="JoseEncryptionCredentials"/> based on the specified criteria.
@@ -62,5 +63,6 @@ public interface ICredentialSelector
         IEnumerable<string> preferredAuthenticatedEncryptionAlgorithms,
         IEnumerable<string> preferredCompressionAlgorithms,
         IReadOnlyCollection<SecretKey> candidateKeys,
-        [MaybeNullWhen(false)] out JoseEncryptionCredentials credentials);
+        [MaybeNullWhen(false)] out JoseEncryptionCredentials credentials
+    );
 }

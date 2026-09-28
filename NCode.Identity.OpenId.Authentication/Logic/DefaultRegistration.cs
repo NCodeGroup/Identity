@@ -40,8 +40,14 @@ public static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.TryAddSingleton<IAuthorizationCodeService, DefaultAuthorizationCodeService>();
-            serviceCollection.TryAddSingleton<IPersistedGrantService, DefaultPersistedGrantService>();
+            serviceCollection.TryAddSingleton<
+                IAuthorizationCodeService,
+                DefaultAuthorizationCodeService
+            >();
+            serviceCollection.TryAddSingleton<
+                IPersistedGrantService,
+                DefaultPersistedGrantService
+            >();
 
             return builder;
         }

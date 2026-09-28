@@ -75,7 +75,8 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     protected override IOpenIdTenantCache TenantCache { get; } = tenantCache;
 
     /// <inheritdoc />
-    protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } = settingCollectionProviderFactory;
+    protected override IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } =
+        settingCollectionProviderFactory;
 
     /// <inheritdoc />
     protected override ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -84,10 +85,12 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
     protected override ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <inheritdoc />
-    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } = secretKeyCollectionProviderFactory;
+    protected override ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
+        secretKeyCollectionProviderFactory;
 
     /// <inheritdoc />
-    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } = collectionDataSourceFactory;
+    protected override ICollectionDataSourceFactory CollectionDataSourceFactory { get; } =
+        collectionDataSourceFactory;
 
     /// <inheritdoc />
     protected override async ValueTask<TenantDescriptor> GetTenantDescriptorAsync(
@@ -95,7 +98,8 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
         OpenIdEnvironment openIdEnvironment,
         OpenIdServer openIdServer,
         IPropertyBag propertyBag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var options = TenantOptions;
         var tenantRoute = GetTenantRoute(propertyBag);
@@ -107,22 +111,34 @@ public class DefaultDynamicByPathOpenIdTenantProvider(
         var routeValues = httpRequest.RouteValues;
 
         if (!routeValues.TryGetValue(options.TenantIdRouteParameterName, out var routeValue))
-            throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' could not be found in the HTTP request.");
+            throw new InvalidOperationException(
+                $"The value for route parameter '{options.TenantIdRouteParameterName}' could not be found in the HTTP request."
+            );
 
         if (routeValue is not string tenantId)
-            throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' is not a string.");
+            throw new InvalidOperationException(
+                $"The value for route parameter '{options.TenantIdRouteParameterName}' is not a string."
+            );
 
         if (string.IsNullOrEmpty(tenantId))
-            throw new InvalidOperationException($"The value for route parameter '{options.TenantIdRouteParameterName}' is empty.");
+            throw new InvalidOperationException(
+                $"The value for route parameter '{options.TenantIdRouteParameterName}' is empty."
+            );
 
-        var persistedTenant = await GetTenantByIdAsync(openIdEnvironment, openIdServer, tenantId, propertyBag, cancellationToken);
+        var persistedTenant = await GetTenantByIdAsync(
+            openIdEnvironment,
+            openIdServer,
+            tenantId,
+            propertyBag,
+            cancellationToken
+        );
         propertyBag.Set(persistedTenant);
 
         return new TenantDescriptor
         {
             TenantId = persistedTenant.TenantId,
             DisplayName = persistedTenant.DisplayName,
-            DomainName = persistedTenant.DomainName
+            DomainName = persistedTenant.DomainName,
         };
     }
 }

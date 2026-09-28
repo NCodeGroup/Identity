@@ -42,7 +42,7 @@ internal static class CompressionAlgorithmExtensions
         var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
         {
             // increase our chances of getting a single-segment buffer
-            MinimumSpanLength = Math.Min(uncompressedData.Length, 1024)
+            MinimumSpanLength = Math.Min(uncompressedData.Length, 1024),
         };
 
         try

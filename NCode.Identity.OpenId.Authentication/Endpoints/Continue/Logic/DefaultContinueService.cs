@@ -79,7 +79,7 @@ public class DefaultContinueService(
         var continueEnvelope = new ContinueEnvelope
         {
             Code = continueCode,
-            PayloadJson = payloadJson
+            PayloadJson = payloadJson,
         };
 
         var persistedGrantId = PersistedGrantService.CreateGrantId(
@@ -93,7 +93,7 @@ public class DefaultContinueService(
             TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
-            Payload = continueEnvelope
+            Payload = continueEnvelope,
         };
 
         await PersistedGrantService.AddAsync(

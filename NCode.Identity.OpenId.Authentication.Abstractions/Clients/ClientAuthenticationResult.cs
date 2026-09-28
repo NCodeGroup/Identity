@@ -47,8 +47,7 @@ public readonly struct ClientAuthenticationResult
     /// indicating that the client authentication failed.
     /// </summary>
     /// <param name="error">The <see cref="IOpenIdError"/> instance containing the client authentication failure.</param>
-    public ClientAuthenticationResult(IOpenIdError error) =>
-        Error = error;
+    public ClientAuthenticationResult(IOpenIdError error) => Error = error;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ClientAuthenticationResult"/> class

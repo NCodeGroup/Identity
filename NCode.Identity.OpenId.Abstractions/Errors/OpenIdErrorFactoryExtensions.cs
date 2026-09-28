@@ -38,7 +38,9 @@ public static class OpenIdErrorFactoryExtensions
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError InvalidClient()
         {
-            return factory.Create(OpenIdConstants.ErrorCodes.InvalidClient).WithDescription("The specified client and/or credentials are invalid.");
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.InvalidClient)
+                .WithDescription("The specified client and/or credentials are invalid.");
         }
 
         /// <summary>
@@ -47,7 +49,10 @@ public static class OpenIdErrorFactoryExtensions
         /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidRequest"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-        public IOpenIdError InvalidRequest(string errorDescription, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest)
+        public IOpenIdError InvalidRequest(
+            string errorDescription,
+            string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest
+        )
         {
             return factory.Create(errorCode).WithDescription(errorDescription);
         }
@@ -58,7 +63,10 @@ public static class OpenIdErrorFactoryExtensions
         /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidGrant"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-        public IOpenIdError InvalidGrant(string errorDescription, string errorCode = OpenIdConstants.ErrorCodes.InvalidGrant)
+        public IOpenIdError InvalidGrant(
+            string errorDescription,
+            string errorCode = OpenIdConstants.ErrorCodes.InvalidGrant
+        )
         {
             return factory.Create(errorCode).WithDescription(errorDescription);
         }
@@ -69,7 +77,11 @@ public static class OpenIdErrorFactoryExtensions
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError InvalidScope()
         {
-            return factory.Create(OpenIdConstants.ErrorCodes.InvalidScope).WithDescription("The requested scope is invalid, unknown, malformed, or exceeds the scope granted by the resource owner.");
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.InvalidScope)
+                .WithDescription(
+                    "The requested scope is invalid, unknown, malformed, or exceeds the scope granted by the resource owner."
+                );
         }
 
         /// <summary>
@@ -78,7 +90,10 @@ public static class OpenIdErrorFactoryExtensions
         /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidRequestUri"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-        public IOpenIdError InvalidRequestUri(string errorDescription, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri)
+        public IOpenIdError InvalidRequestUri(
+            string errorDescription,
+            string errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri
+        )
         {
             return factory.Create(errorCode).WithDescription(errorDescription);
         }
@@ -89,9 +104,14 @@ public static class OpenIdErrorFactoryExtensions
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidRequest"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-        public IOpenIdError MissingParameter(string parameterName, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest)
+        public IOpenIdError MissingParameter(
+            string parameterName,
+            string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest
+        )
         {
-            return factory.Create(errorCode).WithDescription($"The request is missing the '{parameterName}' parameter.");
+            return factory
+                .Create(errorCode)
+                .WithDescription($"The request is missing the '{parameterName}' parameter.");
         }
 
         /// <summary>
@@ -100,9 +120,16 @@ public static class OpenIdErrorFactoryExtensions
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidRequest"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-        public IOpenIdError InvalidParameterValue(string parameterName, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest)
+        public IOpenIdError InvalidParameterValue(
+            string parameterName,
+            string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest
+        )
         {
-            return factory.Create(errorCode).WithDescription($"The request includes an invalid value for the '{parameterName}' parameter.");
+            return factory
+                .Create(errorCode)
+                .WithDescription(
+                    $"The request includes an invalid value for the '{parameterName}' parameter."
+                );
         }
 
         /// <summary>
@@ -111,9 +138,16 @@ public static class OpenIdErrorFactoryExtensions
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidRequest"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-        public IOpenIdError TooManyParameterValues(string parameterName, string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest)
+        public IOpenIdError TooManyParameterValues(
+            string parameterName,
+            string errorCode = OpenIdConstants.ErrorCodes.InvalidRequest
+        )
         {
-            return factory.Create(errorCode).WithDescription($"The request includes the '{parameterName}' parameter more than once.");
+            return factory
+                .Create(errorCode)
+                .WithDescription(
+                    $"The request includes the '{parameterName}' parameter more than once."
+                );
         }
 
         /// <summary>
@@ -121,9 +155,13 @@ public static class OpenIdErrorFactoryExtensions
         /// </summary>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.RequestNotSupported"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-        public IOpenIdError RequestParameterNotSupported(string errorCode = OpenIdConstants.ErrorCodes.RequestNotSupported)
+        public IOpenIdError RequestParameterNotSupported(
+            string errorCode = OpenIdConstants.ErrorCodes.RequestNotSupported
+        )
         {
-            return factory.Create(errorCode).WithDescription("The 'request' parameter is not supported.");
+            return factory
+                .Create(errorCode)
+                .WithDescription("The 'request' parameter is not supported.");
         }
 
         /// <summary>
@@ -131,9 +169,13 @@ public static class OpenIdErrorFactoryExtensions
         /// </summary>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.RequestUriNotSupported"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
-        public IOpenIdError RequestUriNotSupported(string errorCode = OpenIdConstants.ErrorCodes.RequestUriNotSupported)
+        public IOpenIdError RequestUriNotSupported(
+            string errorCode = OpenIdConstants.ErrorCodes.RequestUriNotSupported
+        )
         {
-            return factory.Create(errorCode).WithDescription("The 'request_uri' parameter is not supported.");
+            return factory
+                .Create(errorCode)
+                .WithDescription("The 'request_uri' parameter is not supported.");
         }
 
         /// <summary>
@@ -143,7 +185,9 @@ public static class OpenIdErrorFactoryExtensions
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError FailedToDecodeJwt(string errorCode)
         {
-            return factory.Create(errorCode).WithDescription("An error occurred while attempting to decode the JWT value.");
+            return factory
+                .Create(errorCode)
+                .WithDescription("An error occurred while attempting to decode the JWT value.");
         }
 
         /// <summary>
@@ -153,7 +197,11 @@ public static class OpenIdErrorFactoryExtensions
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError FailedToDeserializeJson(string errorCode)
         {
-            return factory.Create(errorCode).WithDescription("An error occurred while attempting to deserialize the JSON value.");
+            return factory
+                .Create(errorCode)
+                .WithDescription(
+                    "An error occurred while attempting to deserialize the JSON value."
+                );
         }
 
         /// <summary>
@@ -164,7 +212,9 @@ public static class OpenIdErrorFactoryExtensions
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError UnsupportedGrantType(string errorDescription)
         {
-            return factory.Create(OpenIdConstants.ErrorCodes.UnsupportedGrantType).WithDescription(errorDescription);
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.UnsupportedGrantType)
+                .WithDescription(errorDescription);
         }
 
         /// <summary>
@@ -175,7 +225,9 @@ public static class OpenIdErrorFactoryExtensions
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError UnauthorizedClient(string errorDescription)
         {
-            return factory.Create(OpenIdConstants.ErrorCodes.UnauthorizedClient).WithDescription(errorDescription);
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.UnauthorizedClient)
+                .WithDescription(errorDescription);
         }
 
         /// <summary>
@@ -196,7 +248,9 @@ public static class OpenIdErrorFactoryExtensions
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError AccessDenied(string errorDescription)
         {
-            return factory.Create(OpenIdConstants.ErrorCodes.AccessDenied).WithDescription(errorDescription);
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.AccessDenied)
+                .WithDescription(errorDescription);
         }
 
         /// <summary>
@@ -206,7 +260,11 @@ public static class OpenIdErrorFactoryExtensions
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError NotSupported(string parameterName)
         {
-            return factory.Create(OpenIdConstants.ErrorCodes.InvalidRequest).WithDescription($"The supplied value in the '{parameterName}' parameter is not supported by the authorization server.");
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
+                .WithDescription(
+                    $"The supplied value in the '{parameterName}' parameter is not supported by the authorization server."
+                );
         }
     }
 }

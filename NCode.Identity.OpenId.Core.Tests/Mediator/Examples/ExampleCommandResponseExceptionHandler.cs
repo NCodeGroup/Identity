@@ -22,30 +22,27 @@ using NCode.Mediator.Middleware;
 
 namespace NCode.Identity.OpenId.Tests.Mediator.Examples;
 
-internal interface IExampleCommandResponseExceptionHandler<TResponse> :
-    ICommandResponseExceptionHandler<ICommand<TResponse>, Exception, TResponse>
+internal interface IExampleCommandResponseExceptionHandler<TResponse>
+    : ICommandResponseExceptionHandler<ICommand<TResponse>, Exception, TResponse>
 {
     // nothing
 }
 
-internal class ExampleCommandResponseExceptionHandler<TCommand, TException, TResponse> :
-    ICommandResponseExceptionHandler<TCommand, TException, TResponse>
+internal class ExampleCommandResponseExceptionHandler<TCommand, TException, TResponse>
+    : ICommandResponseExceptionHandler<TCommand, TException, TResponse>
     where TCommand : ICommand<TResponse>
     where TException : Exception
 {
     private IExampleCommandResponseExceptionHandler<TResponse> Handler { get; }
 
-    public ExampleCommandResponseExceptionHandler(IExampleCommandResponseExceptionHandler<TResponse> handler) =>
-        Handler = handler;
+    public ExampleCommandResponseExceptionHandler(
+        IExampleCommandResponseExceptionHandler<TResponse> handler
+    ) => Handler = handler;
 
     public async ValueTask HandleAsync(
         TCommand command,
         TException exception,
         CommandResponseExceptionHandlerState<TResponse> state,
-        CancellationToken cancellationToken) =>
-        await Handler.HandleAsync(
-            command,
-            exception,
-            state,
-            cancellationToken);
+        CancellationToken cancellationToken
+    ) => await Handler.HandleAsync(command, exception, state, cancellationToken);
 }

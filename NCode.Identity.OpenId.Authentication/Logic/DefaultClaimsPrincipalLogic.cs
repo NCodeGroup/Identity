@@ -60,28 +60,29 @@ public static class DefaultClaimsPrincipalLogic
     /// </remarks>
     /// <param name="allowNameId">Whether to allow the <see cref="ClaimTypes.NameIdentifier"/> claim to be used as the subject id.</param>
     /// <param name="allowUpn">Whether to allow the <see cref="ClaimTypes.Upn"/> claim to be used as the subject id.</param>
-    public static GetSubjectIdDelegate GetSubjectId(bool allowNameId, bool allowUpn) => subject =>
-    {
-        string? nameId = null;
-        string? upn = null;
-
-        foreach (var claim in subject.Claims.Where(claim => !string.IsNullOrEmpty(claim.Value)))
+    public static GetSubjectIdDelegate GetSubjectId(bool allowNameId, bool allowUpn) =>
+        subject =>
         {
-            switch (claim.Type)
+            string? nameId = null;
+            string? upn = null;
+
+            foreach (var claim in subject.Claims.Where(claim => !string.IsNullOrEmpty(claim.Value)))
             {
-                case JoseClaimNames.Payload.Sub:
-                    return claim.Value;
+                switch (claim.Type)
+                {
+                    case JoseClaimNames.Payload.Sub:
+                        return claim.Value;
 
-                case ClaimTypes.NameIdentifier when allowNameId:
-                    nameId = claim.Value;
-                    break;
+                    case ClaimTypes.NameIdentifier when allowNameId:
+                        nameId = claim.Value;
+                        break;
 
-                case ClaimTypes.Upn when allowUpn:
-                    upn = claim.Value;
-                    break;
+                    case ClaimTypes.Upn when allowUpn:
+                        upn = claim.Value;
+                        break;
+                }
             }
-        }
 
-        return nameId ?? upn;
-    };
+            return nameId ?? upn;
+        };
 }

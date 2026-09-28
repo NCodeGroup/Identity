@@ -43,5 +43,6 @@ public interface IOpenIdContextFactory
     ValueTask<OpenIdContext> CreateAsync(
         HttpContext httpContext,
         IMediator mediator,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

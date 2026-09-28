@@ -41,9 +41,7 @@ public class ParameterDescriptorTests : IDisposable
 
         var mockParser = MockRepository.Create<ParameterParser<string>>();
 
-        var knownParameter = new KnownParameter<string>(
-            parameterName,
-            mockParser.Object)
+        var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             AllowMissingStringValues = allowMissingStringValues,
         };
@@ -78,9 +76,7 @@ public class ParameterDescriptorTests : IDisposable
 
         var mockParser = MockRepository.Create<ParameterParser<string>>();
 
-        var knownParameter = new KnownParameter<string>(
-            parameterName,
-            mockParser.Object)
+        var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             AllowMissingStringValues = allowMissingStringValues,
         };
@@ -110,9 +106,7 @@ public class ParameterDescriptorTests : IDisposable
 
         var mockParser = MockRepository.Create<ParameterParser<string>>();
 
-        var knownParameter = new KnownParameter<string>(
-            parameterName,
-            mockParser.Object)
+        var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             AllowMissingStringValues = allowMissingStringValues,
         };
@@ -142,9 +136,7 @@ public class ParameterDescriptorTests : IDisposable
 
         var mockParser = MockRepository.Create<ParameterParser<string>>();
 
-        var knownParameter = new KnownParameter<string>(
-            parameterName,
-            mockParser.Object)
+        var knownParameter = new KnownParameter<string>(parameterName, mockParser.Object)
         {
             AllowMissingStringValues = allowMissingStringValues,
         };

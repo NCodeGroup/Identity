@@ -86,13 +86,15 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
     /// </summary>
     protected virtual void Dispose(bool disposing)
     {
-        if (IsDisposed || !disposing) return;
+        if (IsDisposed || !disposing)
+            return;
 
         List<IDisposable>? disposables;
 
         lock (SyncObj)
         {
-            if (IsDisposed) return;
+            if (IsDisposed)
+                return;
             IsDisposed = true;
 
             disposables = [];
@@ -127,10 +129,12 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
     [MemberNotNull(nameof(ConsumerChangeToken))]
     private void EnsureChangeTokenInitialized()
     {
-        if (ConsumerChangeToken is not null) return;
+        if (ConsumerChangeToken is not null)
+            return;
         lock (SyncObj)
         {
-            if (ConsumerChangeToken is not null) return;
+            if (ConsumerChangeToken is not null)
+                return;
 
             ThrowIfDisposed();
             RefreshConsumerChangeToken();
@@ -148,10 +152,12 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
     {
         CancellationTokenSource? oldTokenSource;
 
-        if (IsDisposed) return;
+        if (IsDisposed)
+            return;
         lock (SyncObj)
         {
-            if (IsDisposed) return;
+            if (IsDisposed)
+                return;
 
             oldTokenSource = ChangeTokenSource;
 
@@ -206,9 +212,12 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
 
         foreach (var algorithm in AlgorithmCollectionProvider.Collection)
         {
-            if (string.IsNullOrEmpty(algorithm.Code)) continue;
-            if (algorithm.Code == "dir") continue;
-            if (algorithm.Code == "none") continue;
+            if (string.IsNullOrEmpty(algorithm.Code))
+                continue;
+            if (algorithm.Code == "dir")
+                continue;
+            if (algorithm.Code == "none")
+                continue;
 
             switch (algorithm.Type)
             {
@@ -231,26 +240,74 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
         }
 
         settings.Set(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, signingAlgValuesSupported);
-        settings.Set(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, signingAlgValuesSupported);
-        settings.Set(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported, signingAlgValuesSupported);
-        settings.Set(OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported, signingAlgValuesSupported);
+        settings.Set(
+            OpenIdSettingKeys.UserInfoSigningAlgValuesSupported,
+            signingAlgValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported,
+            signingAlgValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported,
+            signingAlgValuesSupported
+        );
 
-        settings.Set(OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
-        settings.Set(OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
-        settings.Set(OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
-        settings.Set(OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported, encryptionAlgValuesSupported);
+        settings.Set(
+            OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported,
+            encryptionAlgValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported,
+            encryptionAlgValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported,
+            encryptionAlgValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported,
+            encryptionAlgValuesSupported
+        );
 
-        settings.Set(OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported, encryptionEncValuesSupported);
-        settings.Set(OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported, encryptionEncValuesSupported);
-        settings.Set(OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported, encryptionEncValuesSupported);
-        settings.Set(OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported, encryptionEncValuesSupported);
+        settings.Set(
+            OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported,
+            encryptionEncValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported,
+            encryptionEncValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported,
+            encryptionEncValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported,
+            encryptionEncValuesSupported
+        );
 
-        settings.Set(OpenIdSettingKeys.IdTokenEncryptionZipValuesSupported, encryptionZipValuesSupported);
-        settings.Set(OpenIdSettingKeys.UserInfoEncryptionZipValuesSupported, encryptionZipValuesSupported);
-        settings.Set(OpenIdSettingKeys.AccessTokenEncryptionZipValuesSupported, encryptionZipValuesSupported);
-        settings.Set(OpenIdSettingKeys.RequestObjectEncryptionZipValuesSupported, encryptionZipValuesSupported);
+        settings.Set(
+            OpenIdSettingKeys.IdTokenEncryptionZipValuesSupported,
+            encryptionZipValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.UserInfoEncryptionZipValuesSupported,
+            encryptionZipValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.AccessTokenEncryptionZipValuesSupported,
+            encryptionZipValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.RequestObjectEncryptionZipValuesSupported,
+            encryptionZipValuesSupported
+        );
 
-        settings.Set(OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported, signingAlgValuesSupported);
+        settings.Set(
+            OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
+            signingAlgValuesSupported
+        );
     }
 
     private void LoadFromConfiguration(ISettingCollection settings)
@@ -265,20 +322,18 @@ public class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<
                 {
                     descriptor = new SettingDescriptor<IReadOnlyCollection<string>>
                     {
-                        Name = settingName
+                        Name = settingName,
                     };
                 }
                 else
                 {
-                    descriptor = new SettingDescriptor<string>
-                    {
-                        Name = settingName
-                    };
+                    descriptor = new SettingDescriptor<string> { Name = settingName };
                 }
             }
 
             var value = settingSection.Get(descriptor.ValueType);
-            if (value is null) continue;
+            if (value is null)
+                continue;
 
             var setting = descriptor.Create(value);
             settings.Set(setting);

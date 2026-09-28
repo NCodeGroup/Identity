@@ -30,12 +30,14 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>access_token_encryption_alg_values_supported</c> setting.
     /// </summary>
-    public const string AccessTokenEncryptionAlgValuesSupported = "access_token_encryption_alg_values_supported";
+    public const string AccessTokenEncryptionAlgValuesSupported =
+        "access_token_encryption_alg_values_supported";
 
     /// <summary>
     /// Contains the name of <c>access_token_encryption_enc_values_supported</c> setting.
     /// </summary>
-    public const string AccessTokenEncryptionEncValuesSupported = "access_token_encryption_enc_values_supported";
+    public const string AccessTokenEncryptionEncValuesSupported =
+        "access_token_encryption_enc_values_supported";
 
     /// <summary>
     /// Contains the name of <c>access_token_encryption_required</c> setting.
@@ -45,7 +47,8 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>access_token_encryption_zip_values_supported</c> setting.
     /// </summary>
-    public const string AccessTokenEncryptionZipValuesSupported = "access_token_encryption_zip_values_supported";
+    public const string AccessTokenEncryptionZipValuesSupported =
+        "access_token_encryption_zip_values_supported";
 
     /// <summary>
     /// Contains the name of <c>access_token_lifetime</c> setting.
@@ -55,7 +58,8 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>access_token_signing_alg_values_supported</c> setting.
     /// </summary>
-    public const string AccessTokenSigningAlgValuesSupported = "access_token_signing_alg_values_supported";
+    public const string AccessTokenSigningAlgValuesSupported =
+        "access_token_signing_alg_values_supported";
 
     /// <summary>
     /// Contains the name of <c>access_token_type</c> setting.
@@ -150,12 +154,14 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>id_token_encryption_alg_values_supported</c> setting.
     /// </summary>
-    public const string IdTokenEncryptionAlgValuesSupported = "id_token_encryption_alg_values_supported";
+    public const string IdTokenEncryptionAlgValuesSupported =
+        "id_token_encryption_alg_values_supported";
 
     /// <summary>
     /// Contains the name of <c>id_token_encryption_enc_values_supported</c> setting.
     /// </summary>
-    public const string IdTokenEncryptionEncValuesSupported = "id_token_encryption_enc_values_supported";
+    public const string IdTokenEncryptionEncValuesSupported =
+        "id_token_encryption_enc_values_supported";
 
     /// <summary>
     /// Contains the name of <c>id_token_encryption_required</c> setting.
@@ -165,7 +171,8 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>id_token_encryption_zip_values_supported</c> setting.
     /// </summary>
-    public const string IdTokenEncryptionZipValuesSupported = "id_token_encryption_zip_values_supported";
+    public const string IdTokenEncryptionZipValuesSupported =
+        "id_token_encryption_zip_values_supported";
 
     /// <summary>
     /// Contains the name of <c>id_token_lifetime</c> setting.
@@ -215,22 +222,26 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>request_object_encryption_alg_values_supported</c> setting.
     /// </summary>
-    public const string RequestObjectEncryptionAlgValuesSupported = "request_object_encryption_alg_values_supported";
+    public const string RequestObjectEncryptionAlgValuesSupported =
+        "request_object_encryption_alg_values_supported";
 
     /// <summary>
     /// Contains the name of <c>request_object_encryption_enc_values_supported</c> setting.
     /// </summary>
-    public const string RequestObjectEncryptionEncValuesSupported = "request_object_encryption_enc_values_supported";
+    public const string RequestObjectEncryptionEncValuesSupported =
+        "request_object_encryption_enc_values_supported";
 
     /// <summary>
     /// Contains the name of <c>request_object_encryption_zip_values_supported</c> setting.
     /// </summary>
-    public const string RequestObjectEncryptionZipValuesSupported = "request_object_encryption_zip_values_supported";
+    public const string RequestObjectEncryptionZipValuesSupported =
+        "request_object_encryption_zip_values_supported";
 
     /// <summary>
     /// Contains the name of <c>request_object_signing_alg_values_supported</c> setting.
     /// </summary>
-    public const string RequestObjectSigningAlgValuesSupported = "request_object_signing_alg_values_supported";
+    public const string RequestObjectSigningAlgValuesSupported =
+        "request_object_signing_alg_values_supported";
 
     /// <summary>
     /// Contains the name of <c>request_object_expected_audience</c> setting.
@@ -250,7 +261,8 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>request_uri_require_strict_content_type</c> setting.
     /// </summary>
-    public const string RequestUriRequireStrictContentType = "request_uri_require_strict_content_type";
+    public const string RequestUriRequireStrictContentType =
+        "request_uri_require_strict_content_type";
 
     /// <summary>
     /// Contains the name of <c>request_uri_expected_content_type</c> setting.
@@ -325,7 +337,8 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>token_endpoint_auth_signing_alg_values_supported</c> setting.
     /// </summary>
-    public const string TokenEndpointAuthSigningAlgValuesSupported = "token_endpoint_auth_signing_alg_values_supported";
+    public const string TokenEndpointAuthSigningAlgValuesSupported =
+        "token_endpoint_auth_signing_alg_values_supported";
 
     /// <summary>
     /// Contains the name of <c>ui_locales_supported</c> setting.
@@ -335,17 +348,20 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>userinfo_encryption_alg_values_supported</c> setting.
     /// </summary>
-    public const string UserInfoEncryptionAlgValuesSupported = "userinfo_encryption_alg_values_supported";
+    public const string UserInfoEncryptionAlgValuesSupported =
+        "userinfo_encryption_alg_values_supported";
 
     /// <summary>
     /// Contains the name of <c>userinfo_encryption_enc_values_supported</c> setting.
     /// </summary>
-    public const string UserInfoEncryptionEncValuesSupported = "userinfo_encryption_enc_values_supported";
+    public const string UserInfoEncryptionEncValuesSupported =
+        "userinfo_encryption_enc_values_supported";
 
     /// <summary>
     /// Contains the name of <c>userinfo_encryption_zip_values_supported</c> setting.
     /// </summary>
-    public const string UserInfoEncryptionZipValuesSupported = "userinfo_encryption_zip_values_supported";
+    public const string UserInfoEncryptionZipValuesSupported =
+        "userinfo_encryption_zip_values_supported";
 
     /// <summary>
     /// Contains the name of <c>userinfo_signing_alg_values_supported</c> setting.

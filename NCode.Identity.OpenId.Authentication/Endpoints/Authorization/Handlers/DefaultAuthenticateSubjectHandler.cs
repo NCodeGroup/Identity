@@ -34,9 +34,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message.
 /// </summary>
 [PublicAPI]
-public class DefaultAuthenticateSubjectHandler(
-    IOptions<OpenIdOptions> optionsAccessor
-) : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
+public class DefaultAuthenticateSubjectHandler(IOptions<OpenIdOptions> optionsAccessor)
+    : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
 
@@ -44,13 +43,17 @@ public class DefaultAuthenticateSubjectHandler(
     private string? DefaultAuthenticateSchemeName { get; set; }
 
     internal virtual AuthenticateSubjectDisposition Undefined() => new();
+
     internal virtual AuthenticateSubjectDisposition Failed(IOpenIdError error) => new(error);
-    internal virtual AuthenticateSubjectDisposition Authenticated(SubjectAuthentication ticket) => new(ticket);
+
+    internal virtual AuthenticateSubjectDisposition Authenticated(SubjectAuthentication ticket) =>
+        new(ticket);
 
     /// <inheritdoc />
     public async ValueTask<AuthenticateSubjectDisposition> HandleAsync(
         AuthenticateSubjectCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, _) = command;
 
@@ -60,7 +63,9 @@ public class DefaultAuthenticateSubjectHandler(
         // the default is "Identity.Application" which is compatible with Microsoft.AspNetCore.Identity
         // this scheme returns the local application user identity but still allows SSO logins from external identity providers
         // do not use the "Identity.External" scheme as it is only for external identity providers
-        var authenticateSchemeName = openIdClient.Settings.GetValue(OpenIdSettingKeys.AuthorizationAuthenticateScheme);
+        var authenticateSchemeName = openIdClient.Settings.GetValue(
+            OpenIdSettingKeys.AuthorizationAuthenticateScheme
+        );
         if (authenticateSchemeName == string.Empty)
         {
             authenticateSchemeName = null;
@@ -75,7 +80,11 @@ public class DefaultAuthenticateSubjectHandler(
 
         if (baseResult.Failure is not null)
         {
-            return Failed(errorFactory.AccessDenied("Failed to authenticate the end-user.").WithException(baseResult.Failure));
+            return Failed(
+                errorFactory
+                    .AccessDenied("Failed to authenticate the end-user.")
+                    .WithException(baseResult.Failure)
+            );
         }
 
         Debug.Assert(baseResult.Succeeded);
@@ -90,7 +99,9 @@ public class DefaultAuthenticateSubjectHandler(
         var subjectId = Options.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {
-            return Failed(errorFactory.AccessDenied("Unable to determine the the end-user's subject id."));
+            return Failed(
+                errorFactory.AccessDenied("Unable to determine the the end-user's subject id.")
+            );
         }
 
         var ticket = new SubjectAuthentication(

@@ -25,7 +25,8 @@ public class DefaultSettingCollectionFactory(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingCollectionFactory
 {
-    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } = settingDescriptorCollectionProvider;
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } =
+        settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
     public ISettingCollection Create()

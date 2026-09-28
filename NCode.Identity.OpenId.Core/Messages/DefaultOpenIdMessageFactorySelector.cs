@@ -21,16 +21,17 @@ namespace NCode.Identity.OpenId.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdMessageFactorySelector"/> abstraction.
 /// </summary>
-public class DefaultOpenIdMessageFactorySelector(
-    IEnumerable<IOpenIdMessageFactory> factories
-) : IOpenIdMessageFactorySelector
+public class DefaultOpenIdMessageFactorySelector(IEnumerable<IOpenIdMessageFactory> factories)
+    : IOpenIdMessageFactorySelector
 {
     private Dictionary<string, IOpenIdMessageFactory> Factories { get; } =
         factories.ToDictionary(x => x.TypeDiscriminator);
 
     /// <inheritdoc />
     public IOpenIdMessageFactory GetFactory(string typeDiscriminator) =>
-        !Factories.TryGetValue(typeDiscriminator, out var factory) ?
-            throw new InvalidOperationException($"No message factory found for type discriminator '{typeDiscriminator}'.") :
-            factory;
+        !Factories.TryGetValue(typeDiscriminator, out var factory)
+            ? throw new InvalidOperationException(
+                $"No message factory found for type discriminator '{typeDiscriminator}'."
+            )
+            : factory;
 }

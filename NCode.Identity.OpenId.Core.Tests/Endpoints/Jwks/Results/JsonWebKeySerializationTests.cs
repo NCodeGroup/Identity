@@ -35,7 +35,7 @@ public class JsonWebKeySerializationTests
             Use = "sig",
             Algorithm = "RS256",
             Modulus = "modulus",
-            Exponent = "AQAB"
+            Exponent = "AQAB",
         };
 
         using var document = JsonSerializer.SerializeToDocument(key);
@@ -85,7 +85,7 @@ public class JsonWebKeySerializationTests
             KeyId = "kid-2",
             Curve = "P-256",
             X = "x-coordinate",
-            Y = "y-coordinate"
+            Y = "y-coordinate",
         };
 
         using var document = JsonSerializer.SerializeToDocument(key);
@@ -110,8 +110,13 @@ public class JsonWebKeySerializationTests
             Keys =
             [
                 new RsaJsonWebKey { Modulus = "modulus", Exponent = "AQAB" },
-                new EccJsonWebKey { Curve = "P-256", X = "x", Y = "y" }
-            ]
+                new EccJsonWebKey
+                {
+                    Curve = "P-256",
+                    X = "x",
+                    Y = "y",
+                },
+            ],
         };
 
         using var document = JsonSerializer.SerializeToDocument(result);

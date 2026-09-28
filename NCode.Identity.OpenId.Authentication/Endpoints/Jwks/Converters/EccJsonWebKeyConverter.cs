@@ -28,11 +28,11 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 /// publishing only the public members (<c>crv</c>, <c>x</c>, and <c>y</c>).
 /// </summary>
 [PublicAPI]
-public class EccJsonWebKeyConverter(
-    IEccCurveSpecificationRegistry curveSpecificationRegistry
-) : JsonWebKeyConverter<EccSecretKey>
+public class EccJsonWebKeyConverter(IEccCurveSpecificationRegistry curveSpecificationRegistry)
+    : JsonWebKeyConverter<EccSecretKey>
 {
-    private IEccCurveSpecificationRegistry CurveSpecificationRegistry { get; } = curveSpecificationRegistry;
+    private IEccCurveSpecificationRegistry CurveSpecificationRegistry { get; } =
+        curveSpecificationRegistry;
 
     /// <inheritdoc />
     protected override JsonWebKey? Convert(EccSecretKey secretKey)
@@ -40,7 +40,12 @@ public class EccJsonWebKeyConverter(
         // The set of supported curves (and their JWK 'crv' names) lives in the curve specification registry,
         // which is the single, discoverable source of truth. A key whose curve is not registered is omitted
         // rather than published with a guessed/invalid 'crv'.
-        if (!CurveSpecificationRegistry.TryGetByCurveSizeBits(secretKey.KeySizeBits, out var curveSpecification))
+        if (
+            !CurveSpecificationRegistry.TryGetByCurveSizeBits(
+                secretKey.KeySizeBits,
+                out var curveSpecification
+            )
+        )
         {
             return null;
         }
@@ -56,7 +61,7 @@ public class EccJsonWebKeyConverter(
             Algorithm = NullIfEmpty(metadata.Algorithm),
             Curve = curveSpecification.CurveName,
             X = Base64Url.Encode(parameters.Q.X!),
-            Y = Base64Url.Encode(parameters.Q.Y!)
+            Y = Base64Url.Encode(parameters.Q.Y!),
         };
     }
 }

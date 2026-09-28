@@ -42,13 +42,15 @@ public class DefaultAuthenticatePasswordGrantHandler(
     )
     {
         Logger.LogWarning(
-            "The resource owner password credential grant type is not supported. " +
-            "Please register an implementation of `ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>` " +
-            "that can handle the resource owner password credential grant type."
+            "The resource owner password credential grant type is not supported. "
+                + "Please register an implementation of `ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>` "
+                + "that can handle the resource owner password credential grant type."
         );
 
         var errorFactory = command.OpenIdContext.ErrorFactory;
-        var error = errorFactory.UnsupportedGrantType("The resource owner password credential grant type is not supported.");
+        var error = errorFactory.UnsupportedGrantType(
+            "The resource owner password credential grant type is not supported."
+        );
 
         return ValueTask.FromResult(new AuthenticateSubjectDisposition(error));
     }

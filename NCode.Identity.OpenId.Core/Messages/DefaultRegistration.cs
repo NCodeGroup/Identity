@@ -47,7 +47,10 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<ICollectionDataSource<KnownParameter>, DefaultCommonParameterDataSource>()
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<KnownParameter>,
+                    DefaultCommonParameterDataSource
+                >()
             );
 
             serviceCollection.TryAddSingleton<

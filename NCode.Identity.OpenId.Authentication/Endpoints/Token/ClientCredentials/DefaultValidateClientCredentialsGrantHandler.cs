@@ -28,7 +28,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.ClientCredentials
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="ClientCredentialsGrant"/>.
 /// </summary>
-public class DefaultValidateClientCredentialsGrantHandler : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>, ISupportMediatorPriority
+public class DefaultValidateClientCredentialsGrantHandler
+    : ICommandHandler<ValidateTokenGrantCommand<ClientCredentialsGrant>>,
+        ISupportMediatorPriority
 {
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -51,9 +53,12 @@ public class DefaultValidateClientCredentialsGrantHandler : ICommandHandler<Vali
         // scope: openid
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
             // invalid_scope
-            throw errorFactory.InvalidScope()
+            throw errorFactory
+                .InvalidScope()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithDescription("The 'openid' scope is not allowed with the 'client_credentials' grant type.")
+                .WithDescription(
+                    "The 'openid' scope is not allowed with the 'client_credentials' grant type."
+                )
                 .AsException();
 
         // scope: offline_access (i.e. refresh_token)
@@ -63,7 +68,9 @@ public class DefaultValidateClientCredentialsGrantHandler : ICommandHandler<Vali
             throw errorFactory
                 .InvalidScope()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithDescription("The 'offline_access' scope is not allowed with the 'client_credentials' grant type.")
+                .WithDescription(
+                    "The 'offline_access' scope is not allowed with the 'client_credentials' grant type."
+                )
                 .AsException();
 
         return ValueTask.CompletedTask;

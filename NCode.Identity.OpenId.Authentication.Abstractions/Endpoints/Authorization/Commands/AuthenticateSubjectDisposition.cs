@@ -29,7 +29,10 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 /// <param name="Error">Contains the <see cref="IOpenIdError"/> for a failed authentication result.</param>
 /// <param name="Ticket">Contains the <see cref="SubjectAuthentication"/> for a successful authentication result.</param>
 [PublicAPI]
-public readonly record struct AuthenticateSubjectDisposition(IOpenIdError? Error, SubjectAuthentication? Ticket)
+public readonly record struct AuthenticateSubjectDisposition(
+    IOpenIdError? Error,
+    SubjectAuthentication? Ticket
+)
 {
     /// <summary>
     /// Gets a boolean indicating whether the result is undefined.

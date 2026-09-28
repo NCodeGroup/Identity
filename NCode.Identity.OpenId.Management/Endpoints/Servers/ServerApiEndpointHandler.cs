@@ -98,13 +98,15 @@ public class ServerApiEndpointHandler(
         };
     }
 
-    internal virtual ServerSettingsResource ToServerSettingsResource(PersistedServerSettings settings)
+    internal virtual ServerSettingsResource ToServerSettingsResource(
+        PersistedServerSettings settings
+    )
     {
         return new ServerSettingsResource
         {
             ServerId = settings.ServerId,
             ConcurrencyToken = settings.ConcurrencyToken,
-            Settings = settings.Value
+            Settings = settings.Value,
         };
     }
 
@@ -114,7 +116,7 @@ public class ServerApiEndpointHandler(
         {
             ServerId = secrets.ServerId,
             ConcurrencyToken = secrets.ConcurrencyToken,
-            Secrets = ToSecretsResource(secrets.Value)
+            Secrets = ToSecretsResource(secrets.Value),
         };
     }
 
@@ -128,17 +130,9 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var server = await store.GetOrDefaultAsync(
-            serverId,
-            cancellationToken
-        );
+        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
 
-        return await ProcessGetAsync(
-            httpContext,
-            server,
-            Operations.Read,
-            ToServerResource
-        );
+        return await ProcessGetAsync(httpContext, server, Operations.Read, ToServerResource);
     }
 
     [EndpointName("api/server/settings/get")]
@@ -151,10 +145,7 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(
-            serverId,
-            cancellationToken
-        );
+        var serverSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
 
         return await ProcessGetAsync(
             httpContext,
@@ -176,10 +167,7 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(
-            serverId,
-            cancellationToken
-        );
+        var serverSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
 
         if (serverSettings is null)
         {
@@ -226,10 +214,7 @@ public class ServerApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
-        var serverSecrets = await store.GetSecretsOrDefaultAsync(
-            serverId,
-            cancellationToken
-        );
+        var serverSecrets = await store.GetSecretsOrDefaultAsync(serverId, cancellationToken);
 
         return await ProcessGetAsync(
             httpContext,

@@ -46,18 +46,14 @@ public class DefaultAesKeyWrap : IAesKeyWrap
     internal const int IntermediateByteCount = IntermediateBitCount >> 3;
 
     private static IEnumerable<KeySizes> StaticLegalCekByteSizes { get; } =
-    [
-        new(minSize: IntermediateByteCount, maxSize: int.MaxValue, skipSize: ChunkByteCount)
-    ];
+    [new(minSize: IntermediateByteCount, maxSize: int.MaxValue, skipSize: ChunkByteCount)];
 
     // 0xA6A6A6A6A6A6A6A6
     // ReSharper disable once InconsistentNaming
-    private static ReadOnlySpan<byte> DefaultIV =>
-        [0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6];
+    private static ReadOnlySpan<byte> DefaultIV => [0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6, 0xA6];
 
     /// <inheritdoc />
-    public IEnumerable<KeySizes> LegalCekByteSizes =>
-        StaticLegalCekByteSizes;
+    public IEnumerable<KeySizes> LegalCekByteSizes => StaticLegalCekByteSizes;
 
     /// <inheritdoc />
     public int GetEncryptedContentKeySizeBytes(int contentKeySizeBytes) =>
@@ -112,7 +108,11 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         Span<byte> a = stackalloc byte[sizeof(long)];
         DefaultIV.CopyTo(a);
 
-        using var lease = BufferFactory.Rent(contentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
+        using var lease = BufferFactory.Rent(
+            contentKey.Length,
+            isSensitive: true,
+            out Memory<byte> leaseMemory
+        );
         contentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> keyMemory = leaseMemory;
 
@@ -188,7 +188,8 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         ReadOnlySpan<byte> keyEncryptionKey,
         ReadOnlySpan<byte> encryptedContentKey,
         ref TWriter contentKeyWriter
-    ) where TWriter : IBufferWriter<byte>, allows ref struct
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct
     {
         /*
            Inputs:  Ciphertext, (n+1) 64-bit values {C0, C1, ..., Cn}, and
@@ -211,7 +212,11 @@ public class DefaultAesKeyWrap : IAesKeyWrap
                    R[i] = C[i]
         */
 
-        using var _ = BufferFactory.Rent(encryptedContentKey.Length, isSensitive: true, out Memory<byte> leaseMemory);
+        using var _ = BufferFactory.Rent(
+            encryptedContentKey.Length,
+            isSensitive: true,
+            out Memory<byte> leaseMemory
+        );
         encryptedContentKey.CopyTo(leaseMemory.Span);
         ReadOnlyMemory<byte> encryptedKeyMemory = leaseMemory;
 
@@ -262,7 +267,9 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         */
 
         if (!a.Span.SequenceEqual(DefaultIV))
-            throw new JoseEncryptionException("Failed to decrypt the encrypted content encryption key (CEK). DefaultIV doesn't match.");
+            throw new JoseEncryptionException(
+                "Failed to decrypt the encrypted content encryption key (CEK). DefaultIV doesn't match."
+            );
 
         var contentKeySpan = contentKeyWriter.GetSpan(contentKeySizeBytes);
         Concat(r, contentKeySpan);
@@ -290,7 +297,11 @@ public class DefaultAesKeyWrap : IAesKeyWrap
         b.CopyTo(destination[a.Length..]);
     }
 
-    private static void Concat(ReadOnlySpan<byte> prepend, IEnumerable<ReadOnlyMemory<byte>> buffers, Span<byte> destination)
+    private static void Concat(
+        ReadOnlySpan<byte> prepend,
+        IEnumerable<ReadOnlyMemory<byte>> buffers,
+        Span<byte> destination
+    )
     {
         prepend.CopyTo(destination);
         destination = destination[prepend.Length..];

@@ -42,7 +42,8 @@ public static class ValidateJwtParametersExtensions
         /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
         public ValidateJwtParameters UseValidationKeys(IEnumerable<SecretKey> secretKeys)
         {
-            parameters.ResolveValidationKeysAsync = (_, _, _, _) => ValueTask.FromResult(secretKeys);
+            parameters.ResolveValidationKeysAsync = (_, _, _, _) =>
+                ValueTask.FromResult(secretKeys);
             return parameters;
         }
 
@@ -75,37 +76,53 @@ public static class ValidateJwtParametersExtensions
             IEnumerable<string> validValues
         )
         {
-            return parameters.AddValidator((context, cancellationToken) =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var claims = usePayload ? context.DecodedJwt.Payload : context.DecodedJwt.Header;
-                if (!claims.TryGetProperty(claimName, out var property))
-                    throw new TokenValidationException($"The claim '{claimName}' is missing.");
-
-                // ReSharper disable once ConvertIfStatementToSwitchStatement
-                if (property.ValueKind == JsonValueKind.Null)
+            return parameters.AddValidator(
+                (context, cancellationToken) =>
                 {
-                    throw new TokenValidationException($"The claim '{claimName}' is null.");
-                }
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                if (property.ValueKind == JsonValueKind.Array)
-                {
-                    if (!allowCollection)
-                        throw new TokenValidationException($"The claim '{claimName}' does not allow multiple values.");
+                    var claims = usePayload
+                        ? context.DecodedJwt.Payload
+                        : context.DecodedJwt.Header;
+                    if (!claims.TryGetProperty(claimName, out var property))
+                        throw new TokenValidationException($"The claim '{claimName}' is missing.");
 
-                    if (property.EnumerateArray().Select(jsonElement => jsonElement.ToString()).Except(validValues).Any())
-                        throw new TokenValidationException($"The claim '{claimName}' is invalid because at least one value did not contain any of the valid values.");
-                }
-                else
-                {
-                    var stringValue = property.ToString();
-                    if (!validValues.Contains(stringValue))
-                        throw new TokenValidationException($"The claim '{claimName}' is invalid because it does not contain any of the valid values.");
-                }
+                    // ReSharper disable once ConvertIfStatementToSwitchStatement
+                    if (property.ValueKind == JsonValueKind.Null)
+                    {
+                        throw new TokenValidationException($"The claim '{claimName}' is null.");
+                    }
 
-                return ValueTask.CompletedTask;
-            });
+                    if (property.ValueKind == JsonValueKind.Array)
+                    {
+                        if (!allowCollection)
+                            throw new TokenValidationException(
+                                $"The claim '{claimName}' does not allow multiple values."
+                            );
+
+                        if (
+                            property
+                                .EnumerateArray()
+                                .Select(jsonElement => jsonElement.ToString())
+                                .Except(validValues)
+                                .Any()
+                        )
+                            throw new TokenValidationException(
+                                $"The claim '{claimName}' is invalid because at least one value did not contain any of the valid values."
+                            );
+                    }
+                    else
+                    {
+                        var stringValue = property.ToString();
+                        if (!validValues.Contains(stringValue))
+                            throw new TokenValidationException(
+                                $"The claim '{claimName}' is invalid because it does not contain any of the valid values."
+                            );
+                    }
+
+                    return ValueTask.CompletedTask;
+                }
+            );
         }
     }
 }

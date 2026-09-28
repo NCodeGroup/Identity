@@ -26,16 +26,15 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 /// <summary>
 /// Provides a convention to use <see cref="IdValueGenerator"/> for properties marked with <see cref="UseIdGeneratorAttribute"/>.
 /// </summary>
-public class UseIdGeneratorConvention(
-    IdValueGenerator idValueGenerator
-) : IPropertyAddedConvention
+public class UseIdGeneratorConvention(IdValueGenerator idValueGenerator) : IPropertyAddedConvention
 {
     private IdValueGenerator IdValueGenerator { get; } = idValueGenerator;
 
     /// <inheritdoc />
     public void ProcessPropertyAdded(
         IConventionPropertyBuilder propertyBuilder,
-        IConventionContext<IConventionPropertyBuilder> context)
+        IConventionContext<IConventionPropertyBuilder> context
+    )
     {
         var metadata = propertyBuilder.Metadata;
         var memberInfo = metadata.PropertyInfo ?? (MemberInfo?)metadata.FieldInfo;

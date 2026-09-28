@@ -37,7 +37,8 @@ public class StringListParser : ParameterParser<List<string>>
     public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        List<string>? parsedValue)
+        List<string>? parsedValue
+    )
     {
         if (parsedValue is null)
             return StringValues.Empty;
@@ -45,9 +46,7 @@ public class StringListParser : ParameterParser<List<string>>
         if (parsedValue.Count == 0)
             return StringValues.Empty;
 
-        var values = descriptor.SortStringValues ?
-            parsedValue.Order() :
-            parsedValue.AsEnumerable();
+        var values = descriptor.SortStringValues ? parsedValue.Order() : parsedValue.AsEnumerable();
 
         return values.ToArray();
     }
@@ -56,7 +55,8 @@ public class StringListParser : ParameterParser<List<string>>
     public override List<string>? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues)
+        StringValues stringValues
+    )
     {
         // ReSharper disable once ConvertSwitchStatementToSwitchExpression
         // That makes the code unreadable.
@@ -67,8 +67,7 @@ public class StringListParser : ParameterParser<List<string>>
 
             case 0:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
+                    .ErrorFactory.MissingParameter(descriptor.ParameterName)
                     .AsException();
         }
 
@@ -89,6 +88,5 @@ public class StringListParser : ParameterParser<List<string>>
 
     /// <inheritdoc/>
     [return: NotNullIfNotNull(nameof(value))]
-    public override List<string>? Clone(List<string>? value) =>
-        value?.ToList();
+    public override List<string>? Clone(List<string>? value) => value?.ToList();
 }

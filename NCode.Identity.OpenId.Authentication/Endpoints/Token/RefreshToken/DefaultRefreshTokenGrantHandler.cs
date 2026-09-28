@@ -48,10 +48,8 @@ public class DefaultRefreshTokenGrantHandler(
     private ITokenService TokenService { get; } = tokenService;
 
     /// <inheritdoc />
-    public IReadOnlySet<string> GrantTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
-    {
-        OpenIdConstants.GrantTypes.RefreshToken
-    };
+    public IReadOnlySet<string> GrantTypes { get; } =
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.RefreshToken };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -132,7 +130,8 @@ public class DefaultRefreshTokenGrantHandler(
         );
 
         var expirationPolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy);
-        var useSlidingExpiration = expirationPolicy == OpenIdConstants.RefreshTokenExpirationPolicy.Sliding;
+        var useSlidingExpiration =
+            expirationPolicy == OpenIdConstants.RefreshTokenExpirationPolicy.Sliding;
         if (useSlidingExpiration && !rotationEnabled)
         {
             var lifetime = settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime);
@@ -173,7 +172,7 @@ public class DefaultRefreshTokenGrantHandler(
             OriginalScopes = originalScopes,
             EffectiveScopes = effectiveScopes,
             RefreshToken = tokenRequest.RefreshToken,
-            SubjectAuthentication = subjectAuthentication
+            SubjectAuthentication = subjectAuthentication,
         };
 
         {
@@ -191,10 +190,7 @@ public class DefaultRefreshTokenGrantHandler(
 
         if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
         {
-            var newRequest = securityTokenRequest with
-            {
-                AccessToken = tokenResponse.AccessToken
-            };
+            var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
             var securityToken = await TokenService.CreateIdTokenAsync(
                 openIdContext,
@@ -215,7 +211,7 @@ public class DefaultRefreshTokenGrantHandler(
             {
                 var newRequest = securityTokenRequest with
                 {
-                    AccessToken = tokenResponse.AccessToken
+                    AccessToken = tokenResponse.AccessToken,
                 };
 
                 var securityToken = await TokenService.CreateRefreshTokenAsync(

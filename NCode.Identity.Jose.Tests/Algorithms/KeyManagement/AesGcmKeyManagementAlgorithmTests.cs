@@ -32,7 +32,6 @@ namespace NCode.Jose.Tests.Algorithms.KeyManagement;
 
 public class AesGcmKeyManagementAlgorithmTests : BaseTests
 {
-
     private static AesGcmKeyManagementAlgorithm CreateAlgorithm(int? kekSizeBits = null) =>
         new("code", kekSizeBits ?? Random.Shared.Next());
 
@@ -122,11 +121,22 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(128 >> 3, tagSizeBytes);
 
         var controlAlgorithm = new AesGcmKeyWrapManagement(kekSizeBits);
-        var controlResult = controlAlgorithm.Unwrap(encryptedCekWriter.WrittenSpan.ToArray(), kek.ToArray(), cekSizeBits, headerForWrap);
+        var controlResult = controlAlgorithm.Unwrap(
+            encryptedCekWriter.WrittenSpan.ToArray(),
+            kek.ToArray(),
+            cekSizeBits,
+            headerForWrap
+        );
         Assert.Equal(controlResult, cek.ToArray());
 
         var headerForUnwrap = JsonSerializer.SerializeToElement(headerForWrap);
-        var unwrapResult = algorithm.TryUnwrapKey(secretKey, headerForUnwrap, encryptedCekWriter.WrittenSpan, decryptedCek, out var unwrapBytesWritten);
+        var unwrapResult = algorithm.TryUnwrapKey(
+            secretKey,
+            headerForUnwrap,
+            encryptedCekWriter.WrittenSpan,
+            decryptedCek,
+            out var unwrapBytesWritten
+        );
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
         Assert.Equal(controlResult, decryptedCek.ToArray());
@@ -142,7 +152,8 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag));
+            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag)
+        );
 
         Assert.Equal("The JWT header is missing the 'iv' field.", exception.Message);
     }
@@ -152,15 +163,13 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     {
         var iv = new byte[1];
         var tag = new byte[1];
-        var header = new JsonObject
-        {
-            ["iv"] = Base64Url.Encode(iv)
-        };
+        var header = new JsonObject { ["iv"] = Base64Url.Encode(iv) };
 
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag));
+            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag)
+        );
 
         Assert.Equal("The 'iv' field in the JWT header has an invalid size.", exception.Message);
     }
@@ -172,15 +181,19 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         var tag = new byte[1];
         var header = new JsonObject
         {
-            ["iv"] = new string('!', Base64Url.GetCharCountForEncode(96 >> 3))
+            ["iv"] = new string('!', Base64Url.GetCharCountForEncode(96 >> 3)),
         };
 
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag));
+            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag)
+        );
 
-        Assert.Equal("Failed to deserialize the 'iv' field from the JWT header.", exception.Message);
+        Assert.Equal(
+            "Failed to deserialize the 'iv' field from the JWT header.",
+            exception.Message
+        );
     }
 
     [Fact]
@@ -188,15 +201,13 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     {
         var iv = new byte[96 >> 3];
         var tag = new byte[1];
-        var header = new JsonObject
-        {
-            ["iv"] = Base64Url.Encode(iv)
-        };
+        var header = new JsonObject { ["iv"] = Base64Url.Encode(iv) };
 
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag));
+            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag)
+        );
 
         Assert.Equal("The JWT header is missing the 'tag' field.", exception.Message);
     }
@@ -209,13 +220,14 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         var header = new JsonObject
         {
             ["iv"] = Base64Url.Encode(iv),
-            ["tag"] = Base64Url.Encode(tag)
+            ["tag"] = Base64Url.Encode(tag),
         };
 
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag));
+            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag)
+        );
 
         Assert.Equal("The 'tag' field in the JWT header has an invalid size.", exception.Message);
     }
@@ -228,14 +240,18 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         var header = new JsonObject
         {
             ["iv"] = Base64Url.Encode(iv),
-            ["tag"] = new string('!', Base64Url.GetCharCountForEncode(128 >> 3))
+            ["tag"] = new string('!', Base64Url.GetCharCountForEncode(128 >> 3)),
         };
 
         var headerForUnwrap = header.Deserialize<JsonElement>();
 
         var exception = Assert.Throws<JoseException>(() =>
-            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag));
+            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag)
+        );
 
-        Assert.Equal("Failed to deserialize the 'tag' field from the JWT header.", exception.Message);
+        Assert.Equal(
+            "Failed to deserialize the 'tag' field from the JWT header.",
+            exception.Message
+        );
     }
 }

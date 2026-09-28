@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -13,14 +12,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="JetBrains.Annotations" />
-      <PackageReference Include="NCode.Disposables" />
+        <PackageReference Include="JetBrains.Annotations" />
+        <PackageReference Include="NCode.Disposables" />
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="OpenIdConstants.*.cs">
-        <DependentUpon>OpenIdConstants.cs</DependentUpon>
-      </Compile>
+        <Compile Update="OpenIdConstants.*.cs">
+            <DependentUpon>OpenIdConstants.cs</DependentUpon>
+        </Compile>
     </ItemGroup>
-
 </Project>

@@ -27,9 +27,9 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// Provides a default implementation for a <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that generates the
 /// subject claims for an access token. Custom claims are added by additional handlers provided by the application.
 /// </summary>
-public class DefaultGetAccessTokenSubjectClaimsHandler(
-    IClaimsService claimsService
-) : ICommandHandler<GetAccessTokenSubjectClaimsCommand>, ISupportMediatorPriority
+public class DefaultGetAccessTokenSubjectClaimsHandler(IClaimsService claimsService)
+    : ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
+        ISupportMediatorPriority
 {
     private IClaimsService ClaimsService { get; } = claimsService;
 
@@ -37,7 +37,10 @@ public class DefaultGetAccessTokenSubjectClaimsHandler(
     public int MediatorPriority => DefaultMediatorPriorities.Low;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(GetAccessTokenSubjectClaimsCommand command, CancellationToken cancellationToken)
+    public ValueTask HandleAsync(
+        GetAccessTokenSubjectClaimsCommand command,
+        CancellationToken cancellationToken
+    )
     {
         var (_, _, tokenContext, targetClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;

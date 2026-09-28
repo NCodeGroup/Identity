@@ -31,7 +31,8 @@ public static class OpenIdEndpointConventionBuilderExtensions
 {
     /// <param name="builder">The <see cref="IEndpointConventionBuilder"/> instance.</param>
     /// <typeparam name="TBuilder">The type of the <see cref="IEndpointConventionBuilder"/> instance.</typeparam>
-    extension<TBuilder>(TBuilder builder) where TBuilder : IEndpointConventionBuilder
+    extension<TBuilder>(TBuilder builder)
+        where TBuilder : IEndpointConventionBuilder
     {
         /// <summary>
         /// Adds <see cref="IOpenIdEndpointDiscoverableMetadata"/> to the <see cref="IEndpointConventionBuilder"/> to indicate whether the endpoint is discoverable.
@@ -40,10 +41,8 @@ public static class OpenIdEndpointConventionBuilderExtensions
         /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
         public TBuilder WithOpenIdDiscoverable(bool isDiscoverable = true) =>
             builder.WithMetadata(
-                new OpenIdEndpointDiscoverableMetadata
-                {
-                    IsDiscoverable = isDiscoverable
-                });
+                new OpenIdEndpointDiscoverableMetadata { IsDiscoverable = isDiscoverable }
+            );
 
         /// <summary>
         /// Adds <see cref="IOpenIdEndpointExceptionHandlerMetadata"/> to the <see cref="IEndpointConventionBuilder"/> to indicate the exception handler for the endpoint.
@@ -51,9 +50,13 @@ public static class OpenIdEndpointConventionBuilderExtensions
         /// <param name="getter">The delegate to get the <see cref="IOpenIdExceptionHandler"/> instance.</param>
         /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
         public TBuilder WithOpenIdExceptionHandler(
-            Func<HttpContext, OpenIdEnvironment, CancellationToken, ValueTask<IOpenIdExceptionHandler>> getter
-        ) =>
-            builder.WithMetadata(new OpenIdEndpointExceptionHandlerMetadata(getter));
+            Func<
+                HttpContext,
+                OpenIdEnvironment,
+                CancellationToken,
+                ValueTask<IOpenIdExceptionHandler>
+            > getter
+        ) => builder.WithMetadata(new OpenIdEndpointExceptionHandlerMetadata(getter));
 
         /// <summary>
         /// Adds <see cref="IOpenIdExceptionHandler"/> to the <see cref="IEndpointConventionBuilder"/> to indicate the exception handler for the endpoint.

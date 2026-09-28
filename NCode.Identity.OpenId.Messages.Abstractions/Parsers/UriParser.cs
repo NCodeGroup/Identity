@@ -36,7 +36,8 @@ public class UriParser : ParameterParser<Uri>
     public override StringValues GetStringValues(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        Uri? parsedValue)
+        Uri? parsedValue
+    )
     {
         if (parsedValue is null)
             return StringValues.Empty;
@@ -48,7 +49,8 @@ public class UriParser : ParameterParser<Uri>
     public override Uri? Parse(
         OpenIdEnvironment openIdEnvironment,
         ParameterDescriptor descriptor,
-        StringValues stringValues)
+        StringValues stringValues
+    )
     {
         switch (stringValues.Count)
         {
@@ -57,14 +59,12 @@ public class UriParser : ParameterParser<Uri>
 
             case 0:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .MissingParameter(descriptor.ParameterName)
+                    .ErrorFactory.MissingParameter(descriptor.ParameterName)
                     .AsException();
 
             case > 1:
                 throw openIdEnvironment
-                    .ErrorFactory
-                    .TooManyParameterValues(descriptor.ParameterName)
+                    .ErrorFactory.TooManyParameterValues(descriptor.ParameterName)
                     .AsException();
         }
 
@@ -74,8 +74,7 @@ public class UriParser : ParameterParser<Uri>
         if (!Uri.TryCreate(stringValue, UriKind.Absolute, out var uri))
         {
             throw openIdEnvironment
-                .ErrorFactory
-                .InvalidParameterValue(descriptor.ParameterName)
+                .ErrorFactory.InvalidParameterValue(descriptor.ParameterName)
                 .AsException();
         }
 

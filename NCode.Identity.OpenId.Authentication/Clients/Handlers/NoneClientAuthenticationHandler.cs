@@ -34,9 +34,14 @@ public class NoneClientAuthenticationHandler(
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer
-) :
-    CommonClientAuthenticationHandler(storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
-    IClientAuthenticationHandler
+)
+    : CommonClientAuthenticationHandler(
+        storeManagerFactory,
+        clientFactory,
+        settingSerializer,
+        secretSerializer
+    ),
+        IClientAuthenticationHandler
 {
     /// <inheritdoc />
     public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.None;
@@ -44,7 +49,8 @@ public class NoneClientAuthenticationHandler(
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var httpRequest = openIdContext.Http.Request;
 
@@ -58,8 +64,10 @@ public class NoneClientAuthenticationHandler(
 
         if (query.ContainsKey(OpenIdConstants.Parameters.ClientSecret))
             return new ClientAuthenticationResult(
-                openIdContext.ErrorFactory
-                    .InvalidRequest("The client secret must not be passed in the query string.")
+                openIdContext
+                    .ErrorFactory.InvalidRequest(
+                        "The client secret must not be passed in the query string."
+                    )
                     .WithStatusCode(StatusCodes.Status400BadRequest)
             );
 
@@ -68,6 +76,7 @@ public class NoneClientAuthenticationHandler(
             clientId.ToString(),
             clientSecret: ReadOnlyMemory<char>.Empty,
             hasClientSecret: false,
-            cancellationToken);
+            cancellationToken
+        );
     }
 }

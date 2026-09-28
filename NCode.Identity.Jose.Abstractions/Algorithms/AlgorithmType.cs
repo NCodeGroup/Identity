@@ -48,5 +48,5 @@ public enum AlgorithmType
     /// <summary>
     /// Specifies that a cryptographic algorithm is used for compressing plaintext data before encryption.
     /// </summary>
-    Compression
+    Compression,
 }

@@ -26,11 +26,14 @@ namespace NCode.Identity.OpenId.Management;
 [ExcludeFromCodeCoverage]
 public static class Operations
 {
-    public static OperationAuthorizationRequirement Create { get; } = new() { Name = nameof(Create) };
+    public static OperationAuthorizationRequirement Create { get; } =
+        new() { Name = nameof(Create) };
 
     public static OperationAuthorizationRequirement Read { get; } = new() { Name = nameof(Read) };
 
-    public static OperationAuthorizationRequirement Update { get; } = new() { Name = nameof(Update) };
+    public static OperationAuthorizationRequirement Update { get; } =
+        new() { Name = nameof(Update) };
 
-    public static OperationAuthorizationRequirement Delete { get; } = new() { Name = nameof(Delete) };
+    public static OperationAuthorizationRequirement Delete { get; } =
+        new() { Name = nameof(Delete) };
 }

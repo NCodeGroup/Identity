@@ -31,14 +31,16 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by
 /// <see cref="DefaultGetAccessTokenSubjectClaimsHandler"/>.
 /// </remarks>
-public class DefaultGetAccessTokenPayloadClaimsHandler(
-    ICryptoService cryptoService
-) : ICommandHandler<GetAccessTokenPayloadClaimsCommand>
+public class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoService)
+    : ICommandHandler<GetAccessTokenPayloadClaimsCommand>
 {
     private ICryptoService CryptoService { get; } = cryptoService;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(GetAccessTokenPayloadClaimsCommand command, CancellationToken cancellationToken)
+    public ValueTask HandleAsync(
+        GetAccessTokenPayloadClaimsCommand command,
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, tokenContext, payloadClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
@@ -64,7 +66,12 @@ public class DefaultGetAccessTokenPayloadClaimsHandler(
         var scopesToInclude = hasSubject
             ? tokenRequest.EffectiveScopes
             : tokenRequest.EffectiveScopes.Where(scope =>
-                !string.Equals(scope, OpenIdConstants.ScopeTypes.OfflineAccess, StringComparison.Ordinal));
+                !string.Equals(
+                    scope,
+                    OpenIdConstants.ScopeTypes.OfflineAccess,
+                    StringComparison.Ordinal
+                )
+            );
 
         var scopeValue = string.Join(OpenIdConstants.ParameterSeparatorChar, scopesToInclude);
         if (!string.IsNullOrEmpty(scopeValue))

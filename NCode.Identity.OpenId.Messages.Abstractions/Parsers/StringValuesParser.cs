@@ -47,8 +47,7 @@ public class StringValuesParser : ParameterParser<StringValues>
         if (stringValues.Count == 0 && !descriptor.AllowMissingStringValues)
         {
             throw openIdEnvironment
-                .ErrorFactory
-                .MissingParameter(descriptor.ParameterName)
+                .ErrorFactory.MissingParameter(descriptor.ParameterName)
                 .AsException();
         }
 

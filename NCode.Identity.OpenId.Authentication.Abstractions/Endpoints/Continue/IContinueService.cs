@@ -49,5 +49,6 @@ public interface IContinueService
         string? subjectId,
         TimeSpan lifetime,
         TPayload payload,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

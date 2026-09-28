@@ -46,16 +46,18 @@ public class DefaultJwksEndpointHandler(
     private IEnumerable<IJsonWebKeyConverter> JsonWebKeyConverters { get; } = jsonWebKeyConverters;
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints) => endpoints
-        .MapGet(OpenIdConstants.EndpointPaths.Jwks, HandleRouteAsync)
-        .WithName(OpenIdConstants.EndpointNames.Jwks)
-        .WithTags("oidc") // TODO: use constant
-        .WithOpenIdDiscoverable();
+    public void Map(IEndpointRouteBuilder endpoints) =>
+        endpoints
+            .MapGet(OpenIdConstants.EndpointPaths.Jwks, HandleRouteAsync)
+            .WithName(OpenIdConstants.EndpointNames.Jwks)
+            .WithTags("oidc") // TODO: use constant
+            .WithOpenIdDiscoverable();
 
     private async ValueTask<JsonHttpResult<JsonWebKeySetResult>> HandleRouteAsync(
         HttpContext httpContext,
         [FromServices] IMediator mediator,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var openIdContext = await ContextFactory.CreateAsync(
             httpContext,
@@ -76,10 +78,7 @@ public class DefaultJwksEndpointHandler(
             }
         }
 
-        var result = new JsonWebKeySetResult
-        {
-            Keys = keys
-        };
+        var result = new JsonWebKeySetResult { Keys = keys };
 
         return TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);
     }

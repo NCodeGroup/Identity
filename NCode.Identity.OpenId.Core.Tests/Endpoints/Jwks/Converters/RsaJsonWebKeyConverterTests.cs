@@ -34,7 +34,12 @@ public class RsaJsonWebKeyConverterTests : BaseTests
     {
         var converter = new RsaJsonWebKeyConverter();
 
-        var metadata = new KeyMetadata { KeyId = "kid-1", Use = "sig", Algorithm = "RS256" };
+        var metadata = new KeyMetadata
+        {
+            KeyId = "kid-1",
+            Use = "sig",
+            Algorithm = "RS256",
+        };
         var rsa = RSA.Create(2048);
 
         var mockSecretKey = CreateStrictMock<RsaSecretKey>();

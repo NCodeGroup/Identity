@@ -25,7 +25,9 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretKeyCollectionProvider"/> abstraction.
 /// </summary>
-public class DefaultSecretKeyCollectionProvider : BaseCollectionProvider<SecretKey, ISecretKeyCollection>, ISecretKeyCollectionProvider
+public class DefaultSecretKeyCollectionProvider
+    : BaseCollectionProvider<SecretKey, ISecretKeyCollection>,
+        ISecretKeyCollectionProvider
 {
     private ISecretKeyCollectionFactory Factory { get; }
 
@@ -53,7 +55,8 @@ public class DefaultSecretKeyCollectionProvider : BaseCollectionProvider<SecretK
         ISecretKeyCollectionFactory factory,
         ICollectionDataSource<SecretKey> dataSource,
         bool owns
-    ) : base(dataSource, owns)
+    )
+        : base(dataSource, owns)
     {
         Factory = factory;
     }
@@ -63,7 +66,8 @@ public class DefaultSecretKeyCollectionProvider : BaseCollectionProvider<SecretK
         ISecretKeyCollectionFactory factory,
         IEnumerable<ICollectionDataSource<SecretKey>> dataSources,
         bool owns
-    ) : base(dataSources, owns)
+    )
+        : base(dataSources, owns)
     {
         Factory = factory;
     }
@@ -76,7 +80,8 @@ public class DefaultSecretKeyCollectionProvider : BaseCollectionProvider<SecretK
     public DefaultSecretKeyCollectionProvider(
         ISecretKeyCollectionFactory factory,
         IEnumerable<ICollectionDataSource<SecretKey>> dataSources
-    ) : base(dataSources)
+    )
+        : base(dataSources)
     {
         Factory = factory;
     }

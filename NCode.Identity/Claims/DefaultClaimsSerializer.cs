@@ -50,7 +50,7 @@ public class DefaultClaimsSerializer : IClaimsSerializer
             Issuer = claim.Issuer,
             OriginalIssuer = claim.OriginalIssuer,
             Properties = claim.Properties,
-            SubjectRef = GetReferenceId(claim.Subject)
+            SubjectRef = GetReferenceId(claim.Subject),
         };
 
     /// <inheritdoc />
@@ -59,16 +59,18 @@ public class DefaultClaimsSerializer : IClaimsSerializer
         var referenceId = GetReferenceId(identity);
         var actor = identity.Actor != null ? SerializeIdentity(identity.Actor) : null;
 
-        var claims = identity.Claims.Select(claim => new SerializableClaim
-        {
-            Type = claim.Type,
-            Value = claim.Value,
-            ValueType = claim.ValueType,
-            Issuer = claim.Issuer,
-            OriginalIssuer = claim.OriginalIssuer,
-            Properties = claim.Properties,
-            SubjectRef = claim.Subject == identity ? referenceId : null,
-        }).ToList();
+        var claims = identity
+            .Claims.Select(claim => new SerializableClaim
+            {
+                Type = claim.Type,
+                Value = claim.Value,
+                ValueType = claim.ValueType,
+                Issuer = claim.Issuer,
+                OriginalIssuer = claim.OriginalIssuer,
+                Properties = claim.Properties,
+                SubjectRef = claim.Subject == identity ? referenceId : null,
+            })
+            .ToList();
 
         return new SerializableClaimsIdentity
         {
@@ -85,10 +87,7 @@ public class DefaultClaimsSerializer : IClaimsSerializer
 
     /// <inheritdoc />
     public SerializableClaimsPrincipal SerializePrincipal(ClaimsPrincipal principal) =>
-        new()
-        {
-            Identities = principal.Identities.Select(SerializeIdentity).ToList()
-        };
+        new() { Identities = principal.Identities.Select(SerializeIdentity).ToList() };
 
     /// <inheritdoc />
     public Claim DeserializeClaim(SerializableClaim serializableClaim) =>
@@ -117,7 +116,10 @@ public class DefaultClaimsSerializer : IClaimsSerializer
     /// <inheritdoc />
     public ClaimsIdentity DeserializeIdentity(SerializableClaimsIdentity serializableIdentity)
     {
-        var actor = serializableIdentity.Actor != null ? DeserializeIdentity(serializableIdentity.Actor) : null;
+        var actor =
+            serializableIdentity.Actor != null
+                ? DeserializeIdentity(serializableIdentity.Actor)
+                : null;
 
         var claimsIdentity = new ClaimsIdentity(
             identity: null,
@@ -134,7 +136,10 @@ public class DefaultClaimsSerializer : IClaimsSerializer
 
         foreach (var serializableClaim in serializableIdentity.Claims)
         {
-            var subject = serializableClaim.SubjectRef == serializableIdentity.ReferenceId ? claimsIdentity : null;
+            var subject =
+                serializableClaim.SubjectRef == serializableIdentity.ReferenceId
+                    ? claimsIdentity
+                    : null;
 
             var claim = DeserializeClaim(serializableClaim, subject);
             claimsIdentity.AddClaim(claim);
@@ -144,6 +149,7 @@ public class DefaultClaimsSerializer : IClaimsSerializer
     }
 
     /// <inheritdoc />
-    public ClaimsPrincipal DeserializePrincipal(SerializableClaimsPrincipal serializablePrincipal) =>
-        new(serializablePrincipal.Identities.Select(DeserializeIdentity));
+    public ClaimsPrincipal DeserializePrincipal(
+        SerializableClaimsPrincipal serializablePrincipal
+    ) => new(serializablePrincipal.Identities.Select(DeserializeIdentity));
 }

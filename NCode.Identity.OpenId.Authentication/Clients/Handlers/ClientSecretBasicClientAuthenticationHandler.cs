@@ -37,8 +37,14 @@ public class ClientSecretBasicClientAuthenticationHandler(
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer
-) : CommonClientAuthenticationHandler(storeManagerFactory, clientFactory, settingSerializer, secretSerializer),
-    IClientAuthenticationHandler
+)
+    : CommonClientAuthenticationHandler(
+        storeManagerFactory,
+        clientFactory,
+        settingSerializer,
+        secretSerializer
+    ),
+        IClientAuthenticationHandler
 {
     // TODO: move comment
     // RE: 400 vs 401
@@ -69,7 +75,11 @@ public class ClientSecretBasicClientAuthenticationHandler(
             var destination = buffer.Span;
             source.Replace(destination, '+', ' ');
 
-            var decodeResult = Uri.TryUnescapeDataString(destination, destination, out var unescapedLength);
+            var decodeResult = Uri.TryUnescapeDataString(
+                destination,
+                destination,
+                out var unescapedLength
+            );
             Debug.Assert(decodeResult);
 
             decoded = buffer[..unescapedLength];
@@ -83,7 +93,8 @@ public class ClientSecretBasicClientAuthenticationHandler(
     }
 
     /// <inheritdoc />
-    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
+    public override string AuthenticationMethod =>
+        OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
@@ -111,9 +122,10 @@ public class ClientSecretBasicClientAuthenticationHandler(
 
         var encodedCredentials = authorizationValue[prefix.Length..].Trim();
         if (encodedCredentials.IsEmpty)
-            return new ClientAuthenticationResult(errorFactory
-                .InvalidRequest("An invalid or malformed authorization header was provided.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
+            return new ClientAuthenticationResult(
+                errorFactory
+                    .InvalidRequest("An invalid or malformed authorization header was provided.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
             );
 
         return await AuthenticateCredentialsAsync(
@@ -130,9 +142,17 @@ public class ClientSecretBasicClientAuthenticationHandler(
     )
     {
         var base64ByteCount = Base64Url.GetByteCountForDecode(encodedCredentials.Length);
-        using var base64Lease = BufferFactory.Rent(base64ByteCount, isSensitive: true, out Span<byte> base64Bytes);
+        using var base64Lease = BufferFactory.Rent(
+            base64ByteCount,
+            isSensitive: true,
+            out Span<byte> base64Bytes
+        );
 
-        var base64Result = Convert.TryFromBase64Chars(encodedCredentials.Span, base64Bytes, out var base64BytesWritten);
+        var base64Result = Convert.TryFromBase64Chars(
+            encodedCredentials.Span,
+            base64Bytes,
+            out var base64BytesWritten
+        );
         Debug.Assert(base64Result && base64BytesWritten == base64ByteCount);
 
         var decodeCharCount = SecureEncoding.UTF8.GetCharCount(base64Bytes);
@@ -141,7 +161,11 @@ public class ClientSecretBasicClientAuthenticationHandler(
         var decodeBuffer = decodeLease.Memory[..decodeCharCount];
         var decodeSpan = decodeBuffer.Span;
 
-        var decodeResult = SecureEncoding.UTF8.TryGetChars(base64Bytes, decodeSpan, out var decodeCharsWritten);
+        var decodeResult = SecureEncoding.UTF8.TryGetChars(
+            base64Bytes,
+            decodeSpan,
+            out var decodeCharsWritten
+        );
         Debug.Assert(decodeResult && decodeCharsWritten == decodeCharCount);
 
         var indexOfColon = decodeSpan.IndexOf(':');
@@ -162,10 +186,7 @@ public class ClientSecretBasicClientAuthenticationHandler(
 
         var encodedClientSecret = decodeBuffer[(indexOfColon + 1)..];
 
-        using var secretLease = UriDecodeSensitive(
-            encodedClientSecret,
-            out var clientSecret
-        );
+        using var secretLease = UriDecodeSensitive(encodedClientSecret, out var clientSecret);
 
         return await AuthenticateClientAsync(
             openIdContext,

@@ -39,8 +39,10 @@ public class DefaultOpenIdTenant(
 ) : OpenIdTenant
 {
     private TenantDescriptor TenantDescriptor { get; } = tenantDescriptor;
-    private AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> SettingsReference { get; set; } = settingsReference.AddReference();
-    private AsyncSharedReferenceLease<ISecretKeyCollectionProvider> SecretsReference { get; set; } = secretsReference.AddReference();
+    private AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> SettingsReference { get; set; } =
+        settingsReference.AddReference();
+    private AsyncSharedReferenceLease<ISecretKeyCollectionProvider> SecretsReference { get; set; } =
+        secretsReference.AddReference();
 
     /// <inheritdoc />
     public override string TenantId => TenantDescriptor.TenantId;

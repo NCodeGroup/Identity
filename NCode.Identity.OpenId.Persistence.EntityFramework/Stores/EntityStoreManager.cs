@@ -42,8 +42,9 @@ public sealed class EntityStoreManager<TDbContext>(
     // ReSharper disable once StaticMemberInGenericType
     private static ConcurrentDictionary<Type, MethodInvoker>? GetStoreMethodInvokers { get; set; }
 
-    private static readonly MethodInfo GetStoreMethod = typeof(EntityStoreManager<TDbContext>).GetMethod(nameof(GetStore)) ??
-                                                        throw new InvalidOperationException($"Method {nameof(GetStore)} not found.");
+    private static readonly MethodInfo GetStoreMethod =
+        typeof(EntityStoreManager<TDbContext>).GetMethod(nameof(GetStore))
+        ?? throw new InvalidOperationException($"Method {nameof(GetStore)} not found.");
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
@@ -76,7 +77,9 @@ public sealed class EntityStoreManager<TDbContext>(
     private TStore CreateStore<TStore>()
         where TStore : IStore
     {
-        var factory = ServiceProvider.GetRequiredService<Func<IStoreProvider, TDbContext, TStore>>();
+        var factory = ServiceProvider.GetRequiredService<
+            Func<IStoreProvider, TDbContext, TStore>
+        >();
         return factory(this, DbContext);
     }
 
@@ -88,7 +91,8 @@ public sealed class EntityStoreManager<TDbContext>(
 
     private object? GetStoreNonGeneric(Type storeType)
     {
-        var methodInvokers = GetStoreMethodInvokers ??= new ConcurrentDictionary<Type, MethodInvoker>();
+        var methodInvokers = GetStoreMethodInvokers ??=
+            new ConcurrentDictionary<Type, MethodInvoker>();
         var methodInvoker = methodInvokers.GetOrAdd(storeType, CreateGetStoreMethodInvoker);
         return methodInvoker.Invoke(this);
     }

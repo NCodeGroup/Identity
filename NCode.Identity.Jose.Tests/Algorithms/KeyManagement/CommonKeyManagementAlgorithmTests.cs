@@ -94,8 +94,12 @@ public class CommonKeyManagementAlgorithmTests : BaseTests
             .Verifiable();
 
         var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateContentKeySize(kekSizeBits, cekSizeBytes));
+            Algorithm.ValidateContentKeySize(kekSizeBits, cekSizeBytes)
+        );
 
-        Assert.Equal("The content encryption key (CEK) does not have a valid size for this cryptographic algorithm.", exception.Message);
+        Assert.Equal(
+            "The content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
+            exception.Message
+        );
     }
 }

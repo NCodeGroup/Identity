@@ -45,5 +45,6 @@ public interface IContinueProvider
     ValueTask<ReadOnlyEndpointDisposition> ContinueAsync(
         OpenIdContext openIdContext,
         JsonElement continuePayloadJson,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }

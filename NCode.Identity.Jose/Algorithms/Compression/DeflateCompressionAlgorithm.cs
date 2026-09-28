@@ -48,9 +48,13 @@ public class DeflateCompressionAlgorithm : CompressionAlgorithm
     }
 
     /// <inheritdoc />
-    public override void Compress(ReadOnlySpan<byte> uncompressedData, IBufferWriter<byte> compressedData)
+    public override void Compress(
+        ReadOnlySpan<byte> uncompressedData,
+        IBufferWriter<byte> compressedData
+    )
     {
-        if (uncompressedData.IsEmpty) return;
+        if (uncompressedData.IsEmpty)
+            return;
 
         using var compressedStream = compressedData.AsStream();
         using var deflateStream = new DeflateStream(compressedStream, CompressionLevel.Optimal);
@@ -59,9 +63,13 @@ public class DeflateCompressionAlgorithm : CompressionAlgorithm
     }
 
     /// <inheritdoc />
-    public override unsafe void Decompress(ReadOnlySpan<byte> compressedData, IBufferWriter<byte> uncompressedData)
+    public override unsafe void Decompress(
+        ReadOnlySpan<byte> compressedData,
+        IBufferWriter<byte> uncompressedData
+    )
     {
-        if (compressedData.IsEmpty) return;
+        if (compressedData.IsEmpty)
+            return;
 
         // perf: use GetReference vs GetPinnableReference
         // https://github.com/dotnet/runtime/issues/27308
@@ -69,8 +77,14 @@ public class DeflateCompressionAlgorithm : CompressionAlgorithm
 
         fixed (byte* pCompressedData = &MemoryMarshal.GetReference(compressedData))
         {
-            using var compressedStream = new UnmanagedMemoryStream(pCompressedData, compressedData.Length);
-            using var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress);
+            using var compressedStream = new UnmanagedMemoryStream(
+                pCompressedData,
+                compressedData.Length
+            );
+            using var deflateStream = new DeflateStream(
+                compressedStream,
+                CompressionMode.Decompress
+            );
 
             int bytesRead;
             do

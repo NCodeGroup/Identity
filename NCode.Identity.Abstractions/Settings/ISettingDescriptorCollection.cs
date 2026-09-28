@@ -48,6 +48,9 @@ public interface ISettingDescriptorCollection : IReadOnlyCollection<SettingDescr
     /// This parameter is passed uninitialized.</param>
     /// <returns><c>true</c> if the collection contains a descriptor with the specified setting key; otherwise,
     /// <c>false</c>.</returns>
-    bool TryGet<TValue>(SettingKey<TValue> key, [MaybeNullWhen(false)] out SettingDescriptor<TValue> descriptor)
+    bool TryGet<TValue>(
+        SettingKey<TValue> key,
+        [MaybeNullWhen(false)] out SettingDescriptor<TValue> descriptor
+    )
         where TValue : notnull;
 }

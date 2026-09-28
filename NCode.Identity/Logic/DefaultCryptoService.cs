@@ -35,8 +35,7 @@ public class DefaultCryptoService : ICryptoService
     private const int MaxStackAlloc = 512 >> 3;
 
     /// <inheritdoc />
-    public void GenerateBytes(Span<byte> destination) =>
-        RandomNumberGenerator.Fill(destination);
+    public void GenerateBytes(Span<byte> destination) => RandomNumberGenerator.Fill(destination);
 
     /// <inheritdoc />
     public string EncodeBinary(ReadOnlySpan<byte> data, BinaryEncodingType binaryEncodingType) =>
@@ -45,7 +44,7 @@ public class DefaultCryptoService : ICryptoService
             BinaryEncodingType.Base64Url => Base64Url.Encode(data),
             BinaryEncodingType.Base64 => Convert.ToBase64String(data),
             BinaryEncodingType.Hex => Convert.ToHexString(data),
-            _ => throw new ArgumentException("Unsupported encoding", nameof(binaryEncodingType))
+            _ => throw new ArgumentException("Unsupported encoding", nameof(binaryEncodingType)),
         };
 
     /// <inheritdoc />
@@ -82,7 +81,7 @@ public class DefaultCryptoService : ICryptoService
             HashAlgorithmType.Sha1 => SHA1.TryHashData,
             HashAlgorithmType.Sha256 => SHA256.TryHashData,
             HashAlgorithmType.Sha512 => SHA512.TryHashData,
-            _ => throw new ArgumentException("Unsupported algorithm", nameof(hashAlgorithmType))
+            _ => throw new ArgumentException("Unsupported algorithm", nameof(hashAlgorithmType)),
         };
 
     /// <inheritdoc />

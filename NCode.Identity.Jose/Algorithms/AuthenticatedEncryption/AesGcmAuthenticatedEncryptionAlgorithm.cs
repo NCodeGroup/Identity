@@ -53,12 +53,10 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncrypt
     }
 
     /// <inheritdoc />
-    public override int GetCipherTextSizeBytes(int plainTextSizeBytes)
-        => plainTextSizeBytes;
+    public override int GetCipherTextSizeBytes(int plainTextSizeBytes) => plainTextSizeBytes;
 
     /// <inheritdoc />
-    public override int GetMaxPlainTextSizeBytes(int cipherTextSizeBytes)
-        => cipherTextSizeBytes;
+    public override int GetMaxPlainTextSizeBytes(int cipherTextSizeBytes) => cipherTextSizeBytes;
 
     /// <inheritdoc />
     public override void Encrypt(
@@ -67,15 +65,10 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncrypt
         ReadOnlySpan<byte> plainText,
         ReadOnlySpan<byte> associatedData,
         Span<byte> cipherText,
-        Span<byte> authenticationTag)
+        Span<byte> authenticationTag
+    )
     {
-        ValidateParameters(
-            encrypt: true,
-            cek,
-            nonce,
-            plainText,
-            cipherText,
-            authenticationTag);
+        ValidateParameters(encrypt: true, cek, nonce, plainText, cipherText, authenticationTag);
 
         using var key = new AesGcm(cek, AuthenticationTagSizeBytes);
 
@@ -90,7 +83,8 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncrypt
         ReadOnlySpan<byte> associatedData,
         ReadOnlySpan<byte> authenticationTag,
         Span<byte> plainText,
-        out int bytesWritten)
+        out int bytesWritten
+    )
     {
         if (plainText.Length != cipherText.Length)
         {
@@ -98,13 +92,7 @@ public class AesGcmAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncrypt
             return false;
         }
 
-        ValidateParameters(
-            encrypt: false,
-            cek,
-            nonce,
-            plainText,
-            cipherText,
-            authenticationTag);
+        ValidateParameters(encrypt: false, cek, nonce, plainText, cipherText, authenticationTag);
 
         using var key = new AesGcm(cek, AuthenticationTagSizeBytes);
         try

@@ -31,9 +31,8 @@ namespace NCode.Identity.OpenId.Exceptions;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdExceptionHandler"/> abstraction.
 /// </summary>
-public class DefaultOpenIdExceptionHandler(
-    ILogger<DefaultOpenIdExceptionHandler> logger
-) : IOpenIdExceptionHandler
+public class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandler> logger)
+    : IOpenIdExceptionHandler
 {
     private ILogger<DefaultOpenIdExceptionHandler> Logger { get; } = logger;
 
@@ -74,10 +73,17 @@ public class DefaultOpenIdExceptionHandler(
     private void LogException(HttpContext httpContext, Exception exception)
     {
         var requestToString = HttpContextDebugFormatter.RequestToString(httpContext.Request);
-        Logger.LogError(exception, "An unexpected error occurred while processing the request {DisplayName}", requestToString);
+        Logger.LogError(
+            exception,
+            "An unexpected error occurred while processing the request {DisplayName}",
+            requestToString
+        );
     }
 
-    private static IResult CreateHttpResult(OpenIdEnvironment openIdEnvironment, Exception exception) =>
+    private static IResult CreateHttpResult(
+        OpenIdEnvironment openIdEnvironment,
+        Exception exception
+    ) =>
         openIdEnvironment
             .CreateError(OpenIdConstants.ErrorCodes.ServerError)
             .WithDescription("An unexpected error occurred while processing the request.")

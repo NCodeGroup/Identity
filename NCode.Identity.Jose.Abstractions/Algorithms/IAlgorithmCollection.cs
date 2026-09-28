@@ -39,7 +39,8 @@ public interface IAlgorithmCollection : IReadOnlyCollection<Algorithm>
     bool TryGetAlgorithm<T>(
         AlgorithmType algorithmType,
         string algorithmCode,
-        [MaybeNullWhen(false)] out T algorithm)
+        [MaybeNullWhen(false)] out T algorithm
+    )
         where T : Algorithm;
 
     /// <summary>
@@ -50,7 +51,8 @@ public interface IAlgorithmCollection : IReadOnlyCollection<Algorithm>
     /// <returns><c>true</c> if an <see cref="SignatureAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
     bool TryGetSignatureAlgorithm(
         string algorithmCode,
-        [MaybeNullWhen(false)] out SignatureAlgorithm algorithm);
+        [MaybeNullWhen(false)] out SignatureAlgorithm algorithm
+    );
 
     /// <summary>
     /// Gets an <see cref="KeyManagementAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
@@ -60,7 +62,8 @@ public interface IAlgorithmCollection : IReadOnlyCollection<Algorithm>
     /// <returns><c>true</c> if an <see cref="KeyManagementAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
     bool TryGetKeyManagementAlgorithm(
         string algorithmCode,
-        [MaybeNullWhen(false)] out KeyManagementAlgorithm algorithm);
+        [MaybeNullWhen(false)] out KeyManagementAlgorithm algorithm
+    );
 
     /// <summary>
     /// Gets an <see cref="AuthenticatedEncryptionAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
@@ -70,7 +73,8 @@ public interface IAlgorithmCollection : IReadOnlyCollection<Algorithm>
     /// <returns><c>true</c> if an <see cref="AuthenticatedEncryptionAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
     bool TryGetAuthenticatedEncryptionAlgorithm(
         string algorithmCode,
-        [MaybeNullWhen(false)] out AuthenticatedEncryptionAlgorithm algorithm);
+        [MaybeNullWhen(false)] out AuthenticatedEncryptionAlgorithm algorithm
+    );
 
     /// <summary>
     /// Gets an <see cref="CompressionAlgorithm"/> that has the specified <paramref name="algorithmCode"/>.
@@ -80,5 +84,6 @@ public interface IAlgorithmCollection : IReadOnlyCollection<Algorithm>
     /// <returns><c>true</c> if an <see cref="CompressionAlgorithm"/> with the specified <paramref name="algorithmCode"/> was found; otherwise, <c>false</c>.</returns>
     bool TryGetCompressionAlgorithm(
         string algorithmCode,
-        [MaybeNullWhen(false)] out CompressionAlgorithm algorithm);
+        [MaybeNullWhen(false)] out CompressionAlgorithm algorithm
+    );
 }

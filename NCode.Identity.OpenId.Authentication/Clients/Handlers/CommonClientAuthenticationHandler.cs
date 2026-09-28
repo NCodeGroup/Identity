@@ -94,23 +94,39 @@ public abstract class CommonClientAuthenticationHandler(
         var tenantId = openIdContext.Tenant.TenantId;
 
         var persistedClient = await TryGetPersistedClientAsync(clientId, cancellationToken);
-        if (persistedClient is null || persistedClient.IsDisabled || !string.Equals(tenantId, persistedClient.TenantId, StringComparison.Ordinal))
+        if (
+            persistedClient is null
+            || persistedClient.IsDisabled
+            || !string.Equals(tenantId, persistedClient.TenantId, StringComparison.Ordinal)
+        )
             return new ClientAuthenticationResult(
-                openIdContext.ErrorFactory
-                    .InvalidClient()
+                openIdContext
+                    .ErrorFactory.InvalidClient()
                     .WithStatusCode(StatusCodes.Status400BadRequest)
             );
 
-        var publicClient = await CreatePublicClientAsync(openIdContext, persistedClient, cancellationToken);
+        var publicClient = await CreatePublicClientAsync(
+            openIdContext,
+            persistedClient,
+            cancellationToken
+        );
 
         if (!hasClientSecret)
             return new ClientAuthenticationResult(publicClient);
 
         var clientSecretChars = clientSecret.Span;
         var byteCount = SecureEncoding.UTF8.GetByteCount(clientSecretChars);
-        using var _ = BufferFactory.Rent(byteCount, isSensitive: true, out Memory<byte> clientSecretBytes);
+        using var _ = BufferFactory.Rent(
+            byteCount,
+            isSensitive: true,
+            out Memory<byte> clientSecretBytes
+        );
 
-        var decodeResult = SecureEncoding.UTF8.TryGetBytes(clientSecretChars, clientSecretBytes.Span, out var bytesWritten);
+        var decodeResult = SecureEncoding.UTF8.TryGetBytes(
+            clientSecretChars,
+            clientSecretBytes.Span,
+            out var bytesWritten
+        );
         Debug.Assert(decodeResult && bytesWritten == byteCount);
 
         return await AuthenticateClientAsync(
@@ -155,8 +171,8 @@ public abstract class CommonClientAuthenticationHandler(
 
         // client secret was specified but failed to verify
         return new ClientAuthenticationResult(
-            openIdContext.ErrorFactory
-                .InvalidClient()
+            openIdContext
+                .ErrorFactory.InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
         );
     }
@@ -195,13 +211,14 @@ public abstract class CommonClientAuthenticationHandler(
     {
         var openIdEnvironment = openIdContext.Environment;
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var clientSettings = SettingSerializer.DeserializeSettings(persistedClient.Settings.Value, jsonOptions);
+        var clientSettings = SettingSerializer.DeserializeSettings(
+            persistedClient.Settings.Value,
+            jsonOptions
+        );
         var parentSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var effectiveSettings = parentSettings.Merge(clientSettings);
 
-        var secrets = SecretSerializer.DeserializeSecrets(
-            persistedClient.Secrets.Value
-        );
+        var secrets = SecretSerializer.DeserializeSecrets(persistedClient.Secrets.Value);
 
         var publicClient = await ClientFactory.CreatePublicClientAsync(
             openIdContext,
@@ -220,10 +237,16 @@ public abstract class CommonClientAuthenticationHandler(
     /// <param name="secretKey">The <see cref="SymmetricSecretKey"/> instance to compare.</param>
     /// <param name="clientSecretBytes">The client secret byte array to compare.</param>
     /// <returns><c>true</c> if the specified symmetric <paramref name="secretKey"/> is equal to the specified <paramref name="clientSecretBytes"/>; otherwise, <c>false</c>.</returns>
-    protected static bool IsSecretEqual(SymmetricSecretKey secretKey, ReadOnlySpan<byte> clientSecretBytes)
+    protected static bool IsSecretEqual(
+        SymmetricSecretKey secretKey,
+        ReadOnlySpan<byte> clientSecretBytes
+    )
     {
         // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, clientSecretBytes.Length);
+        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: true,
+            clientSecretBytes.Length
+        );
         IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
 
         secretKey.ExportPrivateKey(ref privateKeyWriter);

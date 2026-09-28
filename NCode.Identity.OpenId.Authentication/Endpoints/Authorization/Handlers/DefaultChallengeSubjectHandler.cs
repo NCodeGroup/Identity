@@ -29,7 +29,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// Provides a default implementation of a handler for the <see cref="ChallengeSubjectCommand"/> message.
 /// </summary>
 [PublicAPI]
-public class DefaultChallengeSubjectHandler : ICommandResponseHandler<ChallengeSubjectCommand, ReadOnlyEndpointDisposition>
+public class DefaultChallengeSubjectHandler
+    : ICommandResponseHandler<ChallengeSubjectCommand, ReadOnlyEndpointDisposition>
 {
     private bool DefaultChallengeSchemeFetched { get; set; }
     private string? DefaultChallengeSchemeName { get; set; }
@@ -39,7 +40,8 @@ public class DefaultChallengeSubjectHandler : ICommandResponseHandler<ChallengeS
     /// <inheritdoc />
     public async ValueTask<ReadOnlyEndpointDisposition> HandleAsync(
         ChallengeSubjectCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var (openIdContext, openIdClient, _, authenticationProperties) = command;
 
@@ -48,7 +50,9 @@ public class DefaultChallengeSubjectHandler : ICommandResponseHandler<ChallengeS
         // the default is "Identity.Application" which is compatible with Microsoft.AspNetCore.Identity
         // this scheme returns the local application user identity but still allows SSO logins from external identity providers
         // do not use the "Identity.External" scheme as it is only for external identity providers
-        var challengeSchemeName = openIdClient.Settings.GetValue(OpenIdSettingKeys.AuthorizationChallengeScheme);
+        var challengeSchemeName = openIdClient.Settings.GetValue(
+            OpenIdSettingKeys.AuthorizationChallengeScheme
+        );
         if (challengeSchemeName == string.Empty)
         {
             challengeSchemeName = null;

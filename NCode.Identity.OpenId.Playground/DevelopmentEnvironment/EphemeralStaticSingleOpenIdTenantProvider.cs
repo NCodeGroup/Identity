@@ -63,23 +63,27 @@ public sealed class EphemeralStaticSingleOpenIdTenantProvider(
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
     IIdGenerator<long> idGenerator,
     ISecretKeyFactory secretKeyFactory
-) : DefaultStaticSingleOpenIdTenantProvider(
-    templateBinderFactory,
-    optionsAccessor,
-    openIdServerProvider,
-    storeManagerFactory,
-    tenantCache,
-    settingSerializer,
-    secretSerializer,
-    secretKeyCollectionProviderFactory,
-    collectionDataSourceFactory,
-    settingCollectionProviderFactory,
-    idGenerator)
+)
+    : DefaultStaticSingleOpenIdTenantProvider(
+        templateBinderFactory,
+        optionsAccessor,
+        openIdServerProvider,
+        storeManagerFactory,
+        tenantCache,
+        settingSerializer,
+        secretSerializer,
+        secretKeyCollectionProviderFactory,
+        collectionDataSourceFactory,
+        settingCollectionProviderFactory,
+        idGenerator
+    )
 {
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
 
     /// <inheritdoc />
-    protected override ValueTask<AsyncSharedReferenceLease<ISecretKeyCollectionProvider>> GetTenantSecretsAsync(
+    protected override ValueTask<
+        AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
+    > GetTenantSecretsAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
         OpenIdServer openIdServer,
@@ -104,7 +108,7 @@ public sealed class EphemeralStaticSingleOpenIdTenantProvider(
         {
             KeyId = Guid.NewGuid().ToString("N"),
             Use = SecretKeyUses.Signature,
-            Algorithm = AlgorithmCodes.DigitalSignature.RsaSha256
+            Algorithm = AlgorithmCodes.DigitalSignature.RsaSha256,
         };
 
         return SecretKeyFactory.CreateRsa(metadata, rsa);

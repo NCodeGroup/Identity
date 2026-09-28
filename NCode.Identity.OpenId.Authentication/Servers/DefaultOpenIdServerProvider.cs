@@ -24,9 +24,9 @@ namespace NCode.Identity.OpenId.Authentication.Servers;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerProvider"/> abstraction.
 /// </summary>
-public class DefaultOpenIdServerProvider(
-    IOpenIdServerFactory factory
-) : IOpenIdServerProvider, IAsyncDisposable
+public class DefaultOpenIdServerProvider(IOpenIdServerFactory factory)
+    : IOpenIdServerProvider,
+        IAsyncDisposable
 {
     private IOpenIdServerFactory Factory { get; } = factory;
     private OpenIdServer? InstanceOrNull { get; set; }

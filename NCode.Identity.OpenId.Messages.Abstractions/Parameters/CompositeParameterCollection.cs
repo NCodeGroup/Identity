@@ -36,7 +36,10 @@ public class CompositeParameterCollection : IParameterCollection
     public CompositeParameterCollection(params IParameterCollection[] sources)
     {
         if (sources.Length == 0)
-            throw new ArgumentOutOfRangeException(nameof(sources), "At least one source must be provided.");
+            throw new ArgumentOutOfRangeException(
+                nameof(sources),
+                "At least one source must be provided."
+            );
 
         Sources = sources;
     }
@@ -58,8 +61,7 @@ public class CompositeParameterCollection : IParameterCollection
     }
 
     /// <inheritdoc />
-    IEnumerator IEnumerable.GetEnumerator() =>
-        GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <inheritdoc />
     public bool Contains(string parameterName) =>
@@ -96,7 +98,10 @@ public class CompositeParameterCollection : IParameterCollection
     }
 
     /// <inheritdoc />
-    public bool TryGet<T>(KnownParameter<T> knownParameter, [MaybeNullWhen(false)] out IParameter<T> parameter)
+    public bool TryGet<T>(
+        KnownParameter<T> knownParameter,
+        [MaybeNullWhen(false)] out IParameter<T> parameter
+    )
     {
         foreach (var source in Sources)
         {
@@ -143,6 +148,5 @@ public class CompositeParameterCollection : IParameterCollection
         Sources.Aggregate(false, (removed, source) => removed | source.Remove(parameterName));
 
     /// <inheritdoc />
-    public void Set(IParameter parameter) =>
-        Sources[0].Set(parameter);
+    public void Set(IParameter parameter) => Sources[0].Set(parameter);
 }

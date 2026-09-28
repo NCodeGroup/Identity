@@ -38,7 +38,9 @@ public static class EndpointRouteBuilderExtensions
         /// </summary>
         public void MapIdentityEndpoints()
         {
-            endpoints.ServiceProvider.GetRequiredService<IIdentityEndpointRouteBuilder>().Map(endpoints);
+            endpoints
+                .ServiceProvider.GetRequiredService<IIdentityEndpointRouteBuilder>()
+                .Map(endpoints);
         }
     }
 }

@@ -56,7 +56,11 @@ public sealed class JoseObjectJsonConverter : JsonConverter<object>
     public static JoseObjectJsonConverter Singleton { get; } = new();
 
     /// <inheritdoc />
-    public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override object? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         if (typeToConvert == typeof(JsonDocument) || typeToConvert == typeof(JsonElement))
             return JsonSerializer.Deserialize(ref reader, typeToConvert, options);
@@ -91,7 +95,11 @@ public sealed class JoseObjectJsonConverter : JsonConverter<object>
         return JsonSerializer.Deserialize(ref reader, type, options);
     }
 
-    private static bool TryReadBoolean(ref Utf8JsonReader reader, Type typeToConvert, [MaybeNullWhen(false)] out object baseValue)
+    private static bool TryReadBoolean(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        [MaybeNullWhen(false)] out object baseValue
+    )
     {
         Debug.Assert(reader.TokenType is JsonTokenType.True or JsonTokenType.False);
 
@@ -107,7 +115,11 @@ public sealed class JoseObjectJsonConverter : JsonConverter<object>
         return false;
     }
 
-    private static bool TryReadNumber(ref Utf8JsonReader reader, Type typeToConvert, [MaybeNullWhen(false)] out object baseValue)
+    private static bool TryReadNumber(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        [MaybeNullWhen(false)] out object baseValue
+    )
     {
         Debug.Assert(reader.TokenType == JsonTokenType.Number);
 
@@ -141,7 +153,9 @@ public sealed class JoseObjectJsonConverter : JsonConverter<object>
             return true;
         }
 
-        if (typeof(ushort).IsAssignableTo(typeToConvert) && reader.TryGetUInt16(out var ushortValue))
+        if (
+            typeof(ushort).IsAssignableTo(typeToConvert) && reader.TryGetUInt16(out var ushortValue)
+        )
         {
             baseValue = ushortValue;
             return true;
@@ -153,13 +167,18 @@ public sealed class JoseObjectJsonConverter : JsonConverter<object>
             return true;
         }
 
-        if (typeof(double).IsAssignableTo(typeToConvert) && reader.TryGetDouble(out var doubleValue))
+        if (
+            typeof(double).IsAssignableTo(typeToConvert) && reader.TryGetDouble(out var doubleValue)
+        )
         {
             baseValue = doubleValue;
             return true;
         }
 
-        if (typeof(decimal).IsAssignableTo(typeToConvert) && reader.TryGetDecimal(out var decimalValue))
+        if (
+            typeof(decimal).IsAssignableTo(typeToConvert)
+            && reader.TryGetDecimal(out var decimalValue)
+        )
         {
             baseValue = decimalValue;
             return true;
@@ -175,7 +194,11 @@ public sealed class JoseObjectJsonConverter : JsonConverter<object>
         return false;
     }
 
-    private static bool TryReadString(ref Utf8JsonReader reader, Type typeToConvert, [MaybeNullWhen(false)] out object baseValue)
+    private static bool TryReadString(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        [MaybeNullWhen(false)] out object baseValue
+    )
     {
         Debug.Assert(reader.TokenType == JsonTokenType.String);
 
@@ -183,147 +206,175 @@ public sealed class JoseObjectJsonConverter : JsonConverter<object>
 
         Debug.Assert(stringValue != null);
 
-        if (typeof(DateTimeOffset).IsAssignableTo(typeToConvert) &&
-            DateTimeOffset.TryParse(
+        if (
+            typeof(DateTimeOffset).IsAssignableTo(typeToConvert)
+            && DateTimeOffset.TryParse(
                 stringValue,
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal,
-                out var dateTimeOffset))
+                out var dateTimeOffset
+            )
+        )
         {
             baseValue = dateTimeOffset;
             return true;
         }
 
-        if (typeof(DateTime).IsAssignableTo(typeToConvert) &&
-            DateTime.TryParse(
+        if (
+            typeof(DateTime).IsAssignableTo(typeToConvert)
+            && DateTime.TryParse(
                 stringValue,
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal,
-                out var dateTime))
+                out var dateTime
+            )
+        )
         {
             baseValue = dateTime;
             return true;
         }
 
-        if (typeof(Guid).IsAssignableTo(typeToConvert) &&
-            Guid.TryParse(stringValue, out var guid))
+        if (typeof(Guid).IsAssignableTo(typeToConvert) && Guid.TryParse(stringValue, out var guid))
         {
             baseValue = guid;
             return true;
         }
 
-        if (typeof(int).IsAssignableTo(typeToConvert) &&
-            int.TryParse(
+        if (
+            typeof(int).IsAssignableTo(typeToConvert)
+            && int.TryParse(
                 stringValue,
-                NumberStyles.Integer |
-                NumberStyles.AllowThousands,
+                NumberStyles.Integer | NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
-                out var intValue))
+                out var intValue
+            )
+        )
         {
             baseValue = intValue;
             return true;
         }
 
-        if (typeof(byte).IsAssignableTo(typeToConvert) &&
-            byte.TryParse(
+        if (
+            typeof(byte).IsAssignableTo(typeToConvert)
+            && byte.TryParse(
                 stringValue,
                 NumberStyles.Integer,
                 CultureInfo.InvariantCulture,
-                out var byteValue))
+                out var byteValue
+            )
+        )
         {
             baseValue = byteValue;
             return true;
         }
 
-        if (typeof(short).IsAssignableTo(typeToConvert) &&
-            short.TryParse(
+        if (
+            typeof(short).IsAssignableTo(typeToConvert)
+            && short.TryParse(
                 stringValue,
                 NumberStyles.Integer,
                 CultureInfo.InvariantCulture,
-                out var shortValue))
+                out var shortValue
+            )
+        )
         {
             baseValue = shortValue;
             return true;
         }
 
-        if (typeof(long).IsAssignableTo(typeToConvert) &&
-            long.TryParse(
+        if (
+            typeof(long).IsAssignableTo(typeToConvert)
+            && long.TryParse(
                 stringValue,
-                NumberStyles.Integer |
-                NumberStyles.AllowThousands,
+                NumberStyles.Integer | NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
-                out var longValue))
+                out var longValue
+            )
+        )
         {
             baseValue = longValue;
             return true;
         }
 
-        if (typeof(uint).IsAssignableTo(typeToConvert) &&
-            uint.TryParse(
+        if (
+            typeof(uint).IsAssignableTo(typeToConvert)
+            && uint.TryParse(
                 stringValue,
-                NumberStyles.Integer |
-                NumberStyles.AllowThousands,
+                NumberStyles.Integer | NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
-                out var uintValue))
+                out var uintValue
+            )
+        )
         {
             baseValue = uintValue;
             return true;
         }
 
-        if (typeof(ushort).IsAssignableTo(typeToConvert) &&
-            ushort.TryParse(
+        if (
+            typeof(ushort).IsAssignableTo(typeToConvert)
+            && ushort.TryParse(
                 stringValue,
                 NumberStyles.Integer,
                 CultureInfo.InvariantCulture,
-                out var ushortValue))
+                out var ushortValue
+            )
+        )
         {
             baseValue = ushortValue;
             return true;
         }
 
-        if (typeof(ulong).IsAssignableTo(typeToConvert) &&
-            ulong.TryParse(
+        if (
+            typeof(ulong).IsAssignableTo(typeToConvert)
+            && ulong.TryParse(
                 stringValue,
-                NumberStyles.Integer |
-                NumberStyles.AllowThousands,
+                NumberStyles.Integer | NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
-                out var ulongValue))
+                out var ulongValue
+            )
+        )
         {
             baseValue = ulongValue;
             return true;
         }
 
-        if (typeof(double).IsAssignableTo(typeToConvert) &&
-            double.TryParse(
+        if (
+            typeof(double).IsAssignableTo(typeToConvert)
+            && double.TryParse(
                 stringValue,
-                NumberStyles.Float |
-                NumberStyles.AllowThousands,
+                NumberStyles.Float | NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
-                out var doubleValue))
+                out var doubleValue
+            )
+        )
         {
             baseValue = doubleValue;
             return true;
         }
 
-        if (typeof(decimal).IsAssignableTo(typeToConvert) &&
-            decimal.TryParse(
+        if (
+            typeof(decimal).IsAssignableTo(typeToConvert)
+            && decimal.TryParse(
                 stringValue,
-                NumberStyles.Number |
-                NumberStyles.AllowThousands,
+                NumberStyles.Number | NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
-                out var decimalValue))
+                out var decimalValue
+            )
+        )
         {
             baseValue = decimalValue;
             return true;
         }
 
-        if (typeof(float).IsAssignableTo(typeToConvert) &&
-            float.TryParse(
+        if (
+            typeof(float).IsAssignableTo(typeToConvert)
+            && float.TryParse(
                 stringValue,
-                NumberStyles.Float |
-                NumberStyles.AllowThousands,
+                NumberStyles.Float | NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
-                out var floatValue))
+                out var floatValue
+            )
+        )
         {
             baseValue = floatValue;
             return true;
@@ -340,6 +391,9 @@ public sealed class JoseObjectJsonConverter : JsonConverter<object>
     }
 
     /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options) =>
-        JsonSerializer.Serialize(writer, value, value.GetType(), options);
+    public override void Write(
+        Utf8JsonWriter writer,
+        object value,
+        JsonSerializerOptions options
+    ) => JsonSerializer.Serialize(writer, value, value.GetType(), options);
 }

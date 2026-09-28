@@ -69,7 +69,8 @@ public abstract class SecretKey
     /// <summary>
     /// Returns a formatted <see cref="string"/> that represents this <see cref="SecretKey"/> instance.
     /// </summary>
-    protected virtual string FormatToString() => $"{KeyType} {{ KeyId = {QuoteOrNull(KeyId)}, Size = {KeySizeBits} }}";
+    protected virtual string FormatToString() =>
+        $"{KeyType} {{ KeyId = {QuoteOrNull(KeyId)}, Size = {KeySizeBits} }}";
 
     /// <summary>
     /// Returns a quoted <see cref="string"/> or <c>(null)</c> if the value is <c>null</c>.

@@ -45,9 +45,13 @@ public class HashAlgorithmNameExtensionsTests
         else
         {
             var exception = Assert.Throws<ArgumentException>(() =>
-                hashAlgorithmName.GetHashSizeBits());
+                hashAlgorithmName.GetHashSizeBits()
+            );
 
-            Assert.Equal($"The {hashAlgorithmName} hash algorithm is not supported. (Parameter 'hashAlgorithmName')", exception.Message);
+            Assert.Equal(
+                $"The {hashAlgorithmName} hash algorithm is not supported. (Parameter 'hashAlgorithmName')",
+                exception.Message
+            );
         }
     }
 }

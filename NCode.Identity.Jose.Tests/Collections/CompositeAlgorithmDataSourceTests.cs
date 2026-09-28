@@ -36,7 +36,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
         {
             mockAlgorithm1.Object,
             mockAlgorithm2.Object,
-            mockAlgorithm3.Object
+            mockAlgorithm3.Object,
         };
 
         var mockDataSource1 = CreateStrictMock<ICollectionDataSource<Algorithm>>();
@@ -73,7 +73,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
         {
             mockDataSource1.Object,
             mockDataSource2.Object,
-            mockDataSource3.Object
+            mockDataSource3.Object,
         };
 
         await using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
@@ -93,17 +93,21 @@ public class CompositeCollectionDataSourceTests : BaseTests
         var mockDataSource1 = CreateStrictMock<ICollectionDataSource<Algorithm>>();
         mockDataSource1
             .Setup(x => x.GetChangeToken())
-            .Returns(() => changeTokenSource.HasChanged ? NullChangeToken.Singleton : changeTokenSource)
+            .Returns(() =>
+                changeTokenSource.HasChanged ? NullChangeToken.Singleton : changeTokenSource
+            )
             .Verifiable();
         mockDataSource1
             .Setup(x => x.Collection)
-            .Returns(() => new[] { changeTokenSource.HasChanged ? mockAlgorithm2.Object : mockAlgorithm1.Object })
+            .Returns(() =>
+                new[]
+                {
+                    changeTokenSource.HasChanged ? mockAlgorithm2.Object : mockAlgorithm1.Object,
+                }
+            )
             .Verifiable();
 
-        var dataSources = new[]
-        {
-            mockDataSource1.Object
-        };
+        var dataSources = new[] { mockDataSource1.Object };
 
         await using var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
 
@@ -137,10 +141,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
             .Returns(() => new[] { mockAlgorithm1.Object })
             .Verifiable();
 
-        var dataSources = new[]
-        {
-            mockDataSource1.Object
-        };
+        var dataSources = new[] { mockDataSource1.Object };
 
         var composite = new CompositeCollectionDataSource<Algorithm>(dataSources);
         await composite.DisposeAsync();

@@ -43,10 +43,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         var expected = DateTime.Now;
-        var dictionary = new Dictionary<string, object>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<DateTime>(key, out var value);
@@ -59,10 +56,7 @@ public class JsonElementExtensionsTests
     {
         const string key = nameof(key);
 
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = null
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = null };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<string>(key, out var value);
@@ -76,10 +70,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
         const string expected = nameof(expected);
 
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<string>(key, out var value);
@@ -93,10 +84,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
         const bool expected = true;
 
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<bool?>(key, out var value);
@@ -110,10 +98,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
         const bool expected = false;
 
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<bool?>(key, out var value);
@@ -127,10 +112,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         var expected = DateTime.Now;
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected.ToString("O")
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected.ToString("O") };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<DateTime?>(key, out var value);
@@ -144,10 +126,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         var expected = DateTimeOffset.Now;
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected.ToString("O")
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected.ToString("O") };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<DateTimeOffset?>(key, out var value);
@@ -161,10 +140,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         const float expected = 12.34f;
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<float?>(key, out var value);
@@ -178,10 +154,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         const double expected = 12.34;
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<double?>(key, out var value);
@@ -195,10 +168,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         const byte expected = 10;
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<byte?>(key, out var value);
@@ -212,10 +182,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         const short expected = 10;
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<short?>(key, out var value);
@@ -229,10 +196,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         const int expected = 10;
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<int?>(key, out var value);
@@ -246,10 +210,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         const long expected = (long)int.MaxValue + 10;
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<long?>(key, out var value);
@@ -265,7 +226,7 @@ public class JsonElementExtensionsTests
         var expected = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.Now.ToUnixTimeSeconds());
         var dictionary = new Dictionary<string, object?>
         {
-            [key] = (int)expected.ToUnixTimeSeconds()
+            [key] = (int)expected.ToUnixTimeSeconds(),
         };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
@@ -282,7 +243,7 @@ public class JsonElementExtensionsTests
         var expected = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.Now.ToUnixTimeSeconds());
         var dictionary = new Dictionary<string, object?>
         {
-            [key] = (int)expected.ToUnixTimeSeconds()
+            [key] = (int)expected.ToUnixTimeSeconds(),
         };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
@@ -297,10 +258,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         var expected = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.Now.ToUnixTimeSeconds());
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected.ToUnixTimeSeconds()
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected.ToUnixTimeSeconds() };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<DateTime?>(key, out var value);
@@ -314,10 +272,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         var expected = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.Now.ToUnixTimeSeconds());
-        var dictionary = new Dictionary<string, object?>
-        {
-            [key] = expected.ToUnixTimeSeconds()
-        };
+        var dictionary = new Dictionary<string, object?> { [key] = expected.ToUnixTimeSeconds() };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<DateTimeOffset?>(key, out var value);
@@ -331,10 +286,7 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         // use any data type that is not supported/implemented at this time
-        var dictionary = new Dictionary<string, object>
-        {
-            [key] = Guid.NewGuid()
-        };
+        var dictionary = new Dictionary<string, object> { [key] = Guid.NewGuid() };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
         var exists = jsonElement.TryGetPropertyValue<Guid>(key, out var value);

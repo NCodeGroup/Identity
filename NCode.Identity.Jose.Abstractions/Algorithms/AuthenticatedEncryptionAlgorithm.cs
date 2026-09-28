@@ -78,7 +78,8 @@ public abstract class AuthenticatedEncryptionAlgorithm : KeyedAlgorithm
         ReadOnlySpan<byte> plainText,
         ReadOnlySpan<byte> associatedData,
         Span<byte> cipherText,
-        Span<byte> authenticationTag);
+        Span<byte> authenticationTag
+    );
 
     /// <summary>
     /// When overridden in a derived class, decrypts the ciphertext into the provided destination buffer if the authentication tag can be validated.
@@ -98,5 +99,6 @@ public abstract class AuthenticatedEncryptionAlgorithm : KeyedAlgorithm
         ReadOnlySpan<byte> associatedData,
         ReadOnlySpan<byte> authenticationTag,
         Span<byte> plainText,
-        out int bytesWritten);
+        out int bytesWritten
+    );
 }

@@ -45,6 +45,8 @@ public static class OpenIdResponseExtensions
         }
 
         // ReSharper disable once SuspiciousTypeConversion.Global
-        return response is IResultProvider resultProvider ? resultProvider.AsHttpResult() : new OpenIdResult<T>(response);
+        return response is IResultProvider resultProvider
+            ? resultProvider.AsHttpResult()
+            : new OpenIdResult<T>(response);
     }
 }

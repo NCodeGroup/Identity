@@ -30,11 +30,14 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class PersistedClientSecrets : PersistedClientResource<IReadOnlyCollection<PersistedSecret>>, ISupportPersistedSecretCollection
+public class PersistedClientSecrets
+    : PersistedClientResource<IReadOnlyCollection<PersistedSecret>>,
+        ISupportPersistedSecretCollection
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
-    public override string ResourceType => $"{ResourceTypePrefix}{ResourceTypes.Separator}{SecretResourceTypes.Secrets}";
+    public override string ResourceType =>
+        $"{ResourceTypePrefix}{ResourceTypes.Separator}{SecretResourceTypes.Secrets}";
 
     /// <inheritdoc/>
     IReadOnlyCollection<PersistedSecret> ISupportPersistedSecretCollection.Secrets => Value;

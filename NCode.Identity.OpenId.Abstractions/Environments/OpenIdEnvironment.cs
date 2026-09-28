@@ -80,5 +80,8 @@ public abstract class OpenIdEnvironment
     /// <param name="typeDiscriminator">A <see cref="string"/> value that is used to discriminate the message type.</param>
     /// <param name="parameters">The collection of parameters to be used to initialize the new message.</param>
     /// <returns>The newly created <see cref="IOpenIdMessage"/> instance.</returns>
-    public abstract IOpenIdMessage CreateMessage(string typeDiscriminator, IEnumerable<IParameter> parameters);
+    public abstract IOpenIdMessage CreateMessage(
+        string typeDiscriminator,
+        IEnumerable<IParameter> parameters
+    );
 }

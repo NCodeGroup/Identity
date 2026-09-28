@@ -28,7 +28,6 @@ namespace NCode.Jose.Tests.Algorithms.Signature;
 
 public class RsaSignatureAlgorithmTests : BaseTests
 {
-
     [Fact]
     public void Code_Valid()
     {
@@ -84,7 +83,12 @@ public class RsaSignatureAlgorithmTests : BaseTests
     public static IEnumerable<object[]> GetRoundTripTestData()
     {
         var keyBitSizes = new[] { 2048, 2048 + 64, 3072, 3072 + 128, 4096, 4096 + 192 };
-        var hashes = new[] { HashAlgorithmName.SHA256, HashAlgorithmName.SHA384, HashAlgorithmName.SHA512 };
+        var hashes = new[]
+        {
+            HashAlgorithmName.SHA256,
+            HashAlgorithmName.SHA384,
+            HashAlgorithmName.SHA512,
+        };
         var paddings = new[] { RSASignaturePadding.Pkcs1, RSASignaturePadding.Pss };
 
         foreach (var keyBitSize in keyBitSizes)
@@ -97,7 +101,11 @@ public class RsaSignatureAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetRoundTripTestData))]
-    public void RoundTrip_Valid(int keySizeBits, HashAlgorithmName hashAlgorithmName, RSASignaturePadding padding)
+    public void RoundTrip_Valid(
+        int keySizeBits,
+        HashAlgorithmName hashAlgorithmName,
+        RSASignaturePadding padding
+    )
     {
         const string keyId = nameof(keyId);
         const string code = nameof(code);
@@ -116,7 +124,12 @@ public class RsaSignatureAlgorithmTests : BaseTests
 
         RandomNumberGenerator.Fill(inputData);
 
-        var signResult = algorithm.TrySign(secretKey, inputData, signature, out var signBytesWritten);
+        var signResult = algorithm.TrySign(
+            secretKey,
+            inputData,
+            signature,
+            out var signBytesWritten
+        );
         Assert.True(signResult);
         Assert.Equal(signatureSizeBytes, signBytesWritten);
 
@@ -130,11 +143,18 @@ public class RsaSignatureAlgorithmTests : BaseTests
         var verifyHashFromControl = algorithm.Verify(secretKey, inputData, controlHash);
         Assert.True(verifyHashFromControl);
 
-        var verifyHashUsingControl = controlAlgorithm.Verify(signature.ToArray(), inputData.ToArray(), key);
+        var verifyHashUsingControl = controlAlgorithm.Verify(
+            signature.ToArray(),
+            inputData.ToArray(),
+            key
+        );
         Assert.True(verifyHashUsingControl);
     }
 
-    private static IJwsAlgorithm GetControlAlgorithm(HashAlgorithmName hashAlgorithmName, RSASignaturePadding padding)
+    private static IJwsAlgorithm GetControlAlgorithm(
+        HashAlgorithmName hashAlgorithmName,
+        RSASignaturePadding padding
+    )
     {
         var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
         if (padding == RSASignaturePadding.Pkcs1)

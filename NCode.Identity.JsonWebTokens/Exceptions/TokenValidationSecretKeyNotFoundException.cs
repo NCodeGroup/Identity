@@ -30,7 +30,8 @@ namespace NCode.Identity.JsonWebTokens.Exceptions;
 [Serializable]
 public class TokenValidationSecretKeyNotFoundException : TokenValidationException
 {
-    private const string DefaultMessage = "Token validation failed. No keys were provided to validate the token.";
+    private const string DefaultMessage =
+        "Token validation failed. No keys were provided to validate the token.";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TokenValidationSecretKeyNotFoundException"/> class with a default error message.

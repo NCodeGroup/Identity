@@ -57,12 +57,14 @@ public class ServerStore(
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedServerSettings
-        {
-            ServerId = serverEntity.ServerId,
-            ConcurrencyToken = serverEntity.SettingsConcurrencyToken,
-            Value = serverEntity.SettingsJson
-        });
+        return ValueTask.FromResult(
+            new PersistedServerSettings
+            {
+                ServerId = serverEntity.ServerId,
+                ConcurrencyToken = serverEntity.SettingsConcurrencyToken,
+                Value = serverEntity.SettingsJson,
+            }
+        );
     }
 
     /// <summary>
@@ -76,12 +78,14 @@ public class ServerStore(
         CancellationToken cancellationToken
     )
     {
-        return ValueTask.FromResult(new PersistedServerSecrets
-        {
-            ServerId = serverEntity.ServerId,
-            ConcurrencyToken = serverEntity.SecretsConcurrencyToken,
-            Value = MapToPersistedSecrets(serverEntity.Secrets)
-        });
+        return ValueTask.FromResult(
+            new PersistedServerSecrets
+            {
+                ServerId = serverEntity.ServerId,
+                ConcurrencyToken = serverEntity.SecretsConcurrencyToken,
+                Value = MapToPersistedSecrets(serverEntity.Secrets),
+            }
+        );
     }
 
     /// <inheritdoc />
@@ -95,7 +99,7 @@ public class ServerStore(
             ServerId = entity.ServerId,
             ConcurrencyToken = entity.ConcurrencyToken,
             Settings = await MapSettingsAsync(entity, cancellationToken),
-            Secrets = await MapSecretsAsync(entity, cancellationToken)
+            Secrets = await MapSecretsAsync(entity, cancellationToken),
         };
     }
 
@@ -105,9 +109,9 @@ public class ServerStore(
         CancellationToken cancellationToken
     )
     {
-        return await DbContext.Servers
-            .Include(server => server.Secrets)
-            .ThenInclude(serverSecret => serverSecret.Secret)
+        return await DbContext
+            .Servers.Include(server => server.Secrets)
+                .ThenInclude(serverSecret => serverSecret.Secret)
             .SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
@@ -175,7 +179,7 @@ public class ServerStore(
             SettingsConcurrencyToken = persistedServer.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedServer.Secrets.ConcurrencyToken,
             SettingsJson = persistedServer.Settings.Value,
-            Secrets = secrets
+            Secrets = secrets,
         };
 
         foreach (var persistedSecret in persistedServer.Secrets.Value)
@@ -214,7 +218,13 @@ public class ServerStore(
         var serverId = persistedServer.ServerId;
         var serverEntity = await GetEntityAsync(serverId, cancellationToken);
 
-        if (!string.Equals(persistedServer.ConcurrencyToken, serverEntity.ConcurrencyToken, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                persistedServer.ConcurrencyToken,
+                serverEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
         {
             throw new DbUpdateConcurrencyException(
                 $"The OpenId Server with ServerId='{serverId}' has been modified by another process. Please reload and try again."
@@ -239,7 +249,13 @@ public class ServerStore(
         var serverId = persistedServerSettings.ServerId;
         var serverEntity = await GetEntityAsync(serverId, cancellationToken);
 
-        if (!string.Equals(persistedServerSettings.ConcurrencyToken, serverEntity.SettingsConcurrencyToken, StringComparison.Ordinal))
+        if (
+            !string.Equals(
+                persistedServerSettings.ConcurrencyToken,
+                serverEntity.SettingsConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
         {
             throw new DbUpdateConcurrencyException(
                 $"The settings for OpenId Server with ServerId='{serverId}' have been modified by another process. Please reload and try again."

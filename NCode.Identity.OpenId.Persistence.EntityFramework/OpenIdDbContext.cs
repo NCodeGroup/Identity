@@ -36,42 +36,42 @@ public class OpenIdDbContext(DbContextOptions<OpenIdDbContext> options) : DbCont
     /// <summary>
     /// Gets or sets the <see cref="SecretEntity"/> entities.
     /// </summary>
-    public DbSet<SecretEntity> Secrets { get; set; }
+    public DbSet<SecretEntity>? Secrets { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="ServerEntity"/> entities.
     /// </summary>
-    public DbSet<ServerEntity> Servers { get; set; }
+    public DbSet<ServerEntity>? Servers { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="ServerSecretEntity"/> entities.
     /// </summary>
-    public DbSet<ServerSecretEntity> ServerSecrets { get; set; }
+    public DbSet<ServerSecretEntity>? ServerSecrets { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="TenantEntity"/> entities.
     /// </summary>
-    public DbSet<TenantEntity> Tenants { get; set; }
+    public DbSet<TenantEntity>? Tenants { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="TenantSecretEntity"/> entities.
     /// </summary>
-    public DbSet<TenantSecretEntity> TenantSecrets { get; set; }
+    public DbSet<TenantSecretEntity>? TenantSecrets { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="ClientEntity"/> entities.
     /// </summary>
-    public DbSet<ClientEntity> Clients { get; set; }
+    public DbSet<ClientEntity>? Clients { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="ClientSecretEntity"/> entities.
     /// </summary>
-    public DbSet<ClientSecretEntity> ClientSecrets { get; set; }
+    public DbSet<ClientSecretEntity>? ClientSecrets { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="GrantEntity"/> entities.
     /// </summary>
-    public DbSet<GrantEntity> Grants { get; set; }
+    public DbSet<GrantEntity>? Grants { get; set; }
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)

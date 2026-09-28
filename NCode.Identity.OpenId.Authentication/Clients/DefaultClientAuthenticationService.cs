@@ -40,7 +40,7 @@ public class DefaultClientAuthenticationService : IClientAuthenticationService
         return ResultOrDefault ??= await AuthenticateCoreAsync(openIdContext, cancellationToken);
     }
 
-    private async ValueTask<ClientAuthenticationResult> AuthenticateCoreAsync(
+    private static async ValueTask<ClientAuthenticationResult> AuthenticateCoreAsync(
         OpenIdContext openIdContext,
         CancellationToken cancellationToken
     )

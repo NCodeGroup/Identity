@@ -52,7 +52,7 @@ public class CommonKeyManagementAlgorithmTests : BaseTests
         var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
 
         Span<byte> cek = new byte[cekSizeBytes];
-        cek.Fill(0);
+        cek.Clear();
 
         var header = new Dictionary<string, object>();
 

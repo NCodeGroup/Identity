@@ -38,7 +38,7 @@ internal class WeatherForecastController : ControllerBase
     };
 
     [HttpGet]
-    public IEnumerable<WeatherForecast> Get()
+    public static IEnumerable<WeatherForecast> Get()
     {
         var rng = new Random();
         return Enumerable

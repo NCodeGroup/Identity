@@ -60,21 +60,8 @@ public class DefaultOpenIdTenantCache(
         if (value is not IAsyncDisposable asyncDisposable)
             return;
 
-        _ = Task.Factory.StartNew(
-            DisposeCallbackAsync,
-            asyncDisposable,
-            CancellationToken.None,
-            TaskCreationOptions.DenyChildAttach,
-            TaskScheduler.Default
-        );
-    }
-
-    private static async Task DisposeCallbackAsync(object? state)
-    {
-        var asyncDisposable = (IAsyncDisposable?)state;
-        if (asyncDisposable is null)
-            return;
-        await asyncDisposable.DisposeAsync();
+        // Offload disposal off the eviction thread; fire-and-forget.
+        _ = Task.Run(async () => await asyncDisposable.DisposeAsync());
     }
 
     /// <inheritdoc />

@@ -40,7 +40,7 @@ public sealed class EntityStoreManager<TDbContext>(
     private ConcurrentDictionary<Type, IStore> Stores { get; } = new();
 
     // ReSharper disable once StaticMemberInGenericType
-    private static ConcurrentDictionary<Type, MethodInvoker>? GetStoreMethodInvokers { get; set; }
+    private static readonly ConcurrentDictionary<Type, MethodInvoker> StoreMethodInvokers = new();
 
     private static readonly MethodInfo GetStoreMethod =
         typeof(EntityStoreManager<TDbContext>).GetMethod(nameof(GetStore))
@@ -91,9 +91,7 @@ public sealed class EntityStoreManager<TDbContext>(
 
     private object? GetStoreNonGeneric(Type storeType)
     {
-        var methodInvokers = GetStoreMethodInvokers ??=
-            new ConcurrentDictionary<Type, MethodInvoker>();
-        var methodInvoker = methodInvokers.GetOrAdd(storeType, CreateGetStoreMethodInvoker);
+        var methodInvoker = StoreMethodInvokers.GetOrAdd(storeType, CreateGetStoreMethodInvoker);
         return methodInvoker.Invoke(this);
     }
 

@@ -19,12 +19,8 @@
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" />
         <PackageReference Include="NCode.Disposables" />
         <PackageReference Include="NCode.Mediator.Abstractions" />
         <PackageReference Include="NCode.PropertyBag.Abstractions" />
-        <PackageReference Include="System.Text.Json" />
     </ItemGroup>
 </Project>

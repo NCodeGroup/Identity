@@ -14,7 +14,6 @@
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="NCode.Collections.Providers.Abstractions" />
     </ItemGroup>
 

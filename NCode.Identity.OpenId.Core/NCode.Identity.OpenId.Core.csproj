@@ -18,17 +18,11 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-        <PackageReference Include="Microsoft.Extensions.Http" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-        <PackageReference Include="Microsoft.Extensions.Options" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" />
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Disposables" />
         <PackageReference Include="NCode.PasswordGenerator" />
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
         <PackageReference Include="System.Linq.Async" />
-        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
         <PackageReference Include="SystemTextJsonPatch" />
     </ItemGroup>
 

@@ -56,6 +56,6 @@ public class ClaimsPrincipalJsonConverter(IClaimsSerializer serializer)
     )
     {
         var serializable = Serializer.SerializePrincipal(value);
-        JsonSerializer.Serialize(serializable, options);
+        JsonSerializer.Serialize(writer, serializable, options);
     }
 }

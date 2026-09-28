@@ -56,6 +56,6 @@ public class ClaimsIdentityJsonConverter(IClaimsSerializer serializer)
     )
     {
         var serializable = Serializer.SerializeIdentity(value);
-        JsonSerializer.Serialize(serializable, options);
+        JsonSerializer.Serialize(writer, serializable, options);
     }
 }

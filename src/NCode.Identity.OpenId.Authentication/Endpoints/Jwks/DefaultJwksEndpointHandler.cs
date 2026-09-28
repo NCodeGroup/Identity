@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -43,7 +44,8 @@ public class DefaultJwksEndpointHandler(
 ) : IEndpointProvider
 {
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
-    private IEnumerable<IJsonWebKeyConverter> JsonWebKeyConverters { get; } = jsonWebKeyConverters;
+    private ImmutableArray<IJsonWebKeyConverter> JsonWebKeyConverters { get; } =
+    [.. jsonWebKeyConverters];
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>

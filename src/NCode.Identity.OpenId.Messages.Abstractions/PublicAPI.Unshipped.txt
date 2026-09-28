@@ -32,7 +32,7 @@ NCode.Identity.OpenId.Messages.OpenIdMessage<T>.OpenIdMessage(NCode.Identity.Ope
 NCode.Identity.OpenId.Messages.OpenIdMessage<T>.OpenIdMessage(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters, bool cloneParameters = false) -> void
 NCode.Identity.OpenId.Messages.OpenIdMessage<T>.OpenIdMessage(T! other) -> void
 NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection
-NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.CompositeParameterCollection(params NCode.Identity.OpenId.Messages.Parameters.IParameterCollection![]! sources) -> void
+NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.CompositeParameterCollection(params System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameterCollection!>! sources) -> void
 NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.Contains(string! parameterName) -> bool
 NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<NCode.Identity.OpenId.Messages.Parameters.IParameter!>!
 NCode.Identity.OpenId.Messages.Parameters.CompositeParameterCollection.GetValueOrDefault<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter) -> T?

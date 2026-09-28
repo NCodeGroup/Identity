@@ -17,6 +17,7 @@
 #endregion
 
 using System.Collections;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
@@ -28,20 +29,20 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 [PublicAPI]
 public class CompositeParameterCollection : IParameterCollection
 {
-    private IParameterCollection[] Sources { get; }
+    private ImmutableArray<IParameterCollection> Sources { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CompositeParameterCollection"/> class.
     /// </summary>
-    public CompositeParameterCollection(params IParameterCollection[] sources)
+    public CompositeParameterCollection(params IEnumerable<IParameterCollection> sources)
     {
-        if (sources.Length == 0)
+        Sources = [.. sources];
+
+        if (Sources.Length == 0)
             throw new ArgumentOutOfRangeException(
                 nameof(sources),
                 "At least one source must be provided."
             );
-
-        Sources = sources;
     }
 
     /// <inheritdoc />

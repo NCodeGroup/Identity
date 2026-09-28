@@ -17,6 +17,8 @@
 
 #endregion
 
+using System.Collections.Frozen;
+
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
 
 /// <summary>
@@ -25,8 +27,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
 public class DefaultContinueProviderSelector(IEnumerable<IContinueProvider> providers)
     : IContinueProviderSelector
 {
-    private Dictionary<string, IContinueProvider> Lookup { get; } =
-        providers.ToDictionary(x => x.ContinueCode, StringComparer.Ordinal);
+    private FrozenDictionary<string, IContinueProvider> Lookup { get; } =
+        providers.ToFrozenDictionary(x => x.ContinueCode, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public IContinueProvider SelectProvider(string continueCode)

@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.JsonWebTokens.Exceptions;
@@ -76,6 +77,10 @@ public static class ValidateJwtParametersExtensions
             IEnumerable<string> validValues
         )
         {
+            // Snapshot the allowable values once at configuration time: the validator closure below runs
+            // per-token, so a frozen set gives O(1) lookups and shields validation from later mutation.
+            var validValueSet = validValues.ToFrozenSet(StringComparer.Ordinal);
+
             return parameters.AddValidator(
                 (context, cancellationToken) =>
                 {
@@ -103,9 +108,7 @@ public static class ValidateJwtParametersExtensions
                         if (
                             property
                                 .EnumerateArray()
-                                .Select(jsonElement => jsonElement.ToString())
-                                .Except(validValues)
-                                .Any()
+                                .Any(jsonElement => !validValueSet.Contains(jsonElement.ToString()))
                         )
                             throw new TokenValidationException(
                                 $"The claim '{claimName}' is invalid because at least one value did not contain any of the valid values."
@@ -114,7 +117,7 @@ public static class ValidateJwtParametersExtensions
                     else
                     {
                         var stringValue = property.ToString();
-                        if (!validValues.Contains(stringValue))
+                        if (!validValueSet.Contains(stringValue))
                             throw new TokenValidationException(
                                 $"The claim '{claimName}' is invalid because it does not contain any of the valid values."
                             );

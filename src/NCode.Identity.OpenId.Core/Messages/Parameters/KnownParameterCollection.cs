@@ -18,6 +18,7 @@
 #endregion
 
 using System.Collections;
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 
 namespace NCode.Identity.OpenId.Messages.Parameters;
@@ -28,8 +29,8 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 public class KnownParameterCollection(IEnumerable<KnownParameter> knownParameters)
     : IKnownParameterCollection
 {
-    private Dictionary<string, KnownParameter> KnownParameters { get; } =
-        knownParameters.ToDictionary(x => x.Name, StringComparer.Ordinal);
+    private FrozenDictionary<string, KnownParameter> KnownParameters { get; } =
+        knownParameters.ToFrozenDictionary(x => x.Name, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public int Count => KnownParameters.Count;
@@ -41,7 +42,8 @@ public class KnownParameterCollection(IEnumerable<KnownParameter> knownParameter
     ) => KnownParameters.TryGetValue(parameterName, out knownParameter);
 
     /// <inheritdoc />
-    public IEnumerator<KnownParameter> GetEnumerator() => KnownParameters.Values.GetEnumerator();
+    public IEnumerator<KnownParameter> GetEnumerator() =>
+        ((IEnumerable<KnownParameter>)KnownParameters.Values).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

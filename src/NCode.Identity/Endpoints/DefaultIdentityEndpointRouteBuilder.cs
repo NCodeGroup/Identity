@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using Microsoft.AspNetCore.Routing;
 
 namespace NCode.Identity.Endpoints;
@@ -26,7 +27,7 @@ namespace NCode.Identity.Endpoints;
 public class DefaultIdentityEndpointRouteBuilder(IEnumerable<IEndpointProvider> endpointProviders)
     : IIdentityEndpointRouteBuilder
 {
-    private IEnumerable<IEndpointProvider> EndpointProviders { get; } = endpointProviders;
+    private ImmutableArray<IEndpointProvider> EndpointProviders { get; } = [.. endpointProviders];
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)

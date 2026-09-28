@@ -18,6 +18,7 @@
 #endregion
 
 using System.Collections;
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 
 namespace NCode.Identity.Settings;
@@ -28,8 +29,8 @@ namespace NCode.Identity.Settings;
 public class SettingDescriptorCollection(IEnumerable<SettingDescriptor> descriptors)
     : ISettingDescriptorCollection
 {
-    private Dictionary<string, SettingDescriptor> Descriptors { get; } =
-        descriptors.ToDictionary(x => x.Name, StringComparer.Ordinal);
+    private FrozenDictionary<string, SettingDescriptor> Descriptors { get; } =
+        descriptors.ToFrozenDictionary(x => x.Name, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public bool TryGet(
@@ -61,7 +62,8 @@ public class SettingDescriptorCollection(IEnumerable<SettingDescriptor> descript
     public int Count => Descriptors.Count;
 
     /// <inheritdoc />
-    public IEnumerator<SettingDescriptor> GetEnumerator() => Descriptors.Values.GetEnumerator();
+    public IEnumerator<SettingDescriptor> GetEnumerator() =>
+        ((IEnumerable<SettingDescriptor>)Descriptors.Values).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

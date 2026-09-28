@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Collections.Frozen;
+
 namespace NCode.Identity.OpenId.Messages;
 
 /// <summary>
@@ -24,8 +26,8 @@ namespace NCode.Identity.OpenId.Messages;
 public class DefaultOpenIdMessageFactorySelector(IEnumerable<IOpenIdMessageFactory> factories)
     : IOpenIdMessageFactorySelector
 {
-    private Dictionary<string, IOpenIdMessageFactory> Factories { get; } =
-        factories.ToDictionary(x => x.TypeDiscriminator);
+    private FrozenDictionary<string, IOpenIdMessageFactory> Factories { get; } =
+        factories.ToFrozenDictionary(x => x.TypeDiscriminator);
 
     /// <inheritdoc />
     public IOpenIdMessageFactory GetFactory(string typeDiscriminator) =>

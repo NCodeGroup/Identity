@@ -25,24 +25,16 @@ namespace NCode.Identity.Jose.Encoders;
 /// <summary>
 /// Provides an implementation of <see cref="JoseEncoder"/> that can be used to sign JWS tokens.
 /// </summary>
+/// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
+/// <param name="signingOptions">The JOSE signing credentials and options.</param>
 [PublicAPI]
-public class JoseSigningEncoder : CommonJoseEncoder
+public class JoseSigningEncoder(JoseSerializer joseSerializer, JoseSigningOptions signingOptions)
+    : CommonJoseEncoder(joseSerializer)
 {
-    private JoseSigningOptions SigningOptions { get; }
+    private JoseSigningOptions SigningOptions { get; } = signingOptions;
 
     /// <inheritdoc />
     protected override JoseEncodingOptions EncodingOptions => SigningOptions;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JoseSigningEncoder"/> class with the specified signing credentials and options.
-    /// </summary>
-    /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
-    /// <param name="signingOptions">The JOSE signing credentials and options.</param>
-    public JoseSigningEncoder(JoseSerializer joseSerializer, JoseSigningOptions signingOptions)
-        : base(joseSerializer)
-    {
-        SigningOptions = signingOptions;
-    }
 
     /// <inheritdoc />
     public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload) =>

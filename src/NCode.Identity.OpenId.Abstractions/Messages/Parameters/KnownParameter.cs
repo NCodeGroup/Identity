@@ -26,25 +26,16 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Defines the contract for all known parameters in an <c>OAuth</c> or <c>OpenID Connect</c> message.
 /// </summary>
+/// <param name="name">The name of the parameter.</param>
+/// <param name="loader">The <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.</param>
+/// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <c>null</c> or empty.</exception>
 [PublicAPI]
-public abstract class KnownParameter
+public abstract class KnownParameter(string name, IParameterLoader loader)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="KnownParameter"/> class.
-    /// </summary>
-    /// <param name="name">The name of the parameter.</param>
-    /// <param name="loader">The <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <c>null</c> or empty.</exception>
-    protected KnownParameter(string name, IParameterLoader loader)
-    {
-        Name = name;
-        Loader = loader;
-    }
-
     /// <summary>
     /// Gets the name of the parameter.
     /// </summary>
-    public string Name { get; }
+    public string Name { get; } = name;
 
     /// <summary>
     /// Gets the type of the parameter's parsed value.
@@ -77,34 +68,26 @@ public abstract class KnownParameter
     /// <summary>
     /// Gets the <see cref="IParameterLoader"/> that can be used to parse and load <see cref="IParameter"/> values.
     /// </summary>
-    public IParameterLoader Loader { get; }
+    public IParameterLoader Loader { get; } = loader;
 }
 
 /// <summary>
 /// Defines the contract for all known parameters in an <c>OAuth</c> or <c>OpenID Connect</c> message.
 /// </summary>
 /// <typeparam name="T">The type of the parameter's parsed value.</typeparam>
+/// <param name="name">The name of the parameter.</param>
+/// <param name="parser">The <see cref="IParameterParser{T}"/> that can be used to parse and load <see cref="IParameter"/> values.</param>
 [PublicAPI]
-public class KnownParameter<T> : KnownParameter
+public class KnownParameter<T>(string name, IParameterParser<T> parser)
+    : KnownParameter(name, parser)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="KnownParameter{T}"/> class.
-    /// </summary>
-    /// <param name="name">The name of the parameter.</param>
-    /// <param name="parser">The <see cref="IParameterParser{T}"/> that can be used to parse and load <see cref="IParameter"/> values.</param>
-    public KnownParameter(string name, IParameterParser<T> parser)
-        : base(name, parser)
-    {
-        Parser = parser;
-    }
-
     /// <inheritdoc/>
     public override Type ValueType => typeof(T);
 
     /// <summary>
     /// Gets the <see cref="IParameterParser{T}"/> that can be used to parse and load <see cref="IParameter"/> values.
     /// </summary>
-    public IParameterParser<T> Parser { get; }
+    public IParameterParser<T> Parser { get; } = parser;
 
     /// <summary>
     /// Operator overload to convert a <see cref="KnownParameter{TValue}"/> instance to a <see cref="ParameterKey{TValue}"/> instance.

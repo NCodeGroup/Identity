@@ -37,8 +37,13 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Provides a default implementation for the <see cref="IJoseSerializer"/> interface.
 /// </summary>
+/// <param name="optionsAccessor">An accessor that provides <see cref="JoseSerializerOptions"/>.</param>
+/// <param name="algorithmCollectionProvider">An <see cref="IAlgorithmCollectionProvider"/> that provides a collection of <see cref="Algorithm"/> instances.</param>
 [PublicAPI]
-public partial class JoseSerializer : IJoseSerializer
+public partial class JoseSerializer(
+    IOptions<JoseSerializerOptions> optionsAccessor,
+    IAlgorithmCollectionProvider algorithmCollectionProvider
+) : IJoseSerializer
 {
     private const int JwsSegmentCount = 3;
     private const int JweSegmentCount = 5;
@@ -72,25 +77,12 @@ public partial class JoseSerializer : IJoseSerializer
         return lease;
     }
 
-    private JoseSerializerOptions JoseSerializerOptions { get; }
+    private JoseSerializerOptions JoseSerializerOptions { get; } = optionsAccessor.Value;
 
-    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; }
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
+        algorithmCollectionProvider;
 
     private IAlgorithmCollection AlgorithmCollection => AlgorithmCollectionProvider.Collection;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JoseSerializer"/> class.
-    /// </summary>
-    /// <param name="optionsAccessor">An accessor that provides <see cref="JoseSerializerOptions"/>.</param>
-    /// <param name="algorithmCollectionProvider">An <see cref="IAlgorithmCollectionProvider"/> that provides a collection of <see cref="Algorithm"/> instances.</param>
-    public JoseSerializer(
-        IOptions<JoseSerializerOptions> optionsAccessor,
-        IAlgorithmCollectionProvider algorithmCollectionProvider
-    )
-    {
-        JoseSerializerOptions = optionsAccessor.Value;
-        AlgorithmCollectionProvider = algorithmCollectionProvider;
-    }
 
     private TAlgorithm AssertEnabled<TAlgorithm>(TAlgorithm algorithm)
         where TAlgorithm : Algorithm

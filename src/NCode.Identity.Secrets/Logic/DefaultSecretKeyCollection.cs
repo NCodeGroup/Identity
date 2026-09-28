@@ -25,26 +25,19 @@ namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretKeyCollection"/> interface.
+/// The collection is sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
 /// </summary>
-public class DefaultSecretKeyCollection : ISecretKeyCollection
+/// <param name="items">A collection of <see cref="SecretKey"/> items.</param>
+public class DefaultSecretKeyCollection(IEnumerable<SecretKey> items) : ISecretKeyCollection
 {
-    private List<SecretKey> SecretKeys { get; }
+    private List<SecretKey> SecretKeys { get; } =
+        items.Order(SecretKeyExpiresWhenComparer.Singleton).ToList();
     private Dictionary<string, SecretKey>? SecretKeysByKeyIdOrNull { get; set; }
     private Dictionary<string, SecretKey> SecretKeysByKeyId =>
         SecretKeysByKeyIdOrNull ??= LoadSecretKeysByKeyId();
 
     /// <inheritdoc />
     public int Count => SecretKeys.Count;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultSecretKeyCollection"/> class with the specified collection of <see cref="SecretKey"/> items.
-    /// The collection will be sorted descending by the <see cref="KeyMetadata.ExpiresWhen"/> property.
-    /// </summary>
-    /// <param name="items">A collection of <see cref="SecretKey"/> items.</param>
-    public DefaultSecretKeyCollection(IEnumerable<SecretKey> items)
-    {
-        SecretKeys = items.Order(SecretKeyExpiresWhenComparer.Singleton).ToList();
-    }
 
     private Dictionary<string, SecretKey> LoadSecretKeysByKeyId()
     {

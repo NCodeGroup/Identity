@@ -29,34 +29,23 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Provides a default implementation for the <see cref="IJsonWebTokenService"/> interface.
 /// </summary>
-public sealed partial class DefaultJsonWebTokenService : IJsonWebTokenService
+/// <param name="optionsAccessor">An accessor that provides <see cref="JsonWebTokenServiceOptions"/>.</param>
+/// <param name="serviceProvider">An <see cref="IServiceProvider"/> that can be used to resolve services.</param>
+/// <param name="timeProvider">An <see cref="TimeProvider"/> that can be used to get the current time.</param>
+/// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
+/// <param name="secretKeyCollectionProvider">An <see cref="ISecretKeyCollectionProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
+public sealed partial class DefaultJsonWebTokenService(
+    IOptions<JsonWebTokenServiceOptions> optionsAccessor,
+    IServiceProvider serviceProvider,
+    TimeProvider timeProvider,
+    IJoseSerializer joseSerializer,
+    ISecretKeyCollectionProvider secretKeyCollectionProvider
+) : IJsonWebTokenService
 {
-    private JsonWebTokenServiceOptions Options { get; }
-    private IServiceProvider ServiceProvider { get; }
-    private TimeProvider TimeProvider { get; }
-    private IJoseSerializer JoseSerializer { get; }
-    private ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultJsonWebTokenService"/> class.
-    /// </summary>
-    /// <param name="optionsAccessor">An accessor that provides <see cref="JsonWebTokenServiceOptions"/>.</param>
-    /// <param name="serviceProvider">An <see cref="IServiceProvider"/> that can be used to resolve services.</param>
-    /// <param name="timeProvider">An <see cref="TimeProvider"/> that can be used to get the current time.</param>
-    /// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
-    /// <param name="secretKeyCollectionProvider">An <see cref="ISecretKeyCollectionProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
-    public DefaultJsonWebTokenService(
-        IOptions<JsonWebTokenServiceOptions> optionsAccessor,
-        IServiceProvider serviceProvider,
-        TimeProvider timeProvider,
-        IJoseSerializer joseSerializer,
-        ISecretKeyCollectionProvider secretKeyCollectionProvider
-    )
-    {
-        Options = optionsAccessor.Value;
-        ServiceProvider = serviceProvider;
-        TimeProvider = timeProvider;
-        JoseSerializer = joseSerializer;
-        SecretKeyCollectionProvider = secretKeyCollectionProvider;
-    }
+    private JsonWebTokenServiceOptions Options { get; } = optionsAccessor.Value;
+    private IServiceProvider ServiceProvider { get; } = serviceProvider;
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private IJoseSerializer JoseSerializer { get; } = joseSerializer;
+    private ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; } =
+        secretKeyCollectionProvider;
 }

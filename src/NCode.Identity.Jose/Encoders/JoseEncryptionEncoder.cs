@@ -25,27 +25,18 @@ namespace NCode.Identity.Jose.Encoders;
 /// <summary>
 /// Provides an implementation of <see cref="JoseEncoder"/> that can be used to encrypt JWE tokens.
 /// </summary>
+/// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
+/// <param name="encryptionOptions">The JOSE encryption credentials and options.</param>
 [PublicAPI]
-public class JoseEncryptionEncoder : CommonJoseEncoder
+public class JoseEncryptionEncoder(
+    JoseSerializer joseSerializer,
+    JoseEncryptionOptions encryptionOptions
+) : CommonJoseEncoder(joseSerializer)
 {
-    private JoseEncryptionOptions EncryptionOptions { get; }
+    private JoseEncryptionOptions EncryptionOptions { get; } = encryptionOptions;
 
     /// <inheritdoc />
     protected override JoseEncodingOptions EncodingOptions => EncryptionOptions;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JoseEncryptionEncoder"/> class with the specified encryption credentials and options.
-    /// </summary>
-    /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
-    /// <param name="encryptionOptions">The JOSE encryption credentials and options.</param>
-    public JoseEncryptionEncoder(
-        JoseSerializer joseSerializer,
-        JoseEncryptionOptions encryptionOptions
-    )
-        : base(joseSerializer)
-    {
-        EncryptionOptions = encryptionOptions;
-    }
 
     /// <inheritdoc />
     public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload) =>

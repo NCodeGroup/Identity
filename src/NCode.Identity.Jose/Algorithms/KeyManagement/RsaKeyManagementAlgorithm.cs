@@ -30,14 +30,17 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>RSA</c> cryptographic algorithm for key management.
 /// </summary>
+/// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+/// <param name="padding">Contains a <see cref="RSAEncryptionPadding"/> value that describes the type of RSA padding to use.</param>
 [PublicAPI]
-public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
+public class RsaKeyManagementAlgorithm(string code, RSAEncryptionPadding padding)
+    : CommonKeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
     [new(minSize: 2048, maxSize: 16384, skipSize: 64)];
 
     /// <inheritdoc />
-    public override string Code { get; }
+    public override string Code { get; } = code;
 
     /// <inheritdoc />
     public override Type KeyType => typeof(RsaSecretKey);
@@ -45,18 +48,7 @@ public class RsaKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
-    private RSAEncryptionPadding Padding { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="RsaKeyManagementAlgorithm"/> class.
-    /// </summary>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="padding">Contains a <see cref="RSAEncryptionPadding"/> value that describes the type of RSA padding to use.</param>
-    public RsaKeyManagementAlgorithm(string code, RSAEncryptionPadding padding)
-    {
-        Code = code;
-        Padding = padding;
-    }
+    private RSAEncryptionPadding Padding { get; } = padding;
 
     private int GetMaxCekSizeBytes(int kekSizeBits)
     {

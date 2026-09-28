@@ -27,9 +27,10 @@ namespace NCode.Identity.Jose.Algorithms;
 /// Provides a default implementation for the <see cref="IAlgorithmCollection"/> interface.
 /// </summary>
 [PublicAPI]
-public class AlgorithmCollection : IAlgorithmCollection
+public class AlgorithmCollection(IEnumerable<Algorithm> items) : IAlgorithmCollection
 {
-    private Dictionary<(AlgorithmType type, string code), Algorithm> AlgorithmLookup { get; }
+    private Dictionary<(AlgorithmType type, string code), Algorithm> AlgorithmLookup { get; } =
+        items.ToDictionary(algorithm => (algorithm.Type, algorithm.Code));
 
     /// <inheritdoc />
     public int Count => AlgorithmLookup.Count;
@@ -39,14 +40,6 @@ public class AlgorithmCollection : IAlgorithmCollection
 
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AlgorithmCollection"/> class.
-    /// </summary>
-    public AlgorithmCollection(IEnumerable<Algorithm> items)
-    {
-        AlgorithmLookup = items.ToDictionary(algorithm => (algorithm.Type, algorithm.Code));
-    }
 
     /// <inheritdoc />
     public bool TryGetAlgorithm<T>(

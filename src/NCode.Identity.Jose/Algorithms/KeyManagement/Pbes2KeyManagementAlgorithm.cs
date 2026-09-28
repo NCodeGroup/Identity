@@ -35,8 +35,19 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>PBKDF2 with AES</c> cryptographic algorithm for key management.
 /// </summary>
+/// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
+/// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+/// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function to use.</param>
+/// <param name="keySizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
+/// <param name="maxIterationCount">Contains the maximum number of iterations allowed for the PBKDF2 algorithm.</param>
 [PublicAPI]
-public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
+public class Pbes2KeyManagementAlgorithm(
+    IAesKeyWrap aesKeyWrap,
+    string code,
+    HashAlgorithmName hashAlgorithmName,
+    int keySizeBits,
+    int maxIterationCount
+) : CommonKeyManagementAlgorithm
 {
     internal const int SaltInputSizeBytes = 12;
     internal const int MinIterationCount = 1000;
@@ -45,10 +56,10 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
     [new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)];
 
-    private IAesKeyWrap AesKeyWrap { get; }
+    private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
 
     /// <inheritdoc />
-    public override string Code { get; }
+    public override string Code { get; } = code;
 
     /// <inheritdoc />
     public override Type KeyType => typeof(SymmetricSecretKey);
@@ -56,34 +67,11 @@ public class Pbes2KeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
-    private HashAlgorithmName HashAlgorithmName { get; }
+    private HashAlgorithmName HashAlgorithmName { get; } = hashAlgorithmName;
 
-    internal int KeySizeBytes { get; }
+    internal int KeySizeBytes { get; } = (keySizeBits + 7) >> 3;
 
-    private int MaxIterationCount { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Pbes2KeyManagementAlgorithm"/> class.
-    /// </summary>
-    /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function to use.</param>
-    /// <param name="keySizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
-    /// <param name="maxIterationCount">Contains the maximum number of iterations allowed for the PBKDF2 algorithm.</param>
-    public Pbes2KeyManagementAlgorithm(
-        IAesKeyWrap aesKeyWrap,
-        string code,
-        HashAlgorithmName hashAlgorithmName,
-        int keySizeBits,
-        int maxIterationCount
-    )
-    {
-        AesKeyWrap = aesKeyWrap;
-        Code = code;
-        HashAlgorithmName = hashAlgorithmName;
-        KeySizeBytes = (keySizeBits + 7) >> 3;
-        MaxIterationCount = maxIterationCount;
-    }
+    private int MaxIterationCount { get; } = maxIterationCount;
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>

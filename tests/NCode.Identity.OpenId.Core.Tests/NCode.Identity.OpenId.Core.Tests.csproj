@@ -1,19 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net10.0-windows</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFramework>net10.0</TargetFramework>
         <IsPackable>false</IsPackable>
-        <DocumentationFile />
         <LangVersion>latest</LangVersion>
-        <RootNamespace>NCode.Jose.Tests</RootNamespace>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <NoWarn>1591</NoWarn>
+        <RootNamespace>NCode.Identity.OpenId.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="jose-jwt" />
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-        <PackageReference Include="Microsoft.Extensions.Logging" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="Moq" />
         <PackageReference Include="xunit" />
@@ -28,7 +26,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
-        <ProjectReference Include="..\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity\NCode.Identity.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj" />
     </ItemGroup>
 </Project>

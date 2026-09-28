@@ -6,14 +6,13 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <NoWarn>1591</NoWarn>
-        <RootNamespace>NCode.Identity.OpenId.Tests</RootNamespace>
+        <RootNamespace>NCode.Identity.OpenId.IntegrationTests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" />
-        <PackageReference Include="jose-jwt" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="Moq" />
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -26,8 +25,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity\NCode.Identity.csproj" />
-        <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj" />
-        <ProjectReference Include="..\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Playground\NCode.Identity.OpenId.Playground.csproj" />
     </ItemGroup>
 </Project>

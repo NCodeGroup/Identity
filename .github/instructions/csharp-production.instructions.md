@@ -1,6 +1,6 @@
 ---
 description: "NCode.Identity production C# conventions — async, public-API discipline, file/code organization, extension methods, build gates, clean code, testability, and provenance."
-applyTo: "**/*.cs"
+applyTo: "src/**/*.cs"
 ---
 
 # NCode.Identity coding conventions (production)

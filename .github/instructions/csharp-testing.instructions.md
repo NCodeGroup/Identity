@@ -1,6 +1,6 @@
 ---
 description: "NCode.Identity test-project conventions — true unit tests, xUnit, Moq .Verifiable() with MockBehavior.Strict, Method_State_Expected naming, #region organization, hermetic."
-applyTo: "**/*Tests/**/*.cs"
+applyTo: "tests/**/*.cs"
 ---
 
 # NCode.Identity test conventions

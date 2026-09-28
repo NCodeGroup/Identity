@@ -6,7 +6,7 @@ abstractions, and DI composition — plus a runnable `Playground` reference host
 
 ## Layout
 
-Projects live at the repository **root** (there is no `src/` folder); test projects are the `*Tests` projects.
+Production projects live under `src/`; test projects (the `*Tests` projects) live under `tests/`.
 
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.JsonWebTokens`
 - **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)`

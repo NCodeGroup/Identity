@@ -26,10 +26,13 @@ namespace NCode.Identity.OpenId.Messages.Parsers;
 [PublicAPI]
 public static class ParameterParserExtensions
 {
-    /// <summary>
-    /// Creates a new <see cref="IParameterParser{T}"/> that can parse nullable value types.
-    /// </summary>
-    /// <typeparam name="T">The type of parameter to parse.</typeparam>
-    public static IParameterParser<T?> AsNullableValue<T>(this IParameterParser<T> parser)
-        where T : struct => new NullableValueTypeParameterParser<T>(parser);
+    extension<T>(IParameterParser<T> parser)
+        where T : struct
+    {
+        /// <summary>
+        /// Creates a new <see cref="IParameterParser{T}"/> that can parse nullable value types.
+        /// </summary>
+        public IParameterParser<T?> AsNullableValue() =>
+            new NullableValueTypeParameterParser<T>(parser);
+    }
 }

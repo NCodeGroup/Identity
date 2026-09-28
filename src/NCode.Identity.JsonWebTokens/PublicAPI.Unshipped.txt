@@ -100,7 +100,7 @@ NCode.Identity.JsonWebTokens.ValidateJwtParameters.ResolveValidationKeysAsync.se
 NCode.Identity.JsonWebTokens.ValidateJwtParameters.RoleClaimType.get -> string!
 NCode.Identity.JsonWebTokens.ValidateJwtParameters.RoleClaimType.set -> void
 NCode.Identity.JsonWebTokens.ValidateJwtParameters.ValidateJwtParameters() -> void
-NCode.Identity.JsonWebTokens.ValidateJwtParameters.Validators.get -> System.Collections.Generic.ICollection<NCode.Identity.JsonWebTokens.ValidateJwtAsync!>!
+NCode.Identity.JsonWebTokens.ValidateJwtParameters.Validators.get -> System.Collections.Generic.List<NCode.Identity.JsonWebTokens.ValidateJwtAsync!>!
 NCode.Identity.JsonWebTokens.ValidateJwtParametersExtensions
 NCode.Identity.JsonWebTokens.ValidateJwtParametersExtensions.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!)
 NCode.Identity.JsonWebTokens.ValidateJwtParametersExtensions.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).AddValidator(NCode.Identity.JsonWebTokens.ValidateJwtAsync! validator) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!

@@ -57,7 +57,7 @@ public class DefaultContinueEndpointHandler(
                 HandleRouteAsync
             )
             .WithName(OpenIdConstants.EndpointNames.Continue)
-            .WithTags("oidc") // TODO: use constant
+            .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .WithOpenIdDiscoverable(false);
 
     private async ValueTask<IResult> HandleRouteAsync(

@@ -1,5 +1,4 @@
 <Project>
-
   <!-- MSBuild uses the first Directory.Build.props found walking up, so explicitly import the
        repository-root one to inherit shared metadata, analyzers, and provenance settings. -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
@@ -12,4 +11,8 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <!-- The Definition of Done (dod.ps1) writes JUnit test reports via the JUnit test logger. -->
+  <ItemGroup>
+    <PackageReference Include="JunitXml.TestLogger" />
+  </ItemGroup>
 </Project>

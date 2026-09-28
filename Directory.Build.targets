@@ -5,12 +5,14 @@
        on "not explicitly false" rather than "== true" — otherwise shipping projects (still empty here) are skipped. -->
 
   <!-- Packaging + provenance defaults for the shipping (non-test) assemblies. This is an open-source library
-       published from a PUBLIC GitHub repo, so we lean on SourceLink to github.com plus a portable symbol
-       package (.snupkg) for step-into debugging — no auth wall to trip over. -->
+       published from a PUBLIC GitHub repo, so tracked source is served from github.com via SourceLink — we do
+       NOT embed source in the PDB (no EmbedAllSources). EmbedUntrackedSources only pulls in generated files that
+       have no URL (e.g. the Nerdbank.GitVersioning ThisAssembly file). A portable .snupkg carries the symbols. -->
   <PropertyGroup Condition="'$(IsPackable)' != 'false'">
     <DebugType>portable</DebugType>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Only untracked/generated files (no github.com URL) are embedded; tracked source resolves via SourceLink. -->
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <!-- Pack on build: `dotnet build` (the DoD, CI, and local/IDE builds) emits each shippable .nupkg + .snupkg

@@ -207,6 +207,9 @@ Drawn from _Clean Code_ (R. C. Martin) and _Refactoring_ (Fowler / Beck). All �
 - **Comments justify _why_, never restate _what_.** No commented-out code (Git remembers).
 - **Primitive Obsession** — model a concept that carries invariants as a type, not a bare `string`/`bool`/`int`.
 - **Law of Demeter** — talk to immediate collaborators; avoid `a.B().C().D()` chains and Feature Envy.
+- **Never nest a function call inside another call's arguments.** Hoist the inner call into an intention-revealing
+  local first — `var value = GetValue(); Process(value, "foo");`, never `Process(GetValue(), "foo")` — so each step is
+  named, debuggable, and readable.
 - **Dispose what you own.** A local `IDisposable` / `IAsyncDisposable` gets a `using` / `await using` **declaration**
   (`using var x = …;`, not a nested block) unless ownership is deliberately transferred to a type that will dispose it.
   Never leave a `HttpResponseMessage`, `Stream`, `JsonDocument`, or `IHttpClientFactory`-created client undisposed.

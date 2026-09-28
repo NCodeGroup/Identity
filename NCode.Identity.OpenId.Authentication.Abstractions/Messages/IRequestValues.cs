@@ -62,6 +62,6 @@ public interface IRequestValues : IEnumerable<KeyValuePair<string, StringValues>
     /// </summary>
     /// <param name="key">The key of the value to get.</param>
     /// <returns>The element with the specified key, or <c>StringValues.Empty</c> if the key is not present.</returns>
-    /// <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="key"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="key"/> is <c>null</c>.</exception>
     StringValues this[string key] { get; }
 }

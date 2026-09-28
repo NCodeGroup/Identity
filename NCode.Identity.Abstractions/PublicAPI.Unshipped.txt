@@ -90,8 +90,9 @@ NCode.Identity.Endpoints.ReadOnlyOperationDisposition<TError>.ReadOnlyOperationD
 NCode.Identity.Endpoints.ReadOnlyOperationDisposition<TError>.Succeeded.get -> bool
 NCode.Identity.Exceptions.HttpResultException
 NCode.Identity.Exceptions.HttpResultException.HttpResult.get -> Microsoft.AspNetCore.Http.IResult!
-NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message = null) -> void
-NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message, System.Exception? innerException = null) -> void
+NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult) -> void
+NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message) -> void
+NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message, System.Exception? innerException) -> void
 NCode.Identity.HashAlgorithmType
 NCode.Identity.HashAlgorithmType.Sha1 = 20 -> NCode.Identity.HashAlgorithmType
 NCode.Identity.HashAlgorithmType.Sha256 = 32 -> NCode.Identity.HashAlgorithmType

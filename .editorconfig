@@ -57,6 +57,13 @@ dotnet_style_namespace_match_folder = false
 dotnet_diagnostic.IDE0130.severity = none
 # Rider/ReSharper has its own inspection (CheckNamespace) that reads resharper_* keys; silence it too.
 resharper_check_namespace_highlighting = none
+# RS0026/RS0027 (PublicApiAnalyzers API-design guidance) fight this library's idiomatic optional-parameter
+# overloads (notably the JOSE Encode API). The surface itself stays fully tracked by RS0016/RS0017/RS0024.
+dotnet_diagnostic.RS0026.severity = none
+dotnet_diagnostic.RS0027.severity = none
+# CA1711: the 'Delegate'/'Collection' suffixes on these types are intentional and intention-revealing
+# (a delegate type named *Delegate; a capability interface). Renaming would reduce clarity.
+dotnet_diagnostic.CA1711.severity = none
 
 # ── Test projects only ──────────────────────────────────────────────────────
 # The following rules are legitimate on shipping code but pure noise in xUnit tests.

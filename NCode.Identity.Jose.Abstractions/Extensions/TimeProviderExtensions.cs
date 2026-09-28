@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -21,36 +21,11 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Jose.Extensions;
 
 /// <summary>
-/// Provides extension methods for various date time primitives to truncate to the nearest second.
+/// Provides extension methods for <see cref="TimeProvider"/> to truncate to the nearest second.
 /// </summary>
 [PublicAPI]
-public static class WithPrecisionInSecondsExtensions
+public static class TimeProviderExtensions
 {
-    /// <param name="dateTime">The <see cref="DateTime"/> to truncate.</param>
-    extension(DateTime dateTime)
-    {
-        /// <summary>
-        /// Truncates the <see cref="DateTime"/> to the nearest second.
-        /// </summary>
-        /// <returns>A <see cref="DateTime"/> truncated to the nearest second.</returns>
-        public DateTime WithPrecisionInSeconds() =>
-            new(dateTime.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond, dateTime.Kind);
-    }
-
-    /// <param name="dateTimeOffset">The <see cref="DateTimeOffset"/> to truncate.</param>
-    extension(DateTimeOffset dateTimeOffset)
-    {
-        /// <summary>
-        /// Truncates the <see cref="DateTimeOffset"/> to the nearest second.
-        /// </summary>
-        /// <returns>A <see cref="DateTimeOffset"/> truncated to the nearest second.</returns>
-        public DateTimeOffset WithPrecisionInSeconds() =>
-            new(
-                dateTimeOffset.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond,
-                dateTimeOffset.Offset
-            );
-    }
-
     /// <param name="timeProvider">The <see cref="TimeProvider"/> instance.</param>
     extension(TimeProvider timeProvider)
     {

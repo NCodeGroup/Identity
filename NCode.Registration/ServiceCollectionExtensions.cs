@@ -33,6 +33,12 @@ public static class ServiceCollectionExtensions
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to extend.</param>
     extension(IServiceCollection serviceCollection)
     {
+        /// <summary>
+        /// Determines whether services for <typeparamref name="TMarker"/> are already registered in the
+        /// <see cref="IServiceCollection"/>.
+        /// </summary>
+        /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
+        /// <returns><c>true</c> if the marker is registered; otherwise, <c>false</c>.</returns>
         [PublicAPI]
         public bool IsRegistered<TMarker>()
             where TMarker : IRegistrationMarker<TMarker>, new()
@@ -93,6 +99,12 @@ public static class ServiceCollectionExtensions
             return serviceCollection.AddSingleton<IRegistrationMarker<TMarker>>(marker);
         }
 
+        /// <summary>
+        /// Creates a new <see cref="IServiceBuilder{TNewMarker}"/> over this <see cref="IServiceCollection"/>,
+        /// discriminated by the specified marker type.
+        /// </summary>
+        /// <typeparam name="TNewMarker">The type that discriminates the new service builder.</typeparam>
+        /// <returns>The newly created <see cref="IServiceBuilder{TNewMarker}"/> instance.</returns>
         [PublicAPI]
         public IServiceBuilder<TNewMarker> NewBuilder<TNewMarker>()
             where TNewMarker : IRegistrationMarker<TNewMarker>, new()

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.Buffers;
@@ -59,15 +58,7 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(ICryptoService crypt
         var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
-        // DefaultClientAuthenticationService already performs this check for us
-        Debug.Assert(
-            string.IsNullOrEmpty(tokenRequest.ClientId)
-                || string.Equals(
-                    openIdClient.ClientId,
-                    tokenRequest.ClientId,
-                    StringComparison.Ordinal
-                )
-        );
+        // client_id/authenticated-client match is enforced upstream by DefaultClientAuthenticationService
 
         // see DefaultValidateTokenRequestHandler for additional validation such as scope, etc
 

@@ -148,10 +148,13 @@ partial class JoseSerializer
             var encodedHeader = compactJwt.EncodedHeader;
 
             // JWS Payload
-            var jwsPayload = jwsProtectedHeader.Next!;
+            var jwsPayload =
+                jwsProtectedHeader.Next
+                ?? throw new InvalidOperationException("Malformed JWS token.");
 
             // JWS Signature
-            var jwsSignature = jwsPayload.Next!;
+            var jwsSignature =
+                jwsPayload.Next ?? throw new InvalidOperationException("Malformed JWS token.");
             var encodedSignature = jwsSignature.Memory.Span;
 
             VerifyJws(secretKey, header, encodedHeader, detachedPayload, encodedSignature);
@@ -195,11 +198,13 @@ partial class JoseSerializer
         }
 
         // JWS Payload
-        var jwsPayload = jwsProtectedHeader.Next!;
+        var jwsPayload =
+            jwsProtectedHeader.Next ?? throw new InvalidOperationException("Malformed JWS token.");
         using var payloadLease = EncodeJose(b64, detachedPayload, out var encodedPayload);
 
         // JWS Signature
-        var jwsSignature = jwsPayload.Next!;
+        var jwsSignature =
+            jwsPayload.Next ?? throw new InvalidOperationException("Malformed JWS token.");
         var encodedSignature = jwsSignature.Memory.Span;
 
         VerifyJws(secretKey, header, encodedHeader, encodedPayload, encodedSignature);

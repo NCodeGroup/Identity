@@ -40,10 +40,14 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
 
     #region Scaffolding
 
-    private ValidateTokenGrantCommand<RefreshTokenGrant> CreateCommand(
+    // Scopes is read only on paths past the offline_access check, so the consuming tests set it up
+    // themselves (with .Verifiable()); the client-id and offline_access checks throw before reading it.
+    private (
+        ValidateTokenGrantCommand<RefreshTokenGrant> command,
+        Mock<ITokenRequest> tokenRequest
+    ) CreateScaffold(
         string grantClientId,
         IReadOnlyList<string> originalScopes,
-        List<string>? requestedScopes,
         IReadOnlyCollection<string> scopesSupported
     )
     {
@@ -64,14 +68,14 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
             .Setup(x => x.GetValue(OpenIdSettingKeys.ScopesSupported))
             .Returns(scopesSupported);
 
-        mockTokenRequest.SetupGet(x => x.Scopes).Returns(requestedScopes);
-
-        return new ValidateTokenGrantCommand<RefreshTokenGrant>(
+        var command = new ValidateTokenGrantCommand<RefreshTokenGrant>(
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
             new RefreshTokenGrant(grantClientId, originalScopes, originalScopes, null)
         );
+
+        return (command, mockTokenRequest);
     }
 
     #endregion
@@ -81,12 +85,12 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenGrantValid_CompletesSuccessfully()
     {
-        var command = CreateCommand(
+        var (command, mockTokenRequest) = CreateScaffold(
             ClientId,
             ["api"],
-            null,
             [OpenIdConstants.ScopeTypes.OfflineAccess, "api"]
         );
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
 
         await Handler.HandleAsync(command, CancellationToken.None);
     }
@@ -94,10 +98,9 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenClientIdMismatch_ThrowsOpenIdException()
     {
-        var command = CreateCommand(
+        var (command, _) = CreateScaffold(
             "different-client",
             ["api"],
-            null,
             [OpenIdConstants.ScopeTypes.OfflineAccess, "api"]
         );
 
@@ -109,7 +112,7 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenOfflineAccessNotSupported_ThrowsOpenIdException()
     {
-        var command = CreateCommand(ClientId, ["api"], null, ["api"]);
+        var (command, _) = CreateScaffold(ClientId, ["api"], ["api"]);
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)
@@ -119,12 +122,12 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenRequestedScopesExceedGranted_ThrowsOpenIdException()
     {
-        var command = CreateCommand(
+        var (command, mockTokenRequest) = CreateScaffold(
             ClientId,
             ["api"],
-            ["api", "extra"],
             [OpenIdConstants.ScopeTypes.OfflineAccess, "api", "extra"]
         );
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns(["api", "extra"]).Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)
@@ -134,12 +137,12 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenEffectiveScopeNotSupported_ThrowsOpenIdException()
     {
-        var command = CreateCommand(
+        var (command, mockTokenRequest) = CreateScaffold(
             ClientId,
             ["api"],
-            null,
             [OpenIdConstants.ScopeTypes.OfflineAccess]
         );
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)

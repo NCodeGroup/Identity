@@ -119,7 +119,8 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
 
         mockContext
             .SetupGet(x => x.ErrorFactory)
-            .Returns(CreateLooseMock<IOpenIdErrorFactory>().Object);
+            .Returns(CreateLooseMock<IOpenIdErrorFactory>().Object)
+            .Verifiable();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object).Verifiable();
 

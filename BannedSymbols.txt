@@ -23,3 +23,7 @@ M:System.Runtime.CompilerServices.TaskAwaiter.GetResult;Sync-over-async is banne
 M:System.Runtime.CompilerServices.TaskAwaiter`1.GetResult;Sync-over-async is banned. Await the task instead of .GetAwaiter().GetResult().
 M:System.Runtime.CompilerServices.ValueTaskAwaiter.GetResult;Sync-over-async is banned. Await the ValueTask instead of .GetAwaiter().GetResult().
 M:System.Runtime.CompilerServices.ValueTaskAwaiter`1.GetResult;Sync-over-async is banned. Await the ValueTask instead of .GetAwaiter().GetResult().
+
+# The legacy JWT stack is banned: use Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler, not the older APIs.
+T:System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler;Use Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler instead of the legacy JwtSecurityTokenHandler.
+T:System.IdentityModel.Tokens.Jwt.JwtSecurityToken;Use Microsoft.IdentityModel.JsonWebTokens.JsonWebToken instead of the legacy JwtSecurityToken.

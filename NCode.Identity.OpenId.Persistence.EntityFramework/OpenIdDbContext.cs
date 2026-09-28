@@ -34,44 +34,44 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 public class OpenIdDbContext(DbContextOptions<OpenIdDbContext> options) : DbContext(options)
 {
     /// <summary>
-    /// Gets or sets the <see cref="SecretEntity"/> entities.
+    /// Gets the <see cref="SecretEntity"/> entities.
     /// </summary>
-    public DbSet<SecretEntity>? Secrets { get; set; }
+    public DbSet<SecretEntity> Secrets => Set<SecretEntity>();
 
     /// <summary>
-    /// Gets or sets the <see cref="ServerEntity"/> entities.
+    /// Gets the <see cref="ServerEntity"/> entities.
     /// </summary>
-    public DbSet<ServerEntity>? Servers { get; set; }
+    public DbSet<ServerEntity> Servers => Set<ServerEntity>();
 
     /// <summary>
-    /// Gets or sets the <see cref="ServerSecretEntity"/> entities.
+    /// Gets the <see cref="ServerSecretEntity"/> entities.
     /// </summary>
-    public DbSet<ServerSecretEntity>? ServerSecrets { get; set; }
+    public DbSet<ServerSecretEntity> ServerSecrets => Set<ServerSecretEntity>();
 
     /// <summary>
-    /// Gets or sets the <see cref="TenantEntity"/> entities.
+    /// Gets the <see cref="TenantEntity"/> entities.
     /// </summary>
-    public DbSet<TenantEntity>? Tenants { get; set; }
+    public DbSet<TenantEntity> Tenants => Set<TenantEntity>();
 
     /// <summary>
-    /// Gets or sets the <see cref="TenantSecretEntity"/> entities.
+    /// Gets the <see cref="TenantSecretEntity"/> entities.
     /// </summary>
-    public DbSet<TenantSecretEntity>? TenantSecrets { get; set; }
+    public DbSet<TenantSecretEntity> TenantSecrets => Set<TenantSecretEntity>();
 
     /// <summary>
-    /// Gets or sets the <see cref="ClientEntity"/> entities.
+    /// Gets the <see cref="ClientEntity"/> entities.
     /// </summary>
-    public DbSet<ClientEntity>? Clients { get; set; }
+    public DbSet<ClientEntity> Clients => Set<ClientEntity>();
 
     /// <summary>
-    /// Gets or sets the <see cref="ClientSecretEntity"/> entities.
+    /// Gets the <see cref="ClientSecretEntity"/> entities.
     /// </summary>
-    public DbSet<ClientSecretEntity>? ClientSecrets { get; set; }
+    public DbSet<ClientSecretEntity> ClientSecrets => Set<ClientSecretEntity>();
 
     /// <summary>
-    /// Gets or sets the <see cref="GrantEntity"/> entities.
+    /// Gets the <see cref="GrantEntity"/> entities.
     /// </summary>
-    public DbSet<GrantEntity>? Grants { get; set; }
+    public DbSet<GrantEntity> Grants => Set<GrantEntity>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)

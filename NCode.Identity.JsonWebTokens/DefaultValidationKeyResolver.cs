@@ -71,12 +71,20 @@ public static class DefaultValidationKeyResolver
             out var thumbprintSha256
         );
 
-        if (hasThumbprintSha1 && secretKeys.TryGetByKeyId(thumbprintSha1!, out specificKey))
+        if (
+            hasThumbprintSha1
+            && thumbprintSha1 is not null
+            && secretKeys.TryGetByKeyId(thumbprintSha1, out specificKey)
+        )
         {
             return [specificKey];
         }
 
-        if (hasThumbprintSha256 && secretKeys.TryGetByKeyId(thumbprintSha256!, out specificKey))
+        if (
+            hasThumbprintSha256
+            && thumbprintSha256 is not null
+            && secretKeys.TryGetByKeyId(thumbprintSha256, out specificKey)
+        )
         {
             return [specificKey];
         }

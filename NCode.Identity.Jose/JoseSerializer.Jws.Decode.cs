@@ -64,11 +64,13 @@ partial class JoseSerializer
         var header = compactJwt.DeserializedHeader;
 
         // JWS Payload
-        var jwsPayload = jwsProtectedHeader.Next!;
+        var jwsPayload =
+            jwsProtectedHeader.Next ?? throw new InvalidOperationException("Malformed JWS token.");
         var encodedPayload = jwsPayload.Memory.Span;
 
         // JWS Signature
-        var jwsSignature = jwsPayload.Next!;
+        var jwsSignature =
+            jwsPayload.Next ?? throw new InvalidOperationException("Malformed JWS token.");
         var encodedSignature = jwsSignature.Memory.Span;
 
         VerifyJws(secretKey, header, encodedHeader, encodedPayload, encodedSignature);

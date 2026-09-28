@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class ServerResource : ISupportServerId, ISupportConcurrencyToken
+public sealed class ServerResource : ISupportServerId, ISupportConcurrencyToken
 {
     /// <inheritdoc cref="ISupportServerId.ServerId"/>
     public required string ServerId { get; init; }

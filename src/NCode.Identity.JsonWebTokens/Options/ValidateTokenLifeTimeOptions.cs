@@ -25,7 +25,7 @@ namespace NCode.Identity.JsonWebTokens.Options;
 /// Provides the ability to configure the behavior when validating the lifetime of a Json Web Token (JWT).
 /// </summary>
 [PublicAPI]
-public class ValidateTokenLifeTimeOptions
+public sealed class ValidateTokenLifeTimeOptions
 {
     /// <summary>
     /// Gets or sets a value indicating whether the <c>exp</c> claim is required.

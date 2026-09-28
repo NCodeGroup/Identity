@@ -27,7 +27,7 @@ namespace NCode.Identity.Jose;
 /// Contains options for Jose services and algorithms.
 /// </summary>
 [PublicAPI]
-public class JoseSerializerOptions
+public sealed class JoseSerializerOptions
 {
     /// <summary>
     /// Gets or sets a list containing the codes of all the disabled algorithms.

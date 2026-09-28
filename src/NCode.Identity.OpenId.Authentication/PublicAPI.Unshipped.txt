@@ -107,7 +107,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.IAuthorizationEndpo
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.AcrValues.get -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.AuthorizationRequest(bool isContinuation, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequestMessage! requestMessage, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequestObject? requestObject) -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.AuthorizationRequest(NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest! other) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.AuthorizationSourceType.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.Claims.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.ClaimsLocales.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -240,7 +239,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.Authorizati
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.AuthorizationCode.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.AuthorizationCode.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.AuthorizationTicket() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.AuthorizationTicket(NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket! other) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.CreatedWhen.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.ExpiresIn.get -> System.TimeSpan?
@@ -369,7 +367,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Refre
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Scopes.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Scopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.TokenRequest() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.TokenRequest(NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest! other) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Username.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Username.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse
@@ -384,7 +381,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Refr
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Scopes.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Scopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenResponse() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenResponse(NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse! other) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenType.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenType.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Password.DefaultAuthenticatePasswordGrantHandler

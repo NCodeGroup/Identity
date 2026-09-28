@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Options;
 /// Contains the options for a single tenant that is statically defined.
 /// </summary>
 [PublicAPI]
-public class StaticSingleOpenIdTenantOptions
+public sealed class StaticSingleOpenIdTenantOptions
 {
     /// <summary>
     /// Contains the default value for the tenant's identifier.

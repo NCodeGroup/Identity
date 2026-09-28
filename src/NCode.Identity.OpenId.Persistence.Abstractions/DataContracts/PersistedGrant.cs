@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class PersistedGrant : ISupportConcurrencyToken
+public sealed class PersistedGrant : ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the type of grant.

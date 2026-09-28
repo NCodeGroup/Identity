@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Options;
 /// Contains the options that are used to configure multi-tenancy support.
 /// </summary>
 [PublicAPI]
-public class OpenIdTenantOptions
+public sealed class OpenIdTenantOptions
 {
     /// <summary>
     /// Gets or sets the period of time after which the settings for a tenant are refreshed.

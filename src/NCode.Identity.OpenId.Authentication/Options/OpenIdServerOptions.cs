@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Options;
 /// Contains the options used to configure the OpenID server.
 /// </summary>
 [PublicAPI]
-public class OpenIdServerOptions
+public sealed class OpenIdServerOptions
 {
     /// <summary>
     /// Contains the default value for the server's identifier.

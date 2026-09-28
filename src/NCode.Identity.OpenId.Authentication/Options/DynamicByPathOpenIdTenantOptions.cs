@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Options;
 /// Contains the options for dynamic tenant resolution based on the path.
 /// </summary>
 [PublicAPI]
-public class DynamicByPathOpenIdTenantOptions
+public sealed class DynamicByPathOpenIdTenantOptions
 {
     /// <summary>
     /// Contains the name of the route parameter that will be used to determine the tenant identifier.

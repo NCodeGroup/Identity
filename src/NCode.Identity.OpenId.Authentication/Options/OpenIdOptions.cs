@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Options;
 /// Contains the options used to configure OpenID.
 /// </summary>
 [PublicAPI]
-public class OpenIdOptions
+public sealed class OpenIdOptions
 {
     /// <summary>
     /// Gets the default name of the configuration section.

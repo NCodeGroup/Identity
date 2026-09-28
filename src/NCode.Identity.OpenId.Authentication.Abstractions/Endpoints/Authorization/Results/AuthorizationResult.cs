@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// from the request have been validated, and it is safe to redirect the user agent back to the client.
 /// </summary>
 [PublicAPI]
-public class AuthorizationResult : IResult, ISupportOpenIdError
+public sealed class AuthorizationResult : IResult, ISupportOpenIdError
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizationResult"/> class.

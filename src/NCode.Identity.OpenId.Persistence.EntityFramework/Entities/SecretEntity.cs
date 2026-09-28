@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedSecret"/>.
 /// </summary>
 [Index(nameof(NormalizedSecretId), IsUnique = true)]
-public class SecretEntity : ISupportConcurrencyToken
+public sealed class SecretEntity : ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.

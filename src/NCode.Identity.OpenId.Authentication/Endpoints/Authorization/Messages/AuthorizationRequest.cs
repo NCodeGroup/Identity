@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationRequest"/> abstraction.
 /// </summary>
-public class AuthorizationRequest : IAuthorizationRequest
+public sealed class AuthorizationRequest : IAuthorizationRequest
 {
     private IParameterCollection? ParametersOrNull { get; set; }
 
@@ -51,7 +51,7 @@ public class AuthorizationRequest : IAuthorizationRequest
     /// Initializes a new instance of the current class that is a clone of another instance.
     /// </summary>
     /// <param name="other">The other instance to clone.</param>
-    protected AuthorizationRequest(AuthorizationRequest other)
+    private AuthorizationRequest(AuthorizationRequest other)
     {
         IsContinuation = other.IsContinuation;
         OriginalRequestMessage = other.OriginalRequestMessage.Clone();

@@ -25,7 +25,7 @@ namespace NCode.Identity.JsonWebTokens.Options;
 /// Contains configurable options for <see cref="DefaultJsonWebTokenService"/>.
 /// </summary>
 [PublicAPI]
-public class JsonWebTokenServiceOptions
+public sealed class JsonWebTokenServiceOptions
 {
     /// <summary>
     /// Gets or sets a value indicating whether generated tokens will have default values for the 'iat', 'nbf', and 'exp' claims if not specified.

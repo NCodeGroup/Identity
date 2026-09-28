@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenRequest"/> abstraction.
 /// </summary>
-public class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
+public sealed class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TokenRequest"/> class.
@@ -36,7 +36,7 @@ public class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
     }
 
     /// <inheritdoc />
-    protected TokenRequest(TokenRequest other)
+    private TokenRequest(TokenRequest other)
         : base(other)
     {
         // nothing

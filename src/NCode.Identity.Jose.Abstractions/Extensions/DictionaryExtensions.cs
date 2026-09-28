@@ -28,28 +28,26 @@ namespace NCode.Identity.Jose.Extensions;
 [PublicAPI]
 public static class DictionaryExtensions
 {
-    /// <summary>
-    /// Attempts to retrieve a typed key-value pair from a dictionary.
-    /// </summary>
-    /// <param name="collection">The dictionary containing the key-value pairs.</param>
-    /// <param name="key">The key of the value to retrieve.</param>
-    /// <param name="value">When this method returns, the value associated with the specified key, if the key is found;
-    /// otherwise, the default value for the type of the value parameter. This parameter is passed uninitialized.</param>
-    /// <typeparam name="T">The type of value to retrieve.</typeparam>
-    /// <returns><c>true</c> if a value with the specified key was found; otherwise, <c>false</c>.</returns>
-    public static bool TryGetValue<T>(
-        this IDictionary<string, object> collection,
-        string key,
-        [MaybeNullWhen(false)] out T value
-    )
+    extension(IDictionary<string, object> collection)
     {
-        if (collection.TryGetValue(key, out var obj) && obj is T typedValue)
+        /// <summary>
+        /// Attempts to retrieve a typed key-value pair from a dictionary.
+        /// </summary>
+        /// <param name="key">The key of the value to retrieve.</param>
+        /// <param name="value">When this method returns, the value associated with the specified key, if the key is found;
+        /// otherwise, the default value for the type of the value parameter. This parameter is passed uninitialized.</param>
+        /// <typeparam name="T">The type of value to retrieve.</typeparam>
+        /// <returns><c>true</c> if a value with the specified key was found; otherwise, <c>false</c>.</returns>
+        public bool TryGetValue<T>(string key, [MaybeNullWhen(false)] out T value)
         {
-            value = typedValue;
-            return true;
-        }
+            if (collection.TryGetValue(key, out var obj) && obj is T typedValue)
+            {
+                value = typedValue;
+                return true;
+            }
 
-        value = default;
-        return false;
+            value = default;
+            return false;
+        }
     }
 }

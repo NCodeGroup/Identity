@@ -34,26 +34,26 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for the OpenId Discovery endpoint.
-    /// </summary>
-    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationEndpoints"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationEndpoints> AddDiscoveryEndpoint(
-        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder
-    )
+    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
     {
-        builder.AddEndpointProvider<DefaultDiscoveryEndpointHandler>();
+        /// <summary>
+        /// Configures services and handlers for the OpenId Discovery endpoint.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddDiscoveryEndpoint()
+        {
+            builder.AddEndpointProvider<DefaultDiscoveryEndpointHandler>();
 
-        var serviceCollection = builder.ServiceCollection;
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                ICommandHandler<DiscoverMetadataCommand>,
-                DefaultDiscoverMetadataHandler
-            >()
-        );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<DiscoverMetadataCommand>,
+                    DefaultDiscoverMetadataHandler
+                >()
+            );
 
-        return builder;
+            return builder;
+        }
     }
 }

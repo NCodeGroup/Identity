@@ -142,6 +142,8 @@ NCode.Identity.Models.UriDescriptor.Scheme.get -> string!
 NCode.Identity.Models.UriDescriptor.Scheme.init -> void
 NCode.Identity.Models.UriDescriptor.UriDescriptor() -> void
 NCode.Identity.Results.HttpResultExtensions
+NCode.Identity.Results.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!)
+NCode.Identity.Results.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!).AsException(string? message = null) -> NCode.Identity.Exceptions.HttpResultException!
 NCode.Identity.Results.IResultExecutor<TResult>
 NCode.Identity.Results.IResultExecutor<TResult>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, TResult result, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Results.IResultProvider
@@ -218,7 +220,6 @@ override NCode.Identity.Settings.SettingDescriptor<TValue>.ValueType.get -> Syst
 static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.Handled() -> NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
 static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.Handled(Microsoft.AspNetCore.Http.IResult! httpResult) -> NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
 static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.UnHandled() -> NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
-static NCode.Identity.Results.HttpResultExtensions.AsException(this Microsoft.AspNetCore.Http.IResult! httpResult, string? message = null) -> NCode.Identity.Exceptions.HttpResultException!
 static NCode.Identity.Settings.SettingDescriptor<TValue>.implicit operator NCode.Identity.Settings.SettingKey<TValue>(NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> NCode.Identity.Settings.SettingKey<TValue>
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Create(TValue value) -> NCode.Identity.Settings.Setting<TValue>!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity.Settings.Setting<TValue>! setting) -> object!

@@ -30,25 +30,25 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <summary>
-    /// Configures services and handlers for the OpenId Continue endpoint.
-    /// </summary>
-    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationEndpoints"/>.</param>
-    /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-    public static IServiceBuilder<OpenIdAuthenticationEndpoints> AddContinueEndpoint(
-        this IServiceBuilder<OpenIdAuthenticationEndpoints> builder
-    )
+    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
     {
-        builder.AddEndpointProvider<DefaultContinueEndpointHandler>();
+        /// <summary>
+        /// Configures services and handlers for the OpenId Continue endpoint.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddContinueEndpoint()
+        {
+            builder.AddEndpointProvider<DefaultContinueEndpointHandler>();
 
-        var serviceCollection = builder.ServiceCollection;
+            var serviceCollection = builder.ServiceCollection;
 
-        serviceCollection.TryAddSingleton<IContinueService, DefaultContinueService>();
-        serviceCollection.TryAddSingleton<
-            IContinueProviderSelector,
-            DefaultContinueProviderSelector
-        >();
+            serviceCollection.TryAddSingleton<IContinueService, DefaultContinueService>();
+            serviceCollection.TryAddSingleton<
+                IContinueProviderSelector,
+                DefaultContinueProviderSelector
+            >();
 
-        return builder;
+            return builder;
+        }
     }
 }

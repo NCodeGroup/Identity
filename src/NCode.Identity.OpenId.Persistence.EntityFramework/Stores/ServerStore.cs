@@ -117,11 +117,11 @@ public class ServerStore(
 
     /// <inheritdoc />
     protected override async ValueTask<ServerEntity?> GetEntityOrDefaultAsync(
-        string serverId,
+        string resourceId,
         CancellationToken cancellationToken
     )
     {
-        var normalizedServerId = Normalize(serverId);
+        var normalizedServerId = Normalize(resourceId);
         return await GetEntityOrDefaultAsync(
             entity => entity.NormalizedServerId == normalizedServerId,
             cancellationToken

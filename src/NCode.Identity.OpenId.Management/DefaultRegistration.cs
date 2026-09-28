@@ -16,11 +16,8 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
@@ -45,21 +42,6 @@ public static class DefaultRegistration
             builder.AddEndpointProvider<ServerApiEndpointHandler>();
 
             return builder.NewBuilder<OpenIdManagementLibrary>();
-        }
-    }
-
-    extension(IServiceCollection services)
-    {
-        [PublicAPI]
-        public IServiceCollection AddAuthorizationHandler<
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler
-        >()
-            where THandler : class, IAuthorizationHandler
-        {
-            services.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IAuthorizationHandler, THandler>()
-            );
-            return services;
         }
     }
 }

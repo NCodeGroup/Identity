@@ -32,10 +32,10 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 [ExcludeFromCodeCoverage]
 public class ServerSecretsResource : ISupportServerId, ISupportConcurrencyToken
 {
-    /// <inheritdoc cref="PersistedServerSecrets.ServerId"/>
+    /// <inheritdoc cref="ISupportServerId.ServerId"/>
     public required string ServerId { get; init; }
 
-    /// <inheritdoc cref="PersistedServerSecrets.ConcurrencyToken"/>
+    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
 
     /// <summary>

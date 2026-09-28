@@ -59,7 +59,7 @@ public interface IReadOnlyParameterCollection : IEnumerable<IParameter>
     /// <param name="parameter">When this method returns, the <see cref="IParameter{T}"/> with the specified <paramref name="knownParameter"/>,
     /// if found; otherwise, <c>null</c>.</param>
     /// <typeparam name="T">The type of the parameter value.</typeparam>
-    /// <returns><c>true</c> if the <see cref="IParameter{T}"/> with the specified <see cref="knownParameter"/> was found; otherwise, <c>false</c>.</returns>
+    /// <returns><c>true</c> if the <see cref="IParameter{T}"/> with the specified <paramref name="knownParameter"/> was found; otherwise, <c>false</c>.</returns>
     bool TryGet<T>(
         KnownParameter<T> knownParameter,
         [MaybeNullWhen(false)] out IParameter<T> parameter

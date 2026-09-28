@@ -27,6 +27,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Mediator;
@@ -69,7 +70,7 @@ public class DefaultContinueEndpointHandler(
     {
         if (string.IsNullOrEmpty(state))
         {
-            Logger.LogInformation("Missing 'state' parameter.");
+            Logger.MissingStateParameter();
             return TypedResults.BadRequest();
         }
 
@@ -96,7 +97,7 @@ public class DefaultContinueEndpointHandler(
 
         if (!persistedGrantOrNull.HasValue)
         {
-            Logger.LogInformation("Invalid 'state' parameter.");
+            Logger.InvalidStateParameter();
             return TypedResults.BadRequest();
         }
 
@@ -121,7 +122,7 @@ public class DefaultContinueEndpointHandler(
             return EmptyHttpResult.Instance;
         }
 
-        Logger.LogError("The continue provider did not handle the request.");
+        Logger.ContinueProviderNotHandled();
         return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
     }
 }

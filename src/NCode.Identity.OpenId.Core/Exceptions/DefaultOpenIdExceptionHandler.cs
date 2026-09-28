@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Results;
 using NCode.Mediator;
 using NCode.Mediator.Middleware;
@@ -73,11 +74,7 @@ public class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandler
     private void LogException(HttpContext httpContext, Exception exception)
     {
         var requestToString = HttpContextDebugFormatter.RequestToString(httpContext.Request);
-        Logger.LogError(
-            exception,
-            "An unexpected error occurred while processing the request {DisplayName}",
-            requestToString
-        );
+        Logger.UnhandledException(exception, requestToString);
     }
 
     private static IResult CreateHttpResult(

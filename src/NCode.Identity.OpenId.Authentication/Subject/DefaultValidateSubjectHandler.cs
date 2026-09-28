@@ -22,6 +22,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -81,7 +82,7 @@ public class DefaultValidateSubjectHandler(
         {
             const string message = "The end-user's tenant does not match the current tenant.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
-            Logger.LogWarning(message);
+            Logger.SubjectValidationFailed(message);
             return ValueTask.CompletedTask;
         }
 
@@ -93,7 +94,7 @@ public class DefaultValidateSubjectHandler(
         {
             const string message = "The end-user is not authenticated.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
-            Logger.LogWarning(message);
+            Logger.SubjectValidationFailed(message);
             return ValueTask.CompletedTask;
         }
 
@@ -109,7 +110,7 @@ public class DefaultValidateSubjectHandler(
             const string message =
                 "The end-user's authentication time is too old from the request's MaxAge.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
-            Logger.LogWarning(message);
+            Logger.SubjectValidationFailed(message);
             return ValueTask.CompletedTask;
         }
 
@@ -120,7 +121,7 @@ public class DefaultValidateSubjectHandler(
             const string message =
                 "The end-user's authentication time is too old from the client's MaxAge.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
-            Logger.LogWarning(message);
+            Logger.SubjectValidationFailed(message);
             return ValueTask.CompletedTask;
         }
 
@@ -130,7 +131,7 @@ public class DefaultValidateSubjectHandler(
         {
             const string message = "The end-user's IdP does not match the requested IdP.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
-            Logger.LogWarning(message);
+            Logger.SubjectValidationFailed(message);
             return ValueTask.CompletedTask;
         }
 
@@ -140,7 +141,7 @@ public class DefaultValidateSubjectHandler(
             const string message =
                 "The end-user's IdP is not allowed according to the client's settings.";
             operationDisposition.Error ??= errorFactory.AccessDenied(message);
-            Logger.LogWarning(message);
+            Logger.SubjectValidationFailed(message);
             return ValueTask.CompletedTask;
         }
 

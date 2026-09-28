@@ -302,9 +302,25 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 
 - 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
   message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
-  component in a `Logging/Log.cs` partial class.
-- 👁 **Event IDs are named `const`s in `Logging/EventIds.cs`**, grouped by feature area in disjoint numeric ranges
-  (1xxx / 2xxx / 3xxx …) so an ID is stable and searchable — never a bare magic number at the call site.
+  package in a `Logging/Log.cs` `internal static partial class Log`, written as **extension methods on `ILogger`**
+  (`Logger.SubjectValidationFailed(reason)`), and mark the class `[ExcludeFromCodeCoverage]` (generated plumbing).
+- 👁 **A message template is a constant with named placeholders** (`"… {DisplayName}"`), never string interpolation or
+  concatenation; a value that also feeds an error/response is defined **once** (§6) and passed to the log method as a
+  structured argument.
+- 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`**, defined off a `private const int Base` as
+  `Base + n`, and referenced from the attribute (`EventId = EventIds.SubjectValidationFailed`) — never a bare magic
+  number at the call site.
+- 👁 **Each log-emitting package reserves a disjoint 1000-wide Event-ID band** in the registry below. An `EventId` only
+  has to be unique within an `ILogger<T>` category, but a family-wide band makes it **globally unique across packages**,
+  so an operator's log filter or alert keys on a stable number regardless of which assembly emitted it. IDs are
+  **append-only** — never renumber or reuse a shipped value (same discipline as enum members and the public API §2). A
+  new log-emitting package claims the next free band and **adds a row here**:
+
+  | Band | Package |
+  | --- | --- |
+  | `1000`–`1999` | `NCode.Identity.OpenId.Core` |
+  | `2000`–`2999` | `NCode.Identity.OpenId.Authentication` |
+
 
 ## 12. Configuration & options
 

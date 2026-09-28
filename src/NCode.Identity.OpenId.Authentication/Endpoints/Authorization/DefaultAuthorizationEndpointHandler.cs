@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
 using NCode.Identity.OpenId.Authentication.Settings;
@@ -178,7 +179,7 @@ public class DefaultAuthorizationEndpointHandler(
             return EmptyHttpResult.Instance;
         }
 
-        Logger.LogError("The authorization request was not handled.");
+        Logger.AuthorizationRequestNotHandled();
         return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
     }
 

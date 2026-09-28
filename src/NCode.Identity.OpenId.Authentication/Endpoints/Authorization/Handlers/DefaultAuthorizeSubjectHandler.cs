@@ -22,6 +22,7 @@ using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -67,7 +68,7 @@ public class DefaultAuthorizeSubjectHandler(ILogger<DefaultAuthorizeSubjectHandl
 
         if (promptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
         {
-            Logger.LogInformation("Client requested account creation.");
+            Logger.ClientRequestedAccountCreation();
             return ChallengeRequired();
         }
 
@@ -77,7 +78,7 @@ public class DefaultAuthorizeSubjectHandler(ILogger<DefaultAuthorizeSubjectHandl
 
         if (reAuthenticate)
         {
-            Logger.LogInformation("Client requested re-authentication.");
+            Logger.ClientRequestedReAuthentication();
             return ChallengeRequired();
         }
 

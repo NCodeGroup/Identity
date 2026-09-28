@@ -23,6 +23,7 @@ using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -161,7 +162,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         }
         catch (Exception exception)
         {
-            Logger.LogWarning(exception, "Failed to decode JWT");
+            Logger.FailedToDecodeJwt(exception);
             throw errorFactory.FailedToDecodeJwt(errorCode).WithException(exception).AsException();
         }
 
@@ -180,7 +181,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         }
         catch (Exception exception)
         {
-            Logger.LogWarning(exception, "Failed to deserialize JSON");
+            Logger.FailedToDeserializeJson(exception);
             throw errorFactory
                 .FailedToDeserializeJson(errorCode)
                 .WithException(exception)
@@ -236,7 +237,7 @@ public class DefaultLoadAuthorizationRequestHandler(
         }
         catch (Exception exception)
         {
-            Logger.LogWarning(exception, "Failed to fetch the request URI");
+            Logger.FailedToFetchRequestUri(exception);
             throw errorFactory
                 .InvalidRequestUri("Failed to fetch the request URI")
                 .WithException(exception)

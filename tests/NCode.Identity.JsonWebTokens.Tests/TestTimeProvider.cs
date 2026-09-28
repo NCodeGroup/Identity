@@ -19,14 +19,8 @@
 
 namespace NCode.Identity.JsonWebTokens;
 
-// A deterministic wall-clock TimeProvider: GetTimestamp() returns UTC ticks with a 1-tick-per-100ns
-// frequency, so GetTimestampWithPrecisionInSeconds() aligns with the DateTime.Ticks derived from
-// nbf/exp claims (unlike the system provider's monotonic Stopwatch counter).
+// A deterministic TimeProvider that pins the current time so JWT lifetime validation is reproducible.
 internal sealed class TestTimeProvider(DateTimeOffset utcNow) : TimeProvider
 {
     public override DateTimeOffset GetUtcNow() => utcNow;
-
-    public override long GetTimestamp() => utcNow.UtcDateTime.Ticks;
-
-    public override long TimestampFrequency => TimeSpan.TicksPerSecond;
 }

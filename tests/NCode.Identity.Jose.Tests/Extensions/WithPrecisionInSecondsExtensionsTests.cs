@@ -88,14 +88,9 @@ public class WithPrecisionInSecondsExtensionsTests : BaseTests
         var utcNow = DateTimeOffset.UtcNow;
         Assert.NotEqual(0.0, utcNow.Millisecond);
 
-        mockTimeProvider.Setup(x => x.GetTimestamp()).Returns(utcNow.Ticks).Verifiable();
+        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(utcNow).Verifiable();
 
-        mockTimeProvider
-            .SetupGet(x => x.TimestampFrequency)
-            .Returns(TimeSpan.TicksPerSecond)
-            .Verifiable();
-
-        var expected = utcNow.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond;
+        var expected = utcNow.UtcTicks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond;
         var timestampWithPrecisionInSeconds =
             mockTimeProvider.Object.GetTimestampWithPrecisionInSeconds();
         Assert.Equal(expected, timestampWithPrecisionInSeconds);
@@ -113,16 +108,13 @@ public class WithPrecisionInSecondsExtensionsTests : BaseTests
         var utcNow = DateTimeOffset.UtcNow;
         Assert.NotEqual(0.0, utcNow.Millisecond);
 
-        mockTimeProvider.Setup(x => x.GetTimestamp()).Returns(utcNow.Ticks).Verifiable();
-
-        mockTimeProvider
-            .SetupGet(x => x.TimestampFrequency)
-            .Returns(TimeSpan.TicksPerSecond)
-            .Verifiable();
+        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(utcNow).Verifiable();
 
         var utcNowWithPrecisionInSeconds =
             mockTimeProvider.Object.GetUtcNowWithPrecisionInSeconds();
         Assert.Equal(TimeSpan.Zero, utcNowWithPrecisionInSeconds.Offset);
         Assert.Equal(0.0, utcNowWithPrecisionInSeconds.Millisecond);
+        Assert.Equal(utcNow.Year, utcNowWithPrecisionInSeconds.Year);
+        Assert.Equal(utcNow.Second, utcNowWithPrecisionInSeconds.Second);
     }
 }

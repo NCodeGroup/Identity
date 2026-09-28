@@ -100,7 +100,7 @@ public sealed class EphemeralStaticSingleOpenIdTenantProvider(
         return ValueTask.FromResult(provider.AsSharedReference());
     }
 
-    private SecretKey CreateEphemeralSigningKey()
+    private RsaSecretKey CreateEphemeralSigningKey()
     {
         using var rsa = RSA.Create(2048);
 

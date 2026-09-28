@@ -31,28 +31,61 @@ using NCode.Registration;
 
 namespace NCode.Identity.Server;
 
+/// <summary>
+/// Provides a builder for configuring the NCode Identity Server and its constituent libraries.
+/// </summary>
 [PublicAPI]
 public interface IIdentityServerBuilder : IServiceBuilder<IdentityServer>
 {
+    /// <summary>
+    /// Gets the builder for configuring data protection services.
+    /// </summary>
     IDataProtectionBuilder DataProtectionBuilder { get; }
 
+    /// <summary>
+    /// Gets the builder for configuring the secrets library.
+    /// </summary>
     IServiceBuilder<SecretsLibrary> SecretsLibraryBuilder { get; }
 
+    /// <summary>
+    /// Gets the builder for configuring the secret persistence library.
+    /// </summary>
     IServiceBuilder<SecretPersistenceLibrary> SecretPersistenceLibraryBuilder { get; }
 
+    /// <summary>
+    /// Gets the builder for configuring the JOSE library.
+    /// </summary>
     IServiceBuilder<JoseLibrary> JoseLibraryBuilder { get; }
 
+    /// <summary>
+    /// Gets the builder for configuring the JSON Web Tokens library.
+    /// </summary>
     IServiceBuilder<JsonWebTokensLibrary> JsonWebTokensLibraryBuilder { get; }
 
+    /// <summary>
+    /// Gets the builder for configuring the identity library.
+    /// </summary>
     IServiceBuilder<IdentityLibrary> IdentityLibraryBuilder { get; }
 
+    /// <summary>
+    /// Gets the builder for configuring the OpenID core library.
+    /// </summary>
     IServiceBuilder<OpenIdCoreLibrary> OpenIdCoreLibraryBuilder { get; }
 
+    /// <summary>
+    /// Gets the builder for configuring the OpenID authentication library.
+    /// </summary>
     IServiceBuilder<OpenIdAuthenticationLibrary> OpenIdAuthenticationLibraryBuilder { get; }
 
+    /// <summary>
+    /// Gets the builder for configuring the OpenID management library.
+    /// </summary>
     IServiceBuilder<OpenIdManagementLibrary> OpenIdManagementLibraryBuilder { get; }
 }
 
+/// <summary>
+/// Provides the default implementation of <see cref="IIdentityServerBuilder"/>.
+/// </summary>
 public sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIdentityServerBuilder
 {
     /// <inheritdoc />
@@ -82,6 +115,10 @@ public sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, IIde
     /// <inheritdoc />
     public IServiceBuilder<OpenIdManagementLibrary> OpenIdManagementLibraryBuilder { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IdentityServerBuilder"/> class.
+    /// </summary>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     public IdentityServerBuilder(IServiceCollection serviceCollection)
         : base(serviceCollection)
     {

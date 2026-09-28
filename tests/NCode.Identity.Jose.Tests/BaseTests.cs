@@ -27,8 +27,10 @@ public class BaseTests : IAsyncDisposable
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
-    protected static DefaultSecretKeyFactory SecretKeyFactory { get; } =
-        new(new DefaultSecretKeyDataProtectorFactory(NullLoggerFactory.Instance));
+    protected static ISecretKeyFactory SecretKeyFactory { get; } =
+        new DefaultSecretKeyFactory(
+            new DefaultSecretKeyDataProtectorFactory(NullLoggerFactory.Instance)
+        );
 
     public async ValueTask DisposeAsync()
     {

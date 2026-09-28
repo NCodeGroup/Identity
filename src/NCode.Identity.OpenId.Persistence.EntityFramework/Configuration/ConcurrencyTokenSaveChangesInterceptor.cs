@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 /// <summary>
 /// Provides an interceptor to automatically generate a new value for <see cref="string"/> concurrency tokens.
 /// </summary>
-public class ConcurrencyTokenSaveChangesInterceptor : SaveChangesInterceptor
+internal class ConcurrencyTokenSaveChangesInterceptor : SaveChangesInterceptor
 {
     /// <inheritdoc />
     public override InterceptionResult<int> SavingChanges(

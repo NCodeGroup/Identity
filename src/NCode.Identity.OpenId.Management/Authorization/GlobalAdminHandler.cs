@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// <see cref="IAuthorizationRequirement"/> when the user is a member of the <see cref="BuiltInRoles.GlobalAdmin"/> role.
 /// This handler provides a global bypass for administrators across all authorization requirements.
 /// </summary>
-public class GlobalAdminHandler : AuthorizationHandler<IAuthorizationRequirement>
+internal class GlobalAdminHandler : AuthorizationHandler<IAuthorizationRequirement>
 {
     /// <inheritdoc />
     protected override Task HandleRequirementAsync(

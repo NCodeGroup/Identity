@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// Provides a default implementation of <see cref="ITenantStore"/> that uses Entity Framework Core for persistence.
 /// </summary>
 [PublicAPI]
-public class TenantStore(
+internal class TenantStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
     OpenIdDbContext openIdDbContext

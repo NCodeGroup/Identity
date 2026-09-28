@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -26,7 +26,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 /// <summary>
 /// Provides a convention to use <see cref="IdValueGenerator"/> for properties marked with <see cref="UseIdGeneratorAttribute"/>.
 /// </summary>
-public class UseIdGeneratorConvention(IdValueGenerator idValueGenerator) : IPropertyAddedConvention
+internal class UseIdGeneratorConvention(IdValueGenerator idValueGenerator)
+    : IPropertyAddedConvention
 {
     private IdValueGenerator IdValueGenerator { get; } = idValueGenerator;
 

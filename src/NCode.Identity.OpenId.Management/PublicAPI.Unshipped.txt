@@ -1,17 +1,10 @@
 #nullable enable
-abstract NCode.Identity.OpenId.Management.Endpoints.BaseApiEndpointHandler.AuthorizationService.get -> Microsoft.AspNetCore.Authorization.IAuthorizationService!
 const NCode.Identity.OpenId.Management.BuiltInRoles.GlobalAdmin = "GlobalAdmin" -> string!
 const NCode.Identity.OpenId.Management.BuiltInRoles.TenantAdmin = "TenantAdmin" -> string!
-NCode.Identity.OpenId.Management.Authorization.GlobalAdminHandler
-NCode.Identity.OpenId.Management.Authorization.GlobalAdminHandler.GlobalAdminHandler() -> void
-NCode.Identity.OpenId.Management.Authorization.TenantAdminHandler
-NCode.Identity.OpenId.Management.Authorization.TenantAdminHandler.TenantAdminHandler() -> void
 NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
-NCode.Identity.OpenId.Management.Endpoints.BaseApiEndpointHandler
-NCode.Identity.OpenId.Management.Endpoints.BaseApiEndpointHandler.BaseApiEndpointHandler() -> void
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Algorithm.init -> void
@@ -30,9 +23,6 @@ NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretType.get
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretType.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Use.get -> string?
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Use.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerApiEndpointHandler
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerApiEndpointHandler.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerApiEndpointHandler.ServerApiEndpointHandler(NCode.Persistence.Stores.IStoreManagerFactory! storeManagerFactory, Microsoft.AspNetCore.Authorization.IAuthorizationService! authorizationService) -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ConcurrencyToken.init -> void
@@ -63,12 +53,7 @@ NCode.Identity.OpenId.Management.Operations
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddAuthorizationHandler<THandler>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-override NCode.Identity.OpenId.Management.Authorization.GlobalAdminHandler.HandleRequirementAsync(Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext! context, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! requirement) -> System.Threading.Tasks.Task!
-override NCode.Identity.OpenId.Management.Authorization.TenantAdminHandler.HandleRequirementAsync(Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext! context, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! requirement, NCode.Identity.OpenId.Persistence.ISupportTenantId! resource) -> System.Threading.Tasks.Task!
-override NCode.Identity.OpenId.Management.Endpoints.Servers.ServerApiEndpointHandler.AuthorizationService.get -> Microsoft.AspNetCore.Authorization.IAuthorizationService!
 static NCode.Identity.OpenId.Management.Operations.Create.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Delete.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Read.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Update.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
-virtual NCode.Identity.OpenId.Management.Endpoints.BaseApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, TResponse>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
-virtual NCode.Identity.OpenId.Management.Endpoints.BaseApiEndpointHandler.ProcessGetAsync<TValue>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>

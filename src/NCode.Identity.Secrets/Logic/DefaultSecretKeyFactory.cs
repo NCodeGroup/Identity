@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -30,7 +30,7 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecretKeyFactory"/> abstraction.
 /// </summary>
-public class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProtectorFactory)
+internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProtectorFactory)
     : ISecretKeyFactory
 {
     private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();

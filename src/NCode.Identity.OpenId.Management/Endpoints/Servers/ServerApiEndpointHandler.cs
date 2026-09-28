@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -51,7 +51,7 @@ GET api/tenants/{tenantId}/secrets
 /// <summary>
 /// Provides the API endpoints for managing an OpenID Server, including its settings and secrets.
 /// </summary>
-public class ServerApiEndpointHandler(
+internal class ServerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService
 ) : BaseApiEndpointHandler, IEndpointProvider

@@ -22,7 +22,7 @@ namespace NCode.Identity.Secrets.Keys;
 /// <summary>
 /// Provides an <see cref="SecretKey"/> implementation that is empty.
 /// </summary>
-public sealed class EmptySecretKey : SecretKey
+internal sealed class EmptySecretKey : SecretKey
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="EmptySecretKey"/>.

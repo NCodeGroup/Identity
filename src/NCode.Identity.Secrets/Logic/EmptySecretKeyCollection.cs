@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,7 +28,7 @@ namespace NCode.Identity.Secrets.Logic;
 /// Provides an <see cref="ISecretKeyCollection"/> implementation that is empty.
 /// </summary>
 [PublicAPI]
-public sealed class EmptySecretKeyCollection : ISecretKeyCollection
+internal sealed class EmptySecretKeyCollection : ISecretKeyCollection
 {
     /// <summary>
     /// Gets a singleton instance of <see cref="EmptySecretKeyCollection"/>.

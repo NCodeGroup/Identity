@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2026 NCode Group
 //
@@ -48,7 +48,7 @@ namespace NCode.Identity.Secrets.Logic;
 /// <item><description>You want to avoid the complexity of managing persistent data protection key storage.</description></item>
 /// </list>
 /// </remarks>
-public class DefaultSecretKeyDataProtectorFactory(ILoggerFactory loggerFactory)
+internal class DefaultSecretKeyDataProtectorFactory(ILoggerFactory loggerFactory)
     : DataProtectorFactory<SecretKey>(new EphemeralDataProtectionProvider(loggerFactory))
 {
     // nothing

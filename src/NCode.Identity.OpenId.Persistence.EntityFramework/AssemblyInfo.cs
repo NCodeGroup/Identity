@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,16 +16,7 @@
 
 #endregion
 
-using JetBrains.Annotations;
+using System.Runtime.CompilerServices;
 
-namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
-
-/// <summary>
-/// Specifies that a property or field should use <see cref="IdValueGenerator"/> for generating identifier values.
-/// </summary>
-[PublicAPI]
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-internal sealed class UseIdGeneratorAttribute : Attribute
-{
-    // nothing
-}
+[assembly: InternalsVisibleTo("NCode.Identity.OpenId.Persistence.EntityFramework.Tests")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

@@ -28,7 +28,7 @@ namespace NCode.Identity.Secrets.Keys;
 /// <summary>
 /// Provides a default implementation of the <see cref="RsaSecretKey"/> abstraction.
 /// </summary>
-public class DefaultRsaSecretKey(
+internal class DefaultRsaSecretKey(
     IDataProtector dataProtector,
     KeyMetadata metadata,
     int modulusSizeBits,

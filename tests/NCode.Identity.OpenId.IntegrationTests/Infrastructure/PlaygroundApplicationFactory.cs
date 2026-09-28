@@ -48,7 +48,7 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Resolve the content root to the Playground project so its appsettings.json is loaded.
-        builder.UseSolutionRelativeContentRoot("NCode.Identity.OpenId.Playground");
+        builder.UseSolutionRelativeContentRoot("src/NCode.Identity.OpenId.Playground");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
 
         builder.ConfigureTestServices(services =>

@@ -43,6 +43,12 @@ rationale.
   is banned** — always restructure so the compiler proves non-null (`?? throw`, `[MemberNotNullWhen]`, an
   `is { } local` pattern, early-out narrowing) instead of asserting it. Even though the analyzer accepts a `// !`
   justification comment, **do not use that escape hatch**: eliminate the `!`, never annotate it.
+- ✅ **`Debug.Assert` is for internal invariants only — never to validate untrusted or external input.** It is
+  compiled out in Release (`DEBUG`-gated), so any check written as an assertion silently disappears in shipped
+  builds. Validating a parsed/decoded value (e.g. a `TryDecode`/`TryParse` result on caller- or wire-supplied data)
+  with `Debug.Assert` is a security bug: the malformed value is accepted in Release. Use an explicit `if (!ok) throw`
+  for anything derived from input; reserve `Debug.Assert` for facts the surrounding code already guarantees (a buffer
+  length you just allocated, an unreachable `default` branch).
 - 👁 Prefer **auto-properties over fields** for state (static or instance). Use a field only when a property genuinely
   cannot express it (a `ref`/`Interlocked`/`fixed`/`stackalloc` target).
 - 👁 Use **primary constructors** except where they can't work (for example when one member's initializer must

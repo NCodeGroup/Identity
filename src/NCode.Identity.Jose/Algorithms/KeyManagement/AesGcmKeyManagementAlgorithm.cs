@@ -181,10 +181,11 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             throw new JoseException("The 'iv' field in the JWT header has an invalid size.");
         }
 
+        bool ivDecoded;
+        int ivBytesWritten;
         try
         {
-            var ivResult = Base64Url.TryDecode(ivString, iv, out var ivBytesWritten);
-            Debug.Assert(ivResult && ivBytesWritten == IvSizeBytes);
+            ivDecoded = Base64Url.TryDecode(ivString, iv, out ivBytesWritten);
         }
         catch (Exception exception)
         {
@@ -192,6 +193,11 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
                 "Failed to deserialize the 'iv' field from the JWT header.",
                 exception
             );
+        }
+
+        if (!ivDecoded || ivBytesWritten != IvSizeBytes)
+        {
+            throw new JoseException("Failed to deserialize the 'iv' field from the JWT header.");
         }
 
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Tag, out var tagString))
@@ -205,10 +211,11 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             throw new JoseException("The 'tag' field in the JWT header has an invalid size.");
         }
 
+        bool tagDecoded;
+        int tagBytesWritten;
         try
         {
-            var tagResult = Base64Url.TryDecode(tagString, tag, out var tagBytesWritten);
-            Debug.Assert(tagResult && tagBytesWritten == TagSizeBytes);
+            tagDecoded = Base64Url.TryDecode(tagString, tag, out tagBytesWritten);
         }
         catch (Exception exception)
         {
@@ -216,6 +223,11 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
                 "Failed to deserialize the 'tag' field from the JWT header.",
                 exception
             );
+        }
+
+        if (!tagDecoded || tagBytesWritten != TagSizeBytes)
+        {
+            throw new JoseException("Failed to deserialize the 'tag' field from the JWT header.");
         }
     }
 }

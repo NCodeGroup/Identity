@@ -91,6 +91,13 @@ rationale.
 - 👁 Data / options / context / event types are `sealed`, with `init` / get-only members and **concrete, buffered**
   collections (`List<T>`, not `IList<T>`) — AOT-friendly, cheap to re-enumerate, free of deferred-execution surprises.
   Interfaces appear only for a replaceable DI seam or a read-only slice.
+- 👁 **Prefer a `readonly record struct` for a small, immutable value-like type** — an id, key, command, or disposition,
+  the established shape across the family (`SettingKey<T>`, `UriDescriptor`, the `*Command` / `*Disposition` types) — so
+  value equality and immutability come for free. Reach for a `class` / `record class` only for reference identity or a
+  larger/mutable payload.
+- 👁 **A JSON-deserialized DTO captures unknown fields** with a
+  `[JsonExtensionData] public Dictionary<string, JsonElement>? ExtensionData { get; set; }` member, so an unrecognized
+  wire member round-trips instead of being silently dropped.
 - 👁 **Buffer by default; stream deliberately.** Reach for a lazy `IEnumerable<T>` / `IAsyncEnumerable<T>` only when the
   sequence is genuinely large/unbounded, I/O-backed, or usually short-circuited. Never return a deferred sequence that
   **captures request/ambient context** (it goes stale off-request — see §7), and never hand back as lazy a sequence a
@@ -121,6 +128,10 @@ rationale.
 - 👁 **Required inputs are constructor parameters; optional inputs are `init` properties.** Never add an optional value
   as a new constructor parameter — once shipped that is a binary-breaking signature change. Add it as an `init`
   property, model "unspecified" as nullable, and resolve the default **inside the library**.
+- 👁 **Annotate a reflection-/DI-/serializer-consumed public type with `[PublicAPI]`** (JetBrains.Annotations) — the
+  house pattern across the packages. Members touched only by the JSON serializer, the options binder, or the DI
+  container have no in-repo call site, so the unused-member analyzers flag them; `[PublicAPI]` states the intent and
+  silences the noise without a null-forgiving or pragma escape hatch.
 
 ## 3. File & code organization
 
@@ -196,6 +207,9 @@ Drawn from _Clean Code_ (R. C. Martin) and _Refactoring_ (Fowler / Beck). All �
 - **Comments justify _why_, never restate _what_.** No commented-out code (Git remembers).
 - **Primitive Obsession** — model a concept that carries invariants as a type, not a bare `string`/`bool`/`int`.
 - **Law of Demeter** — talk to immediate collaborators; avoid `a.B().C().D()` chains and Feature Envy.
+- **Dispose what you own.** A local `IDisposable` / `IAsyncDisposable` gets a `using` / `await using` **declaration**
+  (`using var x = …;`, not a nested block) unless ownership is deliberately transferred to a type that will dispose it.
+  Never leave a `HttpResponseMessage`, `Stream`, `JsonDocument`, or `IHttpClientFactory`-created client undisposed.
 
 ## 7. Testability & unit-test-friendliness
 
@@ -250,3 +264,15 @@ This is an open-source project. A change starts as a GitHub issue describing the
 change (semantics, public surface, validation/security posture) should reach agreement on the issue — and be recorded
 as an ADR under [`docs/adr/`](../../docs/adr/) — before the pull request. Bug fixes, patches, and small changes go
 straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHANGELOG.md) under `## [Unreleased]`.
+
+## 10. XML documentation
+
+- 👁 **New or changed API carries XML doc.** Any type or member you add — or whose signature/behavior you change — gets
+  a `///` doc comment. Pre-existing undocumented code is grandfathered: do **not** add doc comments to code you are not
+  otherwise touching, but when you rename or update a member, add or update its doc to match.
+- 👁 **Prefer a substantive `<summary>`** that explains purpose, behavior, and context over a terse one-liner, and use
+  `<param>` / `<returns>` / `<remarks>` where they add clarity.
+- 👁 **A `<summary>` tag is multi-line** — the opening tag, content, and closing tag on separate lines, even for a short
+  summary; never collapse them onto one line.
+- 👁 **A property summary follows the Microsoft convention** — open with **"Gets or sets"**, **"Gets"**, or **"Sets"**
+  according to its accessors.

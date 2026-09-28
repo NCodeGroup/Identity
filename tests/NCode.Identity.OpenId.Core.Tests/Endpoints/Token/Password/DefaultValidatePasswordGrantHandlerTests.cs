@@ -56,9 +56,6 @@ public class DefaultValidatePasswordGrantHandlerTests : BaseTests
 
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
 
-        // ClientId is only read inside a Debug.Assert, which is compiled out in Release; not .Verifiable().
-        mockTokenRequest.SetupGet(x => x.ClientId).Returns((string?)null);
-
         var command = new ValidateTokenGrantCommand<PasswordGrant>(
             mockContext.Object,
             mockClient.Object,

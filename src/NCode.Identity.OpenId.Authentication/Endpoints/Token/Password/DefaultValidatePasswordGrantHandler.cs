@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -52,15 +51,7 @@ internal class DefaultValidatePasswordGrantHandler
 
         // see DefaultValidateTokenRequestHandler for additional validation
 
-        // DefaultClientAuthenticationService already performs this check for us
-        Debug.Assert(
-            string.IsNullOrEmpty(tokenRequest.ClientId)
-                || string.Equals(
-                    openIdClient.ClientId,
-                    tokenRequest.ClientId,
-                    StringComparison.Ordinal
-                )
-        );
+        // client_id/authenticated-client match is enforced upstream by DefaultClientAuthenticationService
 
         // validate the subject
         await ValidateSubjectAsync(

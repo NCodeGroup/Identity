@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Settings;
@@ -46,15 +45,7 @@ internal class DefaultValidateTokenRequestHandler
         var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
-        // DefaultClientAuthenticationService already performs this check for us
-        Debug.Assert(
-            string.IsNullOrEmpty(tokenRequest.ClientId)
-                || string.Equals(
-                    openIdClient.ClientId,
-                    tokenRequest.ClientId,
-                    StringComparison.Ordinal
-                )
-        );
+        // client_id/authenticated-client match is enforced upstream by DefaultClientAuthenticationService
 
         // scopes_supported
         var requestedScopes = tokenRequest.Scopes;

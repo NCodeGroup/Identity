@@ -19,6 +19,6 @@
 
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Tests.Mediator.Examples;
+namespace NCode.Identity.OpenId.Core.Tests.Mediator.Examples;
 
-public record ExampleCommand : ICommand;
+internal sealed record ExampleCommand : ICommand;

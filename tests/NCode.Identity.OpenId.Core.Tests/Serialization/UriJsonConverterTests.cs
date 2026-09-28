@@ -21,7 +21,7 @@ using System.Text.Json;
 using NCode.Identity.OpenId.Serialization;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Serialization;
+namespace NCode.Identity.OpenId.Core.Tests.Serialization;
 
 public class UriJsonConverterTests
 {

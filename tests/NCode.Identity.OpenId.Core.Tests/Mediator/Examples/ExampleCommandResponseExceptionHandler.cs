@@ -20,7 +20,7 @@
 using NCode.Mediator;
 using NCode.Mediator.Middleware;
 
-namespace NCode.Identity.OpenId.Tests.Mediator.Examples;
+namespace NCode.Identity.OpenId.Core.Tests.Mediator.Examples;
 
 internal interface IExampleCommandResponseExceptionHandler<TResponse>
     : ICommandResponseExceptionHandler<ICommand<TResponse>, Exception, TResponse>

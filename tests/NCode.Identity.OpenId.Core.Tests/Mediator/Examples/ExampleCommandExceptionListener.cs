@@ -19,7 +19,7 @@
 
 using NCode.Mediator.Middleware;
 
-namespace NCode.Identity.OpenId.Tests.Mediator.Examples;
+namespace NCode.Identity.OpenId.Core.Tests.Mediator.Examples;
 
 internal interface IExampleCommandExceptionListener : ICommandExceptionListener<object, Exception>
 {

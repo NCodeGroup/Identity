@@ -25,7 +25,7 @@ namespace NCode.Identity.Models;
 /// The initial value is <c>false</c> and consumers can call the <see cref="SetActive"/> method to indicate that the result is active.
 /// </summary>
 [PublicAPI]
-public class NegativeIsActiveResult : IsActiveResult
+public sealed class NegativeIsActiveResult : IsActiveResult
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="NegativeIsActiveResult"/> class

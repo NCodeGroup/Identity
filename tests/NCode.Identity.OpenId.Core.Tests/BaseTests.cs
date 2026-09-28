@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -17,7 +17,7 @@
 
 using Moq;
 
-namespace NCode.Identity.OpenId.Tests;
+namespace NCode.Identity.OpenId.Core.Tests;
 
 public class BaseTests : IDisposable
 {

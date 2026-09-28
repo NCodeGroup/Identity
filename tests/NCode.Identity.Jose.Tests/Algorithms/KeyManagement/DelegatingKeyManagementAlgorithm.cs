@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -24,9 +24,10 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Jose.Tests.Algorithms.KeyManagement;
+namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
-public class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner) : KeyManagementAlgorithm
+internal sealed class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm inner)
+    : KeyManagementAlgorithm
 {
     private KeyManagementAlgorithm Inner { get; } = inner;
 

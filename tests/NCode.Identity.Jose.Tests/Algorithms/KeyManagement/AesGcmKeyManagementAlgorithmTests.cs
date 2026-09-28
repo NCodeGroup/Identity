@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,7 +28,7 @@ using NCode.Identity.Secrets.Keys;
 using Base64Url = NCode.Encoders.Base64Url;
 using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
 
-namespace NCode.Jose.Tests.Algorithms.KeyManagement;
+namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
 public class AesGcmKeyManagementAlgorithmTests : BaseTests
 {

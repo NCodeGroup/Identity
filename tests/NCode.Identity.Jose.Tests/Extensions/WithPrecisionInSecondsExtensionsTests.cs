@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -18,7 +18,7 @@
 
 using NCode.Identity.Jose.Extensions;
 
-namespace NCode.Jose.Tests.Extensions;
+namespace NCode.Identity.Jose.Tests.Extensions;
 
 public class WithPrecisionInSecondsExtensionsTests : BaseTests
 {

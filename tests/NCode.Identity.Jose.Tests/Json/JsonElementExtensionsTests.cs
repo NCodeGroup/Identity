@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -20,7 +20,7 @@
 using System.Text.Json;
 using NCode.Identity.Jose.Extensions;
 
-namespace NCode.Jose.Tests.Json;
+namespace NCode.Identity.Jose.Tests.Json;
 
 public class JsonElementExtensionsTests
 {

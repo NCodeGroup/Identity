@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -20,7 +20,7 @@ using Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 
-namespace NCode.Jose.Tests.Algorithms.AuthenticatedEncryption;
+namespace NCode.Identity.Jose.Tests.Algorithms.AuthenticatedEncryption;
 
 public class AesCbcHmacAuthenticatedEncryptionAlgorithmTests
 {

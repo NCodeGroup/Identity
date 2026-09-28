@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -23,7 +23,7 @@ using NCode.Identity.Jose.Algorithms.Signature;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Jose.Tests.Algorithms.Signature;
+namespace NCode.Identity.Jose.Tests.Algorithms.Signature;
 
 public class EccSignatureAlgorithmTests : BaseTests
 {

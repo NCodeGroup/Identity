@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2023 NCode Group
 //
@@ -25,7 +25,7 @@ namespace NCode.Identity.Endpoints;
 /// Indicates the disposition of an operation.
 /// </summary>
 [PublicAPI]
-public class OperationDisposition<TError>
+public sealed class OperationDisposition<TError>
 {
     /// <summary>
     /// Gets or sets the error that occurred during the operation.

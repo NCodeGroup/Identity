@@ -15,7 +15,7 @@
 //    limitations under the License.
 #endregion
 
-namespace NCode.Identity.OpenId.Tests.Messages;
+namespace NCode.Identity.OpenId.Core.Tests.Messages;
 
 internal interface ITestNestedObject
 {

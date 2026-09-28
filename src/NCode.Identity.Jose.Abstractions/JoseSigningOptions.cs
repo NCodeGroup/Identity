@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -27,7 +27,8 @@ namespace NCode.Identity.Jose;
 /// </summary>
 /// <param name="signingCredentials">The <see cref="JoseSigningCredentials"/> that are used to sign the JWS token.</param>
 [PublicAPI]
-public class JoseSigningOptions(JoseSigningCredentials signingCredentials) : JoseEncodingOptions
+public sealed class JoseSigningOptions(JoseSigningCredentials signingCredentials)
+    : JoseEncodingOptions
 {
     /// <inheritdoc />
     public override JoseCredentials Credentials => SigningCredentials;

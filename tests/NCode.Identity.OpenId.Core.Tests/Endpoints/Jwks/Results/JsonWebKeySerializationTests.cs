@@ -20,7 +20,7 @@ using System.Text.Json;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Endpoints.Jwks.Results;
+namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Jwks.Results;
 
 public class JsonWebKeySerializationTests
 {

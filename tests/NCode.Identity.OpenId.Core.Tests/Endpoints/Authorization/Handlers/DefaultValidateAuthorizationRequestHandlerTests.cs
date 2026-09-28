@@ -26,7 +26,7 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.Settings;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Endpoints.Authorization.Handlers;
+namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Handlers;
 
 public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 {

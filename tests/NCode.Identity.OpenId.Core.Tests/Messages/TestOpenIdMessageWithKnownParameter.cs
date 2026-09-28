@@ -21,7 +21,7 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 
-namespace NCode.Identity.OpenId.Tests.Messages;
+namespace NCode.Identity.OpenId.Core.Tests.Messages;
 
 internal class TestOpenIdMessageWithKnownParameter
     : OpenIdMessage<TestOpenIdMessageWithKnownParameter>

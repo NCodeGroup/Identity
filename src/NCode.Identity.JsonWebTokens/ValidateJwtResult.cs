@@ -28,7 +28,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// Contains the result after a Json Web Token (JWT) has been validation.
 /// </summary>
 [PublicAPI]
-public class ValidateJwtResult
+public sealed class ValidateJwtResult
 {
     /// <summary>
     /// Factory method to create a <see cref="ValidateJwtResult"/> instance that represents a failed JWT validation result.

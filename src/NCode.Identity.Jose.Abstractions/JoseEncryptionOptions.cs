@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -27,7 +27,7 @@ namespace NCode.Identity.Jose;
 /// </summary>
 /// <param name="encryptionCredentials">The <see cref="JoseEncryptionCredentials"/> that are used to encrypt the JWE token.</param>
 [PublicAPI]
-public class JoseEncryptionOptions(JoseEncryptionCredentials encryptionCredentials)
+public sealed class JoseEncryptionOptions(JoseEncryptionCredentials encryptionCredentials)
     : JoseEncodingOptions
 {
     /// <inheritdoc />

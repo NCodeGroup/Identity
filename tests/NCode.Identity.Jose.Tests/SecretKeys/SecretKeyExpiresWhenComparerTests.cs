@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -22,7 +22,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
 
-namespace NCode.Jose.Tests.SecretKeys;
+namespace NCode.Identity.Jose.Tests.SecretKeys;
 
 public class SecretKeyExpiresWhenComparerTests : BaseTests
 {

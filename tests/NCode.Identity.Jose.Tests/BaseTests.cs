@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -21,7 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Secrets.Logic;
 
-namespace NCode.Jose.Tests;
+namespace NCode.Identity.Jose.Tests;
 
 public class BaseTests : IAsyncDisposable
 {

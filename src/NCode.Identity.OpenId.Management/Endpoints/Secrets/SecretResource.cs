@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class SecretResource
+public sealed class SecretResource
 {
     /// <inheritdoc cref="PersistedSecret.SecretId"/>
     public required string SecretId { get; init; }

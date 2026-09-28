@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -24,7 +24,7 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
 
-namespace NCode.Identity.OpenId.Tests.Messages.Parsers;
+namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 
 internal delegate IParameter CreateParameterDelegate(
     OpenIdEnvironment openIdEnvironment,

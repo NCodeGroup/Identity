@@ -21,7 +21,7 @@ using Moq;
 using NCode.Identity.OpenId.Messages.Parameters;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Messages.Parameters;
+namespace NCode.Identity.OpenId.Core.Tests.Messages.Parameters;
 
 public class CompositeParameterCollectionTests : BaseTests
 {

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -25,7 +25,7 @@ using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Jose.Tests.Algorithms.KeyManagement;
+namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
 internal class DummyCommonKeyManagementAlgorithm(KeyManagementAlgorithm inner)
     : CommonKeyManagementAlgorithm

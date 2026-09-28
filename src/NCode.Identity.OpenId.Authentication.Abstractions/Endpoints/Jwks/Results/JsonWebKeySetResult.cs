@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 /// </remarks>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517#section-5">RFC 7517 Section 5</seealso>
 [PublicAPI]
-public class JsonWebKeySetResult
+public sealed class JsonWebKeySetResult
 {
     /// <summary>
     /// Gets or sets the collection of <see cref="JsonWebKey"/> instances that make up the key set.

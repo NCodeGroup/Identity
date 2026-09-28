@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -21,7 +21,7 @@ using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Messages.Parameters;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests.Messages.Parameters;
+namespace NCode.Identity.OpenId.Core.Tests.Messages.Parameters;
 
 public class DefaultCommonParameterDataSourceTests : BaseTests
 {

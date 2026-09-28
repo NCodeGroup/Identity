@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -21,7 +21,7 @@ using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
 
-namespace NCode.Jose.Tests.Algorithms.KeyManagement;
+namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
 public class CommonKeyManagementAlgorithmTests : BaseTests
 {

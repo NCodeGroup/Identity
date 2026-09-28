@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Results;
 /// </summary>
 /// <param name="response">The <see cref="IOpenIdResponse"/> that contains information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.</param>
 [PublicAPI]
-public class OpenIdResult<T>(T response) : IResult
+public sealed class OpenIdResult<T>(T response) : IResult
     where T : class, IOpenIdResponse
 {
     /// <summary>

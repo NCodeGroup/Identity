@@ -19,7 +19,7 @@
 
 using Xunit;
 
-namespace NCode.Identity.OpenId.Tests;
+namespace NCode.Identity.OpenId.Core.Tests;
 
 public class OpenIdCoreLibraryTests
 {

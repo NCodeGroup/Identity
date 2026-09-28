@@ -17,7 +17,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -60,12 +59,9 @@ public interface IAuthorizationEndpointLogic
 /// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationEndpointLogic"/> abstraction.
 /// </summary>
-public class DefaultAuthorizationEndpointLogic(
-    ILogger<DefaultAuthorizationEndpointLogic> logger,
-    IContinueService continueService
-) : IAuthorizationEndpointLogic
+public class DefaultAuthorizationEndpointLogic(IContinueService continueService)
+    : IAuthorizationEndpointLogic
 {
-    private ILogger<DefaultAuthorizationEndpointLogic> Logger { get; } = logger;
     private IContinueService ContinueService { get; } = continueService;
 
     /// <inheritdoc />

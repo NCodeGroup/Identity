@@ -38,7 +38,7 @@ public class DefaultSecretKeyCollectionProvider
     public static DefaultSecretKeyCollectionProvider Create(
         ISecretKeyCollectionFactory factory,
         ICollectionDataSource<SecretKey> dataSource,
-        bool owns = true
+        bool owns
     ) => new(factory, dataSource, owns);
 
     /// <summary>
@@ -47,7 +47,7 @@ public class DefaultSecretKeyCollectionProvider
     public static DefaultSecretKeyCollectionProvider Create(
         ISecretKeyCollectionFactory factory,
         IEnumerable<ICollectionDataSource<SecretKey>> dataSources,
-        bool owns = false
+        bool owns
     ) => new(factory, dataSources, owns);
 
     // private so that the other ctor is used for DI

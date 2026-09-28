@@ -42,13 +42,10 @@ partial class DefaultJsonWebTokenService
             {
                 TokenType = parameters.TokenType,
                 AddKeyIdHeader = parameters.AddKeyIdHeader,
+                ExtraHeaders = parameters.ExtraSignatureHeaderClaims,
             };
 
-            encodedToken = JoseSerializer.Encode(
-                valueToEncode,
-                signingOptions,
-                extraHeaders: parameters.ExtraSignatureHeaderClaims
-            );
+            encodedToken = JoseSerializer.CreateEncoder(signingOptions).Encode(valueToEncode);
 
             // for the possibility of a nested token
             valueToEncode = encodedToken;
@@ -60,13 +57,10 @@ partial class DefaultJsonWebTokenService
             {
                 TokenType = parameters.TokenType,
                 AddKeyIdHeader = parameters.AddKeyIdHeader,
+                ExtraHeaders = parameters.ExtraEncryptionHeaderClaims,
             };
 
-            encodedToken = JoseSerializer.Encode(
-                valueToEncode,
-                encryptingOptions,
-                extraHeaders: parameters.ExtraEncryptionHeaderClaims
-            );
+            encodedToken = JoseSerializer.CreateEncoder(encryptingOptions).Encode(valueToEncode);
         }
 
         if (encodedToken == null)

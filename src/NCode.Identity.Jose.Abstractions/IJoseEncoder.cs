@@ -18,14 +18,15 @@
 #endregion
 
 using System.Buffers;
-using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.Jose;
 
 /// <summary>
-/// Provides an abstraction to encode a JOSE token.
+/// Provides an abstraction to encode a JOSE token. An instance is created from a
+/// <see cref="JoseEncodingOptions"/> (via <see cref="IJoseSerializer.CreateEncoder(JoseSigningOptions)"/> or
+/// <see cref="IJoseSerializer.CreateEncoder(JoseEncryptionOptions)"/>) and carries all the credentials and options
+/// needed to encode, so the <c>Encode</c> methods only require the payload and an optional destination.
 /// </summary>
 [PublicAPI]
 public abstract class JoseEncoder
@@ -35,100 +36,56 @@ public abstract class JoseEncoder
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JOSE token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    public abstract void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    );
+    public abstract void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload);
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <typeparam name="T">The type of the payload to encode.</typeparam>
     /// <returns>The encoded JOSE token.</returns>
-    public abstract string Encode<T>(
-        T payload,
-        JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    );
+    public abstract string Encode<T>(T payload);
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JOSE token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="jsonOptions">The options to control JSON serialization behavior.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <typeparam name="T">The type of the payload to encode.</typeparam>
-    public abstract void Encode<T>(
-        IBufferWriter<char> tokenWriter,
-        T payload,
-        JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    );
+    public abstract void Encode<T>(IBufferWriter<char> tokenWriter, T payload);
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="signingCredentials">The JOSE signing credentials.</param>
-    /// <param name="signingOptions">The JOSE signing options.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encoded JOSE token.</returns>
-    public abstract string Encode(
-        string payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    );
+    public abstract string Encode(string payload);
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JOSE token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    public abstract void Encode(
-        IBufferWriter<char> tokenWriter,
-        string payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    );
+    public abstract void Encode(IBufferWriter<char> tokenWriter, string payload);
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encoded JOSE token.</returns>
-    public abstract string Encode(
-        ReadOnlySpan<char> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    );
+    public abstract string Encode(ReadOnlySpan<char> payload);
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JOSE token.</param>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
-    public abstract void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<char> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    );
+    public abstract void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<char> payload);
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
-    /// <param name="extraHeaders">Any additional headers in include in the JOSE header.</param>
     /// <returns>The encoded JOSE token.</returns>
-    public abstract string Encode(
-        ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    );
+    public abstract string Encode(ReadOnlySpan<byte> payload);
 }

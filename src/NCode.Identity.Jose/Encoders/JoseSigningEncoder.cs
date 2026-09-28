@@ -30,6 +30,9 @@ public class JoseSigningEncoder : CommonJoseEncoder
 {
     private JoseSigningOptions SigningOptions { get; }
 
+    /// <inheritdoc />
+    protected override JoseEncodingOptions EncodingOptions => SigningOptions;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="JoseSigningEncoder"/> class with the specified signing credentials and options.
     /// </summary>
@@ -42,9 +45,6 @@ public class JoseSigningEncoder : CommonJoseEncoder
     }
 
     /// <inheritdoc />
-    public override void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    ) => JoseSerializer.Encode(tokenWriter, payload, SigningOptions, extraHeaders);
+    public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload) =>
+        JoseSerializer.Encode(tokenWriter, payload, SigningOptions);
 }

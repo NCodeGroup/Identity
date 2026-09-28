@@ -61,115 +61,13 @@ partial class JoseSerializer
     public JoseEncoder CreateEncoder(JoseEncryptionOptions encryptionOptions) =>
         new JoseEncryptionEncoder(this, encryptionOptions);
 
-    /// <inheritdoc />
-    public string Encode<T>(
-        T payload,
-        JoseEncryptionOptions encryptionOptions,
-        JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-
-        using var _ = SerializeToUtf8(payload, jsonOptions, out var payloadBytes);
-
-        Encode(tokenBuffer, payloadBytes, encryptionOptions, extraHeaders);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public void Encode<T>(
-        IBufferWriter<char> tokenWriter,
-        T payload,
-        JoseEncryptionOptions encryptionOptions,
-        JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var _ = SerializeToUtf8(payload, jsonOptions, out var payloadBytes);
-
-        Encode(tokenWriter, payloadBytes, encryptionOptions, extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public void Encode(
-        IBufferWriter<char> tokenWriter,
-        string payload,
-        JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        Encode(tokenWriter, payload.AsSpan(), encryptionOptions, extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public string Encode(
-        string payload,
-        JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        return Encode(payload.AsSpan(), encryptionOptions, extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<char> payload,
-        JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var payloadLease = BufferFactory.Rent(
-            byteCount,
-            isSensitive: false,
-            out Span<byte> payloadBytes
-        );
-
-        var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
-        Debug.Assert(bytesWritten == byteCount);
-
-        Encode(tokenWriter, payloadBytes, encryptionOptions, extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public string Encode(
-        ReadOnlySpan<char> payload,
-        JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-
-        Encode(tokenBuffer, payload, encryptionOptions, extraHeaders);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public string Encode(
-        ReadOnlySpan<byte> payload,
-        JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-
-        Encode(tokenBuffer, payload, encryptionOptions, extraHeaders);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public void Encode(
+    internal void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        JoseEncryptionOptions encryptionOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+        JoseEncryptionOptions encryptionOptions
     )
     {
+        var extraHeaders = encryptionOptions.ExtraHeaders;
         var header =
             extraHeaders != null
                 ? new Dictionary<string, object>(extraHeaders)

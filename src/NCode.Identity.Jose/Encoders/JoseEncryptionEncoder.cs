@@ -30,6 +30,9 @@ public class JoseEncryptionEncoder : CommonJoseEncoder
 {
     private JoseEncryptionOptions EncryptionOptions { get; }
 
+    /// <inheritdoc />
+    protected override JoseEncodingOptions EncodingOptions => EncryptionOptions;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="JoseEncryptionEncoder"/> class with the specified encryption credentials and options.
     /// </summary>
@@ -45,9 +48,6 @@ public class JoseEncryptionEncoder : CommonJoseEncoder
     }
 
     /// <inheritdoc />
-    public override void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    ) => JoseSerializer.Encode(tokenWriter, payload, EncryptionOptions, extraHeaders);
+    public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload) =>
+        JoseSerializer.Encode(tokenWriter, payload, EncryptionOptions);
 }

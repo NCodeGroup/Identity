@@ -51,8 +51,14 @@ rationale.
   length you just allocated, an unreachable `default` branch).
 - 👁 Prefer **auto-properties over fields** for state (static or instance). Use a field only when a property genuinely
   cannot express it (a `ref`/`Interlocked`/`fixed`/`stackalloc` target).
-- 👁 Use **primary constructors** except where they can't work (for example when one member's initializer must
-  reference another instance member).
+- 👁 Use **primary constructors** wherever possible — including converting existing single-purpose constructors.
+  When a constructor's body only assigns its parameters to members, hoist the parameters onto the type declaration
+  and feed them directly into get-only / `init` auto-properties (`public Foo Bar { get; } = bar;`); delete the now-empty
+  constructor and move its `<param>` doc tags onto the **type**. Keep a traditional constructor only when a primary one
+  genuinely can't express the intent — a member initializer that must reference **another** instance member, multiple
+  public constructors, or constructor-body logic that can't be reduced to member initializers (buffering a collection
+  with `[.. param]` or a guard folded into an initializer is fine; branching, loops, or `out`/`ref` work is not).
+
 - 👁 Put constants / statics / `static readonly` at the **top** of the file or class, before instance members.
 
 ## 2. Public API discipline

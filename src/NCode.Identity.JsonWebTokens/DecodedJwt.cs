@@ -9,13 +9,16 @@ namespace NCode.Identity.JsonWebTokens;
 /// <summary>
 /// Represents a Json Web Token (JWT) that has been successfully decoded.
 /// </summary>
+/// <param name="compactJwt">The Json Web Token (JWT) that was parsed in compact form.</param>
+/// <param name="payload">The deserialized payload from the Json Web Token (JWT).</param>
+/// <param name="secretKey">The <see cref="SecretKey"/> that was used to successfully decode the Json Web Token (JWT).</param>
 [PublicAPI]
-public class DecodedJwt
+public class DecodedJwt(CompactJwt compactJwt, JsonElement payload, SecretKey secretKey)
 {
     /// <summary>
     /// Gets the Json Web Token (JWT) that was parsed in compact form.
     /// </summary>
-    private CompactJwt CompactJwt { get; }
+    private CompactJwt CompactJwt { get; } = compactJwt;
 
     /// <summary>
     /// Gets the original Json Web Token (JWT) value that was successfully decoded.
@@ -33,23 +36,10 @@ public class DecodedJwt
     /// <summary>
     /// Gets the deserialized payload from the Json Web Token (JWT).
     /// </summary>
-    public JsonElement Payload { get; }
+    public JsonElement Payload { get; } = payload;
 
     /// <summary>
     /// Gets the <see cref="SecretKey"/> that was used to successfully decode the Json Web Token (JWT).
     /// </summary>
-    public SecretKey SecretKey { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DecodedJwt"/> class.
-    /// </summary>
-    /// <param name="compactJwt">The Json Web Token (JWT) that was parsed in compact form.</param>
-    /// <param name="payload">The deserialized payload from the Json Web Token (JWT).</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> that was used to successfully decode the Json Web Token (JWT).</param>
-    public DecodedJwt(CompactJwt compactJwt, JsonElement payload, SecretKey secretKey)
-    {
-        CompactJwt = compactJwt;
-        Payload = payload;
-        SecretKey = secretKey;
-    }
+    public SecretKey SecretKey { get; } = secretKey;
 }
